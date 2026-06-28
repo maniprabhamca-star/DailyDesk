@@ -54,8 +54,11 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`DailyDesk API running on port ${PORT}`);
+// Bind to loopback only — the API is reached via the nginx reverse proxy,
+// never directly from the public internet.
+const HOST = process.env.HOST || '127.0.0.1';
+app.listen(PORT, HOST, () => {
+  console.log(`DailyDesk API running on ${HOST}:${PORT}`);
 });
 
 module.exports = app;
