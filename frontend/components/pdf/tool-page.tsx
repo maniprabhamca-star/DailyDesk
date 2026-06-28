@@ -1,0 +1,104 @@
+import Link from 'next/link';
+import { LayoutGrid, ShieldCheck, ChevronDown } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+
+export type Faq = { q: string; a: string };
+
+export function PdfToolPage({
+  title,
+  description,
+  steps,
+  faqs,
+  children,
+}: {
+  title: string;
+  description: string;
+  steps: string[];
+  faqs: Faq[];
+  children: React.ReactNode;
+}) {
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'SoftwareApplication',
+        name: `${title} — DailyDesk`,
+        applicationCategory: 'BusinessApplication',
+        operatingSystem: 'Web',
+        offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+        description,
+      },
+      {
+        '@type': 'FAQPage',
+        mainEntity: faqs.map((f) => ({
+          '@type': 'Question',
+          name: f.q,
+          acceptedAnswer: { '@type': 'Answer', text: f.a },
+        })),
+      },
+    ],
+  };
+
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+
+      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-5xl items-center gap-4 px-4 sm:px-6">
+          <Link href="/" className="flex items-center gap-2.5">
+            <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground"><LayoutGrid className="size-[18px]" /></span>
+            <span className="text-lg font-semibold tracking-tight">DailyDesk</span>
+          </Link>
+          <Link href="/#tools" className="ml-auto text-sm font-medium text-foreground/80 hover:text-foreground">All tools</Link>
+          <Button asChild size="sm"><Link href="/register">Get started</Link></Button>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
+        <div className="text-center">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-600">
+            <ShieldCheck className="size-3.5" /> Your files never leave your browser
+          </span>
+          <h1 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">{title}</h1>
+          <p className="mx-auto mt-3 max-w-xl text-muted-foreground">{description}</p>
+        </div>
+
+        <div className="mt-8">{children}</div>
+
+        <section className="mt-14">
+          <h2 className="text-xl font-bold tracking-tight">How it works</h2>
+          <ol className="mt-4 grid gap-3 sm:grid-cols-3">
+            {steps.map((s, i) => (
+              <li key={i} className="rounded-xl border bg-card p-4 shadow-soft">
+                <span className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">{i + 1}</span>
+                <p className="mt-2 text-sm text-muted-foreground">{s}</p>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        <section className="mt-14">
+          <h2 className="text-xl font-bold tracking-tight">Frequently asked questions</h2>
+          <div className="mt-4 divide-y rounded-xl border bg-card">
+            {faqs.map((f, i) => (
+              <details key={i} className="group p-4">
+                <summary className="flex cursor-pointer list-none items-center justify-between font-medium">
+                  {f.q}
+                  <ChevronDown className="size-4 text-muted-foreground transition-transform group-open:rotate-180" />
+                </summary>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{f.a}</p>
+              </details>
+            ))}
+          </div>
+        </section>
+      </main>
+
+      <footer className="border-t py-8">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 text-sm text-muted-foreground sm:px-6">
+          <span className="flex items-center gap-2"><span className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground"><LayoutGrid className="size-3.5" /></span> DailyDesk</span>
+          <span className="text-xs">© {new Date().getFullYear()} DailyDesk</span>
+        </div>
+      </footer>
+    </div>
+  );
+}
