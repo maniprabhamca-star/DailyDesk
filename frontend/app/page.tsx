@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { toolGroups, allTools, type Tool } from '@/components/app/tools-config';
+import { AllToolsDirectory } from '@/components/home/all-tools-directory';
 
 function openCommand() {
   window.dispatchEvent(new Event('dd-command-open'));
@@ -292,6 +293,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* All tools directory */}
+      <AllToolsDirectory />
 
       {/* Footer */}
       <footer className="border-t bg-muted/20">
