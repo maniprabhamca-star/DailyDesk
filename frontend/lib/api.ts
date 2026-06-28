@@ -1,4 +1,6 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+// Empty default = same-origin: requests go to /api/... and nginx proxies them
+// to the backend. Override with NEXT_PUBLIC_API_URL for split-origin setups.
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 async function apiFetch(path: string, options: RequestInit = {}) {
   const token = typeof window !== 'undefined' ? localStorage.getItem('dd_token') : null;

@@ -59,8 +59,11 @@ export default function Home() {
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <Button asChild size="sm" className="hidden sm:inline-flex">
-              <Link href="/tools/qr-code">Open the app</Link>
+            <Button asChild size="sm" variant="ghost" className="hidden sm:inline-flex">
+              <Link href="/login">Log in</Link>
+            </Button>
+            <Button asChild size="sm">
+              <Link href="/register">Get started</Link>
             </Button>
           </div>
         </div>

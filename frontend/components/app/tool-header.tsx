@@ -1,5 +1,6 @@
 import { LayoutGrid } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { HeaderUser } from '@/components/app/header-user';
 
 export function ToolHeader({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
@@ -15,9 +16,7 @@ export function ToolHeader({ title, subtitle }: { title: string; subtitle?: stri
       </div>
       <div className="flex items-center gap-2">
         <ThemeToggle />
-        <span className="flex size-9 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground">
-          M
-        </span>
+        <HeaderUser />
       </div>
     </header>
   );
