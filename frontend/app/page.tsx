@@ -4,7 +4,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
-  LayoutGrid, ChevronDown, Search, ArrowRight, Zap, ShieldCheck, Smartphone, Check, FileText, QrCode, ImageIcon, Key,
+  LayoutGrid, ChevronDown, Search, ArrowRight, Zap, ShieldCheck, Smartphone, Check,
+  FileText, QrCode, ImageIcon, Key, NotebookPen, BadgeCheck, Lock, Layers,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
@@ -46,6 +47,29 @@ function ToolCard({ t }: { t: Tool }) {
   );
   return t.available ? <Link href={t.href} className="h-full">{inner}</Link> : <div className="h-full cursor-not-allowed">{inner}</div>;
 }
+
+const categories = [
+  { name: 'PDF Tools', tagline: 'Merge, split, compress, convert & more', featured: 'Merge PDF', href: '/merge-pdf', from: '#dc2626', to: '#ef4444', icon: FileText, live: true },
+  { name: 'Generators', tagline: 'QR codes & secure passwords', featured: 'QR generator', href: '/tools/qr-code', from: '#4f46e5', to: '#7c3aed', icon: QrCode, live: true },
+  { name: 'Image Tools', tagline: 'Compress images & remove backgrounds', featured: 'Coming soon', href: '#tools', from: '#0284c7', to: '#0ea5e9', icon: ImageIcon, live: false },
+  { name: 'Workspace', tagline: 'Notes, habits, budget, vault & bio', featured: 'Coming soon', href: '#tools', from: '#d97706', to: '#f59e0b', icon: NotebookPen, live: false },
+];
+
+const why = [
+  { icon: ShieldCheck, title: 'Files never leave your browser', body: 'Core tools run 100% on your device — nothing is uploaded to any server.' },
+  { icon: Zap, title: 'Instant, even offline', body: 'Processing happens locally, so it’s fast and works without a connection.' },
+  { icon: BadgeCheck, title: 'Free, no signup', body: 'Use the core tools free — no account, no watermark, no catch.' },
+  { icon: Smartphone, title: 'Every device', body: 'A premium experience on desktop and mobile. Native apps on the way.' },
+  { icon: Lock, title: 'Encrypted when saved', body: 'Optional saved files use AES-256 encryption — only you hold the key.' },
+  { icon: Layers, title: 'All-in-one', body: 'PDF, images, notes, habits and more — one private workspace.' },
+];
+
+const stats = [
+  { v: '10+', l: 'Tools and growing' },
+  { v: '0', l: 'Files uploaded' },
+  { v: '100%', l: 'In your browser' },
+  { v: '$0', l: 'To get started' },
+];
 
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -95,7 +119,7 @@ export default function Home() {
               </>
             )}
           </div>
-          <Link href="/#pricing" className="hidden text-sm font-medium text-foreground/80 hover:text-foreground sm:block">Pricing</Link>
+          <Link href="#pricing" className="hidden text-sm font-medium text-foreground/80 hover:text-foreground sm:block">Pricing</Link>
           <div className="ml-auto flex items-center gap-2">
             <ThemeToggle />
             <Button asChild size="sm" variant="ghost" className="hidden sm:inline-flex"><Link href="/login">Log in</Link></Button>
@@ -107,7 +131,6 @@ export default function Home() {
       {/* Bento hero */}
       <section className="mx-auto max-w-6xl px-4 pt-6 sm:px-6">
         <div className="grid auto-rows-[120px] grid-cols-2 gap-3 md:grid-cols-4">
-          {/* Hero tile */}
           <div className="relative col-span-2 row-span-2 flex flex-col justify-between overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-violet-600 p-6 text-white">
             <div className="pointer-events-none absolute -right-10 -top-12 size-40 rounded-full bg-white/10" />
             <span className="w-fit rounded-full bg-white/20 px-3 py-1 text-xs font-medium">10 tools · one workspace</span>
@@ -125,7 +148,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* PDF tile — stacked pages */}
           <div className="flex flex-col rounded-2xl border border-red-200/60 bg-gradient-to-br from-red-50 to-background p-3 dark:border-red-900/40">
             <div className="relative flex-1">
               <div className="absolute left-[18px] top-2 bottom-1 right-1 rotate-[7deg] rounded-md border border-red-200/70 bg-card" />
@@ -137,7 +159,6 @@ export default function Home() {
             <div className="mt-2 flex items-center gap-1.5"><span className="flex size-5 items-center justify-center rounded-md bg-red-100 text-red-600"><FileText className="size-3" /></span><span className="text-xs font-semibold text-red-900 dark:text-red-300">PDF · 30+ tools</span></div>
           </div>
 
-          {/* QR tile — real code */}
           <Link href="/tools/qr-code" className="flex flex-col rounded-2xl border border-indigo-200/60 bg-gradient-to-br from-indigo-50 to-background p-3 transition hover:-translate-y-0.5 dark:border-indigo-900/40">
             <div className="flex flex-1 items-center justify-center">
               <div className="rounded-lg border bg-white p-1.5 shadow-soft">
@@ -150,7 +171,6 @@ export default function Home() {
             <div className="mt-2 flex items-center gap-1.5"><span className="flex size-5 items-center justify-center rounded-md bg-indigo-100 text-indigo-600"><QrCode className="size-3" /></span><span className="text-xs font-semibold text-indigo-900 dark:text-indigo-300">QR generator</span></div>
           </Link>
 
-          {/* Image tile — before/after */}
           <div className="flex flex-col rounded-2xl border border-sky-200/60 bg-gradient-to-br from-sky-50 to-background p-3 dark:border-sky-900/40">
             <div className="flex flex-1 flex-col gap-1 rounded-lg border bg-card p-1.5 shadow-soft">
               <div className="flex-1 rounded bg-gradient-to-br from-blue-400 to-violet-400" />
@@ -159,7 +179,6 @@ export default function Home() {
             <div className="mt-2 flex items-center gap-1.5"><span className="flex size-5 items-center justify-center rounded-md bg-sky-100 text-sky-600"><ImageIcon className="size-3" /></span><span className="text-xs font-semibold text-sky-900 dark:text-sky-300">Image · −83%</span></div>
           </div>
 
-          {/* Password tile */}
           <Link href="/tools/password" className="flex flex-col rounded-2xl border border-emerald-200/60 bg-gradient-to-br from-emerald-50 to-background p-3 transition hover:-translate-y-0.5 dark:border-emerald-900/40">
             <div className="flex flex-1 flex-col justify-center gap-2 rounded-lg border bg-card p-2 shadow-soft">
               <span className="font-mono text-xs tracking-wide text-foreground">sCk^L&lt;8+e</span>
@@ -170,8 +189,35 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Category tiles */}
+      <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+        <Reveal className="mb-5"><h2 className="text-xl font-bold tracking-tight">Pick a category</h2></Reveal>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {categories.map((c, i) => {
+            const Icon = c.icon;
+            return (
+              <Reveal key={c.name} delay={i}>
+                <Link href={c.href} className="group flex h-full flex-col justify-between overflow-hidden rounded-2xl p-5 text-white shadow-card transition-transform hover:-translate-y-1" style={{ backgroundImage: `linear-gradient(150deg, ${c.from}, ${c.to})` }}>
+                  <div className="flex items-start justify-between">
+                    <span className="flex size-11 items-center justify-center rounded-xl bg-white/20"><Icon className="size-5" /></span>
+                    {!c.live && <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-medium">Soon</span>}
+                  </div>
+                  <div className="mt-8">
+                    <p className="text-lg font-semibold">{c.name}</p>
+                    <p className="mt-0.5 text-sm text-white/85">{c.tagline}</p>
+                    <p className="mt-3 flex items-center gap-1 text-sm font-medium">
+                      {c.live ? <>Try {c.featured} <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" /></> : 'Coming soon'}
+                    </p>
+                  </div>
+                </Link>
+              </Reveal>
+            );
+          })}
+        </div>
+      </section>
+
       {/* Browse all tools */}
-      <section id="tools" className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+      <section id="tools" className="mx-auto max-w-6xl px-4 pb-12 sm:px-6">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-xl font-bold tracking-tight">Browse all tools</h2>
           <div className="flex gap-2">
@@ -187,27 +233,41 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Features */}
+      {/* Why DailyDesk */}
       <section className="border-y bg-muted/30 py-16">
-        <div className="mx-auto grid max-w-6xl gap-6 px-4 sm:px-6 md:grid-cols-3">
-          {[
-            { icon: Zap, title: 'Blazing fast', body: 'Most tools run entirely in your browser — no uploads, no waiting.' },
-            { icon: ShieldCheck, title: 'Private by design', body: 'Your files stay on your device for client-side tools.' },
-            { icon: Smartphone, title: 'Works everywhere', body: 'A premium experience on desktop and mobile, native apps on the way.' },
-          ].map((f, i) => (
-            <Reveal key={f.title} delay={i}>
-              <div className="flex h-full flex-col gap-3 rounded-2xl border bg-card p-6 shadow-soft">
-                <span className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary"><f.icon className="size-5" /></span>
-                <h3 className="text-lg font-semibold">{f.title}</h3>
-                <p className="text-sm leading-relaxed text-muted-foreground">{f.body}</p>
-              </div>
-            </Reveal>
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <Reveal className="mb-8 text-center">
+            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Why DailyDesk</h2>
+            <p className="mt-2 text-muted-foreground">Built private, fast, and free — without the catch.</p>
+          </Reveal>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {why.map((w, i) => (
+              <Reveal key={w.title} delay={i % 3}>
+                <div className="flex h-full flex-col gap-3 rounded-2xl border bg-card p-6 shadow-soft">
+                  <span className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary"><w.icon className="size-5" /></span>
+                  <h3 className="text-base font-semibold">{w.title}</h3>
+                  <p className="text-sm leading-relaxed text-muted-foreground">{w.body}</p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Stats band */}
+      <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
+        <div className="grid grid-cols-2 gap-6 rounded-2xl border bg-card p-8 shadow-soft sm:grid-cols-4">
+          {stats.map((s) => (
+            <div key={s.l} className="text-center">
+              <p className="text-3xl font-bold text-primary sm:text-4xl">{s.v}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{s.l}</p>
+            </div>
           ))}
         </div>
       </section>
 
       {/* Pricing */}
-      <section id="pricing" className="mx-auto max-w-4xl px-4 py-16 sm:px-6">
+      <section id="pricing" className="mx-auto max-w-4xl px-4 pb-16 sm:px-6">
         <Reveal className="mb-10 text-center">
           <h2 className="text-2xl font-bold tracking-tight">Simple pricing</h2>
           <p className="mt-2 text-muted-foreground">Start free. Upgrade when you need more.</p>
@@ -233,10 +293,44 @@ export default function Home() {
         </div>
       </section>
 
-      <footer className="border-t py-8">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 text-sm text-muted-foreground sm:flex-row sm:px-6">
-          <div className="flex items-center gap-2"><span className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground"><LayoutGrid className="size-3.5" /></span> DailyDesk</div>
-          <p className="text-xs">© {new Date().getFullYear()} DailyDesk. Private preview.</p>
+      {/* Footer */}
+      <footer className="border-t bg-muted/20">
+        <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <div className="flex items-center gap-2"><span className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground"><LayoutGrid className="size-4" /></span><span className="font-semibold">DailyDesk</span></div>
+              <p className="mt-3 text-sm text-muted-foreground">The private, all-in-one toolkit. Your files never leave your device.</p>
+              <p className="mt-4 text-xs text-muted-foreground">iOS & Android apps — coming soon</p>
+            </div>
+            <div>
+              <p className="text-sm font-semibold">Tools</p>
+              <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+                <li><Link href="/merge-pdf" className="hover:text-foreground">Merge PDF</Link></li>
+                <li><Link href="/tools/qr-code" className="hover:text-foreground">QR generator</Link></li>
+                <li><Link href="/tools/password" className="hover:text-foreground">Password generator</Link></li>
+                <li><Link href="#tools" className="hover:text-foreground">All tools</Link></li>
+              </ul>
+            </div>
+            <div>
+              <p className="text-sm font-semibold">Product</p>
+              <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+                <li><Link href="#pricing" className="hover:text-foreground">Pricing</Link></li>
+                <li><Link href="/register" className="hover:text-foreground">Get started</Link></li>
+                <li><Link href="/login" className="hover:text-foreground">Log in</Link></li>
+              </ul>
+            </div>
+            <div>
+              <p className="text-sm font-semibold">Legal</p>
+              <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+                <li><Link href="#" className="hover:text-foreground">Privacy</Link></li>
+                <li><Link href="#" className="hover:text-foreground">Terms</Link></li>
+              </ul>
+            </div>
+          </div>
+          <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t pt-6 text-xs text-muted-foreground sm:flex-row">
+            <p>© {new Date().getFullYear()} DailyDesk. Private preview.</p>
+            <p className="flex items-center gap-1.5"><ShieldCheck className="size-3.5 text-emerald-600" /> Files never leave your browser</p>
+          </div>
         </div>
       </footer>
     </div>
