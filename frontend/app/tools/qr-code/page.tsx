@@ -27,6 +27,10 @@ async function renderToCanvas(
     width: opts.size,
     color: { dark: opts.fg, light: opts.bg },
   });
+  // qrcode lib injects inline width/height px on the canvas; clear them so the
+  // responsive CSS (full width, height:auto) keeps the preview square.
+  canvas.style.removeProperty('width');
+  canvas.style.removeProperty('height');
   if (!logo) return;
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
