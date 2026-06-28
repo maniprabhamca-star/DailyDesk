@@ -31,7 +31,7 @@ export const toolGroups: ToolGroup[] = [
       { id: 'pdf', name: 'PDF workspace', href: '/tools/pdf', icon: FileText, available: false },
       { id: 'image-compress', name: 'Image compress', href: '/tools/image-compress', icon: ImageIcon, available: false },
       { id: 'bg-remover', name: 'Background remover', href: '/tools/bg-remover', icon: Eraser, available: false },
-      { id: 'password', name: 'Password generator', href: '/tools/password', icon: KeyRound, available: false },
+      { id: 'password', name: 'Password generator', href: '/tools/password', icon: KeyRound, available: true },
     ],
   },
   {
