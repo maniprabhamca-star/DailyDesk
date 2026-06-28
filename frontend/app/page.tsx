@@ -8,13 +8,26 @@ export default function Home() {
         </p>
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-sm text-gray-500">
           {[
-            'PDF Workspace', 'QR Generator', 'Image Compressor',
-            'Background Remover', 'Password Generator',
-          ].map((tool) => (
-            <div key={tool} className="bg-white rounded-lg shadow-sm p-3 border border-indigo-100">
-              {tool}
-            </div>
-          ))}
+            { name: 'PDF Workspace', href: null },
+            { name: 'QR Generator', href: '/tools/qr-code' },
+            { name: 'Image Compressor', href: null },
+            { name: 'Background Remover', href: null },
+            { name: 'Password Generator', href: null },
+          ].map((tool) =>
+            tool.href ? (
+              <a
+                key={tool.name}
+                href={tool.href}
+                className="bg-white rounded-lg shadow-sm p-3 border border-indigo-200 text-indigo-600 font-medium hover:border-indigo-400 hover:shadow transition"
+              >
+                {tool.name}
+              </a>
+            ) : (
+              <div key={tool.name} className="bg-white rounded-lg shadow-sm p-3 border border-indigo-100">
+                {tool.name}
+              </div>
+            )
+          )}
         </div>
       </div>
     </main>
