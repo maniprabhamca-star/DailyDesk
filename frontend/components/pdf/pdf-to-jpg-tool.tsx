@@ -1,7 +1,7 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import { Upload, FileText, X, Download, Loader2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Upload, FileText, X, Download, Loader2, ImageIcon, FileImage, CheckCircle2, RotateCcw, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { parseRanges } from '@/components/pdf/split-tool';
@@ -10,9 +10,13 @@ type Format = 'jpg' | 'png';
 type Quality = 'high' | 'medium' | 'low';
 type Resolution = 'standard' | 'high';
 
-const QUALITY: Record<Quality, number> = { high: 0.92, medium: 0.8, low: 0.6 };
-const SCALE: Record<Resolution, number> = { standard: 2, high: 3 };
-const MAX_DIM = 5000; // clamp very large pages to keep canvas/memory safe
+const QUALITY: Record<Quality, number> = { high: 0.95, medium: 0.82, low: 0.65 };
+// DPI-based rendering. A PDF's native space is 72 DPI, so scale = targetDPI / 72.
+// 150 DPI is crisp for screen/sharing; 300 DPI is true print quality.
+const DPI: Record<Resolution, number> = { standard: 150, high: 300 };
+const MAX_DIM = 6000; // clamp very large pages to keep canvas/memory safe (Letter@300dpi = 2550×3300)
+
+type Result = { name: string; blob: Blob; url: string; page: number };
 
 function fmt(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -36,16 +40,65 @@ function download(blob: Blob, name: string) {
   URL.revokeObjectURL(url);
 }
 
+// A selectable option card (premium radio-style tile).
+function OptionCard({
+  active,
+  onClick,
+  icon: Icon,
+  title,
+  desc,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: typeof ImageIcon;
+  title: string;
+  desc: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`flex items-start gap-3 rounded-xl border p-3 text-left transition-all ${
+        active
+          ? 'border-primary bg-primary/5 ring-1 ring-primary'
+          : 'border-border bg-card hover:border-primary/40 hover:bg-accent/40'
+      }`}
+    >
+      <span
+        className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${
+          active ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+        }`}
+      >
+        <Icon className="size-[18px]" />
+      </span>
+      <span className="min-w-0">
+        <span className="block text-sm font-semibold">{title}</span>
+        <span className="block text-xs text-muted-foreground">{desc}</span>
+      </span>
+    </button>
+  );
+}
+
 export function PdfToJpgTool() {
   const [file, setFile] = useState<File | null>(null);
   const [pageCount, setPageCount] = useState(0);
   const [format, setFormat] = useState<Format>('jpg');
   const [quality, setQuality] = useState<Quality>('high');
-  const [resolution, setResolution] = useState<Resolution>('standard');
+  const [resolution, setResolution] = useState<Resolution>('high');
   const [ranges, setRanges] = useState('');
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [results, setResults] = useState<Result[]>([]);
+  const [skipped, setSkipped] = useState<number[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Revoke any object URLs we created for thumbnails when they change or on unmount.
+  function revoke(rs: Result[]) {
+    rs.forEach((r) => URL.revokeObjectURL(r.url));
+  }
+  useEffect(() => () => revoke(results), [results]);
 
   async function pick(files: FileList | null) {
     const f = files?.[0];
@@ -55,6 +108,8 @@ export function PdfToJpgTool() {
       return;
     }
     setError(null);
+    setResults((prev) => { revoke(prev); return []; });
+    setSkipped([]);
     setBusy(true);
     try {
       const { PDFDocument } = await import('pdf-lib'); // light: page count only
@@ -71,10 +126,18 @@ export function PdfToJpgTool() {
   }
 
   function clear() {
+    setResults((prev) => { revoke(prev); return []; });
     setFile(null);
     setPageCount(0);
     setRanges('');
+    setSkipped([]);
     setError(null);
+    setProgress(null);
+  }
+
+  function startOver() {
+    // Keep settings, clear the file + results so the user can convert another PDF.
+    clear();
   }
 
   async function run() {
@@ -84,6 +147,8 @@ export function PdfToJpgTool() {
     }
     setBusy(true);
     setError(null);
+    setSkipped([]);
+    setResults((prev) => { revoke(prev); return []; });
     try {
       const pdfjs = await import('pdfjs-dist'); // heavy engine — load only on convert
       const data = await file.arrayBuffer();
@@ -98,55 +163,134 @@ export function PdfToJpgTool() {
         const q = format === 'png' ? undefined : QUALITY[quality];
         const base = file.name.replace(/\.pdf$/i, '');
         const pad = String(total).length;
-        const results: { name: string; blob: Blob }[] = [];
+        const out: Result[] = [];
+        const fails: number[] = [];
+        setProgress({ done: 0, total: pages.length });
 
         for (const n of pages) {
-          const page = await doc.getPage(n);
-          let s = SCALE[resolution];
-          let viewport = page.getViewport({ scale: s });
-          const longEdge = Math.max(viewport.width, viewport.height);
-          if (longEdge > MAX_DIM) {
-            s = (s * MAX_DIM) / longEdge; // clamp huge pages
-            viewport = page.getViewport({ scale: s });
+          try {
+            const page = await doc.getPage(n);
+            let s = DPI[resolution] / 72; // scale from target DPI
+            let viewport = page.getViewport({ scale: s });
+            const longEdge = Math.max(viewport.width, viewport.height);
+            if (longEdge > MAX_DIM) {
+              s = (s * MAX_DIM) / longEdge; // clamp huge pages
+              viewport = page.getViewport({ scale: s });
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.ceil(viewport.width);
+            canvas.height = Math.ceil(viewport.height);
+            const ctx = canvas.getContext('2d');
+            if (!ctx) throw new Error('no-canvas');
+            // Paint a white background first. Without this, transparent areas of the page become
+            // BLACK in JPEG output (JPEG has no alpha), making documents unreadable.
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            await page.render({ canvasContext: ctx, viewport, background: 'rgba(255,255,255,1)' }).promise;
+            const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, mime, q));
+            canvas.width = 0;
+            canvas.height = 0; // free memory between pages
+            if (!blob) throw new Error('no-blob');
+            out.push({
+              name: `${base}-page-${String(n).padStart(pad, '0')}.${format}`,
+              blob,
+              url: URL.createObjectURL(blob),
+              page: n,
+            });
+          } catch {
+            fails.push(n);
           }
-          const canvas = document.createElement('canvas');
-          canvas.width = Math.ceil(viewport.width);
-          canvas.height = Math.ceil(viewport.height);
-          const ctx = canvas.getContext('2d');
-          if (!ctx) throw new Error('Could not get a canvas to render onto.');
-          // Paint a white background first. Without this, transparent areas of the page become
-          // BLACK in JPEG output (JPEG has no alpha), making documents unreadable.
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          await page.render({ canvasContext: ctx, viewport, background: 'rgba(255,255,255,1)' }).promise;
-          const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, mime, q));
-          canvas.width = 0;
-          canvas.height = 0; // free memory between pages
-          if (!blob) throw new Error('Could not render a page to an image.');
-          results.push({ name: `${base}-page-${String(n).padStart(pad, '0')}.${format}`, blob });
+          setProgress((p) => (p ? { ...p, done: p.done + 1 } : p));
         }
 
-        if (results.length === 1) {
-          download(results[0].blob, results[0].name);
-        } else {
-          const JSZip = (await import('jszip')).default;
-          const zip = new JSZip();
-          results.forEach((r) => zip.file(r.name, r.blob));
-          const zipBlob = await zip.generateAsync({ type: 'blob' });
-          download(zipBlob, `${base}-images.zip`);
+        if (out.length === 0) {
+          throw new Error('None of the selected pages could be converted.');
         }
+        setResults(out);
+        setSkipped(fails);
       } finally {
         try { await loadingTask.destroy(); } catch { /* ignore */ }
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : '';
       if (/password/i.test(msg)) setError('This PDF is password-protected. Remove the password first, then convert.');
-      else setError(msg ? `Could not convert: ${msg}` : 'Could not convert the PDF.');
+      else setError(msg && msg.length < 120 ? `Could not convert: ${msg}` : 'Could not convert the PDF.');
     } finally {
       setBusy(false);
+      setProgress(null);
     }
   }
 
+  async function downloadAll() {
+    if (results.length === 0) return;
+    if (results.length === 1) {
+      download(results[0].blob, results[0].name);
+      return;
+    }
+    const base = (file?.name || 'pages').replace(/\.pdf$/i, '');
+    const JSZip = (await import('jszip')).default;
+    const zip = new JSZip();
+    results.forEach((r) => zip.file(r.name, r.blob));
+    const zipBlob = await zip.generateAsync({ type: 'blob' });
+    download(zipBlob, `${base}-images.zip`);
+  }
+
+  // ---- Results view -------------------------------------------------------
+  if (results.length > 0) {
+    const totalBytes = results.reduce((a, r) => a + r.blob.size, 0);
+    return (
+      <Card>
+        <CardContent className="p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2.5">
+              <CheckCircle2 className="size-5 text-emerald-500" />
+              <div>
+                <p className="text-sm font-semibold">Done — {results.length} image{results.length === 1 ? '' : 's'} ready</p>
+                <p className="text-xs text-muted-foreground">
+                  {format.toUpperCase()} · {DPI[resolution]} DPI · {fmt(totalBytes)} total
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={startOver}><RotateCcw className="size-4" /> New PDF</Button>
+              <Button size="sm" onClick={downloadAll}>
+                <Download className="size-4" /> {results.length === 1 ? 'Download' : 'Download all (.zip)'}
+              </Button>
+            </div>
+          </div>
+
+          {skipped.length > 0 && (
+            <p className="mt-4 flex items-start gap-2 rounded-md bg-amber-500/10 px-3 py-2 text-sm text-amber-600">
+              <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+              <span>Page{skipped.length === 1 ? '' : 's'} {skipped.join(', ')} couldn’t be rendered and {skipped.length === 1 ? 'was' : 'were'} skipped.</span>
+            </p>
+          )}
+
+          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {results.map((r) => (
+              <div key={r.page} className="group overflow-hidden rounded-xl border bg-card">
+                <div className="flex aspect-[3/4] items-center justify-center overflow-hidden bg-muted/40 p-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={r.url} alt={`Page ${r.page}`} className="max-h-full max-w-full rounded shadow-sm" loading="lazy" />
+                </div>
+                <div className="flex items-center justify-between gap-2 border-t p-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-medium">Page {r.page}</p>
+                    <p className="text-[11px] text-muted-foreground">{fmt(r.blob.size)}</p>
+                  </div>
+                  <Button size="icon" variant="ghost" className="size-8 shrink-0" aria-label={`Download page ${r.page}`} onClick={() => download(r.blob, r.name)}>
+                    <Download className="size-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // ---- Upload + options view ---------------------------------------------
   return (
     <Card>
       <CardContent className="p-5">
@@ -159,7 +303,7 @@ export function PdfToJpgTool() {
           >
             <Upload className="size-7 text-muted-foreground" />
             <p className="mt-2 text-sm font-medium">Drop a PDF here, or click to choose</p>
-            <p className="text-xs text-muted-foreground">Each page becomes a JPG or PNG image</p>
+            <p className="text-xs text-muted-foreground">Each page becomes a high-resolution JPG or PNG image</p>
             <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => pick(e.target.files)} />
           </div>
         ) : (
@@ -174,18 +318,27 @@ export function PdfToJpgTool() {
         )}
 
         {file && (
-          <div className="mt-4 space-y-4">
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-              <label className="flex items-center gap-2 text-sm">
-                <span className="text-muted-foreground">Format</span>
-                <select className={selectCls} value={format} onChange={(e) => setFormat(e.target.value as Format)}>
-                  <option value="jpg">JPG</option>
-                  <option value="png">PNG</option>
-                </select>
-              </label>
+          <div className="mt-5 space-y-5">
+            <div>
+              <p className="mb-2 text-sm font-medium">Image format</p>
+              <div className="grid grid-cols-2 gap-3">
+                <OptionCard active={format === 'jpg'} onClick={() => setFormat('jpg')} icon={ImageIcon} title="JPG" desc="Smaller files — great for scans & sharing" />
+                <OptionCard active={format === 'png'} onClick={() => setFormat('png')} icon={FileImage} title="PNG" desc="Lossless — sharpest text & transparency" />
+              </div>
+            </div>
+
+            <div>
+              <p className="mb-2 text-sm font-medium">Resolution</p>
+              <div className="grid grid-cols-2 gap-3">
+                <OptionCard active={resolution === 'standard'} onClick={() => setResolution('standard')} icon={ImageIcon} title="Standard · 150 DPI" desc="Crisp on screen & for sharing" />
+                <OptionCard active={resolution === 'high'} onClick={() => setResolution('high')} icon={ImageIcon} title="High · 300 DPI" desc="True print quality — sharpest text" />
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-end gap-x-5 gap-y-3">
               {format === 'jpg' && (
                 <label className="flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground">Quality</span>
+                  <span className="text-muted-foreground">JPG quality</span>
                   <select className={selectCls} value={quality} onChange={(e) => setQuality(e.target.value as Quality)}>
                     <option value="high">High</option>
                     <option value="medium">Medium</option>
@@ -193,19 +346,12 @@ export function PdfToJpgTool() {
                   </select>
                 </label>
               )}
-              <label className="flex items-center gap-2 text-sm">
-                <span className="text-muted-foreground">Resolution</span>
-                <select className={selectCls} value={resolution} onChange={(e) => setResolution(e.target.value as Resolution)}>
-                  <option value="standard">Standard</option>
-                  <option value="high">High</option>
-                </select>
-              </label>
+              <div className="min-w-[180px] flex-1">
+                <label className="mb-1.5 block text-sm font-medium">Pages to convert</label>
+                <input className={inputCls} value={ranges} onChange={(e) => setRanges(e.target.value)} placeholder="e.g. 1-3, 5, 8-10" inputMode="numeric" />
+              </div>
             </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium">Pages to convert</label>
-              <input className={inputCls} value={ranges} onChange={(e) => setRanges(e.target.value)} placeholder="e.g. 1-3, 5, 8-10" inputMode="numeric" />
-              <p className="mt-1 text-xs text-muted-foreground">This PDF has {pageCount} page{pageCount === 1 ? '' : 's'}. One image per page; multiple pages download as a ZIP.</p>
-            </div>
+            <p className="text-xs text-muted-foreground">This PDF has {pageCount} page{pageCount === 1 ? '' : 's'}. One image per page; you can download each one or all of them as a ZIP.</p>
           </div>
         )}
 
@@ -213,7 +359,11 @@ export function PdfToJpgTool() {
 
         {file && (
           <Button className="mt-5 w-full" size="lg" onClick={run} disabled={busy}>
-            {busy ? <><Loader2 className="size-4 animate-spin" /> Converting…</> : <><Download className="size-4" /> Convert to {format.toUpperCase()}</>}
+            {busy ? (
+              <><Loader2 className="size-4 animate-spin" /> {progress ? `Converting ${progress.done}/${progress.total}…` : 'Converting…'}</>
+            ) : (
+              <><Download className="size-4" /> Convert to {format.toUpperCase()}</>
+            )}
           </Button>
         )}
       </CardContent>
