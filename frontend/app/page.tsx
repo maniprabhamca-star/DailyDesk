@@ -122,7 +122,7 @@ export default function Home() {
               </>
             )}
           </div>
-          <Link href="#pricing" className="hidden text-sm font-medium text-foreground/80 hover:text-foreground sm:block">Pricing</Link>
+          <Link href="/pricing" className="hidden text-sm font-medium text-foreground/80 hover:text-foreground sm:block">Pricing</Link>
           <div className="ml-auto flex items-center gap-2">
             <ThemeToggle />
             <Button asChild size="sm" variant="ghost" className="hidden sm:inline-flex"><Link href="/login">Log in</Link></Button>
@@ -323,7 +323,7 @@ export default function Home() {
             <div>
               <p className="text-sm font-semibold">Product</p>
               <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-                <li><Link href="#pricing" className="hover:text-foreground">Pricing</Link></li>
+                <li><Link href="/pricing" className="hover:text-foreground">Pricing</Link></li>
                 <li><Link href="/register" className="hover:text-foreground">Get started</Link></li>
                 <li><Link href="/login" className="hover:text-foreground">Log in</Link></li>
               </ul>
