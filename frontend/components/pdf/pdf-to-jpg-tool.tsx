@@ -5,7 +5,7 @@ import { Upload, FileText, X, Download, Loader2, ImageIcon, FileImage, CheckCirc
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { parseRanges } from '@/components/pdf/split-tool';
-import { encodeJpeg } from '@/lib/mozjpeg';
+import { createMozjpegPool } from '@/lib/mozjpeg-pool';
 import { KeepGoing } from '@/components/app/keep-going';
 
 type Format = 'jpg' | 'png';
@@ -181,67 +181,101 @@ export function PdfToJpgTool() {
         const pages = parseRanges(ranges, total); // 1-based, may throw
         const base = file.name.replace(/\.pdf$/i, '');
         const pad = String(total).length;
-        const out: Result[] = [];
+        const slots: (Result | undefined)[] = new Array(pages.length); // keep page order
         const fails: number[] = [];
         const { dpi, q } = PRESET[preset];
-        setProgress({ done: 0, total: pages.length });
+        const tick = () => new Promise((r) => setTimeout(r, 0));
 
-        for (const n of pages) {
-          try {
-            const page = await doc.getPage(n);
-            let s = dpi / 72; // scale from target DPI
-            let viewport = page.getViewport({ scale: s });
-            const longEdge = Math.max(viewport.width, viewport.height);
-            if (longEdge > MAX_DIM) {
-              s = (s * MAX_DIM) / longEdge; // clamp huge pages
-              viewport = page.getViewport({ scale: s });
-            }
-            const canvas = document.createElement('canvas');
-            canvas.width = Math.ceil(viewport.width);
-            canvas.height = Math.ceil(viewport.height);
-            const ctx = canvas.getContext('2d');
-            if (!ctx) throw new Error('no-canvas');
-            // Paint a white background first. Without this, transparent areas of the page become
-            // BLACK in JPEG output (JPEG has no alpha), making documents unreadable.
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            await page.render({ canvasContext: ctx, viewport, background: 'rgba(255,255,255,1)' }).promise;
-            let blob: Blob | null;
-            if (format === 'png') {
-              // PNG is lossless — keep the browser encoder (sharp, no artifacts).
-              blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/png'));
-            } else {
-              // JPG via mozjpeg — far sharper per byte than canvas.toBlob, keeps tiny text legible.
-              try {
-                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                blob = await encodeJpeg(imageData, q);
-              } catch {
-                // If the WASM encoder can't load, never break — fall back to the browser encoder.
-                blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/jpeg', 0.92));
+        // Encode pages in parallel across CPU cores (encoding dominates the time).
+        // Cap at 4 workers to bound memory at high DPI; the main-thread fallback
+        // lives inside the pool, so this is safe on any browser.
+        const cores = typeof navigator !== 'undefined' && navigator.hardwareConcurrency ? navigator.hardwareConcurrency : 4;
+        const poolSize = Math.max(1, Math.min(4, cores, pages.length));
+        const pool = format === 'jpg' ? createMozjpegPool(poolSize) : null;
+
+        let done = 0;
+        setProgress({ done: 0, total: pages.length });
+        const jobs: Promise<void>[] = [];
+
+        try {
+          for (let i = 0; i < pages.length; i++) {
+            const n = pages[i];
+            const idx = i;
+            const name = `${base}-page-${String(n).padStart(pad, '0')}.${format}`;
+
+            // Render on the main thread (cheap — ~100ms). pdf.js needs a DOM canvas.
+            let imageData: ImageData | null = null;
+            let pngBlob: Blob | null = null;
+            try {
+              const page = await doc.getPage(n);
+              let s = dpi / 72; // scale from target DPI
+              let viewport = page.getViewport({ scale: s });
+              const longEdge = Math.max(viewport.width, viewport.height);
+              if (longEdge > MAX_DIM) {
+                s = (s * MAX_DIM) / longEdge; // clamp huge pages
+                viewport = page.getViewport({ scale: s });
               }
+              const canvas = document.createElement('canvas');
+              canvas.width = Math.ceil(viewport.width);
+              canvas.height = Math.ceil(viewport.height);
+              const ctx = canvas.getContext('2d');
+              if (!ctx) throw new Error('no-canvas');
+              // White background first — JPEG has no alpha, so transparent areas would go black.
+              ctx.fillStyle = '#ffffff';
+              ctx.fillRect(0, 0, canvas.width, canvas.height);
+              await page.render({ canvasContext: ctx, viewport, background: 'rgba(255,255,255,1)' }).promise;
+              if (format === 'png') {
+                pngBlob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/png'));
+              } else {
+                imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+              }
+              canvas.width = 0;
+              canvas.height = 0; // free the canvas immediately
+            } catch {
+              fails.push(n);
+              done++;
+              setProgress({ done, total: pages.length });
+              continue;
             }
-            canvas.width = 0;
-            canvas.height = 0; // free memory between pages
-            if (!blob) throw new Error('no-blob');
-            out.push({
-              name: `${base}-page-${String(n).padStart(pad, '0')}.${format}`,
-              blob,
-              url: URL.createObjectURL(blob),
-              page: n,
-            });
-          } catch {
-            fails.push(n);
+
+            if (format === 'png') {
+              if (pngBlob) slots[idx] = { name, blob: pngBlob, url: URL.createObjectURL(pngBlob), page: n };
+              else fails.push(n);
+              done++;
+              setProgress({ done, total: pages.length });
+              await tick();
+              continue;
+            }
+
+            // JPG: hand off to the worker pool and keep rendering ahead (bounded).
+            while (pool!.inFlight() >= poolSize * 2) await tick(); // backpressure on memory
+            const job = pool!
+              .encode(imageData!, q)
+              .then((blob) => {
+                slots[idx] = { name, blob, url: URL.createObjectURL(blob), page: n };
+              })
+              .catch(() => {
+                fails.push(n);
+              })
+              .finally(() => {
+                done++;
+                setProgress({ done, total: pages.length });
+              });
+            jobs.push(job);
+            await tick(); // let progress/UI breathe between renders
           }
-          setProgress((p) => (p ? { ...p, done: p.done + 1 } : p));
-          // Yield to the browser so progress repaints and the tab never freezes.
-          await new Promise((r) => setTimeout(r, 0));
+
+          await Promise.all(jobs);
+        } finally {
+          pool?.destroy();
         }
 
+        const out = slots.filter((r): r is Result => !!r);
         if (out.length === 0) {
           throw new Error('None of the selected pages could be converted.');
         }
         setResults(out);
-        setSkipped(fails);
+        setSkipped(fails.sort((a, b) => a - b));
       } finally {
         try { await loadingTask.destroy(); } catch { /* ignore */ }
       }
