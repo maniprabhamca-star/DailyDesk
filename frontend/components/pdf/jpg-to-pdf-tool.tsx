@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Upload, X, ArrowUp, ArrowDown, Download, Loader2, ImageIcon } from 'lucide-react';
+import { Upload, X, ArrowUp, ArrowDown, Download, Loader2, ImageIcon, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { takeHandoff } from '@/lib/handoff';
 
 type Item = { id: string; file: File; url: string };
 type PageSize = 'fit' | 'a4' | 'letter';
@@ -58,6 +59,7 @@ export function JpgToPdfTool() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
+  const [handoffNote, setHandoffNote] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // revoke all preview URLs on unmount
@@ -66,6 +68,22 @@ export function JpgToPdfTool() {
   function isImage(f: File) {
     return f.type === 'image/jpeg' || f.type === 'image/png' || /\.(jpe?g|png)$/i.test(f.name);
   }
+
+  // "Keep moving": pick up images handed over from another tool (e.g. PDF→JPG),
+  // already in the browser — no re-upload. Runs once on mount.
+  useEffect(() => {
+    const h = takeHandoff();
+    if (!h) return;
+    const imgs = h.files.filter(isImage);
+    if (imgs.length === 0) return;
+    setItems(imgs.map((f) => ({
+      id: `${f.name}-${f.size}-${Math.random().toString(36).slice(2, 7)}`,
+      file: f,
+      url: URL.createObjectURL(f),
+    })));
+    setHandoffNote(`${imgs.length} image${imgs.length === 1 ? '' : 's'} brought straight over from ${h.from} — no re-upload needed.`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function addFiles(files: FileList | null) {
     if (!files) return;
@@ -178,6 +196,11 @@ export function JpgToPdfTool() {
   return (
     <Card>
       <CardContent className="p-5">
+        {handoffNote && (
+          <p className="mb-3 flex items-center gap-2 rounded-lg border border-primary/25 bg-primary/[0.06] px-3 py-2 text-sm text-foreground">
+            <Zap className="size-4 shrink-0 text-primary" /> {handoffNote}
+          </p>
+        )}
         <div
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => { e.preventDefault(); addFiles(e.dataTransfer.files); }}

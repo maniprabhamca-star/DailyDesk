@@ -1,12 +1,15 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Upload, FileText, X, Download, Loader2, ImageIcon, FileImage, CheckCircle2, RotateCcw, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { parseRanges } from '@/components/pdf/split-tool';
 import { encodeJpeg } from '@/lib/mozjpeg';
 import { KeepGoing } from '@/components/app/keep-going';
+import { KeepMoving } from '@/components/app/keep-moving';
+import { setHandoff } from '@/lib/handoff';
 
 type Format = 'jpg' | 'png';
 type Preset = 'standard' | 'high' | 'max';
@@ -114,6 +117,14 @@ export function PdfToJpgTool() {
   const [skipped, setSkipped] = useState<number[]>([]);
   const [elapsed, setElapsed] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
+
+  // "Keep moving": carry the converted images straight into JPG→PDF, no re-upload.
+  function combineIntoPdf() {
+    const files = results.map((r) => new File([r.blob], r.name, { type: r.blob.type || 'image/jpeg' }));
+    setHandoff({ files, from: 'PDF to JPG' });
+    router.push('/jpg-to-pdf');
+  }
 
   // Revoke any object URLs we created for thumbnails when they change or on unmount.
   function revoke(rs: Result[]) {
@@ -321,6 +332,20 @@ export function PdfToJpgTool() {
               </div>
             ))}
           </div>
+
+          <KeepMoving
+            actions={[
+              {
+                count: results.length,
+                fromIcon: ImageIcon,
+                toIcon: FileText,
+                toName: 'JPG to PDF',
+                label: 'Combine into a PDF',
+                blurb: `Send all ${results.length} image${results.length === 1 ? '' : 's'} straight into JPG → PDF — already loaded, no re-upload.`,
+                onClick: combineIntoPdf,
+              },
+            ]}
+          />
 
           <KeepGoing exclude="/pdf-to-jpg" />
         </CardContent>
