@@ -9,15 +9,18 @@ import { encodeJpeg } from '@/lib/mozjpeg';
 import { KeepGoing } from '@/components/app/keep-going';
 
 type Format = 'jpg' | 'png';
-type Quality = 'high' | 'medium' | 'low';
-type Resolution = 'standard' | 'high' | 'max';
+type Preset = 'standard' | 'high' | 'max';
 
-// mozjpeg quality (0–100). 92 keeps fine/tiny text crisp; >=90 also uses full 4:4:4 colour.
-const QUALITY: Record<Quality, number> = { high: 92, medium: 80, low: 68 };
-// DPI-based rendering. A PDF's native space is 72 DPI, so scale = targetDPI / 72.
-// 150 = screen/sharing · 300 = print quality · 600 = archival/maximum detail.
-const DPI: Record<Resolution, number> = { standard: 150, high: 300, max: 600 };
-const MAX_DIM = 7000; // clamp very large pages to keep canvas/memory safe (Letter@600dpi = 5100×6600)
+// One smart preset bundles render DPI + mozjpeg quality so users can't pick a
+// slow/huge combo. 200 DPI is the pro sweet spot — fully captures fine print
+// from embedded scans while staying small and encoding in well under a second.
+// (600 DPI was removed: 9× the pixels, no extra real detail, and it froze browsers.)
+const PRESET: Record<Preset, { dpi: number; q: number; title: string; sub: string }> = {
+  standard: { dpi: 150, q: 78, title: 'Standard', sub: 'Smaller · faster' },
+  high: { dpi: 200, q: 82, title: 'High', sub: 'Sharp · recommended' },
+  max: { dpi: 300, q: 90, title: 'Maximum', sub: 'Print · archival' },
+};
+const MAX_DIM = 5000; // clamp very large pages (Letter@300dpi = 2550×3300; A3@300 ≈ 4960)
 
 type Result = { name: string; blob: Blob; url: string; page: number };
 
@@ -27,8 +30,6 @@ function fmt(bytes: number) {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-const selectCls =
-  'h-9 rounded-lg border bg-card px-2 text-sm font-medium text-foreground outline-none focus:border-primary';
 const inputCls =
   'h-9 w-full rounded-lg border bg-card px-3 text-sm text-foreground outline-none focus:border-primary';
 
@@ -104,8 +105,7 @@ export function PdfToJpgTool() {
   const [file, setFile] = useState<File | null>(null);
   const [pageCount, setPageCount] = useState(0);
   const [format, setFormat] = useState<Format>('jpg');
-  const [quality, setQuality] = useState<Quality>('high');
-  const [resolution, setResolution] = useState<Resolution>('high');
+  const [preset, setPreset] = useState<Preset>('high');
   const [ranges, setRanges] = useState('');
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
@@ -183,12 +183,13 @@ export function PdfToJpgTool() {
         const pad = String(total).length;
         const out: Result[] = [];
         const fails: number[] = [];
+        const { dpi, q } = PRESET[preset];
         setProgress({ done: 0, total: pages.length });
 
         for (const n of pages) {
           try {
             const page = await doc.getPage(n);
-            let s = DPI[resolution] / 72; // scale from target DPI
+            let s = dpi / 72; // scale from target DPI
             let viewport = page.getViewport({ scale: s });
             const longEdge = Math.max(viewport.width, viewport.height);
             if (longEdge > MAX_DIM) {
@@ -213,7 +214,7 @@ export function PdfToJpgTool() {
               // JPG via mozjpeg — far sharper per byte than canvas.toBlob, keeps tiny text legible.
               try {
                 const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                blob = await encodeJpeg(imageData, QUALITY[quality]);
+                blob = await encodeJpeg(imageData, q);
               } catch {
                 // If the WASM encoder can't load, never break — fall back to the browser encoder.
                 blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/jpeg', 0.92));
@@ -232,6 +233,8 @@ export function PdfToJpgTool() {
             fails.push(n);
           }
           setProgress((p) => (p ? { ...p, done: p.done + 1 } : p));
+          // Yield to the browser so progress repaints and the tab never freezes.
+          await new Promise((r) => setTimeout(r, 0));
         }
 
         if (out.length === 0) {
@@ -278,7 +281,7 @@ export function PdfToJpgTool() {
               <div>
                 <p className="text-sm font-semibold">Done — {results.length} image{results.length === 1 ? '' : 's'} ready</p>
                 <p className="text-xs text-muted-foreground">
-                  {format.toUpperCase()} · {DPI[resolution]} DPI · {fmt(totalBytes)} total
+                  {format.toUpperCase()} · {PRESET[preset].dpi} DPI · {fmt(totalBytes)} total
                 </p>
               </div>
             </div>
@@ -361,31 +364,19 @@ export function PdfToJpgTool() {
             </div>
 
             <div>
-              <p className="mb-2 text-sm font-medium">Resolution</p>
+              <p className="mb-2 text-sm font-medium">Quality</p>
               <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                <ResCard active={resolution === 'standard'} onClick={() => setResolution('standard')} title="150 DPI" sub="Screen & sharing" />
-                <ResCard active={resolution === 'high'} onClick={() => setResolution('high')} title="300 DPI" sub="Print quality" />
-                <ResCard active={resolution === 'max'} onClick={() => setResolution('max')} title="600 DPI" sub="Maximum detail" />
+                <ResCard active={preset === 'standard'} onClick={() => setPreset('standard')} title={`${PRESET.standard.title} · ${PRESET.standard.dpi} DPI`} sub={PRESET.standard.sub} />
+                <ResCard active={preset === 'high'} onClick={() => setPreset('high')} title={`${PRESET.high.title} · ${PRESET.high.dpi} DPI`} sub={PRESET.high.sub} />
+                <ResCard active={preset === 'max'} onClick={() => setPreset('max')} title={`${PRESET.max.title} · ${PRESET.max.dpi} DPI`} sub={PRESET.max.sub} />
               </div>
             </div>
 
-            <div className="flex flex-wrap items-end gap-x-5 gap-y-3">
-              {format === 'jpg' && (
-                <label className="flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground">JPG quality</span>
-                  <select className={selectCls} value={quality} onChange={(e) => setQuality(e.target.value as Quality)}>
-                    <option value="high">High — crispest</option>
-                    <option value="medium">Medium</option>
-                    <option value="low">Low — smallest</option>
-                  </select>
-                </label>
-              )}
-              <div className="min-w-[180px] flex-1">
-                <label className="mb-1.5 block text-sm font-medium">Pages to convert</label>
-                <input className={inputCls} value={ranges} onChange={(e) => setRanges(e.target.value)} placeholder="e.g. 1-3, 5, 8-10" inputMode="numeric" />
-              </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium">Pages to convert</label>
+              <input className={inputCls} value={ranges} onChange={(e) => setRanges(e.target.value)} placeholder="e.g. 1-3, 5, 8-10" inputMode="numeric" />
+              <p className="mt-1.5 text-xs text-muted-foreground">This PDF has {pageCount} page{pageCount === 1 ? '' : 's'}. One image per page; download each one or all of them as a ZIP.</p>
             </div>
-            <p className="text-xs text-muted-foreground">This PDF has {pageCount} page{pageCount === 1 ? '' : 's'}. One image per page; you can download each one or all of them as a ZIP.</p>
           </div>
         )}
 
