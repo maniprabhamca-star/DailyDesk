@@ -5,16 +5,18 @@ import { Upload, FileText, X, Download, Loader2, ImageIcon, FileImage, CheckCirc
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { parseRanges } from '@/components/pdf/split-tool';
+import { encodeJpeg } from '@/lib/mozjpeg';
 
 type Format = 'jpg' | 'png';
 type Quality = 'high' | 'medium' | 'low';
-type Resolution = 'standard' | 'high';
+type Resolution = 'standard' | 'high' | 'max';
 
-const QUALITY: Record<Quality, number> = { high: 0.95, medium: 0.82, low: 0.65 };
+// mozjpeg quality (0–100). 92 keeps fine/tiny text crisp; >=90 also uses full 4:4:4 colour.
+const QUALITY: Record<Quality, number> = { high: 92, medium: 80, low: 68 };
 // DPI-based rendering. A PDF's native space is 72 DPI, so scale = targetDPI / 72.
-// 150 DPI is crisp for screen/sharing; 300 DPI is true print quality.
-const DPI: Record<Resolution, number> = { standard: 150, high: 300 };
-const MAX_DIM = 6000; // clamp very large pages to keep canvas/memory safe (Letter@300dpi = 2550×3300)
+// 150 = screen/sharing · 300 = print quality · 600 = archival/maximum detail.
+const DPI: Record<Resolution, number> = { standard: 150, high: 300, max: 600 };
+const MAX_DIM = 7000; // clamp very large pages to keep canvas/memory safe (Letter@600dpi = 5100×6600)
 
 type Result = { name: string; blob: Blob; url: string; page: number };
 
@@ -76,6 +78,23 @@ function OptionCard({
         <span className="block text-sm font-semibold">{title}</span>
         <span className="block text-xs text-muted-foreground">{desc}</span>
       </span>
+    </button>
+  );
+}
+
+// Compact resolution tile (three across, fits 375px wide).
+function ResCard({ active, onClick, title, sub }: { active: boolean; onClick: () => void; title: string; sub: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`rounded-xl border px-2 py-2.5 text-center transition-all ${
+        active ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-border bg-card hover:border-primary/40 hover:bg-accent/40'
+      }`}
+    >
+      <span className="block text-sm font-semibold">{title}</span>
+      <span className="block text-[11px] leading-tight text-muted-foreground">{sub}</span>
     </button>
   );
 }
@@ -159,8 +178,6 @@ export function PdfToJpgTool() {
       try {
         const total = doc.numPages;
         const pages = parseRanges(ranges, total); // 1-based, may throw
-        const mime = format === 'png' ? 'image/png' : 'image/jpeg';
-        const q = format === 'png' ? undefined : QUALITY[quality];
         const base = file.name.replace(/\.pdf$/i, '');
         const pad = String(total).length;
         const out: Result[] = [];
@@ -187,7 +204,20 @@ export function PdfToJpgTool() {
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             await page.render({ canvasContext: ctx, viewport, background: 'rgba(255,255,255,1)' }).promise;
-            const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, mime, q));
+            let blob: Blob | null;
+            if (format === 'png') {
+              // PNG is lossless — keep the browser encoder (sharp, no artifacts).
+              blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/png'));
+            } else {
+              // JPG via mozjpeg — far sharper per byte than canvas.toBlob, keeps tiny text legible.
+              try {
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                blob = await encodeJpeg(imageData, QUALITY[quality]);
+              } catch {
+                // If the WASM encoder can't load, never break — fall back to the browser encoder.
+                blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/jpeg', 0.92));
+              }
+            }
             canvas.width = 0;
             canvas.height = 0; // free memory between pages
             if (!blob) throw new Error('no-blob');
@@ -322,16 +352,17 @@ export function PdfToJpgTool() {
             <div>
               <p className="mb-2 text-sm font-medium">Image format</p>
               <div className="grid grid-cols-2 gap-3">
-                <OptionCard active={format === 'jpg'} onClick={() => setFormat('jpg')} icon={ImageIcon} title="JPG" desc="Smaller files — great for scans & sharing" />
-                <OptionCard active={format === 'png'} onClick={() => setFormat('png')} icon={FileImage} title="PNG" desc="Lossless — sharpest text & transparency" />
+                <OptionCard active={format === 'jpg'} onClick={() => setFormat('jpg')} icon={ImageIcon} title="JPG" desc="Studio-grade mozjpeg — sharp & small" />
+                <OptionCard active={format === 'png'} onClick={() => setFormat('png')} icon={FileImage} title="PNG" desc="Lossless — absolute sharpest, zero artifacts" />
               </div>
             </div>
 
             <div>
               <p className="mb-2 text-sm font-medium">Resolution</p>
-              <div className="grid grid-cols-2 gap-3">
-                <OptionCard active={resolution === 'standard'} onClick={() => setResolution('standard')} icon={ImageIcon} title="Standard · 150 DPI" desc="Crisp on screen & for sharing" />
-                <OptionCard active={resolution === 'high'} onClick={() => setResolution('high')} icon={ImageIcon} title="High · 300 DPI" desc="True print quality — sharpest text" />
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                <ResCard active={resolution === 'standard'} onClick={() => setResolution('standard')} title="150 DPI" sub="Screen & sharing" />
+                <ResCard active={resolution === 'high'} onClick={() => setResolution('high')} title="300 DPI" sub="Print quality" />
+                <ResCard active={resolution === 'max'} onClick={() => setResolution('max')} title="600 DPI" sub="Maximum detail" />
               </div>
             </div>
 
@@ -340,9 +371,9 @@ export function PdfToJpgTool() {
                 <label className="flex items-center gap-2 text-sm">
                   <span className="text-muted-foreground">JPG quality</span>
                   <select className={selectCls} value={quality} onChange={(e) => setQuality(e.target.value as Quality)}>
-                    <option value="high">High</option>
+                    <option value="high">High — crispest</option>
                     <option value="medium">Medium</option>
-                    <option value="low">Low</option>
+                    <option value="low">Low — smallest</option>
                   </select>
                 </label>
               )}
