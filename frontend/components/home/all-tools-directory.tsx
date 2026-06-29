@@ -25,7 +25,7 @@ function Row({ t, color }: { t: CatTool; color: string }) {
 export function AllToolsDirectory() {
   return (
     <section className="border-t bg-muted/20">
-      <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
+      <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
         {/* Trust strip */}
         <div className="mb-9 flex flex-wrap justify-center gap-x-7 gap-y-2">
           {[
@@ -72,7 +72,7 @@ export function AllToolsDirectory() {
         </div>
 
         {/* Legend */}
-        <div className="mt-9 flex flex-wrap gap-x-5 gap-y-2 border-t pt-5">
+        <div className="mt-8 flex flex-wrap justify-center gap-x-5 gap-y-2 border-t pt-5">
           {(Object.keys(BADGE) as Badge[]).map((k) => {
             const B = BADGE[k];
             return (
