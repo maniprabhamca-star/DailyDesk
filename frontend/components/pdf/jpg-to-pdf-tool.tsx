@@ -25,6 +25,31 @@ function fmt(bytes: number) {
 const selectCls =
   'h-9 rounded-lg border bg-card px-2 text-sm font-medium text-foreground outline-none focus:border-primary';
 
+// Decode any browser-supported image and re-encode as PNG bytes.
+// Fallback for JPEGs pdf-lib can't embed directly (CMYK / progressive / unusual encodings).
+async function rasterizeToPng(file: File): Promise<ArrayBuffer> {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = () => reject(new Error('decode failed'));
+      el.src = url;
+    });
+    const canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth || img.width;
+    canvas.height = img.naturalHeight || img.height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('no canvas context');
+    ctx.drawImage(img, 0, 0);
+    const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/png'));
+    if (!blob) throw new Error('encode failed');
+    return await blob.arrayBuffer();
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
 export function JpgToPdfTool() {
   const [items, setItems] = useState<Item[]>([]);
   const [pageSize, setPageSize] = useState<PageSize>('fit');
@@ -32,6 +57,7 @@ export function JpgToPdfTool() {
   const [margin, setMargin] = useState<Margin>('none');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // revoke all preview URLs on unmount
@@ -84,34 +110,48 @@ export function JpgToPdfTool() {
     }
     setBusy(true);
     setError(null);
+    setWarning(null);
     try {
       const { PDFDocument } = await import('pdf-lib'); // load engine only when needed
       const pdf = await PDFDocument.create();
+      const skipped: string[] = [];
 
       for (const { file } of items) {
-        const bytes = await file.arrayBuffer();
-        const isPng = file.type === 'image/png' || /\.png$/i.test(file.name);
-        const img = isPng ? await pdf.embedPng(bytes) : await pdf.embedJpg(bytes);
+        try {
+          const bytes = await file.arrayBuffer();
+          const isPng = file.type === 'image/png' || /\.png$/i.test(file.name);
+          // embed natively; fall back to canvas re-encode for CMYK/progressive/odd images
+          const img = await (async () => {
+            try {
+              return isPng ? await pdf.embedPng(bytes) : await pdf.embedJpg(bytes);
+            } catch {
+              return pdf.embedPng(await rasterizeToPng(file));
+            }
+          })();
 
-        if (pageSize === 'fit') {
-          const page = pdf.addPage([img.width, img.height]);
-          page.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
-          continue;
+          if (pageSize === 'fit') {
+            const page = pdf.addPage([img.width, img.height]);
+            page.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
+          } else {
+            let [pw, ph] = SIZES[pageSize];
+            const landscape =
+              orientation === 'landscape' || (orientation === 'auto' && img.width > img.height);
+            if (landscape) [pw, ph] = [ph, pw];
+            const m = MARGINS[margin];
+            const scale = Math.min((pw - 2 * m) / img.width, (ph - 2 * m) / img.height);
+            const w = img.width * scale;
+            const h = img.height * scale;
+            const page = pdf.addPage([pw, ph]);
+            page.drawImage(img, { x: (pw - w) / 2, y: (ph - h) / 2, width: w, height: h });
+          }
+        } catch {
+          skipped.push(file.name);
         }
+      }
 
-        let [pw, ph] = SIZES[pageSize];
-        const landscape =
-          orientation === 'landscape' || (orientation === 'auto' && img.width > img.height);
-        if (landscape) [pw, ph] = [ph, pw];
-
-        const m = MARGINS[margin];
-        const maxW = pw - 2 * m;
-        const maxH = ph - 2 * m;
-        const scale = Math.min(maxW / img.width, maxH / img.height);
-        const w = img.width * scale;
-        const h = img.height * scale;
-        const page = pdf.addPage([pw, ph]);
-        page.drawImage(img, { x: (pw - w) / 2, y: (ph - h) / 2, width: w, height: h });
+      if (pdf.getPageCount() === 0) {
+        setError('None of these images could be converted. Please try different files.');
+        return;
       }
 
       const out = await pdf.save();
@@ -124,6 +164,10 @@ export function JpgToPdfTool() {
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
+
+      if (skipped.length) {
+        setWarning(`Converted ${pdf.getPageCount()} image${pdf.getPageCount() > 1 ? 's' : ''}. Skipped (couldn’t read): ${skipped.join(', ')}`);
+      }
     } catch (e) {
       setError(e instanceof Error ? `Could not convert: ${e.message}` : 'Could not convert the images.');
     } finally {
@@ -199,6 +243,7 @@ export function JpgToPdfTool() {
         </div>
 
         {error && <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
+        {warning && <p className="mt-4 rounded-md bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400">{warning}</p>}
 
         <Button className="mt-5 w-full" size="lg" onClick={convert} disabled={busy || items.length === 0}>
           {busy ? <><Loader2 className="size-4 animate-spin" /> Converting…</> : <><Download className="size-4" /> Convert {items.length > 0 ? `${items.length} image${items.length > 1 ? 's' : ''} ` : ''}to PDF</>}
