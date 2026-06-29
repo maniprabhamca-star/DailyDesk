@@ -4,6 +4,7 @@ import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 import { AuthProvider } from '@/lib/auth';
 import { CommandPalette } from '@/components/command-palette';
+import { CookieBanner } from '@/components/cookie-banner';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -20,6 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <AuthProvider>
             {children}
             <CommandPalette />
+            <CookieBanner />
           </AuthProvider>
         </ThemeProvider>
       </body>
