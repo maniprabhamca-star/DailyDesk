@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import {
   BadgeCheck, CalendarClock, Mail, CreditCard, XCircle, RotateCcw, ShieldCheck, Clock,
-  CheckCircle2, BellRing, Repeat,
+  CheckCircle2, BellRing, Repeat, RefreshCw,
 } from 'lucide-react';
 import { LegalPage, Section, Callout, FlowStep } from '@/components/legal/legal-page';
 
@@ -117,6 +117,25 @@ export default function RefundPolicyPage() {
             in-browser tools — those are free, forever, with or without Pro.
           </p>
         </Callout>
+      </Section>
+
+      {/* Changes */}
+      <Section id="changes" title="Changes to this policy">
+        <div className="flex gap-3">
+          <RefreshCw className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div className="space-y-3">
+            <p>
+              We may update this Refund Policy at any time — for example, to reflect changes to our products, our payment
+              providers, or applicable law. When we make a change, we&rsquo;ll revise the &ldquo;Last updated&rdquo; date at
+              the top of this page, and the new version takes effect as soon as it&rsquo;s posted here.
+            </p>
+            <p>
+              The version of this policy that was in effect <strong>at the time of your purchase</strong> applies to that
+              purchase. We encourage you to review this page from time to time. By continuing to use DailyDesk, or by
+              purchasing or renewing a subscription after an update is posted, you accept the current Refund Policy.
+            </p>
+          </div>
+        </div>
       </Section>
 
       {/* Statutory */}
