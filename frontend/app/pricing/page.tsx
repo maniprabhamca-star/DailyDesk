@@ -8,7 +8,7 @@ import {
 import { Button } from '@/components/ui/button';
 
 type Cell = boolean | string;
-type Row = { label: string; comp: Cell; free: Cell; pro: Cell };
+type Row = { label: string; comp: Cell; free: Cell; pro: Cell; link?: { href: string; text: string } };
 
 const groups: { title: string; rows: Row[] }[] = [
   {
@@ -16,7 +16,7 @@ const groups: { title: string; rows: Row[] }[] = [
     rows: [
       { label: 'Price per year', comp: 'Up to ~$240', free: '$0', pro: '~$49' },
       { label: 'Tools available', comp: '~21', free: '25+', pro: '25+' },
-      { label: 'Works offline (after first visit)', comp: false, free: 'Coming soon', pro: 'Coming soon' },
+      { label: 'Works offline in your browser', comp: 'Paid apps only', free: 'Coming soon', pro: 'Coming soon', link: { href: '/security#offline', text: 'See how it works' } },
       { label: 'No signup required to use tools', comp: false, free: true, pro: true },
       { label: 'Money-back guarantee', comp: 'Conditional / none', free: 'Always free', pro: '14–30 days, no questions' },
     ],
@@ -183,7 +183,10 @@ export default function PricingPage() {
                   </tr>
                   {g.rows.map((r) => (
                     <tr key={r.label}>
-                      <td className="border-b border-border/60 px-3 py-3 text-sm">{r.label}</td>
+                      <td className="border-b border-border/60 px-3 py-3 text-sm">
+                        {r.label}
+                        {r.link && <Link href={r.link.href} className="ml-2 whitespace-nowrap text-xs font-medium text-primary hover:underline">{r.link.text} →</Link>}
+                      </td>
                       <td className="border-b border-border/60 px-3 py-3 text-center"><CellView value={r.comp} tone="muted" /></td>
                       <td className="border-b border-border/60 px-3 py-3 text-center"><CellView value={r.free} /></td>
                       <td className="border-b border-border/60 bg-primary/5 px-3 py-3 text-center"><CellView value={r.pro} tone="pro" /></td>
