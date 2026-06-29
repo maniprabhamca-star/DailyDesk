@@ -114,7 +114,11 @@ export function PdfToJpgTool() {
           canvas.height = Math.ceil(viewport.height);
           const ctx = canvas.getContext('2d');
           if (!ctx) throw new Error('Could not get a canvas to render onto.');
-          await page.render({ canvasContext: ctx, viewport }).promise;
+          // Paint a white background first. Without this, transparent areas of the page become
+          // BLACK in JPEG output (JPEG has no alpha), making documents unreadable.
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          await page.render({ canvasContext: ctx, viewport, background: 'rgba(255,255,255,1)' }).promise;
           const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, mime, q));
           canvas.width = 0;
           canvas.height = 0; // free memory between pages
