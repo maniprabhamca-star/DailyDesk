@@ -50,7 +50,7 @@ const groups: { title: string; rows: Row[] }[] = [
   {
     title: 'AI & secure storage',
     rows: [
-      { label: 'AI actions — summarize, chat, translate', comp: 'None free / paid credits', free: '15 / month', pro: '2,000 / month' },
+      { label: 'AI actions — summarize, chat, translate', comp: 'None free / paid credits', free: '5 / day', pro: '70 / day' },
       { label: 'Opt-in encrypted File Vault (optional cloud storage)', comp: 'Not offered', free: '1 GB', pro: 'Unlimited' },
     ],
   },
@@ -66,7 +66,7 @@ const groups: { title: string; rows: Row[] }[] = [
 const faqs = [
   { q: 'Is the free plan really free?', a: 'Yes — unlimited use of all our core tools, no ads, no watermarks, no credit card. Our everyday tools run in your browser, so they cost us nothing to give away.' },
   { q: 'Can I edit a PDF for free?', a: 'Yes. Annotating, highlighting, drawing, filling forms, and signing are free and unlimited. Only full in-place text editing — rewriting the existing text inside a PDF — is a Pro feature, the same as Adobe, Foxit, and Smallpdf.' },
-  { q: 'What do I actually get with Pro?', a: 'Power features beyond the basics: full text editing, batch processing, Office conversions (PDF↔Word/Excel/PPT), OCR, unlimited file size, saved workflows, 2,000 monthly AI actions, and unlimited encrypted File Vault storage.' },
+  { q: 'What do I actually get with Pro?', a: 'Power features beyond the basics: full text editing, batch processing, Office conversions (PDF↔Word/Excel/PPT), OCR, unlimited file size, saved workflows, 70 AI actions a day, and unlimited encrypted File Vault storage.' },
   { q: 'Can I cancel anytime?', a: 'Yes — cancel in one click; you keep Pro until the end of your paid period. New subscribers are also covered by our money-back guarantee (14 days monthly / 30 days annual).' },
   { q: 'Do you store my files?', a: 'No — by default nothing is saved on our servers. Our tools process your files in your browser. The only exception is the optional File Vault: if you choose to save a file there, it’s encrypted on your device before upload, so even we can’t read it. The 1 GB / unlimited figures apply only to that opt-in Vault.' },
   { q: 'Are my files safe?', a: 'Our tools never upload your files — everything happens on your device. The optional File Vault is end-to-end encrypted, so even we can’t read it. See our Security page for details.' },
@@ -131,7 +131,7 @@ export default function PricingPage() {
             <p className="mt-5"><span className="text-4xl font-bold">$0</span><span className="text-muted-foreground"> /forever</span></p>
             <Button asChild variant="outline" className="mt-6"><Link href="/register">Get started free</Link></Button>
             <ul className="mt-6 space-y-2.5 text-sm">
-              {['Unlimited core PDF & everyday tools', 'Edit & annotate — highlight, fill, sign', 'No ads, no watermarks, no signup wall', 'Files stay in your browser', 'Files up to 100 MB', '15 AI actions / month', '1 GB encrypted File Vault'].map((f) => (
+              {['Unlimited core PDF & everyday tools', 'Edit & annotate — highlight, fill, sign', 'No ads, no watermarks, no signup wall', 'Files stay in your browser', 'Files up to 100 MB', '5 AI actions / day', '1 GB encrypted File Vault'].map((f) => (
                 <li key={f} className="flex items-start gap-2.5"><Check className="mt-0.5 size-[18px] shrink-0 text-emerald-600" strokeWidth={2.75} /> {f}</li>
               ))}
             </ul>
@@ -148,7 +148,7 @@ export default function PricingPage() {
             <p className="mt-1 text-xs text-muted-foreground">{proSub}</p>
             <Button asChild className="mt-6"><Link href="/register">Go Pro</Link></Button>
             <ul className="mt-6 space-y-2.5 text-sm">
-              {['Everything in Free, with no limits', 'Full in-place PDF text editing', 'Batch processing — many files at once', 'Office conversions (PDF ↔ Word, Excel, PPT)', 'OCR — scanned PDFs to searchable text', 'Unlimited file size + strong compression', 'Saved one-click workflows', '2,000 AI actions / month', 'Unlimited encrypted File Vault', 'Priority speed & support'].map((f) => (
+              {['Everything in Free, with no limits', 'Full in-place PDF text editing', 'Batch processing — many files at once', 'Office conversions (PDF ↔ Word, Excel, PPT)', 'OCR — scanned PDFs to searchable text', 'Unlimited file size + strong compression', 'Saved one-click workflows', '70 AI actions / day', 'Unlimited encrypted File Vault', 'Priority speed & support'].map((f) => (
                 <li key={f} className="flex items-start gap-2.5"><Check className="mt-0.5 size-[18px] shrink-0 text-emerald-600" strokeWidth={2.75} /> {f}</li>
               ))}
             </ul>
