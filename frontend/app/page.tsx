@@ -159,7 +159,7 @@ export default function Home() {
                 <div className="mb-0.5 h-[3px] w-[90%] rounded bg-red-100" /><div className="mb-0.5 h-[3px] w-[75%] rounded bg-red-100" /><div className="h-[3px] w-[85%] rounded bg-red-100" />
               </div>
             </div>
-            <div className="mt-2 flex items-center gap-1.5"><span className="flex size-5 items-center justify-center rounded-md bg-red-100 text-red-600"><FileText className="size-3" /></span><span className="text-xs font-semibold text-red-900 dark:text-red-300">PDF · 30+ tools</span></div>
+            <div className="mt-2 flex items-center gap-1.5"><span className="flex size-5 items-center justify-center rounded-md bg-red-100 text-red-600"><FileText className="size-3" /></span><span className="text-xs font-semibold text-red-900 dark:text-red-300">PDF · 20+ tools</span></div>
           </div>
 
           <Link href="/tools/qr-code" className="flex flex-col rounded-2xl border border-indigo-200/60 bg-gradient-to-br from-indigo-50 to-background p-3 transition hover:-translate-y-0.5 dark:border-indigo-900/40">

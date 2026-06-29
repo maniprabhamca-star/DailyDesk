@@ -15,8 +15,8 @@ const groups: { title: string; rows: Row[] }[] = [
     title: 'Value & trust',
     rows: [
       { label: 'Price per year', comp: 'Up to ~$240', free: '$0', pro: '~$49' },
-      { label: 'Tools available', comp: '~21', free: '30+', pro: '30+' },
-      { label: 'Works offline (no internet needed)', comp: false, free: true, pro: true },
+      { label: 'Tools available', comp: '~21', free: '25+', pro: '25+' },
+      { label: 'Works offline (after first visit)', comp: false, free: 'Coming soon', pro: 'Coming soon' },
       { label: 'No signup required to use tools', comp: false, free: true, pro: true },
       { label: 'Money-back guarantee', comp: 'Conditional / none', free: 'Always free', pro: '14–30 days, no questions' },
     ],

@@ -57,7 +57,7 @@ export function FeatureSpotlights() {
       </Row>
 
       {/* 2 · PDF */}
-      <Row reverse eyebrow="PDF workspace" eyebrowColor="#dc2626" title="Everything for your PDFs." body="Merge, split, compress, convert, sign and more — 30+ PDF tools, all free and private. Replace your $20/mo PDF subscription." cta="Open PDF tools" href="/merge-pdf">
+      <Row reverse eyebrow="PDF workspace" eyebrowColor="#dc2626" title="Everything for your PDFs." body="Merge, split, compress, convert, sign and more — 20+ PDF tools, all free and private. Replace your $20/mo PDF subscription." cta="Open PDF tools" href="/merge-pdf">
         <div className="relative rounded-2xl border bg-gradient-to-br from-red-50 to-background p-6 dark:from-red-950/20">
           <div className="relative mx-auto h-52 max-w-xs">
             <div className="absolute left-4 top-3 h-44 w-40 rotate-[6deg] rounded-xl border bg-card" />

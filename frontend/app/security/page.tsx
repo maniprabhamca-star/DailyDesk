@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import {
   ShieldCheck, CloudOff, Lock, KeyRound, Sparkles, Server, AlertTriangle, FileCheck2,
+  Zap, Check,
 } from 'lucide-react';
 import { LegalPage, Section, Callout, FlowStep } from '@/components/legal/legal-page';
 
@@ -54,6 +55,28 @@ export default function SecurityPage() {
           <li className="flex gap-3"><KeyRound className="mt-0.5 size-5 shrink-0 text-emerald-600" /><span><strong className="text-foreground">Strong key derivation.</strong> Your vault key is derived from your passphrase using Argon2, a modern, deliberately slow function that makes guessing attacks impractical.</span></li>
           <li className="flex gap-3"><Server className="mt-0.5 size-5 shrink-0 text-emerald-600" /><span><strong className="text-foreground">Encrypted connections.</strong> All traffic to DailyDesk is protected with TLS (HTTPS), and our servers are hardened and kept up to date.</span></li>
         </ul>
+      </Section>
+
+      <Section id="offline" title="Works offline">
+        <p className="flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:text-amber-400"><Zap className="size-3.5" /> Coming soon</span>
+          <span>Because our tools run on your device, they&rsquo;ll keep working without an internet connection — once we add secure HTTPS and the installable app (on the way).</span>
+        </p>
+        <p>Here&rsquo;s exactly how it will work, in plain terms — no fine print hidden:</p>
+        <Callout tone="default" icon={<Zap className="size-5" />} title="What makes offline work">
+          <ul className="space-y-2">
+            <li className="flex gap-2.5"><Check className="mt-0.5 size-4 shrink-0 text-emerald-600" strokeWidth={2.75} /> You&rsquo;ve opened the site online at least once before — that first visit is when your browser quietly saves a copy of the app to your device.</li>
+            <li className="flex gap-2.5"><Check className="mt-0.5 size-4 shrink-0 text-emerald-600" strokeWidth={2.75} /> The site is on secure HTTPS (arriving with our domain &amp; SSL — offline can&rsquo;t work without it).</li>
+            <li className="flex gap-2.5"><Check className="mt-0.5 size-4 shrink-0 text-emerald-600" strokeWidth={2.75} /> Same browser, same device — the saved copy lives there. A new browser, a new phone, or clearing your site data means it re-saves on your next online visit.</li>
+            <li className="flex gap-2.5"><Check className="mt-0.5 size-4 shrink-0 text-emerald-600" strokeWidth={2.75} /> Only the tools that run on your device work offline. AI (summarize, chat, translate), Office conversions, and File Vault sync still need a connection, because they reach our servers.</li>
+          </ul>
+          <p className="!mt-3 font-semibold text-foreground">
+            In one line: after your first online visit, reopening the site works offline in that browser — for the tools that run on your device.
+          </p>
+        </Callout>
+        <p className="text-sm text-muted-foreground">
+          Most other PDF tools can&rsquo;t do this on the web at all — they upload your files to their servers, which requires a connection every time. Offline use is something only on-device tools like ours can offer.
+        </p>
       </Section>
 
       <Section id="ai" title="How we handle AI features">
