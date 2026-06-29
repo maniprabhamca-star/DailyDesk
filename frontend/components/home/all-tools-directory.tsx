@@ -8,7 +8,7 @@ function Row({ t, color }: { t: CatTool; color: string }) {
   const Icon = t.icon;
   const B = BADGE[t.badge];
   const inner = (
-    <div className={`flex items-center gap-3 rounded-lg px-2 py-2 ${t.soon ? '' : 'hover:bg-accent'}`}>
+    <div className={`flex items-center gap-3 rounded-lg px-2 py-1.5 ${t.soon ? '' : 'hover:bg-accent'}`}>
       <span className="flex size-9 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: `${color}1A`, color }}>
         <Icon className="size-[18px]" strokeWidth={2.25} />
       </span>
@@ -60,7 +60,7 @@ export function AllToolsDirectory() {
           </div>
         </div>
 
-        <div className="grid gap-x-8 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
           {catalog.map((g) => (
             <div key={g.label}>
               <p className="mb-2.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">{g.label}</p>
