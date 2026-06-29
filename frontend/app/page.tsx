@@ -12,6 +12,7 @@ import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { toolGroups, allTools, type Tool } from '@/components/app/tools-config';
 import { AllToolsDirectory } from '@/components/home/all-tools-directory';
 import { catalog } from '@/components/app/catalog';
+import { FeatureSpotlights } from '@/components/home/feature-spotlights';
 
 function openCommand() {
   window.dispatchEvent(new Event('dd-command-open'));
@@ -234,6 +235,9 @@ export default function Home() {
           {filtered.map((t) => <ToolCard key={t.id} t={t} />)}
         </div>
       </section>
+
+      {/* Feature spotlights */}
+      <FeatureSpotlights />
 
       {/* Why DailyDesk */}
       <section className="border-y bg-muted/30 py-16">
