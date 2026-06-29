@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { parseRanges } from '@/components/pdf/split-tool';
 import { encodeJpeg } from '@/lib/mozjpeg';
+import { KeepGoing } from '@/components/app/keep-going';
 
 type Format = 'jpg' | 'png';
 type Quality = 'high' | 'medium' | 'low';
@@ -315,6 +316,8 @@ export function PdfToJpgTool() {
               </div>
             ))}
           </div>
+
+          <KeepGoing exclude="/pdf-to-jpg" />
         </CardContent>
       </Card>
     );
