@@ -133,16 +133,16 @@ export default function Home() {
 
       {/* Bento hero */}
       <section className="mx-auto max-w-6xl px-4 pt-6 sm:px-6">
-        <div className="grid auto-rows-[120px] grid-cols-2 gap-3 md:grid-cols-4">
+        <div className="grid auto-rows-[150px] grid-cols-2 gap-3 md:grid-cols-4">
           <div className="relative col-span-2 row-span-2 flex flex-col justify-between overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-violet-600 p-6 text-white">
             <div className="pointer-events-none absolute -right-10 -top-12 size-40 rounded-full bg-white/10" />
             <span className="w-fit rounded-full bg-white/20 px-3 py-1 text-xs font-medium">10 tools · one workspace</span>
             <div className="relative">
               <h1 className="text-2xl font-semibold leading-tight sm:text-3xl">Everything you need, in one place.</h1>
               <p className="mt-1.5 text-sm text-indigo-100">Fast, private, beautifully simple.</p>
-              <button onClick={openCommand} className="mt-4 flex w-full max-w-xs items-center gap-2 rounded-lg bg-white/95 px-3 py-2.5 text-left text-sm text-slate-500 shadow-sm transition hover:bg-white">
-                <Search className="size-4" /> Search tools…
-                <kbd className="ml-auto rounded border border-slate-200 px-1.5 py-0.5 text-[10px]">⌘K</kbd>
+              <button onClick={openCommand} className="mt-4 flex w-full items-center gap-2.5 rounded-xl bg-white/95 px-4 py-3.5 text-left text-[15px] text-slate-500 shadow-sm transition hover:bg-white">
+                <Search className="size-[18px]" /> Search tools…
+                <kbd className="ml-auto rounded border border-slate-200 px-1.5 py-0.5 text-[11px]">⌘K</kbd>
               </button>
               <div className="mt-3 flex gap-2">
                 <Button asChild size="sm" className="bg-white text-primary hover:bg-white/90"><Link href="/register">Get started</Link></Button>
@@ -179,7 +179,7 @@ export default function Home() {
               <div className="flex-1 rounded bg-gradient-to-br from-blue-400 to-violet-400" />
               <div className="flex items-center justify-between"><span className="text-[10px] text-muted-foreground line-through">4.8MB</span><span className="text-[10px] font-semibold text-emerald-600">820KB</span></div>
             </div>
-            <div className="mt-2 flex items-center gap-1.5"><span className="flex size-5 items-center justify-center rounded-md bg-sky-100 text-sky-600"><ImageIcon className="size-3" /></span><span className="text-xs font-semibold text-sky-900 dark:text-sky-300">Image · −83%</span></div>
+            <div className="mt-2 flex items-center gap-1.5"><span className="flex size-5 items-center justify-center rounded-md bg-sky-100 text-sky-600"><ImageIcon className="size-3" /></span><span className="text-xs font-semibold text-sky-900 dark:text-sky-300">Image compressor</span></div>
           </div>
 
           <Link href="/tools/password" className="flex flex-col rounded-2xl border border-emerald-200/60 bg-gradient-to-br from-emerald-50 to-background p-3 transition hover:-translate-y-0.5 dark:border-emerald-900/40">
