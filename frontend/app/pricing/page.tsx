@@ -3,7 +3,7 @@
 import { Fragment, useState } from 'react';
 import Link from 'next/link';
 import {
-  LayoutGrid, Check, Minus, ShieldCheck, CloudOff, Star, ChevronDown,
+  LayoutGrid, Check, Minus, ShieldCheck, CloudOff, Lock, Star, ChevronDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -11,6 +11,16 @@ type Cell = boolean | string;
 type Row = { label: string; comp: Cell; free: Cell; pro: Cell };
 
 const groups: { title: string; rows: Row[] }[] = [
+  {
+    title: 'Value & trust',
+    rows: [
+      { label: 'Price per year', comp: 'Up to ~$240', free: '$0', pro: '~$49' },
+      { label: 'Tools available', comp: '~21', free: '30+', pro: '30+' },
+      { label: 'Works offline (no internet needed)', comp: false, free: true, pro: true },
+      { label: 'No signup required to use tools', comp: false, free: true, pro: true },
+      { label: 'Money-back guarantee', comp: 'Conditional / none', free: 'Always free', pro: '14–30 days, no questions' },
+    ],
+  },
   {
     title: 'Privacy & access',
     rows: [
@@ -41,7 +51,7 @@ const groups: { title: string; rows: Row[] }[] = [
     title: 'AI & secure storage',
     rows: [
       { label: 'AI actions — summarize, chat, translate', comp: 'None free / paid credits', free: '15 / month', pro: '2,000 / month' },
-      { label: 'End-to-end encrypted File Vault', comp: 'Not offered', free: '1 GB', pro: 'Unlimited' },
+      { label: 'Opt-in encrypted File Vault (optional cloud storage)', comp: 'Not offered', free: '1 GB', pro: 'Unlimited' },
     ],
   },
   {
@@ -58,6 +68,7 @@ const faqs = [
   { q: 'Can I edit a PDF for free?', a: 'Yes. Annotating, highlighting, drawing, filling forms, and signing are free and unlimited. Only full in-place text editing — rewriting the existing text inside a PDF — is a Pro feature, the same as Adobe, Foxit, and Smallpdf.' },
   { q: 'What do I actually get with Pro?', a: 'Power features beyond the basics: full text editing, batch processing, Office conversions (PDF↔Word/Excel/PPT), OCR, unlimited file size, saved workflows, 2,000 monthly AI actions, and unlimited encrypted File Vault storage.' },
   { q: 'Can I cancel anytime?', a: 'Yes — cancel in one click; you keep Pro until the end of your paid period. New subscribers are also covered by our money-back guarantee (14 days monthly / 30 days annual).' },
+  { q: 'Do you store my files?', a: 'No — by default nothing is saved on our servers. Our tools process your files in your browser. The only exception is the optional File Vault: if you choose to save a file there, it’s encrypted on your device before upload, so even we can’t read it. The 1 GB / unlimited figures apply only to that opt-in Vault.' },
   { q: 'Are my files safe?', a: 'Our tools never upload your files — everything happens on your device. The optional File Vault is end-to-end encrypted, so even we can’t read it. See our Security page for details.' },
 ];
 
@@ -192,6 +203,21 @@ export default function PricingPage() {
           </table>
         </div>
         <p className="mt-3 text-center text-xs text-muted-foreground">Competitor details reflect typical free tiers of major PDF tools and may change.</p>
+
+        {/* Storage clarity — tools never stored vs opt-in vault */}
+        <div className="mt-10 rounded-2xl border bg-card p-6 shadow-soft">
+          <p className="flex items-center gap-2 font-bold"><ShieldCheck className="size-5 text-emerald-600" strokeWidth={2.25} /> How storage works — no surprises</p>
+          <div className="mt-4 grid gap-5 sm:grid-cols-2">
+            <div className="rounded-xl bg-emerald-500/5 p-4">
+              <p className="flex items-center gap-2 text-sm font-semibold text-foreground"><CloudOff className="size-4 text-emerald-600" /> Everyday tools — nothing is stored</p>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">When you merge, compress, convert, edit or sign, your files are processed entirely in your browser and <strong>never reach our servers</strong>. By default, DailyDesk saves nothing — there&rsquo;s nothing to leak.</p>
+            </div>
+            <div className="rounded-xl bg-emerald-500/5 p-4">
+              <p className="flex items-center gap-2 text-sm font-semibold text-foreground"><Lock className="size-4 text-emerald-600" /> File Vault — optional &amp; encrypted</p>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">The File Vault is the <strong>only</strong> feature that stores files — and <strong>only if you choose</strong> to save one. Even then it&rsquo;s encrypted on your device first, so <strong>we can never read it</strong>. <Link href="/security#file-vault" className="font-medium text-primary hover:underline">Learn more →</Link></p>
+            </div>
+          </div>
+        </div>
 
         {/* Privacy callout */}
         <div className="mt-16 rounded-2xl border bg-gradient-to-br from-emerald-50 to-background p-8 text-center dark:from-emerald-950/20">
