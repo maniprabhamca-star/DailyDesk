@@ -45,6 +45,8 @@ export function LegalPage({
           <span className="text-muted-foreground">·</span>
           <Link href="/terms" className="font-semibold text-primary hover:underline">Terms</Link>
           <span className="text-muted-foreground">·</span>
+          <Link href="/refund-policy" className="font-semibold text-primary hover:underline">Refunds</Link>
+          <span className="text-muted-foreground">·</span>
           <Link href="/#tools" className="font-semibold text-primary hover:underline">All tools</Link>
         </div>
       </main>
