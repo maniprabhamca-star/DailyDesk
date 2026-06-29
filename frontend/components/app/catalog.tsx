@@ -32,7 +32,7 @@ export const catalog: CatGroup[] = [
   {
     label: 'Convert', color: '#0284c7', tools: [
       { name: 'JPG to PDF', href: '/jpg-to-pdf', icon: FileImage, badge: 'device' },
-      { name: 'PDF to JPG', icon: ImageIcon, badge: 'device', soon: true },
+      { name: 'PDF to JPG', href: '/pdf-to-jpg', icon: ImageIcon, badge: 'device' },
       { name: 'PDF to Word', icon: FileType, badge: 'memory', soon: true },
       { name: 'Word to PDF', icon: FileType2, badge: 'memory', soon: true },
       { name: 'HTML to PDF', icon: Code2, badge: 'memory', soon: true },
