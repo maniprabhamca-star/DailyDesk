@@ -195,20 +195,20 @@ export default function Home() {
       {/* Category tiles */}
       <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
         <Reveal className="mb-5"><h2 className="text-xl font-bold tracking-tight">Pick a category</h2></Reveal>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
           {categories.map((c, i) => {
             const Icon = c.icon;
             return (
               <Reveal key={c.name} delay={i}>
-                <Link href={c.href} className="group flex h-full flex-col justify-between overflow-hidden rounded-2xl p-5 text-white shadow-card transition-transform hover:-translate-y-1" style={{ backgroundImage: `linear-gradient(150deg, ${c.from}, ${c.to})` }}>
+                <Link href={c.href} className="group flex h-full min-h-[150px] flex-col justify-between overflow-hidden rounded-2xl p-4 text-white shadow-card transition-transform hover:-translate-y-1 sm:min-h-[180px] sm:p-5" style={{ backgroundImage: `linear-gradient(150deg, ${c.from}, ${c.to})` }}>
                   <div className="flex items-start justify-between">
-                    <span className="flex size-11 items-center justify-center rounded-xl bg-white/20"><Icon className="size-5" /></span>
+                    <span className="flex size-10 items-center justify-center rounded-xl bg-white/20 sm:size-11"><Icon className="size-5" strokeWidth={2.25} /></span>
                     {!c.live && <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-medium">Soon</span>}
                   </div>
-                  <div className="mt-8">
-                    <p className="text-lg font-semibold">{c.name}</p>
-                    <p className="mt-0.5 text-sm text-white/85">{c.tagline}</p>
-                    <p className="mt-3 flex items-center gap-1 text-sm font-medium">
+                  <div className="mt-6 sm:mt-8">
+                    <p className="text-base font-bold sm:text-lg">{c.name}</p>
+                    <p className="mt-0.5 text-xs text-white/85 sm:text-sm">{c.tagline}</p>
+                    <p className="mt-3 hidden items-center gap-1 text-sm font-medium sm:flex">
                       {c.live ? <>Try {c.featured} <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" /></> : 'Coming soon'}
                     </p>
                   </div>
