@@ -55,7 +55,7 @@ export default function RefundPolicyPage() {
       <Section id="covered" title="What&rsquo;s covered">
         <ul className="space-y-3">
           <li className="flex gap-3"><BadgeCheck className="mt-0.5 size-5 shrink-0 text-emerald-600" /><span><strong className="text-foreground">Your first Pro payment.</strong> Refunded in full if you ask within your guarantee window (14 days monthly / 30 days annual).</span></li>
-          <li className="flex gap-3"><RotateCcw className="mt-0.5 size-5 shrink-0 text-emerald-600" /><span><strong className="text-foreground">Accidental renewals.</strong> If your plan renewed because you forgot to cancel, email us promptly (within a few days) and we&rsquo;ll do our best to make it right — especially if you haven&rsquo;t really used it since.</span></li>
+          <li className="flex gap-3"><RotateCcw className="mt-0.5 size-5 shrink-0 text-emerald-600" /><span><strong className="text-foreground">Accidental renewals — only if Pro is unused.</strong> If your plan renewed because you forgot to cancel <strong>and you haven&rsquo;t used any Pro feature since that renewal</strong>, email us within a few days and we&rsquo;ll refund it. If Pro has already been used during the new period, that period isn&rsquo;t eligible for a refund.</span></li>
           <li className="flex gap-3"><ShieldCheck className="mt-0.5 size-5 shrink-0 text-emerald-600" /><span><strong className="text-foreground">Billing errors.</strong> Duplicate charges, wrong amounts, or charges you didn&rsquo;t authorise are always refunded — no time limit.</span></li>
         </ul>
       </Section>
