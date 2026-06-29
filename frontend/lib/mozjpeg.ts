@@ -35,7 +35,9 @@ export async function encodeJpeg(image: ImageData, quality: number): Promise<Blo
   const hi = quality >= 90;
   const data = await encode(image, {
     quality,
-    progressive: true,
+    // Baseline (NOT progressive): progressive multi-scan ~doubles encode time for
+    // zero visual gain. optimize_coding stays on — it shrinks the file and is cheap.
+    progressive: false,
     optimize_coding: true,
     // For high quality keep full colour resolution (4:4:4) so coloured text/edges
     // stay sharp; for lower quality let mozjpeg subsample to save space.

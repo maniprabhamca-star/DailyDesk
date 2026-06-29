@@ -5,7 +5,7 @@ import { Upload, FileText, X, Download, Loader2, ImageIcon, FileImage, CheckCirc
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { parseRanges } from '@/components/pdf/split-tool';
-import { createMozjpegPool } from '@/lib/mozjpeg-pool';
+import { encodeJpeg } from '@/lib/mozjpeg';
 import { KeepGoing } from '@/components/app/keep-going';
 
 type Format = 'jpg' | 'png';
@@ -112,6 +112,7 @@ export function PdfToJpgTool() {
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<Result[]>([]);
   const [skipped, setSkipped] = useState<number[]>([]);
+  const [elapsed, setElapsed] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Revoke any object URLs we created for thumbnails when they change or on unmount.
@@ -153,6 +154,7 @@ export function PdfToJpgTool() {
     setSkipped([]);
     setError(null);
     setProgress(null);
+    setElapsed(null);
   }
 
   function startOver() {
@@ -181,105 +183,65 @@ export function PdfToJpgTool() {
         const pages = parseRanges(ranges, total); // 1-based, may throw
         const base = file.name.replace(/\.pdf$/i, '');
         const pad = String(total).length;
-        const slots: (Result | undefined)[] = new Array(pages.length); // keep page order
+        const out: Result[] = [];
         const fails: number[] = [];
         const { dpi, q } = PRESET[preset];
-        const tick = () => new Promise((r) => setTimeout(r, 0));
-
-        // Encode pages in parallel — but stay LEAN on the user's device.
-        // Lean, device-aware pool: just 1 worker on mobile / low-end (≤4 cores or
-        // ≤4 GB), 2 on a capable desktop. The wasm is compiled once and shared,
-        // so more workers wouldn't add download/compile cost — we cap at 2 anyway
-        // to keep CPU and memory footprint small. Main-thread fallback inside.
-        const cores = typeof navigator !== 'undefined' && navigator.hardwareConcurrency ? navigator.hardwareConcurrency : 4;
-        const mem = typeof navigator !== 'undefined' && (navigator as Navigator & { deviceMemory?: number }).deviceMemory
-          ? (navigator as Navigator & { deviceMemory?: number }).deviceMemory! : 4;
-        const want = cores <= 4 || mem <= 4 ? 1 : 2;
-        const poolSize = Math.max(1, Math.min(want, pages.length));
-        const pool = format === 'jpg' ? createMozjpegPool(poolSize) : null;
-
+        const t0 = performance.now();
         let done = 0;
         setProgress({ done: 0, total: pages.length });
-        const jobs: Promise<void>[] = [];
 
-        try {
-          for (let i = 0; i < pages.length; i++) {
-            const n = pages[i];
-            const idx = i;
-            const name = `${base}-page-${String(n).padStart(pad, '0')}.${format}`;
-
-            // Render on the main thread (cheap — ~100ms). pdf.js needs a DOM canvas.
-            let imageData: ImageData | null = null;
-            let pngBlob: Blob | null = null;
-            try {
-              const page = await doc.getPage(n);
-              let s = dpi / 72; // scale from target DPI
-              let viewport = page.getViewport({ scale: s });
-              const longEdge = Math.max(viewport.width, viewport.height);
-              if (longEdge > MAX_DIM) {
-                s = (s * MAX_DIM) / longEdge; // clamp huge pages
-                viewport = page.getViewport({ scale: s });
-              }
-              const canvas = document.createElement('canvas');
-              canvas.width = Math.ceil(viewport.width);
-              canvas.height = Math.ceil(viewport.height);
-              const ctx = canvas.getContext('2d');
-              if (!ctx) throw new Error('no-canvas');
-              // White background first — JPEG has no alpha, so transparent areas would go black.
-              ctx.fillStyle = '#ffffff';
-              ctx.fillRect(0, 0, canvas.width, canvas.height);
-              await page.render({ canvasContext: ctx, viewport, background: 'rgba(255,255,255,1)' }).promise;
-              if (format === 'png') {
-                pngBlob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/png'));
-              } else {
-                imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-              }
-              canvas.width = 0;
-              canvas.height = 0; // free the canvas immediately
-            } catch {
-              fails.push(n);
-              done++;
-              setProgress({ done, total: pages.length });
-              continue;
+        // Lean by design: one mozjpeg codec on the main thread, one page at a
+        // time, freeing each canvas immediately. No workers, no extra WASM
+        // copies — minimal footprint on the user's device. Progressive encoding
+        // is off, so each page encodes ~2× faster with identical sharpness.
+        for (const n of pages) {
+          try {
+            const page = await doc.getPage(n);
+            let s = dpi / 72; // scale from target DPI
+            let viewport = page.getViewport({ scale: s });
+            const longEdge = Math.max(viewport.width, viewport.height);
+            if (longEdge > MAX_DIM) {
+              s = (s * MAX_DIM) / longEdge; // clamp huge pages
+              viewport = page.getViewport({ scale: s });
             }
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.ceil(viewport.width);
+            canvas.height = Math.ceil(viewport.height);
+            const ctx = canvas.getContext('2d');
+            if (!ctx) throw new Error('no-canvas');
+            // White background first — JPEG has no alpha, so transparent areas would go black.
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            await page.render({ canvasContext: ctx, viewport, background: 'rgba(255,255,255,1)' }).promise;
 
+            let blob: Blob | null;
             if (format === 'png') {
-              if (pngBlob) slots[idx] = { name, blob: pngBlob, url: URL.createObjectURL(pngBlob), page: n };
-              else fails.push(n);
-              done++;
-              setProgress({ done, total: pages.length });
-              await tick();
-              continue;
+              blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/png'));
+            } else {
+              const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+              try {
+                blob = await encodeJpeg(imageData, q);
+              } catch {
+                // mozjpeg unavailable in this browser → browser encoder, never break.
+                blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/jpeg', 0.9));
+              }
             }
-
-            // JPG: hand off to the worker pool and keep rendering ahead (bounded).
-            // Keep at most poolSize+1 buffers in memory so we never bloat RAM.
-            while (pool!.inFlight() >= poolSize + 1) await tick(); // backpressure on memory
-            const job = pool!
-              .encode(imageData!, q)
-              .then((blob) => {
-                slots[idx] = { name, blob, url: URL.createObjectURL(blob), page: n };
-              })
-              .catch(() => {
-                fails.push(n);
-              })
-              .finally(() => {
-                done++;
-                setProgress({ done, total: pages.length });
-              });
-            jobs.push(job);
-            await tick(); // let progress/UI breathe between renders
+            canvas.width = 0;
+            canvas.height = 0; // free the canvas immediately
+            if (!blob) throw new Error('no-blob');
+            out.push({ name: `${base}-page-${String(n).padStart(pad, '0')}.${format}`, blob, url: URL.createObjectURL(blob), page: n });
+          } catch {
+            fails.push(n);
           }
-
-          await Promise.all(jobs);
-        } finally {
-          pool?.destroy();
+          done++;
+          setProgress({ done, total: pages.length });
+          await new Promise((r) => setTimeout(r, 0)); // yield so progress repaints
         }
 
-        const out = slots.filter((r): r is Result => !!r);
         if (out.length === 0) {
           throw new Error('None of the selected pages could be converted.');
         }
+        setElapsed((performance.now() - t0) / 1000);
         setResults(out);
         setSkipped(fails.sort((a, b) => a - b));
       } finally {
@@ -321,7 +283,7 @@ export function PdfToJpgTool() {
               <div>
                 <p className="text-sm font-semibold">Done — {results.length} image{results.length === 1 ? '' : 's'} ready</p>
                 <p className="text-xs text-muted-foreground">
-                  {format.toUpperCase()} · {PRESET[preset].dpi} DPI · {fmt(totalBytes)} total
+                  {format.toUpperCase()} · {PRESET[preset].dpi} DPI · {fmt(totalBytes)} total{elapsed != null ? ` · ${elapsed.toFixed(1)}s` : ''}
                 </p>
               </div>
             </div>
