@@ -3,65 +3,70 @@
 import { Fragment, useState } from 'react';
 import Link from 'next/link';
 import {
-  LayoutGrid, Check, Minus, ShieldCheck, CloudOff, Sparkles, Star, ChevronDown,
+  LayoutGrid, Check, Minus, ShieldCheck, CloudOff, Star, ChevronDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 type Cell = boolean | string;
-type Row = { label: string; free: Cell; pro: Cell; hint?: string };
+type Row = { label: string; comp: Cell; free: Cell; pro: Cell };
 
 const groups: { title: string; rows: Row[] }[] = [
   {
     title: 'Privacy & access',
     rows: [
-      { label: 'Files processed in your browser — never uploaded', free: true, pro: true },
-      { label: 'No ads, ever', free: true, pro: true },
-      { label: 'No watermarks', free: true, pro: true },
-      { label: 'Daily usage limit', free: 'Unlimited', pro: 'Unlimited' },
-      { label: 'Desktop & mobile apps', free: true, pro: true },
+      { label: 'Files processed in your browser — never uploaded', comp: 'Uploaded to their servers', free: true, pro: true },
+      { label: 'No ads', comp: 'Ads on free plans', free: true, pro: true },
+      { label: 'No watermarks', comp: true, free: true, pro: true },
+      { label: 'Daily usage limit', comp: 'Often ~2 tasks/day', free: 'Unlimited', pro: 'Unlimited' },
+      { label: 'Desktop & mobile apps', comp: 'Paid only', free: true, pro: true },
     ],
   },
   {
     title: 'PDF & everyday tools',
     rows: [
-      { label: 'Core PDF tools — merge, split, rotate, organize', free: true, pro: true },
-      { label: 'Convert (JPG ↔ PDF, and more)', free: true, pro: true },
-      { label: 'QR code & password generators', free: true, pro: true },
-      { label: 'Maximum file size', free: '100 MB', pro: 'Unlimited' },
-      { label: 'Compression', free: 'Standard', pro: 'Strong + target size' },
-      { label: 'Batch processing — many files at once', free: false, pro: true },
-      { label: 'Office conversions — PDF ↔ Word, Excel, PowerPoint', free: false, pro: true },
-      { label: 'OCR — turn scanned PDFs into searchable text', free: false, pro: true },
-      { label: 'Saved workflows — one-click multi-step automations', free: false, pro: true },
+      { label: 'Core PDF tools — merge, split, rotate, organize', comp: 'Limited per day', free: true, pro: true },
+      { label: 'Convert (JPG ↔ PDF, and more)', comp: 'Limited per day', free: true, pro: true },
+      { label: 'QR code & password generators', comp: 'Rarely offered', free: true, pro: true },
+      { label: 'Maximum file size', comp: '~25–100 MB', free: '100 MB', pro: 'Unlimited' },
+      { label: 'Compression', comp: 'Basic free / strong paid', free: 'Standard', pro: 'Strong + target size' },
+      { label: 'Edit & annotate — highlight, draw, fill, sign', comp: 'Limited per day', free: true, pro: true },
+      { label: 'Full in-place text editing — change existing text', comp: 'Paid only', free: false, pro: true },
+      { label: 'Batch processing — many files at once', comp: 'Paid only', free: false, pro: true },
+      { label: 'Office conversions — PDF ↔ Word, Excel, PowerPoint', comp: 'Paid / limited', free: false, pro: true },
+      { label: 'OCR — scanned PDFs to searchable text', comp: 'Paid only', free: false, pro: true },
+      { label: 'Saved workflows — one-click automations', comp: 'Paid only', free: false, pro: true },
     ],
   },
   {
     title: 'AI & secure storage',
     rows: [
-      { label: 'AI actions — summarize, chat, translate', free: '15 / month', pro: '2,000 / month' },
-      { label: 'End-to-end encrypted File Vault', free: '1 GB', pro: 'Unlimited' },
+      { label: 'AI actions — summarize, chat, translate', comp: 'None free / paid credits', free: '15 / month', pro: '2,000 / month' },
+      { label: 'End-to-end encrypted File Vault', comp: 'Not offered', free: '1 GB', pro: 'Unlimited' },
     ],
   },
   {
     title: 'Speed & support',
     rows: [
-      { label: 'Processing speed', free: 'Standard', pro: 'Priority' },
-      { label: 'Support', free: 'Community', pro: 'Priority email' },
+      { label: 'Processing speed', comp: 'Standard', free: 'Standard', pro: 'Priority' },
+      { label: 'Support', comp: 'Email (paid)', free: 'Community', pro: 'Priority email' },
     ],
   },
 ];
 
 const faqs = [
   { q: 'Is the free plan really free?', a: 'Yes — unlimited use of all our core tools, no ads, no watermarks, no credit card. Our everyday tools run in your browser, so they cost us nothing to give away.' },
-  { q: 'What do I actually get with Pro?', a: 'Power features that go beyond the basics: batch processing, Office conversions (PDF↔Word/Excel/PPT), OCR, unlimited file size, saved workflows, 2,000 monthly AI actions, and unlimited encrypted File Vault storage.' },
-  { q: 'Can I cancel anytime?', a: 'Yes. Cancel in one click — you keep Pro until the end of your paid period, then move to the free plan. And new subscribers are covered by our money-back guarantee (14 days monthly / 30 days annual).' },
+  { q: 'Can I edit a PDF for free?', a: 'Yes. Annotating, highlighting, drawing, filling forms, and signing are free and unlimited. Only full in-place text editing — rewriting the existing text inside a PDF — is a Pro feature, the same as Adobe, Foxit, and Smallpdf.' },
+  { q: 'What do I actually get with Pro?', a: 'Power features beyond the basics: full text editing, batch processing, Office conversions (PDF↔Word/Excel/PPT), OCR, unlimited file size, saved workflows, 2,000 monthly AI actions, and unlimited encrypted File Vault storage.' },
+  { q: 'Can I cancel anytime?', a: 'Yes — cancel in one click; you keep Pro until the end of your paid period. New subscribers are also covered by our money-back guarantee (14 days monthly / 30 days annual).' },
   { q: 'Are my files safe?', a: 'Our tools never upload your files — everything happens on your device. The optional File Vault is end-to-end encrypted, so even we can’t read it. See our Security page for details.' },
 ];
 
-function CellView({ value, accent }: { value: Cell; accent?: boolean }) {
-  if (value === true) return <Check className={`mx-auto size-[18px] ${accent ? 'text-emerald-600' : 'text-emerald-600'}`} strokeWidth={2.75} />;
+function CellView({ value, tone }: { value: Cell; tone?: 'pro' | 'muted' }) {
+  if (value === true) return <Check className={`mx-auto size-[18px] ${tone === 'muted' ? 'text-muted-foreground' : 'text-emerald-600'}`} strokeWidth={2.75} />;
   if (value === false) return <Minus className="mx-auto size-4 text-muted-foreground/40" />;
-  return <span className={`text-sm font-medium ${accent ? 'text-emerald-700 dark:text-emerald-400' : 'text-foreground'}`}>{value}</span>;
+  return (
+    <span className={`text-[13px] font-medium ${tone === 'pro' ? 'text-emerald-700 dark:text-emerald-400' : tone === 'muted' ? 'text-muted-foreground' : 'text-foreground'}`}>{value}</span>
+  );
 }
 
 export default function PricingPage() {
@@ -98,11 +103,7 @@ export default function PricingPage() {
         {/* Billing toggle */}
         <div className="mt-8 flex items-center justify-center gap-3">
           <span className={`text-sm font-medium ${!annual ? 'text-foreground' : 'text-muted-foreground'}`}>Monthly</span>
-          <button
-            onClick={() => setAnnual((v) => !v)}
-            className="relative h-7 w-12 rounded-full bg-muted transition-colors"
-            aria-label="Toggle annual billing"
-          >
+          <button onClick={() => setAnnual((v) => !v)} className="relative h-7 w-12 rounded-full bg-muted transition-colors" aria-label="Toggle annual billing">
             <span className={`absolute top-1 size-5 rounded-full bg-primary transition-all ${annual ? 'left-6' : 'left-1'}`} />
           </button>
           <span className={`text-sm font-medium ${annual ? 'text-foreground' : 'text-muted-foreground'}`}>
@@ -119,7 +120,7 @@ export default function PricingPage() {
             <p className="mt-5"><span className="text-4xl font-bold">$0</span><span className="text-muted-foreground"> /forever</span></p>
             <Button asChild variant="outline" className="mt-6"><Link href="/register">Get started free</Link></Button>
             <ul className="mt-6 space-y-2.5 text-sm">
-              {['Unlimited core PDF & everyday tools', 'No ads, no watermarks, no signup wall', 'Files stay in your browser', 'Files up to 100 MB', '15 AI actions / month', '1 GB encrypted File Vault'].map((f) => (
+              {['Unlimited core PDF & everyday tools', 'Edit & annotate — highlight, fill, sign', 'No ads, no watermarks, no signup wall', 'Files stay in your browser', 'Files up to 100 MB', '15 AI actions / month', '1 GB encrypted File Vault'].map((f) => (
                 <li key={f} className="flex items-start gap-2.5"><Check className="mt-0.5 size-[18px] shrink-0 text-emerald-600" strokeWidth={2.75} /> {f}</li>
               ))}
             </ul>
@@ -136,7 +137,7 @@ export default function PricingPage() {
             <p className="mt-1 text-xs text-muted-foreground">{proSub}</p>
             <Button asChild className="mt-6"><Link href="/register">Go Pro</Link></Button>
             <ul className="mt-6 space-y-2.5 text-sm">
-              {['Everything in Free, with no limits', 'Batch processing — many files at once', 'Office conversions (PDF ↔ Word, Excel, PPT)', 'OCR — scanned PDFs to searchable text', 'Unlimited file size + strong compression', 'Saved one-click workflows', '2,000 AI actions / month', 'Unlimited encrypted File Vault', 'Priority speed & support'].map((f) => (
+              {['Everything in Free, with no limits', 'Full in-place PDF text editing', 'Batch processing — many files at once', 'Office conversions (PDF ↔ Word, Excel, PPT)', 'OCR — scanned PDFs to searchable text', 'Unlimited file size + strong compression', 'Saved one-click workflows', '2,000 AI actions / month', 'Unlimited encrypted File Vault', 'Priority speed & support'].map((f) => (
                 <li key={f} className="flex items-start gap-2.5"><Check className="mt-0.5 size-[18px] shrink-0 text-emerald-600" strokeWidth={2.75} /> {f}</li>
               ))}
             </ul>
@@ -148,27 +149,33 @@ export default function PricingPage() {
         </p>
 
         {/* Comparison table */}
-        <h2 className="mt-16 text-center text-2xl font-bold tracking-tight">Compare every feature</h2>
+        <h2 className="mt-16 text-center text-2xl font-bold tracking-tight">How we compare</h2>
+        <p className="mt-2 text-center text-sm text-muted-foreground">See exactly what you get with DailyDesk versus typical competitor free plans.</p>
         <div className="mt-6 overflow-x-auto">
-          <table className="w-full min-w-[560px] border-separate border-spacing-0">
+          <table className="w-full min-w-[720px] border-separate border-spacing-0">
             <thead>
               <tr>
-                <th className="sticky left-0 bg-background pb-3 text-left text-sm font-semibold"> </th>
-                <th className="w-28 pb-3 text-center text-sm font-semibold">Free</th>
-                <th className="w-40 rounded-t-xl bg-primary/5 pb-3 pt-3 text-center text-sm font-bold text-primary">Pro</th>
+                <th className="pb-3 text-left text-sm font-semibold"> </th>
+                <th className="w-44 pb-3 text-center align-bottom text-sm font-semibold text-muted-foreground">
+                  Competitors
+                  <span className="block text-[11px] font-normal text-muted-foreground/70">typical free plan</span>
+                </th>
+                <th className="w-28 pb-3 text-center align-bottom text-sm font-semibold">DailyDesk<span className="block text-[11px] font-normal text-muted-foreground">Free</span></th>
+                <th className="w-36 rounded-t-xl bg-primary/5 px-2 pb-3 pt-3 text-center align-bottom text-sm font-bold text-primary">DailyDesk<span className="block text-[11px] font-semibold">Pro</span></th>
               </tr>
             </thead>
             <tbody>
               {groups.map((g) => (
                 <Fragment key={g.title}>
                   <tr>
-                    <td colSpan={3} className="bg-muted/40 px-3 py-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">{g.title}</td>
+                    <td colSpan={4} className="bg-muted/40 px-3 py-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">{g.title}</td>
                   </tr>
                   {g.rows.map((r) => (
-                    <tr key={r.label} className="border-b">
+                    <tr key={r.label}>
                       <td className="border-b border-border/60 px-3 py-3 text-sm">{r.label}</td>
+                      <td className="border-b border-border/60 px-3 py-3 text-center"><CellView value={r.comp} tone="muted" /></td>
                       <td className="border-b border-border/60 px-3 py-3 text-center"><CellView value={r.free} /></td>
-                      <td className="border-b border-border/60 bg-primary/5 px-3 py-3 text-center"><CellView value={r.pro} accent /></td>
+                      <td className="border-b border-border/60 bg-primary/5 px-3 py-3 text-center"><CellView value={r.pro} tone="pro" /></td>
                     </tr>
                   ))}
                 </Fragment>
@@ -177,12 +184,14 @@ export default function PricingPage() {
             <tfoot>
               <tr>
                 <td className="px-3 pt-5"> </td>
+                <td className="px-3 pt-5"> </td>
                 <td className="px-3 pt-5 text-center"><Button asChild variant="outline" size="sm"><Link href="/register">Start free</Link></Button></td>
                 <td className="rounded-b-xl bg-primary/5 px-3 pb-5 pt-5 text-center"><Button asChild size="sm"><Link href="/register">Go Pro</Link></Button></td>
               </tr>
             </tfoot>
           </table>
         </div>
+        <p className="mt-3 text-center text-xs text-muted-foreground">Competitor details reflect typical free tiers of major PDF tools and may change.</p>
 
         {/* Privacy callout */}
         <div className="mt-16 rounded-2xl border bg-gradient-to-br from-emerald-50 to-background p-8 text-center dark:from-emerald-950/20">
