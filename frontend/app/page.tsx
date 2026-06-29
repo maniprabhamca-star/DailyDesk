@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { toolGroups, allTools, type Tool } from '@/components/app/tools-config';
 import { AllToolsDirectory } from '@/components/home/all-tools-directory';
+import { catalog } from '@/components/app/catalog';
 
 function openCommand() {
   window.dispatchEvent(new Event('dd-command-open'));
@@ -32,18 +33,16 @@ function Reveal({ children, className, delay = 0 }: { children: React.ReactNode;
 function ToolCard({ t }: { t: Tool }) {
   const Icon = t.icon;
   const inner = (
-    <div className="group flex h-full items-start gap-3 rounded-xl border bg-card p-4 shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-card">
-      <span className="flex size-10 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: `${t.color}1A`, color: t.color }}>
-        <Icon className="size-5" />
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="flex items-center gap-2 text-sm font-semibold">
-          {t.name}
-          {!t.available && <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">Soon</span>}
-        </p>
-        <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{t.description}</p>
+    <div className="group flex h-full flex-col rounded-2xl border bg-card p-4 shadow-soft transition-all hover:-translate-y-1 hover:shadow-card">
+      <div className="mb-3 flex items-start justify-between">
+        <span className="flex size-12 items-center justify-center rounded-xl" style={{ backgroundColor: `${t.color}1A`, color: t.color }}>
+          <Icon className="size-6" strokeWidth={2.25} />
+        </span>
+        {!t.available && <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">Soon</span>}
+        {t.available && <ArrowRight className="size-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />}
       </div>
-      {t.available && <ArrowRight className="size-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />}
+      <p className="text-[15px] font-bold tracking-tight">{t.name}</p>
+      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{t.description}</p>
     </div>
   );
   return t.available ? <Link href={t.href} className="h-full">{inner}</Link> : <div className="h-full cursor-not-allowed">{inner}</div>;
@@ -99,21 +98,23 @@ export default function Home() {
             {menuOpen && (
               <>
                 <div className="fixed inset-0 z-30" onClick={() => setMenuOpen(false)} />
-                <div className="absolute left-0 top-8 z-40 grid w-[560px] grid-cols-2 gap-x-6 gap-y-1 rounded-xl border bg-popover p-4 shadow-lift">
-                  {toolGroups.map((g) => (
+                <div className="absolute left-0 top-8 z-40 grid w-[680px] grid-cols-3 gap-x-5 gap-y-4 rounded-xl border bg-popover p-5 shadow-lift">
+                  {catalog.map((g) => (
                     <div key={g.label}>
-                      <p className="mb-1 px-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">{g.label}</p>
-                      {g.tools.map((t) => {
-                        const Icon = t.icon;
-                        const row = (
-                          <div className="flex items-center gap-2.5 rounded-lg p-2 hover:bg-accent">
-                            <span className="flex size-7 items-center justify-center rounded-md" style={{ backgroundColor: `${t.color}1A`, color: t.color }}><Icon className="size-4" /></span>
-                            <span className="text-sm">{t.name}</span>
-                            {!t.available && <span className="ml-auto text-[10px] text-muted-foreground">soon</span>}
-                          </div>
-                        );
-                        return t.available ? <Link key={t.id} href={t.href} onClick={() => setMenuOpen(false)}>{row}</Link> : <div key={t.id} className="cursor-not-allowed opacity-60">{row}</div>;
-                      })}
+                      <p className="mb-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">{g.label}</p>
+                      <div className="space-y-0.5">
+                        {g.tools.map((t) => {
+                          const Icon = t.icon;
+                          const row = (
+                            <div className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-accent">
+                              <Icon className="size-4 shrink-0" style={{ color: g.color }} strokeWidth={2.25} />
+                              <span className="truncate text-[13px] font-medium">{t.name}</span>
+                              {t.soon && <span className="ml-auto text-[10px] text-muted-foreground">soon</span>}
+                            </div>
+                          );
+                          return t.href ? <Link key={t.name} href={t.href} onClick={() => setMenuOpen(false)}>{row}</Link> : <div key={t.name} className="cursor-default opacity-70">{row}</div>;
+                        })}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -229,7 +230,7 @@ export default function Home() {
             ))}
           </div>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
           {filtered.map((t) => <ToolCard key={t.id} t={t} />)}
         </div>
       </section>
