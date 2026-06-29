@@ -186,11 +186,16 @@ export function PdfToJpgTool() {
         const { dpi, q } = PRESET[preset];
         const tick = () => new Promise((r) => setTimeout(r, 0));
 
-        // Encode pages in parallel across CPU cores (encoding dominates the time).
-        // Cap at 4 workers to bound memory at high DPI; the main-thread fallback
-        // lives inside the pool, so this is safe on any browser.
+        // Encode pages in parallel — but stay LEAN on the user's device.
+        // Lean, device-aware pool: just 1 worker on mobile / low-end (≤4 cores or
+        // ≤4 GB), 2 on a capable desktop. The wasm is compiled once and shared,
+        // so more workers wouldn't add download/compile cost — we cap at 2 anyway
+        // to keep CPU and memory footprint small. Main-thread fallback inside.
         const cores = typeof navigator !== 'undefined' && navigator.hardwareConcurrency ? navigator.hardwareConcurrency : 4;
-        const poolSize = Math.max(1, Math.min(4, cores, pages.length));
+        const mem = typeof navigator !== 'undefined' && (navigator as Navigator & { deviceMemory?: number }).deviceMemory
+          ? (navigator as Navigator & { deviceMemory?: number }).deviceMemory! : 4;
+        const want = cores <= 4 || mem <= 4 ? 1 : 2;
+        const poolSize = Math.max(1, Math.min(want, pages.length));
         const pool = format === 'jpg' ? createMozjpegPool(poolSize) : null;
 
         let done = 0;
@@ -248,7 +253,8 @@ export function PdfToJpgTool() {
             }
 
             // JPG: hand off to the worker pool and keep rendering ahead (bounded).
-            while (pool!.inFlight() >= poolSize * 2) await tick(); // backpressure on memory
+            // Keep at most poolSize+1 buffers in memory so we never bloat RAM.
+            while (pool!.inFlight() >= poolSize + 1) await tick(); // backpressure on memory
             const job = pool!
               .encode(imageData!, q)
               .then((blob) => {

@@ -1,7 +1,9 @@
 // A small pool of Web Workers that encode JPEGs with mozjpeg in parallel.
-// Encoding is ~97% of conversion time and fully parallelizable, so spreading
-// pages across cores turns a 30s job into a few seconds — while keeping the
-// main thread free (no frozen tab).
+// Designed to be LEAN on the user's device: the WASM is fetched and compiled
+// ONCE on the main thread and the compiled module is shared to every worker, so
+// there is a single download + compile no matter the pool size. Pool size is
+// chosen adaptively by the caller (small, fewer on mobile). Buffers are bounded
+// by backpressure and everything is freed on destroy().
 //
 // Cross-browser safety: if module Workers aren't supported, a worker fails to
 // spawn, or a job errors, we transparently fall back to main-thread encoding
@@ -42,8 +44,10 @@ export function createMozjpegPool(size: number): MozjpegPool {
   const owner = new Map<number, Worker>();
   let seq = 0;
   let inflight = 0;
+  let started = false; // don't dispatch jobs until the shared module is broadcast
 
   function pump() {
+    if (!started) return;
     while (idle.length && queue.length) {
       const w = idle.pop()!;
       const t = queue.shift()!;
@@ -67,7 +71,6 @@ export function createMozjpegPool(size: number): MozjpegPool {
       else t.reject(new Error(error || 'encode failed'));
     };
     w.onerror = () => {
-      // Reject whatever job(s) this worker was running; the caller falls back.
       owner.forEach((ww, id) => {
         if (ww === w) {
           const t = pending.get(id);
@@ -81,6 +84,23 @@ export function createMozjpegPool(size: number): MozjpegPool {
       pump();
     };
   }
+
+  // Compile the codec ONCE, then hand the same module to every worker.
+  (async () => {
+    if (workers.length === 0) { started = true; return; }
+    try {
+      const res = await fetch('/mozjpeg_enc.wasm');
+      if (res.ok) {
+        const mod = await WebAssembly.compile(await res.arrayBuffer());
+        workers.forEach((w) => w.postMessage({ type: 'init', module: mod }));
+      }
+    } catch {
+      // ignore — workers will self-fetch the wasm on their first job
+    } finally {
+      started = true;
+      pump();
+    }
+  })();
 
   return {
     encode(image, quality) {

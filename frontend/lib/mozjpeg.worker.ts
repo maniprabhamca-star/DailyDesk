@@ -1,11 +1,14 @@
 /// <reference lib="webworker" />
-// Off-main-thread mozjpeg encoder. One of these runs per pool worker so pages
-// encode in parallel across CPU cores. The wasm is fetched from /public (same
-// file the main thread uses) and compiled once per worker.
+// Off-main-thread mozjpeg encoder. The WASM is compiled ONCE on the main thread
+// and the resulting WebAssembly.Module is shared to every worker via an 'init'
+// message — so we never download or compile the codec more than once, and each
+// worker just instantiates from the shared module (cheap). Falls back to a
+// self-fetch only if the shared module never arrives.
 import encode, { init } from '@jsquash/jpeg/encode';
 
 let ready: Promise<void> | null = null;
-function ensure(): Promise<void> {
+
+function ensureSelf(): Promise<void> {
   if (!ready) {
     ready = (async () => {
       const res = await fetch('/mozjpeg_enc.wasm');
@@ -17,11 +20,20 @@ function ensure(): Promise<void> {
 }
 
 self.onmessage = async (e: MessageEvent) => {
-  const { id, data, width, height, quality } = e.data as {
+  const msg = e.data;
+
+  // Shared compiled module from the main thread (one compile for the whole pool).
+  if (msg && msg.type === 'init') {
+    ready = (async () => { await init(msg.module as WebAssembly.Module); })();
+    try { await ready; } catch { ready = null; }
+    return;
+  }
+
+  const { id, data, width, height, quality } = msg as {
     id: number; data: ArrayBuffer; width: number; height: number; quality: number;
   };
   try {
-    await ensure();
+    await (ready ?? ensureSelf());
     const hi = quality >= 90;
     const out = await encode(
       { data: new Uint8ClampedArray(data), width, height, colorSpace: 'srgb' } as ImageData,
