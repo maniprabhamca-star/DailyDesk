@@ -331,8 +331,9 @@ export default function Home() {
             <div>
               <p className="text-sm font-semibold">Legal</p>
               <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-                <li><Link href="#" className="hover:text-foreground">Privacy</Link></li>
-                <li><Link href="#" className="hover:text-foreground">Terms</Link></li>
+                <li><Link href="/privacy" className="hover:text-foreground">Privacy</Link></li>
+                <li><Link href="/security" className="hover:text-foreground">Security</Link></li>
+                <li><Link href="/terms" className="hover:text-foreground">Terms</Link></li>
               </ul>
             </div>
           </div>
