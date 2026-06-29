@@ -25,7 +25,7 @@ function Row({ t, color }: { t: CatTool; color: string }) {
 export function AllToolsDirectory() {
   return (
     <section className="border-t bg-muted/20">
-      <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
+      <div className="mx-auto max-w-6xl px-4 pb-6 pt-10 sm:px-6">
         {/* Trust strip */}
         <div className="mb-9 flex flex-wrap justify-center gap-x-7 gap-y-2">
           {[
