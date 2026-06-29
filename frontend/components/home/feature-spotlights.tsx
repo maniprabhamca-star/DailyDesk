@@ -34,7 +34,7 @@ function Row({
 
 export function FeatureSpotlights() {
   return (
-    <section className="mx-auto max-w-6xl space-y-20 px-4 py-16 sm:px-6">
+    <section className="mx-auto max-w-6xl space-y-28 px-4 py-20 sm:px-6 md:space-y-36">
 
       {/* 1 · Privacy */}
       <Row eyebrow="Private by design" eyebrowColor="#059669" title="Your files never leave your device." body="Most tools run entirely in your browser. Nothing is uploaded, nothing is stored — your documents stay yours, every time." cta="Try a tool" href="/merge-pdf">
