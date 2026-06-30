@@ -4,12 +4,11 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
-  LayoutGrid, ChevronDown, Search, ArrowRight, Zap, ShieldCheck, Smartphone, Check,
-  FileText, QrCode, ImageIcon, NotebookPen, BadgeCheck, Lock, Layers,
+  LayoutGrid, ChevronDown, Search, ShieldCheck, Smartphone, Check,
+  BadgeCheck, Lock, Menu, X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
-import { toolGroups, allTools, type Tool } from '@/components/app/tools-config';
 import { AllToolsDirectory } from '@/components/home/all-tools-directory';
 import { catalog } from '@/components/app/catalog';
 import { FeatureSpotlights } from '@/components/home/feature-spotlights';
@@ -32,38 +31,11 @@ function Reveal({ children, className, delay = 0 }: { children: React.ReactNode;
   );
 }
 
-function ToolCard({ t }: { t: Tool }) {
-  const Icon = t.icon;
-  const inner = (
-    <div className="group flex h-full flex-col rounded-2xl border bg-card p-4 shadow-soft transition-all hover:-translate-y-1 hover:shadow-card">
-      <div className="mb-3 flex items-start justify-between">
-        <span className="flex size-12 items-center justify-center rounded-xl" style={{ backgroundColor: `${t.color}1A`, color: t.color }}>
-          <Icon className="size-6" strokeWidth={2.25} />
-        </span>
-        {!t.available && <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">Soon</span>}
-        {t.available && <ArrowRight className="size-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />}
-      </div>
-      <p className="text-[15px] font-bold tracking-tight">{t.name}</p>
-      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{t.description}</p>
-    </div>
-  );
-  return t.available ? <Link href={t.href} className="h-full">{inner}</Link> : <div className="h-full cursor-not-allowed">{inner}</div>;
-}
-
-const categories = [
-  { name: 'PDF Tools', tagline: 'Merge, split, compress, convert & more', featured: 'Merge PDF', href: '/merge-pdf', from: '#dc2626', to: '#ef4444', icon: FileText, live: true },
-  { name: 'Generators', tagline: 'QR codes & secure passwords', featured: 'QR generator', href: '/tools/qr-code', from: '#4f46e5', to: '#7c3aed', icon: QrCode, live: true },
-  { name: 'Image Tools', tagline: 'Compress images & remove backgrounds', featured: 'Coming soon', href: '#tools', from: '#0284c7', to: '#0ea5e9', icon: ImageIcon, live: false },
-  { name: 'Workspace', tagline: 'Notes, habits, budget, vault & bio', featured: 'Coming soon', href: '#tools', from: '#d97706', to: '#f59e0b', icon: NotebookPen, live: false },
-];
-
 const why = [
   { icon: ShieldCheck, title: 'Files never leave your browser', body: 'Core tools run 100% on your device — nothing is uploaded to any server.' },
-  { icon: Zap, title: 'Instant, even offline', body: 'Processing happens locally, so it’s fast and works without a connection.' },
   { icon: BadgeCheck, title: 'Free, no signup', body: 'Use the core tools free — no account, no watermark, no catch.' },
   { icon: Smartphone, title: 'Every device', body: 'A premium experience on desktop and mobile. Native apps on the way.' },
   { icon: Lock, title: 'Encrypted when saved', body: 'Optional saved files use AES-256 encryption — only you hold the key.' },
-  { icon: Layers, title: 'All-in-one', body: 'PDF, images, notes, habits and more — one private workspace.' },
 ];
 
 const stats = [
@@ -75,10 +47,7 @@ const stats = [
 
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [filter, setFilter] = useState<string>('all');
-
-  const filtered = filter === 'all' ? allTools : toolGroups.find((g) => g.label === filter)?.tools ?? [];
-  const pills = ['all', ...toolGroups.map((g) => g.label)];
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-background text-foreground">
@@ -127,9 +96,27 @@ export default function Home() {
           <div className="ml-auto flex items-center gap-2">
             <ThemeToggle />
             <Button asChild size="sm" variant="ghost" className="hidden sm:inline-flex"><Link href="/login">Log in</Link></Button>
-            <Button asChild size="sm"><Link href="/register">Get started</Link></Button>
+            <Button asChild size="sm" className="hidden sm:inline-flex"><Link href="/register">Get started</Link></Button>
+            <button onClick={() => setMobileOpen((o) => !o)} aria-label="Menu" aria-expanded={mobileOpen} className="flex size-9 items-center justify-center rounded-lg border text-foreground/80 sm:hidden">
+              {mobileOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+            </button>
           </div>
         </div>
+        {/* Mobile menu */}
+        {mobileOpen && (
+          <div className="border-t sm:hidden">
+            <div className="mx-auto flex max-w-6xl flex-col gap-0.5 px-4 py-3">
+              {[
+                { label: 'All tools', href: '#tools' },
+                { label: 'Pricing', href: '/pricing' },
+                { label: 'Log in', href: '/login' },
+              ].map((l) => (
+                <Link key={l.label} href={l.href} onClick={() => setMobileOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-medium text-foreground/90 hover:bg-accent">{l.label}</Link>
+              ))}
+              <Button asChild size="sm" className="mt-1.5 w-full"><Link href="/register" onClick={() => setMobileOpen(false)}>Get started</Link></Button>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Bento hero */}
@@ -157,49 +144,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Category tiles */}
-      <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-        <Reveal className="mb-5"><h2 className="text-xl font-bold tracking-tight">Pick a category</h2></Reveal>
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-          {categories.map((c, i) => {
-            const Icon = c.icon;
-            return (
-              <Reveal key={c.name} delay={i}>
-                <Link href={c.href} className="group flex h-full min-h-[150px] flex-col justify-between overflow-hidden rounded-2xl p-4 text-white shadow-card transition-transform hover:-translate-y-1 sm:min-h-[180px] sm:p-5" style={{ backgroundImage: `linear-gradient(150deg, ${c.from}, ${c.to})` }}>
-                  <div className="flex items-start justify-between">
-                    <span className="flex size-10 items-center justify-center rounded-xl bg-white/20 sm:size-11"><Icon className="size-5" strokeWidth={2.25} /></span>
-                    {!c.live && <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-medium">Soon</span>}
-                  </div>
-                  <div className="mt-6 sm:mt-8">
-                    <p className="text-base font-bold sm:text-lg">{c.name}</p>
-                    <p className="mt-0.5 text-xs text-white/85 sm:text-sm">{c.tagline}</p>
-                    <p className="mt-3 hidden items-center gap-1 text-sm font-medium sm:flex">
-                      {c.live ? <>Try {c.featured} <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" /></> : 'Coming soon'}
-                    </p>
-                  </div>
-                </Link>
-              </Reveal>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* Browse all tools */}
-      <section id="tools" className="mx-auto max-w-6xl px-4 pb-12 sm:px-6">
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-xl font-bold tracking-tight">Browse all tools</h2>
-          <div className="flex gap-2">
-            {pills.map((p) => (
-              <button key={p} onClick={() => setFilter(p)} className={`rounded-full px-3.5 py-1.5 text-xs font-medium capitalize transition-colors ${filter === p ? 'bg-foreground text-background' : 'border text-muted-foreground hover:text-foreground'}`}>
-                {p}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-          {filtered.map((t) => <ToolCard key={t.id} t={t} />)}
-        </div>
-      </section>
+      {/* All tools — the single canonical tools section */}
+      <AllToolsDirectory />
 
       {/* Feature spotlights */}
       <FeatureSpotlights />
@@ -211,9 +157,9 @@ export default function Home() {
             <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Why DailyDesk</h2>
             <p className="mt-2 text-muted-foreground">Built private, fast, and free — without the catch.</p>
           </Reveal>
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {why.map((w, i) => (
-              <Reveal key={w.title} delay={i % 3}>
+              <Reveal key={w.title} delay={i % 4}>
                 <div className="flex h-full flex-col gap-3 rounded-2xl border bg-card p-6 shadow-soft">
                   <span className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary"><w.icon className="size-5" /></span>
                   <h3 className="text-base font-semibold">{w.title}</h3>
@@ -227,11 +173,11 @@ export default function Home() {
 
       {/* Stats band */}
       <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
-        <div className="grid grid-cols-2 gap-6 rounded-2xl border bg-card p-8 shadow-soft sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-y-6 rounded-2xl border bg-card p-8 shadow-soft sm:grid-cols-4">
           {stats.map((s) => (
-            <div key={s.l} className="text-center">
-              <p className="text-3xl font-bold text-primary sm:text-4xl">{s.v}</p>
-              <p className="mt-1 text-sm text-muted-foreground">{s.l}</p>
+            <div key={s.l} className="border-border px-4 text-center sm:border-l sm:first:border-l-0">
+              <p className="text-3xl font-bold tracking-tight text-primary sm:text-4xl">{s.v}</p>
+              <p className="mt-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">{s.l}</p>
             </div>
           ))}
         </div>
@@ -263,9 +209,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-      {/* All tools directory */}
-      <AllToolsDirectory />
 
       {/* Footer */}
       <footer className="border-t bg-muted/20">

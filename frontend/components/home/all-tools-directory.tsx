@@ -78,7 +78,7 @@ function Tile({ t, groupColor }: { t: CatTool; groupColor: string }) {
 
 export function AllToolsDirectory() {
   return (
-    <section className="border-t bg-muted/20">
+    <section id="tools" className="scroll-mt-20 border-t bg-muted/20">
       <div className="mx-auto max-w-6xl px-4 pb-10 pt-10 sm:px-6">
         {/* Trust strip */}
         <div className="mb-9 flex flex-wrap justify-center gap-x-7 gap-y-2">
