@@ -5,6 +5,7 @@ import { Upload, FileText, X, Download, Loader2, RotateCw, RotateCcw, Zap, Refre
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { takeHandoff } from '@/lib/handoff';
+import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
 
 // One page thumbnail + its pending rotation (delta added on top of the page's
@@ -154,10 +155,7 @@ export function RotateTool() {
       const out = await src.save();
       const name = `${file.name.replace(/\.pdf$/i, '')}-rotated.pdf`;
       const blob = new Blob([new Uint8Array(out)], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
-      URL.revokeObjectURL(url);
+      download(blob, name);
       setDone({ blob, name });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not rotate the PDF.');

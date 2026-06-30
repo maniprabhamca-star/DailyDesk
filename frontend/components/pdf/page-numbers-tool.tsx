@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { parseRanges } from '@/components/pdf/split-tool';
 import { takeHandoff } from '@/lib/handoff';
+import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
 
 type Pos = 'tl' | 'tc' | 'tr' | 'bl' | 'bc' | 'br';
@@ -122,10 +123,7 @@ export function PageNumbersTool() {
       const out = await doc.save();
       const name = `${file.name.replace(/\.pdf$/i, '')}-numbered.pdf`;
       const blob = new Blob([new Uint8Array(out)], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
-      URL.revokeObjectURL(url);
+      download(blob, name);
       setDone({ blob, name });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not add page numbers.');

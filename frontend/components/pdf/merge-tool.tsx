@@ -5,6 +5,7 @@ import { Upload, FileText, X, ArrowUp, ArrowDown, Download, Loader2, Zap } from 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { takeHandoff } from '@/lib/handoff';
+import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
 
 type Item = { id: string; file: File };
@@ -85,14 +86,7 @@ export function MergeTool() {
       const merged = await out.save();
       const name = 'merged.pdf';
       const blob = new Blob([new Uint8Array(merged)], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = name;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      download(blob, name);
       setDone({ blob, name });
     } catch (e) {
       setError(e instanceof Error ? `Could not merge: ${e.message}` : 'Could not merge the files.');

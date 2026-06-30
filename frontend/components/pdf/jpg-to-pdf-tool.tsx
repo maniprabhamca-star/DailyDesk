@@ -5,6 +5,7 @@ import { Upload, X, ArrowUp, ArrowDown, Download, Loader2, ImageIcon, Zap } from
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { takeHandoff } from '@/lib/handoff';
+import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
 
 type Item = { id: string; file: File; url: string };
@@ -178,14 +179,7 @@ export function JpgToPdfTool() {
       const out = await pdf.save();
       const name = 'converted.pdf';
       const blob = new Blob([new Uint8Array(out)], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = name;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      download(blob, name);
       setDone({ blob, name });
 
       if (skipped.length) {

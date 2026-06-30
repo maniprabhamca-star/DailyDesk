@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { parseRanges } from '@/components/pdf/split-tool';
 import { encodeJpeg } from '@/lib/mozjpeg';
+import { downloadBlob as download } from '@/lib/download';
 import { KeepGoing } from '@/components/app/keep-going';
 import { KeepMoving } from '@/components/app/keep-moving';
 import { setHandoff, takeHandoff } from '@/lib/handoff';
@@ -35,17 +36,6 @@ function fmt(bytes: number) {
 
 const inputCls =
   'h-9 w-full rounded-lg border bg-card px-3 text-sm text-foreground outline-none focus:border-primary';
-
-function download(blob: Blob, name: string) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = name;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
 
 // A selectable option card (premium radio-style tile).
 function OptionCard({

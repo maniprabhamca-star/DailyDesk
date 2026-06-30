@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import type { PDFRawStream as RawStream } from 'pdf-lib';
 import { encodeJpeg } from '@/lib/mozjpeg';
 import { takeHandoff } from '@/lib/handoff';
+import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
 
 // Uint8Array from pdf-lib/file APIs can be typed as ArrayBufferLike-backed; wrap
@@ -268,13 +269,6 @@ export function CompressTool() {
       setBusy(false);
       setProgress(null);
     }
-  }
-
-  function download(blob: Blob, name: string) {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
-    URL.revokeObjectURL(url);
   }
 
   const saved = done && done.before > done.after ? Math.round(100 * (1 - done.after / done.before)) : 0;

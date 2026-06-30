@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { FileText, Image as ImageIcon, Scissors, RotateCw, Combine, FileMinus, Shrink, Download, CheckCircle2, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { setHandoff } from '@/lib/handoff';
+import { downloadBlob as download } from '@/lib/download';
 import { KeepMoving, type MoveAction } from './keep-moving';
 import { KeepGoing } from './keep-going';
 
@@ -23,17 +24,6 @@ const PDF_TARGETS: Target[] = [
   { href: '/delete-pages-from-pdf', name: 'Delete Pages', label: 'Remove pages', blurb: 'Drop the pages you don’t need', icon: FileMinus },
   { href: '/merge-pdf', name: 'Merge PDF', label: 'Merge with more', blurb: 'Combine it with other PDFs', icon: Combine },
 ];
-
-function download(blob: Blob, name: string) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = name;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
 
 export function PdfDone({ blob, name, currentHref, fromLabel, hideBanner = false }: { blob: Blob; name: string; currentHref: string; fromLabel: string; hideBanner?: boolean }) {
   const router = useRouter();

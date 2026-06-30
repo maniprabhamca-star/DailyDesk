@@ -5,6 +5,7 @@ import { Upload, FileText, X, Download, Loader2, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { takeHandoff } from '@/lib/handoff';
+import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
 
 type Mode = 'extract' | 'each';
@@ -42,16 +43,6 @@ export function parseRanges(input: string, total: number): number[] {
   return out;
 }
 
-function download(blob: Blob, name: string) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = name;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
 
 export function SplitTool() {
   const [file, setFile] = useState<File | null>(null);
