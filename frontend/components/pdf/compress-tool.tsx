@@ -153,7 +153,7 @@ export function CompressTool() {
     setProgress(null);
   }
 
-  async function run() {
+  async function run(force = false) {
     if (!file) { setError('Add a PDF first.'); return; }
     setBusy(true);
     setError(null);
@@ -221,7 +221,10 @@ export function CompressTool() {
             // image is clearly higher-res than the target — otherwise re-rendering
             // wastes minutes for almost nothing (an already-efficient file just
             // isn't compressible, exactly what Smallpdf/iLovePDF show: ~1%).
-            if (width > 0 && height > 0 && maxArea >= 0.7 * width * height && storedDpi >= rasterDpi * 1.5) {
+            // Normally only rasterize when the image is clearly higher-res than
+            // target (worth the time). "Squeeze harder" (force) rasterizes any
+            // big-image page, even for a small extra gain.
+            if (width > 0 && height > 0 && maxArea >= 0.7 * width * height && (force || storedDpi >= rasterDpi * 1.5)) {
               scanPages.add(pi);
               nameToTag.forEach((tag) => scanImageTags.add(tag));
             }
@@ -260,8 +263,10 @@ export function CompressTool() {
           // what keeps already-efficient files fast (seconds, not minutes).
           const dispPt = displaySizes.get((ref as unknown as { tag: string }).tag);
           const longPx = Math.max(w, h);
-          if (dispPt) { if (longPx <= (dispPt / 72) * dpi * 1.15) continue; }
-          else if (longPx <= maxDim) continue;
+          if (!force) {
+            if (dispPt) { if (longPx <= (dispPt / 72) * dpi * 1.15) continue; }
+            else if (longPx <= maxDim) continue;
+          }
 
           const bmp = await decodeJpeg(raw);
           // DPI-aware target: shrink to what the image's on-page size needs at the
@@ -453,7 +458,7 @@ export function CompressTool() {
         {error && <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
 
         {file && !done && (
-          <Button className="mt-5 w-full" size="lg" onClick={run} disabled={busy}>
+          <Button className="mt-5 w-full" size="lg" onClick={() => run()} disabled={busy}>
             {busy ? <><Loader2 className="size-4 animate-spin" /> {progress && progress.total > 0 ? `Compressing ${progress.done}/${progress.total}…` : 'Compressing…'}</> : <><Shrink className="size-4" /> Compress PDF</>}
           </Button>
         )}
@@ -464,7 +469,10 @@ export function CompressTool() {
               <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-center">
                 <CheckCircle2 className="mx-auto size-6 text-emerald-500" />
                 <p className="mt-1.5 text-sm font-semibold">Already well optimized</p>
-                <p className="text-xs text-muted-foreground">This PDF is about as small as it’ll get without hurting quality — your original ({fmt(done.before)}) is ready below.</p>
+                <p className="text-xs text-muted-foreground">This PDF is about as small as it’ll get without hurting quality — your original ({fmt(done.before)}) is ready below. You can still squeeze out a bit more at lower quality.</p>
+                <Button variant="outline" size="sm" className="mt-3" onClick={() => run(true)} disabled={busy}>
+                  {busy ? <><Loader2 className="size-4 animate-spin" /> Squeezing…</> : <><Shrink className="size-4" /> Squeeze harder (slower)</>}
+                </Button>
               </div>
             ) : (
               <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-center">
