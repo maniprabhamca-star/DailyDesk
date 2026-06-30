@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
-  ShieldCheck, CloudOff, ArrowRight, FileText, Scissors, Combine, Search, QrCode, Lock,
+  ArrowRight, FileText, Scissors, Combine, Search, QrCode,
+  Shrink, RotateCw, ListOrdered, Image as ImageIcon, KeyRound,
 } from 'lucide-react';
 
 function Row({
@@ -36,23 +37,34 @@ export function FeatureSpotlights() {
   return (
     <section className="mx-auto max-w-6xl space-y-28 px-4 py-20 sm:px-6 md:space-y-36">
 
-      {/* 1 · Privacy */}
-      <Row eyebrow="Private by design" eyebrowColor="#059669" title="Your files never leave your device." body="Most tools run entirely in your browser. Nothing is uploaded, nothing is stored — your documents stay yours, every time." cta="Try a tool" href="/merge-pdf">
-        <div className="relative rounded-2xl border bg-gradient-to-br from-emerald-50 to-background p-6 dark:from-emerald-950/20">
-          <div className="mx-auto max-w-xs overflow-hidden rounded-xl border bg-card shadow-lift">
-            <div className="flex items-center gap-1.5 border-b px-3 py-2">
-              <span className="size-2 rounded-full bg-red-400" /><span className="size-2 rounded-full bg-amber-400" /><span className="size-2 rounded-full bg-emerald-400" />
-              <span className="ml-2 flex items-center gap-1 text-[11px] text-muted-foreground"><Lock className="size-3" /> this device</span>
+      {/* 1 · Breadth of tools — live launcher grid */}
+      <Row eyebrow="All-in-one toolkit" eyebrowColor="#7c3aed" title="One workspace. Every daily tool." body="PDFs, QR codes, passwords and more — a whole toolkit that runs free, right in your browser. One tab, everything you reach for." cta="Browse all tools" href="/#tools">
+        <div className="rounded-2xl border bg-gradient-to-br from-violet-50 to-background p-6 dark:from-violet-950/20">
+          <div className="mx-auto max-w-xs">
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-xs font-semibold text-muted-foreground">Your toolkit</span>
+              <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary">10 free tools</span>
             </div>
-            <div className="space-y-2 p-5">
-              <div className="h-2 w-[80%] rounded bg-muted" /><div className="h-2 w-[95%] rounded bg-muted" /><div className="h-2 w-[70%] rounded bg-muted" />
-              <div className="!mt-5 flex flex-col items-center gap-2 rounded-lg bg-emerald-500/10 p-4">
-                <span className="flex size-12 items-center justify-center rounded-full bg-emerald-500 text-white"><ShieldCheck className="size-6" strokeWidth={2.25} /></span>
-                <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">Stays on your device</p>
-              </div>
+            <div className="grid grid-cols-4 gap-2.5">
+              {[
+                { icon: Shrink, cls: 'bg-teal-500/15 text-teal-600 dark:text-teal-300' },
+                { icon: Combine, cls: 'bg-rose-500/15 text-rose-600 dark:text-rose-300' },
+                { icon: Scissors, cls: 'bg-amber-500/15 text-amber-600 dark:text-amber-300' },
+                { icon: RotateCw, cls: 'bg-sky-500/15 text-sky-600 dark:text-sky-300' },
+                { icon: ListOrdered, cls: 'bg-violet-500/15 text-violet-600 dark:text-violet-300' },
+                { icon: ImageIcon, cls: 'bg-fuchsia-500/15 text-fuchsia-600 dark:text-fuchsia-300' },
+                { icon: QrCode, cls: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300' },
+                { icon: KeyRound, cls: 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-300' },
+              ].map((t, i) => {
+                const Icon = t.icon;
+                return (
+                  <div key={i} className="flex items-center justify-center rounded-xl border bg-card p-3 shadow-soft transition-transform hover:-translate-y-0.5">
+                    <span className={`flex size-8 items-center justify-center rounded-lg ${t.cls}`}><Icon className="size-4" strokeWidth={2.25} /></span>
+                  </div>
+                );
+              })}
             </div>
           </div>
-          <span className="absolute right-5 top-5 flex items-center gap-1.5 rounded-full border bg-card px-3 py-1.5 text-xs font-semibold shadow-soft"><CloudOff className="size-3.5 text-emerald-600" /> 0 uploads</span>
         </div>
       </Row>
 
