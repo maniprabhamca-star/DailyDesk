@@ -106,6 +106,12 @@ export function CompressTool() {
   const [done, setDone] = useState<{ blob: Blob; name: string; before: number; after: number; optimized: boolean } | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const doneRef = useRef<HTMLDivElement>(null);
+
+  // Bring the result + Download button into view when compression finishes.
+  useEffect(() => {
+    if (done) doneRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [done]);
 
   function loadOne(f?: File) {
     if (!f) return;
@@ -252,16 +258,18 @@ export function CompressTool() {
       const after = out.length;
       const name = `${file.name.replace(/\.pdf$/i, '')}-compressed.pdf`;
 
-      // Never hand back a bigger file — if we couldn't beat the original, keep it.
+      // Don't auto-download: compression can take seconds, which expires the
+      // click's "user gesture" and makes Chrome stall the download as a stuck
+      // .crdownload. Instead we show the result and let the user click Download
+      // (a fresh gesture the browser always honours).
       if (after >= before) {
+        // Never hand back a bigger file — if we couldn't beat the original, keep it.
         const blob = new Blob([part(original)], { type: 'application/pdf' });
-        download(blob, `${file.name.replace(/\.pdf$/i, '')}.pdf`);
         setDone({ blob, name: `${file.name.replace(/\.pdf$/i, '')}.pdf`, before, after: before, optimized: true });
         return;
       }
 
       const blob = new Blob([part(out)], { type: 'application/pdf' });
-      download(blob, name);
       setDone({ blob, name, before, after, optimized: recompressed === 0 });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not compress the PDF.');
@@ -334,12 +342,12 @@ export function CompressTool() {
         )}
 
         {done && (
-          <div className="mt-2">
+          <div ref={doneRef} className="mt-2 scroll-mt-20">
             {done.optimized ? (
               <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-center">
                 <CheckCircle2 className="mx-auto size-6 text-emerald-500" />
                 <p className="mt-1.5 text-sm font-semibold">Already well optimized</p>
-                <p className="text-xs text-muted-foreground">This PDF is about as small as it’ll get without hurting quality — we kept your original ({fmt(done.before)}).</p>
+                <p className="text-xs text-muted-foreground">This PDF is about as small as it’ll get without hurting quality — your original ({fmt(done.before)}) is ready below.</p>
               </div>
             ) : (
               <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-center">
@@ -348,10 +356,8 @@ export function CompressTool() {
                 <p className="text-xs text-muted-foreground">Text stayed crisp and selectable — only the images were shrunk.</p>
               </div>
             )}
-            <div className="mt-3 flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={clear}>Compress another</Button>
-              <Button className="flex-1" onClick={() => download(done.blob, done.name)}><Download className="size-4" /> Download again</Button>
-            </div>
+            <Button className="mt-3 w-full" size="lg" onClick={() => download(done.blob, done.name)}><Download className="size-4" /> Download {done.optimized ? 'PDF' : 'compressed PDF'}</Button>
+            <Button variant="outline" className="mt-2 w-full" onClick={clear}>Compress another</Button>
             <PdfDone blob={done.blob} name={done.name} currentHref="/compress-pdf" fromLabel="Compress PDF" hideBanner />
           </div>
         )}

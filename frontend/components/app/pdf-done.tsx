@@ -30,10 +30,11 @@ export function PdfDone({ blob, name, currentHref, fromLabel, hideBanner = false
   const ref = useRef<HTMLDivElement>(null);
 
   // Bring the result + "Keep moving" into view so small-screen users don't have
-  // to scroll to find it after the tool finishes.
+  // to scroll to find it. Skip when embedded (hideBanner) — the parent tool owns
+  // the scroll/focus in that case (e.g. Compress shows its own result + button).
   useEffect(() => {
-    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, []);
+    if (!hideBanner) ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [hideBanner]);
   const actions: MoveAction[] = PDF_TARGETS.filter((t) => t.href !== currentHref)
     .slice(0, 2)
     .map((t) => ({
