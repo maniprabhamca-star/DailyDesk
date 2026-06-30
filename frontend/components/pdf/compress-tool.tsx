@@ -288,13 +288,20 @@ export function CompressTool() {
               if (cx) {
                 cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, canvas.width, canvas.height);
                 await jp.render({ canvasContext: cx, viewport: vp, background: 'rgba(255,255,255,1)' }).promise;
-                const id = cx.getImageData(0, 0, canvas.width, canvas.height);
-                const jpgBytes = new Uint8Array(await (await encodeJpeg(id, quality)).arrayBuffer());
+                // Native JPEG encode here (not mozjpeg): scan pages are already
+                // downsampled, and native is ~15x faster — so a 100+ page book
+                // finishes in seconds instead of minutes.
+                const q01 = Math.max(0.4, Math.min(0.9, quality / 100));
+                const jpgBlob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/jpeg', q01));
                 canvas.width = 0; canvas.height = 0;
-                const img = await outDoc.embedJpg(jpgBytes);
-                const p = outDoc.addPage([vp1.width, vp1.height]);
-                p.drawImage(img, { x: 0, y: 0, width: vp1.width, height: vp1.height });
-                rasterized++;
+                if (jpgBlob) {
+                  const img = await outDoc.embedJpg(new Uint8Array(await jpgBlob.arrayBuffer()));
+                  const p = outDoc.addPage([vp1.width, vp1.height]);
+                  p.drawImage(img, { x: 0, y: 0, width: vp1.width, height: vp1.height });
+                  rasterized++;
+                } else {
+                  const [cp] = await outDoc.copyPages(doc, [i]); outDoc.addPage(cp);
+                }
               } else {
                 const [cp] = await outDoc.copyPages(doc, [i]); outDoc.addPage(cp);
               }
