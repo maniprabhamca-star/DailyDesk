@@ -15,15 +15,15 @@ export const metadata: Metadata = {
 };
 
 const steps = [
-  'Drop your PDF in, or click to choose it.',
-  'Pick a direction (90° left, 90° right, or 180°) and which pages.',
+  'Drop your PDF in — every page appears as a thumbnail.',
+  'Tap any page to turn it, or select pages and rotate them together.',
   'Click Rotate and your fixed PDF downloads instantly.',
 ];
 
 const faqs = [
   { q: 'Is it really free?', a: 'Yes — rotating PDFs is completely free, with no signup, no watermark, and no file-size paywall.' },
   { q: 'Is my PDF uploaded to a server?', a: 'No. The rotation happens entirely inside your browser using your device, so your file never leaves your computer.' },
-  { q: 'Can I rotate only certain pages?', a: 'Yes. Type page numbers and ranges separated by commas — for example, 1-3, 5, 8-10. Leave it as is to rotate every page.' },
+  { q: 'Can I rotate only certain pages?', a: 'Yes. You see a thumbnail of every page — rotate any single page with its left/right buttons, or tick several (or Select all) and rotate them together.' },
   { q: 'Does rotating reduce quality?', a: 'No. Rotation only changes how each page is displayed — the text and images are untouched, so quality is preserved.' },
   { q: 'Will the rotation stick when I reopen the file?', a: 'Yes. The new orientation is saved into the PDF itself, so it opens rotated everywhere.' },
 ];

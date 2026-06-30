@@ -1,15 +1,18 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Upload, FileText, X, Download, Loader2, RotateCw, RotateCcw, RefreshCw, Zap } from 'lucide-react';
+import { Upload, FileText, X, Download, Loader2, RotateCw, RotateCcw, Zap, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { parseRanges } from '@/components/pdf/split-tool';
 import { takeHandoff } from '@/lib/handoff';
 import { PdfDone } from '@/components/app/pdf-done';
 
-type Dir = 'cw' | 'flip' | 'ccw';
-const DELTA: Record<Dir, number> = { cw: 90, flip: 180, ccw: 270 };
+// One page thumbnail + its pending rotation (delta added on top of the page's
+// existing rotation). Rotation is applied LOSSLESSLY with pdf-lib (it just sets
+// the page's rotation flag — no re-rendering), so output quality is untouched.
+type Thumb = { page: number; url: string; delta: number; selected: boolean };
+
+const THUMB_PX = 240; // long-edge px for the preview render — small + lean
 
 function fmt(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -17,19 +20,20 @@ function fmt(bytes: number) {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-const inputCls =
-  'h-9 w-full rounded-lg border bg-card px-3 text-sm text-foreground outline-none focus:border-primary';
+const norm = (d: number) => ((d % 360) + 360) % 360;
 
 export function RotateTool() {
   const [file, setFile] = useState<File | null>(null);
-  const [pageCount, setPageCount] = useState(0);
-  const [dir, setDir] = useState<Dir>('cw');
-  const [ranges, setRanges] = useState('');
+  const [thumbs, setThumbs] = useState<Thumb[]>([]);
+  const [loading, setLoading] = useState<{ done: number; total: number } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ blob: Blob; name: string } | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  function revoke(ts: Thumb[]) { ts.forEach((t) => URL.revokeObjectURL(t.url)); }
+  useEffect(() => () => revoke(thumbs), [thumbs]);
 
   async function loadOne(f?: File) {
     if (!f) return;
@@ -39,24 +43,53 @@ export function RotateTool() {
     }
     setError(null);
     setDone(null);
-    setBusy(true);
+    setThumbs((prev) => { revoke(prev); return []; });
+    setFile(f);
+    setLoading({ done: 0, total: 0 });
     try {
-      const { PDFDocument } = await import('pdf-lib');
-      const doc = await PDFDocument.load(await f.arrayBuffer(), { ignoreEncryption: true });
-      const count = doc.getPageCount();
-      setFile(f);
-      setPageCount(count);
-      setRanges(`1-${count}`);
+      const pdfjs = await import('pdfjs-dist'); // render previews only
+      pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+      const task = pdfjs.getDocument({ data: await f.arrayBuffer() });
+      const doc = await task.promise;
+      try {
+        const total = doc.numPages;
+        setLoading({ done: 0, total });
+        const out: Thumb[] = [];
+        for (let i = 1; i <= total; i++) {
+          const page = await doc.getPage(i);
+          const base = page.getViewport({ scale: 1 });
+          const scale = THUMB_PX / Math.max(base.width, base.height);
+          const vp = page.getViewport({ scale });
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.ceil(vp.width);
+          canvas.height = Math.ceil(vp.height);
+          const ctx = canvas.getContext('2d');
+          if (!ctx) throw new Error('no-canvas');
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          await page.render({ canvasContext: ctx, viewport: vp, background: 'rgba(255,255,255,1)' }).promise;
+          const url = await new Promise<string>((res, rej) =>
+            canvas.toBlob((b) => (b ? res(URL.createObjectURL(b)) : rej(new Error('thumb'))), 'image/jpeg', 0.72),
+          );
+          canvas.width = 0;
+          canvas.height = 0;
+          out.push({ page: i, url, delta: 0, selected: false });
+          setLoading({ done: i, total });
+          await new Promise((r) => setTimeout(r, 0)); // keep UI responsive
+        }
+        setThumbs(out);
+      } finally {
+        try { await task.destroy(); } catch { /* ignore */ }
+      }
     } catch {
       setError('Could not read that PDF. It may be corrupted or password-protected.');
+      setFile(null);
     } finally {
-      setBusy(false);
+      setLoading(null);
     }
   }
 
-  function pick(files: FileList | null) {
-    void loadOne(files?.[0]);
-  }
+  function pick(files: FileList | null) { void loadOne(files?.[0]); }
 
   // "Keep moving": pick up a PDF handed over from another tool, no re-upload.
   useEffect(() => {
@@ -70,45 +103,60 @@ export function RotateTool() {
   }, []);
 
   function clear() {
+    setThumbs((prev) => { revoke(prev); return []; });
     setFile(null);
-    setPageCount(0);
-    setRanges('');
     setError(null);
     setDone(null);
     setHandoffNote(null);
+    setLoading(null);
   }
 
-  async function run() {
-    if (!file) {
-      setError('Add a PDF first.');
-      return;
-    }
+  function rotatePage(i: number, dir: 1 | -1) {
+    setDone(null);
+    setThumbs((cur) => cur.map((t, idx) => (idx === i ? { ...t, delta: norm(t.delta + dir * 90) } : t)));
+  }
+
+  function bulkRotate(dir: 1 | -1) {
+    setDone(null);
+    const anySelected = thumbs.some((t) => t.selected);
+    setThumbs((cur) => cur.map((t) => (!anySelected || t.selected ? { ...t, delta: norm(t.delta + dir * 90) } : t)));
+  }
+
+  const allSelected = thumbs.length > 0 && thumbs.every((t) => t.selected);
+  function toggleAll() {
+    const next = !allSelected;
+    setThumbs((cur) => cur.map((t) => ({ ...t, selected: next })));
+  }
+  function toggleOne(i: number) {
+    setThumbs((cur) => cur.map((t, idx) => (idx === i ? { ...t, selected: !t.selected } : t)));
+  }
+  function reset() {
+    setDone(null);
+    setThumbs((cur) => cur.map((t) => ({ ...t, delta: 0, selected: false })));
+  }
+
+  const changes = thumbs.filter((t) => t.delta !== 0).length;
+
+  async function apply() {
+    if (!file || changes === 0) return;
     setBusy(true);
     setError(null);
     setDone(null);
     try {
       const { PDFDocument, degrees } = await import('pdf-lib');
       const src = await PDFDocument.load(await file.arrayBuffer(), { ignoreEncryption: true });
-      const total = src.getPageCount();
-      const targets = new Set(parseRanges(ranges, total)); // 1-based, may throw
-      const delta = DELTA[dir];
       const pages = src.getPages();
-      pages.forEach((page, i) => {
-        if (!targets.has(i + 1)) return;
-        const current = page.getRotation().angle || 0;
-        page.setRotation(degrees(((current + delta) % 360 + 360) % 360));
+      thumbs.forEach((t, i) => {
+        if (t.delta === 0 || !pages[i]) return;
+        const cur = pages[i].getRotation().angle || 0;
+        pages[i].setRotation(degrees(norm(cur + t.delta)));
       });
       const out = await src.save();
-      const base = file.name.replace(/\.pdf$/i, '');
-      const name = `${base}-rotated.pdf`;
+      const name = `${file.name.replace(/\.pdf$/i, '')}-rotated.pdf`;
       const blob = new Blob([new Uint8Array(out)], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
-      a.download = name;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
+      a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
       URL.revokeObjectURL(url);
       setDone({ blob, name });
     } catch (e) {
@@ -118,12 +166,6 @@ export function RotateTool() {
     }
   }
 
-  const dirs: { id: Dir; label: string; icon: typeof RotateCw }[] = [
-    { id: 'ccw', label: '90° left', icon: RotateCcw },
-    { id: 'cw', label: '90° right', icon: RotateCw },
-    { id: 'flip', label: '180°', icon: RefreshCw },
-  ];
-
   return (
     <Card>
       <CardContent className="p-5">
@@ -132,6 +174,7 @@ export function RotateTool() {
             <Zap className="size-4 shrink-0 text-primary" /> {handoffNote}
           </p>
         )}
+
         {!file ? (
           <div
             onDragOver={(e) => e.preventDefault()}
@@ -141,49 +184,80 @@ export function RotateTool() {
           >
             <Upload className="size-7 text-muted-foreground" />
             <p className="mt-2 text-sm font-medium">Drop a PDF here, or click to choose</p>
-            <p className="text-xs text-muted-foreground">Rotate all pages, or just the ones you pick</p>
+            <p className="text-xs text-muted-foreground">See every page and rotate them visually</p>
             <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => pick(e.target.files)} />
           </div>
         ) : (
-          <div className="flex items-center gap-3 rounded-lg border bg-card p-2.5">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-red-100 text-red-600 dark:bg-red-950/40"><FileText className="size-4" /></span>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">{file.name}</p>
-              <p className="text-xs text-muted-foreground">{fmt(file.size)} · {pageCount} page{pageCount === 1 ? '' : 's'}</p>
-            </div>
-            <Button size="icon" variant="ghost" aria-label="Remove" onClick={clear}><X className="size-4" /></Button>
-          </div>
-        )}
-
-        {file && (
-          <div className="mt-4 space-y-4">
-            <div>
-              <p className="mb-1.5 text-sm font-medium">Rotation</p>
-              <div className="grid grid-cols-3 gap-2">
-                {dirs.map((d) => (
-                  <button
-                    key={d.id}
-                    onClick={() => setDir(d.id)}
-                    className={`flex flex-col items-center gap-1.5 rounded-lg border p-3 text-xs font-medium transition-colors ${dir === d.id ? 'border-primary bg-primary/5 text-primary ring-1 ring-primary' : 'text-foreground hover:bg-accent/40'}`}
-                  >
-                    <d.icon className="size-5" strokeWidth={2.25} /> {d.label}
-                  </button>
-                ))}
+          <>
+            <div className="flex items-center gap-3 rounded-lg border bg-card p-2.5">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-red-100 text-red-600 dark:bg-red-950/40"><FileText className="size-4" /></span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{file.name}</p>
+                <p className="text-xs text-muted-foreground">{fmt(file.size)} · {thumbs.length || loading?.total || 0} page{(thumbs.length || loading?.total) === 1 ? '' : 's'}</p>
               </div>
+              <Button size="icon" variant="ghost" aria-label="Remove" onClick={clear}><X className="size-4" /></Button>
             </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium">Pages to rotate</label>
-              <input className={inputCls} value={ranges} onChange={(e) => setRanges(e.target.value)} placeholder="e.g. 1-3, 5, 8-10" inputMode="numeric" />
-              <p className="mt-1 text-xs text-muted-foreground">This PDF has {pageCount} page{pageCount === 1 ? '' : 's'}. Leave as is to rotate every page.</p>
-            </div>
-          </div>
+
+            {loading ? (
+              <div className="mt-6 flex flex-col items-center justify-center gap-2 py-10 text-muted-foreground">
+                <Loader2 className="size-6 animate-spin" />
+                <p className="text-sm">Rendering page previews… {loading.total ? `${loading.done}/${loading.total}` : ''}</p>
+              </div>
+            ) : (
+              <>
+                {/* toolbar */}
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
+                    <input type="checkbox" className="size-4 accent-[hsl(var(--primary))]" checked={allSelected} onChange={toggleAll} />
+                    Select all
+                  </label>
+                  <span className="mx-1 h-5 w-px bg-border" />
+                  <Button size="sm" variant="outline" onClick={() => bulkRotate(-1)}><RotateCcw className="size-4" /> Left</Button>
+                  <Button size="sm" variant="outline" onClick={() => bulkRotate(1)}><RotateCw className="size-4" /> Right</Button>
+                  <Button size="sm" variant="ghost" onClick={reset} disabled={changes === 0}><RefreshCw className="size-4" /> Reset</Button>
+                  <span className="ml-auto text-xs text-muted-foreground">{changes > 0 ? `${changes} page${changes === 1 ? '' : 's'} to rotate` : 'Tap a page to rotate'}</span>
+                </div>
+
+                {/* page grid */}
+                <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                  {thumbs.map((t, i) => (
+                    <div key={t.page} className="group">
+                      <div className={`relative flex aspect-square items-center justify-center overflow-hidden rounded-xl border bg-muted/30 transition-colors ${t.selected ? 'border-primary ring-1 ring-primary' : ''}`}>
+                        <input
+                          type="checkbox"
+                          aria-label={`Select page ${t.page}`}
+                          className="absolute left-2 top-2 z-10 size-4 accent-[hsl(var(--primary))]"
+                          checked={t.selected}
+                          onChange={() => toggleOne(i)}
+                        />
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={t.url}
+                          alt={`Page ${t.page}`}
+                          loading="lazy"
+                          className="max-h-[86%] max-w-[86%] object-contain shadow-sm transition-transform duration-200"
+                          style={{ transform: `rotate(${t.delta}deg)` }}
+                        />
+                        {/* per-page rotate controls (always visible on touch, hover on desktop) */}
+                        <div className="absolute inset-x-0 bottom-1.5 flex justify-center gap-1.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
+                          <button onClick={() => rotatePage(i, -1)} aria-label={`Rotate page ${t.page} left`} className="flex size-7 items-center justify-center rounded-full bg-background/90 text-foreground shadow ring-1 ring-border hover:bg-background"><RotateCcw className="size-3.5" /></button>
+                          <button onClick={() => rotatePage(i, 1)} aria-label={`Rotate page ${t.page} right`} className="flex size-7 items-center justify-center rounded-full bg-primary text-primary-foreground shadow hover:opacity-90"><RotateCw className="size-3.5" /></button>
+                        </div>
+                      </div>
+                      <p className="mt-1 text-center text-xs text-muted-foreground">Page {t.page}{t.delta ? ` · ${t.delta}°` : ''}</p>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </>
         )}
 
         {error && <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
 
-        {file && (
-          <Button className="mt-5 w-full" size="lg" onClick={run} disabled={busy}>
-            {busy ? <><Loader2 className="size-4 animate-spin" /> Rotating…</> : <><Download className="size-4" /> Rotate &amp; download</>}
+        {file && !loading && (
+          <Button className="mt-5 w-full" size="lg" onClick={apply} disabled={busy || changes === 0}>
+            {busy ? <><Loader2 className="size-4 animate-spin" /> Rotating…</> : <><Download className="size-4" /> {changes > 0 ? `Rotate ${changes} page${changes === 1 ? '' : 's'} & download` : 'Rotate & download'}</>}
           </Button>
         )}
 
