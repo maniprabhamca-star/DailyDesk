@@ -2,10 +2,11 @@
 
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { FileText, Image as ImageIcon, Scissors, RotateCw, Combine, FileMinus, Shrink, Download, CheckCircle2, type LucideIcon } from 'lucide-react';
+import { FileText, Download, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { setHandoff } from '@/lib/handoff';
 import { downloadBlob as download } from '@/lib/download';
+import { nextFor } from '@/lib/tool-graph';
 import { KeepMoving, type MoveAction } from './keep-moving';
 import { KeepGoing } from './keep-going';
 
@@ -13,17 +14,7 @@ import { KeepGoing } from './keep-going';
 // a download-again button, the "Keep moving" chained actions (carry this PDF
 // straight into the next tool, no re-upload) and the "Keep going" rail.
 // One line to add to a tool: <PdfDone blob name currentHref fromLabel />.
-
-type Target = { href: string; name: string; label: string; blurb: string; icon: LucideIcon };
-
-const PDF_TARGETS: Target[] = [
-  { href: '/compress-pdf', name: 'Compress PDF', label: 'Make it smaller', blurb: 'Shrink the file, keep text crisp', icon: Shrink },
-  { href: '/pdf-to-jpg', name: 'PDF to JPG', label: 'Convert to images', blurb: 'Turn this PDF into crisp images', icon: ImageIcon },
-  { href: '/split-pdf', name: 'Split PDF', label: 'Split pages', blurb: 'Pull out just the pages you need', icon: Scissors },
-  { href: '/rotate-pdf', name: 'Rotate PDF', label: 'Rotate pages', blurb: 'Fix sideways or upside-down pages', icon: RotateCw },
-  { href: '/delete-pages-from-pdf', name: 'Delete Pages', label: 'Remove pages', blurb: 'Drop the pages you don’t need', icon: FileMinus },
-  { href: '/merge-pdf', name: 'Merge PDF', label: 'Merge with more', blurb: 'Combine it with other PDFs', icon: Combine },
-];
+// Suggestions come from lib/tool-graph so they're contextual to the current tool.
 
 export function PdfDone({ blob, name, currentHref, fromLabel, hideBanner = false }: { blob: Blob; name: string; currentHref: string; fromLabel: string; hideBanner?: boolean }) {
   const router = useRouter();
@@ -35,14 +26,18 @@ export function PdfDone({ blob, name, currentHref, fromLabel, hideBanner = false
   useEffect(() => {
     if (!hideBanner) ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [hideBanner]);
-  const actions: MoveAction[] = PDF_TARGETS.filter((t) => t.href !== currentHref)
+
+  // Carry this PDF straight into the two most relevant next tools that accept a
+  // PDF — ordered per-tool by lib/tool-graph, no re-upload.
+  const actions: MoveAction[] = nextFor(currentHref, 10)
+    .filter((t) => t.acceptsPdf)
     .slice(0, 2)
     .map((t) => ({
       count: 1,
       fromIcon: FileText,
       toIcon: t.icon,
       toName: t.name,
-      label: t.label,
+      label: t.moveLabel,
       blurb: t.blurb,
       onClick: () => {
         setHandoff({ files: [new File([blob], name, { type: 'application/pdf' })], from: fromLabel });

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Upload, FileText, X, Download, Loader2, Zap, Shrink, CheckCircle2, Coffee, Sparkles } from 'lucide-react';
+import { Upload, FileText, X, Download, Loader2, Zap, Shrink, CheckCircle2, Coffee, Sparkles, Type, Eye, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import type { PDFRawStream as RawStream } from 'pdf-lib';
@@ -9,6 +9,10 @@ import { encodeJpeg } from '@/lib/mozjpeg';
 import { takeHandoff } from '@/lib/handoff';
 import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
+import { openPdf, renderPage, dprTarget, type PdfHandle, type RenderedPage } from '@/lib/pdf-render';
+import { PageStrip } from '@/components/pdf/page-strip';
+import { BeforeAfter } from '@/components/pdf/before-after';
+import { SavingsRing } from '@/components/app/savings-ring';
 
 // Uint8Array from pdf-lib/file APIs can be typed as ArrayBufferLike-backed; wrap
 // to a fresh ArrayBuffer-backed copy so it satisfies the strict BlobPart type.
@@ -175,41 +179,55 @@ export function CompressTool() {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ blob: Blob; name: string; before: number; after: number; optimized: boolean; note: string } | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
   const [kind, setKind] = useState<Kind | null>(null);
+  // Multi-page preview state: one pdf.js handle for the original, one for the
+  // compressed result (opened only when there's a real before/after to show).
+  const [srcHandle, setSrcHandle] = useState<PdfHandle | null>(null);
+  const [outHandle, setOutHandle] = useState<PdfHandle | null>(null);
+  const [pageCount, setPageCount] = useState(0);
+  const [selPage, setSelPage] = useState(0);
+  const [previewPage, setPreviewPage] = useState<RenderedPage | null>(null); // load screen + optimized result
+  const [beforePage, setBeforePage] = useState<RenderedPage | null>(null);
+  const [afterPage, setAfterPage] = useState<RenderedPage | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const doneRef = useRef<HTMLDivElement>(null);
 
-  // Render a page-1 thumbnail so the user sees what they loaded (best-effort).
-  async function makePreview(f: File) {
-    try {
-      const pdfjs = await import('pdfjs-dist');
-      pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
-      const task = pdfjs.getDocument({ data: new Uint8Array(await f.arrayBuffer()) });
-      const d = await task.promise;
-      try {
-        const page = await d.getPage(1);
-        const base = page.getViewport({ scale: 1 });
-        // Render at a high long edge (DPR-aware) so the preview stays crisp when
-        // displayed: downsampling a big render reads far sharper than upscaling a
-        // tiny one. The card shows it ~320px tall, so target ~3x that, capped.
-        const dpr = Math.min(typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1, 3);
-        const targetLong = Math.min(1600, Math.round(320 * Math.max(2, dpr)));
-        const vp = page.getViewport({ scale: targetLong / Math.max(base.width, base.height) });
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.ceil(vp.width); canvas.height = Math.ceil(vp.height);
-        const cx = canvas.getContext('2d');
-        if (cx) {
-          cx.imageSmoothingEnabled = true; cx.imageSmoothingQuality = 'high';
-          cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, canvas.width, canvas.height);
-          await page.render({ canvasContext: cx, viewport: vp, background: 'rgba(255,255,255,1)' }).promise;
-          const url = await new Promise<string | null>((r) => canvas.toBlob((b) => r(b ? URL.createObjectURL(b) : null), 'image/jpeg', 0.92));
-          canvas.width = 0; canvas.height = 0;
-          if (url) setPreview((prev) => { if (prev) URL.revokeObjectURL(prev); return url; });
-        }
-      } finally { try { await task.destroy(); } catch { /* ignore */ } }
-    } catch { /* preview is optional */ }
+  // Open the original file once (reused for every page render). Replaces any prior
+  // handle. Preview is best-effort — failure just leaves the strip/preview empty.
+  function openSource(f: File) {
+    openPdf(f)
+      .then((h) => { setSrcHandle((prev) => { if (prev) void prev.destroy(); return h; }); setPageCount(h.numPages); setSelPage(0); })
+      .catch(() => { /* preview is optional */ });
   }
+
+  // Open the compressed result for the "after" side, but only when there's a
+  // genuine size win to show (skip the no-op "already optimized" case).
+  useEffect(() => {
+    if (done && !done.optimized) {
+      let cancelled = false;
+      openPdf(done.blob)
+        .then((h) => { if (cancelled) { void h.destroy(); return; } setOutHandle((prev) => { if (prev) void prev.destroy(); return h; }); })
+        .catch(() => { /* fall back to single preview */ });
+      return () => { cancelled = true; };
+    }
+    setOutHandle((prev) => { if (prev) void prev.destroy(); return null; });
+  }, [done]);
+
+  // Render the selected page on demand into the right slot(s), cancelling any
+  // in-flight render when the page or screen changes. Cached, so revisits are instant.
+  useEffect(() => {
+    const ac = new AbortController();
+    const long = dprTarget(360, 2.6, 1600);
+    if (done && !done.optimized) {
+      setBeforePage(null); setAfterPage(null);
+      if (srcHandle) renderPage(srcHandle, selPage, long, ac.signal).then(setBeforePage).catch(() => {});
+      if (outHandle) renderPage(outHandle, selPage, long, ac.signal).then(setAfterPage).catch(() => {});
+    } else if (srcHandle) {
+      setPreviewPage(null);
+      renderPage(srcHandle, selPage, long, ac.signal).then(setPreviewPage).catch(() => {});
+    }
+    return () => ac.abort();
+  }, [srcHandle, outHandle, selPage, done]);
 
   // Bring the result + Download button into view when compression finishes.
   useEffect(() => {
@@ -225,9 +243,11 @@ export function CompressTool() {
     setError(null);
     setDone(null);
     setKind(null);
-    setPreview((prev) => { if (prev) URL.revokeObjectURL(prev); return null; });
+    setPreviewPage(null);
+    setSelPage(0);
+    setPageCount(0);
     setFile(f);
-    void makePreview(f);
+    openSource(f);
     void classifyPdf(f).then(setKind);
   }
   function pick(files: FileList | null) { loadOne(files?.[0]); }
@@ -249,10 +269,20 @@ export function CompressTool() {
     setHandoffNote(null);
     setProgress(null);
     setKind(null);
-    setPreview((prev) => { if (prev) URL.revokeObjectURL(prev); return null; });
+    setSelPage(0);
+    setPageCount(0);
+    setPreviewPage(null);
+    setBeforePage(null);
+    setAfterPage(null);
+    setSrcHandle((prev) => { if (prev) void prev.destroy(); return null; });
+    setOutHandle((prev) => { if (prev) void prev.destroy(); return null; });
   }
 
-  useEffect(() => () => { setPreview((prev) => { if (prev) URL.revokeObjectURL(prev); return null; }); }, []);
+  // Free pdf.js handles (and their cached page bitmaps) on unmount.
+  useEffect(() => () => {
+    setSrcHandle((prev) => { if (prev) void prev.destroy(); return null; });
+    setOutHandle((prev) => { if (prev) void prev.destroy(); return null; });
+  }, []);
 
   async function run(forceArg = false) {
     if (!file) { setError('Add a PDF first.'); return; }
@@ -530,14 +560,17 @@ export function CompressTool() {
           </div>
         ) : (
           <div>
-            {/* Big page-1 preview */}
-            <div className="flex items-center justify-center rounded-xl border bg-muted/30 p-4">
-              {preview ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={preview} alt="First page preview" className="max-h-80 rounded-md border bg-white shadow-md" />
-              ) : (
-                <div className="flex h-48 w-36 items-center justify-center rounded-md border bg-white"><Loader2 className="size-5 animate-spin text-muted-foreground" /></div>
-              )}
+            {/* Big preview of the selected page + multi-page thumbnail strip */}
+            <div className="rounded-xl border bg-muted/30 p-4">
+              <div className="flex items-center justify-center">
+                {previewPage ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={previewPage.url} alt={`Page ${selPage + 1} preview`} className="max-h-80 rounded-md border bg-white shadow-md" />
+                ) : (
+                  <div className="flex h-48 w-36 items-center justify-center rounded-md border bg-white"><Loader2 className="size-5 animate-spin text-muted-foreground" /></div>
+                )}
+              </div>
+              <PageStrip handle={srcHandle} count={pageCount} selected={selPage} onSelect={setSelPage} className="mt-3" />
             </div>
             {/* File chip */}
             <div className="mt-3 flex items-center gap-3 rounded-lg border bg-card p-2.5">
@@ -592,22 +625,42 @@ export function CompressTool() {
         {done && (
           <div ref={doneRef} className="mt-2 scroll-mt-20">
             {done.optimized ? (
-              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-center">
-                <CheckCircle2 className="mx-auto size-6 text-emerald-500" />
-                <p className="mt-1.5 text-sm font-semibold">Already well optimized</p>
-                <p className="text-xs text-muted-foreground">This PDF is about as small as it’ll get without hurting quality — your original ({fmt(done.before)}) is ready below. You can still squeeze out a bit more at lower quality.</p>
-                <Button variant="outline" size="sm" className="mt-3" onClick={() => run(true)} disabled={busy}>
-                  {busy ? <><Loader2 className="size-4 animate-spin" /> Squeezing…</> : <><Shrink className="size-4" /> Squeeze harder (slower)</>}
-                </Button>
-              </div>
+              <>
+                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-center">
+                  <CheckCircle2 className="mx-auto size-6 text-emerald-500" />
+                  <p className="mt-1.5 text-sm font-semibold">Already well optimized</p>
+                  <p className="text-xs text-muted-foreground">This PDF is about as small as it’ll get without hurting quality — your original ({fmt(done.before)}) is ready below. You can still squeeze out a bit more at lower quality.</p>
+                  <Button variant="outline" size="sm" className="mt-3" onClick={() => run(true)} disabled={busy}>
+                    {busy ? <><Loader2 className="size-4 animate-spin" /> Squeezing…</> : <><Shrink className="size-4" /> Squeeze harder (slower)</>}
+                  </Button>
+                </div>
+                <p className="mt-1.5 text-center text-[11px] text-muted-foreground">{done.note}</p>
+                <div className="mt-3 rounded-xl border bg-muted/30 p-4">
+                  <div className="flex items-center justify-center">
+                    {previewPage ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={previewPage.url} alt={`Page ${selPage + 1} preview`} className="max-h-80 rounded-md border bg-white shadow-md" />
+                    ) : (
+                      <div className="flex h-48 w-36 items-center justify-center rounded-md border bg-white"><Loader2 className="size-5 animate-spin text-muted-foreground" /></div>
+                    )}
+                  </div>
+                  <PageStrip handle={srcHandle} count={pageCount} selected={selPage} onSelect={setSelPage} className="mt-3" />
+                </div>
+              </>
             ) : (
-              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-center">
-                <p className="text-3xl font-bold text-emerald-600">−{saved}%</p>
-                <p className="mt-1 text-sm font-medium">{fmt(done.before)} → {fmt(done.after)}</p>
-                <p className="text-xs text-muted-foreground">{done.note}</p>
-              </div>
+              <>
+                <SavingsRing savedPct={saved} beforeLabel={fmt(done.before)} afterLabel={fmt(done.after)} note={done.note} />
+                <div className="mt-4">
+                  <BeforeAfter before={beforePage} after={afterPage} beforeLabel={fmt(done.before)} afterLabel={fmt(done.after)} loading={!beforePage || !afterPage} />
+                </div>
+                <PageStrip handle={srcHandle} count={pageCount} selected={selPage} onSelect={setSelPage} className="mt-3" />
+                <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1"><Type className="size-3.5 text-emerald-500" /> Text stays selectable</span>
+                  <span className="flex items-center gap-1"><Eye className="size-3.5 text-emerald-500" /> No visible quality loss</span>
+                  <span className="flex items-center gap-1"><Lock className="size-3.5 text-emerald-500" /> Never uploaded</span>
+                </div>
+              </>
             )}
-            {done.optimized && <p className="mt-1.5 text-center text-[11px] text-muted-foreground">{done.note}</p>}
             <Button className="mt-3 w-full" size="lg" onClick={() => download(done.blob, done.name)}><Download className="size-4" /> Download {done.optimized ? 'PDF' : 'compressed PDF'}</Button>
             <Button variant="outline" className="mt-2 w-full" onClick={clear}>Compress another</Button>
             <PdfDone blob={done.blob} name={done.name} currentHref="/compress-pdf" fromLabel="Compress PDF" hideBanner />
