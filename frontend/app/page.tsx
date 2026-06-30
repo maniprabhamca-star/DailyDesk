@@ -170,13 +170,15 @@ export default function Home() {
             <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Why DailyDesk</h2>
             <p className="mt-2 text-muted-foreground">Built private, fast, and free — without the catch.</p>
           </Reveal>
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             {why.map((w, i) => (
-              <Reveal key={w.title} delay={i % 4}>
-                <div className="flex h-full flex-col gap-3 rounded-2xl border bg-card p-6 shadow-soft">
-                  <span className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary"><w.icon className="size-5" /></span>
-                  <h3 className="text-base font-semibold">{w.title}</h3>
-                  <p className="text-sm leading-relaxed text-muted-foreground">{w.body}</p>
+              <Reveal key={w.title} delay={i % 2}>
+                <div className="flex h-full items-start gap-3.5 rounded-2xl border bg-card p-4 shadow-soft sm:p-5">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><w.icon className="size-5" /></span>
+                  <div className="min-w-0">
+                    <h3 className="text-[15px] font-semibold">{w.title}</h3>
+                    <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{w.body}</p>
+                  </div>
                 </div>
               </Reveal>
             ))}

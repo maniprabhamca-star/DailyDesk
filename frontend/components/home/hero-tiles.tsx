@@ -62,7 +62,12 @@ export function HeroShowcase({ className = '' }: { className?: string }) {
       onPointerLeave={() => { paused.current = false; }}
       className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl border bg-card p-4 shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-card ${className}`}
     >
-      <div className="flex items-center justify-between">
+      {/* A: aurora glow */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 z-0" style={{ background: 'radial-gradient(120px 90px at 16% 12%, rgba(124,77,255,0.16), transparent 70%), radial-gradient(150px 120px at 94% 94%, rgba(29,158,117,0.14), transparent 70%)' }} />
+      {/* C: faint tool-icon watermark — shifts with the scene */}
+      <Icon aria-hidden className="pointer-events-none absolute -bottom-5 -right-4 z-0 size-28" style={{ color: s.bar, opacity: 0.08 }} />
+
+      <div className="relative z-[1] flex items-center justify-between">
         <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
           <span className="relative flex size-1.5"><span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" /><span className="relative inline-flex size-1.5 rounded-full bg-emerald-500" /></span>
           Live demo
@@ -70,7 +75,7 @@ export function HeroShowcase({ className = '' }: { className?: string }) {
         <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
       </div>
 
-      <div>
+      <div className="relative z-[1]">
         <div className="flex items-center gap-2.5">
           <span className="flex size-10 items-center justify-center rounded-xl transition-colors" style={{ backgroundColor: s.chipBg, color: s.chipFg }}>
             <Icon className="size-5" strokeWidth={2.25} />
@@ -88,7 +93,7 @@ export function HeroShowcase({ className = '' }: { className?: string }) {
         </div>
       </div>
 
-      <div className="flex items-center justify-between">
+      <div className="relative z-[1] flex items-center justify-between">
         <div className="flex gap-1">
           {SCENES.map((_, k) => (
             <span key={k} className={`h-1 rounded-full transition-all ${k === i ? 'w-4 bg-primary' : 'w-2 bg-border'}`} />
