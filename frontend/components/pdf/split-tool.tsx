@@ -1,9 +1,11 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import { Upload, FileText, X, Download, Loader2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Upload, FileText, X, Download, Loader2, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { takeHandoff } from '@/lib/handoff';
+import { PdfDone } from '@/components/app/pdf-done';
 
 type Mode = 'extract' | 'each';
 
@@ -58,16 +60,18 @@ export function SplitTool() {
   const [ranges, setRanges] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState<{ blob: Blob; name: string } | null>(null);
+  const [handoffNote, setHandoffNote] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  async function pick(files: FileList | null) {
-    const f = files?.[0];
+  async function loadOne(f?: File) {
     if (!f) return;
     if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) {
       setError('Please choose a PDF file.');
       return;
     }
     setError(null);
+    setDone(null);
     setBusy(true);
     try {
       const { PDFDocument } = await import('pdf-lib');
@@ -83,11 +87,28 @@ export function SplitTool() {
     }
   }
 
+  function pick(files: FileList | null) {
+    void loadOne(files?.[0]);
+  }
+
+  // "Keep moving": pick up a PDF handed over from another tool, no re-upload.
+  useEffect(() => {
+    const h = takeHandoff();
+    const pdf = h?.files.find((f) => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
+    if (h && pdf) {
+      setHandoffNote(`PDF brought straight over from ${h.from} — no re-upload needed.`);
+      void loadOne(pdf);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function clear() {
     setFile(null);
     setPageCount(0);
     setRanges('');
     setError(null);
+    setDone(null);
+    setHandoffNote(null);
   }
 
   async function run() {
@@ -97,6 +118,7 @@ export function SplitTool() {
     }
     setBusy(true);
     setError(null);
+    setDone(null);
     try {
       const { PDFDocument } = await import('pdf-lib');
       const srcBytes = await file.arrayBuffer();
@@ -110,7 +132,10 @@ export function SplitTool() {
         const copied = await out.copyPages(src, pages.map((n) => n - 1));
         copied.forEach((p) => out.addPage(p));
         const bytes = await out.save();
-        download(new Blob([new Uint8Array(bytes)], { type: 'application/pdf' }), `${base}-extracted.pdf`);
+        const name = `${base}-extracted.pdf`;
+        const blob = new Blob([new Uint8Array(bytes)], { type: 'application/pdf' });
+        download(blob, name);
+        setDone({ blob, name }); // single PDF → chainable via Keep moving
       } else {
         const JSZip = (await import('jszip')).default;
         const zip = new JSZip();
@@ -135,6 +160,11 @@ export function SplitTool() {
   return (
     <Card>
       <CardContent className="p-5">
+        {handoffNote && (
+          <p className="mb-3 flex items-center gap-2 rounded-lg border border-primary/25 bg-primary/[0.06] px-3 py-2 text-sm text-foreground">
+            <Zap className="size-4 shrink-0 text-primary" /> {handoffNote}
+          </p>
+        )}
         {!file ? (
           <div
             onDragOver={(e) => e.preventDefault()}
@@ -194,6 +224,8 @@ export function SplitTool() {
             {busy ? <><Loader2 className="size-4 animate-spin" /> Working…</> : <><Download className="size-4" /> {mode === 'extract' ? 'Extract pages' : `Split into ${pageCount} files`}</>}
           </Button>
         )}
+
+        {done && <PdfDone blob={done.blob} name={done.name} currentHref="/split-pdf" fromLabel="Split PDF" />}
       </CardContent>
     </Card>
   );

@@ -2,14 +2,14 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Upload, FileText, X, Download, Loader2, ImageIcon, FileImage, CheckCircle2, RotateCcw, AlertTriangle } from 'lucide-react';
+import { Upload, FileText, X, Download, Loader2, ImageIcon, FileImage, CheckCircle2, RotateCcw, AlertTriangle, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { parseRanges } from '@/components/pdf/split-tool';
 import { encodeJpeg } from '@/lib/mozjpeg';
 import { KeepGoing } from '@/components/app/keep-going';
 import { KeepMoving } from '@/components/app/keep-moving';
-import { setHandoff } from '@/lib/handoff';
+import { setHandoff, takeHandoff } from '@/lib/handoff';
 
 type Format = 'jpg' | 'png';
 type Preset = 'standard' | 'high' | 'max';
@@ -116,6 +116,7 @@ export function PdfToJpgTool() {
   const [results, setResults] = useState<Result[]>([]);
   const [skipped, setSkipped] = useState<number[]>([]);
   const [elapsed, setElapsed] = useState<number | null>(null);
+  const [handoffNote, setHandoffNote] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
@@ -132,8 +133,22 @@ export function PdfToJpgTool() {
   }
   useEffect(() => () => revoke(results), [results]);
 
+  // "Keep moving": pick up a PDF handed over from another tool, no re-upload.
+  useEffect(() => {
+    const h = takeHandoff();
+    const pdf = h?.files.find((f) => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
+    if (h && pdf) {
+      setHandoffNote(`PDF brought straight over from ${h.from} — no re-upload needed.`);
+      void pick2(pdf);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function pick(files: FileList | null) {
-    const f = files?.[0];
+    await pick2(files?.[0]);
+  }
+
+  async function pick2(f?: File) {
     if (!f) return;
     if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) {
       setError('Please choose a PDF file.');
@@ -357,6 +372,11 @@ export function PdfToJpgTool() {
   return (
     <Card>
       <CardContent className="p-5">
+        {handoffNote && (
+          <p className="mb-3 flex items-center gap-2 rounded-lg border border-primary/25 bg-primary/[0.06] px-3 py-2 text-sm text-foreground">
+            <Zap className="size-4 shrink-0 text-primary" /> {handoffNote}
+          </p>
+        )}
         {!file ? (
           <div
             onDragOver={(e) => e.preventDefault()}

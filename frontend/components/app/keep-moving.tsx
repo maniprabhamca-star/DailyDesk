@@ -39,7 +39,9 @@ export function KeepMoving({ actions }: { actions: MoveAction[] }) {
             <div className="flex items-center gap-2.5">
               <span className="relative flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
                 <a.fromIcon className="size-5" />
-                <span className="absolute -right-1.5 -top-1.5 flex min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">{a.count}</span>
+                {a.count > 1 && (
+                  <span className="absolute -right-1.5 -top-1.5 flex min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">{a.count}</span>
+                )}
               </span>
               <ArrowRight className="size-4 text-primary transition-transform group-hover:translate-x-0.5" />
               <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">

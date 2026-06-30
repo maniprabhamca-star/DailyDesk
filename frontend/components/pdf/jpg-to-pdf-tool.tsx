@@ -5,6 +5,7 @@ import { Upload, X, ArrowUp, ArrowDown, Download, Loader2, ImageIcon, Zap } from
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { takeHandoff } from '@/lib/handoff';
+import { PdfDone } from '@/components/app/pdf-done';
 
 type Item = { id: string; file: File; url: string };
 type PageSize = 'fit' | 'a4' | 'letter';
@@ -60,6 +61,7 @@ export function JpgToPdfTool() {
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
+  const [done, setDone] = useState<{ blob: Blob; name: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // revoke all preview URLs on unmount
@@ -129,6 +131,7 @@ export function JpgToPdfTool() {
     setBusy(true);
     setError(null);
     setWarning(null);
+    setDone(null);
     try {
       const { PDFDocument } = await import('pdf-lib'); // load engine only when needed
       const pdf = await PDFDocument.create();
@@ -173,15 +176,17 @@ export function JpgToPdfTool() {
       }
 
       const out = await pdf.save();
+      const name = 'converted.pdf';
       const blob = new Blob([new Uint8Array(out)], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'converted.pdf';
+      a.download = name;
       document.body.appendChild(a);
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
+      setDone({ blob, name });
 
       if (skipped.length) {
         setWarning(`Converted ${pdf.getPageCount()} image${pdf.getPageCount() > 1 ? 's' : ''}. Skipped (couldn’t read): ${skipped.join(', ')}`);
@@ -271,6 +276,8 @@ export function JpgToPdfTool() {
         <Button className="mt-5 w-full" size="lg" onClick={convert} disabled={busy || items.length === 0}>
           {busy ? <><Loader2 className="size-4 animate-spin" /> Converting…</> : <><Download className="size-4" /> Convert {items.length > 0 ? `${items.length} image${items.length > 1 ? 's' : ''} ` : ''}to PDF</>}
         </Button>
+
+        {done && <PdfDone blob={done.blob} name={done.name} currentHref="/jpg-to-pdf" fromLabel="JPG to PDF" />}
       </CardContent>
     </Card>
   );

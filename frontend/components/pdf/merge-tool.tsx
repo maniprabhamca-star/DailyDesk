@@ -1,9 +1,11 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import { Upload, FileText, X, ArrowUp, ArrowDown, Download, Loader2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Upload, FileText, X, ArrowUp, ArrowDown, Download, Loader2, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { takeHandoff } from '@/lib/handoff';
+import { PdfDone } from '@/components/app/pdf-done';
 
 type Item = { id: string; file: File };
 
@@ -17,7 +19,15 @@ export function MergeTool() {
   const [items, setItems] = useState<Item[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState<{ blob: Blob; name: string } | null>(null);
+  const [handoffNote, setHandoffNote] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  function addPdfFiles(pdfs: File[]) {
+    if (pdfs.length === 0) return;
+    setDone(null);
+    setItems((cur) => [...cur, ...pdfs.map((f) => ({ id: `${f.name}-${f.size}-${Math.random().toString(36).slice(2, 7)}`, file: f }))]);
+  }
 
   function addFiles(files: FileList | null) {
     if (!files) return;
@@ -27,8 +37,19 @@ export function MergeTool() {
       return;
     }
     setError(null);
-    setItems((cur) => [...cur, ...pdfs.map((f) => ({ id: `${f.name}-${f.size}-${Math.random().toString(36).slice(2, 7)}`, file: f }))]);
+    addPdfFiles(pdfs);
   }
+
+  // "Keep moving": pick up PDF(s) handed over from another tool, no re-upload.
+  useEffect(() => {
+    const h = takeHandoff();
+    const pdfs = h?.files.filter((f) => f.type === 'application/pdf' || /\.pdf$/i.test(f.name)) ?? [];
+    if (h && pdfs.length) {
+      setHandoffNote(`${pdfs.length} PDF${pdfs.length === 1 ? '' : 's'} brought straight over from ${h.from} — add more to merge.`);
+      addPdfFiles(pdfs);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function move(i: number, dir: -1 | 1) {
     setItems((cur) => {
@@ -51,6 +72,7 @@ export function MergeTool() {
     }
     setBusy(true);
     setError(null);
+    setDone(null);
     try {
       const { PDFDocument } = await import('pdf-lib'); // load the engine only when needed
       const out = await PDFDocument.create();
@@ -61,15 +83,17 @@ export function MergeTool() {
         pages.forEach((p) => out.addPage(p));
       }
       const merged = await out.save();
+      const name = 'merged.pdf';
       const blob = new Blob([new Uint8Array(merged)], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'merged.pdf';
+      a.download = name;
       document.body.appendChild(a);
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
+      setDone({ blob, name });
     } catch (e) {
       setError(e instanceof Error ? `Could not merge: ${e.message}` : 'Could not merge the files.');
     } finally {
@@ -80,6 +104,11 @@ export function MergeTool() {
   return (
     <Card>
       <CardContent className="p-5">
+        {handoffNote && (
+          <p className="mb-3 flex items-center gap-2 rounded-lg border border-primary/25 bg-primary/[0.06] px-3 py-2 text-sm text-foreground">
+            <Zap className="size-4 shrink-0 text-primary" /> {handoffNote}
+          </p>
+        )}
         <div
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => { e.preventDefault(); addFiles(e.dataTransfer.files); }}
@@ -116,6 +145,8 @@ export function MergeTool() {
         <Button className="mt-5 w-full" size="lg" onClick={merge} disabled={busy || items.length < 2}>
           {busy ? <><Loader2 className="size-4 animate-spin" /> Merging…</> : <><Download className="size-4" /> Merge {items.length > 0 ? `${items.length} ` : ''}PDFs</>}
         </Button>
+
+        {done && <PdfDone blob={done.blob} name={done.name} currentHref="/merge-pdf" fromLabel="Merge PDF" />}
       </CardContent>
     </Card>
   );
