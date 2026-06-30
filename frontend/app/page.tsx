@@ -134,8 +134,8 @@ export default function Home() {
 
       {/* Bento hero */}
       <section className="mx-auto max-w-6xl px-4 pt-6 sm:px-6">
-        <div className="grid auto-rows-[150px] grid-cols-2 gap-3 md:grid-cols-4">
-          <div className="relative col-span-2 row-span-2 flex flex-col justify-between overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-violet-600 p-6 text-white">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <div className="relative col-span-2 flex min-h-[300px] flex-col justify-between overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-violet-600 p-6 text-white">
             <div className="pointer-events-none absolute -right-10 -top-12 size-40 rounded-full bg-white/10" />
             <span className="w-fit rounded-full bg-white/20 px-3 py-1 text-xs font-medium">10 tools · one workspace</span>
             <div className="relative">
@@ -152,8 +152,8 @@ export default function Home() {
             </div>
           </div>
 
-          <HeroShowcase className="col-span-1 row-span-2" />
-          <HeroPrivacy className="col-span-1 row-span-2" />
+          <HeroShowcase className="col-span-1" />
+          <HeroPrivacy className="col-span-1" />
         </div>
       </section>
 

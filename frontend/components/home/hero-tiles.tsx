@@ -113,15 +113,17 @@ export function HeroPrivacy({ className = '' }: { className?: string }) {
       <div className="flex items-center gap-2 text-sm font-semibold">
         <ShieldCheck className="size-4 text-emerald-600" /> Private by design
       </div>
-      <ul className="space-y-2.5">
+      <ul className="space-y-2 sm:space-y-2.5">
         {points.map((p) => {
           const Icon = p.icon;
           return (
-            <li key={p.title} className="flex items-start gap-2.5">
-              <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300"><Icon className="size-3.5" /></span>
+            <li key={p.title} className="flex items-center gap-2.5 sm:items-start">
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 sm:mt-0.5 dark:bg-emerald-950/50 dark:text-emerald-300"><Icon className="size-3.5" /></span>
               <span className="min-w-0">
                 <span className="block text-[13px] font-semibold leading-tight">{p.title}</span>
-                <span className="block text-[11px] leading-tight text-muted-foreground">{p.sub}</span>
+                {/* Sub-line wraps and inflates the tile at narrow widths — title is
+                    self-explanatory, so show the detail from sm up only. */}
+                <span className="mt-0.5 hidden text-[11px] leading-tight text-muted-foreground sm:block">{p.sub}</span>
               </span>
             </li>
           );
