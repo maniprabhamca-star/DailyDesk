@@ -14,7 +14,7 @@ import { downloadBlob } from '@/lib/download';
 //   download (never a dead end).
 // - Print loads the PDF in a hidden iframe and prints it (falls back to a new tab).
 
-export function ResultActions({ blob, name }: { blob: Blob; name: string }) {
+export function ResultActions({ blob, name, fromLabel = 'your file' }: { blob: Blob; name: string; fromLabel?: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -30,7 +30,7 @@ export function ResultActions({ blob, name }: { blob: Blob; name: string }) {
 
   function exportImage() {
     setOpen(false);
-    setHandoff({ files: [new File([blob], name, { type: 'application/pdf' })], from: 'your compressed PDF' });
+    setHandoff({ files: [new File([blob], name, { type: 'application/pdf' })], from: fromLabel });
     router.push('/pdf-to-jpg');
   }
 

@@ -9,7 +9,6 @@ import { encodeJpeg } from '@/lib/mozjpeg';
 import { takeHandoff } from '@/lib/handoff';
 import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
-import { ResultActions } from '@/components/app/result-actions';
 import { openPdf, renderPage, dprTarget, type PdfHandle, type RenderedPage } from '@/lib/pdf-render';
 import { PageStrip } from '@/components/pdf/page-strip';
 import { BeforeAfter } from '@/components/pdf/before-after';
@@ -663,7 +662,6 @@ export function CompressTool() {
               </>
             )}
             <Button className="mt-3 w-full" size="lg" onClick={() => download(done.blob, done.name)}><Download className="size-4" /> Download {done.optimized ? 'PDF' : 'compressed PDF'}</Button>
-            <ResultActions blob={done.blob} name={done.name} />
             <Button variant="outline" className="mt-2 w-full" onClick={clear}>Compress another</Button>
             <PdfDone blob={done.blob} name={done.name} currentHref="/compress-pdf" fromLabel="Compress PDF" hideBanner />
           </div>

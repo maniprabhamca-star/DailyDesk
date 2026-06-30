@@ -9,6 +9,7 @@ import { downloadBlob as download } from '@/lib/download';
 import { nextFor } from '@/lib/tool-graph';
 import { KeepMoving, type MoveAction } from './keep-moving';
 import { KeepGoing } from './keep-going';
+import { ResultActions } from './result-actions';
 
 // Shared "done" footer for any tool that outputs a single PDF: a success banner,
 // a download-again button, the "Keep moving" chained actions (carry this PDF
@@ -53,6 +54,7 @@ export function PdfDone({ blob, name, currentHref, fromLabel, hideBanner = false
           <Button size="sm" variant="outline" onClick={() => download(blob, name)}><Download className="size-4" /> Download again</Button>
         </div>
       )}
+      <ResultActions blob={blob} name={name} fromLabel={fromLabel} />
       <KeepMoving actions={actions} />
       <KeepGoing exclude={currentHref} />
     </div>
