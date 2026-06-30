@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Upload, FileText, X, Download, Loader2, Zap, Shrink, CheckCircle2, Coffee } from 'lucide-react';
+import { Upload, FileText, X, Download, Loader2, Zap, Shrink, CheckCircle2, Coffee, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import type { PDFRawStream as RawStream } from 'pdf-lib';
@@ -91,6 +91,63 @@ function fmt(bytes: number) {
   return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
 }
 
+// Quick, honest classification of a PDF (no rendering) so we can set an honest
+// expectation BEFORE compressing — instead of a misleading numeric estimate.
+type Kind = 'scan' | 'image' | 'text';
+async function classifyPdf(file: File): Promise<Kind | null> {
+  try {
+    const { PDFDocument, PDFName, PDFRawStream, PDFArray } = await import('pdf-lib');
+    const doc = await PDFDocument.load(new Uint8Array(await file.arrayBuffer()), { ignoreEncryption: true });
+    const ctx = doc.context;
+    let imageBytes = 0;
+    for (const [, obj] of ctx.enumerateIndirectObjects()) {
+      if (obj instanceof PDFRawStream && String(obj.dict.get(PDFName.of('Subtype'))) === '/Image') imageBytes += (obj.contents as Uint8Array).length;
+    }
+    const pages = doc.getPages();
+    const dec = new TextDecoder('latin1');
+    let scanCount = 0;
+    for (const page of pages) {
+      const res = page.node.Resources();
+      const xobjs = res ? (res.lookup(PDFName.of('XObject')) as { keys?: () => unknown[]; get?: (k: unknown) => unknown } | undefined) : undefined;
+      if (!xobjs || typeof xobjs.keys !== 'function') continue;
+      const nameToTag = new Map<string, string>();
+      for (const k of xobjs.keys()) { const r = xobjs.get!(k) as { tag?: string } | undefined; if (r?.tag) nameToTag.set(String(k), r.tag); }
+      if (nameToTag.size === 0) continue;
+      const contents = page.node.Contents();
+      const streams: unknown[] = [];
+      if (contents instanceof PDFArray) for (const r of contents.asArray()) streams.push(ctx.lookup(r));
+      else if (contents) streams.push(contents);
+      let text = '';
+      for (const s of streams) {
+        if (!(s instanceof PDFRawStream)) continue;
+        if (s.dict.get(PDFName.of('DecodeParms'))) { text = ''; break; }
+        const f = s.dict.get(PDFName.of('Filter'));
+        const fs2 = f ? String(f) : '';
+        let b: Uint8Array | null = s.contents as Uint8Array;
+        if (fs2 === '/FlateDecode') b = await inflateDeflate(b);
+        else if (fs2) b = null;
+        if (b) text += dec.decode(b);
+      }
+      if (text) {
+        const maxArea = scanContent(text, nameToTag, new Map());
+        const { width, height } = page.getSize();
+        if (width > 0 && height > 0 && maxArea >= 0.7 * width * height) scanCount++;
+      }
+    }
+    if (pages.length > 0 && scanCount / pages.length >= 0.4) return 'scan';
+    if (imageBytes / Math.max(1, file.size) >= 0.3) return 'image';
+    return 'text';
+  } catch {
+    return null;
+  }
+}
+
+const KIND_MSG: Record<Kind, string> = {
+  scan: 'Looks like a scanned document — Strong or Maximum can shrink it a lot.',
+  image: 'Image-heavy — good compression available. Strong gives the smallest size.',
+  text: 'Mostly text — limited room to shrink (images are what compress most).',
+};
+
 // Decode an embedded JPEG (DCTDecode stream bytes are a complete JPEG bitstream).
 async function decodeJpeg(bytes: Uint8Array): Promise<CanvasImageSource & { width: number; height: number; close?: () => void }> {
   const blob = new Blob([part(bytes)], { type: 'image/jpeg' });
@@ -119,6 +176,7 @@ export function CompressTool() {
   const [done, setDone] = useState<{ blob: Blob; name: string; before: number; after: number; optimized: boolean; note: string } | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [kind, setKind] = useState<Kind | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const doneRef = useRef<HTMLDivElement>(null);
 
@@ -160,9 +218,11 @@ export function CompressTool() {
     }
     setError(null);
     setDone(null);
+    setKind(null);
     setPreview((prev) => { if (prev) URL.revokeObjectURL(prev); return null; });
     setFile(f);
     void makePreview(f);
+    void classifyPdf(f).then(setKind);
   }
   function pick(files: FileList | null) { loadOne(files?.[0]); }
 
@@ -182,6 +242,7 @@ export function CompressTool() {
     setDone(null);
     setHandoffNote(null);
     setProgress(null);
+    setKind(null);
     setPreview((prev) => { if (prev) URL.revokeObjectURL(prev); return null; });
   }
 
@@ -462,19 +523,32 @@ export function CompressTool() {
             <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => pick(e.target.files)} />
           </div>
         ) : (
-          <div className="flex items-center gap-3 rounded-lg border bg-card p-2.5">
-            {preview ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={preview} alt="First page" className="h-14 w-[42px] shrink-0 rounded border bg-white object-cover object-top shadow-sm" />
-            ) : (
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-red-100 text-red-600 dark:bg-red-950/40"><FileText className="size-4" /></span>
-            )}
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">{file.name}</p>
-              <p className="text-xs text-muted-foreground">{fmt(file.size)}</p>
+          <div>
+            {/* Big page-1 preview */}
+            <div className="flex items-center justify-center rounded-xl border bg-muted/30 p-4">
+              {preview ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={preview} alt="First page preview" className="max-h-64 rounded-md border bg-white shadow-md" />
+              ) : (
+                <div className="flex h-48 w-36 items-center justify-center rounded-md border bg-white"><Loader2 className="size-5 animate-spin text-muted-foreground" /></div>
+              )}
             </div>
-            <Button size="icon" variant="ghost" aria-label="Remove" onClick={clear}><X className="size-4" /></Button>
+            {/* File chip */}
+            <div className="mt-3 flex items-center gap-3 rounded-lg border bg-card p-2.5">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-red-100 text-red-600 dark:bg-red-950/40"><FileText className="size-4" /></span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{file.name}</p>
+                <p className="text-xs text-muted-foreground">{fmt(file.size)}{kind ? ` · ${kind === 'scan' ? 'scanned document' : kind === 'image' ? 'image-heavy' : 'mostly text'}` : ''}</p>
+              </div>
+              <Button size="icon" variant="ghost" aria-label="Remove" onClick={clear}><X className="size-4" /></Button>
+            </div>
           </div>
+        )}
+
+        {file && !done && kind && (
+          <p className="mt-3 flex items-start gap-1.5 rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+            <Sparkles className="mt-0.5 size-3.5 shrink-0 text-primary" /> {KIND_MSG[kind]}
+          </p>
         )}
 
         {file && !done && (
