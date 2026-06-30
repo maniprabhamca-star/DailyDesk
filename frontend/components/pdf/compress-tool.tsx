@@ -190,14 +190,20 @@ export function CompressTool() {
       try {
         const page = await d.getPage(1);
         const base = page.getViewport({ scale: 1 });
-        const vp = page.getViewport({ scale: 220 / Math.max(base.width, base.height) });
+        // Render at a high long edge (DPR-aware) so the preview stays crisp when
+        // displayed: downsampling a big render reads far sharper than upscaling a
+        // tiny one. The card shows it ~320px tall, so target ~3x that, capped.
+        const dpr = Math.min(typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1, 3);
+        const targetLong = Math.min(1600, Math.round(320 * Math.max(2, dpr)));
+        const vp = page.getViewport({ scale: targetLong / Math.max(base.width, base.height) });
         const canvas = document.createElement('canvas');
         canvas.width = Math.ceil(vp.width); canvas.height = Math.ceil(vp.height);
         const cx = canvas.getContext('2d');
         if (cx) {
+          cx.imageSmoothingEnabled = true; cx.imageSmoothingQuality = 'high';
           cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, canvas.width, canvas.height);
           await page.render({ canvasContext: cx, viewport: vp, background: 'rgba(255,255,255,1)' }).promise;
-          const url = await new Promise<string | null>((r) => canvas.toBlob((b) => r(b ? URL.createObjectURL(b) : null), 'image/jpeg', 0.7));
+          const url = await new Promise<string | null>((r) => canvas.toBlob((b) => r(b ? URL.createObjectURL(b) : null), 'image/jpeg', 0.92));
           canvas.width = 0; canvas.height = 0;
           if (url) setPreview((prev) => { if (prev) URL.revokeObjectURL(prev); return url; });
         }
@@ -528,7 +534,7 @@ export function CompressTool() {
             <div className="flex items-center justify-center rounded-xl border bg-muted/30 p-4">
               {preview ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={preview} alt="First page preview" className="max-h-64 rounded-md border bg-white shadow-md" />
+                <img src={preview} alt="First page preview" className="max-h-80 rounded-md border bg-white shadow-md" />
               ) : (
                 <div className="flex h-48 w-36 items-center justify-center rounded-md border bg-white"><Loader2 className="size-5 animate-spin text-muted-foreground" /></div>
               )}
