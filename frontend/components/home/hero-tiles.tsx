@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useReducedMotion } from 'framer-motion';
-import { Shrink, Combine, QrCode, KeyRound, ArrowRight, Lock, CloudOff, Zap, ShieldCheck, type LucideIcon } from 'lucide-react';
+import { Shrink, Combine, QrCode, KeyRound, ArrowRight, Lock, ShieldCheck, type LucideIcon } from 'lucide-react';
 import { liveToolCount } from '@/components/app/catalog';
 
 // Hero cluster, right of the purple hero box: an animated capability showcase
@@ -101,36 +101,31 @@ export function HeroShowcase({ className = '' }: { className?: string }) {
 }
 
 export function HeroPrivacy({ className = '' }: { className?: string }) {
-  const points: { icon: LucideIcon; title: string; sub: string }[] = [
-    { icon: Lock, title: '100% in your browser', sub: 'Files never leave your device' },
-    { icon: CloudOff, title: '0 files uploaded', sub: 'Nothing ever hits a server' },
-    { icon: Zap, title: 'Instant & offline', sub: 'No queues, no waiting' },
-  ];
   return (
     <Link
       href="/security"
-      className={`group flex flex-col justify-between overflow-hidden rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-50 to-background p-4 shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-card dark:border-emerald-900/40 dark:from-emerald-950/30 ${className}`}
+      className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-50 to-background p-4 shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-card dark:border-emerald-900/40 dark:from-emerald-950/30 ${className}`}
     >
-      <div className="flex items-center gap-2 text-sm font-semibold">
-        <ShieldCheck className="size-4 text-emerald-600" /> Private by design
+      {/* faint guard watermark, top-right */}
+      <ShieldCheck aria-hidden className="pointer-events-none absolute -right-4 -top-3 size-28 text-emerald-500/10" />
+
+      <div className="relative flex items-center gap-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+        <ShieldCheck className="size-4" /> Private by design
       </div>
-      <ul className="space-y-2 sm:space-y-2.5">
-        {points.map((p) => {
-          const Icon = p.icon;
-          return (
-            <li key={p.title} className="flex items-center gap-2.5 sm:items-start">
-              <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 sm:mt-0.5 dark:bg-emerald-950/50 dark:text-emerald-300"><Icon className="size-3.5" /></span>
-              <span className="min-w-0">
-                <span className="block text-[13px] font-semibold leading-tight">{p.title}</span>
-                {/* Sub-line wraps and inflates the tile at narrow widths — title is
-                    self-explanatory, so show the detail from sm up only. */}
-                <span className="mt-0.5 hidden text-[11px] leading-tight text-muted-foreground sm:block">{p.sub}</span>
-              </span>
-            </li>
-          );
-        })}
-      </ul>
-      <span className="flex items-center gap-1 text-xs font-medium text-emerald-700 dark:text-emerald-400">How it works <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" /></span>
+
+      <div className="relative">
+        <div className="flex items-center gap-3">
+          {/* white lock badge, prefixing the stat */}
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-white text-emerald-600 shadow-sm dark:bg-emerald-950/60 dark:text-emerald-300"><Lock className="size-5" /></span>
+          <div className="min-w-0">
+            <div className="text-3xl font-bold leading-none text-foreground">100%</div>
+            <div className="mt-0.5 text-sm font-medium text-foreground">in your browser</div>
+          </div>
+        </div>
+        <p className="mt-3 text-xs leading-relaxed text-muted-foreground">Files never leave your device — nothing is ever uploaded.</p>
+      </div>
+
+      <span className="relative flex items-center gap-1 text-xs font-medium text-emerald-700 dark:text-emerald-400">How it works <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" /></span>
     </Link>
   );
 }
