@@ -17,13 +17,59 @@ function part(bytes: Uint8Array): BlobPart {
 
 type Level = 'light' | 'recommended' | 'strong';
 
-// Each level = how far we downsample embedded images + the mozjpeg quality.
-// Vector text/graphics are NEVER touched, so the document stays crisp + selectable.
-const LEVELS: Record<Level, { maxDim: number; quality: number; title: string; sub: string }> = {
-  light: { maxDim: 2200, quality: 82, title: 'Light', sub: 'Best quality' },
-  recommended: { maxDim: 1600, quality: 74, title: 'Recommended', sub: 'Best balance' },
-  strong: { maxDim: 1000, quality: 60, title: 'Strong', sub: 'Smallest size' },
+// DPI-aware: we read how big each image is actually displayed on the page and
+// downsample it to the level's target DPI — so images shown small get shrunk
+// hard (no visible loss) while images shown large stay sharp. `maxDim` is only
+// a safe fallback cap for images whose on-page size we can't determine. Vector
+// text/graphics are NEVER touched, so the document stays crisp + selectable.
+const LEVELS: Record<Level, { dpi: number; maxDim: number; quality: number; title: string; sub: string }> = {
+  light: { dpi: 200, maxDim: 2400, quality: 82, title: 'Light', sub: 'Best quality' },
+  recommended: { dpi: 150, maxDim: 1800, quality: 74, title: 'Recommended', sub: 'Best balance' },
+  strong: { dpi: 96, maxDim: 1200, quality: 60, title: 'Strong', sub: 'Smallest size' },
 };
+
+// ---- DPI awareness: find each image's on-page display size (in points) ------
+// Track the CTM through a page's content stream and record the largest display
+// size for every image XObject. Pure string scan — no extra libraries.
+const NAME_START = /[A-Za-z'"*]/, NUM_START = /[-+.\d]/, NUM_CHAR = /[-+.\dEe]/, OP_CHAR = /[A-Za-z\d'"*]/, NAME_STOP = /[\s/<>[\]()%]/;
+
+function concatMatrix(ctm: number[], m: number[]): number[] {
+  const [A, B, C, D, E, F] = m, [a, b, c, d, e, f] = ctm;
+  return [A * a + B * c, A * b + B * d, C * a + D * c, C * b + D * d, E * a + F * c + e, E * b + F * d + f];
+}
+
+function scanContent(content: string, nameToTag: Map<string, string>, sizes: Map<string, number>) {
+  let i = 0; const n = content.length; let ctm = [1, 0, 0, 1, 0, 0]; const stack: number[][] = []; let ops: number[] = []; let lastName: string | null = null;
+  while (i < n) {
+    const ch = content[i];
+    if (ch === '%') { while (i < n && content[i] !== '\n' && content[i] !== '\r') i++; continue; }
+    if (ch === '(') { let dp = 1; i++; while (i < n && dp > 0) { if (content.charCodeAt(i) === 92) { i += 2; continue; } if (content[i] === '(') dp++; else if (content[i] === ')') dp--; i++; } ops = []; continue; }
+    if (ch === '<' && content[i + 1] === '<') { i += 2; while (i < n && !(content[i] === '>' && content[i + 1] === '>')) i++; i += 2; ops = []; continue; }
+    if (ch === '<') { i++; while (i < n && content[i] !== '>') i++; i++; continue; }
+    if (ch === '/') { let j = i + 1; while (j < n && !NAME_STOP.test(content[j])) j++; lastName = content.slice(i, j); i = j; continue; }
+    if (NUM_START.test(ch)) { let j = i; while (j < n && NUM_CHAR.test(content[j])) j++; ops.push(parseFloat(content.slice(i, j))); i = j; continue; }
+    if (NAME_START.test(ch)) {
+      let j = i; while (j < n && OP_CHAR.test(content[j])) j++; const op = content.slice(i, j); i = j;
+      if (op === 'q') stack.push(ctm.slice());
+      else if (op === 'Q') ctm = stack.pop() || [1, 0, 0, 1, 0, 0];
+      else if (op === 'cm' && ops.length >= 6) ctm = concatMatrix(ctm, ops.slice(-6));
+      else if (op === 'Do' && lastName) { const tag = nameToTag.get(lastName); if (tag) { const disp = Math.max(Math.hypot(ctm[0], ctm[1]), Math.hypot(ctm[2], ctm[3])); if (disp > (sizes.get(tag) || 0)) sizes.set(tag, disp); } }
+      else if (op === 'BI') { const ei = content.indexOf('EI', i); i = ei < 0 ? n : ei + 2; }
+      ops = []; continue;
+    }
+    i++;
+  }
+}
+
+async function inflateDeflate(bytes: Uint8Array): Promise<Uint8Array | null> {
+  try {
+    if (typeof DecompressionStream === 'undefined') return null;
+    const stream = new Blob([new Uint8Array(bytes)]).stream().pipeThrough(new DecompressionStream('deflate'));
+    return new Uint8Array(await new Response(stream).arrayBuffer());
+  } catch {
+    return null;
+  }
+}
 
 function fmt(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -97,11 +143,46 @@ export function CompressTool() {
     setDone(null);
     const before = file.size;
     try {
-      const { PDFDocument, PDFName, PDFNumber, PDFRawStream } = await import('pdf-lib');
+      const { PDFDocument, PDFName, PDFNumber, PDFRawStream, PDFArray } = await import('pdf-lib');
       const original = new Uint8Array(await file.arrayBuffer());
       const doc = await PDFDocument.load(original, { ignoreEncryption: true });
       const ctx = doc.context;
-      const { maxDim, quality } = LEVELS[level];
+      const { dpi, maxDim, quality } = LEVELS[level];
+
+      // DPI awareness (best-effort): read each image's on-page display size by
+      // tracking the CTM through every page's content stream. Falls back to the
+      // maxDim cap for any image we can't locate, so it's always safe.
+      const displaySizes = new Map<string, number>(); // image ref tag -> max display long-edge (pt)
+      try {
+        const dec = new TextDecoder('latin1');
+        for (const page of doc.getPages()) {
+          const res = page.node.Resources();
+          const xobjs = res ? (res.lookup(PDFName.of('XObject')) as { keys?: () => unknown[]; get?: (k: unknown) => unknown } | undefined) : undefined;
+          if (!xobjs || typeof xobjs.keys !== 'function') continue;
+          const nameToTag = new Map<string, string>();
+          for (const k of xobjs.keys()) {
+            const r = xobjs.get!(k) as { tag?: string } | undefined;
+            if (r && r.tag) nameToTag.set(String(k), r.tag);
+          }
+          if (nameToTag.size === 0) continue;
+          const contents = page.node.Contents();
+          const streams: unknown[] = [];
+          if (contents instanceof PDFArray) for (const r of contents.asArray()) streams.push(ctx.lookup(r));
+          else if (contents) streams.push(contents);
+          let text = '';
+          for (const s of streams) {
+            if (!(s instanceof PDFRawStream)) continue;
+            if (s.dict.get(PDFName.of('DecodeParms'))) { text = ''; break; } // predictor — skip page, stay safe
+            const filter = s.dict.get(PDFName.of('Filter'));
+            const fstr = filter ? String(filter) : '';
+            let bytes: Uint8Array | null = s.contents as Uint8Array;
+            if (fstr === '/FlateDecode') bytes = await inflateDeflate(bytes);
+            else if (fstr) bytes = null; // other content filters — skip this stream
+            if (bytes) text += dec.decode(bytes);
+          }
+          if (text) scanContent(text, nameToTag, displaySizes);
+        }
+      } catch { /* DPI awareness is best-effort; the maxDim cap below stays safe */ }
 
       // Collect embedded JPEG images (safe to recompress). Everything else is left untouched.
       const isJpegImage = (obj: unknown): boolean => {
@@ -128,7 +209,11 @@ export function CompressTool() {
           if (!w || !h || raw.length < 1024) continue; // tiny — not worth it
 
           const bmp = await decodeJpeg(raw);
-          const scale = Math.min(1, maxDim / Math.max(w, h));
+          // DPI-aware target: shrink to what the image's on-page size needs at the
+          // chosen DPI; fall back to the maxDim cap when its placement is unknown.
+          const dispPt = displaySizes.get((ref as unknown as { tag: string }).tag);
+          const targetLong = dispPt ? Math.max(64, Math.ceil((dispPt / 72) * dpi)) : maxDim;
+          const scale = Math.min(1, targetLong / Math.max(w, h));
           const nw = Math.max(1, Math.round(w * scale));
           const nh = Math.max(1, Math.round(h * scale));
           const canvas = document.createElement('canvas');
@@ -242,7 +327,7 @@ export function CompressTool() {
                 </button>
               ))}
             </div>
-            <p className="mt-2.5 flex items-center gap-1.5 text-xs text-muted-foreground"><CheckCircle2 className="size-3.5 text-emerald-500" /> Text and graphics stay sharp — only images are shrunk.</p>
+            <p className="mt-2.5 flex items-center gap-1.5 text-xs text-muted-foreground"><CheckCircle2 className="size-3.5 text-emerald-500" /> Smart, DPI-aware — only images bigger than they’re shown get shrunk. Text stays sharp and selectable.</p>
           </div>
         )}
 
