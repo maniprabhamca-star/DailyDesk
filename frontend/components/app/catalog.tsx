@@ -1,6 +1,6 @@
 import {
   Combine, Split, Shrink, RotateCw, FileMinus, ListOrdered,
-  FileImage, Image as ImageIcon, FileType, FileType2, Code2,
+  FileImage, Image as ImageIcon, FileType, FileType2, Code2, Presentation, FileSpreadsheet, FileCheck,
   PenLine, Highlighter, Stamp, EyeOff, PenTool, Lock,
   ScanText, MessageSquare, AlignLeft, Languages,
   QrCode, KeyRound, NotebookPen, Flame, Wallet, FolderLock, Link2,
@@ -30,12 +30,21 @@ export const catalog: CatGroup[] = [
     ],
   },
   {
-    label: 'Convert', color: '#0284c7', tools: [
+    label: 'Convert to PDF', color: '#0284c7', tools: [
       { name: 'JPG to PDF', href: '/jpg-to-pdf', icon: FileImage, badge: 'device' },
+      { name: 'Word to PDF', icon: FileType2, badge: 'memory', soon: true },
+      { name: 'PowerPoint to PDF', icon: Presentation, badge: 'memory', soon: true },
+      { name: 'Excel to PDF', icon: FileSpreadsheet, badge: 'memory', soon: true },
+      { name: 'HTML to PDF', icon: Code2, badge: 'memory', soon: true },
+    ],
+  },
+  {
+    label: 'Convert from PDF', color: '#0ea5e9', tools: [
       { name: 'PDF to JPG', href: '/pdf-to-jpg', icon: ImageIcon, badge: 'device' },
       { name: 'PDF to Word', icon: FileType, badge: 'memory', soon: true },
-      { name: 'Word to PDF', icon: FileType2, badge: 'memory', soon: true },
-      { name: 'HTML to PDF', icon: Code2, badge: 'memory', soon: true },
+      { name: 'PDF to PowerPoint', icon: Presentation, badge: 'memory', soon: true },
+      { name: 'PDF to Excel', icon: FileSpreadsheet, badge: 'memory', soon: true },
+      { name: 'PDF to PDF/A', icon: FileCheck, badge: 'memory', soon: true },
     ],
   },
   {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
@@ -48,6 +48,19 @@ const stats = [
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const toolsRef = useRef<HTMLDivElement>(null);
+
+  // Close the Tools mega-menu on any outside click or Escape. (A fixed backdrop
+  // doesn't work here: the header's backdrop-blur creates a containing block, so
+  // a position:fixed overlay is trapped inside the header instead of the viewport.)
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDown = (e: MouseEvent) => { if (toolsRef.current && !toolsRef.current.contains(e.target as Node)) setMenuOpen(false); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpen(false); };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
+  }, [menuOpen]);
 
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-background text-foreground">
@@ -62,13 +75,12 @@ export default function Home() {
             <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground"><LayoutGrid className="size-[18px]" /></span>
             <span className="text-lg font-semibold tracking-tight">DailyDesk</span>
           </Link>
-          <div className="relative hidden sm:block">
+          <div ref={toolsRef} className="relative hidden sm:block">
             <button onClick={() => setMenuOpen((o) => !o)} className="flex items-center gap-1 text-sm font-medium text-foreground/80 hover:text-foreground">
               Tools <ChevronDown className={`size-4 transition-transform ${menuOpen ? 'rotate-180' : ''}`} />
             </button>
             {menuOpen && (
               <>
-                <div className="fixed inset-0 z-30" onClick={() => setMenuOpen(false)} />
                 <div className="absolute left-0 top-8 z-40 grid w-[680px] grid-cols-3 gap-x-5 gap-y-4 rounded-xl border bg-popover p-5 shadow-lift">
                   {catalog.map((g) => (
                     <div key={g.label}>
