@@ -182,9 +182,19 @@ export function CompressTool() {
           const xobjs = res ? (res.lookup(PDFName.of('XObject')) as { keys?: () => unknown[]; get?: (k: unknown) => unknown } | undefined) : undefined;
           if (!xobjs || typeof xobjs.keys !== 'function') continue;
           const nameToTag = new Map<string, string>();
+          let maxStoredPx = 0; // largest image pixel dimension on this page
           for (const k of xobjs.keys()) {
-            const r = xobjs.get!(k) as { tag?: string } | undefined;
-            if (r && r.tag) nameToTag.set(String(k), r.tag);
+            const r = xobjs.get!(k);
+            const tag = (r as { tag?: string } | undefined)?.tag;
+            if (!tag) continue;
+            nameToTag.set(String(k), tag);
+            try {
+              const o = ctx.lookup(r as never);
+              if (o instanceof PDFRawStream) {
+                const px = Math.max(Number(o.dict.get(PDFName.of('Width'))) || 0, Number(o.dict.get(PDFName.of('Height'))) || 0);
+                if (px > maxStoredPx) maxStoredPx = px;
+              }
+            } catch { /* ignore */ }
           }
           if (nameToTag.size === 0) continue;
           const contents = page.node.Contents();
@@ -205,10 +215,13 @@ export function CompressTool() {
           if (text) {
             const maxArea = scanContent(text, nameToTag, displaySizes);
             const { width, height } = page.getSize();
-            // If a single image covers most of the page, it's a scanned page —
-            // rasterize it (handles any image format, incl. OCR'd scans with a
-            // hidden text layer that the text check would miss).
-            if (width > 0 && height > 0 && maxArea >= 0.7 * width * height) {
+            const pageLongIn = Math.max(width, height) / 72;
+            const storedDpi = pageLongIn > 0 ? maxStoredPx / pageLongIn : 0;
+            // A scanned page (one big image) is only worth rasterizing if its
+            // image is clearly higher-res than the target — otherwise re-rendering
+            // wastes minutes for almost nothing (an already-efficient file just
+            // isn't compressible, exactly what Smallpdf/iLovePDF show: ~1%).
+            if (width > 0 && height > 0 && maxArea >= 0.7 * width * height && storedDpi >= rasterDpi * 1.5) {
               scanPages.add(pi);
               nameToTag.forEach((tag) => scanImageTags.add(tag));
             }
@@ -242,10 +255,17 @@ export function CompressTool() {
           const raw = obj.contents as Uint8Array;
           if (!w || !h || raw.length < 1024) continue; // tiny — not worth it
 
+          // Fast skip: if the image is already at/below the target resolution it
+          // won't shrink, so don't waste time decoding + re-encoding it. This is
+          // what keeps already-efficient files fast (seconds, not minutes).
+          const dispPt = displaySizes.get((ref as unknown as { tag: string }).tag);
+          const longPx = Math.max(w, h);
+          if (dispPt) { if (longPx <= (dispPt / 72) * dpi * 1.15) continue; }
+          else if (longPx <= maxDim) continue;
+
           const bmp = await decodeJpeg(raw);
           // DPI-aware target: shrink to what the image's on-page size needs at the
           // chosen DPI; fall back to the maxDim cap when its placement is unknown.
-          const dispPt = displaySizes.get((ref as unknown as { tag: string }).tag);
           const targetLong = dispPt ? Math.max(64, Math.ceil((dispPt / 72) * dpi)) : maxDim;
           const scale = Math.min(1, targetLong / Math.max(w, h));
           const nw = Math.max(1, Math.round(w * scale));
@@ -289,7 +309,11 @@ export function CompressTool() {
       let outBytes: Uint8Array;
       let rasterized = 0;
       let copied = 0;
-      try {
+      if (scanPages.size === 0) {
+        // No page needs rasterizing — skip pdf.js entirely so efficient files
+        // finish near-instantly (just the surgical result + structural save).
+        outBytes = await doc.save({ useObjectStreams: true });
+      } else try {
         const pdfjs = await import('pdfjs-dist');
         pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
         const task = pdfjs.getDocument({ data: original.slice() });
@@ -302,16 +326,11 @@ export function CompressTool() {
           for (let i = 0; i < pageCount; i++) {
             let placed = false;
             try {
-              const jp = await jsDoc.getPage(i + 1);
-              // A page is "scanned" if one image covers most of it (catches OCR'd
-              // scans too); also treat genuinely text-light pages as scans.
-              let isScan = scanPages.has(i);
-              if (!isScan) {
-                const tc = await jp.getTextContent();
-                const textLen = (tc.items as { str?: string }[]).reduce((a, it) => a + (it.str ? it.str.trim().length : 0), 0);
-                isScan = textLen < 8;
-              }
-              if (isScan) {
+              // Only rasterize pages flagged worth it (a big, high-res image).
+              // Everything else is copied untouched — so already-efficient files
+              // finish in seconds instead of re-rendering every page for nothing.
+              if (scanPages.has(i)) {
+                const jp = await jsDoc.getPage(i + 1);
                 const vp1 = jp.getViewport({ scale: 1 });
                 let s = rasterDpi / 72;
                 let vp = jp.getViewport({ scale: s });
