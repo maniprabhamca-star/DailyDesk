@@ -40,8 +40,13 @@ function concatMatrix(ctm: number[], m: number[]): number[] {
   return [A * a + B * c, A * b + B * d, C * a + D * c, C * b + D * d, E * a + F * c + e, E * b + F * d + f];
 }
 
-function scanContent(content: string, nameToTag: Map<string, string>, sizes: Map<string, number>) {
+// Scans a page's content stream: records each image's max on-page display size
+// (for DPI-aware surgical sizing) AND returns the largest single image AREA seen
+// on the page (pt²) so the caller can tell a "scanned" page (one big image) from
+// a real text page.
+function scanContent(content: string, nameToTag: Map<string, string>, sizes: Map<string, number>): number {
   let i = 0; const n = content.length; let ctm = [1, 0, 0, 1, 0, 0]; const stack: number[][] = []; let ops: number[] = []; let lastName: string | null = null;
+  let maxArea = 0;
   while (i < n) {
     const ch = content[i];
     if (ch === '%') { while (i < n && content[i] !== '\n' && content[i] !== '\r') i++; continue; }
@@ -55,12 +60,13 @@ function scanContent(content: string, nameToTag: Map<string, string>, sizes: Map
       if (op === 'q') stack.push(ctm.slice());
       else if (op === 'Q') ctm = stack.pop() || [1, 0, 0, 1, 0, 0];
       else if (op === 'cm' && ops.length >= 6) ctm = concatMatrix(ctm, ops.slice(-6));
-      else if (op === 'Do' && lastName) { const tag = nameToTag.get(lastName); if (tag) { const disp = Math.max(Math.hypot(ctm[0], ctm[1]), Math.hypot(ctm[2], ctm[3])); if (disp > (sizes.get(tag) || 0)) sizes.set(tag, disp); } }
+      else if (op === 'Do' && lastName) { const tag = nameToTag.get(lastName); if (tag) { const sx = Math.hypot(ctm[0], ctm[1]), sy = Math.hypot(ctm[2], ctm[3]); const disp = Math.max(sx, sy); if (disp > (sizes.get(tag) || 0)) sizes.set(tag, disp); const area = sx * sy; if (area > maxArea) maxArea = area; } }
       else if (op === 'BI') { const ei = content.indexOf('EI', i); i = ei < 0 ? n : ei + 2; }
       ops = []; continue;
     }
     i++;
   }
+  return maxArea;
 }
 
 async function inflateDeflate(bytes: Uint8Array): Promise<Uint8Array | null> {
@@ -104,7 +110,7 @@ export function CompressTool() {
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState<{ blob: Blob; name: string; before: number; after: number; optimized: boolean } | null>(null);
+  const [done, setDone] = useState<{ blob: Blob; name: string; before: number; after: number; optimized: boolean; note: string } | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const doneRef = useRef<HTMLDivElement>(null);
@@ -161,9 +167,13 @@ export function CompressTool() {
       // tracking the CTM through every page's content stream. Falls back to the
       // maxDim cap for any image we can't locate, so it's always safe.
       const displaySizes = new Map<string, number>(); // image ref tag -> max display long-edge (pt)
+      const scanPages = new Set<number>(); // page indices that are "a big image" (a scan)
+      const scanImageTags = new Set<string>(); // image tags on scan pages — skip in the surgical pass (they get rasterized anyway)
       try {
         const dec = new TextDecoder('latin1');
-        for (const page of doc.getPages()) {
+        const pages = doc.getPages();
+        for (let pi = 0; pi < pages.length; pi++) {
+          const page = pages[pi];
           const res = page.node.Resources();
           const xobjs = res ? (res.lookup(PDFName.of('XObject')) as { keys?: () => unknown[]; get?: (k: unknown) => unknown } | undefined) : undefined;
           if (!xobjs || typeof xobjs.keys !== 'function') continue;
@@ -188,9 +198,19 @@ export function CompressTool() {
             else if (fstr) bytes = null; // other content filters — skip this stream
             if (bytes) text += dec.decode(bytes);
           }
-          if (text) scanContent(text, nameToTag, displaySizes);
+          if (text) {
+            const maxArea = scanContent(text, nameToTag, displaySizes);
+            const { width, height } = page.getSize();
+            // If a single image covers most of the page, it's a scanned page —
+            // rasterize it (handles any image format, incl. OCR'd scans with a
+            // hidden text layer that the text check would miss).
+            if (width > 0 && height > 0 && maxArea >= 0.7 * width * height) {
+              scanPages.add(pi);
+              nameToTag.forEach((tag) => scanImageTags.add(tag));
+            }
+          }
         }
-      } catch { /* DPI awareness is best-effort; the maxDim cap below stays safe */ }
+      } catch { /* best-effort; surgical + safe fallbacks below still work */ }
 
       // Collect embedded JPEG images (safe to recompress). Everything else is left untouched.
       const isJpegImage = (obj: unknown): boolean => {
@@ -202,7 +222,9 @@ export function CompressTool() {
         return true;
       };
 
-      const images = ctx.enumerateIndirectObjects().filter(([, obj]) => isJpegImage(obj));
+      // Skip images that sit on scan pages — those pages get rasterized whole, so
+      // recompressing their images first is wasted (slow) work.
+      const images = ctx.enumerateIndirectObjects().filter(([ref, obj]) => isJpegImage(obj) && !scanImageTags.has((ref as unknown as { tag: string }).tag));
       setProgress({ done: 0, total: images.length });
 
       let recompressed = 0;
@@ -262,6 +284,7 @@ export function CompressTool() {
       // back to the surgical-only result.
       let outBytes: Uint8Array;
       let rasterized = 0;
+      let copied = 0;
       try {
         const pdfjs = await import('pdfjs-dist');
         pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
@@ -271,44 +294,45 @@ export function CompressTool() {
           const pageCount = doc.getPageCount();
           const outDoc = await PDFDocument.create();
           setProgress({ done: 0, total: pageCount });
+          const q01 = Math.max(0.4, Math.min(0.9, quality / 100));
           for (let i = 0; i < pageCount; i++) {
-            const jp = await jsDoc.getPage(i + 1);
-            const tc = await jp.getTextContent();
-            const textLen = (tc.items as { str?: string }[]).reduce((a, it) => a + (it.str ? it.str.trim().length : 0), 0);
-            const vp1 = jp.getViewport({ scale: 1 });
-            if (textLen < 8) {
-              // Scanned page → rasterize at the target DPI.
-              let s = dpi / 72;
-              let vp = jp.getViewport({ scale: s });
-              const longEdge = Math.max(vp.width, vp.height);
-              if (longEdge > MAX_RASTER) { s = (s * MAX_RASTER) / longEdge; vp = jp.getViewport({ scale: s }); }
-              const canvas = document.createElement('canvas');
-              canvas.width = Math.ceil(vp.width); canvas.height = Math.ceil(vp.height);
-              const cx = canvas.getContext('2d');
-              if (cx) {
-                cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, canvas.width, canvas.height);
-                await jp.render({ canvasContext: cx, viewport: vp, background: 'rgba(255,255,255,1)' }).promise;
-                // Native JPEG encode here (not mozjpeg): scan pages are already
-                // downsampled, and native is ~15x faster — so a 100+ page book
-                // finishes in seconds instead of minutes.
-                const q01 = Math.max(0.4, Math.min(0.9, quality / 100));
-                const jpgBlob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/jpeg', q01));
-                canvas.width = 0; canvas.height = 0;
-                if (jpgBlob) {
-                  const img = await outDoc.embedJpg(new Uint8Array(await jpgBlob.arrayBuffer()));
-                  const p = outDoc.addPage([vp1.width, vp1.height]);
-                  p.drawImage(img, { x: 0, y: 0, width: vp1.width, height: vp1.height });
-                  rasterized++;
-                } else {
-                  const [cp] = await outDoc.copyPages(doc, [i]); outDoc.addPage(cp);
-                }
-              } else {
-                const [cp] = await outDoc.copyPages(doc, [i]); outDoc.addPage(cp);
+            let placed = false;
+            try {
+              const jp = await jsDoc.getPage(i + 1);
+              // A page is "scanned" if one image covers most of it (catches OCR'd
+              // scans too); also treat genuinely text-light pages as scans.
+              let isScan = scanPages.has(i);
+              if (!isScan) {
+                const tc = await jp.getTextContent();
+                const textLen = (tc.items as { str?: string }[]).reduce((a, it) => a + (it.str ? it.str.trim().length : 0), 0);
+                isScan = textLen < 8;
               }
-            } else {
-              // Real text page → keep it exactly (text stays sharp + selectable).
-              const [cp] = await outDoc.copyPages(doc, [i]); outDoc.addPage(cp);
-            }
+              if (isScan) {
+                const vp1 = jp.getViewport({ scale: 1 });
+                let s = dpi / 72;
+                let vp = jp.getViewport({ scale: s });
+                const longEdge = Math.max(vp.width, vp.height);
+                if (longEdge > MAX_RASTER) { s = (s * MAX_RASTER) / longEdge; vp = jp.getViewport({ scale: s }); }
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.ceil(vp.width); canvas.height = Math.ceil(vp.height);
+                const cx = canvas.getContext('2d');
+                if (cx) {
+                  cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, canvas.width, canvas.height);
+                  await jp.render({ canvasContext: cx, viewport: vp, background: 'rgba(255,255,255,1)' }).promise;
+                  // Native JPEG (not mozjpeg): scan pages are already downsampled,
+                  // and native is ~15x faster — 100+ page books finish in seconds.
+                  const jpgBlob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/jpeg', q01));
+                  canvas.width = 0; canvas.height = 0;
+                  if (jpgBlob) {
+                    const img = await outDoc.embedJpg(new Uint8Array(await jpgBlob.arrayBuffer()));
+                    const p = outDoc.addPage([vp1.width, vp1.height]);
+                    p.drawImage(img, { x: 0, y: 0, width: vp1.width, height: vp1.height });
+                    rasterized++; placed = true;
+                  }
+                }
+              }
+            } catch { /* fall through and copy the page untouched */ }
+            if (!placed) { try { const [cp] = await outDoc.copyPages(doc, [i]); outDoc.addPage(cp); copied++; } catch { /* unrenderable page — skip */ } }
             setProgress({ done: i + 1, total: pageCount });
             await new Promise((r) => setTimeout(r, 0));
           }
@@ -322,18 +346,21 @@ export function CompressTool() {
 
       const after = outBytes.length;
       const name = `${file.name.replace(/\.pdf$/i, '')}-compressed.pdf`;
+      const note = rasterized > 0 || recompressed > 0
+        ? [rasterized > 0 ? `${rasterized} scanned page${rasterized === 1 ? '' : 's'} rebuilt` : '', recompressed > 0 ? `${recompressed} image${recompressed === 1 ? '' : 's'} recompressed` : ''].filter(Boolean).join(' · ')
+        : 'No shrinkable images found.';
 
       // Don't auto-download (a long run expires the click's "user gesture" and
       // makes Chrome stall the download as .crdownload) — show a Download button.
       if (after >= before) {
         // Never hand back a bigger file — if we couldn't beat the original, keep it.
         const blob = new Blob([part(original)], { type: 'application/pdf' });
-        setDone({ blob, name: `${file.name.replace(/\.pdf$/i, '')}.pdf`, before, after: before, optimized: true });
+        setDone({ blob, name: `${file.name.replace(/\.pdf$/i, '')}.pdf`, before, after: before, optimized: true, note });
         return;
       }
 
       const blob = new Blob([part(outBytes)], { type: 'application/pdf' });
-      setDone({ blob, name, before, after, optimized: (recompressed + rasterized) === 0 });
+      setDone({ blob, name, before, after, optimized: (recompressed + rasterized) === 0, note });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not compress the PDF.');
     } finally {
@@ -416,9 +443,10 @@ export function CompressTool() {
               <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-center">
                 <p className="text-3xl font-bold text-emerald-600">−{saved}%</p>
                 <p className="mt-1 text-sm font-medium">{fmt(done.before)} → {fmt(done.after)}</p>
-                <p className="text-xs text-muted-foreground">Text stayed crisp and selectable — only the images were shrunk.</p>
+                <p className="text-xs text-muted-foreground">{done.note}</p>
               </div>
             )}
+            {done.optimized && <p className="mt-1.5 text-center text-[11px] text-muted-foreground">{done.note}</p>}
             <Button className="mt-3 w-full" size="lg" onClick={() => download(done.blob, done.name)}><Download className="size-4" /> Download {done.optimized ? 'PDF' : 'compressed PDF'}</Button>
             <Button variant="outline" className="mt-2 w-full" onClick={clear}>Compress another</Button>
             <PdfDone blob={done.blob} name={done.name} currentHref="/compress-pdf" fromLabel="Compress PDF" hideBanner />
