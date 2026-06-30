@@ -152,8 +152,8 @@ export default function Home() {
             </div>
           </div>
 
-          <HeroShowcase className="col-span-2 row-span-2 md:col-span-1" />
-          <HeroPrivacy className="col-span-2 row-span-2 md:col-span-1" />
+          <HeroShowcase className="col-span-1 row-span-2" />
+          <HeroPrivacy className="col-span-1 row-span-2" />
         </div>
       </section>
 
