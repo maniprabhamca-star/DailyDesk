@@ -23,7 +23,7 @@ export const catalog: CatGroup[] = [
     label: 'Organize PDF', color: '#dc2626', tools: [
       { name: 'Merge PDF', href: '/merge-pdf', icon: Combine, badge: 'device' },
       { name: 'Split PDF', href: '/split-pdf', icon: Split, badge: 'device' },
-      { name: 'Compress PDF', icon: Shrink, badge: 'device', soon: true },
+      { name: 'Compress PDF', href: '/compress-pdf', icon: Shrink, badge: 'device' },
       { name: 'Rotate PDF', href: '/rotate-pdf', icon: RotateCw, badge: 'device' },
       { name: 'Delete pages', href: '/delete-pages-from-pdf', icon: FileMinus, badge: 'device' },
       { name: 'Page numbers', href: '/add-page-numbers-to-pdf', icon: ListOrdered, badge: 'device' },

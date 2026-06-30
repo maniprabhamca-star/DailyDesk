@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, Combine, Split, RotateCw, FileMinus, ListOrdered, FileImage, Image as ImageIcon, QrCode, KeyRound, type LucideIcon } from 'lucide-react';
+import { ArrowRight, Combine, Split, RotateCw, FileMinus, ListOrdered, Shrink, FileImage, Image as ImageIcon, QrCode, KeyRound, type LucideIcon } from 'lucide-react';
 
 // A reusable "what's next" rail for tool result pages. Drop it on any tool's
 // done-screen with the current tool's href in `exclude`. Only LIVE tools are
@@ -25,6 +25,8 @@ const LIVE: Suggestion[] = [
     tile: 'from-rose-500/10 to-rose-500/0 hover:border-rose-500/40', chip: 'bg-rose-500' },
   { name: 'Split PDF', href: '/split-pdf', icon: Split, blurb: 'Pull out just the pages you need',
     tile: 'from-amber-500/10 to-amber-500/0 hover:border-amber-500/40', chip: 'bg-amber-500' },
+  { name: 'Compress PDF', href: '/compress-pdf', icon: Shrink, blurb: 'Make the file smaller',
+    tile: 'from-teal-500/10 to-teal-500/0 hover:border-teal-500/40', chip: 'bg-teal-500' },
   { name: 'Rotate PDF', href: '/rotate-pdf', icon: RotateCw, blurb: 'Fix sideways or upside-down pages',
     tile: 'from-sky-500/10 to-sky-500/0 hover:border-sky-500/40', chip: 'bg-sky-500' },
   { name: 'Delete Pages', href: '/delete-pages-from-pdf', icon: FileMinus, blurb: 'Remove pages you don’t need',

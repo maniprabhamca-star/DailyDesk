@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { FileText, Image as ImageIcon, Scissors, RotateCw, Combine, FileMinus, Download, CheckCircle2, type LucideIcon } from 'lucide-react';
+import { FileText, Image as ImageIcon, Scissors, RotateCw, Combine, FileMinus, Shrink, Download, CheckCircle2, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { setHandoff } from '@/lib/handoff';
 import { KeepMoving, type MoveAction } from './keep-moving';
@@ -16,6 +16,7 @@ import { KeepGoing } from './keep-going';
 type Target = { href: string; name: string; label: string; blurb: string; icon: LucideIcon };
 
 const PDF_TARGETS: Target[] = [
+  { href: '/compress-pdf', name: 'Compress PDF', label: 'Make it smaller', blurb: 'Shrink the file, keep text crisp', icon: Shrink },
   { href: '/pdf-to-jpg', name: 'PDF to JPG', label: 'Convert to images', blurb: 'Turn this PDF into crisp images', icon: ImageIcon },
   { href: '/split-pdf', name: 'Split PDF', label: 'Split pages', blurb: 'Pull out just the pages you need', icon: Scissors },
   { href: '/rotate-pdf', name: 'Rotate PDF', label: 'Rotate pages', blurb: 'Fix sideways or upside-down pages', icon: RotateCw },
@@ -34,7 +35,7 @@ function download(blob: Blob, name: string) {
   URL.revokeObjectURL(url);
 }
 
-export function PdfDone({ blob, name, currentHref, fromLabel }: { blob: Blob; name: string; currentHref: string; fromLabel: string }) {
+export function PdfDone({ blob, name, currentHref, fromLabel, hideBanner = false }: { blob: Blob; name: string; currentHref: string; fromLabel: string; hideBanner?: boolean }) {
   const router = useRouter();
   const ref = useRef<HTMLDivElement>(null);
 
@@ -60,10 +61,12 @@ export function PdfDone({ blob, name, currentHref, fromLabel }: { blob: Blob; na
 
   return (
     <div ref={ref} className="mt-5 scroll-mt-20">
-      <div className="flex flex-col gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
-        <span className="flex items-center gap-2 text-sm font-medium"><CheckCircle2 className="size-4 text-emerald-500" /> Done — {name} saved to your device</span>
-        <Button size="sm" variant="outline" onClick={() => download(blob, name)}><Download className="size-4" /> Download again</Button>
-      </div>
+      {!hideBanner && (
+        <div className="flex flex-col gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+          <span className="flex items-center gap-2 text-sm font-medium"><CheckCircle2 className="size-4 text-emerald-500" /> Done — {name} saved to your device</span>
+          <Button size="sm" variant="outline" onClick={() => download(blob, name)}><Download className="size-4" /> Download again</Button>
+        </div>
+      )}
       <KeepMoving actions={actions} />
       <KeepGoing exclude={currentHref} />
     </div>
