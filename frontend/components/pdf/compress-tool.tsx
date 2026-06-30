@@ -118,8 +118,34 @@ export function CompressTool() {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ blob: Blob; name: string; before: number; after: number; optimized: boolean; note: string } | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const doneRef = useRef<HTMLDivElement>(null);
+
+  // Render a page-1 thumbnail so the user sees what they loaded (best-effort).
+  async function makePreview(f: File) {
+    try {
+      const pdfjs = await import('pdfjs-dist');
+      pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+      const task = pdfjs.getDocument({ data: new Uint8Array(await f.arrayBuffer()) });
+      const d = await task.promise;
+      try {
+        const page = await d.getPage(1);
+        const base = page.getViewport({ scale: 1 });
+        const vp = page.getViewport({ scale: 220 / Math.max(base.width, base.height) });
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.ceil(vp.width); canvas.height = Math.ceil(vp.height);
+        const cx = canvas.getContext('2d');
+        if (cx) {
+          cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, canvas.width, canvas.height);
+          await page.render({ canvasContext: cx, viewport: vp, background: 'rgba(255,255,255,1)' }).promise;
+          const url = await new Promise<string | null>((r) => canvas.toBlob((b) => r(b ? URL.createObjectURL(b) : null), 'image/jpeg', 0.7));
+          canvas.width = 0; canvas.height = 0;
+          if (url) setPreview((prev) => { if (prev) URL.revokeObjectURL(prev); return url; });
+        }
+      } finally { try { await task.destroy(); } catch { /* ignore */ } }
+    } catch { /* preview is optional */ }
+  }
 
   // Bring the result + Download button into view when compression finishes.
   useEffect(() => {
@@ -134,7 +160,9 @@ export function CompressTool() {
     }
     setError(null);
     setDone(null);
+    setPreview((prev) => { if (prev) URL.revokeObjectURL(prev); return null; });
     setFile(f);
+    void makePreview(f);
   }
   function pick(files: FileList | null) { loadOne(files?.[0]); }
 
@@ -154,7 +182,10 @@ export function CompressTool() {
     setDone(null);
     setHandoffNote(null);
     setProgress(null);
+    setPreview((prev) => { if (prev) URL.revokeObjectURL(prev); return null; });
   }
+
+  useEffect(() => () => { setPreview((prev) => { if (prev) URL.revokeObjectURL(prev); return null; }); }, []);
 
   async function run(forceArg = false) {
     if (!file) { setError('Add a PDF first.'); return; }
@@ -432,7 +463,12 @@ export function CompressTool() {
           </div>
         ) : (
           <div className="flex items-center gap-3 rounded-lg border bg-card p-2.5">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-red-100 text-red-600 dark:bg-red-950/40"><FileText className="size-4" /></span>
+            {preview ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={preview} alt="First page" className="h-14 w-[42px] shrink-0 rounded border bg-white object-cover object-top shadow-sm" />
+            ) : (
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-red-100 text-red-600 dark:bg-red-950/40"><FileText className="size-4" /></span>
+            )}
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">{file.name}</p>
               <p className="text-xs text-muted-foreground">{fmt(file.size)}</p>
