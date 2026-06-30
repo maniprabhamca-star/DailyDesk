@@ -28,6 +28,7 @@ const LEVELS: Record<Level, { dpi: number; maxDim: number; quality: number; titl
   recommended: { dpi: 150, maxDim: 1800, quality: 74, title: 'Recommended', sub: 'Best balance' },
   strong: { dpi: 96, maxDim: 1200, quality: 60, title: 'Strong', sub: 'Smallest size' },
 };
+const MAX_RASTER = 4000; // clamp rasterized scan-page long edge (memory safety)
 
 // ---- DPI awareness: find each image's on-page display size (in points) ------
 // Track the CTM through a page's content stream and record the largest display
@@ -254,14 +255,69 @@ export function CompressTool() {
         await new Promise((r) => setTimeout(r, 0)); // keep UI responsive
       }
 
-      const out = await doc.save({ useObjectStreams: true });
-      const after = out.length;
+      // Hybrid pass: re-render SCANNED (text-light) pages at the target DPI and
+      // re-encode them — this handles images in ANY format (the big win for
+      // scanned books), while real TEXT pages are kept as-is so their text stays
+      // crisp and selectable. Best-effort: if pdf.js can't load the file we fall
+      // back to the surgical-only result.
+      let outBytes: Uint8Array;
+      let rasterized = 0;
+      try {
+        const pdfjs = await import('pdfjs-dist');
+        pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+        const task = pdfjs.getDocument({ data: original.slice() });
+        const jsDoc = await task.promise;
+        try {
+          const pageCount = doc.getPageCount();
+          const outDoc = await PDFDocument.create();
+          setProgress({ done: 0, total: pageCount });
+          for (let i = 0; i < pageCount; i++) {
+            const jp = await jsDoc.getPage(i + 1);
+            const tc = await jp.getTextContent();
+            const textLen = (tc.items as { str?: string }[]).reduce((a, it) => a + (it.str ? it.str.trim().length : 0), 0);
+            const vp1 = jp.getViewport({ scale: 1 });
+            if (textLen < 8) {
+              // Scanned page → rasterize at the target DPI.
+              let s = dpi / 72;
+              let vp = jp.getViewport({ scale: s });
+              const longEdge = Math.max(vp.width, vp.height);
+              if (longEdge > MAX_RASTER) { s = (s * MAX_RASTER) / longEdge; vp = jp.getViewport({ scale: s }); }
+              const canvas = document.createElement('canvas');
+              canvas.width = Math.ceil(vp.width); canvas.height = Math.ceil(vp.height);
+              const cx = canvas.getContext('2d');
+              if (cx) {
+                cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, canvas.width, canvas.height);
+                await jp.render({ canvasContext: cx, viewport: vp, background: 'rgba(255,255,255,1)' }).promise;
+                const id = cx.getImageData(0, 0, canvas.width, canvas.height);
+                const jpgBytes = new Uint8Array(await (await encodeJpeg(id, quality)).arrayBuffer());
+                canvas.width = 0; canvas.height = 0;
+                const img = await outDoc.embedJpg(jpgBytes);
+                const p = outDoc.addPage([vp1.width, vp1.height]);
+                p.drawImage(img, { x: 0, y: 0, width: vp1.width, height: vp1.height });
+                rasterized++;
+              } else {
+                const [cp] = await outDoc.copyPages(doc, [i]); outDoc.addPage(cp);
+              }
+            } else {
+              // Real text page → keep it exactly (text stays sharp + selectable).
+              const [cp] = await outDoc.copyPages(doc, [i]); outDoc.addPage(cp);
+            }
+            setProgress({ done: i + 1, total: pageCount });
+            await new Promise((r) => setTimeout(r, 0));
+          }
+          outBytes = await outDoc.save({ useObjectStreams: true });
+        } finally {
+          try { await task.destroy(); } catch { /* ignore */ }
+        }
+      } catch {
+        outBytes = await doc.save({ useObjectStreams: true }); // surgical-only fallback
+      }
+
+      const after = outBytes.length;
       const name = `${file.name.replace(/\.pdf$/i, '')}-compressed.pdf`;
 
-      // Don't auto-download: compression can take seconds, which expires the
-      // click's "user gesture" and makes Chrome stall the download as a stuck
-      // .crdownload. Instead we show the result and let the user click Download
-      // (a fresh gesture the browser always honours).
+      // Don't auto-download (a long run expires the click's "user gesture" and
+      // makes Chrome stall the download as .crdownload) — show a Download button.
       if (after >= before) {
         // Never hand back a bigger file — if we couldn't beat the original, keep it.
         const blob = new Blob([part(original)], { type: 'application/pdf' });
@@ -269,8 +325,8 @@ export function CompressTool() {
         return;
       }
 
-      const blob = new Blob([part(out)], { type: 'application/pdf' });
-      setDone({ blob, name, before, after, optimized: recompressed === 0 });
+      const blob = new Blob([part(outBytes)], { type: 'application/pdf' });
+      setDone({ blob, name, before, after, optimized: (recompressed + rasterized) === 0 });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not compress the PDF.');
     } finally {
@@ -337,7 +393,7 @@ export function CompressTool() {
 
         {file && !done && (
           <Button className="mt-5 w-full" size="lg" onClick={run} disabled={busy}>
-            {busy ? <><Loader2 className="size-4 animate-spin" /> {progress && progress.total > 0 ? `Compressing image ${progress.done}/${progress.total}…` : 'Compressing…'}</> : <><Shrink className="size-4" /> Compress PDF</>}
+            {busy ? <><Loader2 className="size-4 animate-spin" /> {progress && progress.total > 0 ? `Compressing ${progress.done}/${progress.total}…` : 'Compressing…'}</> : <><Shrink className="size-4" /> Compress PDF</>}
           </Button>
         )}
 
