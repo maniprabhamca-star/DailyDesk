@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { FileText, Image as ImageIcon, Scissors, RotateCw, Combine, Download, CheckCircle2, type LucideIcon } from 'lucide-react';
+import { FileText, Image as ImageIcon, Scissors, RotateCw, Combine, FileMinus, Download, CheckCircle2, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { setHandoff } from '@/lib/handoff';
 import { KeepMoving, type MoveAction } from './keep-moving';
@@ -19,6 +19,7 @@ const PDF_TARGETS: Target[] = [
   { href: '/pdf-to-jpg', name: 'PDF to JPG', label: 'Convert to images', blurb: 'Turn this PDF into crisp images', icon: ImageIcon },
   { href: '/split-pdf', name: 'Split PDF', label: 'Split pages', blurb: 'Pull out just the pages you need', icon: Scissors },
   { href: '/rotate-pdf', name: 'Rotate PDF', label: 'Rotate pages', blurb: 'Fix sideways or upside-down pages', icon: RotateCw },
+  { href: '/delete-pages-from-pdf', name: 'Delete Pages', label: 'Remove pages', blurb: 'Drop the pages you don’t need', icon: FileMinus },
   { href: '/merge-pdf', name: 'Merge PDF', label: 'Merge with more', blurb: 'Combine it with other PDFs', icon: Combine },
 ];
 

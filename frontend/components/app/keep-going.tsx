@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, Combine, Split, RotateCw, FileImage, Image as ImageIcon, QrCode, KeyRound, type LucideIcon } from 'lucide-react';
+import { ArrowRight, Combine, Split, RotateCw, FileMinus, FileImage, Image as ImageIcon, QrCode, KeyRound, type LucideIcon } from 'lucide-react';
 
 // A reusable "what's next" rail for tool result pages. Drop it on any tool's
 // done-screen with the current tool's href in `exclude`. Only LIVE tools are
@@ -27,6 +27,8 @@ const LIVE: Suggestion[] = [
     tile: 'from-amber-500/10 to-amber-500/0 hover:border-amber-500/40', chip: 'bg-amber-500' },
   { name: 'Rotate PDF', href: '/rotate-pdf', icon: RotateCw, blurb: 'Fix sideways or upside-down pages',
     tile: 'from-sky-500/10 to-sky-500/0 hover:border-sky-500/40', chip: 'bg-sky-500' },
+  { name: 'Delete Pages', href: '/delete-pages-from-pdf', icon: FileMinus, blurb: 'Remove pages you don’t need',
+    tile: 'from-red-500/10 to-red-500/0 hover:border-red-500/40', chip: 'bg-red-500' },
   { name: 'PDF to JPG', href: '/pdf-to-jpg', icon: ImageIcon, blurb: 'Turn pages into crisp images',
     tile: 'from-fuchsia-500/10 to-fuchsia-500/0 hover:border-fuchsia-500/40', chip: 'bg-fuchsia-500' },
   { name: 'QR code', href: '/tools/qr-code', icon: QrCode, blurb: 'Make a scannable QR in seconds',

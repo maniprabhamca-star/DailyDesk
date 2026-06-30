@@ -25,7 +25,7 @@ export const catalog: CatGroup[] = [
       { name: 'Split PDF', href: '/split-pdf', icon: Split, badge: 'device' },
       { name: 'Compress PDF', icon: Shrink, badge: 'device', soon: true },
       { name: 'Rotate PDF', href: '/rotate-pdf', icon: RotateCw, badge: 'device' },
-      { name: 'Delete pages', icon: FileMinus, badge: 'device', soon: true },
+      { name: 'Delete pages', href: '/delete-pages-from-pdf', icon: FileMinus, badge: 'device' },
       { name: 'Page numbers', icon: ListOrdered, badge: 'device', soon: true },
     ],
   },
