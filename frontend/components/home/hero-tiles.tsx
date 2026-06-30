@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useReducedMotion } from 'framer-motion';
 import { Shrink, Combine, QrCode, KeyRound, ArrowRight, Lock, CloudOff, Zap, ShieldCheck, type LucideIcon } from 'lucide-react';
+import { liveToolCount } from '@/components/app/catalog';
 
 // Hero cluster, right of the purple hero box: an animated capability showcase
 // (centre) that cycles through real tools, and a privacy-first proof tile
@@ -93,7 +94,7 @@ export function HeroShowcase({ className = '' }: { className?: string }) {
             <span key={k} className={`h-1 rounded-full transition-all ${k === i ? 'w-4 bg-primary' : 'w-2 bg-border'}`} />
           ))}
         </div>
-        <span className="text-[11px] font-medium text-muted-foreground">10 free tools</span>
+        <span className="text-[11px] font-medium text-muted-foreground">{liveToolCount} free tools</span>
       </div>
     </Link>
   );

@@ -6,6 +6,7 @@ import {
   ArrowRight, FileText, Scissors, Combine, Search, QrCode,
   Shrink, RotateCw, ListOrdered, Image as ImageIcon, KeyRound,
 } from 'lucide-react';
+import { liveToolCount } from '@/components/app/catalog';
 
 function Row({
   reverse, eyebrow, eyebrowColor, title, body, cta, href, children,
@@ -43,7 +44,7 @@ export function FeatureSpotlights() {
           <div className="mx-auto max-w-xs">
             <div className="mb-3 flex items-center justify-between">
               <span className="text-xs font-semibold text-muted-foreground">Your toolkit</span>
-              <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary">10 free tools</span>
+              <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary">{liveToolCount} free tools</span>
             </div>
             <div className="grid grid-cols-4 gap-2.5">
               {[

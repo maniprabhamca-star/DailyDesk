@@ -10,7 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { AllToolsDirectory } from '@/components/home/all-tools-directory';
-import { catalog } from '@/components/app/catalog';
+import { catalog, liveToolCount } from '@/components/app/catalog';
 import { FeatureSpotlights } from '@/components/home/feature-spotlights';
 import { HeroShowcase, HeroPrivacy } from '@/components/home/hero-tiles';
 
@@ -39,7 +39,7 @@ const why = [
 ];
 
 const stats = [
-  { v: '10+', l: 'Tools and growing' },
+  { v: `${liveToolCount}`, l: 'Tools and growing' },
   { v: '0', l: 'Files uploaded' },
   { v: '100%', l: 'In your browser' },
   { v: '$0', l: 'To get started' },
@@ -124,7 +124,7 @@ export default function Home() {
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <div className="relative col-span-2 flex min-h-[300px] flex-col justify-between overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-violet-600 p-6 text-white">
             <div className="pointer-events-none absolute -right-10 -top-12 size-40 rounded-full bg-white/10" />
-            <span className="w-fit rounded-full bg-white/20 px-3 py-1 text-xs font-medium">10 tools · one workspace</span>
+            <span className="w-fit rounded-full bg-white/20 px-3 py-1 text-xs font-medium">{liveToolCount} tools · one workspace</span>
             <div className="relative">
               <h1 className="text-2xl font-semibold leading-tight sm:text-3xl">Everything you need, in one place.</h1>
               <p className="mt-1.5 text-sm text-indigo-100">Fast, private, beautifully simple.</p>

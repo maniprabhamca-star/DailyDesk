@@ -72,3 +72,11 @@ export const catalog: CatGroup[] = [
     ],
   },
 ];
+
+// Number of tools that are actually ready (have a real route + not flagged "soon").
+// Drives every "N tools" count on the home page, so they auto-update as tools ship —
+// flip a tool's `soon: true` to a real `href` and the count rises everywhere.
+export const liveToolCount = catalog.reduce(
+  (n, g) => n + g.tools.filter((t) => !t.soon && !!t.href).length,
+  0,
+);
