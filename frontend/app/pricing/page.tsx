@@ -38,7 +38,7 @@ const groups: { title: string; rows: Row[] }[] = [
       { label: 'Convert (JPG ↔ PDF, and more)', comp: 'Limited per day', free: true, pro: true },
       { label: 'QR code & password generators', comp: 'Rarely offered', free: true, pro: true },
       { label: 'Maximum file size', comp: '~25–100 MB', free: '100 MB', pro: 'Unlimited' },
-      { label: 'Compression', comp: 'Basic free / strong paid', free: 'Standard', pro: 'Strong + target size' },
+      { label: 'Compression', comp: 'Basic free / strong paid', free: 'Strong & Maximum', pro: 'Strong & Maximum' },
       { label: 'Edit & annotate — highlight, draw, fill, sign', comp: 'Limited per day', free: true, pro: true },
       { label: 'Full in-place text editing — change existing text', comp: 'Paid only', free: false, pro: true },
       { label: 'Batch processing — many files at once', comp: 'Paid only', free: false, pro: true },
@@ -131,7 +131,7 @@ export default function PricingPage() {
             <p className="mt-5"><span className="text-4xl font-bold">$0</span><span className="text-muted-foreground"> /forever</span></p>
             <Button asChild variant="outline" className="mt-6"><Link href="/register">Get started free</Link></Button>
             <ul className="mt-6 space-y-2.5 text-sm">
-              {['Unlimited core PDF & everyday tools', 'Edit & annotate — highlight, fill, sign', 'No ads, no watermarks, no signup wall', 'Files stay in your browser', 'Files up to 100 MB', '5 AI actions / day', '1 GB encrypted File Vault'].map((f) => (
+              {['Unlimited core PDF & everyday tools', 'Full-strength compression — Strong & Maximum', 'Edit & annotate — highlight, fill, sign', 'No ads, no watermarks, no signup wall', 'Files stay in your browser', 'Files up to 100 MB', '5 AI actions / day', '1 GB encrypted File Vault'].map((f) => (
                 <li key={f} className="flex items-start gap-2.5"><Check className="mt-0.5 size-[18px] shrink-0 text-emerald-600" strokeWidth={2.75} /> {f}</li>
               ))}
             </ul>
@@ -148,7 +148,7 @@ export default function PricingPage() {
             <p className="mt-1 text-xs text-muted-foreground">{proSub}</p>
             <Button asChild className="mt-6"><Link href="/register">Go Pro</Link></Button>
             <ul className="mt-6 space-y-2.5 text-sm">
-              {['Everything in Free, with no limits', 'Full in-place PDF text editing', 'Batch processing — many files at once', 'Office conversions (PDF ↔ Word, Excel, PPT)', 'OCR — scanned PDFs to searchable text', 'Unlimited file size + strong compression', 'Saved one-click workflows', '70 AI actions / day', 'Unlimited encrypted File Vault', 'Priority speed & support'].map((f) => (
+              {['Everything in Free, with no limits', 'Full in-place PDF text editing', 'Batch processing — many files at once', 'Office conversions (PDF ↔ Word, Excel, PPT)', 'OCR — scanned PDFs to searchable text', 'Unlimited file size (free caps at 100 MB)', 'Saved one-click workflows', '70 AI actions / day', 'Unlimited encrypted File Vault', 'Priority speed & support'].map((f) => (
                 <li key={f} className="flex items-start gap-2.5"><Check className="mt-0.5 size-[18px] shrink-0 text-emerald-600" strokeWidth={2.75} /> {f}</li>
               ))}
             </ul>

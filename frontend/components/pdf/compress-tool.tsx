@@ -9,6 +9,8 @@ import { encodeJpeg } from '@/lib/mozjpeg';
 import { takeHandoff } from '@/lib/handoff';
 import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
+import { UpgradeNotice } from '@/components/app/upgrade-notice';
+import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
 import { openPdf, renderPage, dprTarget, type PdfHandle, type RenderedPage } from '@/lib/pdf-render';
 import { PageStrip } from '@/components/pdf/page-strip';
 import { BeforeAfter } from '@/components/pdf/before-after';
@@ -172,7 +174,9 @@ async function decodeJpeg(bytes: Uint8Array): Promise<CanvasImageSource & { widt
 }
 
 export function CompressTool() {
+  const plan = usePlan();
   const [file, setFile] = useState<File | null>(null);
+  const [tooBig, setTooBig] = useState<{ name: string; size: number } | null>(null);
   const [level, setLevel] = useState<Level>('recommended');
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
@@ -240,7 +244,15 @@ export function CompressTool() {
       setError('Please choose a PDF file.');
       return;
     }
+    // Free plan: cap single-file size (soft gate, works offline via cached plan).
+    // Compression QUALITY stays free for everyone — only scale (size) is gated.
+    if (!canProcessSize(f.size, plan)) {
+      setError(null);
+      setTooBig({ name: f.name, size: f.size });
+      return;
+    }
     setError(null);
+    setTooBig(null);
     setDone(null);
     setKind(null);
     setPreviewPage(null);
@@ -264,6 +276,7 @@ export function CompressTool() {
 
   function clear() {
     setFile(null);
+    setTooBig(null);
     setError(null);
     setDone(null);
     setHandoffNote(null);
@@ -540,13 +553,22 @@ export function CompressTool() {
   return (
     <Card>
       <CardContent className="p-5">
+        {/* Always mounted so the file picker works from the dropzone AND the size-limit notice. */}
+        <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => pick(e.target.files)} />
         {handoffNote && (
           <p className="mb-3 flex items-center gap-2 rounded-lg border border-primary/25 bg-primary/[0.06] px-3 py-2 text-sm text-foreground">
             <Zap className="size-4 shrink-0 text-primary" /> {handoffNote}
           </p>
         )}
 
-        {!file ? (
+        {tooBig ? (
+          <UpgradeNotice
+            fileName={tooBig.name}
+            sizeText={fmtBytes(tooBig.size)}
+            limitText={fmtBytes(FREE_MAX_BYTES)}
+            onReset={() => { setTooBig(null); inputRef.current?.click(); }}
+          />
+        ) : !file ? (
           <div
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => { e.preventDefault(); pick(e.dataTransfer.files); }}
@@ -556,7 +578,6 @@ export function CompressTool() {
             <Upload className="size-7 text-muted-foreground" />
             <p className="mt-2 text-sm font-medium">Drop a PDF here, or click to choose</p>
             <p className="text-xs text-muted-foreground">Shrinks images, keeps text crisp and selectable</p>
-            <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => pick(e.target.files)} />
           </div>
         ) : (
           <div>
