@@ -23,10 +23,13 @@ type Level = 'light' | 'recommended' | 'strong';
 // hard (no visible loss) while images shown large stay sharp. `maxDim` is only
 // a safe fallback cap for images whose on-page size we can't determine. Vector
 // text/graphics are NEVER touched, so the document stays crisp + selectable.
-const LEVELS: Record<Level, { dpi: number; maxDim: number; quality: number; title: string; sub: string }> = {
-  light: { dpi: 200, maxDim: 2400, quality: 82, title: 'Light', sub: 'Best quality' },
-  recommended: { dpi: 150, maxDim: 1800, quality: 74, title: 'Recommended', sub: 'Best balance' },
-  strong: { dpi: 96, maxDim: 1200, quality: 60, title: 'Strong', sub: 'Smallest size' },
+// dpi/quality/maxDim drive the SURGICAL pass (photos on text pages — kept gentle
+// so those stay sharp). rasterDpi/rasterQ drive the SCAN-PAGE rasterizer, which
+// is much more aggressive because scanned pages dominate file size.
+const LEVELS: Record<Level, { dpi: number; maxDim: number; quality: number; rasterDpi: number; rasterQ: number; title: string; sub: string }> = {
+  light: { dpi: 200, maxDim: 2400, quality: 82, rasterDpi: 130, rasterQ: 0.68, title: 'Light', sub: 'Best quality' },
+  recommended: { dpi: 150, maxDim: 1800, quality: 74, rasterDpi: 100, rasterQ: 0.52, title: 'Recommended', sub: 'Best balance' },
+  strong: { dpi: 110, maxDim: 1200, quality: 60, rasterDpi: 68, rasterQ: 0.4, title: 'Strong', sub: 'Smallest size' },
 };
 const MAX_RASTER = 4000; // clamp rasterized scan-page long edge (memory safety)
 
@@ -156,12 +159,13 @@ export function CompressTool() {
     setError(null);
     setDone(null);
     const before = file.size;
+    const startedAt = performance.now();
     try {
       const { PDFDocument, PDFName, PDFNumber, PDFRawStream, PDFArray } = await import('pdf-lib');
       const original = new Uint8Array(await file.arrayBuffer());
       const doc = await PDFDocument.load(original, { ignoreEncryption: true });
       const ctx = doc.context;
-      const { dpi, maxDim, quality } = LEVELS[level];
+      const { dpi, maxDim, quality, rasterDpi, rasterQ } = LEVELS[level];
 
       // DPI awareness (best-effort): read each image's on-page display size by
       // tracking the CTM through every page's content stream. Falls back to the
@@ -294,7 +298,7 @@ export function CompressTool() {
           const pageCount = doc.getPageCount();
           const outDoc = await PDFDocument.create();
           setProgress({ done: 0, total: pageCount });
-          const q01 = Math.max(0.4, Math.min(0.9, quality / 100));
+          const q01 = Math.max(0.32, Math.min(0.9, rasterQ));
           for (let i = 0; i < pageCount; i++) {
             let placed = false;
             try {
@@ -309,7 +313,7 @@ export function CompressTool() {
               }
               if (isScan) {
                 const vp1 = jp.getViewport({ scale: 1 });
-                let s = dpi / 72;
+                let s = rasterDpi / 72;
                 let vp = jp.getViewport({ scale: s });
                 const longEdge = Math.max(vp.width, vp.height);
                 if (longEdge > MAX_RASTER) { s = (s * MAX_RASTER) / longEdge; vp = jp.getViewport({ scale: s }); }
@@ -346,9 +350,13 @@ export function CompressTool() {
 
       const after = outBytes.length;
       const name = `${file.name.replace(/\.pdf$/i, '')}-compressed.pdf`;
-      const note = rasterized > 0 || recompressed > 0
-        ? [rasterized > 0 ? `${rasterized} scanned page${rasterized === 1 ? '' : 's'} rebuilt` : '', recompressed > 0 ? `${recompressed} image${recompressed === 1 ? '' : 's'} recompressed` : ''].filter(Boolean).join(' · ')
-        : 'No shrinkable images found.';
+      const secs = (performance.now() - startedAt) / 1000;
+      const took = secs < 60 ? `${Math.round(secs)}s` : `${Math.floor(secs / 60)}m ${Math.round(secs % 60)}s`;
+      const note = [
+        rasterized > 0 ? `${rasterized} scanned page${rasterized === 1 ? '' : 's'} rebuilt` : '',
+        recompressed > 0 ? `${recompressed} image${recompressed === 1 ? '' : 's'} recompressed` : '',
+        rasterized === 0 && recompressed === 0 ? 'No shrinkable images found' : '',
+      ].filter(Boolean).join(' · ') + ` · ${took}`;
 
       // Don't auto-download (a long run expires the click's "user gesture" and
       // makes Chrome stall the download as .crdownload) — show a Download button.
