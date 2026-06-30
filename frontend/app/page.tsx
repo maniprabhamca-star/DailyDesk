@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
   LayoutGrid, ChevronDown, Search, ArrowRight, Zap, ShieldCheck, Smartphone, Check,
-  FileText, QrCode, ImageIcon, Key, NotebookPen, BadgeCheck, Lock, Layers,
+  FileText, QrCode, ImageIcon, NotebookPen, BadgeCheck, Lock, Layers,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
@@ -13,6 +13,7 @@ import { toolGroups, allTools, type Tool } from '@/components/app/tools-config';
 import { AllToolsDirectory } from '@/components/home/all-tools-directory';
 import { catalog } from '@/components/app/catalog';
 import { FeatureSpotlights } from '@/components/home/feature-spotlights';
+import { HeroShowcase, HeroPrivacy } from '@/components/home/hero-tiles';
 
 function openCommand() {
   window.dispatchEvent(new Event('dd-command-open'));
@@ -151,44 +152,8 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="flex flex-col rounded-2xl border border-red-200/60 bg-gradient-to-br from-red-50 to-background p-3 dark:border-red-900/40">
-            <div className="relative flex-1">
-              <div className="absolute left-[18px] top-2 bottom-1 right-1 rotate-[7deg] rounded-md border border-red-200/70 bg-card" />
-              <div className="absolute left-1.5 top-1 bottom-1.5 right-3.5 rounded-md border border-red-200/70 bg-card p-2 shadow-soft">
-                <div className="mb-1 h-1 w-[55%] rounded bg-red-300" />
-                <div className="mb-0.5 h-[3px] w-[90%] rounded bg-red-100" /><div className="mb-0.5 h-[3px] w-[75%] rounded bg-red-100" /><div className="h-[3px] w-[85%] rounded bg-red-100" />
-              </div>
-            </div>
-            <div className="mt-2 flex items-center gap-1.5"><span className="flex size-5 items-center justify-center rounded-md bg-red-100 text-red-600"><FileText className="size-3" /></span><span className="text-xs font-semibold text-red-900 dark:text-red-300">PDF · 20+ tools</span></div>
-          </div>
-
-          <Link href="/tools/qr-code" className="flex flex-col rounded-2xl border border-indigo-200/60 bg-gradient-to-br from-indigo-50 to-background p-3 transition hover:-translate-y-0.5 dark:border-indigo-900/40">
-            <div className="flex flex-1 items-center justify-center">
-              <div className="rounded-lg border bg-white p-1.5 shadow-soft">
-                <svg width="48" height="48" viewBox="0 0 29 29" shapeRendering="crispEdges" role="img" aria-label="QR">
-                  <rect width="29" height="29" fill="#fff" />
-                  <g fill="#4f46e5"><path d="M0 0h7v7h-7z M1 1h5v5h-5z" fillRule="evenodd" /><rect x="2" y="2" width="3" height="3" /><path d="M22 0h7v7h-7z M23 1h5v5h-5z" fillRule="evenodd" /><rect x="24" y="2" width="3" height="3" /><path d="M0 22h7v7h-7z M1 23h5v5h-5z" fillRule="evenodd" /><rect x="2" y="24" width="3" height="3" /><rect x="10" y="2" width="2" height="2" /><rect x="14" y="1" width="1" height="3" /><rect x="9" y="9" width="2" height="2" /><rect x="13" y="11" width="3" height="1" /><rect x="17" y="9" width="1" height="3" /><rect x="9" y="18" width="3" height="1" /><rect x="22" y="9" width="2" height="2" /><rect x="11" y="23" width="2" height="1" /><rect x="23" y="23" width="3" height="1" /></g>
-                </svg>
-              </div>
-            </div>
-            <div className="mt-2 flex items-center gap-1.5"><span className="flex size-5 items-center justify-center rounded-md bg-indigo-100 text-indigo-600"><QrCode className="size-3" /></span><span className="text-xs font-semibold text-indigo-900 dark:text-indigo-300">QR generator</span></div>
-          </Link>
-
-          <div className="flex flex-col rounded-2xl border border-sky-200/60 bg-gradient-to-br from-sky-50 to-background p-3 dark:border-sky-900/40">
-            <div className="flex flex-1 flex-col gap-1 rounded-lg border bg-card p-1.5 shadow-soft">
-              <div className="flex-1 rounded bg-gradient-to-br from-blue-400 to-violet-400" />
-              <div className="flex items-center justify-between"><span className="text-[10px] text-muted-foreground line-through">4.8MB</span><span className="text-[10px] font-semibold text-emerald-600">820KB</span></div>
-            </div>
-            <div className="mt-2 flex items-center gap-1.5"><span className="flex size-5 items-center justify-center rounded-md bg-sky-100 text-sky-600"><ImageIcon className="size-3" /></span><span className="text-xs font-semibold text-sky-900 dark:text-sky-300">Image compressor</span></div>
-          </div>
-
-          <Link href="/tools/password" className="flex flex-col rounded-2xl border border-emerald-200/60 bg-gradient-to-br from-emerald-50 to-background p-3 transition hover:-translate-y-0.5 dark:border-emerald-900/40">
-            <div className="flex flex-1 flex-col justify-center gap-2 rounded-lg border bg-card p-2 shadow-soft">
-              <span className="font-mono text-xs tracking-wide text-foreground">sCk^L&lt;8+e</span>
-              <div className="h-1.5 rounded-full bg-emerald-100"><div className="h-1.5 w-[88%] rounded-full bg-emerald-500" /></div>
-            </div>
-            <div className="mt-2 flex items-center gap-1.5"><span className="flex size-5 items-center justify-center rounded-md bg-emerald-100 text-emerald-600"><Key className="size-3" /></span><span className="text-xs font-semibold text-emerald-900 dark:text-emerald-300">Passwords</span></div>
-          </Link>
+          <HeroShowcase className="col-span-2 row-span-2 md:col-span-1" />
+          <HeroPrivacy className="col-span-2 row-span-2 md:col-span-1" />
         </div>
       </section>
 
