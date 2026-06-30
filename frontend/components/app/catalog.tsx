@@ -26,7 +26,7 @@ export const catalog: CatGroup[] = [
       { name: 'Compress PDF', icon: Shrink, badge: 'device', soon: true },
       { name: 'Rotate PDF', href: '/rotate-pdf', icon: RotateCw, badge: 'device' },
       { name: 'Delete pages', href: '/delete-pages-from-pdf', icon: FileMinus, badge: 'device' },
-      { name: 'Page numbers', icon: ListOrdered, badge: 'device', soon: true },
+      { name: 'Page numbers', href: '/add-page-numbers-to-pdf', icon: ListOrdered, badge: 'device' },
     ],
   },
   {
