@@ -380,23 +380,25 @@ export function CompressTool() {
       const name = `${file.name.replace(/\.pdf$/i, '')}-compressed.pdf`;
       const secs = (performance.now() - startedAt) / 1000;
       const took = secs < 60 ? `${Math.round(secs)}s` : `${Math.floor(secs / 60)}m ${Math.round(secs % 60)}s`;
-      const note = [
-        rasterized > 0 ? `${rasterized} scanned page${rasterized === 1 ? '' : 's'} rebuilt` : '',
-        recompressed > 0 ? `${recompressed} image${recompressed === 1 ? '' : 's'} recompressed` : '',
-        rasterized === 0 && recompressed === 0 ? 'No shrinkable images found' : '',
-      ].filter(Boolean).join(' · ') + ` · ${took}`;
+      const savedFrac = before > 0 ? 1 - after / before : 0;
 
-      // Don't auto-download (a long run expires the click's "user gesture" and
-      // makes Chrome stall the download as .crdownload) — show a Download button.
-      if (after >= before) {
-        // Never hand back a bigger file — if we couldn't beat the original, keep it.
+      // "Already optimized" only when we genuinely couldn't shrink it (<1%).
+      // Otherwise show the real saving — even a smaller file from restructuring
+      // alone (object streams) is a real win we should NOT hide.
+      if (savedFrac < 0.01) {
         const blob = new Blob([part(original)], { type: 'application/pdf' });
+        const note = (rasterized === 0 && recompressed === 0 ? 'No shrinkable images found' : 'Already near-optimal') + ` · ${took}`;
         setDone({ blob, name: `${file.name.replace(/\.pdf$/i, '')}.pdf`, before, after: before, optimized: true, note });
         return;
       }
 
+      const note = [
+        rasterized > 0 ? `${rasterized} scanned page${rasterized === 1 ? '' : 's'} rebuilt` : '',
+        recompressed > 0 ? `${recompressed} image${recompressed === 1 ? '' : 's'} recompressed` : '',
+        rasterized === 0 && recompressed === 0 ? 'Repacked smaller — text untouched' : '',
+      ].filter(Boolean).join(' · ') + ` · ${took}`;
       const blob = new Blob([part(outBytes)], { type: 'application/pdf' });
-      setDone({ blob, name, before, after, optimized: (recompressed + rasterized) === 0, note });
+      setDone({ blob, name, before, after, optimized: false, note });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not compress the PDF.');
     } finally {
