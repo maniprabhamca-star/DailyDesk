@@ -217,7 +217,7 @@ export function CompressTool() {
   // in-flight render when the page or screen changes. Cached, so revisits are instant.
   useEffect(() => {
     const ac = new AbortController();
-    const long = dprTarget(360, 2.6, 1600);
+    const long = dprTarget(440, 2.8, 2000);
     if (done && !done.optimized) {
       setBeforePage(null); setAfterPage(null);
       if (srcHandle) renderPage(srcHandle, selPage, long, ac.signal).then(setBeforePage).catch(() => {});
@@ -565,7 +565,7 @@ export function CompressTool() {
               <div className="flex items-center justify-center">
                 {previewPage ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={previewPage.url} alt={`Page ${selPage + 1} preview`} className="max-h-80 rounded-md border bg-white shadow-md" />
+                  <img src={previewPage.url} alt={`Page ${selPage + 1} preview`} className="max-h-96 rounded-md border bg-white shadow-md sm:max-h-[26rem]" />
                 ) : (
                   <div className="flex h-48 w-36 items-center justify-center rounded-md border bg-white"><Loader2 className="size-5 animate-spin text-muted-foreground" /></div>
                 )}
@@ -639,7 +639,7 @@ export function CompressTool() {
                   <div className="flex items-center justify-center">
                     {previewPage ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={previewPage.url} alt={`Page ${selPage + 1} preview`} className="max-h-80 rounded-md border bg-white shadow-md" />
+                      <img src={previewPage.url} alt={`Page ${selPage + 1} preview`} className="max-h-96 rounded-md border bg-white shadow-md sm:max-h-[26rem]" />
                     ) : (
                       <div className="flex h-48 w-36 items-center justify-center rounded-md border bg-white"><Loader2 className="size-5 animate-spin text-muted-foreground" /></div>
                     )}
