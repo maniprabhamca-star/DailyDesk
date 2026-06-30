@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Upload, FileText, X, Download, Loader2, Zap, Shrink, CheckCircle2 } from 'lucide-react';
+import { Upload, FileText, X, Download, Loader2, Zap, Shrink, CheckCircle2, Coffee } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import type { PDFRawStream as RawStream } from 'pdf-lib';
@@ -16,7 +16,7 @@ function part(bytes: Uint8Array): BlobPart {
   return new Uint8Array(bytes);
 }
 
-type Level = 'light' | 'recommended' | 'strong';
+type Level = 'light' | 'recommended' | 'strong' | 'maximum';
 
 // DPI-aware: we read how big each image is actually displayed on the page and
 // downsample it to the level's target DPI — so images shown small get shrunk
@@ -29,7 +29,10 @@ type Level = 'light' | 'recommended' | 'strong';
 const LEVELS: Record<Level, { dpi: number; maxDim: number; quality: number; rasterDpi: number; rasterQ: number; title: string; sub: string }> = {
   light: { dpi: 200, maxDim: 2400, quality: 82, rasterDpi: 130, rasterQ: 0.68, title: 'Light', sub: 'Best quality' },
   recommended: { dpi: 150, maxDim: 1800, quality: 74, rasterDpi: 100, rasterQ: 0.52, title: 'Recommended', sub: 'Best balance' },
-  strong: { dpi: 110, maxDim: 1200, quality: 60, rasterDpi: 68, rasterQ: 0.4, title: 'Strong', sub: 'Smallest size' },
+  strong: { dpi: 110, maxDim: 1200, quality: 60, rasterDpi: 68, rasterQ: 0.4, title: 'Strong', sub: 'Smaller' },
+  // "maximum" forces a full rebuild (rasterizes every image-heavy page) for the
+  // last few MB — slower, so we tell the user to be patient.
+  maximum: { dpi: 96, maxDim: 1000, quality: 52, rasterDpi: 60, rasterQ: 0.37, title: 'Maximum', sub: 'Squeeze harder' },
 };
 const MAX_RASTER = 4000; // clamp rasterized scan-page long edge (memory safety)
 
@@ -153,8 +156,9 @@ export function CompressTool() {
     setProgress(null);
   }
 
-  async function run(force = false) {
+  async function run(forceArg = false) {
     if (!file) { setError('Add a PDF first.'); return; }
+    const force = forceArg || level === 'maximum';
     setBusy(true);
     setError(null);
     setDone(null);
@@ -438,7 +442,7 @@ export function CompressTool() {
         {file && !done && (
           <div className="mt-4">
             <p className="mb-2 text-sm font-medium">Compression level</p>
-            <div className="grid grid-cols-3 gap-2 sm:gap-3">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
               {(Object.keys(LEVELS) as Level[]).map((k) => (
                 <button
                   key={k}
@@ -451,7 +455,11 @@ export function CompressTool() {
                 </button>
               ))}
             </div>
-            <p className="mt-2.5 flex items-center gap-1.5 text-xs text-muted-foreground"><CheckCircle2 className="size-3.5 text-emerald-500" /> Smart, DPI-aware — only images bigger than they’re shown get shrunk. Text stays sharp and selectable.</p>
+            {level === 'maximum' ? (
+              <p className="mt-2.5 flex items-center gap-1.5 text-xs text-amber-600"><Coffee className="size-3.5 shrink-0" /> Maximum rebuilds every image-heavy page for the smallest size — on big files this can take a few minutes, so grab a coffee. ☕ (Best for scans/photos; won’t shrink text-only PDFs.)</p>
+            ) : (
+              <p className="mt-2.5 flex items-center gap-1.5 text-xs text-muted-foreground"><CheckCircle2 className="size-3.5 text-emerald-500" /> Smart, DPI-aware — only images bigger than they’re shown get shrunk. Text stays sharp and selectable.</p>
+            )}
           </div>
         )}
 
