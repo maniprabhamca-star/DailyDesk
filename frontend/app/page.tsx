@@ -13,6 +13,7 @@ import { AllToolsDirectory } from '@/components/home/all-tools-directory';
 import { catalog, liveToolCount } from '@/components/app/catalog';
 import { FeatureSpotlights } from '@/components/home/feature-spotlights';
 import { HeroShowcase, HeroPrivacy } from '@/components/home/hero-tiles';
+import { PRICING } from '@/lib/pricing';
 
 function openCommand() {
   window.dispatchEvent(new Event('dd-command-open'));
@@ -204,22 +205,24 @@ export default function Home() {
         <div className="grid gap-5 sm:grid-cols-2">
           <div className="flex flex-col rounded-2xl border bg-card p-6 shadow-soft">
             <p className="text-sm font-medium text-muted-foreground">Free</p>
-            <p className="mt-2 text-4xl font-bold">$0</p>
+            <p className="mt-2 text-4xl font-bold">$0<span className="text-base font-normal text-muted-foreground">/forever</span></p>
             <ul className="mt-6 space-y-2.5 text-sm">
-              {['All basic tools', '1 GB storage', 'Up to 10 notes', 'No credit card'].map((t) => <li key={t} className="flex items-center gap-2"><Check className="size-4 text-primary" /> {t}</li>)}
+              {PRICING.freeFeatures.slice(0, 6).map((t) => <li key={t} className="flex items-start gap-2"><Check className="mt-0.5 size-4 shrink-0 text-primary" /> {t}</li>)}
             </ul>
-            <Button asChild variant="outline" className="mt-6 w-full"><Link href="/register">Get started</Link></Button>
+            <Button asChild variant="outline" className="mt-6 w-full"><Link href="/register">Get started free</Link></Button>
           </div>
           <div className="relative flex flex-col rounded-2xl border-2 border-primary bg-card p-6 shadow-lift">
             <span className="absolute -top-3 left-6 rounded-full bg-primary px-3 py-0.5 text-xs font-medium text-primary-foreground">Most popular</span>
             <p className="text-sm font-medium text-primary">Pro</p>
-            <p className="mt-2 text-4xl font-bold">$4.99<span className="text-base font-normal text-muted-foreground">/mo</span></p>
-            <ul className="mt-6 space-y-2.5 text-sm">
-              {['Unlimited storage', 'All AI features', 'Unlimited PDF ops', 'Receipt scanner', 'Priority support'].map((t) => <li key={t} className="flex items-center gap-2"><Check className="size-4 text-primary" /> {t}</li>)}
+            <p className="mt-2 text-4xl font-bold">${PRICING.pro.annualPerMonth}<span className="text-base font-normal text-muted-foreground">/mo</span></p>
+            <p className="mt-1 text-xs text-muted-foreground">{PRICING.pro.annualNote}</p>
+            <ul className="mt-5 space-y-2.5 text-sm">
+              {PRICING.proFeatures.slice(0, 6).map((t) => <li key={t} className="flex items-start gap-2"><Check className="mt-0.5 size-4 shrink-0 text-primary" /> {t}</li>)}
             </ul>
-            <Button className="mt-6 w-full">Upgrade to Pro</Button>
+            <Button asChild className="mt-6 w-full"><Link href="/register">Go Pro</Link></Button>
           </div>
         </div>
+        <p className="mt-6 text-center text-sm"><Link href="/pricing" className="font-medium text-primary hover:underline">See full pricing &amp; feature comparison →</Link></p>
       </section>
 
       {/* Footer */}

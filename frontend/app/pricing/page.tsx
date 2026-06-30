@@ -6,6 +6,7 @@ import {
   LayoutGrid, Check, Minus, ShieldCheck, CloudOff, Lock, Star, ChevronDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { PRICING } from '@/lib/pricing';
 
 type Cell = boolean | string;
 type Row = { label: string; comp: Cell; free: Cell; pro: Cell; link?: { href: string; text: string } };
@@ -82,8 +83,8 @@ function CellView({ value, tone }: { value: Cell; tone?: 'pro' | 'muted' }) {
 
 export default function PricingPage() {
   const [annual, setAnnual] = useState(true);
-  const proPerMonth = annual ? '4.08' : '4.99';
-  const proSub = annual ? '$49 billed yearly' : 'billed monthly';
+  const proPerMonth = annual ? PRICING.pro.annualPerMonth : PRICING.pro.monthly;
+  const proSub = annual ? PRICING.pro.annualNote : 'billed monthly';
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -131,7 +132,7 @@ export default function PricingPage() {
             <p className="mt-5"><span className="text-4xl font-bold">$0</span><span className="text-muted-foreground"> /forever</span></p>
             <Button asChild variant="outline" className="mt-6"><Link href="/register">Get started free</Link></Button>
             <ul className="mt-6 space-y-2.5 text-sm">
-              {['Unlimited core PDF & everyday tools', 'Full-strength compression — Strong & Maximum', 'Edit & annotate — highlight, fill, sign', 'No ads, no watermarks, no signup wall', 'Files stay in your browser', 'Files up to 100 MB', '5 AI actions / day', '1 GB encrypted File Vault'].map((f) => (
+              {PRICING.freeFeatures.map((f) => (
                 <li key={f} className="flex items-start gap-2.5"><Check className="mt-0.5 size-[18px] shrink-0 text-emerald-600" strokeWidth={2.75} /> {f}</li>
               ))}
             </ul>
@@ -148,7 +149,7 @@ export default function PricingPage() {
             <p className="mt-1 text-xs text-muted-foreground">{proSub}</p>
             <Button asChild className="mt-6"><Link href="/register">Go Pro</Link></Button>
             <ul className="mt-6 space-y-2.5 text-sm">
-              {['Everything in Free, with no limits', 'Full in-place PDF text editing', 'Batch processing — many files at once', 'Office conversions (PDF ↔ Word, Excel, PPT)', 'OCR — scanned PDFs to searchable text', 'Unlimited file size (free caps at 100 MB)', 'Saved one-click workflows', '70 AI actions / day', 'Unlimited encrypted File Vault', 'Priority speed & support'].map((f) => (
+              {PRICING.proFeatures.map((f) => (
                 <li key={f} className="flex items-start gap-2.5"><Check className="mt-0.5 size-[18px] shrink-0 text-emerald-600" strokeWidth={2.75} /> {f}</li>
               ))}
             </ul>

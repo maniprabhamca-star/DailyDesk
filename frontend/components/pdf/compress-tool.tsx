@@ -222,13 +222,15 @@ export function CompressTool() {
   useEffect(() => {
     const ac = new AbortController();
     const long = dprTarget(440, 2.8, 2000);
+    // Don't blank the current image while the next page renders — that caused a
+    // layout jump + flicker on page switch. Keep the old image until the new one
+    // resolves, then swap (cached pages swap instantly). Stale renders are dropped
+    // via the abort signal.
     if (done && !done.optimized) {
-      setBeforePage(null); setAfterPage(null);
-      if (srcHandle) renderPage(srcHandle, selPage, long, ac.signal).then(setBeforePage).catch(() => {});
-      if (outHandle) renderPage(outHandle, selPage, long, ac.signal).then(setAfterPage).catch(() => {});
+      if (srcHandle) renderPage(srcHandle, selPage, long, ac.signal).then((p) => { if (!ac.signal.aborted) setBeforePage(p); }).catch(() => {});
+      if (outHandle) renderPage(outHandle, selPage, long, ac.signal).then((p) => { if (!ac.signal.aborted) setAfterPage(p); }).catch(() => {});
     } else if (srcHandle) {
-      setPreviewPage(null);
-      renderPage(srcHandle, selPage, long, ac.signal).then(setPreviewPage).catch(() => {});
+      renderPage(srcHandle, selPage, long, ac.signal).then((p) => { if (!ac.signal.aborted) setPreviewPage(p); }).catch(() => {});
     }
     return () => ac.abort();
   }, [srcHandle, outHandle, selPage, done]);
