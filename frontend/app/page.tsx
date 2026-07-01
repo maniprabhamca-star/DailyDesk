@@ -249,7 +249,7 @@ export default function Home() {
             <p>© {new Date().getFullYear()} DailyDesk · Private preview</p>
             <p className="flex items-center gap-2 text-emerald-300">
               <span className="relative flex size-2"><span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-60" /><span className="relative inline-flex size-2 rounded-full bg-emerald-400" /></span>
-              0 files uploaded — verify in your Network tab
+              In-browser tools never upload your files — verify in the Network tab
             </p>
           </div>
         </div>
