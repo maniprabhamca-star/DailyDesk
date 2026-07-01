@@ -215,8 +215,8 @@ export default function Home() {
             </p>
           </div>
         </div>
-        {/* Background wordmark — faint, right-aligned, sits above the bottom bar */}
-        <div aria-hidden className="pointer-events-none absolute bottom-20 right-2 z-0 select-none whitespace-nowrap text-[52px] font-bold leading-none tracking-tighter text-white/[0.04] sm:text-[80px] lg:text-[104px]">
+        {/* Background wordmark — faint, sits above the divider on the right (never crosses it) */}
+        <div aria-hidden className="pointer-events-none absolute bottom-24 right-8 z-0 select-none whitespace-nowrap text-[44px] font-bold leading-none tracking-tighter text-white/[0.04] sm:text-[68px] lg:text-[88px]">
           DailyDesk
         </div>
       </footer>
