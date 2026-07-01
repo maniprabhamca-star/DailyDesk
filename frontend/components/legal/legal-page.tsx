@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { LayoutGrid } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { SiteHeader } from '@/components/app/site-header';
 
 /** Shared chrome (header + footer) for static info pages: /security, /privacy, etc. */
 export function LegalPage({
@@ -18,16 +18,7 @@ export function LegalPage({
 }) {
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-5xl items-center gap-4 px-4 sm:px-6">
-          <Link href="/" className="flex items-center gap-2.5">
-            <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground"><LayoutGrid className="size-[18px]" /></span>
-            <span className="text-lg font-semibold tracking-tight">DailyDesk</span>
-          </Link>
-          <Link href="/#tools" className="ml-auto text-sm font-medium text-foreground/80 hover:text-foreground">All tools</Link>
-          <Button asChild size="sm"><Link href="/register">Get started</Link></Button>
-        </div>
-      </header>
+      <SiteHeader />
 
       <main className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
         <p className="text-sm font-bold uppercase tracking-wider text-primary">{eyebrow}</p>
