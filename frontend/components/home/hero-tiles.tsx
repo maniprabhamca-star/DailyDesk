@@ -120,10 +120,10 @@ export function HeroPrivacy({ className = '' }: { className?: string }) {
 
       <div className="relative">
         <div className="flex items-center gap-3">
-          {/* white lock badge, prefixing the stat */}
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-white text-emerald-600 shadow-sm dark:bg-emerald-950/60 dark:text-emerald-300"><Lock className="size-5" /></span>
+          {/* white lock badge, prefixing the stat (a touch smaller on mobile) */}
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-white text-emerald-600 shadow-sm sm:size-11 dark:bg-emerald-950/60 dark:text-emerald-300"><Lock className="size-4 sm:size-5" /></span>
           <div className="min-w-0">
-            <div className="text-3xl font-bold leading-none text-foreground">100%</div>
+            <div className="text-2xl font-bold leading-none text-foreground sm:text-3xl">100%</div>
             <div className="mt-0.5 text-sm font-medium text-foreground">in your browser</div>
           </div>
         </div>
