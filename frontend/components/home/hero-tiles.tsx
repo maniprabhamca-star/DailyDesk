@@ -109,7 +109,7 @@ export function HeroPrivacy({ className = '' }: { className?: string }) {
   return (
     <Link
       href="/security"
-      className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-50 to-background p-4 shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-card dark:border-emerald-900/40 dark:from-emerald-950/30 ${className}`}
+      className={`group relative flex flex-col justify-between gap-3.5 overflow-hidden rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-50 to-background p-4 shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-card dark:border-emerald-900/40 dark:from-emerald-950/30 ${className}`}
     >
       {/* faint guard watermark, top-right */}
       <ShieldCheck aria-hidden className="pointer-events-none absolute -right-4 -top-3 size-28 text-emerald-500/10" />
