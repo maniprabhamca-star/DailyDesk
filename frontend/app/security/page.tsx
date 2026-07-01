@@ -55,7 +55,7 @@ export default function SecurityPage() {
         </p>
         <div className="mt-4 overflow-hidden rounded-xl border">
           {[
-            { color: '#16a34a', label: 'In-browser tools', desc: 'Never leave your device — processed 100% in your browser.' },
+            { color: '#16a34a', label: 'In-browser tools', desc: 'Merge, split, compress, rotate, convert, add/delete pages, page numbers, QR codes, passwords and more — processed 100% in your browser, never leaving your device.' },
             { color: '#7c3aed', label: 'AI — Chat, Summarize, Translate', desc: 'Sent to our AI provider for that one request only — not stored, and never used to train models.' },
             { color: '#d97706', label: 'Office conversions & OCR', desc: 'Processed on our servers, then deleted right after — never kept.' },
             { color: '#2563eb', label: 'File Vault', desc: 'End-to-end encrypted on your device before upload — only you can read it.' },

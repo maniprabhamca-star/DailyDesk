@@ -207,6 +207,11 @@ export default function Home() {
               </span>
             ))}
           </div>
+          {/* Background wordmark — desktop flourish; right-aligned to content, above the divider.
+              lg-only because the bottom bar stacks taller on small screens (would cross). */}
+          <div aria-hidden className="pointer-events-none absolute bottom-[104px] right-6 -z-10 hidden select-none whitespace-nowrap pb-2 text-[72px] font-bold leading-none tracking-tighter text-white/[0.04] lg:block">
+            DailyDesk
+          </div>
           <div className="mt-7 flex flex-col items-center justify-between gap-3 border-t border-white/10 pt-6 text-xs text-slate-500 sm:flex-row">
             <p>© {new Date().getFullYear()} DailyDesk · Private preview</p>
             <p className="flex items-center gap-2 text-emerald-300">
@@ -214,10 +219,6 @@ export default function Home() {
               In-browser tools never upload your files — verify in the Network tab
             </p>
           </div>
-        </div>
-        {/* Background wordmark — faint, sits above the divider on the right (never crosses it) */}
-        <div aria-hidden className="pointer-events-none absolute bottom-24 right-8 z-0 select-none whitespace-nowrap text-[44px] font-bold leading-none tracking-tighter text-white/[0.04] sm:text-[68px] lg:text-[88px]">
-          DailyDesk
         </div>
       </footer>
     </div>
