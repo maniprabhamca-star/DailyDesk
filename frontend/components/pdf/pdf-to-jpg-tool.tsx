@@ -227,7 +227,9 @@ export function PdfToJpgTool() {
             // White background first — JPEG has no alpha, so transparent areas would go black.
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            await page.render({ canvas, viewport, background: 'rgba(255,255,255,1)' }).promise;
+            // intent:'print' = no rAF pacing, so conversion keeps running even if
+            // the user switches to another tab mid-job.
+            await page.render({ canvas, viewport, background: 'rgba(255,255,255,1)', intent: 'print' }).promise;
 
             let blob: Blob | null;
             if (format === 'png') {

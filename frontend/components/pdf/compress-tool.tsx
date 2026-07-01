@@ -509,7 +509,9 @@ export function CompressTool() {
                 const cx = canvas.getContext('2d');
                 if (cx) {
                   cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, canvas.width, canvas.height);
-                  await jp.render({ canvas, viewport: vp, background: 'rgba(255,255,255,1)' }).promise;
+                  // intent:'print' = no rAF pacing, so compression keeps running
+                  // even if the user switches to another tab mid-job.
+                  await jp.render({ canvas, viewport: vp, background: 'rgba(255,255,255,1)', intent: 'print' }).promise;
                   // Native JPEG (not mozjpeg): scan pages are already downsampled,
                   // and native is ~15x faster — 100+ page books finish in seconds.
                   const jpgBlob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/jpeg', q01));

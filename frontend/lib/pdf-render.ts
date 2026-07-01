@@ -118,7 +118,10 @@ export async function renderPage(
   cx.fillStyle = '#ffffff';
   cx.fillRect(0, 0, canvas.width, canvas.height);
 
-  const task = page.render({ canvas, viewport, background: 'rgba(255,255,255,1)' });
+  // intent:'print' renders straight through (no requestAnimationFrame pacing) —
+  // rAF never fires in hidden/background tabs, which would freeze previews and
+  // long jobs the moment the user switches tabs. Print intent keeps work moving.
+  const task = page.render({ canvas, viewport, background: 'rgba(255,255,255,1)', intent: 'print' });
   const onAbort = () => task.cancel();
   signal?.addEventListener('abort', onAbort);
   try {
@@ -166,8 +169,13 @@ function pumpThumbs() {
   }
 }
 
+// Render the first rows without waiting for the IntersectionObserver — they're
+// visible anyway, and IO delivery can lag (it only fires on rendering frames).
+const EAGER_PAGES = 8;
+
 /** Lazily render page `index`'s thumbnail once the returned ref's element nears
- * the viewport. Returns a blob URL when ready (cached per handle, LRU-bounded). */
+ * the viewport (first EAGER_PAGES render immediately). Returns a blob URL when
+ * ready (cached per handle, LRU-bounded). */
 export function useLazyPageThumb<T extends Element>(
   handle: PdfHandle | null,
   index: number,
@@ -183,20 +191,27 @@ export function useLazyPageThumb<T extends Element>(
     const el = ref.current;
     if (!handle || !el) return;
     let cancelled = false;
+    const enqueue = () => {
+      thumbQueue.push(async () => {
+        if (cancelled) return;
+        try {
+          const p = await renderPage(handle, index, dprTarget(cssLong, 2.2, 340));
+          if (!cancelled) setUrl(p.url);
+        } catch {
+          if (!cancelled) setFailed(true);
+        }
+      });
+      pumpThumbs();
+    };
+    if (index < EAGER_PAGES) {
+      enqueue();
+      return () => { cancelled = true; };
+    }
     const io = new IntersectionObserver(
       (entries) => {
         if (!entries.some((e) => e.isIntersecting)) return;
         io.disconnect();
-        thumbQueue.push(async () => {
-          if (cancelled) return;
-          try {
-            const p = await renderPage(handle, index, dprTarget(cssLong, 2.2, 340));
-            if (!cancelled) setUrl(p.url);
-          } catch {
-            if (!cancelled) setFailed(true);
-          }
-        });
-        pumpThumbs();
+        enqueue();
       },
       { rootMargin: '500px' },
     );
