@@ -128,13 +128,13 @@ export function AllToolsDirectory() {
           ))}
         </div>
 
-        {/* Legend */}
-        <div className="mt-9 flex flex-wrap justify-center gap-x-5 gap-y-2 border-t pt-6">
+        {/* Legend — clean 2×2 grid on mobile (no ragged wrap), centered row on desktop */}
+        <div className="mt-9 grid grid-cols-2 gap-x-4 gap-y-3 border-t pt-6 sm:flex sm:flex-wrap sm:justify-center sm:gap-x-5 sm:gap-y-2">
           {(Object.keys(BADGE) as (keyof typeof BADGE)[]).map((k) => {
             const B = BADGE[k];
             return (
               <span key={k} className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                <B.icon className="size-4" style={{ color: B.color }} /> {B.label}
+                <B.icon className="size-4 shrink-0" style={{ color: B.color }} /> {B.label}
               </span>
             );
           })}
