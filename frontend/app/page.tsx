@@ -173,7 +173,7 @@ export default function Home() {
 
       {/* Footer — dark anchor (soft slate, not full black) */}
       <footer className="relative overflow-hidden border-t border-white/10 bg-[#0f172a] text-slate-300">
-        <div className="relative z-10 mx-auto max-w-6xl px-4 py-10 sm:px-6">
+        <div className="relative z-10 mx-auto max-w-6xl px-4 py-9 sm:px-6">
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_1fr]">
             <div>
               <Link href="/" className="flex items-center gap-2.5">
@@ -187,7 +187,7 @@ export default function Home() {
                 <ShieldCheck className="size-3.5" /> 100% in your browser
               </span>
               {/* App badges — custom "coming soon" (honest; swap for real store badges at launch) */}
-              <div className="mt-5 flex flex-wrap gap-2.5">
+              <div className="mt-4 flex flex-wrap gap-2.5">
                 {[
                   { Icon: Apple, name: 'App Store' },
                   { Icon: Play, name: 'Google Play' },
@@ -236,10 +236,6 @@ export default function Home() {
           <div className="mt-8 flex flex-col items-center justify-between gap-3 border-t border-white/10 pt-6 text-xs text-slate-500 sm:flex-row">
             <p>© {new Date().getFullYear()} DailyDesk · Private preview</p>
             <p className="flex items-center gap-1.5"><ShieldCheck className="size-3.5 text-emerald-400" /> Nothing is ever uploaded</p>
-          </div>
-          {/* Brand wordmark — contained (no full-page bleed), gently visible */}
-          <div aria-hidden className="pointer-events-none mt-5 select-none text-center text-[34px] font-bold leading-none tracking-tight text-white/[0.07] sm:text-[52px] lg:text-[72px]">
-            DailyDesk
           </div>
         </div>
       </footer>
