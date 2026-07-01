@@ -1,21 +1,15 @@
 'use client';
 
-import { useRef } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { LayoutGrid, Search, ShieldCheck, Smartphone, Check, BadgeCheck, Lock, Apple, Play, MapPin, EyeOff } from 'lucide-react';
+import { LayoutGrid, ShieldCheck, Smartphone, Check, BadgeCheck, Lock, Apple, Play, MapPin, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SiteHeader } from '@/components/app/site-header';
-import { HeroVariant } from '@/components/home/hero-variants';
+import { HeroHybrid } from '@/components/home/hero-variants';
 import { AllToolsDirectory } from '@/components/home/all-tools-directory';
 import { liveToolCount } from '@/components/app/catalog';
 import { FeatureSpotlights } from '@/components/home/feature-spotlights';
-import { HeroShowcase, HeroPrivacy } from '@/components/home/hero-tiles';
 import { PRICING } from '@/lib/pricing';
-
-function openCommand() {
-  window.dispatchEvent(new Event('dd-command-open'));
-}
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -45,47 +39,15 @@ const stats = [
 ];
 
 export default function Home() {
-  const heroSearchRef = useRef<HTMLButtonElement>(null);
-  // Hero: 'hybrid' is the live default (approved design). NEXT_PUBLIC_HERO_VARIANT
-  // can override to 'v1'/'v2' (used on the local preview ports for comparison).
-  const heroVariant = process.env.NEXT_PUBLIC_HERO_VARIANT ?? 'hybrid';
-
   return (
     <div className="relative min-h-screen overflow-x-clip bg-background text-foreground">
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
         <div className="absolute -top-40 left-1/2 size-[620px] -translate-x-1/2 rounded-full bg-primary/15 blur-[120px]" />
       </div>
 
-      <SiteHeader heroSearchRef={heroVariant ? undefined : heroSearchRef} />
+      <SiteHeader />
 
-      {heroVariant && <HeroVariant variant={heroVariant} />}
-
-      {/* Bento hero */}
-      {!heroVariant && (
-      <section className="mx-auto max-w-6xl px-4 pt-6 sm:px-6">
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <div className="relative col-span-2 flex min-h-[300px] flex-col justify-between overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-violet-600 p-6 text-white">
-            <div className="pointer-events-none absolute -right-10 -top-12 size-40 rounded-full bg-white/10" />
-            <span className="w-fit rounded-full bg-white/20 px-3 py-1 text-xs font-medium">{liveToolCount} tools · one workspace</span>
-            <div className="relative">
-              <h1 className="text-2xl font-semibold leading-tight sm:text-3xl">Everything you need, in one place.</h1>
-              <p className="mt-1.5 text-sm text-indigo-100">Fast, private, beautifully simple.</p>
-              <button ref={heroSearchRef} onClick={openCommand} className="mt-4 flex w-full items-center gap-2.5 rounded-xl bg-white/95 px-4 py-3.5 text-left text-[15px] text-slate-500 shadow-sm transition hover:bg-white">
-                <Search className="size-[18px]" /> Search tools…
-                <kbd className="ml-auto rounded border border-slate-200 px-1.5 py-0.5 text-[11px]">⌘K</kbd>
-              </button>
-              <div className="mt-3 flex gap-2">
-                <Button asChild size="sm" className="bg-white text-primary hover:bg-white/90"><Link href="/register">Get started</Link></Button>
-                <Button asChild size="sm" variant="outline" className="border-white/40 bg-transparent text-white hover:bg-white/10"><Link href="#tools">Explore</Link></Button>
-              </div>
-            </div>
-          </div>
-
-          <HeroShowcase className="col-span-1" />
-          <HeroPrivacy className="col-span-1" />
-        </div>
-      </section>
-      )}
+      <HeroHybrid />
 
       {/* All tools — the single canonical tools section */}
       <AllToolsDirectory />
