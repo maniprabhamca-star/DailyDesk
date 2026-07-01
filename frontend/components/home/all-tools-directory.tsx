@@ -79,7 +79,7 @@ function Tile({ t, groupColor }: { t: CatTool; groupColor: string }) {
 export function AllToolsDirectory() {
   return (
     <section id="tools" className="scroll-mt-20 border-t bg-muted/20">
-      <div className="mx-auto max-w-6xl px-4 pb-10 pt-10 sm:px-6">
+      <div className="mx-auto max-w-6xl px-4 pb-8 pt-10 sm:px-6">
         {/* Trust strip — one straight line on all sizes (smaller on mobile so it never wraps) */}
         <div className="mb-9 flex items-center justify-center gap-x-3 sm:gap-x-7">
           {[
@@ -129,7 +129,7 @@ export function AllToolsDirectory() {
         </div>
 
         {/* Legend — clean 2×2 grid on mobile (no ragged wrap), centered row on desktop */}
-        <div className="mt-9 grid grid-cols-2 gap-x-4 gap-y-3 border-t pt-6 sm:flex sm:flex-wrap sm:justify-center sm:gap-x-5 sm:gap-y-2">
+        <div className="mt-9 grid grid-cols-2 gap-x-4 gap-y-3 border-y pb-6 pt-6 sm:flex sm:flex-wrap sm:justify-center sm:gap-x-5 sm:gap-y-2">
           {(Object.keys(BADGE) as (keyof typeof BADGE)[]).map((k) => {
             const B = BADGE[k];
             return (
