@@ -129,7 +129,7 @@ export function AllToolsDirectory() {
         </div>
 
         {/* Legend — clean 2×2 grid on mobile (no ragged wrap), centered row on desktop */}
-        <div className="mt-9 grid grid-cols-2 gap-x-4 gap-y-3 border-y pb-6 pt-6 sm:flex sm:flex-wrap sm:justify-center sm:gap-x-5 sm:gap-y-2">
+        <div className="mt-9 grid grid-cols-2 justify-items-center gap-x-4 gap-y-3 border-y pb-6 pt-6 sm:flex sm:flex-wrap sm:justify-center sm:gap-x-5 sm:gap-y-2">
           {(Object.keys(BADGE) as (keyof typeof BADGE)[]).map((k) => {
             const B = BADGE[k];
             return (
