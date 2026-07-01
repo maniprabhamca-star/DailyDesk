@@ -91,7 +91,7 @@ function TrustChips({ tone = 'light' }: { tone?: 'light' | 'dark' }) {
   const text = tone === 'dark' ? 'text-slate-400' : 'text-muted-foreground';
   const icon = tone === 'dark' ? '#34d399' : '#059669';
   const items = [
-    { icon: CloudOff, t: 'No uploads' },
+    { icon: CloudOff, t: 'No file uploads' },
     { icon: Ban, t: 'No ads' },
     { icon: UserX, t: 'No signup' },
   ];

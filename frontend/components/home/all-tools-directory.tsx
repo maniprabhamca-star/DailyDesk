@@ -83,7 +83,7 @@ export function AllToolsDirectory() {
         {/* Trust strip — one straight line on all sizes (smaller on mobile so it never wraps) */}
         <div className="mb-9 flex items-center justify-center gap-x-3 sm:gap-x-7">
           {[
-            { icon: CloudOff, t: 'No uploads' },
+            { icon: CloudOff, t: 'No file uploads' },
             { icon: Ban, t: 'No ads' },
             { icon: UserX, t: 'No signup' },
             { icon: Droplets, t: 'No watermark' },
