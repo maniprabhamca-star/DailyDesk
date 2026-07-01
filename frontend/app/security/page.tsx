@@ -57,6 +57,24 @@ export default function SecurityPage() {
         </ul>
       </Section>
 
+      <Section id="performance" title="Built to run light on your device">
+        <p>
+          Because your files are processed on your device — never uploaded — the work runs on your own
+          CPU and memory. We engineered everything to keep that light:
+        </p>
+        <ul className="space-y-3">
+          <li className="flex gap-3"><Zap className="mt-0.5 size-5 shrink-0 text-emerald-600" /><span><strong className="text-foreground">Handled in chunks.</strong> Files are processed in small pieces, and memory is released as soon as each part is done — nothing piles up.</span></li>
+          <li className="flex gap-3"><FileCheck2 className="mt-0.5 size-5 shrink-0 text-emerald-600" /><span><strong className="text-foreground">Fast and responsive.</strong> The heavy lifting runs on WebAssembly, and the app pauses between steps so your browser stays smooth while it works.</span></li>
+          <li className="flex gap-3"><ShieldCheck className="mt-0.5 size-5 shrink-0 text-emerald-600" /><span><strong className="text-foreground">Sensible limits.</strong> Caps on file size and rendering quality stop any single job from running away with your device&rsquo;s resources.</span></li>
+        </ul>
+        <Callout tone="default" icon={<AlertTriangle className="size-5" />} title="The honest trade-off">
+          <p>
+            Larger files naturally use more of your device&rsquo;s power — that&rsquo;s the cost of keeping them
+            off our servers and fully private. For everyday documents, you won&rsquo;t notice a thing.
+          </p>
+        </Callout>
+      </Section>
+
       <Section id="offline" title="Works offline">
         <p className="flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:text-amber-400"><Zap className="size-3.5" /> Coming soon</span>
