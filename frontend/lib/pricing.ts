@@ -12,7 +12,7 @@ export const PRICING = {
     'Full-strength compression — Strong & Maximum',
     'Edit & annotate — highlight, fill, sign',
     'No ads, no watermarks, no signup wall',
-    'Files stay in your browser',
+    'Core tools stay in your browser',
     'Files up to 100 MB',
     '5 AI actions / day',
     '1 GB encrypted File Vault',

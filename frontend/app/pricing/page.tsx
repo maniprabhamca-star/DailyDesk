@@ -26,7 +26,7 @@ const groups: { title: string; rows: Row[] }[] = [
   {
     title: 'Privacy & access',
     rows: [
-      { label: 'Files processed in your browser — never uploaded', comp: 'Uploaded to their servers', free: true, pro: true },
+      { label: 'Core tools processed in your browser — never uploaded', comp: 'Uploaded to their servers', free: true, pro: true },
       { label: 'No ads', comp: 'Ads on free plans', free: true, pro: true },
       { label: 'No watermarks', comp: true, free: true, pro: true },
       { label: 'Daily usage limit', comp: 'Often ~2 tasks/day', free: 'Unlimited', pro: 'Unlimited' },
@@ -70,8 +70,8 @@ const faqs = [
   { q: 'Can I edit a PDF for free?', a: 'Yes. Annotating, highlighting, drawing, filling forms, and signing are free and unlimited. Only full in-place text editing — rewriting the existing text inside a PDF — is a Pro feature, the same as Adobe, Foxit, and Smallpdf.' },
   { q: 'What do I actually get with Pro?', a: 'Power features beyond the basics: full text editing, batch processing, Office conversions (PDF↔Word/Excel/PPT), OCR, unlimited file size, saved workflows, 70 AI actions a day, and unlimited encrypted File Vault storage.' },
   { q: 'Can I cancel anytime?', a: 'Yes — cancel in one click; you keep Pro until the end of your paid period. New subscribers are also covered by our money-back guarantee (14 days monthly / 30 days annual).' },
-  { q: 'Do you store my files?', a: 'No — by default nothing is saved on our servers. Our tools process your files in your browser. The only exception is the optional File Vault: if you choose to save a file there, it’s encrypted on your device before upload, so even we can’t read it. The 1 GB / unlimited figures apply only to that opt-in Vault.' },
-  { q: 'Are my files safe?', a: 'Our tools never upload your files — everything happens on your device. The optional File Vault is end-to-end encrypted, so even we can’t read it. See our Security page for details.' },
+  { q: 'Do you store my files?', a: 'No — by default nothing is saved on our servers. Our everyday tools process your files right in your browser. A few Pro tools do use our servers — Office conversions and OCR (processed, then deleted) and AI (sent for that one request) — but nothing is stored. The only feature that stores files is the optional File Vault, and it’s encrypted on your device before upload, so even we can’t read it. The 1 GB / unlimited figures apply only to that opt-in Vault.' },
+  { q: 'Are my files safe?', a: 'Our everyday tools never upload your files — everything happens on your device. The few Pro tools that need a server (AI, Office conversions, OCR) are minimal and we’re upfront about them, and the optional File Vault is end-to-end encrypted so even we can’t read it. See our Security page for details.' },
 ];
 
 function CellView({ value, tone }: { value: Cell; tone?: 'pro' | 'muted' }) {
@@ -205,7 +205,7 @@ export default function PricingPage() {
           <div className="mt-4 grid gap-5 sm:grid-cols-2">
             <div className="rounded-xl bg-emerald-500/5 p-4">
               <p className="flex items-center gap-2 text-sm font-semibold text-foreground"><CloudOff className="size-4 text-emerald-600" /> Everyday tools — nothing is stored</p>
-              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">When you merge, compress, convert, edit or sign, your files are processed entirely in your browser and <strong>never reach our servers</strong>. By default, DailyDesk saves nothing — there&rsquo;s nothing to leak.</p>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">When you use our everyday in-browser tools — merge, compress, edit, sign and more — your files are processed entirely on your device and <strong>never reach our servers</strong>. By default, DailyDesk saves nothing — there&rsquo;s nothing to leak.</p>
             </div>
             <div className="rounded-xl bg-emerald-500/5 p-4">
               <p className="flex items-center gap-2 text-sm font-semibold text-foreground"><Lock className="size-4 text-emerald-600" /> File Vault — optional &amp; encrypted</p>
@@ -219,7 +219,7 @@ export default function PricingPage() {
           <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-emerald-500 text-white"><CloudOff className="size-6" strokeWidth={2.25} /></span>
           <h2 className="mt-4 text-xl font-bold tracking-tight">The privacy others can&rsquo;t match</h2>
           <p className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground">
-            Unlike other PDF tools, DailyDesk processes your files right in your browser — they&rsquo;re never uploaded to a server. Free or Pro, your documents stay yours. <Link href="/security" className="font-medium text-primary hover:underline">How it works →</Link>
+            Unlike other PDF tools, DailyDesk runs your everyday tools right in your browser — those files are never uploaded. The few tools that need a server (AI, Office conversions, OCR) are minimal and transparent. Free or Pro, your documents stay yours. <Link href="/security" className="font-medium text-primary hover:underline">How it works →</Link>
           </p>
         </div>
 
