@@ -23,6 +23,22 @@ export function canProcessSize(bytes: number, plan: Plan): boolean {
   return plan === 'pro' || bytes <= FREE_MAX_BYTES;
 }
 
+// Batch = running a tool over MANY files at once (many files -> many outputs),
+// e.g. compress 50 PDFs in one action. Free does one file per job; Pro batches.
+// IMPORTANT: tools whose whole purpose is multi-input -> ONE output (Merge,
+// JPG->PDF) are a single job, NOT batch — they must NOT call this gate.
+export const FREE_MAX_BATCH = 1;
+
+// True when this many files may be processed in one batch job on the given plan.
+export function canBatch(count: number, plan: Plan): boolean {
+  return plan === 'pro' || count <= FREE_MAX_BATCH;
+}
+
+// How many of `count` files this plan may process in one batch (the rest need Pro).
+export function allowedBatchCount(count: number, plan: Plan): number {
+  return plan === 'pro' ? count : Math.min(count, FREE_MAX_BATCH);
+}
+
 export function fmtBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
