@@ -1,4 +1,4 @@
-import { LayoutGrid, ChevronDown, ShieldCheck } from 'lucide-react';
+import { LayoutGrid, ChevronDown } from 'lucide-react';
 import { SiteHeader } from '@/components/app/site-header';
 
 export type Faq = { q: string; a: string };
@@ -48,9 +48,6 @@ export function PdfToolPage({
         <div className="text-center">
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{title}</h1>
           <p className="mx-auto mt-3 max-w-xl text-muted-foreground">{description}</p>
-          <span className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-emerald-600/25 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-400">
-            <ShieldCheck className="size-3.5" /> Runs in your browser — your files are never uploaded
-          </span>
         </div>
 
         <div className="mt-8">{children}</div>

@@ -48,6 +48,29 @@ export default function SecurityPage() {
         </Callout>
       </Section>
 
+      <Section id="where-data-goes" title="Where your data goes">
+        <p>
+          Different tools handle your files differently — and we&rsquo;re upfront about every one. Here is exactly where your
+          data goes, by tool type:
+        </p>
+        <div className="mt-4 overflow-hidden rounded-xl border">
+          {[
+            { color: '#16a34a', label: 'In-browser tools', desc: 'Never leave your device — processed 100% in your browser.' },
+            { color: '#7c3aed', label: 'AI — Chat, Summarize, Translate', desc: 'Sent to our AI provider for that one request only — not stored, and never used to train models.' },
+            { color: '#d97706', label: 'Office conversions & OCR', desc: 'Processed on our servers, then deleted right after — never kept.' },
+            { color: '#2563eb', label: 'File Vault', desc: 'End-to-end encrypted on your device before upload — only you can read it.' },
+          ].map((r) => (
+            <div key={r.label} className="flex flex-col gap-1.5 border-b p-4 last:border-b-0 sm:flex-row sm:items-start sm:gap-4">
+              <div className="flex shrink-0 items-center gap-2.5 sm:w-56">
+                <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: r.color }} />
+                <span className="font-semibold text-foreground">{r.label}</span>
+              </div>
+              <span className="text-sm leading-relaxed text-muted-foreground">{r.desc}</span>
+            </div>
+          ))}
+        </div>
+      </Section>
+
       <Section id="technology" title="The technology we use">
         <ul className="space-y-3">
           <li className="flex gap-3"><Lock className="mt-0.5 size-5 shrink-0 text-emerald-600" /><span><strong className="text-foreground">In-browser processing.</strong> File operations run on your device using modern web technology (WebAssembly and the browser&rsquo;s native APIs) — the same engine that powers the page you&rsquo;re reading.</span></li>

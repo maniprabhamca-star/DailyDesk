@@ -33,8 +33,8 @@ const why = [
 
 const stats = [
   { v: `${liveToolCount}`, l: 'Tools and growing' },
-  { v: '0', l: 'Files uploaded' },
-  { v: '100%', l: 'In your browser' },
+  { v: '0', l: 'Ads or trackers' },
+  { v: '100%', l: 'Yours' },
   { v: '$0', l: 'To get started' },
 ];
 

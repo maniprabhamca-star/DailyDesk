@@ -139,10 +139,10 @@ export function HeroHybrid() {
           </span>
           <h1 className="mt-5 text-4xl font-bold leading-[1.04] tracking-tight sm:text-5xl lg:text-6xl">
             Every daily tool.<br />
-            <span className="text-primary">None of it uploaded.</span>
+            <span className="text-primary">Your files stay yours.</span>
           </h1>
           <p className="mt-5 max-w-md text-lg leading-relaxed text-muted-foreground">
-            Merge, compress, convert, sign — {liveToolCount}+ PDF and everyday tools. Free, no signup, and 100% on your device.
+            Merge, compress, convert, sign — {liveToolCount}+ PDF and everyday tools. Free, no signup, and private by default.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-4">
             <Button asChild size="lg"><Link href="/register">Start free — no signup</Link></Button>
