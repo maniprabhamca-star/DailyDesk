@@ -80,16 +80,16 @@ export function AllToolsDirectory() {
   return (
     <section id="tools" className="scroll-mt-20 border-t bg-muted/20">
       <div className="mx-auto max-w-6xl px-4 pb-10 pt-10 sm:px-6">
-        {/* Trust strip */}
-        <div className="mb-9 flex flex-wrap justify-center gap-x-7 gap-y-2">
+        {/* Trust strip — one straight line on all sizes (smaller on mobile so it never wraps) */}
+        <div className="mb-9 flex items-center justify-center gap-x-3 sm:gap-x-7">
           {[
             { icon: CloudOff, t: 'No uploads' },
             { icon: Ban, t: 'No ads' },
             { icon: UserX, t: 'No signup' },
             { icon: Droplets, t: 'No watermark' },
           ].map((x) => (
-            <span key={x.t} className="flex items-center gap-1.5 text-sm font-semibold text-foreground/80">
-              <x.icon className="size-4 text-emerald-600" strokeWidth={2.25} /> {x.t}
+            <span key={x.t} className="flex items-center gap-1 whitespace-nowrap text-[11px] font-semibold text-foreground/80 sm:gap-1.5 sm:text-sm">
+              <x.icon className="size-3.5 shrink-0 text-emerald-600 sm:size-4" strokeWidth={2.25} /> {x.t}
             </span>
           ))}
         </div>
