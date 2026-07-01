@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
   LayoutGrid, ChevronDown, Search, ShieldCheck, Smartphone, Check,
-  BadgeCheck, Lock, Menu, X,
+  BadgeCheck, Lock, Menu, X, Shrink, Combine, QrCode,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
@@ -49,7 +49,19 @@ const stats = [
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [showHeaderSearch, setShowHeaderSearch] = useState(false);
   const toolsRef = useRef<HTMLDivElement>(null);
+  const heroSearchRef = useRef<HTMLButtonElement>(null);
+
+  // Hand-off: reveal the header search only once the hero search scrolls out of
+  // view (behind the sticky header), so there's never two searches on screen.
+  useEffect(() => {
+    const el = heroSearchRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => setShowHeaderSearch(!e.isIntersecting), { rootMargin: '-64px 0px 0px 0px', threshold: 0 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
   // Close the Tools mega-menu on any outside click or Escape. (A fixed backdrop
   // doesn't work here: the header's backdrop-blur creates a containing block, so
@@ -106,7 +118,32 @@ export default function Home() {
             )}
           </div>
           <Link href="/pricing" className="hidden text-sm font-medium text-foreground/80 hover:text-foreground sm:block">Pricing</Link>
-          <div className="ml-auto flex items-center gap-2">
+
+          {/* Center search — hidden until the hero search scrolls away, then hands off here. Opens the ⌘K palette. */}
+          <div className="flex flex-1 justify-center px-2 sm:px-4">
+            <button
+              onClick={openCommand}
+              aria-label="Search tools and actions"
+              className={`hidden w-full max-w-sm items-center gap-2.5 rounded-full border bg-muted/60 px-4 py-2 text-sm text-muted-foreground transition-opacity hover:bg-muted sm:flex ${showHeaderSearch ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+            >
+              <Search className="size-4" /> Search tools &amp; actions…
+              <kbd className="ml-auto rounded border px-1.5 py-0.5 text-[11px]">⌘K</kbd>
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Bold quick-tool shortcuts */}
+            <div className="hidden items-center gap-1.5 md:flex">
+              {[
+                { href: '/compress-pdf', icon: Shrink, bg: 'bg-teal-500', label: 'Compress PDF' },
+                { href: '/merge-pdf', icon: Combine, bg: 'bg-rose-600', label: 'Merge PDF' },
+                { href: '/tools/qr-code', icon: QrCode, bg: 'bg-indigo-500', label: 'QR generator' },
+              ].map((q) => (
+                <Link key={q.href} href={q.href} aria-label={q.label} title={q.label} className={`flex size-9 items-center justify-center rounded-lg ${q.bg} text-white shadow-sm transition hover:-translate-y-0.5`}>
+                  <q.icon className="size-[18px]" strokeWidth={2.25} />
+                </Link>
+              ))}
+            </div>
             <ThemeToggle />
             <Button asChild size="sm" variant="ghost" className="hidden sm:inline-flex"><Link href="/login">Log in</Link></Button>
             <Button asChild size="sm" className="hidden sm:inline-flex"><Link href="/register">Get started</Link></Button>
@@ -141,7 +178,7 @@ export default function Home() {
             <div className="relative">
               <h1 className="text-2xl font-semibold leading-tight sm:text-3xl">Everything you need, in one place.</h1>
               <p className="mt-1.5 text-sm text-indigo-100">Fast, private, beautifully simple.</p>
-              <button onClick={openCommand} className="mt-4 flex w-full items-center gap-2.5 rounded-xl bg-white/95 px-4 py-3.5 text-left text-[15px] text-slate-500 shadow-sm transition hover:bg-white">
+              <button ref={heroSearchRef} onClick={openCommand} className="mt-4 flex w-full items-center gap-2.5 rounded-xl bg-white/95 px-4 py-3.5 text-left text-[15px] text-slate-500 shadow-sm transition hover:bg-white">
                 <Search className="size-[18px]" /> Search tools…
                 <kbd className="ml-auto rounded border border-slate-200 px-1.5 py-0.5 text-[11px]">⌘K</kbd>
               </button>
