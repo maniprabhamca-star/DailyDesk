@@ -53,14 +53,18 @@ export default function Home() {
   const toolsRef = useRef<HTMLDivElement>(null);
   const heroSearchRef = useRef<HTMLButtonElement>(null);
 
-  // Hand-off: reveal the header search only once the hero search scrolls out of
-  // view (behind the sticky header), so there's never two searches on screen.
+  // Hand-off: reveal the header search once the hero search scrolls up behind the
+  // sticky header, so there's never two searches on screen. A scroll listener (not
+  // IntersectionObserver) so it's reliable + testable.
   useEffect(() => {
-    const el = heroSearchRef.current;
-    if (!el) return;
-    const io = new IntersectionObserver(([e]) => setShowHeaderSearch(!e.isIntersecting), { rootMargin: '-64px 0px 0px 0px', threshold: 0 });
-    io.observe(el);
-    return () => io.disconnect();
+    const onScroll = () => {
+      const el = heroSearchRef.current;
+      setShowHeaderSearch(!!el && el.getBoundingClientRect().bottom < 60);
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll); };
   }, []);
 
   // Close the Tools mega-menu on any outside click or Escape. (A fixed backdrop
