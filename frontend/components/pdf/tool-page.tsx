@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { LayoutGrid, ShieldCheck, ChevronDown } from 'lucide-react';
+import { LayoutGrid, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export type Faq = { q: string; a: string };
@@ -56,10 +56,7 @@ export function PdfToolPage({
 
       <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
         <div className="text-center">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-600">
-            <ShieldCheck className="size-3.5" /> Your files never leave your browser
-          </span>
-          <h1 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">{title}</h1>
+          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{title}</h1>
           <p className="mx-auto mt-3 max-w-xl text-muted-foreground">{description}</p>
         </div>
 
