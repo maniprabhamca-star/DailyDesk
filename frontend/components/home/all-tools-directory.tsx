@@ -128,9 +128,10 @@ export function AllToolsDirectory() {
           ))}
         </div>
 
-        {/* Legend — clean, left-aligned 2×2 grid centered as a block on mobile
-            (icons line up per column, no scatter); centered wrapping row on desktop. */}
+        {/* Legend — "where each tool runs". Clean, left-aligned 2×2 grid centered as a
+            block on mobile (icons line up per column); centered wrapping row on desktop. */}
         <div className="mt-9 border-y pb-6 pt-6">
+          <p className="mb-4 text-center text-xs text-muted-foreground">Where each tool runs — your files stay on your device for everything that can run there.</p>
           <div className="mx-auto grid w-fit grid-cols-[auto_auto] justify-items-start gap-x-8 gap-y-3 sm:flex sm:w-auto sm:flex-wrap sm:justify-center sm:gap-x-5 sm:gap-y-2">
             {(Object.keys(BADGE) as (keyof typeof BADGE)[]).map((k) => {
               const B = BADGE[k];
