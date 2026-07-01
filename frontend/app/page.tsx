@@ -3,9 +3,10 @@
 import { useRef } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { LayoutGrid, Search, ShieldCheck, Smartphone, Check, BadgeCheck, Lock } from 'lucide-react';
+import { LayoutGrid, Search, ShieldCheck, Smartphone, Check, BadgeCheck, Lock, Apple, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SiteHeader } from '@/components/app/site-header';
+import { HeroVariant } from '@/components/home/hero-variants';
 import { AllToolsDirectory } from '@/components/home/all-tools-directory';
 import { liveToolCount } from '@/components/app/catalog';
 import { FeatureSpotlights } from '@/components/home/feature-spotlights';
@@ -45,6 +46,9 @@ const stats = [
 
 export default function Home() {
   const heroSearchRef = useRef<HTMLButtonElement>(null);
+  // Hero preview switch: NEXT_PUBLIC_HERO_VARIANT = v1 | v2 | hybrid selects an
+  // alternate hero (served on separate preview ports). Empty = the shipped bento hero.
+  const heroVariant = process.env.NEXT_PUBLIC_HERO_VARIANT ?? '';
 
   return (
     <div className="relative min-h-screen overflow-x-clip bg-background text-foreground">
@@ -52,9 +56,12 @@ export default function Home() {
         <div className="absolute -top-40 left-1/2 size-[620px] -translate-x-1/2 rounded-full bg-primary/15 blur-[120px]" />
       </div>
 
-      <SiteHeader heroSearchRef={heroSearchRef} />
+      <SiteHeader heroSearchRef={heroVariant ? undefined : heroSearchRef} />
+
+      {heroVariant && <HeroVariant variant={heroVariant} />}
 
       {/* Bento hero */}
+      {!heroVariant && (
       <section className="mx-auto max-w-6xl px-4 pt-6 sm:px-6">
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <div className="relative col-span-2 flex min-h-[300px] flex-col justify-between overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-violet-600 p-6 text-white">
@@ -78,6 +85,7 @@ export default function Home() {
           <HeroPrivacy className="col-span-1" />
         </div>
       </section>
+      )}
 
       {/* All tools — the single canonical tools section */}
       <AllToolsDirectory />
@@ -149,45 +157,89 @@ export default function Home() {
         <p className="mt-6 text-center text-sm"><Link href="/pricing" className="font-medium text-primary hover:underline">See full pricing &amp; feature comparison →</Link></p>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t bg-muted/20">
-        <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            <div>
-              <div className="flex items-center gap-2"><span className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground"><LayoutGrid className="size-4" /></span><span className="font-semibold">DailyDesk</span></div>
-              <p className="mt-3 text-sm text-muted-foreground">The private, all-in-one toolkit. Your files never leave your device.</p>
-              <p className="mt-4 text-xs text-muted-foreground">iOS & Android apps — coming soon</p>
-            </div>
-            <div>
-              <p className="text-sm font-semibold">Tools</p>
-              <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-                <li><Link href="/merge-pdf" className="hover:text-foreground">Merge PDF</Link></li>
-                <li><Link href="/tools/qr-code" className="hover:text-foreground">QR generator</Link></li>
-                <li><Link href="/tools/password" className="hover:text-foreground">Password generator</Link></li>
-                <li><Link href="#tools" className="hover:text-foreground">All tools</Link></li>
-              </ul>
-            </div>
-            <div>
-              <p className="text-sm font-semibold">Product</p>
-              <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-                <li><Link href="/pricing" className="hover:text-foreground">Pricing</Link></li>
-                <li><Link href="/register" className="hover:text-foreground">Get started</Link></li>
-                <li><Link href="/login" className="hover:text-foreground">Log in</Link></li>
-              </ul>
-            </div>
-            <div>
-              <p className="text-sm font-semibold">Legal</p>
-              <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-                <li><Link href="/privacy" className="hover:text-foreground">Privacy</Link></li>
-                <li><Link href="/security" className="hover:text-foreground">Security</Link></li>
-                <li><Link href="/terms" className="hover:text-foreground">Terms</Link></li>
-                <li><Link href="/refund-policy" className="hover:text-foreground">Refunds</Link></li>
-              </ul>
-            </div>
+      {/* Closing CTA */}
+      <section className="border-t bg-gradient-to-b from-muted/20 to-background">
+        <div className="mx-auto max-w-4xl px-4 py-12 text-center sm:px-6">
+          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Ready when you are.</h2>
+          <p className="mx-auto mt-2.5 max-w-lg text-muted-foreground">
+            Start with {liveToolCount}+ private tools — free, no signup, and nothing ever leaves your device.
+          </p>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+            <Button asChild size="lg"><Link href="/register">Start free — no signup</Link></Button>
+            <Button asChild size="lg" variant="outline"><Link href="/#tools">Browse all tools</Link></Button>
           </div>
-          <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t pt-6 text-xs text-muted-foreground sm:flex-row">
-            <p>© {new Date().getFullYear()} DailyDesk. Private preview.</p>
-            <p className="flex items-center gap-1.5"><ShieldCheck className="size-3.5 text-emerald-600" /> Files never leave your browser</p>
+        </div>
+      </section>
+
+      {/* Footer — dark anchor (soft slate, not full black) */}
+      <footer className="relative overflow-hidden border-t border-white/10 bg-[#0f172a] text-slate-300">
+        <div className="relative z-10 mx-auto max-w-6xl px-4 py-10 sm:px-6">
+          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_1fr]">
+            <div>
+              <Link href="/" className="flex items-center gap-2.5">
+                <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground"><LayoutGrid className="size-[18px]" /></span>
+                <span className="text-lg font-semibold tracking-tight text-white">DailyDesk</span>
+              </Link>
+              <p className="mt-4 max-w-xs text-sm leading-relaxed text-slate-400">
+                Every daily tool — private, fast, and free. Your files never leave your device.
+              </p>
+              <span className="mt-5 inline-flex items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-300">
+                <ShieldCheck className="size-3.5" /> 100% in your browser
+              </span>
+              {/* App badges — custom "coming soon" (honest; swap for real store badges at launch) */}
+              <div className="mt-5 flex flex-wrap gap-2.5">
+                {[
+                  { Icon: Apple, name: 'App Store' },
+                  { Icon: Play, name: 'Google Play' },
+                ].map((b) => (
+                  <span key={b.name} className="inline-flex items-center gap-2.5 rounded-xl border border-white/15 bg-white/5 px-3.5 py-2 transition-colors hover:bg-white/10">
+                    <b.Icon className="size-6 text-white" />
+                    <span className="leading-tight">
+                      <span className="block text-[9px] uppercase tracking-wide text-slate-400">Coming soon</span>
+                      <span className="block text-[13px] font-semibold text-white">{b.name}</span>
+                    </span>
+                  </span>
+                ))}
+              </div>
+            </div>
+            {[
+              { title: 'Tools', color: '#a78bfa', links: [
+                { label: 'Compress PDF', href: '/compress-pdf' },
+                { label: 'Merge PDF', href: '/merge-pdf' },
+                { label: 'QR generator', href: '/tools/qr-code' },
+                { label: 'All tools', href: '/#tools' },
+              ] },
+              { title: 'Product', color: '#2dd4bf', links: [
+                { label: 'Pricing', href: '/pricing' },
+                { label: 'Get started', href: '/register' },
+                { label: 'Log in', href: '/login' },
+              ] },
+              { title: 'Legal', color: '#fbbf24', links: [
+                { label: 'Privacy', href: '/privacy' },
+                { label: 'Security', href: '/security' },
+                { label: 'Terms', href: '/terms' },
+                { label: 'Refunds', href: '/refund-policy' },
+              ] },
+            ].map((col) => (
+              <div key={col.title}>
+                <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-white">
+                  <span className="size-1.5 rounded-full" style={{ backgroundColor: col.color }} /> {col.title}
+                </p>
+                <ul className="mt-4 space-y-2.5 text-sm">
+                  {col.links.map((l) => (
+                    <li key={l.label}><Link href={l.href} className="font-medium text-slate-400 transition-colors hover:text-white">{l.label}</Link></li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          <div className="mt-8 flex flex-col items-center justify-between gap-3 border-t border-white/10 pt-6 text-xs text-slate-500 sm:flex-row">
+            <p>© {new Date().getFullYear()} DailyDesk · Private preview</p>
+            <p className="flex items-center gap-1.5"><ShieldCheck className="size-3.5 text-emerald-400" /> Nothing is ever uploaded</p>
+          </div>
+          {/* Brand wordmark — contained (no full-page bleed), gently visible */}
+          <div aria-hidden className="pointer-events-none mt-5 select-none text-center text-[34px] font-bold leading-none tracking-tight text-white/[0.07] sm:text-[52px] lg:text-[72px]">
+            DailyDesk
           </div>
         </div>
       </footer>

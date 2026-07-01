@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import {
-  LayoutGrid, ChevronDown, Search, Menu, X, Shrink, Combine, QrCode,
+  LayoutGrid, ChevronDown, Search, Menu, X, ShieldCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
@@ -90,15 +90,16 @@ export function SiteHeader({ heroSearchRef }: { heroSearchRef?: React.RefObject<
         </div>
         <Link href="/pricing" className="hidden text-sm font-medium text-foreground/80 hover:text-foreground sm:block">Pricing</Link>
 
-        {/* Center search — Option A "elevated": lifted white pill, purple icon, focus ring.
+        {/* Center command search — the primary way to navigate (search-first workspace).
+            Emphasised with a soft purple ring so it reads as the star, not an afterthought.
             On home it fades in on scroll (see heroSearchRef); elsewhere it's always visible. */}
         <div className="flex flex-1 justify-center px-2 sm:px-4">
           <button
             onClick={openCommand}
-            aria-label="Search"
-            className={`hidden w-full max-w-sm items-center gap-2.5 rounded-full border border-border bg-card px-4 py-2 text-sm shadow-sm transition hover:border-primary/40 hover:shadow-md focus-visible:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 sm:flex ${showHeaderSearch ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+            aria-label="Search or jump to any tool"
+            className={`hidden w-full max-w-md items-center gap-2.5 rounded-full border border-primary/40 bg-card px-4 py-2 text-sm shadow-sm ring-[3px] ring-primary/[0.08] transition hover:border-primary/60 hover:ring-primary/15 focus-visible:border-primary/70 focus-visible:outline-none focus-visible:ring-primary/25 sm:flex ${showHeaderSearch ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
           >
-            <Search className="size-4 text-primary" /> <span className="text-foreground/60">Search tools &amp; actions…</span>
+            <Search className="size-4 text-primary" /> <span className="text-foreground/60">Search or jump to any tool…</span>
             <kbd className="ml-auto rounded border px-1.5 py-0.5 text-[11px] text-muted-foreground">⌘K</kbd>
           </button>
         </div>
@@ -108,18 +109,10 @@ export function SiteHeader({ heroSearchRef }: { heroSearchRef?: React.RefObject<
           <button onClick={openCommand} aria-label="Search" className="flex size-9 items-center justify-center rounded-lg border text-foreground/80 sm:hidden">
             <Search className="size-5" />
           </button>
-          {/* Bold quick-tool shortcuts */}
-          <div className="hidden items-center gap-1.5 md:flex">
-            {[
-              { href: '/compress-pdf', icon: Shrink, bg: 'bg-teal-500', label: 'Compress PDF' },
-              { href: '/merge-pdf', icon: Combine, bg: 'bg-rose-600', label: 'Merge PDF' },
-              { href: '/tools/qr-code', icon: QrCode, bg: 'bg-indigo-500', label: 'QR generator' },
-            ].map((q) => (
-              <Link key={q.href} href={q.href} aria-label={q.label} title={q.label} className={`flex size-9 items-center justify-center rounded-lg ${q.bg} text-white shadow-sm transition hover:-translate-y-0.5`}>
-                <q.icon className="size-[18px]" strokeWidth={2.25} />
-              </Link>
-            ))}
-          </div>
+          {/* Privacy signal — our identity; something competitors can't honestly claim. */}
+          <span className="hidden items-center gap-1.5 rounded-full border border-emerald-600/25 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-700 lg:inline-flex dark:text-emerald-400">
+            <ShieldCheck className="size-3.5" /> On your device
+          </span>
           <ThemeToggle />
           <Button asChild size="sm" variant="ghost" className="hidden sm:inline-flex"><Link href="/login">Log in</Link></Button>
           <Button asChild size="sm" className="hidden sm:inline-flex"><Link href="/register">Get started</Link></Button>
