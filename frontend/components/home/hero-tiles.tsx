@@ -127,7 +127,7 @@ export function HeroPrivacy({ className = '' }: { className?: string }) {
             <div className="mt-0.5 text-sm font-medium text-foreground">in your browser</div>
           </div>
         </div>
-        <p className="mt-3 text-xs leading-relaxed text-muted-foreground">Files never leave your device — nothing is ever uploaded.</p>
+        <p className="mt-3 text-xs leading-relaxed text-muted-foreground">In-browser tools run on your device — your files are never uploaded.</p>
       </div>
 
       <span className="relative flex items-center gap-1 text-xs font-medium text-emerald-700 dark:text-emerald-400">How it works <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" /></span>
