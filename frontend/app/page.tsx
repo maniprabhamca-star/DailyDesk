@@ -82,9 +82,9 @@ export default function Home() {
             </button>
             {menuOpen && (
               <>
-                <div className="absolute left-0 top-8 z-40 grid w-[680px] grid-cols-3 gap-x-5 gap-y-4 rounded-xl border bg-popover p-5 shadow-lift">
+                <div className="absolute left-0 top-8 z-40 w-[720px] columns-3 gap-x-5 rounded-xl border bg-popover p-5 shadow-lift">
                   {catalog.map((g) => (
-                    <div key={g.label}>
+                    <div key={g.label} className="mb-4 break-inside-avoid">
                       <p className="mb-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">{g.label}</p>
                       <div className="space-y-0.5">
                         {g.tools.map((t) => {
