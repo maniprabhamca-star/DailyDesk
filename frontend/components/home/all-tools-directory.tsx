@@ -128,16 +128,19 @@ export function AllToolsDirectory() {
           ))}
         </div>
 
-        {/* Legend — clean 2×2 grid on mobile (no ragged wrap), centered row on desktop */}
-        <div className="mt-9 grid grid-cols-2 justify-items-center gap-x-4 gap-y-3 border-y pb-6 pt-6 sm:flex sm:flex-wrap sm:justify-center sm:gap-x-5 sm:gap-y-2">
-          {(Object.keys(BADGE) as (keyof typeof BADGE)[]).map((k) => {
-            const B = BADGE[k];
-            return (
-              <span key={k} className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                <B.icon className="size-4 shrink-0" style={{ color: B.color }} /> {B.label}
-              </span>
-            );
-          })}
+        {/* Legend — clean, left-aligned 2×2 grid centered as a block on mobile
+            (icons line up per column, no scatter); centered wrapping row on desktop. */}
+        <div className="mt-9 border-y pb-6 pt-6">
+          <div className="mx-auto grid w-fit grid-cols-[auto_auto] justify-items-start gap-x-8 gap-y-3 sm:flex sm:w-auto sm:flex-wrap sm:justify-center sm:gap-x-5 sm:gap-y-2">
+            {(Object.keys(BADGE) as (keyof typeof BADGE)[]).map((k) => {
+              const B = BADGE[k];
+              return (
+                <span key={k} className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                  <B.icon className="size-4 shrink-0" style={{ color: B.color }} /> {B.label}
+                </span>
+              );
+            })}
+          </div>
         </div>
       </div>
     </section>
