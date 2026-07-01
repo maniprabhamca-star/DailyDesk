@@ -11,7 +11,7 @@ import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
-import { openPdf, renderPage, dprTarget, type PdfHandle, type RenderedPage } from '@/lib/pdf-render';
+import { openPdf, renderPage, dprTarget, getPdfjs, pdfDocOptions, type PdfHandle, type RenderedPage } from '@/lib/pdf-render';
 import { PageStrip } from '@/components/pdf/page-strip';
 import { BeforeAfter } from '@/components/pdf/before-after';
 import { SavingsRing } from '@/components/app/savings-ring';
@@ -32,15 +32,21 @@ type Level = 'light' | 'recommended' | 'strong' | 'maximum';
 // dpi/quality/maxDim drive the SURGICAL pass (photos on text pages — kept gentle
 // so those stay sharp). rasterDpi/rasterQ drive the SCAN-PAGE rasterizer, which
 // is much more aggressive because scanned pages dominate file size.
-const LEVELS: Record<Level, { dpi: number; maxDim: number; quality: number; rasterDpi: number; rasterQ: number; title: string; sub: string }> = {
-  light: { dpi: 200, maxDim: 2400, quality: 82, rasterDpi: 130, rasterQ: 0.68, title: 'Light', sub: 'Best quality' },
-  recommended: { dpi: 150, maxDim: 1800, quality: 74, rasterDpi: 100, rasterQ: 0.52, title: 'Recommended', sub: 'Best balance' },
-  strong: { dpi: 110, maxDim: 1200, quality: 60, rasterDpi: 68, rasterQ: 0.4, title: 'Strong', sub: 'Smaller' },
+// rasterFrac: when a scan declares an inflated page size (1px drawn per pt →
+// the "DPI" reads as ~72 and a DPI-based target would UPSCALE the stored image),
+// we instead shrink relative to the stored pixels — rasterFrac × source, never
+// above the source resolution. Harness-proven on a real 27MB JPEG-2000 book:
+// recommended (0.5 × source, q0.52) → ~58% smaller with crisp, readable output.
+const LEVELS: Record<Level, { dpi: number; maxDim: number; quality: number; rasterDpi: number; rasterQ: number; rasterFrac: number; title: string; sub: string }> = {
+  light: { dpi: 200, maxDim: 2400, quality: 82, rasterDpi: 130, rasterQ: 0.68, rasterFrac: 0.8, title: 'Light', sub: 'Best quality' },
+  recommended: { dpi: 150, maxDim: 1800, quality: 74, rasterDpi: 100, rasterQ: 0.52, rasterFrac: 0.5, title: 'Recommended', sub: 'Best balance' },
+  strong: { dpi: 110, maxDim: 1200, quality: 60, rasterDpi: 68, rasterQ: 0.4, rasterFrac: 0.42, title: 'Strong', sub: 'Smaller' },
   // "maximum" forces a full rebuild (rasterizes every image-heavy page) for the
   // last few MB — slower, so we tell the user to be patient.
-  maximum: { dpi: 96, maxDim: 1000, quality: 52, rasterDpi: 60, rasterQ: 0.37, title: 'Maximum', sub: 'Squeeze harder' },
+  maximum: { dpi: 96, maxDim: 1000, quality: 52, rasterDpi: 60, rasterQ: 0.37, rasterFrac: 0.36, title: 'Maximum', sub: 'Squeeze harder' },
 };
 const MAX_RASTER = 4000; // clamp rasterized scan-page long edge (memory safety)
+const RASTER_FLOOR_PX = 1100; // readability floor when shrinking relative to source
 
 // ---- DPI awareness: find each image's on-page display size (in points) ------
 // Track the CTM through a page's content stream and record the largest display
@@ -312,13 +318,14 @@ export function CompressTool() {
       const original = new Uint8Array(await file.arrayBuffer());
       const doc = await PDFDocument.load(original, { ignoreEncryption: true });
       const ctx = doc.context;
-      const { dpi, maxDim, quality, rasterDpi, rasterQ } = LEVELS[level];
+      const { dpi, maxDim, quality, rasterDpi, rasterQ, rasterFrac } = LEVELS[level];
 
       // DPI awareness (best-effort): read each image's on-page display size by
       // tracking the CTM through every page's content stream. Falls back to the
       // maxDim cap for any image we can't locate, so it's always safe.
       const displaySizes = new Map<string, number>(); // image ref tag -> max display long-edge (pt)
       const scanPages = new Set<number>(); // page indices that are "a big image" (a scan)
+      const rasterTargetPx = new Map<number, number>(); // page index -> raster long-edge target (px)
       const scanImageTags = new Set<string>(); // image tags on scan pages — skip in the surgical pass (they get rasterized anyway)
       try {
         const dec = new TextDecoder('latin1');
@@ -362,17 +369,25 @@ export function CompressTool() {
           if (text) {
             const maxArea = scanContent(text, nameToTag, displaySizes);
             const { width, height } = page.getSize();
-            const pageLongIn = Math.max(width, height) / 72;
-            const storedDpi = pageLongIn > 0 ? maxStoredPx / pageLongIn : 0;
-            // A scanned page (one big image) is only worth rasterizing if its
-            // image is clearly higher-res than the target — otherwise re-rendering
-            // wastes minutes for almost nothing (an already-efficient file just
-            // isn't compressible, exactly what Smallpdf/iLovePDF show: ~1%).
-            // Normally only rasterize when the image is clearly higher-res than
-            // target (worth the time). "Squeeze harder" (force) rasterizes any
-            // big-image page, even for a small extra gain.
-            if (width > 0 && height > 0 && maxArea >= 0.7 * width * height && (force || storedDpi >= rasterDpi * 1.5)) {
+            const pageLongPt = Math.max(width, height);
+            // Target long edge if we rasterize this page. Normally DPI-driven,
+            // but some scans declare inflated page sizes (1 px drawn per pt →
+            // the "DPI" reads as ~72), where a DPI target would UPSCALE the
+            // stored image — never do that. There we shrink relative to the
+            // stored pixels instead (rasterFrac × source, with a readability
+            // floor, never above source). This is what makes JPEG-2000 scans
+            // (which pack more pixels per byte than JPEG) actually compress.
+            const dpiTargetPx = (rasterDpi / 72) * pageLongPt;
+            const fracTargetPx = maxStoredPx > 0 ? Math.min(maxStoredPx, Math.max(rasterFrac * maxStoredPx, RASTER_FLOOR_PX)) : 0;
+            const targetPx = maxStoredPx > 0 && dpiTargetPx >= maxStoredPx ? fracTargetPx : dpiTargetPx;
+            // Only rasterize when it's a REAL pixel reduction of the stored
+            // image — re-encoding at ~the same size wastes minutes and can even
+            // grow the file (e.g. JPEG 2000 beats same-res JPEG). "Squeeze
+            // harder" (force) rasterizes any big-image page regardless.
+            const worthIt = maxStoredPx > 0 && targetPx <= maxStoredPx * 0.87;
+            if (width > 0 && height > 0 && maxArea >= 0.7 * width * height && (force || worthIt)) {
               scanPages.add(pi);
+              rasterTargetPx.set(pi, targetPx);
               nameToTag.forEach((tag) => scanImageTags.add(tag));
             }
           }
@@ -466,9 +481,8 @@ export function CompressTool() {
         // finish near-instantly (just the surgical result + structural save).
         outBytes = await doc.save({ useObjectStreams: true });
       } else try {
-        const pdfjs = await import('pdfjs-dist');
-        pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
-        const task = pdfjs.getDocument({ data: original.slice() });
+        const pdfjs = await getPdfjs();
+        const task = pdfjs.getDocument(pdfDocOptions(original.slice()));
         const jsDoc = await task.promise;
         try {
           const pageCount = doc.getPageCount();
@@ -484,16 +498,18 @@ export function CompressTool() {
               if (scanPages.has(i)) {
                 const jp = await jsDoc.getPage(i + 1);
                 const vp1 = jp.getViewport({ scale: 1 });
-                let s = rasterDpi / 72;
-                let vp = jp.getViewport({ scale: s });
-                const longEdge = Math.max(vp.width, vp.height);
-                if (longEdge > MAX_RASTER) { s = (s * MAX_RASTER) / longEdge; vp = jp.getViewport({ scale: s }); }
+                const pageLongPt = Math.max(vp1.width, vp1.height);
+                // Per-page target from the analysis pass (never upscales the
+                // source image); DPI-derived fallback, clamped for memory safety.
+                const targetPx = Math.min(MAX_RASTER, rasterTargetPx.get(i) ?? (rasterDpi / 72) * pageLongPt);
+                const s = targetPx / pageLongPt;
+                const vp = jp.getViewport({ scale: s });
                 const canvas = document.createElement('canvas');
                 canvas.width = Math.ceil(vp.width); canvas.height = Math.ceil(vp.height);
                 const cx = canvas.getContext('2d');
                 if (cx) {
                   cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, canvas.width, canvas.height);
-                  await jp.render({ canvasContext: cx, viewport: vp, background: 'rgba(255,255,255,1)' }).promise;
+                  await jp.render({ canvas, viewport: vp, background: 'rgba(255,255,255,1)' }).promise;
                   // Native JPEG (not mozjpeg): scan pages are already downsampled,
                   // and native is ~15x faster — 100+ page books finish in seconds.
                   const jpgBlob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/jpeg', q01));

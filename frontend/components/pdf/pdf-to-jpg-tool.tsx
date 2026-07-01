@@ -11,6 +11,7 @@ import { downloadBlob as download } from '@/lib/download';
 import { KeepGoing } from '@/components/app/keep-going';
 import { KeepMoving } from '@/components/app/keep-moving';
 import { setHandoff, takeHandoff } from '@/lib/handoff';
+import { getPdfjs, pdfDocOptions } from '@/lib/pdf-render';
 
 type Format = 'jpg' | 'png';
 type Preset = 'standard' | 'high' | 'max';
@@ -188,11 +189,9 @@ export function PdfToJpgTool() {
     setSkipped([]);
     setResults((prev) => { revoke(prev); return []; });
     try {
-      const pdfjs = await import('pdfjs-dist'); // heavy engine — load only on convert
-      const data = await file.arrayBuffer();
-      // pdf.js v3 ships a classic worker (no module-worker handshake) served from /public.
-      pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
-      const loadingTask = pdfjs.getDocument({ data });
+      const pdfjs = await getPdfjs(); // heavy engine — load only on convert
+      const data = new Uint8Array(await file.arrayBuffer());
+      const loadingTask = pdfjs.getDocument(pdfDocOptions(data));
       const doc = await loadingTask.promise;
       try {
         const total = doc.numPages;
@@ -228,7 +227,7 @@ export function PdfToJpgTool() {
             // White background first — JPEG has no alpha, so transparent areas would go black.
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            await page.render({ canvasContext: ctx, viewport, background: 'rgba(255,255,255,1)' }).promise;
+            await page.render({ canvas, viewport, background: 'rgba(255,255,255,1)' }).promise;
 
             let blob: Blob | null;
             if (format === 'png') {

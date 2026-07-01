@@ -1,49 +1,18 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
 import { Loader2, FileWarning } from 'lucide-react';
-import { renderPage, dprTarget, type PdfHandle } from '@/lib/pdf-render';
+import { useLazyPageThumb, type PdfHandle } from '@/lib/pdf-render';
 
 // Horizontal strip of lazily-rendered page thumbnails. Only thumbnails near the
-// viewport are rendered (IntersectionObserver), and renders are serialised through
-// a global queue so a big document never floods pdf.js — typical files stay snappy.
-// Click a thumb to select that page (drives the big preview / before-after viewer).
+// viewport are rendered (IntersectionObserver via useLazyPageThumb), through the
+// shared LIFO render queue — so a big document never floods pdf.js and what the
+// user is looking at renders first. Click a thumb to select that page (drives
+// the big preview / before-after viewer).
 
 const THUMB_CSS = 60; // displayed long edge (px)
 
-// Serialise thumbnail renders so we never run many heavy pdf.js renders at once.
-let queue: Promise<unknown> = Promise.resolve();
-function enqueue<T>(fn: () => Promise<T>): Promise<T> {
-  const run = queue.then(fn, fn);
-  queue = run.then(() => undefined, () => undefined);
-  return run;
-}
-
 function Thumb({ handle, index, active, onSelect }: { handle: PdfHandle; index: number; active: boolean; onSelect: () => void }) {
-  const ref = useRef<HTMLButtonElement>(null);
-  const [url, setUrl] = useState<string | null>(null);
-  const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    setUrl(null);
-    setFailed(false);
-    const el = ref.current;
-    if (!el) return;
-    const io = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((e) => e.isIntersecting)) {
-          io.disconnect();
-          enqueue(() => renderPage(handle, index, dprTarget(THUMB_CSS, 2.2, 240)))
-            .then((p) => { if (!cancelled) setUrl(p.url); })
-            .catch(() => { if (!cancelled) setFailed(true); });
-        }
-      },
-      { rootMargin: '300px' },
-    );
-    io.observe(el);
-    return () => { cancelled = true; io.disconnect(); };
-  }, [handle, index]);
+  const { ref, url, failed } = useLazyPageThumb<HTMLButtonElement>(handle, index, THUMB_CSS);
 
   return (
     <button

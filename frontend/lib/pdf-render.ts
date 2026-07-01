@@ -1,13 +1,20 @@
-// Shared, cancellable, cached pdf.js page renderer used by the multi-page preview
+// Shared, cancellable, cached pdf.js page renderer used by every PDF preview in
+// the app: the thumbnail grids (Rotate / Delete pages), the multi-page preview
 // strip, the big page preview, and the before/after viewer. Open a PDF ONCE per
 // loaded file (openPdf) and reuse the handle for every page render — far cheaper
 // than re-opening per page. All rendering is DPR-aware (render well above display
 // size, then let the browser/loupe downsample) for crisp text. Fully client-side.
 //
+// pdf.js v6 decodes JPEG 2000 (JPXDecode) and JBIG2 images with WASM decoders —
+// ~16× faster than the old v3 JavaScript path (measured: 216ms vs 3463ms per page
+// on a real 27MB JPX-scanned book). The WASM/cmap/font assets live under
+// /public/pdfjs/ and are fetched on demand only.
+//
 // Note: pdf.js rendering needs the worker, which works in real browsers but hangs
 // in the Claude preview sandbox — verify render output via the Node harness
-// (scratchpad/pdfrender, disableWorker:true). See the pdfjs-render-harness memo.
+// (scratchpad, disableWorker) per the pdfjs-render-harness memo.
 
+import { useEffect, useRef, useState } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 
 export type RenderedPage = { url: string; w: number; h: number };
@@ -22,11 +29,31 @@ export type PdfHandle = {
 
 const CACHE_CAP = 140; // bound memory: ~140 cached page bitmaps max per file
 
+// Static assets copied from pdfjs-dist into /public (worker at /pdf.worker.min.mjs,
+// the rest under /public/pdfjs/). All are lazily fetched by pdf.js when needed.
+const ASSETS = '/pdfjs/';
+
+/** getDocument() options every tool should use — wires up the WASM image decoders
+ * (JPEG 2000/JBIG2), ICC color, CJK cmaps, and standard fonts. */
+export function pdfDocOptions(data: Uint8Array) {
+  return {
+    data,
+    wasmUrl: `${ASSETS}wasm/`,
+    iccUrl: `${ASSETS}iccs/`,
+    cMapUrl: `${ASSETS}cmaps/`,
+    cMapPacked: true,
+    standardFontDataUrl: `${ASSETS}standard_fonts/`,
+  };
+}
+
 let pdfjsPromise: Promise<typeof import('pdfjs-dist')> | null = null;
-async function getPdfjs() {
+export async function getPdfjs() {
   if (!pdfjsPromise) {
-    pdfjsPromise = import('pdfjs-dist').then((m) => {
-      m.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+    // Legacy build = widest browser support; the .mjs worker loads as a module
+    // worker (pdf.js falls back to a main-thread "fake worker" where unsupported,
+    // so no browser dead-ends — just slower there).
+    pdfjsPromise = (import('pdfjs-dist/legacy/build/pdf.mjs') as Promise<typeof import('pdfjs-dist')>).then((m) => {
+      m.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
       return m;
     });
   }
@@ -43,7 +70,7 @@ export function dprTarget(cssLong: number, mult = 2.4, cap = 1800): number {
 export async function openPdf(src: File | Blob): Promise<PdfHandle> {
   const pdfjs = await getPdfjs();
   const data = new Uint8Array(await src.arrayBuffer());
-  const task = pdfjs.getDocument({ data });
+  const task = pdfjs.getDocument(pdfDocOptions(data));
   const doc = await task.promise;
   const cache = new Map<string, RenderedPage>();
   return {
@@ -91,7 +118,7 @@ export async function renderPage(
   cx.fillStyle = '#ffffff';
   cx.fillRect(0, 0, canvas.width, canvas.height);
 
-  const task = page.render({ canvasContext: cx, viewport, background: 'rgba(255,255,255,1)' });
+  const task = page.render({ canvas, viewport, background: 'rgba(255,255,255,1)' });
   const onAbort = () => task.cancel();
   signal?.addEventListener('abort', onAbort);
   try {
@@ -117,4 +144,65 @@ export async function renderPage(
     }
   }
   return out;
+}
+
+// ---- Lazy thumbnails (shared by every page grid / strip) --------------------
+// A page-wide LIFO queue with small concurrency: tiles enqueue themselves when
+// they (nearly) scroll into view, newest first — so what the user is looking at
+// renders first, and a 1000-page document costs nothing until it's scrolled.
+
+const thumbQueue: Array<() => Promise<void>> = [];
+let thumbActive = 0;
+const THUMB_CONCURRENCY = 3;
+
+function pumpThumbs() {
+  while (thumbActive < THUMB_CONCURRENCY && thumbQueue.length > 0) {
+    const job = thumbQueue.pop()!; // LIFO: most recently visible first
+    thumbActive++;
+    void job().finally(() => {
+      thumbActive--;
+      pumpThumbs();
+    });
+  }
+}
+
+/** Lazily render page `index`'s thumbnail once the returned ref's element nears
+ * the viewport. Returns a blob URL when ready (cached per handle, LRU-bounded). */
+export function useLazyPageThumb<T extends Element>(
+  handle: PdfHandle | null,
+  index: number,
+  cssLong = 150,
+): { ref: React.RefObject<T>; url: string | null; failed: boolean } {
+  const ref = useRef<T>(null);
+  const [url, setUrl] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setUrl(null);
+    setFailed(false);
+    const el = ref.current;
+    if (!handle || !el) return;
+    let cancelled = false;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((e) => e.isIntersecting)) return;
+        io.disconnect();
+        thumbQueue.push(async () => {
+          if (cancelled) return;
+          try {
+            const p = await renderPage(handle, index, dprTarget(cssLong, 2.2, 340));
+            if (!cancelled) setUrl(p.url);
+          } catch {
+            if (!cancelled) setFailed(true);
+          }
+        });
+        pumpThumbs();
+      },
+      { rootMargin: '500px' },
+    );
+    io.observe(el);
+    return () => { cancelled = true; io.disconnect(); };
+  }, [handle, index, cssLong]);
+
+  return { ref, url, failed };
 }

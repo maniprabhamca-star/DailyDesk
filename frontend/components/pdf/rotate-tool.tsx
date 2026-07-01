@@ -1,23 +1,20 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Upload, FileText, X, Download, Loader2, RotateCw, RotateCcw, Zap, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { takeHandoff } from '@/lib/handoff';
 import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
+import { openPdf, useLazyPageThumb, type PdfHandle } from '@/lib/pdf-render';
 
-// One page thumbnail + its pending rotation (delta added on top of the page's
-// existing rotation). Rotation is applied LOSSLESSLY with pdf-lib (it just sets
-// the page's rotation flag — no re-rendering), so output quality is untouched.
-// `url` is null until the thumbnail has been rendered (previews render lazily as
-// each page scrolls into view — so a 500-page / scanned PDF shows instantly
-// instead of grinding through every page up front).
-type Thumb = { page: number; url: string | null; delta: number; selected: boolean };
-
-const THUMB_PX = 240; // long-edge px for the preview render — small + lean
-const RENDER_CONCURRENCY = 2; // render a couple of visible pages at a time
+// Per-page pending rotation (delta added on top of the page's existing rotation)
+// + selection. Rotation is applied LOSSLESSLY with pdf-lib (it just sets the
+// page's rotation flag — no re-rendering), so output quality is untouched.
+// Thumbnails render lazily through the shared queue as tiles scroll into view,
+// so even a 1000-page scanned book shows its grid instantly.
+type PageState = { delta: number; selected: boolean };
 
 function fmt(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -27,104 +24,63 @@ function fmt(bytes: number) {
 
 const norm = (d: number) => ((d % 360) + 360) % 360;
 
+function RotateTile({
+  handle, index, state, onRotate, onToggle,
+}: {
+  handle: PdfHandle; index: number; state: PageState;
+  onRotate: (index: number, dir: 1 | -1) => void; onToggle: (index: number) => void;
+}) {
+  const { ref, url, failed } = useLazyPageThumb<HTMLDivElement>(handle, index, 170);
+  return (
+    <div className="group [contain-intrinsic-size:auto_220px] [content-visibility:auto]">
+      <div
+        ref={ref}
+        className={`relative flex aspect-square items-center justify-center overflow-hidden rounded-xl border bg-muted/30 transition-colors ${state.selected ? 'border-primary ring-1 ring-primary' : ''}`}
+      >
+        <input
+          type="checkbox"
+          aria-label={`Select page ${index + 1}`}
+          className="absolute left-2 top-2 z-10 size-4 accent-[hsl(var(--primary))]"
+          checked={state.selected}
+          onChange={() => onToggle(index)}
+        />
+        {url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={url}
+            alt={`Page ${index + 1}`}
+            className="max-h-[86%] max-w-[86%] object-contain shadow-sm transition-transform duration-200"
+            style={{ transform: `rotate(${state.delta}deg)` }}
+          />
+        ) : (
+          <div className="flex size-full items-center justify-center">
+            {failed ? <FileText className="size-5 text-muted-foreground/50" /> : <Loader2 className="size-5 animate-spin text-muted-foreground/50" />}
+          </div>
+        )}
+        {/* per-page rotate controls (always visible on touch, hover on desktop) */}
+        <div className="absolute inset-x-0 bottom-1.5 flex justify-center gap-1.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
+          <button onClick={() => onRotate(index, -1)} aria-label={`Rotate page ${index + 1} left`} className="flex size-7 items-center justify-center rounded-full bg-background/90 text-foreground shadow ring-1 ring-border hover:bg-background"><RotateCcw className="size-3.5" /></button>
+          <button onClick={() => onRotate(index, 1)} aria-label={`Rotate page ${index + 1} right`} className="flex size-7 items-center justify-center rounded-full bg-primary text-primary-foreground shadow hover:opacity-90"><RotateCw className="size-3.5" /></button>
+        </div>
+      </div>
+      <p className="mt-1 text-center text-xs text-muted-foreground">Page {index + 1}{state.delta ? ` · ${state.delta}°` : ''}</p>
+    </div>
+  );
+}
+
 export function RotateTool() {
   const [file, setFile] = useState<File | null>(null);
-  const [thumbs, setThumbs] = useState<Thumb[]>([]);
-  const [parsing, setParsing] = useState(false); // parsing the PDF (before the grid appears)
+  const [handle, setHandle] = useState<PdfHandle | null>(null);
+  const [pages, setPages] = useState<PageState[]>([]);
+  const [parsing, setParsing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ blob: Blob; name: string } | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Live pdf.js document kept alive for lazy thumbnail rendering.
-  const docRef = useRef<import('pdfjs-dist').PDFDocumentProxy | null>(null);
-  const taskRef = useRef<import('pdfjs-dist').PDFDocumentLoadingTask | null>(null);
-  const observerRef = useRef<IntersectionObserver | null>(null);
-  const urlsRef = useRef<Set<string>>(new Set()); // every object URL we create, for reliable cleanup
-  const claimedRef = useRef<Set<number>>(new Set()); // pages queued/rendered — never render twice
-  const queueRef = useRef<number[]>([]);
-  const activeRef = useRef(0);
-
-  const teardown = useCallback(() => {
-    observerRef.current?.disconnect();
-    observerRef.current = null;
-    queueRef.current = [];
-    activeRef.current = 0;
-    claimedRef.current.clear();
-    urlsRef.current.forEach((u) => URL.revokeObjectURL(u));
-    urlsRef.current.clear();
-    const doc = docRef.current;
-    const task = taskRef.current;
-    docRef.current = null;
-    taskRef.current = null;
-    if (doc) { try { void doc.destroy(); } catch { /* ignore */ } }
-    if (task) { try { void task.destroy(); } catch { /* ignore */ } }
-  }, []);
-
-  // Revoke everything + destroy the pdf.js doc when the component unmounts.
-  useEffect(() => () => teardown(), [teardown]);
-
-  // Render a single page's thumbnail on demand and drop it into `thumbs`.
-  const renderThumb = useCallback(async (pageNum: number) => {
-    const doc = docRef.current;
-    if (!doc) return;
-    try {
-      const page = await doc.getPage(pageNum);
-      const base = page.getViewport({ scale: 1 });
-      const scale = THUMB_PX / Math.max(base.width, base.height);
-      const vp = page.getViewport({ scale });
-      const canvas = document.createElement('canvas');
-      canvas.width = Math.ceil(vp.width);
-      canvas.height = Math.ceil(vp.height);
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      await page.render({ canvasContext: ctx, viewport: vp, background: 'rgba(255,255,255,1)' }).promise;
-      const url = await new Promise<string | null>((res) =>
-        canvas.toBlob((b) => res(b ? URL.createObjectURL(b) : null), 'image/jpeg', 0.72),
-      );
-      canvas.width = 0;
-      canvas.height = 0;
-      page.cleanup();
-      if (!docRef.current) { if (url) URL.revokeObjectURL(url); return; } // torn down mid-render
-      if (url) {
-        urlsRef.current.add(url);
-        setThumbs((cur) => cur.map((t) => (t.page === pageNum ? { ...t, url } : t)));
-      }
-    } catch {
-      claimedRef.current.delete(pageNum); // allow a retry if it scrolls back into view
-    }
-  }, []);
-
-  // Serial-ish pump: keep RENDER_CONCURRENCY renders in flight.
-  const pump = useCallback(() => {
-    while (activeRef.current < RENDER_CONCURRENCY && queueRef.current.length > 0) {
-      const page = queueRef.current.shift()!;
-      activeRef.current++;
-      void renderThumb(page).finally(() => {
-        activeRef.current--;
-        pump();
-      });
-    }
-  }, [renderThumb]);
-
-  const enqueue = useCallback((page: number) => {
-    if (claimedRef.current.has(page)) return;
-    claimedRef.current.add(page);
-    queueRef.current.push(page);
-    pump();
-  }, [pump]);
-
-  // Tile ref callback — register each page tile with the IntersectionObserver so
-  // its thumbnail renders the moment it (nearly) enters the viewport.
-  const observeTile = useCallback((el: HTMLDivElement | null, page: number) => {
-    const obs = observerRef.current;
-    if (!el || !obs) return;
-    el.dataset.page = String(page);
-    obs.observe(el);
-  }, []);
+  // Free the pdf.js document (and its cached thumbnails) on replace/unmount.
+  useEffect(() => () => { setHandle((prev) => { if (prev) void prev.destroy(); return null; }); }, []);
 
   async function loadOne(f?: File) {
     if (!f) return;
@@ -134,38 +90,16 @@ export function RotateTool() {
     }
     setError(null);
     setDone(null);
-    teardown();
-    setThumbs([]);
+    setPages([]);
+    setHandle((prev) => { if (prev) void prev.destroy(); return null; });
     setFile(f);
     setParsing(true);
     try {
-      const pdfjs = await import('pdfjs-dist'); // render previews only
-      pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
-      const task = pdfjs.getDocument({ data: await f.arrayBuffer() });
-      taskRef.current = task;
-      const doc = await task.promise;
-      docRef.current = doc;
-      const total = doc.numPages;
-
-      // Set up the lazy-render observer BEFORE the tiles mount so their ref
-      // callbacks can register immediately. 600px margin pre-renders just ahead
-      // of the scroll so previews feel instant.
-      observerRef.current = new IntersectionObserver(
-        (entries) => {
-          for (const e of entries) {
-            if (!e.isIntersecting) continue;
-            const page = Number((e.target as HTMLElement).dataset.page);
-            if (page) enqueue(page);
-            observerRef.current?.unobserve(e.target); // render each tile once
-          }
-        },
-        { root: null, rootMargin: '600px 0px' },
-      );
-
-      // Show the whole grid instantly with placeholders; thumbnails stream in.
-      setThumbs(Array.from({ length: total }, (_, i) => ({ page: i + 1, url: null, delta: 0, selected: false })));
+      const h = await openPdf(f);
+      setHandle(h);
+      // The grid shows instantly with placeholders; thumbnails stream in lazily.
+      setPages(Array.from({ length: h.numPages }, () => ({ delta: 0, selected: false })));
     } catch {
-      teardown();
       setError('Could not read that PDF. It may be corrupted or password-protected.');
       setFile(null);
     } finally {
@@ -187,8 +121,8 @@ export function RotateTool() {
   }, []);
 
   function clear() {
-    teardown();
-    setThumbs([]);
+    setHandle((prev) => { if (prev) void prev.destroy(); return null; });
+    setPages([]);
     setFile(null);
     setError(null);
     setDone(null);
@@ -198,29 +132,29 @@ export function RotateTool() {
 
   function rotatePage(i: number, dir: 1 | -1) {
     setDone(null);
-    setThumbs((cur) => cur.map((t, idx) => (idx === i ? { ...t, delta: norm(t.delta + dir * 90) } : t)));
+    setPages((cur) => cur.map((p, idx) => (idx === i ? { ...p, delta: norm(p.delta + dir * 90) } : p)));
   }
 
   function bulkRotate(dir: 1 | -1) {
     setDone(null);
-    const anySelected = thumbs.some((t) => t.selected);
-    setThumbs((cur) => cur.map((t) => (!anySelected || t.selected ? { ...t, delta: norm(t.delta + dir * 90) } : t)));
+    const anySelected = pages.some((p) => p.selected);
+    setPages((cur) => cur.map((p) => (!anySelected || p.selected ? { ...p, delta: norm(p.delta + dir * 90) } : p)));
   }
 
-  const allSelected = thumbs.length > 0 && thumbs.every((t) => t.selected);
+  const allSelected = pages.length > 0 && pages.every((p) => p.selected);
   function toggleAll() {
     const next = !allSelected;
-    setThumbs((cur) => cur.map((t) => ({ ...t, selected: next })));
+    setPages((cur) => cur.map((p) => ({ ...p, selected: next })));
   }
   function toggleOne(i: number) {
-    setThumbs((cur) => cur.map((t, idx) => (idx === i ? { ...t, selected: !t.selected } : t)));
+    setPages((cur) => cur.map((p, idx) => (idx === i ? { ...p, selected: !p.selected } : p)));
   }
   function reset() {
     setDone(null);
-    setThumbs((cur) => cur.map((t) => ({ ...t, delta: 0, selected: false })));
+    setPages((cur) => cur.map(() => ({ delta: 0, selected: false })));
   }
 
-  const changes = thumbs.filter((t) => t.delta !== 0).length;
+  const changes = pages.filter((p) => p.delta !== 0).length;
 
   async function apply() {
     if (!file || changes === 0) return;
@@ -230,11 +164,11 @@ export function RotateTool() {
     try {
       const { PDFDocument, degrees } = await import('pdf-lib');
       const src = await PDFDocument.load(await file.arrayBuffer(), { ignoreEncryption: true });
-      const pages = src.getPages();
-      thumbs.forEach((t, i) => {
-        if (t.delta === 0 || !pages[i]) return;
-        const cur = pages[i].getRotation().angle || 0;
-        pages[i].setRotation(degrees(norm(cur + t.delta)));
+      const libPages = src.getPages();
+      pages.forEach((p, i) => {
+        if (p.delta === 0 || !libPages[i]) return;
+        const cur = libPages[i].getRotation().angle || 0;
+        libPages[i].setRotation(degrees(norm(cur + p.delta)));
       });
       const out = await src.save();
       const name = `${file.name.replace(/\.pdf$/i, '')}-rotated.pdf`;
@@ -275,12 +209,12 @@ export function RotateTool() {
               <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-red-100 text-red-600 dark:bg-red-950/40"><FileText className="size-4" /></span>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{file.name}</p>
-                <p className="text-xs text-muted-foreground">{fmt(file.size)} · {thumbs.length || 0} page{thumbs.length === 1 ? '' : 's'}</p>
+                <p className="text-xs text-muted-foreground">{fmt(file.size)} · {pages.length || '…'} page{pages.length === 1 ? '' : 's'}</p>
               </div>
               <Button size="icon" variant="ghost" aria-label="Remove" onClick={clear}><X className="size-4" /></Button>
             </div>
 
-            {parsing ? (
+            {parsing || !handle ? (
               <div className="mt-6 flex flex-col items-center justify-center gap-2 py-10 text-muted-foreground">
                 <Loader2 className="size-6 animate-spin" />
                 <p className="text-sm">Opening your PDF…</p>
@@ -300,43 +234,10 @@ export function RotateTool() {
                   <span className="ml-auto text-xs text-muted-foreground">{changes > 0 ? `${changes} page${changes === 1 ? '' : 's'} to rotate` : 'Tap a page to rotate'}</span>
                 </div>
 
-                {/* page grid */}
+                {/* page grid — thumbnails stream in as you scroll */}
                 <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-                  {thumbs.map((t, i) => (
-                    <div key={t.page} className="group">
-                      <div
-                        ref={(el) => observeTile(el, t.page)}
-                        className={`relative flex aspect-square items-center justify-center overflow-hidden rounded-xl border bg-muted/30 transition-colors ${t.selected ? 'border-primary ring-1 ring-primary' : ''}`}
-                      >
-                        <input
-                          type="checkbox"
-                          aria-label={`Select page ${t.page}`}
-                          className="absolute left-2 top-2 z-10 size-4 accent-[hsl(var(--primary))]"
-                          checked={t.selected}
-                          onChange={() => toggleOne(i)}
-                        />
-                        {t.url ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={t.url}
-                            alt={`Page ${t.page}`}
-                            loading="lazy"
-                            className="max-h-[86%] max-w-[86%] object-contain shadow-sm transition-transform duration-200"
-                            style={{ transform: `rotate(${t.delta}deg)` }}
-                          />
-                        ) : (
-                          <div className="flex size-full items-center justify-center">
-                            <Loader2 className="size-5 animate-spin text-muted-foreground/50" />
-                          </div>
-                        )}
-                        {/* per-page rotate controls (always visible on touch, hover on desktop) */}
-                        <div className="absolute inset-x-0 bottom-1.5 flex justify-center gap-1.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
-                          <button onClick={() => rotatePage(i, -1)} aria-label={`Rotate page ${t.page} left`} className="flex size-7 items-center justify-center rounded-full bg-background/90 text-foreground shadow ring-1 ring-border hover:bg-background"><RotateCcw className="size-3.5" /></button>
-                          <button onClick={() => rotatePage(i, 1)} aria-label={`Rotate page ${t.page} right`} className="flex size-7 items-center justify-center rounded-full bg-primary text-primary-foreground shadow hover:opacity-90"><RotateCw className="size-3.5" /></button>
-                        </div>
-                      </div>
-                      <p className="mt-1 text-center text-xs text-muted-foreground">Page {t.page}{t.delta ? ` · ${t.delta}°` : ''}</p>
-                    </div>
+                  {pages.map((p, i) => (
+                    <RotateTile key={i} handle={handle} index={i} state={p} onRotate={rotatePage} onToggle={toggleOne} />
                   ))}
                 </div>
               </>

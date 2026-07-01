@@ -7,12 +7,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { takeHandoff } from '@/lib/handoff';
 import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
+import { openPdf, useLazyPageThumb, type PdfHandle } from '@/lib/pdf-render';
 
-// One page thumbnail + whether it's marked for removal. Deletion is lossless
-// (pdf-lib removePage — the kept pages are untouched), so quality is preserved.
-type Thumb = { page: number; url: string; marked: boolean };
-
-const THUMB_PX = 240; // long-edge px for the preview render — small + lean
+// Whether each page is marked for removal. Deletion is lossless (pdf-lib
+// removePage — the kept pages are untouched), so quality is preserved.
+// Thumbnails render lazily through the shared queue as tiles scroll into view,
+// so even a huge scanned book shows its grid instantly.
 
 function fmt(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -20,18 +20,65 @@ function fmt(bytes: number) {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
+function DeleteTile({
+  handle, index, marked, onToggle,
+}: {
+  handle: PdfHandle; index: number; marked: boolean; onToggle: (index: number) => void;
+}) {
+  const { ref, url, failed } = useLazyPageThumb<HTMLButtonElement>(handle, index, 170);
+  return (
+    <div className="group [contain-intrinsic-size:auto_220px] [content-visibility:auto]">
+      <button
+        ref={ref}
+        type="button"
+        onClick={() => onToggle(index)}
+        aria-pressed={marked}
+        aria-label={`${marked ? 'Keep' : 'Remove'} page ${index + 1}`}
+        className={`relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-xl border bg-muted/30 transition-all ${
+          marked ? 'border-destructive ring-1 ring-destructive' : 'hover:border-destructive/40'
+        }`}
+      >
+        {url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={url}
+            alt={`Page ${index + 1}`}
+            className={`max-h-[86%] max-w-[86%] object-contain shadow-sm transition-opacity ${marked ? 'opacity-30' : ''}`}
+          />
+        ) : (
+          <span className="flex size-full items-center justify-center">
+            {failed ? <FileText className="size-5 text-muted-foreground/50" /> : <Loader2 className="size-5 animate-spin text-muted-foreground/50" />}
+          </span>
+        )}
+        {marked && (
+          <span className="absolute inset-0 flex items-center justify-center bg-destructive/5">
+            <span className="flex size-9 items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow"><Trash2 className="size-[18px]" /></span>
+          </span>
+        )}
+        <span className={`absolute left-2 top-2 flex size-4 items-center justify-center rounded border ${marked ? 'border-destructive bg-destructive text-destructive-foreground' : 'border-border bg-background/80'}`}>
+          {marked && <Trash2 className="size-2.5" />}
+        </span>
+      </button>
+      <p className={`mt-1 text-center text-xs ${marked ? 'font-medium text-destructive' : 'text-muted-foreground'}`}>
+        {marked ? 'Will be removed' : `Page ${index + 1}`}
+      </p>
+    </div>
+  );
+}
+
 export function DeletePagesTool() {
   const [file, setFile] = useState<File | null>(null);
-  const [thumbs, setThumbs] = useState<Thumb[]>([]);
-  const [loading, setLoading] = useState<{ done: number; total: number } | null>(null);
+  const [handle, setHandle] = useState<PdfHandle | null>(null);
+  const [markedPages, setMarkedPages] = useState<boolean[]>([]);
+  const [parsing, setParsing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ blob: Blob; name: string } | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  function revoke(ts: Thumb[]) { ts.forEach((t) => URL.revokeObjectURL(t.url)); }
-  useEffect(() => () => revoke(thumbs), [thumbs]);
+  // Free the pdf.js document (and its cached thumbnails) on replace/unmount.
+  useEffect(() => () => { setHandle((prev) => { if (prev) void prev.destroy(); return null; }); }, []);
 
   async function loadOne(f?: File) {
     if (!f) return;
@@ -41,49 +88,20 @@ export function DeletePagesTool() {
     }
     setError(null);
     setDone(null);
-    setThumbs((prev) => { revoke(prev); return []; });
+    setMarkedPages([]);
+    setHandle((prev) => { if (prev) void prev.destroy(); return null; });
     setFile(f);
-    setLoading({ done: 0, total: 0 });
+    setParsing(true);
     try {
-      const pdfjs = await import('pdfjs-dist');
-      pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
-      const task = pdfjs.getDocument({ data: await f.arrayBuffer() });
-      const doc = await task.promise;
-      try {
-        const total = doc.numPages;
-        setLoading({ done: 0, total });
-        const out: Thumb[] = [];
-        for (let i = 1; i <= total; i++) {
-          const page = await doc.getPage(i);
-          const base = page.getViewport({ scale: 1 });
-          const scale = THUMB_PX / Math.max(base.width, base.height);
-          const vp = page.getViewport({ scale });
-          const canvas = document.createElement('canvas');
-          canvas.width = Math.ceil(vp.width);
-          canvas.height = Math.ceil(vp.height);
-          const ctx = canvas.getContext('2d');
-          if (!ctx) throw new Error('no-canvas');
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          await page.render({ canvasContext: ctx, viewport: vp, background: 'rgba(255,255,255,1)' }).promise;
-          const url = await new Promise<string>((res, rej) =>
-            canvas.toBlob((b) => (b ? res(URL.createObjectURL(b)) : rej(new Error('thumb'))), 'image/jpeg', 0.72),
-          );
-          canvas.width = 0;
-          canvas.height = 0;
-          out.push({ page: i, url, marked: false });
-          setLoading({ done: i, total });
-          await new Promise((r) => setTimeout(r, 0));
-        }
-        setThumbs(out);
-      } finally {
-        try { await task.destroy(); } catch { /* ignore */ }
-      }
+      const h = await openPdf(f);
+      setHandle(h);
+      // The grid shows instantly with placeholders; thumbnails stream in lazily.
+      setMarkedPages(Array.from({ length: h.numPages }, () => false));
     } catch {
       setError('Could not read that PDF. It may be corrupted or password-protected.');
       setFile(null);
     } finally {
-      setLoading(null);
+      setParsing(false);
     }
   }
 
@@ -101,30 +119,31 @@ export function DeletePagesTool() {
   }, []);
 
   function clear() {
-    setThumbs((prev) => { revoke(prev); return []; });
+    setHandle((prev) => { if (prev) void prev.destroy(); return null; });
+    setMarkedPages([]);
     setFile(null);
     setError(null);
     setDone(null);
     setHandoffNote(null);
-    setLoading(null);
+    setParsing(false);
   }
 
   function toggleMark(i: number) {
     setDone(null);
-    setThumbs((cur) => cur.map((t, idx) => (idx === i ? { ...t, marked: !t.marked } : t)));
+    setMarkedPages((cur) => cur.map((m, idx) => (idx === i ? !m : m)));
   }
-  const marked = thumbs.filter((t) => t.marked).length;
-  const remaining = thumbs.length - marked;
-  const allMarked = thumbs.length > 0 && marked === thumbs.length;
+  const marked = markedPages.filter(Boolean).length;
+  const remaining = markedPages.length - marked;
+  const allMarked = markedPages.length > 0 && marked === markedPages.length;
 
   function toggleAll() {
     const next = !allMarked;
     setDone(null);
-    setThumbs((cur) => cur.map((t) => ({ ...t, marked: next })));
+    setMarkedPages((cur) => cur.map(() => next));
   }
   function clearMarks() {
     setDone(null);
-    setThumbs((cur) => cur.map((t) => ({ ...t, marked: false })));
+    setMarkedPages((cur) => cur.map(() => false));
   }
 
   async function apply() {
@@ -136,7 +155,7 @@ export function DeletePagesTool() {
       const { PDFDocument } = await import('pdf-lib');
       const src = await PDFDocument.load(await file.arrayBuffer(), { ignoreEncryption: true });
       // Remove from the end so earlier indices stay valid.
-      const toRemove = thumbs.map((t, i) => (t.marked ? i : -1)).filter((i) => i >= 0).sort((a, b) => b - a);
+      const toRemove = markedPages.map((m, i) => (m ? i : -1)).filter((i) => i >= 0).sort((a, b) => b - a);
       toRemove.forEach((i) => src.removePage(i));
       const out = await src.save();
       const name = `${file.name.replace(/\.pdf$/i, '')}-pages-removed.pdf`;
@@ -177,15 +196,15 @@ export function DeletePagesTool() {
               <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-red-100 text-red-600 dark:bg-red-950/40"><FileText className="size-4" /></span>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{file.name}</p>
-                <p className="text-xs text-muted-foreground">{fmt(file.size)} · {thumbs.length || loading?.total || 0} page{(thumbs.length || loading?.total) === 1 ? '' : 's'}</p>
+                <p className="text-xs text-muted-foreground">{fmt(file.size)} · {markedPages.length || '…'} page{markedPages.length === 1 ? '' : 's'}</p>
               </div>
               <Button size="icon" variant="ghost" aria-label="Remove" onClick={clear}><X className="size-4" /></Button>
             </div>
 
-            {loading ? (
+            {parsing || !handle ? (
               <div className="mt-6 flex flex-col items-center justify-center gap-2 py-10 text-muted-foreground">
                 <Loader2 className="size-6 animate-spin" />
-                <p className="text-sm">Rendering page previews… {loading.total ? `${loading.done}/${loading.total}` : ''}</p>
+                <p className="text-sm">Opening your PDF…</p>
               </div>
             ) : (
               <>
@@ -201,38 +220,10 @@ export function DeletePagesTool() {
                   </span>
                 </div>
 
+                {/* page grid — thumbnails stream in as you scroll */}
                 <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-                  {thumbs.map((t, i) => (
-                    <div key={t.page} className="group">
-                      <button
-                        type="button"
-                        onClick={() => toggleMark(i)}
-                        aria-pressed={t.marked}
-                        aria-label={`${t.marked ? 'Keep' : 'Remove'} page ${t.page}`}
-                        className={`relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-xl border bg-muted/30 transition-all ${
-                          t.marked ? 'border-destructive ring-1 ring-destructive' : 'hover:border-destructive/40'
-                        }`}
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={t.url}
-                          alt={`Page ${t.page}`}
-                          loading="lazy"
-                          className={`max-h-[86%] max-w-[86%] object-contain shadow-sm transition-opacity ${t.marked ? 'opacity-30' : ''}`}
-                        />
-                        {t.marked && (
-                          <span className="absolute inset-0 flex items-center justify-center bg-destructive/5">
-                            <span className="flex size-9 items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow"><Trash2 className="size-[18px]" /></span>
-                          </span>
-                        )}
-                        <span className={`absolute left-2 top-2 flex size-4 items-center justify-center rounded border ${t.marked ? 'border-destructive bg-destructive text-destructive-foreground' : 'border-border bg-background/80'}`}>
-                          {t.marked && <Trash2 className="size-2.5" />}
-                        </span>
-                      </button>
-                      <p className={`mt-1 text-center text-xs ${t.marked ? 'font-medium text-destructive' : 'text-muted-foreground'}`}>
-                        {t.marked ? 'Will be removed' : `Page ${t.page}`}
-                      </p>
-                    </div>
+                  {markedPages.map((m, i) => (
+                    <DeleteTile key={i} handle={handle} index={i} marked={m} onToggle={toggleMark} />
                   ))}
                 </div>
               </>
@@ -241,11 +232,11 @@ export function DeletePagesTool() {
         )}
 
         {error && <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
-        {file && !loading && allMarked && (
+        {file && !parsing && allMarked && (
           <p className="mt-4 rounded-md bg-amber-500/10 px-3 py-2 text-sm text-amber-600">You can’t remove every page — keep at least one.</p>
         )}
 
-        {file && !loading && (
+        {file && !parsing && (
           <Button className="mt-5 w-full" size="lg" onClick={apply} disabled={busy || marked === 0 || remaining < 1}>
             {busy ? <><Loader2 className="size-4 animate-spin" /> Removing…</> : <><Download className="size-4" /> {marked > 0 ? `Remove ${marked} page${marked === 1 ? '' : 's'} & download` : 'Remove pages & download'}</>}
           </Button>
