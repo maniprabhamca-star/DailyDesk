@@ -146,7 +146,7 @@ export default function Home() {
                 Every daily tool — private, fast, and free. Your files never leave your device.
               </p>
               <span className="mt-5 inline-flex items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-300">
-                <ShieldCheck className="size-3.5" /> 100% in your browser
+                <ShieldCheck className="size-3.5" /> Private by design
               </span>
               {/* App badges — custom "coming soon" (honest; swap for real store badges at launch) */}
               <div className="mt-4 flex flex-wrap gap-2.5">
