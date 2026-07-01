@@ -68,9 +68,13 @@ module.exports = {
       },
       keyframes: {
         'fade-in': { from: { opacity: '0', transform: 'translateY(4px)' }, to: { opacity: '1', transform: 'translateY(0)' } },
+        // For centered dialogs: keep translateX(-50%) throughout so the box doesn't
+        // slide in from the side (a bare translateY keyframe wipes the -translate-x-1/2).
+        'dialog-in': { from: { opacity: '0', transform: 'translate(-50%, 6px)' }, to: { opacity: '1', transform: 'translate(-50%, 0)' } },
       },
       animation: {
         'fade-in': 'fade-in 0.25s ease-out',
+        'dialog-in': 'dialog-in 0.18s ease-out',
       },
     },
   },
