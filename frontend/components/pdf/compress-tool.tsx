@@ -11,7 +11,7 @@ import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
-import { openPdf, renderPage, dprTarget, getPdfjs, pdfDocOptions, type PdfHandle, type RenderedPage } from '@/lib/pdf-render';
+import { openPdf, renderPage, dprTarget, getPdfjs, pdfDocOptions, yieldToLoop, type PdfHandle, type RenderedPage } from '@/lib/pdf-render';
 import { PageStrip } from '@/components/pdf/page-strip';
 import { BeforeAfter } from '@/components/pdf/before-after';
 import { SavingsRing } from '@/components/app/savings-ring';
@@ -465,7 +465,7 @@ export function CompressTool() {
           // leave this image untouched on any error
         }
         setProgress({ done: i + 1, total: images.length });
-        await new Promise((r) => setTimeout(r, 0)); // keep UI responsive
+        await yieldToLoop(); // keep UI responsive (not throttled in background tabs)
       }
 
       // Hybrid pass: re-render SCANNED (text-light) pages at the target DPI and
@@ -527,7 +527,7 @@ export function CompressTool() {
             } catch { /* fall through and copy the page untouched */ }
             if (!placed) { try { const [cp] = await outDoc.copyPages(doc, [i]); outDoc.addPage(cp); copied++; } catch { /* unrenderable page — skip */ } }
             setProgress({ done: i + 1, total: pageCount });
-            await new Promise((r) => setTimeout(r, 0));
+            await yieldToLoop(); // not throttled in background tabs
           }
           outBytes = await outDoc.save({ useObjectStreams: true });
         } finally {

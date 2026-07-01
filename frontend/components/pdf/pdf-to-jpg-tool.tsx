@@ -11,7 +11,7 @@ import { downloadBlob as download } from '@/lib/download';
 import { KeepGoing } from '@/components/app/keep-going';
 import { KeepMoving } from '@/components/app/keep-moving';
 import { setHandoff, takeHandoff } from '@/lib/handoff';
-import { getPdfjs, pdfDocOptions } from '@/lib/pdf-render';
+import { getPdfjs, pdfDocOptions, yieldToLoop } from '@/lib/pdf-render';
 
 type Format = 'jpg' | 'png';
 type Preset = 'standard' | 'high' | 'max';
@@ -252,7 +252,7 @@ export function PdfToJpgTool() {
           }
           done++;
           setProgress({ done, total: pages.length });
-          await new Promise((r) => setTimeout(r, 0)); // yield so progress repaints
+          await yieldToLoop(); // yield so progress repaints (not throttled in background tabs)
         }
 
         if (out.length === 0) {

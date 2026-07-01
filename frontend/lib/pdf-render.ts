@@ -60,6 +60,18 @@ export async function getPdfjs() {
   return pdfjsPromise;
 }
 
+/** Yield to the event loop WITHOUT setTimeout — background tabs throttle timers
+ * to ~1s/tick, which would make long jobs (compress, convert) crawl the moment
+ * the user switches tabs. MessageChannel tasks aren't throttled, and still let
+ * pending input/paint run when the tab is visible. */
+export function yieldToLoop(): Promise<void> {
+  return new Promise((resolve) => {
+    const mc = new MessageChannel();
+    mc.port1.onmessage = () => { mc.port1.close(); resolve(); };
+    mc.port2.postMessage(0);
+  });
+}
+
 // DPR-aware target long edge: render ~`mult`× the displayed CSS size (capped) so
 // downsampling stays crisp and the loupe has real pixels to magnify.
 export function dprTarget(cssLong: number, mult = 2.4, cap = 1800): number {
