@@ -123,7 +123,7 @@ export default function Home() {
           <div className="flex flex-1 justify-center px-2 sm:px-4">
             <button
               onClick={openCommand}
-              aria-label="Search tools and actions"
+              aria-label="Search"
               className={`hidden w-full max-w-sm items-center gap-2.5 rounded-full border bg-muted/60 px-4 py-2 text-sm text-muted-foreground transition-opacity hover:bg-muted sm:flex ${showHeaderSearch ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
             >
               <Search className="size-4" /> Search tools &amp; actions…

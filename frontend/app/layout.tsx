@@ -6,6 +6,7 @@ import { AuthProvider } from '@/lib/auth';
 import { CommandPalette } from '@/components/command-palette';
 import { CookieBanner } from '@/components/cookie-banner';
 import { PwaRegister } from '@/components/pwa-register';
+import { RecordRecent } from '@/components/app/record-recent';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -32,6 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <CommandPalette />
             <CookieBanner />
             <PwaRegister />
+            <RecordRecent />
           </AuthProvider>
         </ThemeProvider>
       </body>
