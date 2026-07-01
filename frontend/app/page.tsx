@@ -3,7 +3,7 @@
 import { useRef } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { LayoutGrid, Search, ShieldCheck, Smartphone, Check, BadgeCheck, Lock, Apple, Play } from 'lucide-react';
+import { LayoutGrid, Search, ShieldCheck, Smartphone, Check, BadgeCheck, Lock, Apple, Play, MapPin, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SiteHeader } from '@/components/app/site-header';
 import { HeroVariant } from '@/components/home/hero-variants';
@@ -233,10 +233,29 @@ export default function Home() {
               </div>
             ))}
           </div>
-          <div className="mt-8 flex flex-col items-center justify-between gap-3 border-t border-white/10 pt-6 text-xs text-slate-500 sm:flex-row">
-            <p>© {new Date().getFullYear()} DailyDesk · Private preview</p>
-            <p className="flex items-center gap-1.5"><ShieldCheck className="size-3.5 text-emerald-400" /> Nothing is ever uploaded</p>
+          {/* Trust pills */}
+          <div className="mt-7 flex flex-wrap gap-2">
+            {[
+              { icon: MapPin, label: 'Made in the USA' },
+              { icon: Lock, label: 'AES-256 encryption' },
+              { icon: EyeOff, label: 'No tracking' },
+            ].map((t) => (
+              <span key={t.label} className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-medium text-slate-300">
+                <t.icon className="size-3.5" /> {t.label}
+              </span>
+            ))}
           </div>
+          <div className="mt-7 flex flex-col items-center justify-between gap-3 border-t border-white/10 pt-6 text-xs text-slate-500 sm:flex-row">
+            <p>© {new Date().getFullYear()} DailyDesk · Private preview</p>
+            <p className="flex items-center gap-2 text-emerald-300">
+              <span className="relative flex size-2"><span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-60" /><span className="relative inline-flex size-2 rounded-full bg-emerald-400" /></span>
+              0 files uploaded — verify in your Network tab
+            </p>
+          </div>
+        </div>
+        {/* Background wordmark — faint, absolute (adds no height), clipped by overflow-hidden */}
+        <div aria-hidden className="pointer-events-none absolute -bottom-4 left-1/2 z-0 -translate-x-1/2 select-none whitespace-nowrap text-[84px] font-bold leading-none tracking-tighter text-white/[0.04] sm:text-[120px] lg:text-[150px]">
+          DailyDesk
         </div>
       </footer>
     </div>
