@@ -1,6 +1,6 @@
 import Link from 'next/link';
-import { LayoutGrid } from 'lucide-react';
 import { SiteHeader } from '@/components/app/site-header';
+import { SiteFooter } from '@/components/app/site-footer';
 
 /** Shared chrome (header + footer) for static info pages: /security, /privacy, etc. */
 export function LegalPage({
@@ -42,12 +42,7 @@ export function LegalPage({
         </div>
       </main>
 
-      <footer className="border-t py-8">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 text-sm text-muted-foreground sm:px-6">
-          <span className="flex items-center gap-2"><span className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground"><LayoutGrid className="size-3.5" /></span> DailyDesk</span>
-          <span className="text-xs">© {new Date().getFullYear()} DailyDesk</span>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Upload, FileText, X, Download, Loader2, RotateCw, RotateCcw, Zap, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -11,9 +11,13 @@ import { PdfDone } from '@/components/app/pdf-done';
 // One page thumbnail + its pending rotation (delta added on top of the page's
 // existing rotation). Rotation is applied LOSSLESSLY with pdf-lib (it just sets
 // the page's rotation flag — no re-rendering), so output quality is untouched.
-type Thumb = { page: number; url: string; delta: number; selected: boolean };
+// `url` is null until the thumbnail has been rendered (previews render lazily as
+// each page scrolls into view — so a 500-page / scanned PDF shows instantly
+// instead of grinding through every page up front).
+type Thumb = { page: number; url: string | null; delta: number; selected: boolean };
 
 const THUMB_PX = 240; // long-edge px for the preview render — small + lean
+const RENDER_CONCURRENCY = 2; // render a couple of visible pages at a time
 
 function fmt(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -26,15 +30,101 @@ const norm = (d: number) => ((d % 360) + 360) % 360;
 export function RotateTool() {
   const [file, setFile] = useState<File | null>(null);
   const [thumbs, setThumbs] = useState<Thumb[]>([]);
-  const [loading, setLoading] = useState<{ done: number; total: number } | null>(null);
+  const [parsing, setParsing] = useState(false); // parsing the PDF (before the grid appears)
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ blob: Blob; name: string } | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  function revoke(ts: Thumb[]) { ts.forEach((t) => URL.revokeObjectURL(t.url)); }
-  useEffect(() => () => revoke(thumbs), [thumbs]);
+  // Live pdf.js document kept alive for lazy thumbnail rendering.
+  const docRef = useRef<import('pdfjs-dist').PDFDocumentProxy | null>(null);
+  const taskRef = useRef<import('pdfjs-dist').PDFDocumentLoadingTask | null>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const urlsRef = useRef<Set<string>>(new Set()); // every object URL we create, for reliable cleanup
+  const claimedRef = useRef<Set<number>>(new Set()); // pages queued/rendered — never render twice
+  const queueRef = useRef<number[]>([]);
+  const activeRef = useRef(0);
+
+  const teardown = useCallback(() => {
+    observerRef.current?.disconnect();
+    observerRef.current = null;
+    queueRef.current = [];
+    activeRef.current = 0;
+    claimedRef.current.clear();
+    urlsRef.current.forEach((u) => URL.revokeObjectURL(u));
+    urlsRef.current.clear();
+    const doc = docRef.current;
+    const task = taskRef.current;
+    docRef.current = null;
+    taskRef.current = null;
+    if (doc) { try { void doc.destroy(); } catch { /* ignore */ } }
+    if (task) { try { void task.destroy(); } catch { /* ignore */ } }
+  }, []);
+
+  // Revoke everything + destroy the pdf.js doc when the component unmounts.
+  useEffect(() => () => teardown(), [teardown]);
+
+  // Render a single page's thumbnail on demand and drop it into `thumbs`.
+  const renderThumb = useCallback(async (pageNum: number) => {
+    const doc = docRef.current;
+    if (!doc) return;
+    try {
+      const page = await doc.getPage(pageNum);
+      const base = page.getViewport({ scale: 1 });
+      const scale = THUMB_PX / Math.max(base.width, base.height);
+      const vp = page.getViewport({ scale });
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.ceil(vp.width);
+      canvas.height = Math.ceil(vp.height);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      await page.render({ canvasContext: ctx, viewport: vp, background: 'rgba(255,255,255,1)' }).promise;
+      const url = await new Promise<string | null>((res) =>
+        canvas.toBlob((b) => res(b ? URL.createObjectURL(b) : null), 'image/jpeg', 0.72),
+      );
+      canvas.width = 0;
+      canvas.height = 0;
+      page.cleanup();
+      if (!docRef.current) { if (url) URL.revokeObjectURL(url); return; } // torn down mid-render
+      if (url) {
+        urlsRef.current.add(url);
+        setThumbs((cur) => cur.map((t) => (t.page === pageNum ? { ...t, url } : t)));
+      }
+    } catch {
+      claimedRef.current.delete(pageNum); // allow a retry if it scrolls back into view
+    }
+  }, []);
+
+  // Serial-ish pump: keep RENDER_CONCURRENCY renders in flight.
+  const pump = useCallback(() => {
+    while (activeRef.current < RENDER_CONCURRENCY && queueRef.current.length > 0) {
+      const page = queueRef.current.shift()!;
+      activeRef.current++;
+      void renderThumb(page).finally(() => {
+        activeRef.current--;
+        pump();
+      });
+    }
+  }, [renderThumb]);
+
+  const enqueue = useCallback((page: number) => {
+    if (claimedRef.current.has(page)) return;
+    claimedRef.current.add(page);
+    queueRef.current.push(page);
+    pump();
+  }, [pump]);
+
+  // Tile ref callback — register each page tile with the IntersectionObserver so
+  // its thumbnail renders the moment it (nearly) enters the viewport.
+  const observeTile = useCallback((el: HTMLDivElement | null, page: number) => {
+    const obs = observerRef.current;
+    if (!el || !obs) return;
+    el.dataset.page = String(page);
+    obs.observe(el);
+  }, []);
 
   async function loadOne(f?: File) {
     if (!f) return;
@@ -44,49 +134,42 @@ export function RotateTool() {
     }
     setError(null);
     setDone(null);
-    setThumbs((prev) => { revoke(prev); return []; });
+    teardown();
+    setThumbs([]);
     setFile(f);
-    setLoading({ done: 0, total: 0 });
+    setParsing(true);
     try {
       const pdfjs = await import('pdfjs-dist'); // render previews only
       pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
       const task = pdfjs.getDocument({ data: await f.arrayBuffer() });
+      taskRef.current = task;
       const doc = await task.promise;
-      try {
-        const total = doc.numPages;
-        setLoading({ done: 0, total });
-        const out: Thumb[] = [];
-        for (let i = 1; i <= total; i++) {
-          const page = await doc.getPage(i);
-          const base = page.getViewport({ scale: 1 });
-          const scale = THUMB_PX / Math.max(base.width, base.height);
-          const vp = page.getViewport({ scale });
-          const canvas = document.createElement('canvas');
-          canvas.width = Math.ceil(vp.width);
-          canvas.height = Math.ceil(vp.height);
-          const ctx = canvas.getContext('2d');
-          if (!ctx) throw new Error('no-canvas');
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          await page.render({ canvasContext: ctx, viewport: vp, background: 'rgba(255,255,255,1)' }).promise;
-          const url = await new Promise<string>((res, rej) =>
-            canvas.toBlob((b) => (b ? res(URL.createObjectURL(b)) : rej(new Error('thumb'))), 'image/jpeg', 0.72),
-          );
-          canvas.width = 0;
-          canvas.height = 0;
-          out.push({ page: i, url, delta: 0, selected: false });
-          setLoading({ done: i, total });
-          await new Promise((r) => setTimeout(r, 0)); // keep UI responsive
-        }
-        setThumbs(out);
-      } finally {
-        try { await task.destroy(); } catch { /* ignore */ }
-      }
+      docRef.current = doc;
+      const total = doc.numPages;
+
+      // Set up the lazy-render observer BEFORE the tiles mount so their ref
+      // callbacks can register immediately. 600px margin pre-renders just ahead
+      // of the scroll so previews feel instant.
+      observerRef.current = new IntersectionObserver(
+        (entries) => {
+          for (const e of entries) {
+            if (!e.isIntersecting) continue;
+            const page = Number((e.target as HTMLElement).dataset.page);
+            if (page) enqueue(page);
+            observerRef.current?.unobserve(e.target); // render each tile once
+          }
+        },
+        { root: null, rootMargin: '600px 0px' },
+      );
+
+      // Show the whole grid instantly with placeholders; thumbnails stream in.
+      setThumbs(Array.from({ length: total }, (_, i) => ({ page: i + 1, url: null, delta: 0, selected: false })));
     } catch {
+      teardown();
       setError('Could not read that PDF. It may be corrupted or password-protected.');
       setFile(null);
     } finally {
-      setLoading(null);
+      setParsing(false);
     }
   }
 
@@ -104,12 +187,13 @@ export function RotateTool() {
   }, []);
 
   function clear() {
-    setThumbs((prev) => { revoke(prev); return []; });
+    teardown();
+    setThumbs([]);
     setFile(null);
     setError(null);
     setDone(null);
     setHandoffNote(null);
-    setLoading(null);
+    setParsing(false);
   }
 
   function rotatePage(i: number, dir: 1 | -1) {
@@ -191,15 +275,15 @@ export function RotateTool() {
               <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-red-100 text-red-600 dark:bg-red-950/40"><FileText className="size-4" /></span>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{file.name}</p>
-                <p className="text-xs text-muted-foreground">{fmt(file.size)} · {thumbs.length || loading?.total || 0} page{(thumbs.length || loading?.total) === 1 ? '' : 's'}</p>
+                <p className="text-xs text-muted-foreground">{fmt(file.size)} · {thumbs.length || 0} page{thumbs.length === 1 ? '' : 's'}</p>
               </div>
               <Button size="icon" variant="ghost" aria-label="Remove" onClick={clear}><X className="size-4" /></Button>
             </div>
 
-            {loading ? (
+            {parsing ? (
               <div className="mt-6 flex flex-col items-center justify-center gap-2 py-10 text-muted-foreground">
                 <Loader2 className="size-6 animate-spin" />
-                <p className="text-sm">Rendering page previews… {loading.total ? `${loading.done}/${loading.total}` : ''}</p>
+                <p className="text-sm">Opening your PDF…</p>
               </div>
             ) : (
               <>
@@ -220,7 +304,10 @@ export function RotateTool() {
                 <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
                   {thumbs.map((t, i) => (
                     <div key={t.page} className="group">
-                      <div className={`relative flex aspect-square items-center justify-center overflow-hidden rounded-xl border bg-muted/30 transition-colors ${t.selected ? 'border-primary ring-1 ring-primary' : ''}`}>
+                      <div
+                        ref={(el) => observeTile(el, t.page)}
+                        className={`relative flex aspect-square items-center justify-center overflow-hidden rounded-xl border bg-muted/30 transition-colors ${t.selected ? 'border-primary ring-1 ring-primary' : ''}`}
+                      >
                         <input
                           type="checkbox"
                           aria-label={`Select page ${t.page}`}
@@ -228,14 +315,20 @@ export function RotateTool() {
                           checked={t.selected}
                           onChange={() => toggleOne(i)}
                         />
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={t.url}
-                          alt={`Page ${t.page}`}
-                          loading="lazy"
-                          className="max-h-[86%] max-w-[86%] object-contain shadow-sm transition-transform duration-200"
-                          style={{ transform: `rotate(${t.delta}deg)` }}
-                        />
+                        {t.url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={t.url}
+                            alt={`Page ${t.page}`}
+                            loading="lazy"
+                            className="max-h-[86%] max-w-[86%] object-contain shadow-sm transition-transform duration-200"
+                            style={{ transform: `rotate(${t.delta}deg)` }}
+                          />
+                        ) : (
+                          <div className="flex size-full items-center justify-center">
+                            <Loader2 className="size-5 animate-spin text-muted-foreground/50" />
+                          </div>
+                        )}
                         {/* per-page rotate controls (always visible on touch, hover on desktop) */}
                         <div className="absolute inset-x-0 bottom-1.5 flex justify-center gap-1.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
                           <button onClick={() => rotatePage(i, -1)} aria-label={`Rotate page ${t.page} left`} className="flex size-7 items-center justify-center rounded-full bg-background/90 text-foreground shadow ring-1 ring-border hover:bg-background"><RotateCcw className="size-3.5" /></button>
@@ -253,7 +346,7 @@ export function RotateTool() {
 
         {error && <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
 
-        {file && !loading && (
+        {file && !parsing && (
           <Button className="mt-5 w-full" size="lg" onClick={apply} disabled={busy || changes === 0}>
             {busy ? <><Loader2 className="size-4 animate-spin" /> Rotating…</> : <><Download className="size-4" /> {changes > 0 ? `Rotate ${changes} page${changes === 1 ? '' : 's'} & download` : 'Rotate & download'}</>}
           </Button>

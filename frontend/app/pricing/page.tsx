@@ -3,10 +3,11 @@
 import { Fragment, useState } from 'react';
 import Link from 'next/link';
 import {
-  LayoutGrid, Check, Minus, ShieldCheck, CloudOff, Lock, Star, ChevronDown,
+  Check, Minus, ShieldCheck, CloudOff, Lock, Star, ChevronDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SiteHeader } from '@/components/app/site-header';
+import { SiteFooter } from '@/components/app/site-footer';
 import { PRICING } from '@/lib/pricing';
 
 type Cell = boolean | string;
@@ -243,17 +244,7 @@ export default function PricingPage() {
         </div>
       </main>
 
-      <footer className="border-t py-8">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 text-sm text-muted-foreground sm:px-6">
-          <span className="flex items-center gap-2"><span className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground"><LayoutGrid className="size-3.5" /></span> DailyDesk</span>
-          <span className="flex gap-4 text-xs">
-            <Link href="/security" className="hover:text-foreground">Security</Link>
-            <Link href="/privacy" className="hover:text-foreground">Privacy</Link>
-            <Link href="/terms" className="hover:text-foreground">Terms</Link>
-            <Link href="/refund-policy" className="hover:text-foreground">Refunds</Link>
-          </span>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }
