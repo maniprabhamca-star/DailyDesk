@@ -103,10 +103,7 @@ export default function PricingPage() {
       <main className="mx-auto max-w-5xl px-4 py-14 sm:px-6">
         {/* Hero */}
         <div className="text-center">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-600">
-            <ShieldCheck className="size-3.5" /> Private by design — your files never leave your device
-          </span>
-          <h1 className="mt-4 text-4xl font-bold tracking-tight sm:text-5xl">Simple, honest pricing</h1>
+          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">Simple, honest pricing</h1>
           <p className="mx-auto mt-3 max-w-xl text-lg text-muted-foreground">
             Everything most people need is free, forever. Upgrade to Pro for power features, AI, and unlimited encrypted storage.
           </p>
