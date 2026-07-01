@@ -46,9 +46,9 @@ const stats = [
 
 export default function Home() {
   const heroSearchRef = useRef<HTMLButtonElement>(null);
-  // Hero preview switch: NEXT_PUBLIC_HERO_VARIANT = v1 | v2 | hybrid selects an
-  // alternate hero (served on separate preview ports). Empty = the shipped bento hero.
-  const heroVariant = process.env.NEXT_PUBLIC_HERO_VARIANT ?? '';
+  // Hero: 'hybrid' is the live default (approved design). NEXT_PUBLIC_HERO_VARIANT
+  // can override to 'v1'/'v2' (used on the local preview ports for comparison).
+  const heroVariant = process.env.NEXT_PUBLIC_HERO_VARIANT ?? 'hybrid';
 
   return (
     <div className="relative min-h-screen overflow-x-clip bg-background text-foreground">
