@@ -54,17 +54,21 @@ export default function Home() {
   const heroSearchRef = useRef<HTMLButtonElement>(null);
 
   // Hand-off: reveal the header search once the hero search scrolls up behind the
-  // sticky header, so there's never two searches on screen. A scroll listener (not
-  // IntersectionObserver) so it's reliable + testable.
+  // sticky header, so there's never two searches on screen.
+  // NOTE: the page scroller is `window`. That only holds because the root wrapper uses
+  // `overflow-x-clip` — `overflow-x-hidden` would force `overflow-y:auto`, turning the
+  // wrapper into the scroll container and this window listener would never fire (that
+  // was the long-standing "search never appears" bug). `capture: true` is belt-and-
+  // suspenders: it catches scroll from any descendant scroll container too.
   useEffect(() => {
     const onScroll = () => {
       const el = heroSearchRef.current;
       setShowHeaderSearch(!!el && el.getBoundingClientRect().bottom < 60);
     };
     onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('scroll', onScroll, { passive: true, capture: true });
     window.addEventListener('resize', onScroll);
-    return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll); };
+    return () => { window.removeEventListener('scroll', onScroll, { capture: true }); window.removeEventListener('resize', onScroll); };
   }, []);
 
   // Close the Tools mega-menu on any outside click or Escape. (A fixed backdrop
@@ -80,7 +84,7 @@ export default function Home() {
   }, [menuOpen]);
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-background text-foreground">
+    <div className="relative min-h-screen overflow-x-clip bg-background text-foreground">
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
         <div className="absolute -top-40 left-1/2 size-[620px] -translate-x-1/2 rounded-full bg-primary/15 blur-[120px]" />
       </div>
