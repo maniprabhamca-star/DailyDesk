@@ -27,7 +27,7 @@ const faqs = [
   { q: 'How much smaller will my image get?', a: 'Photos straight from a phone or camera typically shrink by 50–80% at the Recommended level with no visible difference. PNG screenshots and graphics often shrink even more when converted to JPG.' },
   { q: 'What happens to PNG transparency?', a: 'The output is a JPG, which has no transparency — transparent areas become white. Keeping PNGs as smaller PNGs is on our roadmap.' },
   { q: 'Will the quality drop?', a: 'We use mozjpeg, the same professional encoder used by major websites, which keeps images looking sharp at much smaller sizes. Use the built-in before/after compare (with zoom) to judge with your own eyes before downloading.' },
-  { q: 'What formats can I compress?', a: 'JPG, PNG, and WebP go in; an optimized JPG comes out. HEIC (iPhone) support is coming soon.' },
+  { q: 'What formats can I compress?', a: 'JPG, PNG, and WebP go in; an optimized JPG comes out. Got iPhone HEIC photos? Convert them first with our free HEIC to JPG tool, then compress away.' },
 ];
 
 export default function CompressImagePage() {

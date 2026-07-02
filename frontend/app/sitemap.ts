@@ -18,6 +18,7 @@ const ROUTES: Array<{ path: string; priority: number; changeFrequency: MetadataR
   { path: '/watermark-pdf', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/reorder-pdf', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/compress-image', priority: 0.9, changeFrequency: 'monthly' },
+  { path: '/heic-to-jpg', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/tools/qr-code', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/tools/password', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/pricing', priority: 0.8, changeFrequency: 'monthly' },
