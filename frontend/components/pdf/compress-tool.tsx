@@ -12,6 +12,7 @@ import { PdfDone } from '@/components/app/pdf-done';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
 import { openPdf, renderPage, dprTarget, getPdfjs, pdfDocOptions, yieldToLoop, type PdfHandle, type RenderedPage } from '@/lib/pdf-render';
+import { subsetFonts } from '@/lib/pdf-fontgut';
 import { PageStrip } from '@/components/pdf/page-strip';
 import { BeforeAfter } from '@/components/pdf/before-after';
 import { SavingsRing } from '@/components/app/savings-ring';
@@ -650,6 +651,15 @@ export function CompressTool() {
         await yieldToLoop(); // keep UI responsive (not throttled in background tabs)
       }
 
+      // FONT PASS (lossless — runs at every level): slim embedded fonts by
+      // emptying unused glyph outlines. Often the biggest win on office PDFs
+      // (fonts can be >50% of the file). Safe by construction + heavily
+      // guarded — see lib/pdf-fontgut.ts. Best-effort.
+      let fontsSlimmed = 0;
+      try {
+        fontsSlimmed = await subsetFonts(doc, original);
+      } catch { /* best-effort — never blocks the rest of the pipeline */ }
+
       // Hybrid pass: re-render SCANNED (text-light) pages at the target DPI and
       // re-encode them — this handles images in ANY format (the big win for
       // scanned books), while real TEXT pages are kept as-is so their text stays
@@ -763,7 +773,7 @@ export function CompressTool() {
       // alone (object streams) is a real win we should NOT hide.
       if (savedFrac < 0.01) {
         const blob = new Blob([part(original)], { type: 'application/pdf' });
-        const note = (rasterized === 0 && recompressed === 0 ? 'No shrinkable images found' : 'Already near-optimal') + ` · ${took}`;
+        const note = (rasterized === 0 && recompressed === 0 && fontsSlimmed === 0 ? 'Nothing left to shrink' : 'Already near-optimal') + ` · ${took}`;
         setDone({ blob, name: `${file.name.replace(/\.pdf$/i, '')}.pdf`, before, after: before, optimized: true, note });
         return;
       }
@@ -771,7 +781,8 @@ export function CompressTool() {
       const note = [
         rasterized > 0 ? `${rasterized} scanned page${rasterized === 1 ? '' : 's'} rebuilt` : '',
         recompressed > 0 ? `${recompressed} image${recompressed === 1 ? '' : 's'} recompressed` : '',
-        rasterized === 0 && recompressed === 0 ? 'Repacked smaller — text untouched' : '',
+        fontsSlimmed > 0 ? `${fontsSlimmed} font${fontsSlimmed === 1 ? '' : 's'} slimmed` : '',
+        rasterized === 0 && recompressed === 0 && fontsSlimmed === 0 ? 'Repacked smaller — text untouched' : '',
       ].filter(Boolean).join(' · ') + ` · ${took}`;
       const blob = new Blob([part(outBytes)], { type: 'application/pdf' });
       setDone({ blob, name, before, after, optimized: false, note });

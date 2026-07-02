@@ -27,12 +27,6 @@ const TONES: Record<Tone, { rgb: [number, number, number]; label: string; chip: 
   blue: { rgb: [0.15, 0.39, 0.92], label: 'Blue', chip: '#2563eb' },
   black: { rgb: [0.1, 0.1, 0.1], label: 'Black', chip: '#111827' },
 };
-type Size = 'small' | 'medium' | 'large';
-const SIZES: Record<Size, { frac: number; label: string }> = {
-  small: { frac: 0.07, label: 'S' },
-  medium: { frac: 0.11, label: 'M' },
-  large: { frac: 0.16, label: 'L' },
-};
 type Family = 'helvetica' | 'times' | 'courier';
 const ROTATIONS = [0, 30, 45, 90] as const;
 const MARGIN = 36; // pt from page edges for anchored positions
@@ -44,7 +38,7 @@ type Settings = {
   bold: boolean;
   italic: boolean;
   tone: Tone;
-  size: Size;
+  sizeFrac: number; // text size as a fraction of the page's short edge
   opacity: number;
   position: Position;
   rotation: (typeof ROTATIONS)[number];
@@ -94,7 +88,7 @@ async function stamp(src: File | Blob, s: Settings, firstPageOnly = false): Prom
     const rad = (rot * Math.PI) / 180;
 
     // Element size: text box or scaled image.
-    const fontSize = Math.max(10, Math.min(W, H) * SIZES[s.size].frac);
+    const fontSize = Math.max(8, Math.min(W, H) * s.sizeFrac);
     let elW: number, elH: number;
     if (image) {
       elW = W * s.imageScale;
@@ -144,7 +138,7 @@ export function WatermarkTool() {
   const [tooBig, setTooBig] = useState<{ name: string; size: number } | null>(null);
   const [settings, setSettings] = useState<Settings>({
     mode: 'text', text: 'CONFIDENTIAL', family: 'helvetica', bold: true, italic: false,
-    tone: 'gray', size: 'medium', opacity: 0.18, position: 'mc', rotation: 45, range: '',
+    tone: 'gray', sizeFrac: 0.11, opacity: 0.18, position: 'mc', rotation: 45, range: '',
     imageBytes: null, imageIsPng: true, imageScale: 0.35,
   });
   const [imageName, setImageName] = useState<string | null>(null);
@@ -385,21 +379,17 @@ export function WatermarkTool() {
                   </div>
                   {settings.mode === 'text' && (
                     <>
-                      <p className="mt-3 text-sm font-medium">Color &amp; size</p>
+                      <p className="mt-3 text-sm font-medium">Color</p>
                       <div className="mt-1.5 flex items-center gap-2">
                         {(Object.keys(TONES) as Tone[]).map((t2) => (
                           <button key={t2} onClick={() => set('tone', t2)} aria-label={TONES[t2].label} aria-pressed={settings.tone === t2}
                             className={`size-6 rounded-full border-2 transition-all ${settings.tone === t2 ? 'border-primary ring-2 ring-primary/30' : 'border-border'}`}
                             style={{ backgroundColor: TONES[t2].chip }} />
                         ))}
-                        <span className="mx-1 h-5 w-px bg-border" />
-                        {(Object.keys(SIZES) as Size[]).map((s2) => (
-                          <button key={s2} onClick={() => set('size', s2)} aria-pressed={settings.size === s2}
-                            className={`rounded-lg border px-2 py-1 text-xs font-medium transition-all ${settings.size === s2 ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-border bg-card hover:border-primary/40'}`}>
-                            {SIZES[s2].label}
-                          </button>
-                        ))}
                       </div>
+                      <label className="mt-3 block text-sm font-medium" htmlFor="wm-size">Text size · {Math.round(settings.sizeFrac * 100)}</label>
+                      <input id="wm-size" type="range" min={4} max={30} step={1} value={Math.round(settings.sizeFrac * 100)}
+                        onChange={(e) => set('sizeFrac', Number(e.target.value) / 100)} className="dd-range mt-1.5 w-full" />
                     </>
                   )}
                 </div>

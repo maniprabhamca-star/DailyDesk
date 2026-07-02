@@ -17,6 +17,7 @@ const B = process.argv[3] || 'fontgut-out.pdf';
   });
   const ta = pdfjs.getDocument(opts(A)); const da = await ta.promise;
   const tb = pdfjs.getDocument(opts(B)); const db = await tb.promise;
+  const MAXP = Number(process.env.QA_MAX_PAGES || 1e9);
   if (da.numPages !== db.numPages) { console.log('PAGE COUNT MISMATCH'); process.exit(1); }
 
   const render = async (doc, n) => {
@@ -31,7 +32,7 @@ const B = process.argv[3] || 'fontgut-out.pdf';
   };
 
   let worst = 0, worstPage = 0;
-  for (let n = 1; n <= da.numPages; n++) {
+  for (let n = 1; n <= Math.min(da.numPages, MAXP); n++) {
     const ca = await render(da, n), cb = await render(db, n);
     const ia = ca.getContext('2d').getImageData(0, 0, ca.width, ca.height).data;
     const ib = cb.getContext('2d').getImageData(0, 0, cb.width, cb.height).data;
