@@ -93,10 +93,10 @@ export const catalog: CatGroup[] = [
   },
   {
     label: 'Everyday utilities', color: '#0d9488', tools: [
-      { name: 'Word counter', icon: CaseSensitive, badge: 'device', soon: true },
-      { name: 'Unit converter', icon: Ruler, badge: 'device', soon: true },
-      { name: 'JSON formatter', icon: Braces, badge: 'device', soon: true },
-      { name: 'Color picker', icon: Palette, badge: 'device', soon: true },
+      { name: 'Word counter', href: '/word-counter', icon: CaseSensitive, badge: 'device' },
+      { name: 'Unit converter', href: '/unit-converter', icon: Ruler, badge: 'device' },
+      { name: 'JSON formatter', href: '/json-formatter', icon: Braces, badge: 'device' },
+      { name: 'Color picker', href: '/color-picker', icon: Palette, badge: 'device' },
     ],
   },
   {
