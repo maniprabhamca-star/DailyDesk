@@ -25,9 +25,9 @@ const faqs = [
   { q: 'Is it really free?', a: 'Yes — watermarking is completely free, with no signup and no limits on pages.' },
   { q: 'Is my PDF uploaded to a server?', a: 'No. The watermark is stamped entirely inside your browser, so your document never leaves your computer.' },
   { q: 'Can I see the watermark before downloading?', a: 'Yes — the first page is previewed live, and it updates instantly as you change the text, position, color, size, or opacity.' },
-  { q: 'Does it watermark every page?', a: 'Yes, every page gets the same stamp. Choose Diagonal for the classic look, Straight for a centered label, or Tiled to repeat it across the page.' },
+  { q: 'Does it watermark every page?', a: 'By default, yes — or type a page range like “1-3, 7” to stamp only those pages. Pick any of nine positions, tile it across the page, and rotate it to taste.' },
   { q: 'Will it cover my text?', a: 'The watermark is drawn with adjustable transparency (18% by default), so the document underneath stays readable. Turn opacity up for a stronger stamp.' },
-  { q: 'Can I use my logo as the watermark?', a: 'Image watermarks are coming soon — text watermarks (like CONFIDENTIAL, DRAFT, or your company name) are available today.' },
+  { q: 'Can I use my logo as the watermark?', a: 'Yes — switch to Logo mode and upload a PNG or JPG. PNG transparency is preserved, and you control the size, position, rotation, and opacity, with the same live preview.' },
 ];
 
 export default function WatermarkPdfPage() {

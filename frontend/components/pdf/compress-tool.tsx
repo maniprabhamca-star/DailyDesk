@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Upload, FileText, X, Download, Loader2, Zap, Shrink, CheckCircle2, Coffee, Sparkles, Type, Eye, Lock } from 'lucide-react';
+import { Upload, FileText, X, Download, Loader2, Zap, Shrink, CheckCircle2, Coffee, Sparkles, Type, Eye, Lock, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import type { PDFRawStream as RawStream } from 'pdf-lib';
@@ -138,7 +138,8 @@ function fmt(bytes: number) {
 // Quick, honest classification of a PDF (no rendering) so we can set an honest
 // expectation BEFORE compressing — instead of a misleading numeric estimate.
 type Kind = 'scan' | 'image' | 'text';
-async function classifyPdf(file: File): Promise<Kind | null> {
+type Classified = { kind: Kind; p1StoredPx: number };
+async function classifyPdf(file: File): Promise<Classified | null> {
   try {
     const { PDFDocument, PDFName, PDFRawStream, PDFArray } = await import('pdf-lib');
     const doc = await PDFDocument.load(new Uint8Array(await file.arrayBuffer()), { ignoreEncryption: true });
@@ -150,6 +151,22 @@ async function classifyPdf(file: File): Promise<Kind | null> {
     const pages = doc.getPages();
     const dec = new TextDecoder('latin1');
     let scanCount = 0;
+    // Page 1's largest stored image long edge — drives the honest pre-run
+    // quality preview (same never-upscale target math as the real raster pass).
+    let p1StoredPx = 0;
+    try {
+      const res1 = pages[0]?.node.Resources();
+      const xo = res1 ? (res1.lookup(PDFName.of('XObject')) as { keys?: () => unknown[]; get?: (k: unknown) => unknown } | undefined) : undefined;
+      if (xo && typeof xo.keys === 'function') {
+        for (const k of xo.keys()) {
+          const o = ctx.lookup(xo.get!(k) as never);
+          if (o instanceof PDFRawStream && String(o.dict.get(PDFName.of('Subtype'))) === '/Image') {
+            const px = Math.max(Number(o.dict.get(PDFName.of('Width'))) || 0, Number(o.dict.get(PDFName.of('Height'))) || 0);
+            if (px > p1StoredPx) p1StoredPx = px;
+          }
+        }
+      }
+    } catch { /* preview falls back to DPI target */ }
     for (const page of pages) {
       const res = page.node.Resources();
       const xobjs = res ? (res.lookup(PDFName.of('XObject')) as { keys?: () => unknown[]; get?: (k: unknown) => unknown } | undefined) : undefined;
@@ -178,9 +195,9 @@ async function classifyPdf(file: File): Promise<Kind | null> {
         if (width > 0 && height > 0 && maxArea >= 0.7 * width * height) scanCount++;
       }
     }
-    if (pages.length > 0 && scanCount / pages.length >= 0.4) return 'scan';
-    if (imageBytes / Math.max(1, file.size) >= 0.3) return 'image';
-    return 'text';
+    const kind: Kind = pages.length > 0 && scanCount / pages.length >= 0.4 ? 'scan'
+      : imageBytes / Math.max(1, file.size) >= 0.3 ? 'image' : 'text';
+    return { kind, p1StoredPx };
   } catch {
     return null;
   }
@@ -222,6 +239,12 @@ export function CompressTool() {
   const [done, setDone] = useState<{ blob: Blob; name: string; before: number; after: number; optimized: boolean; note: string } | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
   const [kind, setKind] = useState<Kind | null>(null);
+  const [p1StoredPx, setP1StoredPx] = useState(0);
+  // Live pre-run quality preview: page 1 rendered exactly as the raster pass
+  // would produce it at the selected level (scan files only — that's where
+  // quality actually changes; text/vector content is never touched).
+  const [levelPreview, setLevelPreview] = useState<RenderedPage | null>(null);
+  const [levelPreviewBusy, setLevelPreviewBusy] = useState(false);
   // Multi-page preview state: one pdf.js handle for the original, one for the
   // compressed result (opened only when there's a real before/after to show).
   const [srcHandle, setSrcHandle] = useState<PdfHandle | null>(null);
@@ -295,12 +318,13 @@ export function CompressTool() {
     setTooBig(null);
     setDone(null);
     setKind(null);
+    setP1StoredPx(0);
     setPreviewPage(null);
     setSelPage(0);
     setPageCount(0);
     setFile(f);
     openSource(f);
-    void classifyPdf(f).then(setKind);
+    void classifyPdf(f).then((m) => { setKind(m?.kind ?? null); setP1StoredPx(m?.p1StoredPx ?? 0); });
   }
   function pick(files: FileList | null) { loadOne(files?.[0]); }
 
@@ -322,14 +346,53 @@ export function CompressTool() {
     setHandoffNote(null);
     setProgress(null);
     setKind(null);
+    setP1StoredPx(0);
     setSelPage(0);
     setPageCount(0);
     setPreviewPage(null);
     setBeforePage(null);
     setAfterPage(null);
+    setLevelPreview((p) => { if (p) URL.revokeObjectURL(p.url); return null; });
     setSrcHandle((prev) => { if (prev) void prev.destroy(); return null; });
     setOutHandle((prev) => { if (prev) void prev.destroy(); return null; });
   }
+
+  // Pre-run quality preview (scan files): render page 1 at the SELECTED level's
+  // real raster target + JPEG quality — the same math the compressor uses, so
+  // what you see is what you get. Debounced on level switches.
+  useEffect(() => {
+    setLevelPreview((p) => { if (p) URL.revokeObjectURL(p.url); return null; });
+    if (!srcHandle || kind !== 'scan' || done || busy) return;
+    let cancelled = false;
+    setLevelPreviewBusy(true);
+    const t = setTimeout(async () => {
+      try {
+        const lv = LEVELS[level];
+        const page = await srcHandle.doc.getPage(1);
+        const vp1 = page.getViewport({ scale: 1 });
+        const pageLongPt = Math.max(vp1.width, vp1.height);
+        const dpiTargetPx = (lv.rasterDpi / 72) * pageLongPt;
+        const fracCapPx = p1StoredPx > 0 ? Math.min(p1StoredPx, Math.max(lv.rasterFrac * p1StoredPx, RASTER_FLOOR_PX)) : Infinity;
+        const targetPx = Math.min(MAX_RASTER, dpiTargetPx, fracCapPx);
+        const vp = page.getViewport({ scale: targetPx / pageLongPt });
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.ceil(vp.width); canvas.height = Math.ceil(vp.height);
+        const cx = canvas.getContext('2d');
+        if (!cx) return;
+        cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, canvas.width, canvas.height);
+        await page.render({ canvas, viewport: vp, background: 'rgba(255,255,255,1)', intent: 'print' }).promise;
+        const q01 = Math.max(0.32, Math.min(0.9, lv.rasterQ));
+        const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/jpeg', q01));
+        const w = canvas.width, h = canvas.height;
+        canvas.width = 0; canvas.height = 0;
+        if (!cancelled && blob) setLevelPreview({ url: URL.createObjectURL(blob), w, h });
+      } catch { /* preview is optional */ } finally {
+        if (!cancelled) setLevelPreviewBusy(false);
+      }
+    }, 250);
+    return () => { cancelled = true; clearTimeout(t); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [srcHandle, kind, level, done, busy, p1StoredPx]);
 
   // Free pdf.js handles (and their cached page bitmaps) on unmount.
   useEffect(() => () => {
@@ -806,6 +869,25 @@ export function CompressTool() {
             ) : (
               <p className="mt-2.5 flex items-center gap-1.5 text-xs text-muted-foreground"><CheckCircle2 className="size-3.5 text-emerald-500" /> Smart, DPI-aware — only images bigger than they’re shown get shrunk. Text stays sharp and selectable.</p>
             )}
+
+            {/* Live quality preview (scans): page 1 exactly as this level will
+                produce it — judge with your eyes BEFORE compressing. No fake
+                size estimates, ever. */}
+            {kind === 'scan' && (levelPreview || levelPreviewBusy) && (
+              <div className="mt-4">
+                <p className="mb-2 flex items-center gap-1.5 text-sm font-medium">
+                  Quality preview — “{LEVELS[level].title}”
+                  {levelPreviewBusy && <Loader2 className="size-3.5 animate-spin text-muted-foreground" />}
+                </p>
+                <BeforeAfter
+                  before={previewPage}
+                  after={levelPreview}
+                  beforeLabel="Original"
+                  afterLabel={LEVELS[level].title}
+                  loading={!previewPage || !levelPreview}
+                />
+              </div>
+            )}
           </div>
         )}
 
@@ -857,7 +939,12 @@ export function CompressTool() {
               </>
             )}
             <Button className="mt-3 w-full" size="lg" onClick={() => download(done.blob, done.name)}><Download className="size-4" /> Download {done.optimized ? 'PDF' : 'compressed PDF'}</Button>
-            <Button variant="outline" className="mt-2 w-full" onClick={clear}>Compress another</Button>
+            {/* Not happy with the result? Same file, no re-upload — back to the
+                level cards (source handle + previews stay cached, so it's instant). */}
+            <Button variant="outline" className="mt-2 w-full" onClick={() => { setDone(null); setSelPage(0); }}>
+              <RefreshCw className="size-4" /> Try a different level — same file
+            </Button>
+            <Button variant="ghost" className="mt-2 w-full" onClick={clear}>Start over with a new file</Button>
             <PdfDone blob={done.blob} name={done.name} currentHref="/compress-pdf" fromLabel="Compress PDF" hideBanner />
           </div>
         )}
