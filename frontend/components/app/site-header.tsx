@@ -57,7 +57,7 @@ export function SiteHeader({ heroSearchRef }: { heroSearchRef?: React.RefObject<
   }, [menuOpen]);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-xl">
+    <header className="sticky top-0 z-40 border-b-2 border-border bg-background/85 shadow-[0_1px_8px_rgba(15,23,42,0.08)] backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-5 px-4 sm:px-6">
         <Link href="/" className="flex items-center gap-2.5">
           <BrandMark className="size-8" />

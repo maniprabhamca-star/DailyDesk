@@ -39,6 +39,7 @@ const META: Record<string, { color: string; desc: string }> = {
   'Password': { color: '#6d28d9', desc: 'Strong passwords' },
   'Compress image': { color: '#ea580c', desc: 'Shrink JPG & PNG' },
   'Resize image': { color: '#0891b2', desc: 'Exact pixels or percent' },
+  'Crop image': { color: '#be185d', desc: 'Frame the exact shot' },
   'Convert image': { color: '#9333ea', desc: 'WebP ↔ PNG ↔ JPG' },
   'HEIC to JPG': { color: '#0ea5e9', desc: 'iPhone photos to JPG' },
   'Background remover': { color: '#db2777', desc: 'Cut out the subject' },

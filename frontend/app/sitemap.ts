@@ -27,6 +27,7 @@ const ROUTES: Array<{ path: string; priority: number; changeFrequency: MetadataR
   { path: '/compress-image', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/heic-to-jpg', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/resize-image', priority: 0.9, changeFrequency: 'monthly' },
+  { path: '/crop-image', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/convert-image', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/word-counter', priority: 0.8, changeFrequency: 'monthly' },
   { path: '/json-formatter', priority: 0.8, changeFrequency: 'monthly' },
