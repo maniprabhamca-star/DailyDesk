@@ -27,7 +27,31 @@ const TONES: Record<Tone, { rgb: [number, number, number]; label: string; chip: 
   blue: { rgb: [0.15, 0.39, 0.92], label: 'Blue', chip: '#2563eb' },
   black: { rgb: [0.1, 0.1, 0.1], label: 'Black', chip: '#111827' },
 };
-type Family = 'helvetica' | 'times' | 'courier';
+type Family = 'helvetica' | 'times' | 'courier' | 'oswald' | 'comic' | 'opensans';
+
+// Bundled OFL-licensed families (public/fonts/, licenses in LICENSES.txt) —
+// fetched on demand only when picked, embedded with subset:true so the output
+// PDF carries just the glyphs the watermark uses (a few KB, not the whole font).
+// No bold-italic files: bold wins when both toggles are on; Oswald has no italic.
+const CUSTOM_FONTS: Partial<Record<Family, { label: string; regular: string; bold?: string; italic?: string }>> = {
+  oswald: { label: 'Oswald', regular: '/fonts/oswald-regular.ttf', bold: '/fonts/oswald-bold.ttf' },
+  comic: { label: 'Comic Neue', regular: '/fonts/comic-neue-regular.ttf', bold: '/fonts/comic-neue-bold.ttf', italic: '/fonts/comic-neue-italic.ttf' },
+  opensans: { label: 'Open Sans', regular: '/fonts/open-sans-regular.ttf', bold: '/fonts/open-sans-bold.ttf', italic: '/fonts/open-sans-italic.ttf' },
+};
+const fontBytesCache = new Map<string, Promise<Uint8Array>>();
+function loadFontBytes(url: string): Promise<Uint8Array> {
+  let p = fontBytesCache.get(url);
+  if (!p) {
+    p = fetch(url).then(async (r) => {
+      if (!r.ok) throw new Error(`font ${r.status}`);
+      return new Uint8Array(await r.arrayBuffer());
+    });
+    p.catch(() => fontBytesCache.delete(url)); // don't cache failures
+    fontBytesCache.set(url, p);
+  }
+  return p;
+}
+
 const ROTATIONS = [0, 30, 45, 90] as const;
 const MARGIN = 36; // pt from page edges for anchored positions
 
@@ -64,13 +88,30 @@ async function stamp(src: File | Blob, s: Settings, firstPageOnly = false): Prom
   else if (s.range.trim()) pageNums = parseRanges(s.range, count);
   else pageNums = Array.from({ length: count }, (_, i) => i + 1);
 
-  const FONT_MAP: Record<Family, [string, string, string, string]> = {
+  const STANDARD: Partial<Record<Family, [string, string, string, string]>> = {
     helvetica: [StandardFonts.Helvetica, StandardFonts.HelveticaBold, StandardFonts.HelveticaOblique, StandardFonts.HelveticaBoldOblique],
     times: [StandardFonts.TimesRoman, StandardFonts.TimesRomanBold, StandardFonts.TimesRomanItalic, StandardFonts.TimesRomanBoldItalic],
     courier: [StandardFonts.Courier, StandardFonts.CourierBold, StandardFonts.CourierOblique, StandardFonts.CourierBoldOblique],
   };
-  const fontName = FONT_MAP[s.family][(s.bold ? 1 : 0) + (s.italic ? 2 : 0)];
-  const font = await doc.embedFont(fontName);
+  let font;
+  const custom = CUSTOM_FONTS[s.family];
+  if (custom) {
+    try {
+      const url = (s.bold && custom.bold) || (s.italic && custom.italic) || custom.regular;
+      const bytes = await loadFontBytes(url);
+      // Interop-safe: depending on the bundler, the fontkit instance is either
+      // the module's default export or the module itself.
+      const fkMod = (await import('@pdf-lib/fontkit')) as { default?: unknown };
+      doc.registerFontkit((fkMod.default ?? fkMod) as Parameters<typeof doc.registerFontkit>[0]);
+      font = await doc.embedFont(bytes, { subset: true });
+    } catch {
+      // font fetch/embed failed (offline, blocked) — never a dead end
+      font = await doc.embedFont(StandardFonts.Helvetica);
+    }
+  } else {
+    const fontName = (STANDARD[s.family] ?? STANDARD.helvetica!)[(s.bold ? 1 : 0) + (s.italic ? 2 : 0)];
+    font = await doc.embedFont(fontName);
+  }
   const [r, g, b] = TONES[s.tone].rgb;
   const color = rgb(r, g, b);
   const text = s.text.trim() || 'CONFIDENTIAL';
@@ -328,11 +369,16 @@ export function WatermarkTool() {
                     <button onClick={() => set('bold', !settings.bold)} aria-pressed={settings.bold} aria-label="Bold"
                       className={`flex size-9 shrink-0 items-center justify-center rounded-lg border transition-all ${settings.bold ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-primary/40'}`}><Bold className="size-4" /></button>
                     <button onClick={() => set('italic', !settings.italic)} aria-pressed={settings.italic} aria-label="Italic"
-                      className={`flex size-9 shrink-0 items-center justify-center rounded-lg border transition-all ${settings.italic ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-primary/40'}`}><Italic className="size-4" /></button>
+                      disabled={settings.family === 'oswald'}
+                      title={settings.family === 'oswald' ? 'Oswald has no italic style' : undefined}
+                      className={`flex size-9 shrink-0 items-center justify-center rounded-lg border transition-all disabled:cursor-not-allowed disabled:opacity-40 ${settings.italic ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-primary/40'}`}><Italic className="size-4" /></button>
                   </div>
                   <div className="mt-3 grid grid-cols-3 gap-2">
-                    {([['helvetica', 'Helvetica'], ['times', 'Times'], ['courier', 'Courier']] as Array<[Family, string]>).map(([f2, label]) => (
-                      <button key={f2} onClick={() => set('family', f2)} aria-pressed={settings.family === f2}
+                    {([
+                      ['helvetica', 'Helvetica'], ['times', 'Times'], ['courier', 'Courier'],
+                      ['oswald', 'Oswald'], ['comic', 'Comic Neue'], ['opensans', 'Open Sans'],
+                    ] as Array<[Family, string]>).map(([f2, label]) => (
+                      <button key={f2} onClick={() => { set('family', f2); if (f2 === 'oswald' && settings.italic) set('italic', false); }} aria-pressed={settings.family === f2}
                         className={`rounded-lg border px-2 py-1.5 text-xs font-medium transition-all ${settings.family === f2 ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-border bg-card hover:border-primary/40'}`}>
                         {label}
                       </button>

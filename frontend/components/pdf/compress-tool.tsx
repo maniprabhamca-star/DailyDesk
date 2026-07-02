@@ -13,6 +13,7 @@ import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
 import { openPdf, renderPage, dprTarget, getPdfjs, pdfDocOptions, yieldToLoop, type PdfHandle, type RenderedPage } from '@/lib/pdf-render';
 import { subsetFonts } from '@/lib/pdf-fontgut';
+import { stripDocMetadata } from '@/lib/pdf-sanitize';
 import { PageStrip } from '@/components/pdf/page-strip';
 import { BeforeAfter } from '@/components/pdf/before-after';
 import { SavingsRing } from '@/components/app/savings-ring';
@@ -583,13 +584,16 @@ export function CompressTool() {
 
           const dispPt = displaySizes.get((ref as unknown as { tag: string }).tag);
           const longPx = Math.max(w, h);
+          // At/below target dims: only worth re-encoding when the stored JPEG is
+          // lavish (bytes-per-pixel says ~q85+, which is how Word/Office embed
+          // them) — and then only accepted on a REAL win (≥15% smaller below),
+          // so efficient files never churn through generational re-encodes for
+          // crumbs. Harness-proven on the JobberDealer office file: one skipped
+          // 804×391 banner alone was 17KB of the gap to Smallpdf.
+          let atTarget = false;
           if (kind === 'jpeg' && !force) {
-            // Fast skip (JPEG only): already at/below target resolution → re-encoding
-            // the same lossy data won't shrink it meaningfully; skipping keeps
-            // efficient files fast. FlateDecode images are ALWAYS candidates —
-            // they're lossless, so JPEG wins even without downscaling.
-            if (dispPt) { if (longPx <= (dispPt / 72) * dpi * 1.15) continue; }
-            else if (longPx <= maxDim) continue;
+            atTarget = dispPt ? longPx <= (dispPt / 72) * dpi * 1.15 : longPx <= maxDim;
+            if (atTarget && raw.length / (w * h) <= 0.1) continue; // stored efficiently — skip
           }
           if (kind === 'flate' && (w * h < 100 * 100 || raw.length < 2048)) continue; // icons/logos: keep pixel-perfect
 
@@ -632,7 +636,7 @@ export function CompressTool() {
           const outBytes = new Uint8Array(await outBlob.arrayBuffer());
           canvas.width = 0; canvas.height = 0;
 
-          if (outBytes.length < raw.length) {
+          if (outBytes.length < (atTarget ? raw.length * 0.85 : raw.length)) {
             const ns = PDFRawStream.of(d, outBytes);
             ns.dict.set(PDFName.of('Width'), PDFNumber.of(nw));
             ns.dict.set(PDFName.of('Height'), PDFNumber.of(nh));
@@ -659,6 +663,15 @@ export function CompressTool() {
       try {
         fontsSlimmed = await subsetFonts(doc, original);
       } catch { /* best-effort — never blocks the rest of the pipeline */ }
+
+      // METADATA PASS (lossless, every level): drop the Info dictionary, XMP
+      // packet, embedded page thumbnails and /PieceInfo — free bytes (XMP alone
+      // is 3-20KB on office files) and a privacy win (author names, editing
+      // history). The document renders identically. Best-effort.
+      let metaRemoved = 0;
+      try {
+        metaRemoved = await stripDocMetadata(doc);
+      } catch { /* best-effort */ }
 
       // Hybrid pass: re-render SCANNED (text-light) pages at the target DPI and
       // re-encode them — this handles images in ANY format (the big win for
@@ -754,6 +767,8 @@ export function CompressTool() {
             }
             if (i % 8 === 7) await yieldToLoop();
           }
+          // The rebuilt document gets pdf-lib's own default Info — clean it too.
+          try { await stripDocMetadata(outDoc); } catch { /* best-effort */ }
           outBytes = await outDoc.save({ useObjectStreams: true });
         } finally {
           for (const t of tasks) { try { void t.destroy(); } catch { /* ignore */ } }
@@ -782,7 +797,8 @@ export function CompressTool() {
         rasterized > 0 ? `${rasterized} scanned page${rasterized === 1 ? '' : 's'} rebuilt` : '',
         recompressed > 0 ? `${recompressed} image${recompressed === 1 ? '' : 's'} recompressed` : '',
         fontsSlimmed > 0 ? `${fontsSlimmed} font${fontsSlimmed === 1 ? '' : 's'} slimmed` : '',
-        rasterized === 0 && recompressed === 0 && fontsSlimmed === 0 ? 'Repacked smaller — text untouched' : '',
+        metaRemoved > 0 ? 'metadata cleaned' : '',
+        rasterized === 0 && recompressed === 0 && fontsSlimmed === 0 && metaRemoved === 0 ? 'Repacked smaller — text untouched' : '',
       ].filter(Boolean).join(' · ') + ` · ${took}`;
       const blob = new Blob([part(outBytes)], { type: 'application/pdf' });
       setDone({ blob, name, before, after, optimized: false, note });

@@ -29,6 +29,7 @@ const faqs = [
   { q: 'How much smaller will it get?', a: 'It depends on the file. Image-heavy PDFs (scans, photos) often shrink by half or more. PDFs that are mostly text are already small, so there may be little to gain — and we never hand back a larger file.' },
   { q: 'Another tool said my PDF can’t be compressed. Can DailyDesk still shrink it?', a: 'Often, yes — especially scanned documents. Many tools give up on scans stored in formats like JPEG 2000 and hand the file back nearly unchanged. DailyDesk detects those pages and rebuilds them at the right resolution: in our test, a 27 MB scanned book that other tools returned about 1% smaller came out 60–75% smaller — still crisp and readable, and the file never left the browser.' },
   { q: 'Which level should I choose?', a: 'Recommended suits most files. Choose Light to keep the most image detail, or Strong for the smallest possible size when quality is less critical.' },
+  { q: 'Is anything besides images touched?', a: 'Two lossless extras: embedded fonts are slimmed (unused glyph outlines removed — the text itself is untouched), and hidden metadata (author name, editing history, the XMP packet, embedded thumbnails) is cleaned out. That saves bytes and doubles as a small privacy win — the document looks and renders exactly the same.' },
 ];
 
 export default function CompressPdfPage() {
