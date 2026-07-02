@@ -485,28 +485,42 @@ export function CompressTool() {
         outBytes = await doc.save({ useObjectStreams: true });
       } else try {
         const pdfjs = await getPdfjs();
-        const task = pdfjs.getDocument(pdfDocOptions(original.slice()));
-        const jsDoc = await task.promise;
+        // PARALLEL RASTER POOL: image decode (the dominant cost on scanned
+        // books, e.g. JPEG-2000 pages) happens inside each pdf.js document's
+        // OWN worker — so opening a few documents over copies of the same bytes
+        // multiplies decode throughput across CPU cores. Memory-bounded: extra
+        // workers only when the file is small enough to afford the copies.
+        const cores = typeof navigator !== 'undefined' ? navigator.hardwareConcurrency || 4 : 4;
+        const POOL_MAX_BYTES = 96 * 1024 * 1024;
+        const poolSize = Math.max(1, Math.min(4, cores - 1, original.length <= POOL_MAX_BYTES ? 4 : 1, scanPages.size));
+        const tasks = Array.from({ length: poolSize }, () => pdfjs.getDocument(pdfDocOptions(original.slice())));
+        const jsDocs = await Promise.all(tasks.map((t) => t.promise));
         try {
           const pageCount = doc.getPageCount();
           const outDoc = await PDFDocument.create();
           setProgress({ done: 0, total: pageCount });
           const q01 = Math.max(0.32, Math.min(0.9, rasterQ));
-          for (let i = 0; i < pageCount; i++) {
-            let placed = false;
-            try {
-              // Only rasterize pages flagged worth it (a big, high-res image).
-              // Everything else is copied untouched — so already-efficient files
-              // finish in seconds instead of re-rendering every page for nothing.
-              if (scanPages.has(i)) {
-                const jp = await jsDoc.getPage(i + 1);
+
+          // Phase 1 — render every flagged scan page through the pool (out of
+          // order), buffering the JPEG bytes (≈ the output size, so bounded).
+          // Pages NOT flagged are copied untouched in phase 2 — already-efficient
+          // files skip rendering entirely and finish in seconds.
+          const scanList = Array.from(scanPages).sort((a, b) => a - b);
+          const renderedPages = new Map<number, { jpg: Uint8Array; w: number; h: number }>();
+          let cursor = 0;
+          let progressed = 0;
+          const drain = async (jsDoc: (typeof jsDocs)[number]): Promise<void> => {
+            for (;;) {
+              if (cursor >= scanList.length) return;
+              const idx = scanList[cursor++];
+              try {
+                const jp = await jsDoc.getPage(idx + 1);
                 const vp1 = jp.getViewport({ scale: 1 });
                 const pageLongPt = Math.max(vp1.width, vp1.height);
                 // Per-page target from the analysis pass (never upscales the
                 // source image); DPI-derived fallback, clamped for memory safety.
-                const targetPx = Math.min(MAX_RASTER, rasterTargetPx.get(i) ?? (rasterDpi / 72) * pageLongPt);
-                const s = targetPx / pageLongPt;
-                const vp = jp.getViewport({ scale: s });
+                const targetPx = Math.min(MAX_RASTER, rasterTargetPx.get(idx) ?? (rasterDpi / 72) * pageLongPt);
+                const vp = jp.getViewport({ scale: targetPx / pageLongPt });
                 const canvas = document.createElement('canvas');
                 canvas.width = Math.ceil(vp.width); canvas.height = Math.ceil(vp.height);
                 const cx = canvas.getContext('2d');
@@ -516,25 +530,44 @@ export function CompressTool() {
                   // even if the user switches to another tab mid-job.
                   await jp.render({ canvas, viewport: vp, background: 'rgba(255,255,255,1)', intent: 'print' }).promise;
                   // Native JPEG (not mozjpeg): scan pages are already downsampled,
-                  // and native is ~15x faster — 100+ page books finish in seconds.
+                  // and native is ~15x faster — 100+ page books finish fast.
                   const jpgBlob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/jpeg', q01));
-                  canvas.width = 0; canvas.height = 0;
-                  if (jpgBlob) {
-                    const img = await outDoc.embedJpg(new Uint8Array(await jpgBlob.arrayBuffer()));
-                    const p = outDoc.addPage([vp1.width, vp1.height]);
-                    p.drawImage(img, { x: 0, y: 0, width: vp1.width, height: vp1.height });
-                    rasterized++; placed = true;
-                  }
+                  if (jpgBlob) renderedPages.set(idx, { jpg: new Uint8Array(await jpgBlob.arrayBuffer()), w: vp1.width, h: vp1.height });
                 }
-              }
-            } catch { /* fall through and copy the page untouched */ }
-            if (!placed) { try { const [cp] = await outDoc.copyPages(doc, [i]); outDoc.addPage(cp); copied++; } catch { /* unrenderable page — skip */ } }
-            setProgress({ done: i + 1, total: pageCount });
-            await yieldToLoop(); // not throttled in background tabs
+                canvas.width = 0; canvas.height = 0;
+                jp.cleanup(); // drop the worker's decoded-image cache as we go
+              } catch { /* this page falls back to an untouched copy in phase 2 */ }
+              progressed++;
+              setProgress({ done: Math.min(progressed, pageCount), total: pageCount });
+              await yieldToLoop(); // not throttled in background tabs
+            }
+          };
+          await Promise.all(jsDocs.map((d) => drain(d)));
+
+          // Phase 2 — assemble in page order: rasterized pages get their JPEG,
+          // everything else (incl. any render failure) is copied untouched.
+          for (let i = 0; i < pageCount; i++) {
+            const r = renderedPages.get(i);
+            let placed = false;
+            if (r) {
+              try {
+                const img = await outDoc.embedJpg(r.jpg);
+                const p = outDoc.addPage([r.w, r.h]);
+                p.drawImage(img, { x: 0, y: 0, width: r.w, height: r.h });
+                rasterized++; placed = true;
+              } catch { /* fall through and copy the page untouched */ }
+              renderedPages.delete(i); // free buffered bytes as we go
+            }
+            if (!placed) {
+              try { const [cp] = await outDoc.copyPages(doc, [i]); outDoc.addPage(cp); copied++; } catch { /* unrenderable page — skip */ }
+              progressed++;
+              setProgress({ done: Math.min(progressed, pageCount), total: pageCount });
+            }
+            if (i % 8 === 7) await yieldToLoop();
           }
           outBytes = await outDoc.save({ useObjectStreams: true });
         } finally {
-          try { await task.destroy(); } catch { /* ignore */ }
+          for (const t of tasks) { try { void t.destroy(); } catch { /* ignore */ } }
         }
       } catch {
         outBytes = await doc.save({ useObjectStreams: true }); // surgical-only fallback
