@@ -39,9 +39,9 @@ export const catalog: CatGroup[] = [
   {
     label: 'Convert to PDF', color: '#0284c7', tools: [
       { name: 'JPG to PDF', href: '/jpg-to-pdf', icon: FileImage, badge: 'device' },
-      { name: 'Word to PDF', icon: FileType2, badge: 'server', soon: true },
-      { name: 'PowerPoint to PDF', icon: Presentation, badge: 'server', soon: true },
-      { name: 'Excel to PDF', icon: FileSpreadsheet, badge: 'server', soon: true },
+      { name: 'Word to PDF', href: '/word-to-pdf', icon: FileType2, badge: 'server' },
+      { name: 'PowerPoint to PDF', href: '/powerpoint-to-pdf', icon: Presentation, badge: 'server' },
+      { name: 'Excel to PDF', href: '/excel-to-pdf', icon: FileSpreadsheet, badge: 'server' },
       { name: 'HTML to PDF', icon: Code2, badge: 'server', soon: true },
     ],
   },

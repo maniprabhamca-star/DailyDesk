@@ -20,6 +20,8 @@ const META: Record<string, { color: string; desc: string }> = {
   'Extract images': { color: '#db2777', desc: 'Original pictures out' },
   'PDF to Word': { color: '#2563eb', desc: 'Editable Word doc' },
   'Word to PDF': { color: '#1d4ed8', desc: 'Word into a PDF' },
+  'Excel to PDF': { color: '#15803d', desc: 'Sheets into a PDF' },
+  'PowerPoint to PDF': { color: '#c2410c', desc: 'Slides into a PDF' },
   'HTML to PDF': { color: '#0891b2', desc: 'Web page to PDF' },
   'Edit PDF': { color: '#ea580c', desc: 'Change text & images' },
   'Annotate': { color: '#c2410c', desc: 'Highlight & comment' },
