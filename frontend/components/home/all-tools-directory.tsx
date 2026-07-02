@@ -12,6 +12,7 @@ const META: Record<string, { color: string; desc: string }> = {
   'Split PDF': { color: '#d97706', desc: 'Pull out pages' },
   'Compress PDF': { color: '#0d9488', desc: 'Shrink the size' },
   'Rotate PDF': { color: '#0284c7', desc: 'Turn pages visually' },
+  'Reorder pages': { color: '#9333ea', desc: 'Drag into a new order' },
   'Delete pages': { color: '#dc2626', desc: 'Remove pages' },
   'Page numbers': { color: '#7c3aed', desc: 'Stamp numbers' },
   'JPG to PDF': { color: '#4f46e5', desc: 'Images into a PDF' },

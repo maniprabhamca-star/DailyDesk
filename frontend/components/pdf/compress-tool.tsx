@@ -97,6 +97,38 @@ async function inflateDeflate(bytes: Uint8Array): Promise<Uint8Array | null> {
   }
 }
 
+// Reverse PNG row predictors (DecodeParms /Predictor >= 10) so FlateDecode image
+// samples become plain raster rows. Word/Office PDFs often store screenshots
+// this way. Returns null on any inconsistency (caller then skips the image).
+function pngUnfilter(data: Uint8Array, columns: number, rows: number, colors: number): Uint8Array | null {
+  const stride = columns * colors;
+  if (data.length < (stride + 1) * rows) return null;
+  const out = new Uint8Array(stride * rows);
+  let p = 0;
+  for (let y = 0; y < rows; y++) {
+    const ft = data[p++];
+    const row = y * stride;
+    const prev = row - stride;
+    for (let x = 0; x < stride; x++) {
+      const raw = data[p++];
+      const a = x >= colors ? out[row + x - colors] : 0;
+      const b = y > 0 ? out[prev + x] : 0;
+      const c = x >= colors && y > 0 ? out[prev + x - colors] : 0;
+      let v: number;
+      if (ft === 0) v = raw;
+      else if (ft === 1) v = raw + a;
+      else if (ft === 2) v = raw + b;
+      else if (ft === 3) v = raw + ((a + b) >> 1);
+      else if (ft === 4) {
+        const pa = Math.abs(b - c), pb = Math.abs(a - c), pc = Math.abs(a + b - 2 * c);
+        v = raw + (pa <= pb && pa <= pc ? a : pb <= pc ? b : c);
+      } else return null;
+      out[row + x] = v & 255;
+    }
+  }
+  return out;
+}
+
 function fmt(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
@@ -397,19 +429,80 @@ export function CompressTool() {
         }
       } catch { /* best-effort; surgical + safe fallbacks below still work */ }
 
-      // Collect embedded JPEG images (safe to recompress). Everything else is left untouched.
-      const isJpegImage = (obj: unknown): boolean => {
-        if (!(obj instanceof PDFRawStream)) return false;
+      // Collect embedded images we can safely recompress. Two kinds:
+      //  - 'jpeg' (DCTDecode): decode + downsample + re-encode (photo path).
+      //  - 'flate' (FlateDecode, 8-bit RGB/Gray, no transparency): PNG-style
+      //    screenshots that Word/Office PDFs embed LOSSLESSLY — converting them
+      //    to JPEG is the big win on everyday office documents (the class of
+      //    file where competitors were beating us). Anything else is untouched.
+      const imageKind = (obj: unknown): 'jpeg' | 'flate' | null => {
+        if (!(obj instanceof PDFRawStream)) return null;
         const d = obj.dict;
-        if (String(d.get(PDFName.of('Subtype'))) !== '/Image') return false;
-        if (String(d.get(PDFName.of('Filter'))) !== '/DCTDecode') return false; // single JPEG filter only
-        if (d.get(PDFName.of('ImageMask'))) return false;
-        return true;
+        if (String(d.get(PDFName.of('Subtype'))) !== '/Image') return null;
+        if (d.get(PDFName.of('ImageMask'))) return null;
+        const filter = String(d.get(PDFName.of('Filter')));
+        if (filter === '/DCTDecode') return 'jpeg';
+        if (filter === '/FlateDecode') {
+          if (d.get(PDFName.of('SMask')) || d.get(PDFName.of('Mask'))) return null; // keep transparency intact
+          if (Number(d.get(PDFName.of('BitsPerComponent'))) !== 8) return null;
+          return 'flate';
+        }
+        return null;
+      };
+
+      // Resolve a FlateDecode image's channel count (3 = RGB, 1 = Gray) — only
+      // the colorspaces we can convert faithfully; anything exotic is skipped.
+      const flateChannels = (d: RawStream['dict']): 3 | 1 | null => {
+        try {
+          const cs = ctx.lookup(d.get(PDFName.of('ColorSpace')));
+          const s = String(cs);
+          if (s === '/DeviceRGB') return 3;
+          if (s === '/DeviceGray') return 1;
+          if (cs instanceof PDFArray && String(cs.get(0)) === '/ICCBased') {
+            const icc = ctx.lookup(cs.get(1));
+            const n = icc instanceof PDFRawStream ? Number(icc.dict.get(PDFName.of('N'))) : NaN;
+            if (n === 3) return 3;
+            if (n === 1) return 1;
+          }
+        } catch { /* fall through */ }
+        return null;
+      };
+
+      // Decode a FlateDecode image to ImageData (handles PNG predictors).
+      const decodeFlate = async (obj: RawStream): Promise<ImageData | null> => {
+        const d = obj.dict;
+        const w = Number(d.get(PDFName.of('Width')));
+        const h = Number(d.get(PDFName.of('Height')));
+        const channels = flateChannels(d);
+        if (!w || !h || !channels) return null;
+        const inflated = await inflateDeflate(obj.contents as Uint8Array);
+        if (!inflated) return null;
+        let samples: Uint8Array | null = inflated;
+        const parmsObj = ctx.lookup(d.get(PDFName.of('DecodeParms')));
+        if (parmsObj) {
+          const get = (k: string) => Number((parmsObj as RawStream['dict']).get?.(PDFName.of(k)) ?? NaN);
+          const predictor = get('Predictor');
+          if (Number.isNaN(predictor) || predictor === 1) { /* no prediction */ }
+          else if (predictor >= 10) {
+            const colors = get('Colors') || channels;
+            const columns = get('Columns') || w;
+            samples = pngUnfilter(inflated, columns, h, colors);
+          } else return null; // TIFF predictor — rare, skip
+        }
+        if (!samples || samples.length < w * h * channels) return null;
+        const img = new ImageData(w, h);
+        const px = img.data;
+        for (let i = 0, s = 0; i < w * h; i++) {
+          if (channels === 3) { px[i * 4] = samples[s++]; px[i * 4 + 1] = samples[s++]; px[i * 4 + 2] = samples[s++]; }
+          else { const g = samples[s++]; px[i * 4] = g; px[i * 4 + 1] = g; px[i * 4 + 2] = g; }
+          px[i * 4 + 3] = 255;
+        }
+        return img;
       };
 
       // Skip images that sit on scan pages — those pages get rasterized whole, so
       // recompressing their images first is wasted (slow) work.
-      const images = ctx.enumerateIndirectObjects().filter(([ref, obj]) => isJpegImage(obj) && !scanImageTags.has((ref as unknown as { tag: string }).tag));
+      const images = ctx.enumerateIndirectObjects().filter(([ref, obj]) => imageKind(obj) !== null && !scanImageTags.has((ref as unknown as { tag: string }).tag));
       setProgress({ done: 0, total: images.length });
 
       let recompressed = 0;
@@ -418,22 +511,42 @@ export function CompressTool() {
         const obj = rawObj as RawStream;
         try {
           const d = obj.dict;
+          const kind = imageKind(obj);
           const w = Number(d.get(PDFName.of('Width')));
           const h = Number(d.get(PDFName.of('Height')));
           const raw = obj.contents as Uint8Array;
           if (!w || !h || raw.length < 1024) continue; // tiny — not worth it
 
-          // Fast skip: if the image is already at/below the target resolution it
-          // won't shrink, so don't waste time decoding + re-encoding it. This is
-          // what keeps already-efficient files fast (seconds, not minutes).
           const dispPt = displaySizes.get((ref as unknown as { tag: string }).tag);
           const longPx = Math.max(w, h);
-          if (!force) {
+          if (kind === 'jpeg' && !force) {
+            // Fast skip (JPEG only): already at/below target resolution → re-encoding
+            // the same lossy data won't shrink it meaningfully; skipping keeps
+            // efficient files fast. FlateDecode images are ALWAYS candidates —
+            // they're lossless, so JPEG wins even without downscaling.
             if (dispPt) { if (longPx <= (dispPt / 72) * dpi * 1.15) continue; }
             else if (longPx <= maxDim) continue;
           }
+          if (kind === 'flate' && (w * h < 100 * 100 || raw.length < 2048)) continue; // icons/logos: keep pixel-perfect
 
-          const bmp = await decodeJpeg(raw);
+          // Decode by kind → pixels on a canvas.
+          let src: CanvasImageSource & { width: number; height: number; close?: () => void };
+          if (kind === 'jpeg') {
+            src = await decodeJpeg(raw);
+          } else {
+            const img = await decodeFlate(obj);
+            if (!img) continue;
+            if (typeof createImageBitmap === 'function') {
+              src = await createImageBitmap(img);
+            } else {
+              // Older browsers: draw via a temp canvas (a canvas is a CanvasImageSource).
+              const t = document.createElement('canvas');
+              t.width = img.width; t.height = img.height;
+              t.getContext('2d')?.putImageData(img, 0, 0);
+              src = t;
+            }
+          }
+
           // DPI-aware target: shrink to what the image's on-page size needs at the
           // chosen DPI; fall back to the maxDim cap when its placement is unknown.
           const targetLong = dispPt ? Math.max(64, Math.ceil((dispPt / 72) * dpi)) : maxDim;
@@ -443,13 +556,15 @@ export function CompressTool() {
           const canvas = document.createElement('canvas');
           canvas.width = nw; canvas.height = nh;
           const cx = canvas.getContext('2d');
-          if (!cx) { (bmp as ImageBitmap).close?.(); continue; }
+          if (!cx) { src.close?.(); continue; }
           cx.fillStyle = '#ffffff';
           cx.fillRect(0, 0, nw, nh);
-          cx.drawImage(bmp as CanvasImageSource, 0, 0, nw, nh);
-          (bmp as ImageBitmap).close?.();
+          cx.drawImage(src, 0, 0, nw, nh);
+          src.close?.();
           const imageData = cx.getImageData(0, 0, nw, nh);
-          const outBlob = await encodeJpeg(imageData, quality);
+          // Screenshots (flate) get a gentler quality: sharp UI text matters more
+          // than a few extra KB, and they're small to begin with.
+          const outBlob = await encodeJpeg(imageData, kind === 'flate' ? Math.max(quality, 80) : quality);
           const outBytes = new Uint8Array(await outBlob.arrayBuffer());
           canvas.width = 0; canvas.height = 0;
 
@@ -459,6 +574,7 @@ export function CompressTool() {
             ns.dict.set(PDFName.of('Height'), PDFNumber.of(nh));
             ns.dict.set(PDFName.of('ColorSpace'), PDFName.of('DeviceRGB'));
             ns.dict.set(PDFName.of('BitsPerComponent'), PDFNumber.of(8));
+            ns.dict.set(PDFName.of('Filter'), PDFName.of('DCTDecode'));
             ns.dict.delete(PDFName.of('DecodeParms'));
             ns.dict.delete(PDFName.of('Decode'));
             ctx.assign(ref, ns);

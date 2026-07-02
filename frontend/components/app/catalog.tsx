@@ -4,7 +4,7 @@ import {
   PenLine, Highlighter, Stamp, EyeOff, PenTool, Lock,
   ScanText, MessageSquare, AlignLeft, Languages,
   QrCode, KeyRound, NotebookPen, Flame, Wallet, FolderLock, Link2,
-  ImageDown, Smartphone, Eraser, Film, Clapperboard,
+  ImageDown, Smartphone, Eraser, Film, Clapperboard, ArrowLeftRight,
   Ruler, Braces, Palette, CaseSensitive,
   Cloud, Sparkles, type LucideIcon,
 } from 'lucide-react';
@@ -31,6 +31,7 @@ export const catalog: CatGroup[] = [
       { name: 'Split PDF', href: '/split-pdf', icon: Split, badge: 'device' },
       { name: 'Compress PDF', href: '/compress-pdf', icon: Shrink, badge: 'device' },
       { name: 'Rotate PDF', href: '/rotate-pdf', icon: RotateCw, badge: 'device' },
+      { name: 'Reorder pages', href: '/reorder-pdf', icon: ArrowLeftRight, badge: 'device' },
       { name: 'Delete pages', href: '/delete-pages-from-pdf', icon: FileMinus, badge: 'device' },
       { name: 'Page numbers', href: '/add-page-numbers-to-pdf', icon: ListOrdered, badge: 'device' },
     ],

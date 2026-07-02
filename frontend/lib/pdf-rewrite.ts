@@ -38,8 +38,13 @@ async function runInline(buffer: ArrayBuffer, op: RewriteOp): Promise<Uint8Array
       const cur = pages[i].getRotation().angle || 0;
       pages[i].setRotation(degrees((((cur + d) % 360) + 360) % 360));
     });
-  } else {
+  } else if (op.type === 'delete') {
     [...op.indices].sort((a, b) => b - a).forEach((i) => doc.removePage(i));
+  } else {
+    const dest = await PDFDocument.create();
+    const copied = await dest.copyPages(doc, op.order);
+    copied.forEach((p) => dest.addPage(p));
+    return dest.save();
   }
   return doc.save();
 }
