@@ -132,7 +132,7 @@ function ProductCluster() {
 export function HeroHybrid() {
   return (
     <section className="relative overflow-hidden">
-      <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-14 sm:px-6 sm:py-20 md:grid-cols-2 lg:gap-16">
+      <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 pb-14 pt-7 sm:px-6 sm:pb-20 sm:pt-10 md:grid-cols-2 lg:gap-16">
         <div>
           <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
             <ShieldCheck className="size-3.5" /> Private by design

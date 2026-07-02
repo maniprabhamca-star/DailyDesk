@@ -8,6 +8,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { catalog } from '@/components/app/catalog';
+import { HeaderSearch } from '@/components/app/header-search';
 
 function openCommand() {
   window.dispatchEvent(new Event('dd-command-open'));
@@ -91,17 +92,11 @@ export function SiteHeader({ heroSearchRef }: { heroSearchRef?: React.RefObject<
         <Link href="/pricing" className="hidden text-sm font-medium text-foreground/80 hover:text-foreground sm:block">Pricing</Link>
 
         {/* Center command search — the primary way to navigate (search-first workspace).
-            Emphasised with a soft purple ring so it reads as the star, not an afterthought.
-            On home it fades in on scroll (see heroSearchRef); elsewhere it's always visible. */}
+            A real input: results drop down inline as you type (HeaderSearch); ⌘K still
+            opens the full palette. On home it fades in on scroll (see heroSearchRef);
+            elsewhere it's always visible. */}
         <div className="flex flex-1 justify-center px-2 sm:px-4">
-          <button
-            onClick={openCommand}
-            aria-label="Search or jump to any tool"
-            className={`hidden w-full max-w-md items-center gap-2.5 rounded-full border border-primary/40 bg-card px-4 py-2 text-sm shadow-sm ring-[3px] ring-primary/[0.08] transition hover:border-primary/60 hover:ring-primary/15 focus-visible:border-primary/70 focus-visible:outline-none focus-visible:ring-primary/25 sm:flex ${showHeaderSearch ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
-          >
-            <Search className="size-4 text-primary" /> <span className="text-foreground/60">Search or jump to any tool…</span>
-            <kbd className="ml-auto rounded border px-1.5 py-0.5 text-[11px] text-muted-foreground">⌘K</kbd>
-          </button>
+          <HeaderSearch visible={showHeaderSearch} />
         </div>
 
         <div className="flex items-center gap-2">

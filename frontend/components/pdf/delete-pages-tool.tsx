@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { takeHandoff } from '@/lib/handoff';
 import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
-import { openPdf, useLazyPageThumb, type PdfHandle } from '@/lib/pdf-render';
+import { openPdf, useLazyPageThumb, prefetchPageThumbs, type PdfHandle } from '@/lib/pdf-render';
 
 // Whether each page is marked for removal. Deletion is lossless (pdf-lib
 // removePage — the kept pages are untouched), so quality is preserved.
@@ -95,8 +95,10 @@ export function DeletePagesTool() {
     try {
       const h = await openPdf(f);
       setHandle(h);
-      // The grid shows instantly with placeholders; thumbnails stream in lazily.
+      // The grid shows instantly with placeholders; thumbnails stream in lazily,
+      // and the rest warm in the background so scrolling never hits a spinner.
       setMarkedPages(Array.from({ length: h.numPages }, () => false));
+      prefetchPageThumbs(h, 170);
     } catch {
       setError('Could not read that PDF. It may be corrupted or password-protected.');
       setFile(null);

@@ -1,6 +1,7 @@
 'use client';
 
-import { Loader2, FileWarning } from 'lucide-react';
+import { useEffect, useRef } from 'react';
+import { Loader2, FileWarning, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useLazyPageThumb, type PdfHandle } from '@/lib/pdf-render';
 
 // Horizontal strip of lazily-rendered page thumbnails. Only thumbnails near the
@@ -37,18 +38,59 @@ function Thumb({ handle, index, active, onSelect }: { handle: PdfHandle; index: 
 }
 
 export function PageStrip({ handle, count, selected, onSelect, className = '' }: { handle: PdfHandle | null; count: number; selected: number; onSelect: (i: number) => void; className?: string }) {
+  const stripRef = useRef<HTMLDivElement>(null);
+
+  // Keep the selected thumb in view when navigating via the stepper / page input.
+  useEffect(() => {
+    stripRef.current?.querySelector(`[data-page="${selected}"]`)?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+  }, [selected]);
+
   if (!handle || count <= 1) return null;
   const pages = [];
   for (let i = 0; i < count; i++) pages.push(i);
+  const clamp = (n: number) => Math.max(0, Math.min(count - 1, n));
+
   return (
     <div className={className}>
-      <div className="mb-1.5 flex items-center justify-between">
+      <div className="mb-1.5 flex items-center justify-between gap-2">
         <span className="text-xs font-medium text-muted-foreground">Pages</span>
-        <span className="text-xs text-muted-foreground">Page {selected + 1} of {count}</span>
+        {/* Long-document navigation: prev/next + direct page entry (faster than
+            scrolling a 100+ page strip; a dropdown that long would be worse UX). */}
+        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+          <button
+            type="button"
+            onClick={() => onSelect(clamp(selected - 1))}
+            disabled={selected <= 0}
+            aria-label="Previous page"
+            className="flex size-6 items-center justify-center rounded-md border transition-colors hover:bg-accent disabled:pointer-events-none disabled:opacity-40"
+          ><ChevronLeft className="size-3.5" /></button>
+          <span className="flex items-center gap-1">
+            Page
+            <input
+              type="number"
+              min={1}
+              max={count}
+              value={selected + 1}
+              onChange={(e) => { const n = parseInt(e.target.value, 10); if (!Number.isNaN(n)) onSelect(clamp(n - 1)); }}
+              aria-label="Go to page"
+              className="h-6 w-12 rounded-md border bg-background px-1.5 text-center text-xs outline-none focus:border-primary [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            />
+            of {count}
+          </span>
+          <button
+            type="button"
+            onClick={() => onSelect(clamp(selected + 1))}
+            disabled={selected >= count - 1}
+            aria-label="Next page"
+            className="flex size-6 items-center justify-center rounded-md border transition-colors hover:bg-accent disabled:pointer-events-none disabled:opacity-40"
+          ><ChevronRight className="size-3.5" /></button>
+        </span>
       </div>
-      <div className="flex gap-2 overflow-x-auto pb-1.5">
+      <div ref={stripRef} className="flex gap-2 overflow-x-auto pb-1.5">
         {pages.map((i) => (
-          <Thumb key={i} handle={handle} index={i} active={i === selected} onSelect={() => onSelect(i)} />
+          <span key={i} data-page={i} className="shrink-0">
+            <Thumb handle={handle} index={i} active={i === selected} onSelect={() => onSelect(i)} />
+          </span>
         ))}
       </div>
     </div>

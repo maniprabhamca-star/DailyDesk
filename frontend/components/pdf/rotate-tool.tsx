@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { takeHandoff } from '@/lib/handoff';
 import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
-import { openPdf, useLazyPageThumb, type PdfHandle } from '@/lib/pdf-render';
+import { openPdf, useLazyPageThumb, prefetchPageThumbs, type PdfHandle } from '@/lib/pdf-render';
 
 // Per-page pending rotation (delta added on top of the page's existing rotation)
 // + selection. Rotation is applied LOSSLESSLY with pdf-lib (it just sets the
@@ -97,8 +97,10 @@ export function RotateTool() {
     try {
       const h = await openPdf(f);
       setHandle(h);
-      // The grid shows instantly with placeholders; thumbnails stream in lazily.
+      // The grid shows instantly with placeholders; thumbnails stream in lazily,
+      // and the rest warm in the background so scrolling never hits a spinner.
       setPages(Array.from({ length: h.numPages }, () => ({ delta: 0, selected: false })));
+      prefetchPageThumbs(h, 170);
     } catch {
       setError('Could not read that PDF. It may be corrupted or password-protected.');
       setFile(null);

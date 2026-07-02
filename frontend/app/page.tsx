@@ -8,6 +8,8 @@ import { SiteHeader } from '@/components/app/site-header';
 import { SiteFooter } from '@/components/app/site-footer';
 import { HeroHybrid } from '@/components/home/hero-variants';
 import { AllToolsDirectory } from '@/components/home/all-tools-directory';
+import { JumpBackIn } from '@/components/home/jump-back-in';
+import { ProofStrip } from '@/components/home/proof-strip';
 import { liveToolCount } from '@/components/app/catalog';
 import { FeatureSpotlights } from '@/components/home/feature-spotlights';
 import { PRICING } from '@/lib/pricing';
@@ -50,8 +52,14 @@ export default function Home() {
 
       <HeroHybrid />
 
+      {/* Returning visitors: their recent tools, one tap away (local-only) */}
+      <JumpBackIn />
+
       {/* All tools — the single canonical tools section */}
       <AllToolsDirectory />
+
+      {/* Verifiable proof — the documented compress test (our kind of social proof) */}
+      <ProofStrip />
 
       {/* Feature spotlights */}
       <FeatureSpotlights />

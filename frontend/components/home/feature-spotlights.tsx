@@ -36,7 +36,7 @@ function Row({
 
 export function FeatureSpotlights() {
   return (
-    <section className="mx-auto max-w-6xl space-y-24 px-4 pb-20 pt-10 sm:px-6 md:space-y-32">
+    <section className="mx-auto max-w-6xl space-y-14 px-4 pb-14 pt-8 sm:px-6 md:space-y-20">
 
       {/* 1 · Breadth of tools — live launcher grid */}
       <Row eyebrow="All-in-one toolkit" eyebrowColor="#7c3aed" title="One workspace. Every daily tool." body="PDFs, QR codes, passwords and more — a whole toolkit that runs free, right in your browser. One tab, everything you reach for." cta="Browse all tools" href="/#tools">
@@ -70,7 +70,7 @@ export function FeatureSpotlights() {
       </Row>
 
       {/* 2 · PDF */}
-      <Row reverse eyebrow="PDF workspace" eyebrowColor="#dc2626" title="Everything for your PDFs." body="Merge, split, compress, convert, sign and more — 20+ PDF tools, all free and private. Replace your $20/mo PDF subscription." cta="Open PDF tools" href="/merge-pdf">
+      <Row reverse eyebrow="PDF workspace" eyebrowColor="#dc2626" title="Everything for your PDFs." body="Merge, split, compress, convert, sign and more — a complete PDF workspace, private by design. Replace your $20/mo PDF subscription." cta="Open PDF tools" href="/merge-pdf">
         <div className="relative rounded-2xl border bg-gradient-to-br from-red-50 to-background p-6 dark:from-red-950/20">
           <div className="relative mx-auto h-52 max-w-xs">
             <div className="absolute left-4 top-3 h-44 w-40 rotate-[6deg] rounded-xl border bg-card" />

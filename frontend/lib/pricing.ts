@@ -4,7 +4,8 @@
 export const PRICING = {
   pro: {
     monthly: '4.99',
-    annualPerMonth: '4.08',
+    // "$4/mo" framing (user-approved): clean number; the yearly note carries the detail.
+    annualPerMonth: '4',
     annualNote: '$49 billed yearly',
   },
   freeFeatures: [

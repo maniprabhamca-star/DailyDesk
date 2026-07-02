@@ -25,6 +25,8 @@ export type PdfHandle = {
   destroy: () => Promise<void>;
   // internal — render cache (page@long -> rendered blob url), bounded LRU
   _cache: Map<string, RenderedPage>;
+  // internal — set on destroy so queued background prefetch jobs skip cleanly
+  _dead?: boolean;
 };
 
 const CACHE_CAP = 140; // bound memory: ~140 cached page bitmaps max per file
@@ -85,16 +87,18 @@ export async function openPdf(src: File | Blob): Promise<PdfHandle> {
   const task = pdfjs.getDocument(pdfDocOptions(data));
   const doc = await task.promise;
   const cache = new Map<string, RenderedPage>();
-  return {
+  const handle: PdfHandle = {
     numPages: doc.numPages,
     doc,
     _cache: cache,
     destroy: async () => {
+      handle._dead = true;
       cache.forEach((p) => URL.revokeObjectURL(p.url));
       cache.clear();
       try { await task.destroy(); } catch { /* already gone */ }
     },
   };
+  return handle;
 }
 
 // Render a single page (0-based index) to a JPEG blob URL at the given long edge.
@@ -184,6 +188,26 @@ function pumpThumbs() {
 // Render the first rows without waiting for the IntersectionObserver — they're
 // visible anyway, and IO delivery can lag (it only fires on rendering frames).
 const EAGER_PAGES = 8;
+
+/** Warm the thumbnail cache in the background so scrolling never hits a spinner.
+ * Jobs go to the FRONT of the LIFO queue = lowest priority: anything the user
+ * actually scrolls to (pushed later, popped first) always renders ahead of the
+ * prefetch. Bounded by the LRU cache cap, and kept modest on weak devices. */
+export function prefetchPageThumbs(handle: PdfHandle, cssLong = 150) {
+  const cores = typeof navigator !== 'undefined' ? navigator.hardwareConcurrency || 4 : 4;
+  const limit = Math.min(handle.numPages, cores <= 2 ? 24 : CACHE_CAP);
+  const target = dprTarget(cssLong, 2.2, 340);
+  // Unshift ascending so the queue drains ascending (pop takes from the end:
+  // after unshift(0), unshift(1)… the array is [L-1, …, 1, 0] and pops page 0 first).
+  for (let i = 0; i < limit; i++) {
+    const idx = i;
+    thumbQueue.unshift(async () => {
+      if (handle._dead) return;
+      try { await renderPage(handle, idx, target); } catch { /* tile retries via IO if visible */ }
+    });
+  }
+  pumpThumbs();
+}
 
 /** Lazily render page `index`'s thumbnail once the returned ref's element nears
  * the viewport (first EAGER_PAGES render immediately). Returns a blob URL when
