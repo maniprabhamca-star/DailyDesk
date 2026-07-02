@@ -4,6 +4,8 @@ import {
   PenLine, Highlighter, Stamp, EyeOff, PenTool, Lock,
   ScanText, MessageSquare, AlignLeft, Languages,
   QrCode, KeyRound, NotebookPen, Flame, Wallet, FolderLock, Link2,
+  ImageDown, Smartphone, Eraser, Film, Clapperboard,
+  Ruler, Braces, Palette, CaseSensitive,
   Cloud, Sparkles, type LucideIcon,
 } from 'lucide-react';
 
@@ -73,6 +75,25 @@ export const catalog: CatGroup[] = [
     label: 'Generators', color: '#4f46e5', tools: [
       { name: 'QR generator', href: '/tools/qr-code', icon: QrCode, badge: 'device' },
       { name: 'Password', href: '/tools/password', icon: KeyRound, badge: 'device' },
+    ],
+  },
+  {
+    // Beyond-PDF differentiators — media tools that competitors only offer
+    // with an upload; ours run on-device (ffmpeg.wasm / codecs in the browser).
+    label: 'Images & media', color: '#ea580c', tools: [
+      { name: 'Compress image', href: '/compress-image', icon: ImageDown, badge: 'device' },
+      { name: 'HEIC to JPG', icon: Smartphone, badge: 'device', soon: true },
+      { name: 'Background remover', icon: Eraser, badge: 'device', soon: true },
+      { name: 'Compress video', icon: Film, badge: 'device', soon: true },
+      { name: 'Video to GIF', icon: Clapperboard, badge: 'device', soon: true },
+    ],
+  },
+  {
+    label: 'Everyday utilities', color: '#0d9488', tools: [
+      { name: 'Word counter', icon: CaseSensitive, badge: 'device', soon: true },
+      { name: 'Unit converter', icon: Ruler, badge: 'device', soon: true },
+      { name: 'JSON formatter', icon: Braces, badge: 'device', soon: true },
+      { name: 'Color picker', icon: Palette, badge: 'device', soon: true },
     ],
   },
   {
