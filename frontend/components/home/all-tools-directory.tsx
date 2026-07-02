@@ -28,6 +28,7 @@ const META: Record<string, { color: string; desc: string }> = {
   'Redact PDF': { color: '#475569', desc: 'Black out secrets' },
   'Sign PDF': { color: '#7c3aed', desc: 'Add your signature' },
   'Protect PDF': { color: '#b45309', desc: 'Password-lock it' },
+  'Unlock PDF': { color: '#0369a1', desc: 'Remove a known password' },
   'OCR': { color: '#0284c7', desc: 'Make scans searchable' },
   'Chat with PDF': { color: '#db2777', desc: 'Ask your document' },
   'Summarize': { color: '#7c3aed', desc: 'Get the gist' },

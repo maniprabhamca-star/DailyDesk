@@ -1,0 +1,3 @@
+qpdf compiled to WebAssembly.
+qpdf: Copyright (c) Jay Berkenbilt & contributors - Apache License 2.0 (https://github.com/qpdf/qpdf/blob/main/LICENSE.txt)
+wasm wrapper: @neslinesli93/qpdf-wasm - ISC License

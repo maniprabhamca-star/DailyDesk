@@ -1,7 +1,7 @@
 import {
   Combine, Split, Shrink, RotateCw, FileMinus, ListOrdered,
   FileImage, Image as ImageIcon, FileType, FileType2, Code2, Presentation, FileSpreadsheet, FileCheck,
-  PenLine, Highlighter, Stamp, EyeOff, PenTool, Lock, Fingerprint,
+  PenLine, Highlighter, Stamp, EyeOff, PenTool, Lock, Unlock, Fingerprint,
   ScanText, MessageSquare, AlignLeft, Languages,
   QrCode, KeyRound, NotebookPen, Flame, Wallet, FolderLock, Link2,
   ImageDown, Smartphone, Eraser, Film, Clapperboard, ArrowLeftRight, Images,
@@ -63,7 +63,8 @@ export const catalog: CatGroup[] = [
       { name: 'Remove metadata', href: '/remove-pdf-metadata', icon: Fingerprint, badge: 'device' },
       { name: 'Redact PDF', icon: EyeOff, badge: 'device', soon: true },
       { name: 'Sign PDF', icon: PenTool, badge: 'device', soon: true },
-      { name: 'Protect PDF', icon: Lock, badge: 'device', soon: true },
+      { name: 'Protect PDF', href: '/protect-pdf', icon: Lock, badge: 'device' },
+      { name: 'Unlock PDF', href: '/unlock-pdf', icon: Unlock, badge: 'device' },
     ],
   },
   {
