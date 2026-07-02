@@ -112,6 +112,32 @@ const ok = (cond, label) => { console.log(`${cond ? 'ok  ' : 'FAIL'} ${label}`);
     await destroy();
   }
 
+  // ---- place-image (Sign PDF): red box at a known spot, verify it landed ----
+  {
+    const stamp = createCanvas(200, 80);
+    const sg = stamp.getContext('2d');
+    sg.fillStyle = '#dc2626';
+    sg.fillRect(0, 0, 200, 80);
+    const imageBytes = new Uint8Array(stamp.toBuffer('image/png')).buffer;
+    const [out] = await executeRewrite([A.slice(0)], {
+      type: 'place-image',
+      opts: { pageNo: 1, xFrac: 0.6, yFrac: 0.8, wFrac: 0.25, imageBytes, isPng: true },
+    });
+    const { doc, destroy } = await open(out);
+    const p = await doc.getPage(1);
+    const vp = p.getViewport({ scale: 1000 / p.getViewport({ scale: 1 }).width });
+    const c = createCanvas(Math.ceil(vp.width), Math.ceil(vp.height));
+    const g = c.getContext('2d');
+    g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+    await p.render({ canvas: c, viewport: vp, background: 'rgba(255,255,255,1)' }).promise;
+    // the box should cover x 60-85%, y 80%..(80%+height); sample its center
+    const cx = Math.round(c.width * 0.725);
+    const cy = Math.round(c.height * (0.8 + (0.25 * (80 / 200) * (c.width / c.height)) / 2));
+    const px = g.getImageData(cx, cy, 1, 1).data;
+    ok(px[0] > 180 && px[1] < 100, `place-image: red stamp found at its target spot (rgb ${px[0]},${px[1]},${px[2]})`);
+    await destroy();
+  }
+
   // ---- watermark: custom font bytes (Oswald) via fontkit ----
   {
     const fontBytes = new Uint8Array(fs.readFileSync(path.join(__dirname, '../frontend/public/fonts/oswald-bold.ttf'))).buffer;

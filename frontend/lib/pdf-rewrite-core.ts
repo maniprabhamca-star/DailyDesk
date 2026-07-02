@@ -31,6 +31,18 @@ export type WatermarkOpts = StampCore & {
   imageIsPng?: boolean;
 };
 
+/** Place one image (e.g. a signature) at an exact spot on one page. x/y are
+ * the box's TOP-LEFT in screen-style fractions of the page size — the y flip
+ * to PDF's bottom-left origin happens here, so the UI overlay maps 1:1. */
+export type PlaceImageOpts = {
+  pageNo: number; // 1-based
+  xFrac: number;
+  yFrac: number;
+  wFrac: number; // width as a fraction of page width (height keeps aspect)
+  imageBytes: ArrayBuffer;
+  isPng: boolean;
+};
+
 export type RewriteOp =
   | { type: 'rotate'; deltas: number[] } // per-page delta in degrees (0 = untouched)
   | { type: 'delete'; indices: number[] } // 0-based page indices to remove
@@ -40,7 +52,8 @@ export type RewriteOp =
   | { type: 'split-each' } // one output PDF per page
   | { type: 'split-chunks'; every: number } // fixed ranges: one output per N pages
   | { type: 'page-numbers'; opts: PageNumberOpts }
-  | { type: 'watermark'; opts: WatermarkOpts };
+  | { type: 'watermark'; opts: WatermarkOpts }
+  | { type: 'place-image'; opts: PlaceImageOpts };
 
 export async function executeRewrite(buffers: ArrayBuffer[], op: RewriteOp): Promise<Uint8Array[]> {
   if (op.type === 'merge') {
@@ -108,6 +121,16 @@ export async function executeRewrite(buffers: ArrayBuffer[], op: RewriteOp): Pro
         const y = o.pos.startsWith('t') ? height - o.margin - o.fontSize : o.margin;
         page.drawText(text, { x, y, size: o.fontSize, font, color: rgb(o.colorRgb[0], o.colorRgb[1], o.colorRgb[2]) });
       });
+      return [await doc.save()];
+    }
+    case 'place-image': {
+      const o = op.opts;
+      const img = o.isPng ? await doc.embedPng(new Uint8Array(o.imageBytes)) : await doc.embedJpg(new Uint8Array(o.imageBytes));
+      const page = doc.getPage(o.pageNo - 1);
+      const { width: W, height: H } = page.getSize();
+      const w = o.wFrac * W;
+      const h = (img.height / img.width) * w;
+      page.drawImage(img, { x: o.xFrac * W, y: H - o.yFrac * H - h, width: w, height: h });
       return [await doc.save()];
     }
     case 'watermark': {

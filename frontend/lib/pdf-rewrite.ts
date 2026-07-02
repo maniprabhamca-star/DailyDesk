@@ -14,6 +14,7 @@ function opExtraTransfers(op: RewriteOp): ArrayBuffer[] {
     if (op.opts.imageBytes) t.push(op.opts.imageBytes);
     return t;
   }
+  if (op.type === 'place-image') return [op.opts.imageBytes];
   return [];
 }
 
@@ -46,6 +47,8 @@ async function run(srcs: (File | Blob)[], op: RewriteOp): Promise<Uint8Array[]> 
   let fallbackOp = op;
   if (op.type === 'watermark' && (op.opts.fontBytes || op.opts.imageBytes)) {
     fallbackOp = { ...op, opts: { ...op.opts, fontBytes: op.opts.fontBytes?.slice(0), imageBytes: op.opts.imageBytes?.slice(0) } };
+  } else if (op.type === 'place-image') {
+    fallbackOp = { ...op, opts: { ...op.opts, imageBytes: op.opts.imageBytes.slice(0) } };
   }
   try {
     return await runInWorker(await Promise.all(srcs.map((s) => s.arrayBuffer())), op);

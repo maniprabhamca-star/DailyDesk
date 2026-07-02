@@ -62,7 +62,7 @@ export const catalog: CatGroup[] = [
       { name: 'Watermark', href: '/watermark-pdf', icon: Stamp, badge: 'device' },
       { name: 'Remove metadata', href: '/remove-pdf-metadata', icon: Fingerprint, badge: 'device' },
       { name: 'Redact PDF', icon: EyeOff, badge: 'device', soon: true },
-      { name: 'Sign PDF', icon: PenTool, badge: 'device', soon: true },
+      { name: 'Sign PDF', href: '/sign-pdf', icon: PenTool, badge: 'device' },
       { name: 'Protect PDF', href: '/protect-pdf', icon: Lock, badge: 'device' },
       { name: 'Unlock PDF', href: '/unlock-pdf', icon: Unlock, badge: 'device' },
     ],
