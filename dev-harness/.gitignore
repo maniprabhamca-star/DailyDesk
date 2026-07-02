@@ -8,3 +8,4 @@ extract-engine.cjs
 extract-out/
 fontgut-lib.cjs
 sanitize-lib.cjs
+rewrite-core.cjs

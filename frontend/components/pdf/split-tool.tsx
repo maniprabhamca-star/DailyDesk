@@ -7,8 +7,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { takeHandoff } from '@/lib/handoff';
 import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
+import { parseRanges } from '@/lib/page-ranges';
+import { rewritePdf, splitPdf } from '@/lib/pdf-rewrite';
 
-type Mode = 'extract' | 'each';
+type Mode = 'extract' | 'each' | 'every';
 
 function fmt(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -19,35 +21,16 @@ function fmt(bytes: number) {
 const inputCls =
   'h-9 w-full rounded-lg border bg-card px-3 text-sm text-foreground outline-none focus:border-primary';
 
-// Parse "1-3, 5, 8-10" into ordered 1-based page numbers; throws a clear error on invalid input.
-export function parseRanges(input: string, total: number): number[] {
-  const parts = input.split(',').map((s) => s.trim()).filter(Boolean);
-  if (parts.length === 0) throw new Error('Enter at least one page or range.');
-  const out: number[] = [];
-  for (const p of parts) {
-    const m = p.match(/^(\d+)\s*-\s*(\d+)$/);
-    if (m) {
-      let a = +m[1];
-      let b = +m[2];
-      if (a < 1 || b < 1 || a > total || b > total) throw new Error(`Pages must be between 1 and ${total}.`);
-      if (a > b) [a, b] = [b, a];
-      for (let i = a; i <= b; i++) out.push(i);
-    } else if (/^\d+$/.test(p)) {
-      const n = +p;
-      if (n < 1 || n > total) throw new Error(`Page ${n} is out of range (1–${total}).`);
-      out.push(n);
-    } else {
-      throw new Error(`“${p}” isn’t a valid page or range.`);
-    }
-  }
-  return out;
-}
+// parseRanges moved to lib/page-ranges (the rewrite worker needs it too);
+// re-exported here for the existing importers (pdf-to-jpg, page numbers, …).
+export { parseRanges };
 
 
 export function SplitTool() {
   const [file, setFile] = useState<File | null>(null);
   const [pageCount, setPageCount] = useState(0);
   const [mode, setMode] = useState<Mode>('extract');
+  const [every, setEvery] = useState(2); // "fixed ranges": pages per output file
   const [ranges, setRanges] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -111,35 +94,28 @@ export function SplitTool() {
     setError(null);
     setDone(null);
     try {
-      const { PDFDocument } = await import('pdf-lib');
-      const srcBytes = await file.arrayBuffer();
-      const src = await PDFDocument.load(srcBytes, { ignoreEncryption: true });
-      const total = src.getPageCount();
+      // pdf-lib runs in the rewrite WORKER — the page stays responsive even on
+      // very large files (main-thread applies used to freeze the tab).
       const base = file.name.replace(/\.pdf$/i, '');
 
       if (mode === 'extract') {
-        const pages = parseRanges(ranges, total); // 1-based, may throw
-        const out = await PDFDocument.create();
-        const copied = await out.copyPages(src, pages.map((n) => n - 1));
-        copied.forEach((p) => out.addPage(p));
-        const bytes = await out.save();
+        const pages = parseRanges(ranges, pageCount); // 1-based, may throw
+        const bytes = await rewritePdf(file, { type: 'extract', indices: pages.map((n) => n - 1) });
         const name = `${base}-extracted.pdf`;
         const blob = new Blob([new Uint8Array(bytes)], { type: 'application/pdf' });
         download(blob, name);
         setDone({ blob, name }); // single PDF → chainable via Keep moving
       } else {
+        const parts = await splitPdf(file, mode === 'each' ? { type: 'split-each' } : { type: 'split-chunks', every });
         const JSZip = (await import('jszip')).default;
         const zip = new JSZip();
-        const pad = String(total).length;
-        for (let i = 0; i < total; i++) {
-          const out = await PDFDocument.create();
-          const [pg] = await out.copyPages(src, [i]);
-          out.addPage(pg);
-          const bytes = await out.save();
-          zip.file(`${base}-page-${String(i + 1).padStart(pad, '0')}.pdf`, bytes);
-        }
+        const pad = String(parts.length).length;
+        parts.forEach((bytes, i) => {
+          const label = mode === 'each' ? 'page' : 'part';
+          zip.file(`${base}-${label}-${String(i + 1).padStart(pad, '0')}.pdf`, bytes);
+        });
         const blob = await zip.generateAsync({ type: 'blob' });
-        download(blob, `${base}-pages.zip`);
+        download(blob, `${base}-${mode === 'each' ? 'pages' : 'parts'}.zip`);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not split the PDF.');
@@ -181,13 +157,20 @@ export function SplitTool() {
 
         {file && (
           <div className="mt-4 space-y-4">
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div className="grid gap-2 sm:grid-cols-3">
               <button
                 onClick={() => setMode('extract')}
                 className={`rounded-lg border p-3 text-left text-sm transition-colors ${mode === 'extract' ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-accent/40'}`}
               >
                 <p className="font-semibold">Extract pages</p>
                 <p className="text-xs text-muted-foreground">Pick pages into one new PDF</p>
+              </button>
+              <button
+                onClick={() => setMode('every')}
+                className={`rounded-lg border p-3 text-left text-sm transition-colors ${mode === 'every' ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-accent/40'}`}
+              >
+                <p className="font-semibold">Every N pages</p>
+                <p className="text-xs text-muted-foreground">Fixed ranges — one PDF per chunk</p>
               </button>
               <button
                 onClick={() => setMode('each')}
@@ -205,6 +188,20 @@ export function SplitTool() {
                 <p className="mt-1 text-xs text-muted-foreground">This PDF has {pageCount} page{pageCount === 1 ? '' : 's'}. Use commas and ranges, e.g. 1-3, 5.</p>
               </div>
             )}
+
+            {mode === 'every' && (
+              <div>
+                <label className="mb-1.5 block text-sm font-medium">Pages per file</label>
+                <input
+                  className={inputCls} type="number" min={1} max={Math.max(1, pageCount)} value={every}
+                  onChange={(e) => setEvery(Math.min(Math.max(1, parseInt(e.target.value || '1', 10)), Math.max(1, pageCount)))}
+                  inputMode="numeric"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Splits into {Math.ceil(pageCount / Math.max(1, every))} file{Math.ceil(pageCount / Math.max(1, every)) === 1 ? '' : 's'} of {every} page{every === 1 ? '' : 's'} each (last one may be shorter), bundled as a ZIP.
+                </p>
+              </div>
+            )}
           </div>
         )}
 
@@ -212,7 +209,7 @@ export function SplitTool() {
 
         {file && (
           <Button className="mt-5 w-full" size="lg" onClick={run} disabled={busy}>
-            {busy ? <><Loader2 className="size-4 animate-spin" /> Working…</> : <><Download className="size-4" /> {mode === 'extract' ? 'Extract pages' : `Split into ${pageCount} files`}</>}
+            {busy ? <><Loader2 className="size-4 animate-spin" /> Working…</> : <><Download className="size-4" /> {mode === 'extract' ? 'Extract pages' : mode === 'every' ? `Split into ${Math.ceil(pageCount / Math.max(1, every))} files` : `Split into ${pageCount} files`}</>}
           </Button>
         )}
 

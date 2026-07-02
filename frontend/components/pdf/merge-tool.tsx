@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { takeHandoff } from '@/lib/handoff';
 import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
+import { mergePdfs } from '@/lib/pdf-rewrite';
 
 type Item = { id: string; file: File };
 
@@ -75,15 +76,9 @@ export function MergeTool() {
     setError(null);
     setDone(null);
     try {
-      const { PDFDocument } = await import('pdf-lib'); // load the engine only when needed
-      const out = await PDFDocument.create();
-      for (const { file } of items) {
-        const bytes = await file.arrayBuffer();
-        const src = await PDFDocument.load(bytes, { ignoreEncryption: true });
-        const pages = await out.copyPages(src, src.getPageIndices());
-        pages.forEach((p) => out.addPage(p));
-      }
-      const merged = await out.save();
+      // pdf-lib runs in the rewrite WORKER — merging very large files no longer
+      // freezes the tab (buffers are transferred, zero-copy).
+      const merged = await mergePdfs(items.map((it) => it.file));
       const name = 'merged.pdf';
       const blob = new Blob([new Uint8Array(merged)], { type: 'application/pdf' });
       download(blob, name);

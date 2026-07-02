@@ -24,7 +24,7 @@ const steps = [
 const faqs = [
   { q: 'Is it really free?', a: 'Yes — adding page numbers is completely free, with no signup, no watermark, and no file-size paywall.' },
   { q: 'Is my PDF uploaded to a server?', a: 'No. Numbers are stamped entirely inside your browser using your device, so your file never leaves your computer.' },
-  { q: 'Where can the numbers go?', a: 'Any of six positions — top or bottom, left, center, or right. You can also choose the format, like “1”, “1 / 10”, or “Page 1 of 10”.' },
+  { q: 'Where can the numbers go?', a: 'Any of six positions — top or bottom, left, center, or right, at your chosen distance from the edge. Pick the format — “1”, “1 / 10”, “Page 1 of 10” — or write your own text with {n} and {p} placeholders, like “Sheet {n} of {p}”, in any of four colors.' },
   { q: 'Can I start from a number other than 1?', a: 'Yes. Set “Start at number” to any value — handy when your document continues from another file.' },
   { q: 'Can I number only some pages?', a: 'Yes. Set the page range — for example, 2-10 to skip a cover page.' },
 ];

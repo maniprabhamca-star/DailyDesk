@@ -4,31 +4,40 @@ import { useEffect, useRef, useState } from 'react';
 import { Upload, FileText, X, Download, Loader2, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { parseRanges } from '@/components/pdf/split-tool';
+import { parseRanges } from '@/lib/page-ranges';
 import { takeHandoff } from '@/lib/handoff';
 import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
+import { rewritePdf } from '@/lib/pdf-rewrite';
 
 type Pos = 'tl' | 'tc' | 'tr' | 'bl' | 'bc' | 'br';
-type Fmt = 'n' | 'n_slash_N' | 'page_n' | 'page_n_of_N';
+type Fmt = 'n' | 'n_slash_N' | 'page_n' | 'page_n_of_N' | 'custom';
 type Size = 'small' | 'medium' | 'large';
+type Margin = 'small' | 'medium' | 'large';
+type Tone = 'gray' | 'red' | 'blue' | 'black';
 
 const SIZE: Record<Size, number> = { small: 9, medium: 11, large: 14 };
-const MARGIN = 28; // pt from the page edge
+const MARGINS: Record<Margin, number> = { small: 18, medium: 28, large: 44 };
+const TONES: Record<Tone, { rgb: [number, number, number]; label: string; chip: string }> = {
+  gray: { rgb: [0.32, 0.32, 0.32], label: 'Gray', chip: '#6b7280' },
+  red: { rgb: [0.86, 0.15, 0.15], label: 'Red', chip: '#dc2626' },
+  blue: { rgb: [0.15, 0.39, 0.92], label: 'Blue', chip: '#2563eb' },
+  black: { rgb: [0.1, 0.1, 0.1], label: 'Black', chip: '#111827' },
+};
+
+// The label template the rewrite core fills in: {n} = assigned number,
+// {p} = the last assigned number (so "of {p}" can never read "5 of 3").
+const TEMPLATES: Record<Exclude<Fmt, 'custom'>, string> = {
+  n: '{n}',
+  n_slash_N: '{n} / {p}',
+  page_n: 'Page {n}',
+  page_n_of_N: 'Page {n} of {p}',
+};
 
 function fmtBytes(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-}
-
-function label(num: number, total: number, f: Fmt) {
-  switch (f) {
-    case 'n': return `${num}`;
-    case 'n_slash_N': return `${num} / ${total}`;
-    case 'page_n': return `Page ${num}`;
-    case 'page_n_of_N': return `Page ${num} of ${total}`;
-  }
 }
 
 const inputCls = 'h-9 w-full rounded-lg border bg-card px-3 text-sm text-foreground outline-none focus:border-primary';
@@ -39,7 +48,10 @@ export function PageNumbersTool() {
   const [pageCount, setPageCount] = useState(0);
   const [pos, setPos] = useState<Pos>('bc');
   const [format, setFormat] = useState<Fmt>('n');
+  const [custom, setCustom] = useState('Page {n} of {p}');
   const [size, setSize] = useState<Size>('medium');
+  const [margin, setMargin] = useState<Margin>('medium');
+  const [tone, setTone] = useState<Tone>('gray');
   const [start, setStart] = useState(1);
   const [ranges, setRanges] = useState('');
   const [busy, setBusy] = useState(false);
@@ -98,29 +110,14 @@ export function PageNumbersTool() {
     setError(null);
     setDone(null);
     try {
-      const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib');
-      const doc = await PDFDocument.load(await file.arrayBuffer(), { ignoreEncryption: true });
-      const font = await doc.embedFont(StandardFonts.Helvetica);
-      const pages = doc.getPages();
-      const total = pages.length;
-      const target = parseRanges(ranges, total); // 1-based, may throw
-      const fs = SIZE[size];
-      // "of N" denominator = the last number we assign, so it's never e.g. "5 of 3".
-      const denom = start + target.length - 1;
-
-      target.forEach((pageNo, i) => {
-        const page = pages[pageNo - 1];
-        const { width, height } = page.getSize();
-        const text = label(start + i, denom, format);
-        const tw = font.widthOfTextAtSize(text, fs);
-        const left = pos.endsWith('l');
-        const center = pos.endsWith('c');
-        const x = left ? MARGIN : center ? (width - tw) / 2 : width - MARGIN - tw;
-        const y = pos.startsWith('t') ? height - MARGIN - fs : MARGIN;
-        page.drawText(text, { x, y, size: fs, font, color: rgb(0.32, 0.32, 0.32) });
+      // pdf-lib runs in the rewrite WORKER — numbering very large files no
+      // longer freezes the tab. The stamp itself happens in pdf-rewrite-core.
+      const target = parseRanges(ranges, pageCount); // 1-based, may throw
+      const template = format === 'custom' ? (custom.trim() || '{n}') : TEMPLATES[format];
+      const out = await rewritePdf(file, {
+        type: 'page-numbers',
+        opts: { pageNums: target, start, template, fontSize: SIZE[size], margin: MARGINS[margin], colorRgb: TONES[tone].rgb, pos },
       });
-
-      const out = await doc.save();
       const name = `${file.name.replace(/\.pdf$/i, '')}-numbered.pdf`;
       const blob = new Blob([new Uint8Array(out)], { type: 'application/pdf' });
       download(blob, name);
@@ -198,6 +195,7 @@ export function PageNumbersTool() {
                   <option value="n_slash_N">1 / {pageCount}</option>
                   <option value="page_n">Page 1</option>
                   <option value="page_n_of_N">Page 1 of {pageCount}</option>
+                  <option value="custom">Custom text…</option>
                 </select>
               </label>
               <label className="text-sm">
@@ -208,6 +206,13 @@ export function PageNumbersTool() {
                   <option value="large">Large</option>
                 </select>
               </label>
+              {format === 'custom' && (
+                <label className="text-sm sm:col-span-2">
+                  <span className="mb-1.5 block font-medium">Custom text</span>
+                  <input className={inputCls} value={custom} onChange={(e) => setCustom(e.target.value)} maxLength={60} placeholder="e.g. Sheet {n} / {p} — Annual report" />
+                  <span className="mt-1 block text-xs text-muted-foreground">{'{n}'} = page number · {'{p}'} = last number</span>
+                </label>
+              )}
               <label className="text-sm">
                 <span className="mb-1.5 block font-medium">Start at number</span>
                 <input className={inputCls} type="number" min={0} value={start} onChange={(e) => setStart(Math.max(0, parseInt(e.target.value || '1', 10)))} inputMode="numeric" />
@@ -216,8 +221,28 @@ export function PageNumbersTool() {
                 <span className="mb-1.5 block font-medium">Pages to number</span>
                 <input className={inputCls} value={ranges} onChange={(e) => setRanges(e.target.value)} placeholder="e.g. 1-10" inputMode="numeric" />
               </label>
+              <label className="text-sm">
+                <span className="mb-1.5 block font-medium">Distance from edge</span>
+                <select className={selectCls} value={margin} onChange={(e) => setMargin(e.target.value as Margin)}>
+                  <option value="small">Close</option>
+                  <option value="medium">Standard</option>
+                  <option value="large">Wide</option>
+                </select>
+              </label>
+              <div className="text-sm">
+                <p className="mb-1.5 font-medium">Color</p>
+                <div className="flex h-9 items-center gap-2">
+                  {(Object.keys(TONES) as Tone[]).map((t) => (
+                    <button
+                      key={t} onClick={() => setTone(t)} aria-label={TONES[t].label} aria-pressed={tone === t}
+                      className={`size-7 rounded-full border-2 transition-all ${tone === t ? 'border-primary ring-2 ring-primary/30' : 'border-transparent hover:scale-110'}`}
+                      style={{ backgroundColor: TONES[t].chip }}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground">This PDF has {pageCount} page{pageCount === 1 ? '' : 's'}. Leave the range as is to number every page.</p>
+            <p className="text-xs text-muted-foreground">This PDF has {pageCount} page{pageCount === 1 ? '' : 's'}. Leave the range as is to number every page — or start it at 2 to skip a cover page.</p>
           </div>
         )}
 

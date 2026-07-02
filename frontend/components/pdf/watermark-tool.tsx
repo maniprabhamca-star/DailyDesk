@@ -10,7 +10,9 @@ import { PdfDone } from '@/components/app/pdf-done';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
 import { openPdf, renderPage, dprTarget, type PdfHandle, type RenderedPage } from '@/lib/pdf-render';
-import { parseRanges } from '@/components/pdf/split-tool';
+import { parseRanges } from '@/lib/page-ranges';
+import { rewritePdf } from '@/lib/pdf-rewrite';
+import type { StampCore, StampLayer } from '@/lib/pdf-stamp';
 
 // Watermark PDF — text OR logo/image stamps, 100% in the browser (pdf-lib), with
 // a LIVE first-page preview that updates as every setting changes. Feature set
@@ -108,7 +110,14 @@ function FontSelect({ value, onChange }: { value: Family; onChange: (f: Family) 
 }
 
 const ROTATIONS = [0, 30, 45, 90] as const;
-const MARGIN = 36; // pt from page edges for anchored positions
+
+// pdf-lib's StandardFonts values, kept as plain strings so the apply path can
+// name a built-in font for the worker without importing pdf-lib up front.
+const STANDARD_NAMES: Partial<Record<Family, [string, string, string, string]>> = {
+  helvetica: ['Helvetica', 'Helvetica-Bold', 'Helvetica-Oblique', 'Helvetica-BoldOblique'],
+  times: ['Times-Roman', 'Times-Bold', 'Times-Italic', 'Times-BoldItalic'],
+  courier: ['Courier', 'Courier-Bold', 'Courier-Oblique', 'Courier-BoldOblique'],
+};
 
 type Settings = {
   mode: 'text' | 'image';
@@ -121,11 +130,20 @@ type Settings = {
   opacity: number;
   position: Position;
   rotation: (typeof ROTATIONS)[number];
+  layer: StampLayer; // 'under' = watermark behind the page content
   range: string; // '' = every page
   imageBytes: Uint8Array | null;
   imageIsPng: boolean;
   imageScale: number; // fraction of page width
 };
+
+// The geometry-relevant subset of Settings, shaped for lib/pdf-stamp.
+function coreOf(s: Settings): StampCore {
+  return {
+    mode: s.mode, text: s.text, colorRgb: TONES[s.tone].rgb, sizeFrac: s.sizeFrac,
+    opacity: s.opacity, position: s.position, rotation: s.rotation, imageScale: s.imageScale, layer: s.layer,
+  };
+}
 
 function fmt(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -133,9 +151,12 @@ function fmt(bytes: number) {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-// Stamp the selected pages (or just page 1 for the live preview).
+// Stamp page 1 for the LIVE PREVIEW (main thread — fast, one page). The real
+// apply runs the SAME shared geometry (lib/pdf-stamp) inside the pdf-rewrite
+// worker, so what you preview is exactly what downloads.
 async function stamp(src: File | Blob, s: Settings, firstPageOnly = false): Promise<Uint8Array> {
-  const { PDFDocument, StandardFonts, rgb, degrees } = await import('pdf-lib');
+  const { PDFDocument, StandardFonts } = await import('pdf-lib');
+  const { stampPages } = await import('@/lib/pdf-stamp');
   const doc = await PDFDocument.load(new Uint8Array(await src.arrayBuffer()), { ignoreEncryption: true });
   const count = doc.getPageCount();
   let pageNums: number[]; // 1-based
@@ -143,12 +164,7 @@ async function stamp(src: File | Blob, s: Settings, firstPageOnly = false): Prom
   else if (s.range.trim()) pageNums = parseRanges(s.range, count);
   else pageNums = Array.from({ length: count }, (_, i) => i + 1);
 
-  const STANDARD: Partial<Record<Family, [string, string, string, string]>> = {
-    helvetica: [StandardFonts.Helvetica, StandardFonts.HelveticaBold, StandardFonts.HelveticaOblique, StandardFonts.HelveticaBoldOblique],
-    times: [StandardFonts.TimesRoman, StandardFonts.TimesRomanBold, StandardFonts.TimesRomanItalic, StandardFonts.TimesRomanBoldItalic],
-    courier: [StandardFonts.Courier, StandardFonts.CourierBold, StandardFonts.CourierOblique, StandardFonts.CourierBoldOblique],
-  };
-  let font;
+  let font = null;
   const custom = FAMILIES[s.family]?.files;
   if (custom) {
     try {
@@ -164,60 +180,15 @@ async function stamp(src: File | Blob, s: Settings, firstPageOnly = false): Prom
       font = await doc.embedFont(StandardFonts.Helvetica);
     }
   } else {
-    const fontName = (STANDARD[s.family] ?? STANDARD.helvetica!)[(s.bold ? 1 : 0) + (s.italic ? 2 : 0)];
+    const fontName = (STANDARD_NAMES[s.family] ?? STANDARD_NAMES.helvetica!)[(s.bold ? 1 : 0) + (s.italic ? 2 : 0)];
     font = await doc.embedFont(fontName);
   }
-  const [r, g, b] = TONES[s.tone].rgb;
-  const color = rgb(r, g, b);
-  const text = s.text.trim() || 'CONFIDENTIAL';
   const image = s.mode === 'image' && s.imageBytes
     ? (s.imageIsPng ? await doc.embedPng(s.imageBytes) : await doc.embedJpg(s.imageBytes))
     : null;
   if (s.mode === 'image' && !image) throw new Error('Add a logo image first.');
 
-  const pages = doc.getPages();
-  for (const n of pageNums) {
-    const page = pages[n - 1];
-    if (!page) continue;
-    const { width: W, height: H } = page.getSize();
-    const rot = s.rotation;
-    const rad = (rot * Math.PI) / 180;
-
-    // Element size: text box or scaled image.
-    const fontSize = Math.max(8, Math.min(W, H) * s.sizeFrac);
-    let elW: number, elH: number;
-    if (image) {
-      elW = W * s.imageScale;
-      elH = (image.height / image.width) * elW;
-    } else {
-      elW = font.widthOfTextAtSize(text, fontSize);
-      elH = font.heightAtSize(fontSize);
-    }
-
-    const drawOne = (x: number, y: number) => {
-      if (image) page.drawImage(image, { x, y, width: elW, height: elH, opacity: s.opacity, rotate: degrees(rot) });
-      else page.drawText(text, { x, y, size: fontSize, font, color, opacity: s.opacity, rotate: degrees(rot) });
-    };
-
-    if (s.position === 'tiled') {
-      const stepX = elW + fontSize * 3 || elW * 1.6;
-      const stepY = elH + fontSize * 4 || elH * 2.2;
-      for (let y = -stepY; y < H + stepY; y += stepY) {
-        for (let x = -stepX; x < W + stepX; x += stepX) drawOne(x, y);
-      }
-    } else {
-      const ax = s.position[1]; // l | c | r
-      const ay = s.position[0]; // t | m | b
-      let x = ax === 'l' ? MARGIN : ax === 'c' ? (W - elW) / 2 : W - elW - MARGIN;
-      let y = ay === 't' ? H - elH - MARGIN : ay === 'm' ? (H - elH) / 2 : MARGIN;
-      if (s.position === 'mc' && rot !== 0) {
-        // Keep the rotated stamp visually centered (rotation pivots at x,y).
-        x = W / 2 - (elW / 2) * Math.cos(rad) + (elH / 2) * Math.sin(rad) * 0.5;
-        y = H / 2 - (elW / 2) * Math.sin(rad) - (elH / 2) * Math.cos(rad) * 0.5;
-      }
-      drawOne(x, y);
-    }
-  }
+  stampPages(doc, pageNums, coreOf(s), s.mode === 'text' ? font : null, image);
   return doc.save();
 }
 
@@ -234,7 +205,7 @@ export function WatermarkTool() {
   const [tooBig, setTooBig] = useState<{ name: string; size: number } | null>(null);
   const [settings, setSettings] = useState<Settings>({
     mode: 'text', text: 'CONFIDENTIAL', family: 'helvetica', bold: true, italic: false,
-    tone: 'gray', sizeFrac: 0.11, opacity: 0.18, position: 'mc', rotation: 45, range: '',
+    tone: 'gray', sizeFrac: 0.11, opacity: 0.18, position: 'mc', rotation: 45, layer: 'over', range: '',
     imageBytes: null, imageIsPng: true, imageScale: 0.35,
   });
   const [imageName, setImageName] = useState<string | null>(null);
@@ -333,7 +304,33 @@ export function WatermarkTool() {
     setDone(null);
     try {
       if (settings.range.trim()) parseRanges(settings.range, 1e9); // early syntax check w/ big cap
-      const out = await stamp(file, settings);
+      const s = settings;
+      // Resolve the font on the main thread (cached fetch), then hand pdf-lib
+      // the whole job in the rewrite WORKER — stamping a huge file no longer
+      // freezes the tab. Buffers passed as fresh copies (they get transferred).
+      let fontBytes: ArrayBuffer | undefined;
+      let standardFont: string | undefined;
+      if (s.mode === 'text') {
+        const custom = FAMILIES[s.family]?.files;
+        if (custom) {
+          try {
+            const url = (s.bold && custom.bold) || (s.italic && custom.italic) || custom.regular;
+            fontBytes = (await loadFontBytes(url)).slice().buffer;
+          } catch {
+            standardFont = 'Helvetica'; // fetch failed — never a dead end
+          }
+        } else {
+          standardFont = (STANDARD_NAMES[s.family] ?? STANDARD_NAMES.helvetica!)[(s.bold ? 1 : 0) + (s.italic ? 2 : 0)];
+        }
+      }
+      const out = await rewritePdf(file, {
+        type: 'watermark',
+        opts: {
+          ...coreOf(s), range: s.range, fontBytes, standardFont,
+          imageBytes: s.imageBytes ? s.imageBytes.slice().buffer : undefined,
+          imageIsPng: s.imageIsPng,
+        },
+      });
       const name = `${file.name.replace(/\.pdf$/i, '')}-watermarked.pdf`;
       const blob = new Blob([new Uint8Array(out)], { type: 'application/pdf' });
       download(blob, name);
@@ -471,7 +468,18 @@ export function WatermarkTool() {
                   </button>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium">Rotation</p>
+                  <p className="text-sm font-medium">Layer</p>
+                  <div className="mt-1.5 grid grid-cols-2 gap-2">
+                    {([['over', 'Over content'], ['under', 'Behind content']] as Array<[StampLayer, string]>).map(([l2, label]) => (
+                      <button key={l2} onClick={() => set('layer', l2)} aria-pressed={settings.layer === l2}
+                        className={`rounded-lg border px-2 py-1.5 text-xs font-medium transition-all ${settings.layer === l2 ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-border bg-card hover:border-primary/40'}`}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-1 text-[11px] text-muted-foreground">Behind content keeps text and images fully readable — the watermark shows through the gaps.</p>
+
+                  <p className="mt-3 text-sm font-medium">Rotation</p>
                   <div className="mt-1.5 grid grid-cols-4 gap-1.5">
                     {ROTATIONS.map((r2) => (
                       <button key={r2} onClick={() => set('rotation', r2)} aria-pressed={settings.rotation === r2}

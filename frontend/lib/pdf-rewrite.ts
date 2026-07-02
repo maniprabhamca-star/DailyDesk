@@ -1,12 +1,23 @@
-// Main-thread entry for PDF rewrites (rotate/delete). Prefers the Web Worker —
-// the page stays fully responsive while pdf-lib crunches (critical for 100MB+
-// files, which used to freeze the tab for minutes) — and falls back to an
-// inline rewrite when workers are unavailable (never a dead end).
-import type { RewriteOp } from './pdf-rewrite.worker';
+// Main-thread entry for PDF rewrites (rotate/delete/reorder/merge/split/
+// page-numbers/watermark). Prefers the Web Worker — the page stays fully
+// responsive while pdf-lib crunches (critical for 100MB+ files, which used to
+// freeze the tab for minutes) — and falls back to an inline run of the SAME
+// op core when workers are unavailable (never a dead end).
+import type { RewriteOp, PageNumberOpts, WatermarkOpts } from './pdf-rewrite-core';
 
-export type { RewriteOp };
+export type { RewriteOp, PageNumberOpts, WatermarkOpts };
 
-function runInWorker(buffer: ArrayBuffer, op: RewriteOp): Promise<Uint8Array> {
+function opExtraTransfers(op: RewriteOp): ArrayBuffer[] {
+  if (op.type === 'watermark') {
+    const t: ArrayBuffer[] = [];
+    if (op.opts.fontBytes) t.push(op.opts.fontBytes);
+    if (op.opts.imageBytes) t.push(op.opts.imageBytes);
+    return t;
+  }
+  return [];
+}
+
+function runInWorker(buffers: ArrayBuffer[], op: RewriteOp): Promise<Uint8Array[]> {
   return new Promise((resolve, reject) => {
     let worker: Worker;
     try {
@@ -15,46 +26,47 @@ function runInWorker(buffer: ArrayBuffer, op: RewriteOp): Promise<Uint8Array> {
       reject(e);
       return;
     }
-    worker.onmessage = (e: MessageEvent<{ ok: boolean; bytes?: Uint8Array; error?: string }>) => {
+    worker.onmessage = (e: MessageEvent<{ ok: boolean; list?: Uint8Array[]; error?: string }>) => {
       worker.terminate();
-      if (e.data.ok && e.data.bytes) resolve(e.data.bytes);
+      if (e.data.ok && e.data.list) resolve(e.data.list);
       else reject(new Error(e.data.error || 'Could not rewrite the PDF.'));
     };
     worker.onerror = () => {
       worker.terminate();
       reject(new Error('worker-failed'));
     };
-    worker.postMessage({ buffer, op }, [buffer]); // transfer, zero-copy
+    worker.postMessage({ buffers, op }, [...buffers, ...opExtraTransfers(op)]); // transfer, zero-copy
   });
 }
 
-async function runInline(buffer: ArrayBuffer, op: RewriteOp): Promise<Uint8Array> {
-  const { PDFDocument, degrees } = await import('pdf-lib');
-  const doc = await PDFDocument.load(new Uint8Array(buffer), { ignoreEncryption: true });
-  if (op.type === 'rotate') {
-    const pages = doc.getPages();
-    op.deltas.forEach((d, i) => {
-      if (!d || !pages[i]) return;
-      const cur = pages[i].getRotation().angle || 0;
-      pages[i].setRotation(degrees((((cur + d) % 360) + 360) % 360));
-    });
-  } else if (op.type === 'delete') {
-    [...op.indices].sort((a, b) => b - a).forEach((i) => doc.removePage(i));
-  } else {
-    const dest = await PDFDocument.create();
-    const copied = await dest.copyPages(doc, op.order);
-    copied.forEach((p) => dest.addPage(p));
-    return dest.save();
+async function run(srcs: (File | Blob)[], op: RewriteOp): Promise<Uint8Array[]> {
+  // Buffers (and any font/image bytes inside the op) are TRANSFERRED to the
+  // worker — detached here. Snapshot copies of the op extras up front so the
+  // inline fallback still has them; file buffers are simply re-read.
+  let fallbackOp = op;
+  if (op.type === 'watermark' && (op.opts.fontBytes || op.opts.imageBytes)) {
+    fallbackOp = { ...op, opts: { ...op.opts, fontBytes: op.opts.fontBytes?.slice(0), imageBytes: op.opts.imageBytes?.slice(0) } };
   }
-  return doc.save();
+  try {
+    return await runInWorker(await Promise.all(srcs.map((s) => s.arrayBuffer())), op);
+  } catch {
+    const { executeRewrite } = await import('./pdf-rewrite-core');
+    return executeRewrite(await Promise.all(srcs.map((s) => s.arrayBuffer())), fallbackOp);
+  }
 }
 
+/** Single-input, single-output rewrites (rotate/delete/reorder/extract/
+ * page-numbers/watermark). */
 export async function rewritePdf(src: File | Blob, op: RewriteOp): Promise<Uint8Array> {
-  try {
-    // The buffer is TRANSFERRED to the worker (detached here) — on any worker
-    // failure we re-read the file for the inline fallback.
-    return await runInWorker(await src.arrayBuffer(), op);
-  } catch {
-    return runInline(await src.arrayBuffer(), op);
-  }
+  return (await run([src], op))[0];
+}
+
+/** Merge several PDFs into one, in the given order. */
+export async function mergePdfs(srcs: (File | Blob)[]): Promise<Uint8Array> {
+  return (await run(srcs, { type: 'merge' }))[0];
+}
+
+/** Split into many PDFs: one per page, or one per chunk of `every` pages. */
+export async function splitPdf(src: File | Blob, op: { type: 'split-each' } | { type: 'split-chunks'; every: number }): Promise<Uint8Array[]> {
+  return run([src], op);
 }

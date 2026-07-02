@@ -26,7 +26,7 @@ const faqs = [
   { q: 'Is my PDF uploaded to a server?', a: 'No. The watermark is stamped entirely inside your browser, so your document never leaves your computer.' },
   { q: 'Can I see the watermark before downloading?', a: 'Yes — the first page is previewed live, and it updates instantly as you change the text, position, color, size, or opacity.' },
   { q: 'Does it watermark every page?', a: 'By default, yes — or type a page range like “1-3, 7” to stamp only those pages. Pick any of nine positions, tile it across the page, and rotate it to taste.' },
-  { q: 'Will it cover my text?', a: 'The watermark is drawn with adjustable transparency (18% by default), so the document underneath stays readable. Turn opacity up for a stronger stamp.' },
+  { q: 'Will it cover my text?', a: 'The watermark is drawn with adjustable transparency (18% by default), so the document underneath stays readable. Turn opacity up for a stronger stamp — or switch the layer to “Behind content” and the watermark renders underneath your text and images, so nothing is ever covered.' },
   { q: 'Can I use my logo as the watermark?', a: 'Yes — switch to Logo mode and upload a PNG or JPG. PNG transparency is preserved, and you control the size, position, rotation, and opacity, with the same live preview.' },
 ];
 
