@@ -274,7 +274,7 @@ export default function QrCodeGenerator() {
                 <input
                   type="file"
                   accept="image/*"
-                  onChange={onLogoUpload}
+                  onChange={(e) => { onLogoUpload(e); e.currentTarget.value = ''; }}
                   className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary/10 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-primary hover:file:bg-primary/20"
                 />
                 {logo && (

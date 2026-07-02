@@ -577,7 +577,9 @@ export function CompressTool() {
     <Card>
       <CardContent className="p-5">
         {/* Always mounted so the file picker works from the dropzone AND the size-limit notice. */}
-        <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => pick(e.target.files)} />
+        {/* value reset: browsers only fire change when the selection differs, so
+            re-picking the same file after "Compress another" would do nothing */}
+        <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
         {handoffNote && (
           <p className="mb-3 flex items-center gap-2 rounded-lg border border-primary/25 bg-primary/[0.06] px-3 py-2 text-sm text-foreground">
             <Zap className="size-4 shrink-0 text-primary" /> {handoffNote}

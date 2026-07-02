@@ -209,7 +209,7 @@ export function JpgToPdfTool() {
           <Upload className="size-7 text-muted-foreground" />
           <p className="mt-2 text-sm font-medium">Drop JPG or PNG images here, or click to choose</p>
           <p className="text-xs text-muted-foreground">Add one or more — drag to set the order</p>
-          <input ref={inputRef} type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" multiple className="hidden" onChange={(e) => addFiles(e.target.files)} />
+          <input ref={inputRef} type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" multiple className="hidden" onChange={(e) => { addFiles(e.target.files); e.currentTarget.value = ''; }} />
         </div>
 
         {items.length > 0 && (
