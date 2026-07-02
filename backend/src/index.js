@@ -40,6 +40,7 @@ app.get('/health', (req, res) => {
 // API routes (to be added per module)
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/user', require('./routes/user'));
+app.use('/api/convert', require('./routes/convert'));
 
 // 404 handler
 app.use((req, res) => {

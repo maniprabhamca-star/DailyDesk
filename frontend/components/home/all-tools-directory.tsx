@@ -36,6 +36,8 @@ const META: Record<string, { color: string; desc: string }> = {
   'QR generator': { color: '#059669', desc: 'Make a QR code' },
   'Password': { color: '#6d28d9', desc: 'Strong passwords' },
   'Compress image': { color: '#ea580c', desc: 'Shrink JPG & PNG' },
+  'Resize image': { color: '#0891b2', desc: 'Exact pixels or percent' },
+  'Convert image': { color: '#9333ea', desc: 'WebP ↔ PNG ↔ JPG' },
   'HEIC to JPG': { color: '#0ea5e9', desc: 'iPhone photos to JPG' },
   'Background remover': { color: '#db2777', desc: 'Cut out the subject' },
   'Compress video': { color: '#dc2626', desc: 'Shrink video size' },

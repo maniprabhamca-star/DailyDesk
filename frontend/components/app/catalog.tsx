@@ -4,7 +4,7 @@ import {
   PenLine, Highlighter, Stamp, EyeOff, PenTool, Lock, Unlock, Fingerprint,
   ScanText, MessageSquare, AlignLeft, Languages,
   QrCode, KeyRound, NotebookPen, Flame, Wallet, FolderLock, Link2,
-  ImageDown, Smartphone, Eraser, Film, Clapperboard, ArrowLeftRight, Images,
+  ImageDown, Smartphone, Eraser, Film, Clapperboard, ArrowLeftRight, Images, Scaling, Repeat,
   Ruler, Braces, Palette, CaseSensitive,
   Cloud, Sparkles, type LucideIcon,
 } from 'lucide-react';
@@ -49,7 +49,7 @@ export const catalog: CatGroup[] = [
     label: 'Convert from PDF', color: '#0ea5e9', tools: [
       { name: 'PDF to JPG', href: '/pdf-to-jpg', icon: ImageIcon, badge: 'device' },
       { name: 'Extract images', href: '/extract-images-from-pdf', icon: Images, badge: 'device' },
-      { name: 'PDF to Word', icon: FileType, badge: 'server', soon: true },
+      { name: 'PDF to Word', href: '/pdf-to-word', icon: FileType, badge: 'server' },
       { name: 'PDF to PowerPoint', icon: Presentation, badge: 'server', soon: true },
       { name: 'PDF to Excel', icon: FileSpreadsheet, badge: 'server', soon: true },
       { name: 'PDF to PDF/A', icon: FileCheck, badge: 'server', soon: true },
@@ -86,6 +86,8 @@ export const catalog: CatGroup[] = [
     // with an upload; ours run on-device (ffmpeg.wasm / codecs in the browser).
     label: 'Images & media', color: '#ea580c', tools: [
       { name: 'Compress image', href: '/compress-image', icon: ImageDown, badge: 'device' },
+      { name: 'Resize image', href: '/resize-image', icon: Scaling, badge: 'device' },
+      { name: 'Convert image', href: '/convert-image', icon: Repeat, badge: 'device' },
       { name: 'HEIC to JPG', href: '/heic-to-jpg', icon: Smartphone, badge: 'device' },
       { name: 'Background remover', icon: Eraser, badge: 'device', soon: true },
       { name: 'Compress video', icon: Film, badge: 'device', soon: true },
