@@ -24,6 +24,7 @@ const META: Record<string, { color: string; desc: string }> = {
   'Edit PDF': { color: '#ea580c', desc: 'Change text & images' },
   'Annotate': { color: '#c2410c', desc: 'Highlight & comment' },
   'Watermark': { color: '#0f766e', desc: 'Stamp a watermark' },
+  'Remove metadata': { color: '#65a30d', desc: 'Wipe hidden info' },
   'Redact PDF': { color: '#475569', desc: 'Black out secrets' },
   'Sign PDF': { color: '#7c3aed', desc: 'Add your signature' },
   'Protect PDF': { color: '#b45309', desc: 'Password-lock it' },

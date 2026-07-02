@@ -7,3 +7,4 @@ package.json
 extract-engine.cjs
 extract-out/
 fontgut-lib.cjs
+sanitize-lib.cjs

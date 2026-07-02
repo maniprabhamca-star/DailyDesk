@@ -14,6 +14,7 @@ const ROUTES: Array<{ path: string; priority: number; changeFrequency: MetadataR
   { path: '/jpg-to-pdf', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/pdf-to-jpg', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/extract-images-from-pdf', priority: 0.9, changeFrequency: 'monthly' },
+  { path: '/remove-pdf-metadata', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/watermark-pdf', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/reorder-pdf', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/compress-image', priority: 0.9, changeFrequency: 'monthly' },

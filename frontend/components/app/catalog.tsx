@@ -1,7 +1,7 @@
 import {
   Combine, Split, Shrink, RotateCw, FileMinus, ListOrdered,
   FileImage, Image as ImageIcon, FileType, FileType2, Code2, Presentation, FileSpreadsheet, FileCheck,
-  PenLine, Highlighter, Stamp, EyeOff, PenTool, Lock,
+  PenLine, Highlighter, Stamp, EyeOff, PenTool, Lock, Fingerprint,
   ScanText, MessageSquare, AlignLeft, Languages,
   QrCode, KeyRound, NotebookPen, Flame, Wallet, FolderLock, Link2,
   ImageDown, Smartphone, Eraser, Film, Clapperboard, ArrowLeftRight, Images,
@@ -60,6 +60,7 @@ export const catalog: CatGroup[] = [
       { name: 'Edit PDF', icon: PenLine, badge: 'device', soon: true },
       { name: 'Annotate', icon: Highlighter, badge: 'device', soon: true },
       { name: 'Watermark', href: '/watermark-pdf', icon: Stamp, badge: 'device' },
+      { name: 'Remove metadata', href: '/remove-pdf-metadata', icon: Fingerprint, badge: 'device' },
       { name: 'Redact PDF', icon: EyeOff, badge: 'device', soon: true },
       { name: 'Sign PDF', icon: PenTool, badge: 'device', soon: true },
       { name: 'Protect PDF', icon: Lock, badge: 'device', soon: true },
