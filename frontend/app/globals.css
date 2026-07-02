@@ -97,3 +97,16 @@
     cursor: pointer;
   }
 }
+
+/* Watermark font-family dropdown: render each option in its real typeface.
+   Same OFL TTFs the tool embeds (public/fonts/, licenses in LICENSES.txt);
+   the browser only downloads a face the first time the dropdown shows it. */
+@font-face { font-family: 'Open Sans'; src: url('/fonts/open-sans-regular.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'Roboto'; src: url('/fonts/roboto-regular.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'Lato'; src: url('/fonts/lato-regular.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'Merriweather'; src: url('/fonts/merriweather-regular.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'Playfair Display'; src: url('/fonts/playfair-regular.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'Oswald'; src: url('/fonts/oswald-regular.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'Bebas Neue'; src: url('/fonts/bebas-neue-regular.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'Comic Neue'; src: url('/fonts/comic-neue-regular.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'Pacifico'; src: url('/fonts/pacifico-regular.ttf') format('truetype'); font-display: swap; }

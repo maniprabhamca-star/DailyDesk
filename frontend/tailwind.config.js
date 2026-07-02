@@ -5,6 +5,9 @@ module.exports = {
     './pages/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
     './app/**/*.{js,ts,jsx,tsx,mdx}',
+    // lib/ holds literal class strings too (tool-graph tile/chip colours) —
+    // without this glob those classes are purged and the rail icons vanish.
+    './lib/**/*.{js,ts,jsx,tsx}',
   ],
   theme: {
     container: {

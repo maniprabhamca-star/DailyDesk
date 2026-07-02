@@ -11,7 +11,6 @@ import { KeepGoing } from '@/components/app/keep-going';
 import { KeepMoving } from '@/components/app/keep-moving';
 import { setHandoff, takeHandoff } from '@/lib/handoff';
 import { getPdfjs, pdfDocOptions, yieldToLoop } from '@/lib/pdf-render';
-import { encodeJpeg } from '@/lib/mozjpeg';
 import { extractEmbeddedImages, type RawImage } from '@/lib/pdf-extract-images';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
@@ -71,15 +70,29 @@ async function recoverViaPdfjs(
   handledDims: Set<string>,
   onProgress: (done: number, total: number) => void,
 ): Promise<Array<{ blob: Blob; width: number; height: number; ext: 'jpg' | 'png' }>> {
-  const out: Array<{ blob: Blob; width: number; height: number; ext: 'jpg' | 'png' }> = [];
+  const out: Array<{ blob: Blob; width: number; height: number; ext: 'jpg' | 'png'; pageNo: number }> = [];
   const pdfjs = await getPdfjs();
-  // Fresh copy — pdf.js may transfer the buffer to its worker (detaching it).
-  const task = pdfjs.getDocument(pdfDocOptions(data.slice()));
-  const doc = await task.promise;
+  // PARALLEL DOC POOL (same pattern as Compress): image decode happens inside
+  // each pdf.js document's OWN worker, so opening a few documents over copies
+  // of the bytes multiplies decode throughput across cores — the fix for
+  // "3 minutes on a 116-page scanned book". Memory-bounded like Compress.
+  const cores = typeof navigator !== 'undefined' ? navigator.hardwareConcurrency || 4 : 4;
+  const POOL_MAX_BYTES = 96 * 1024 * 1024;
+  // Fresh copies — pdf.js may transfer the buffer to its worker (detaching it).
+  const firstTask = pdfjs.getDocument(pdfDocOptions(data.slice()));
+  const firstDoc = await firstTask.promise;
+  const numPages = firstDoc.numPages;
+  const poolSize = Math.max(1, Math.min(4, cores - 1, data.length <= POOL_MAX_BYTES ? 4 : 1, numPages));
+  const tasks = [firstTask, ...Array.from({ length: poolSize - 1 }, () => pdfjs.getDocument(pdfDocOptions(data.slice())))];
+  const docs = [firstDoc, ...(await Promise.all(tasks.slice(1).map((t) => t.promise)))];
   try {
     const total = budget;
-    const seen = new Set<string>();
-    for (let n = 1; n <= doc.numPages && out.length < budget; n++) {
+    const seen = new Set<string>(); // objId strings are identical across the doc copies
+    let cursor = 0;
+    const drain = async (doc: (typeof docs)[number]): Promise<void> => {
+      for (;;) {
+        const n = ++cursor;
+        if (n > numPages || out.length >= budget) return;
       try {
         const page = await doc.getPage(n);
         const ops = await page.getOperatorList();
@@ -147,17 +160,16 @@ async function recoverViaPdfjs(
             ext = 'png';
             blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/png'));
           } else {
+            // Native encoder, not mozjpeg: recovered scans are full-page images
+            // and native is ~15× faster (same call Compress makes for scan
+            // pages) — the other big piece of the 3-minute-book fix.
             ext = 'jpg';
-            try {
-              blob = await encodeJpeg(pixels, 90);
-            } catch {
-              blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/jpeg', 0.92));
-            }
+            blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/jpeg', 0.92));
           }
           canvas.width = 0;
           canvas.height = 0;
           if (blob) {
-            out.push({ blob, width: img.width, height: img.height, ext });
+            out.push({ blob, width: img.width, height: img.height, ext, pageNo: n });
             onProgress(out.length, total);
           }
           await yieldToLoop();
@@ -167,10 +179,14 @@ async function recoverViaPdfjs(
         // page failed — keep going, recovery is best-effort
       }
       await yieldToLoop();
-    }
+      }
+    };
+    await Promise.all(docs.map((d) => drain(d)));
   } finally {
-    try { await task.destroy(); } catch { /* ignore */ }
+    for (const t of tasks) { try { void t.destroy(); } catch { /* ignore */ } }
   }
+  // The pool drains pages out of order — restore document order for naming.
+  out.sort((a, b) => a.pageNo - b.pageNo);
   return out;
 }
 
