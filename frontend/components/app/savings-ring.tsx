@@ -35,8 +35,8 @@ export function SavingsRing({ savedPct, beforeLabel, afterLabel, note }: { saved
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-2xl font-bold leading-none text-emerald-600">&minus;{Math.round(shown)}%</span>
-          <span className="mt-0.5 text-[11px] font-medium text-emerald-700/80">smaller</span>
+          <span className="text-2xl font-bold leading-none text-emerald-600">{Math.round(shown)}%</span>
+          <span className="mt-0.5 text-[11px] font-medium text-emerald-700/80">saved</span>
         </div>
       </div>
 

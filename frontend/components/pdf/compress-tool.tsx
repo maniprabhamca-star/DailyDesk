@@ -370,16 +370,19 @@ export function CompressTool() {
             const maxArea = scanContent(text, nameToTag, displaySizes);
             const { width, height } = page.getSize();
             const pageLongPt = Math.max(width, height);
-            // Target long edge if we rasterize this page. Normally DPI-driven,
-            // but some scans declare inflated page sizes (1 px drawn per pt →
-            // the "DPI" reads as ~72), where a DPI target would UPSCALE the
-            // stored image — never do that. There we shrink relative to the
-            // stored pixels instead (rasterFrac × source, with a readability
-            // floor, never above source). This is what makes JPEG-2000 scans
-            // (which pack more pixels per byte than JPEG) actually compress.
+            // Target long edge if we rasterize this page = the SMALLER of two
+            // caps, so both always apply:
+            //  - DPI cap: the level's rasterDpi over the page's point size.
+            //  - Fraction-of-source cap: rasterFrac × stored px (readability
+            //    floor, never above source). Matters for scans that declare
+            //    inflated page sizes (1 px per pt → "DPI" reads as ~72), where
+            //    the DPI cap alone lands near full resolution and a JPEG can't
+            //    beat the stored JPEG-2000. Taking min() of both keeps levels
+            //    MONOTONIC: a stronger level always targets ≤ px and ≤ quality,
+            //    so Maximum can never come out bigger than Recommended.
             const dpiTargetPx = (rasterDpi / 72) * pageLongPt;
-            const fracTargetPx = maxStoredPx > 0 ? Math.min(maxStoredPx, Math.max(rasterFrac * maxStoredPx, RASTER_FLOOR_PX)) : 0;
-            const targetPx = maxStoredPx > 0 && dpiTargetPx >= maxStoredPx ? fracTargetPx : dpiTargetPx;
+            const fracCapPx = maxStoredPx > 0 ? Math.min(maxStoredPx, Math.max(rasterFrac * maxStoredPx, RASTER_FLOOR_PX)) : Infinity;
+            const targetPx = Math.min(dpiTargetPx, fracCapPx);
             // Only rasterize when it's a REAL pixel reduction of the stored
             // image — re-encoding at ~the same size wastes minutes and can even
             // grow the file (e.g. JPEG 2000 beats same-res JPEG). "Squeeze
