@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { LayoutGrid, ShieldCheck, Apple, Play, MapPin, Lock, EyeOff } from 'lucide-react';
+import { ShieldCheck, Apple, Play, MapPin, Lock, EyeOff } from 'lucide-react';
+import { BrandMark } from '@/components/app/brand-mark';
 
 const COLUMNS = [
   { title: 'Tools', color: '#a78bfa', links: [
@@ -35,7 +36,7 @@ export function SiteFooter() {
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_1fr]">
           <div>
             <Link href="/" className="flex items-center gap-2.5">
-              <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground"><LayoutGrid className="size-[18px]" /></span>
+              <BrandMark className="size-8" />
               <span className="text-lg font-semibold tracking-tight text-white">DailyDesk</span>
             </Link>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-slate-400">

@@ -8,6 +8,7 @@ export const metadata: Metadata = {
     'Create QR codes free — custom colors, your logo, and bulk ZIP export. Runs entirely in your browser: no signup, no watermark, nothing uploaded.',
   alternates: { canonical: '/tools/qr-code' },
   openGraph: {
+    images: ['/og.png'],
     title: 'Free QR Code Generator — Colors, Logo, Bulk | DailyDesk',
     description: 'Custom colors, logo overlay, and bulk export — free, in your browser, nothing uploaded.',
     type: 'website',

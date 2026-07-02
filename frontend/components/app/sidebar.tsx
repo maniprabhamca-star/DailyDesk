@@ -2,10 +2,11 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutGrid, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toolGroups } from './tools-config';
 import { Button } from '@/components/ui/button';
+import { BrandMark } from '@/components/app/brand-mark';
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -13,9 +14,7 @@ export function Sidebar() {
   return (
     <aside className="hidden md:flex w-60 shrink-0 flex-col border-r bg-card/50 backdrop-blur-sm">
       <div className="flex h-16 items-center gap-2.5 px-5">
-        <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-          <LayoutGrid className="size-[18px]" />
-        </span>
+        <BrandMark className="size-8" />
         <span className="text-base font-semibold tracking-tight">DailyDesk</span>
       </div>
 

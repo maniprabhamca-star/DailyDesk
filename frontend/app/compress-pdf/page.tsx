@@ -9,6 +9,7 @@ export const metadata: Metadata = {
     'Compress a PDF to make it smaller, free and in your browser. Shrinks images and scanned pages — even files other tools return unchanged — while text stays crisp. No signup, no watermark, your file never leaves your device.',
   alternates: { canonical: '/compress-pdf' },
   openGraph: {
+    images: ['/og.png'],
     title: 'Compress PDF — Reduce PDF File Size Free | DailyDesk',
     description: 'Make your PDF smaller privately in your browser. Shrinks images, keeps text sharp. Free, no signup, no watermark.',
     type: 'website',

@@ -8,6 +8,7 @@ import { takeHandoff } from '@/lib/handoff';
 import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
 import { openPdf, useLazyPageThumb, prefetchPageThumbs, type PdfHandle } from '@/lib/pdf-render';
+import { rewritePdf } from '@/lib/pdf-rewrite';
 
 // Per-page pending rotation (delta added on top of the page's existing rotation)
 // + selection. Rotation is applied LOSSLESSLY with pdf-lib (it just sets the
@@ -164,15 +165,8 @@ export function RotateTool() {
     setError(null);
     setDone(null);
     try {
-      const { PDFDocument, degrees } = await import('pdf-lib');
-      const src = await PDFDocument.load(await file.arrayBuffer(), { ignoreEncryption: true });
-      const libPages = src.getPages();
-      pages.forEach((p, i) => {
-        if (p.delta === 0 || !libPages[i]) return;
-        const cur = libPages[i].getRotation().angle || 0;
-        libPages[i].setRotation(degrees(norm(cur + p.delta)));
-      });
-      const out = await src.save();
+      // Rewrites run in a Web Worker so the page never freezes, even on huge files.
+      const out = await rewritePdf(file, { type: 'rotate', deltas: pages.map((p) => p.delta) });
       const name = `${file.name.replace(/\.pdf$/i, '')}-rotated.pdf`;
       const blob = new Blob([new Uint8Array(out)], { type: 'application/pdf' });
       download(blob, name);

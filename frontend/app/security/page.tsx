@@ -11,6 +11,7 @@ export const metadata: Metadata = {
     'How DailyDesk keeps your documents safe: in-browser processing so files never leave your device, end-to-end encrypted File Vault (zero-knowledge, AES-256), and exactly how AI features handle your data.',
   alternates: { canonical: '/security' },
   openGraph: {
+    images: ['/og.png'],
     title: 'Security at DailyDesk',
     description: 'In-browser processing, zero-knowledge encrypted File Vault, and transparent AI handling.',
     type: 'website',

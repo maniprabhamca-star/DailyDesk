@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { LayoutGrid, QrCode, FileText, ImageIcon, KeyRound, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { BrandMark } from '@/components/app/brand-mark';
 
 type ToolKey = 'qr' | 'pdf' | 'img' | 'pw';
 const ORDER: ToolKey[] = ['qr', 'pdf', 'img', 'pw'];
@@ -146,9 +147,7 @@ export function ShowcasePanel() {
       <div className="pointer-events-none absolute -bottom-20 -left-10 size-48 rounded-full bg-violet-500/40 blur-3xl" />
 
       <div className="relative z-10 flex items-center gap-2.5 font-semibold">
-        <span className="flex size-8 items-center justify-center rounded-lg bg-white/20">
-          <LayoutGrid className="size-[18px]" />
-        </span>
+        <BrandMark className="size-8" />
         DailyDesk
       </div>
 

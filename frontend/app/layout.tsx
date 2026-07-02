@@ -27,12 +27,13 @@ export const metadata: Metadata = {
     locale: 'en_US',
     title: 'DailyDesk — Every Daily Tool, Private by Design',
     description: 'Free PDF, QR and password tools that run in your browser — no signup, no watermark, files never uploaded.',
+    images: ['/og.png'],
   },
-  twitter: { card: 'summary' },
+  twitter: { card: 'summary_large_image', images: ['/og.png'] },
   robots: { index: true, follow: true },
   manifest: '/manifest.webmanifest',
   appleWebApp: { capable: true, title: SITE_NAME, statusBarStyle: 'default' },
-  icons: { icon: '/icon-192.png', apple: '/apple-touch-icon.png' },
+  icons: { icon: [{ url: '/favicon.ico', sizes: '32x32' }, { url: '/icon-192.png', type: 'image/png' }], apple: '/apple-touch-icon.png' },
 };
 
 export const viewport: Viewport = {

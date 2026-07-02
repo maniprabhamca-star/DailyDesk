@@ -57,7 +57,7 @@ export const catalog: CatGroup[] = [
     label: 'Edit & sign', color: '#d97706', tools: [
       { name: 'Edit PDF', icon: PenLine, badge: 'device', soon: true },
       { name: 'Annotate', icon: Highlighter, badge: 'device', soon: true },
-      { name: 'Watermark', icon: Stamp, badge: 'device', soon: true },
+      { name: 'Watermark', href: '/watermark-pdf', icon: Stamp, badge: 'device' },
       { name: 'Redact PDF', icon: EyeOff, badge: 'device', soon: true },
       { name: 'Sign PDF', icon: PenTool, badge: 'device', soon: true },
       { name: 'Protect PDF', icon: Lock, badge: 'device', soon: true },

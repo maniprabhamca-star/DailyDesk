@@ -8,6 +8,7 @@ import { takeHandoff } from '@/lib/handoff';
 import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
 import { openPdf, useLazyPageThumb, prefetchPageThumbs, type PdfHandle } from '@/lib/pdf-render';
+import { rewritePdf } from '@/lib/pdf-rewrite';
 
 // Whether each page is marked for removal. Deletion is lossless (pdf-lib
 // removePage — the kept pages are untouched), so quality is preserved.
@@ -154,12 +155,9 @@ export function DeletePagesTool() {
     setError(null);
     setDone(null);
     try {
-      const { PDFDocument } = await import('pdf-lib');
-      const src = await PDFDocument.load(await file.arrayBuffer(), { ignoreEncryption: true });
-      // Remove from the end so earlier indices stay valid.
-      const toRemove = markedPages.map((m, i) => (m ? i : -1)).filter((i) => i >= 0).sort((a, b) => b - a);
-      toRemove.forEach((i) => src.removePage(i));
-      const out = await src.save();
+      // Rewrites run in a Web Worker so the page never freezes, even on huge files.
+      const indices = markedPages.map((m, i) => (m ? i : -1)).filter((i) => i >= 0);
+      const out = await rewritePdf(file, { type: 'delete', indices });
       const name = `${file.name.replace(/\.pdf$/i, '')}-pages-removed.pdf`;
       const blob = new Blob([new Uint8Array(out)], { type: 'application/pdf' });
       download(blob, name);

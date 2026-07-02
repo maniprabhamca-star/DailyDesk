@@ -11,6 +11,7 @@ export const metadata: Metadata = {
     'The rules for using DailyDesk, in plain English: acceptable use, accounts and billing, your ownership of your files, AI and File Vault terms, and our liability.',
   alternates: { canonical: '/terms' },
   openGraph: {
+    images: ['/og.png'],
     title: 'Terms of Service — DailyDesk',
     description: 'The rules for using DailyDesk, written in plain English.',
     type: 'website',

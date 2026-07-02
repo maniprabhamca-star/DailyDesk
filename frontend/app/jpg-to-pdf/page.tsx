@@ -8,6 +8,7 @@ export const metadata: Metadata = {
     'Convert JPG and PNG images to a PDF, free and instantly. Reorder pages, choose page size, no signup, no watermark — and your images never leave your browser.',
   alternates: { canonical: '/jpg-to-pdf' },
   openGraph: {
+    images: ['/og.png'],
     title: 'JPG to PDF — Convert Images to PDF Free | DailyDesk',
     description: 'Turn JPG and PNG images into a PDF, privately in your browser. Free, no signup, no watermark.',
     type: 'website',

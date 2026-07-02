@@ -8,6 +8,7 @@ export const metadata: Metadata = {
     'DailyDesk pricing: core PDF, QR and password tools are free forever — no signup, no watermark, no daily limits. Pro adds batch processing, large files, and more.',
   alternates: { canonical: '/pricing' },
   openGraph: {
+    images: ['/og.png'],
     title: 'Pricing — Free Forever or Pro | DailyDesk',
     description: 'Core tools free forever — no signup, no watermark, no daily limits. Pro adds batch processing and large files.',
     type: 'website',

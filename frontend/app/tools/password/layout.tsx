@@ -8,6 +8,7 @@ export const metadata: Metadata = {
     'Generate strong random passwords free, with a live strength meter. Uses your device’s secure random generator — nothing is sent or stored, ever.',
   alternates: { canonical: '/tools/password' },
   openGraph: {
+    images: ['/og.png'],
     title: 'Strong Password Generator — Free, No Signup | DailyDesk',
     description: 'Strong random passwords with a strength meter — generated on your device, never sent anywhere.',
     type: 'website',

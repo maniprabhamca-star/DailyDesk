@@ -13,6 +13,7 @@ const ROUTES: Array<{ path: string; priority: number; changeFrequency: MetadataR
   { path: '/add-page-numbers-to-pdf', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/jpg-to-pdf', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/pdf-to-jpg', priority: 0.9, changeFrequency: 'monthly' },
+  { path: '/watermark-pdf', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/compress-image', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/tools/qr-code', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/tools/password', priority: 0.9, changeFrequency: 'monthly' },

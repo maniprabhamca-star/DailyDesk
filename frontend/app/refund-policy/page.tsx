@@ -11,6 +11,7 @@ export const metadata: Metadata = {
     'DailyDesk Pro comes with a money-back guarantee: 14 days for monthly plans, 30 days for annual plans. Not happy? Email us for a full refund — no hoops, no fine print.',
   alternates: { canonical: '/refund-policy' },
   openGraph: {
+    images: ['/og.png'],
     title: 'Refund Policy — DailyDesk',
     description: 'A clear money-back guarantee on DailyDesk Pro: 14 days monthly, 30 days annual.',
     type: 'website',

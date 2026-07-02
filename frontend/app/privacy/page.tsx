@@ -10,6 +10,7 @@ export const metadata: Metadata = {
     'DailyDesk in plain English: your files are processed in your browser and never uploaded, we don&rsquo;t sell your data, AI runs only when you ask, and the File Vault is encrypted so even we can&rsquo;t read it.',
   alternates: { canonical: '/privacy' },
   openGraph: {
+    images: ['/og.png'],
     title: 'Privacy at DailyDesk',
     description: 'No uploads, no selling data, no tracking ads. Privacy explained in plain English.',
     type: 'website',

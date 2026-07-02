@@ -3,8 +3,9 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import {
-  LayoutGrid, ChevronDown, Search, Menu, X, ShieldCheck,
+  ChevronDown, Search, Menu, X, ShieldCheck,
 } from 'lucide-react';
+import { BrandMark } from '@/components/app/brand-mark';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { catalog } from '@/components/app/catalog';
@@ -59,7 +60,7 @@ export function SiteHeader({ heroSearchRef }: { heroSearchRef?: React.RefObject<
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-5 px-4 sm:px-6">
         <Link href="/" className="flex items-center gap-2.5">
-          <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground"><LayoutGrid className="size-[18px]" /></span>
+          <BrandMark className="size-8" />
           <span className="text-lg font-semibold tracking-tight">DailyDesk</span>
         </Link>
         <div ref={toolsRef} className="relative hidden sm:block">
