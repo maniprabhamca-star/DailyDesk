@@ -1,4 +1,4 @@
-import { Combine, Split, RotateCw, FileMinus, ListOrdered, Shrink, FileImage, Image as ImageIcon, QrCode, KeyRound, type LucideIcon } from 'lucide-react';
+import { Combine, Split, RotateCw, FileMinus, ListOrdered, Shrink, FileImage, Image as ImageIcon, Images, QrCode, KeyRound, type LucideIcon } from 'lucide-react';
 
 // Single source of truth for the live tool set + how tools relate, so the
 // "Keep moving" (carry the file forward) and "Keep going" (what's next) rails are
@@ -35,6 +35,8 @@ export const TOOLS: Record<string, Tool> = {
     tile: 'from-fuchsia-500/10 to-fuchsia-500/0 hover:border-fuchsia-500/40', chip: 'bg-fuchsia-500' },
   '/jpg-to-pdf': { href: '/jpg-to-pdf', name: 'JPG to PDF', icon: FileImage, blurb: 'Combine images back into one PDF', moveLabel: 'Images to PDF', acceptsPdf: false,
     tile: 'from-indigo-500/10 to-indigo-500/0 hover:border-indigo-500/40', chip: 'bg-indigo-500' },
+  '/extract-images-from-pdf': { href: '/extract-images-from-pdf', name: 'Extract images', icon: Images, blurb: 'Pull the original pictures out of a PDF', moveLabel: 'Extract the images', acceptsPdf: true,
+    tile: 'from-pink-500/10 to-pink-500/0 hover:border-pink-500/40', chip: 'bg-pink-500' },
   '/tools/qr-code': { href: '/tools/qr-code', name: 'QR code', icon: QrCode, blurb: 'Make a scannable QR in seconds', moveLabel: 'Make a QR code', acceptsPdf: false,
     tile: 'from-emerald-500/10 to-emerald-500/0 hover:border-emerald-500/40', chip: 'bg-emerald-500' },
   '/tools/password': { href: '/tools/password', name: 'Password', icon: KeyRound, blurb: 'Generate a strong, private password', moveLabel: 'Make a password', acceptsPdf: false,
@@ -49,7 +51,8 @@ const NEXT: Record<string, string[]> = {
   '/rotate-pdf': ['/compress-pdf', '/split-pdf', '/merge-pdf', '/pdf-to-jpg'],
   '/delete-pages-from-pdf': ['/compress-pdf', '/merge-pdf', '/add-page-numbers-to-pdf', '/split-pdf'],
   '/add-page-numbers-to-pdf': ['/compress-pdf', '/merge-pdf', '/split-pdf', '/rotate-pdf'],
-  '/pdf-to-jpg': ['/jpg-to-pdf', '/compress-pdf', '/split-pdf'],
+  '/pdf-to-jpg': ['/extract-images-from-pdf', '/jpg-to-pdf', '/compress-pdf'],
+  '/extract-images-from-pdf': ['/jpg-to-pdf', '/compress-pdf', '/pdf-to-jpg'],
   '/jpg-to-pdf': ['/compress-pdf', '/merge-pdf', '/add-page-numbers-to-pdf', '/rotate-pdf'],
   '/tools/qr-code': ['/tools/password', '/compress-pdf', '/pdf-to-jpg'],
   '/tools/password': ['/tools/qr-code', '/compress-pdf', '/merge-pdf'],

@@ -13,6 +13,17 @@ from a folder that has them). Node 22+ recommended (pdfjs v6 engines).
   (32% from fonts alone) — BUT the QA found MISSING GLYPHS (see below).
 - `fontgut-qa.js` — renders every page of original vs gutted and pixel-diffs.
   THE GATE: ship nothing until this reports PIXEL-IDENTICAL on multiple files.
+- `extract-qa.js` — QA for the Extract Images tool. Bundles + runs the REAL
+  shipping engine (`frontend/lib/pdf-extract-images.ts`) and mirrors the
+  component's pdf.js recovery pass. Rebuild the bundle after engine changes:
+  `npx -y esbuild frontend/lib/pdf-extract-images.ts --bundle --platform=node
+  --format=cjs --external:pdf-lib --outfile=dev-harness/extract-engine.cjs`
+  (from repo root). Validates JPEG magic+decode+dims, RGBA non-uniformity, PNG
+  encode; outputs land in `extract-out/<file>/` for eyeballing. Verified
+  2026-07-02: gut-ftp1 7 imgs (1 original JPG + 6 lossless PNG), gut-handbook
+  48 imgs (incl. SMask alpha composites), gut-book 116 imgs (114 JPX recovered
+  via pdf.js callback-form objs.get — the sync form throws "not resolved yet"
+  because image data arrives AFTER getOperatorList resolves), text-only 0 imgs.
 
 ## Font subsetting — state as of 2026-07-02
 Corruption found: gutted output drops letters (D,O,M,N,G,b,f,g,z…) on page 1

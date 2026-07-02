@@ -17,6 +17,7 @@ const META: Record<string, { color: string; desc: string }> = {
   'Page numbers': { color: '#7c3aed', desc: 'Stamp numbers' },
   'JPG to PDF': { color: '#4f46e5', desc: 'Images into a PDF' },
   'PDF to JPG': { color: '#c026d3', desc: 'Pages to images' },
+  'Extract images': { color: '#db2777', desc: 'Original pictures out' },
   'PDF to Word': { color: '#2563eb', desc: 'Editable Word doc' },
   'Word to PDF': { color: '#1d4ed8', desc: 'Word into a PDF' },
   'HTML to PDF': { color: '#0891b2', desc: 'Web page to PDF' },

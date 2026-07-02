@@ -4,7 +4,7 @@ import {
   PenLine, Highlighter, Stamp, EyeOff, PenTool, Lock,
   ScanText, MessageSquare, AlignLeft, Languages,
   QrCode, KeyRound, NotebookPen, Flame, Wallet, FolderLock, Link2,
-  ImageDown, Smartphone, Eraser, Film, Clapperboard, ArrowLeftRight,
+  ImageDown, Smartphone, Eraser, Film, Clapperboard, ArrowLeftRight, Images,
   Ruler, Braces, Palette, CaseSensitive,
   Cloud, Sparkles, type LucideIcon,
 } from 'lucide-react';
@@ -48,6 +48,7 @@ export const catalog: CatGroup[] = [
   {
     label: 'Convert from PDF', color: '#0ea5e9', tools: [
       { name: 'PDF to JPG', href: '/pdf-to-jpg', icon: ImageIcon, badge: 'device' },
+      { name: 'Extract images', href: '/extract-images-from-pdf', icon: Images, badge: 'device' },
       { name: 'PDF to Word', icon: FileType, badge: 'server', soon: true },
       { name: 'PDF to PowerPoint', icon: Presentation, badge: 'server', soon: true },
       { name: 'PDF to Excel', icon: FileSpreadsheet, badge: 'server', soon: true },
