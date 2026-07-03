@@ -72,7 +72,7 @@ export function CompressImageTool() {
   const [error, setError] = useState<string | null>(null);
   const [srcUrl, setSrcUrl] = useState<string | null>(null);
   const [srcDims, setSrcDims] = useState<{ w: number; h: number } | null>(null);
-  const [done, setDone] = useState<{ blob: Blob; name: string; before: number; after: number; url: string; w: number; h: number; optimized: boolean } | null>(null);
+  const [done, setDone] = useState<{ blob: Blob; name: string; before: number; after: number; url: string; w: number; h: number; optimized: boolean; secs: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const doneRef = useRef<HTMLDivElement>(null);
 
@@ -118,6 +118,7 @@ export function CompressImageTool() {
     setBusy(true);
     setError(null);
     setDone((d) => { if (d) URL.revokeObjectURL(d.url); return null; });
+    const t0 = performance.now();
     try {
       const bmp = await decode(file);
       const maxDim = Math.min(resize === 'original' ? HARD_MAX_DIM : parseInt(resize, 10), HARD_MAX_DIM);
@@ -147,11 +148,11 @@ export function CompressImageTool() {
       // Never hand back a bigger file: if we couldn't beat the original (and the
       // user didn't ask for a resize), return the original untouched.
       if (blob.size >= file.size && scale === 1) {
-        setDone({ blob: file, name: file.name, before: file.size, after: file.size, url: URL.createObjectURL(file), w, h, optimized: true });
+        setDone({ blob: file, name: file.name, before: file.size, after: file.size, url: URL.createObjectURL(file), w, h, optimized: true, secs: (performance.now() - t0) / 1000 });
         return;
       }
       const name = `${file.name.replace(/\.(jpe?g|png|webp)$/i, '')}-compressed.jpg`;
-      setDone({ blob, name, before: file.size, after: blob.size, url: URL.createObjectURL(blob), w, h, optimized: false });
+      setDone({ blob, name, before: file.size, after: blob.size, url: URL.createObjectURL(blob), w, h, optimized: false, secs: (performance.now() - t0) / 1000 });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not compress the image.');
     } finally {
@@ -268,7 +269,7 @@ export function CompressImageTool() {
                 </div>
               ) : (
                 <>
-                  <SavingsRing savedPct={saved} beforeLabel={fmt(done.before)} afterLabel={fmt(done.after)} note={`${done.w}×${done.h}px JPG`} />
+                  <SavingsRing savedPct={saved} beforeLabel={fmt(done.before)} afterLabel={fmt(done.after)} note={`${done.w}×${done.h}px JPG · ${done.secs.toFixed(1)}s`} />
                   <div className="mt-4">
                     <BeforeAfter
                       before={srcUrl && srcDims ? { url: srcUrl, w: srcDims.w, h: srcDims.h } : null}

@@ -34,7 +34,7 @@ export function ResizeImageTool() {
   const [quality, setQuality] = useState(85);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState<{ blob: Blob; name: string; url: string; w: number; h: number } | null>(null);
+  const [done, setDone] = useState<{ blob: Blob; name: string; url: string; w: number; h: number; secs: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const webpOk = typeof window !== 'undefined' && canEncodeWebp();
 
@@ -90,6 +90,7 @@ export function ResizeImageTool() {
     if (!file || !bitmap) return;
     setBusy(true);
     setError(null);
+    const t0 = performance.now();
     try {
       const canvas = resample(bitmap, w, h);
       const blob = await encodeCanvas(canvas, format, quality);
@@ -97,7 +98,7 @@ export function ResizeImageTool() {
       const name = `${file.name.replace(/\.[^.]+$/, '')}-${w}x${h}.${format}`;
       download(blob, name);
       if (done) URL.revokeObjectURL(done.url);
-      setDone({ blob, name, url: URL.createObjectURL(blob), w, h });
+      setDone({ blob, name, url: URL.createObjectURL(blob), w, h, secs: (performance.now() - t0) / 1000 });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not resize the image.');
     } finally {
@@ -204,7 +205,7 @@ export function ResizeImageTool() {
               <CheckCircle2 className="size-5 shrink-0 text-emerald-500" />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold">Resized — {done.name} saved</p>
-                <p className="text-xs text-muted-foreground">{done.w}×{done.h} · {fmt(done.blob.size)} (was {fmt(file?.size || 0)})</p>
+                <p className="text-xs text-muted-foreground">{done.w}×{done.h} · {fmt(done.blob.size)} (was {fmt(file?.size || 0)}) · {done.secs.toFixed(1)}s</p>
               </div>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={() => setDone(null)}><RotateCcw className="size-4" /> Again</Button>

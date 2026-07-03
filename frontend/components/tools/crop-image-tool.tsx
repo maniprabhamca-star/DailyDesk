@@ -37,7 +37,7 @@ export function CropImageTool() {
   const [quality, setQuality] = useState(90);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState<{ blob: Blob; name: string; url: string; w: number; h: number } | null>(null);
+  const [done, setDone] = useState<{ blob: Blob; name: string; url: string; w: number; h: number; secs: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const gesture = useRef<{ mode: 'move' | 'resize'; dx: number; dy: number } | null>(null);
@@ -129,6 +129,7 @@ export function CropImageTool() {
     if (!file) return;
     setBusy(true);
     setError(null);
+    const t0 = performance.now();
     try {
       const bm = await decodeImage(file);
       const sx = Math.round(box.x * bm.width);
@@ -145,7 +146,7 @@ export function CropImageTool() {
       const name = `${file.name.replace(/\.[^.]+$/, '')}-cropped.${format}`;
       download(blob, name);
       if (done) URL.revokeObjectURL(done.url);
-      setDone({ blob, name, url: URL.createObjectURL(blob), w: sw, h: sh });
+      setDone({ blob, name, url: URL.createObjectURL(blob), w: sw, h: sh, secs: (performance.now() - t0) / 1000 });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not crop the image.');
     } finally {
@@ -247,7 +248,7 @@ export function CropImageTool() {
               <CheckCircle2 className="size-5 shrink-0 text-emerald-500" />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold">Cropped — {done.name} saved</p>
-                <p className="text-xs text-muted-foreground">{done.w}×{done.h} · {fmt(done.blob.size)}</p>
+                <p className="text-xs text-muted-foreground">{done.w}×{done.h} · {fmt(done.blob.size)} · {done.secs.toFixed(1)}s</p>
               </div>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={() => setDone(null)}><RotateCcw className="size-4" /> Adjust again</Button>

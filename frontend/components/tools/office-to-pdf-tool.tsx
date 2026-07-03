@@ -74,7 +74,7 @@ export function OfficeToPdfTool({ kindId }: { kindId: OfficeKindId }) {
   const [progress, setProgress] = useState<number | null>(null);
   const [phase, setPhase] = useState<'upload' | 'convert' | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState<{ blob: Blob; name: string } | null>(null);
+  const [done, setDone] = useState<{ blob: Blob; name: string; secs: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const Icon = kind.icon;
 
@@ -101,6 +101,7 @@ export function OfficeToPdfTool({ kindId }: { kindId: OfficeKindId }) {
     setDone(null);
     setPhase('upload');
     setProgress(0);
+    const t0 = performance.now();
 
     const form = new FormData();
     form.append('file', file);
@@ -127,7 +128,7 @@ export function OfficeToPdfTool({ kindId }: { kindId: OfficeKindId }) {
         const name = `${file.name.replace(/\.[^.]+$/, '')}.pdf`;
         const blob = xhr.response as Blob;
         download(blob, name);
-        setDone({ blob, name });
+        setDone({ blob, name, secs: (performance.now() - t0) / 1000 });
         return;
       }
       void (xhr.response as Blob).text().then((t) => {
@@ -200,7 +201,7 @@ export function OfficeToPdfTool({ kindId }: { kindId: OfficeKindId }) {
           </Button>
         )}
 
-        {done && <PdfDone blob={done.blob} name={done.name} currentHref={kind.currentHref} fromLabel={kind.fromLabel} />}
+        {done && <PdfDone blob={done.blob} name={done.name} secs={done.secs} currentHref={kind.currentHref} fromLabel={kind.fromLabel} />}
       </CardContent>
     </Card>
   );

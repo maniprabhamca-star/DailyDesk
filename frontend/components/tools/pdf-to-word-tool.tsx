@@ -28,7 +28,7 @@ export function PdfToWordTool() {
   const [progress, setProgress] = useState<number | null>(null); // upload %
   const [phase, setPhase] = useState<'upload' | 'convert' | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState<{ blob: Blob; name: string } | null>(null);
+  const [done, setDone] = useState<{ blob: Blob; name: string; secs: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   function loadOne(f?: File) {
@@ -54,6 +54,7 @@ export function PdfToWordTool() {
     setDone(null);
     setPhase('upload');
     setProgress(0);
+    const t0 = performance.now();
 
     const form = new FormData();
     form.append('file', file);
@@ -80,7 +81,7 @@ export function PdfToWordTool() {
         const name = `${file.name.replace(/\.pdf$/i, '')}.docx`;
         const blob = xhr.response as Blob;
         download(blob, name);
-        setDone({ blob, name });
+        setDone({ blob, name, secs: (performance.now() - t0) / 1000 });
         return;
       }
       // Map the API's honest error messages.
@@ -160,7 +161,7 @@ export function PdfToWordTool() {
               <CheckCircle2 className="size-5 shrink-0 text-emerald-500" />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold">Done — {done.name} saved</p>
-                <p className="text-xs text-muted-foreground">{fmt(done.blob.size)} · your PDF was deleted from the server the moment this downloaded</p>
+                <p className="text-xs text-muted-foreground">{fmt(done.blob.size)} · {done.secs.toFixed(1)}s · your PDF was deleted from the server the moment this downloaded</p>
               </div>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={() => { setDone(null); setFile(null); }}><RotateCcw className="size-4" /> New PDF</Button>
