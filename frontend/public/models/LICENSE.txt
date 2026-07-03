@@ -1,0 +1,13 @@
+isnet-quint8.onnx — background-removal model for DailyDesk's on-device
+Remove Background tool.
+
+Derived from the IS-Net "isnet-general-use" pretrained model of the DIS
+project (Highly Accurate Dichotomous Image Segmentation):
+  https://github.com/xuebinqin/DIS
+  Copyright (c) 2022 Xuebin Qin et al.
+  Licensed under the Apache License, Version 2.0:
+  https://www.apache.org/licenses/LICENSE-2.0
+
+Modifications: converted to ONNX and dynamically quantized (QUInt8) to
+reduce download size. The model runs entirely in the user's browser via
+ONNX Runtime Web; images are never uploaded.

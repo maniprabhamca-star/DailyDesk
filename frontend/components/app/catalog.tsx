@@ -90,7 +90,7 @@ export const catalog: CatGroup[] = [
       { name: 'Crop image', href: '/crop-image', icon: Crop, badge: 'device' },
       { name: 'Convert image', href: '/convert-image', icon: Repeat, badge: 'device' },
       { name: 'HEIC to JPG', href: '/heic-to-jpg', icon: Smartphone, badge: 'device' },
-      { name: 'Background remover', icon: Eraser, badge: 'device', soon: true },
+      { name: 'Background remover', href: '/remove-background', icon: Eraser, badge: 'device' },
       { name: 'Compress video', icon: Film, badge: 'device', soon: true },
       { name: 'Video to GIF', icon: Clapperboard, badge: 'device', soon: true },
     ],
