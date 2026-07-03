@@ -13,6 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { KeepGoing } from '@/components/app/keep-going';
 import { downloadBlob } from '@/lib/download';
 import { buildPayload, payloadLabel, missingHint, EMPTY_FIELDS, type QrType, type QrFields } from '@/lib/qr-payload';
+import { paintQr, svgQr, toMatrix, type ModuleShape, type EyeShape, type QrStyle } from '@/lib/qr-paint';
 import { cn } from '@/lib/utils';
 
 type ECLevel = 'L' | 'M' | 'Q' | 'H';
@@ -27,31 +28,25 @@ const TYPES: { id: QrType; label: string; icon: typeof Link2 }[] = [
   { id: 'vcard', label: 'Contact', icon: UserRound },
 ];
 
-async function renderToCanvas(
+function renderToCanvas(
   canvas: HTMLCanvasElement,
   text: string,
-  opts: { fg: string; bg: string; size: number; margin: number; ec: ECLevel },
+  opts: { size: number; margin: number; ec: ECLevel; style: QrStyle },
   logo: HTMLImageElement | null,
   logoScale: number,
 ) {
-  await QRCode.toCanvas(canvas, text || ' ', {
-    errorCorrectionLevel: opts.ec,
-    margin: opts.margin,
-    width: opts.size,
-    color: { dark: opts.fg, light: opts.bg },
-  });
-  // qrcode lib injects inline width/height px on the canvas; clear them so the
-  // responsive CSS (full width, height:auto) keeps the preview square.
-  canvas.style.removeProperty('width');
-  canvas.style.removeProperty('height');
-  if (!logo) return;
+  const qr = QRCode.create(text || ' ', { errorCorrectionLevel: opts.ec });
+  canvas.width = opts.size;
+  canvas.height = opts.size;
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
+  paintQr(ctx, toMatrix(qr.modules), opts.size, opts.margin, opts.style);
+  if (!logo) return;
   const side = canvas.width * logoScale;
   const x = (canvas.width - side) / 2;
   const y = (canvas.height - side) / 2;
   const pad = side * 0.12;
-  ctx.fillStyle = opts.bg;
+  ctx.fillStyle = opts.style.bg;
   const r = side * 0.18;
   const bx = x - pad, by = y - pad, bw = side + pad * 2, bh = side + pad * 2;
   ctx.beginPath();
@@ -75,6 +70,10 @@ export function QrCodeTool({ initialType = 'link', excludeFromRail = '/qr-code-g
   const [fields, setFields] = useState<QrFields>(EMPTY_FIELDS);
   const [fg, setFg] = useState('#0f172a');
   const [bg, setBg] = useState('#ffffff');
+  const [moduleShape, setModuleShape] = useState<ModuleShape>('square');
+  const [eyeShape, setEyeShape] = useState<EyeShape>('square');
+  const [gradientOn, setGradientOn] = useState(false);
+  const [fg2, setFg2] = useState('#7c3aed');
   const [size, setSize] = useState(512);
   const [margin, setMargin] = useState(2);
   const [ec, setEc] = useState<ECLevel>('M');
@@ -90,17 +89,21 @@ export function QrCodeTool({ initialType = 'link', excludeFromRail = '/qr-code-g
   const effectiveEc: ECLevel = logo ? 'H' : ec;
   const payload = useMemo(() => buildPayload(qrType, fields), [qrType, fields]);
   const hint = payload ? null : missingHint(qrType);
+  const style: QrStyle = useMemo(
+    () => ({ fg, fg2: gradientOn ? fg2 : null, bg, moduleShape, eyeShape }),
+    [fg, fg2, gradientOn, bg, moduleShape, eyeShape],
+  );
 
-  const redraw = useCallback(async () => {
+  const redraw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     try {
-      await renderToCanvas(canvas, payload, { fg, bg, size, margin, ec: effectiveEc }, logo, logoScale);
+      renderToCanvas(canvas, payload, { size, margin, ec: effectiveEc, style }, logo, logoScale);
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not render QR code');
     }
-  }, [payload, fg, bg, size, margin, effectiveEc, logo, logoScale]);
+  }, [payload, size, margin, effectiveEc, style, logo, logoScale]);
 
   useEffect(() => {
     if (!bulkMode) redraw();
@@ -137,12 +140,8 @@ export function QrCodeTool({ initialType = 'link', excludeFromRail = '/qr-code-g
   async function downloadSvg() {
     if (!payload) return;
     try {
-      let svg = await QRCode.toString(payload, {
-        type: 'svg',
-        errorCorrectionLevel: effectiveEc,
-        margin,
-        color: { dark: fg, light: bg },
-      });
+      const qr = QRCode.create(payload, { errorCorrectionLevel: effectiveEc });
+      let svg = svgQr(toMatrix(qr.modules), margin, style);
       if (logoDataUrl) {
         const vb = svg.match(/viewBox="0 0 (\d+(?:\.\d+)?) /);
         const s = vb ? parseFloat(vb[1]) : 33;
@@ -171,13 +170,15 @@ export function QrCodeTool({ initialType = 'link', excludeFromRail = '/qr-code-g
     try {
       const zip = new JSZip();
       const seen: Record<string, number> = {};
+      const oc = document.createElement('canvas');
+      const octx = oc.getContext('2d');
+      if (!octx) throw new Error('Canvas unavailable');
+      oc.width = oc.height = size;
       for (let i = 0; i < lines.length; i++) {
-        const dataUrl = await QRCode.toDataURL(lines[i], {
-          errorCorrectionLevel: ec,
-          margin,
-          width: size,
-          color: { dark: fg, light: bg },
-        });
+        // Same styled renderer as the preview, so bulk output matches.
+        const qr = QRCode.create(lines[i], { errorCorrectionLevel: ec });
+        paintQr(octx, toMatrix(qr.modules), size, margin, style);
+        const dataUrl = oc.toDataURL('image/png');
         let name = safeFilename(lines[i], `qr-${i + 1}`);
         seen[name] = (seen[name] ?? 0) + 1;
         if (seen[name] > 1) name = `${name}-${seen[name]}`;
@@ -392,6 +393,55 @@ export function QrCodeTool({ initialType = 'link', excludeFromRail = '/qr-code-g
                 <div className="flex items-center gap-2 rounded-md border border-input p-1.5">
                   <input type="color" value={bg} onChange={(e) => setBg(e.target.value)} className="size-8 cursor-pointer rounded border-0 bg-transparent p-0" />
                   <span className="font-mono text-xs uppercase text-muted-foreground">{bg}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Style: module shape, eye shape, gradient */}
+            <div className="space-y-3">
+              <Label>Style</Label>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-muted-foreground">Modules</span>
+                  {(['square', 'rounded', 'dots'] as const).map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setModuleShape(s)}
+                      className={cn(
+                        'rounded-full border px-2.5 py-1 text-xs font-medium capitalize transition-colors',
+                        moduleShape === s ? 'border-primary bg-primary/10 text-primary' : 'border-input text-muted-foreground hover:border-primary/40 hover:text-foreground',
+                      )}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-muted-foreground">Eyes</span>
+                  {(['square', 'rounded'] as const).map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setEyeShape(s)}
+                      className={cn(
+                        'rounded-full border px-2.5 py-1 text-xs font-medium capitalize transition-colors',
+                        eyeShape === s ? 'border-primary bg-primary/10 text-primary' : 'border-input text-muted-foreground hover:border-primary/40 hover:text-foreground',
+                      )}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm font-medium">Gradient</span>
+                <div className="flex items-center gap-2.5">
+                  {gradientOn && (
+                    <span className="flex items-center gap-1.5 rounded-md border border-input p-1">
+                      <input type="color" value={fg2} onChange={(e) => setFg2(e.target.value)} className="size-6 cursor-pointer rounded border-0 bg-transparent p-0" aria-label="Gradient end color" />
+                      <span className="pr-1 font-mono text-[10px] uppercase text-muted-foreground">{fg2}</span>
+                    </span>
+                  )}
+                  <Switch id="qr-grad" checked={gradientOn} onCheckedChange={setGradientOn} />
                 </div>
               </div>
             </div>

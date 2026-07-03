@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 
 const steps = [
   'Pick what the code should do — link, text, Wi-Fi login, email, call, SMS, or a contact card — and fill in the details.',
-  'Make it yours: colors, size, quiet zone, error correction, and an optional center logo.',
+  'Make it yours: colors, gradients, module and eye shapes, size, and an optional center logo.',
   'Download as PNG or SVG — or switch to Bulk and export hundreds as a ZIP.',
 ];
 
@@ -45,6 +45,10 @@ const faqs = [
   {
     q: 'What is error correction?',
     a: 'QR codes carry redundant data so they still scan when partially covered or damaged. L (7%) makes the densest code; H (30%) survives the most damage — and is required when a logo covers the middle.',
+  },
+  {
+    q: 'Can I style the code without breaking scanning?',
+    a: 'Yes — module shapes (square, rounded, dots), rounded eyes, and two-color gradients are all tested to stay machine-readable: every style combination is verified against a real QR decoder. For best results keep dark modules on a light background.',
   },
   {
     q: 'What does the quiet zone do?',
