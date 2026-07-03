@@ -5,7 +5,7 @@ import { QrCodeTool } from '@/components/tools/qr-code-tool';
 export const metadata: Metadata = {
   title: 'Free QR Code Generator — Colors, Logo, Bulk | DailyDesk',
   description:
-    'Create QR codes free — custom colors, your logo, and bulk ZIP export. Runs entirely in your browser: no signup, no watermark, codes never expire.',
+    'Create QR codes free — links, Wi-Fi, contact cards, email, SMS. Custom colors, logo, bulk ZIP export. In your browser: no signup, no expiry, no watermark.',
   alternates: { canonical: '/qr-code-generator' },
   openGraph: {
     images: ['/og.png'],
@@ -16,12 +16,16 @@ export const metadata: Metadata = {
 };
 
 const steps = [
-  'Type or paste your link or text — the QR code preview updates instantly.',
+  'Pick what the code should do — link, text, Wi-Fi login, email, call, SMS, or a contact card — and fill in the details.',
   'Make it yours: colors, size, quiet zone, error correction, and an optional center logo.',
   'Download as PNG or SVG — or switch to Bulk and export hundreds as a ZIP.',
 ];
 
 const faqs = [
+  {
+    q: 'What can a QR code contain?',
+    a: 'Seven types are built in: a link, plain text, Wi-Fi login (guests join your network with one scan), email (opens a pre-filled draft), phone call, SMS, and a vCard contact card that saves straight into the phone’s contacts.',
+  },
   {
     q: 'Is my QR code content uploaded anywhere?',
     a: 'No. The code is generated entirely in your browser — the link or text you enter never leaves your device. You can verify this in your browser’s DevTools Network tab: no requests carry your data.',
@@ -56,7 +60,7 @@ export default function QrCodeGeneratorPage() {
   return (
     <PdfToolPage
       title="QR code generator"
-      description="Create QR codes with custom colors, your logo, and bulk ZIP export — free, no signup, and generated entirely in your browser. Static codes that never expire."
+      description="Links, Wi-Fi logins, contact cards, email, calls, SMS — with custom colors, your logo, and bulk ZIP export. Free, no signup, generated entirely in your browser. Static codes that never expire."
       steps={steps}
       faqs={faqs}
     >

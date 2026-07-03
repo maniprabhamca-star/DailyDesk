@@ -1,19 +1,31 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import QRCode from 'qrcode';
 import JSZip from 'jszip';
-import { Download, Upload, Layers, X, Sparkles } from 'lucide-react';
+import { Download, Upload, Layers, X, Sparkles, Link2, Type, Wifi, Mail, Phone, MessageSquareText, UserRound } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { KeepGoing } from '@/components/app/keep-going';
 import { downloadBlob } from '@/lib/download';
+import { buildPayload, payloadLabel, missingHint, EMPTY_FIELDS, type QrType, type QrFields } from '@/lib/qr-payload';
 import { cn } from '@/lib/utils';
 
 type ECLevel = 'L' | 'M' | 'Q' | 'H';
+
+const TYPES: { id: QrType; label: string; icon: typeof Link2 }[] = [
+  { id: 'link', label: 'Link', icon: Link2 },
+  { id: 'text', label: 'Text', icon: Type },
+  { id: 'wifi', label: 'Wi-Fi', icon: Wifi },
+  { id: 'email', label: 'Email', icon: Mail },
+  { id: 'phone', label: 'Call', icon: Phone },
+  { id: 'sms', label: 'SMS', icon: MessageSquareText },
+  { id: 'vcard', label: 'Contact', icon: UserRound },
+];
 
 async function renderToCanvas(
   canvas: HTMLCanvasElement,
@@ -58,8 +70,9 @@ function safeFilename(text: string, fallback: string) {
   return (base || fallback).slice(0, 40);
 }
 
-export function QrCodeTool() {
-  const [text, setText] = useState('https://dailydesk.app');
+export function QrCodeTool({ initialType = 'link', excludeFromRail = '/qr-code-generator' }: { initialType?: QrType; excludeFromRail?: string }) {
+  const [qrType, setQrType] = useState<QrType>(initialType);
+  const [fields, setFields] = useState<QrFields>(EMPTY_FIELDS);
   const [fg, setFg] = useState('#0f172a');
   const [bg, setBg] = useState('#ffffff');
   const [size, setSize] = useState(512);
@@ -75,21 +88,27 @@ export function QrCodeTool() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const effectiveEc: ECLevel = logo ? 'H' : ec;
+  const payload = useMemo(() => buildPayload(qrType, fields), [qrType, fields]);
+  const hint = payload ? null : missingHint(qrType);
 
   const redraw = useCallback(async () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     try {
-      await renderToCanvas(canvas, text, { fg, bg, size, margin, ec: effectiveEc }, logo, logoScale);
+      await renderToCanvas(canvas, payload, { fg, bg, size, margin, ec: effectiveEc }, logo, logoScale);
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not render QR code');
     }
-  }, [text, fg, bg, size, margin, effectiveEc, logo, logoScale]);
+  }, [payload, fg, bg, size, margin, effectiveEc, logo, logoScale]);
 
   useEffect(() => {
     if (!bulkMode) redraw();
   }, [redraw, bulkMode]);
+
+  function patch<K extends keyof QrFields>(key: K, value: QrFields[K]) {
+    setFields((f) => ({ ...f, [key]: value }));
+  }
 
   function onLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -109,15 +128,16 @@ export function QrCodeTool() {
 
   function downloadPng() {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || !payload) return;
     canvas.toBlob((blob) => {
-      if (blob) downloadBlob(blob, `${safeFilename(text, 'qr-code')}.png`);
+      if (blob) downloadBlob(blob, `${safeFilename(payloadLabel(qrType, fields), 'qr-code')}.png`);
     }, 'image/png');
   }
 
   async function downloadSvg() {
+    if (!payload) return;
     try {
-      let svg = await QRCode.toString(text || ' ', {
+      let svg = await QRCode.toString(payload, {
         type: 'svg',
         errorCorrectionLevel: effectiveEc,
         margin,
@@ -134,7 +154,7 @@ export function QrCodeTool() {
           `<image x="${pos}" y="${pos}" width="${side}" height="${side}" href="${logoDataUrl}" />`;
         svg = svg.replace('</svg>', `${overlay}</svg>`);
       }
-      downloadBlob(new Blob([svg], { type: 'image/svg+xml' }), `${safeFilename(text, 'qr-code')}.svg`);
+      downloadBlob(new Blob([svg], { type: 'image/svg+xml' }), `${safeFilename(payloadLabel(qrType, fields), 'qr-code')}.svg`);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not export SVG');
     }
@@ -174,6 +194,8 @@ export function QrCodeTool() {
 
   const bulkCount = bulkText.split('\n').map((l) => l.trim()).filter(Boolean).length;
 
+  const inputCls = 'space-y-2';
+
   return (
     <div className="animate-fade-in">
       {/* Mode switch */}
@@ -200,12 +222,151 @@ export function QrCodeTool() {
         <Card>
           <CardContent className="space-y-5 p-5">
             {!bulkMode ? (
-              <div className="space-y-2">
-                <Label htmlFor="content">Content (URL or text)</Label>
-                <Input id="content" value={text} onChange={(e) => setText(e.target.value)} placeholder="https://example.com" />
-              </div>
+              <>
+                {/* Content type */}
+                <div className="flex flex-wrap gap-1.5">
+                  {TYPES.map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => setQrType(t.id)}
+                      className={cn(
+                        'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
+                        qrType === t.id
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-input text-muted-foreground hover:border-primary/40 hover:text-foreground',
+                      )}
+                    >
+                      <t.icon className="size-3.5" /> {t.label}
+                    </button>
+                  ))}
+                </div>
+
+                {qrType === 'link' && (
+                  <div className={inputCls}>
+                    <Label htmlFor="content">Link (URL)</Label>
+                    <Input id="content" value={fields.link} onChange={(e) => patch('link', e.target.value)} placeholder="https://example.com" />
+                  </div>
+                )}
+
+                {qrType === 'text' && (
+                  <div className={inputCls}>
+                    <Label htmlFor="qr-text">Text</Label>
+                    <textarea
+                      id="qr-text"
+                      value={fields.text}
+                      onChange={(e) => patch('text', e.target.value)}
+                      rows={3}
+                      placeholder="Any text — notes, serial numbers, a message…"
+                      className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    />
+                  </div>
+                )}
+
+                {qrType === 'wifi' && (
+                  <div className="space-y-4">
+                    <div className={inputCls}>
+                      <Label htmlFor="wifi-ssid">Network name (SSID)</Label>
+                      <Input id="wifi-ssid" value={fields.wifi.ssid} onChange={(e) => patch('wifi', { ...fields.wifi, ssid: e.target.value })} placeholder="MyHomeWiFi" />
+                    </div>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div className={inputCls}>
+                        <Label htmlFor="wifi-pass">Password</Label>
+                        <Input id="wifi-pass" value={fields.wifi.password} onChange={(e) => patch('wifi', { ...fields.wifi, password: e.target.value })} placeholder="Network password" disabled={fields.wifi.security === 'nopass'} />
+                      </div>
+                      <div className={inputCls}>
+                        <Label>Security</Label>
+                        <Select value={fields.wifi.security} onChange={(e) => patch('wifi', { ...fields.wifi, security: e.target.value as 'WPA' | 'WEP' | 'nopass' })}>
+                          <option value="WPA">WPA / WPA2 / WPA3</option>
+                          <option value="WEP">WEP (legacy)</option>
+                          <option value="nopass">Open — no password</option>
+                        </Select>
+                      </div>
+                    </div>
+                    <label htmlFor="wifi-hidden" className="flex cursor-pointer items-center justify-between rounded-lg px-1 py-1">
+                      <span className="text-sm font-medium">Hidden network</span>
+                      <Switch id="wifi-hidden" checked={fields.wifi.hidden} onCheckedChange={(v) => patch('wifi', { ...fields.wifi, hidden: v })} />
+                    </label>
+                    <p className="text-xs text-muted-foreground">Scanning joins the network — the password stays inside the code, never uploaded.</p>
+                  </div>
+                )}
+
+                {qrType === 'email' && (
+                  <div className="space-y-4">
+                    <div className={inputCls}>
+                      <Label htmlFor="em-to">To (email address)</Label>
+                      <Input id="em-to" type="email" value={fields.email.to} onChange={(e) => patch('email', { ...fields.email, to: e.target.value })} placeholder="hello@example.com" />
+                    </div>
+                    <div className={inputCls}>
+                      <Label htmlFor="em-sub">Subject (optional)</Label>
+                      <Input id="em-sub" value={fields.email.subject} onChange={(e) => patch('email', { ...fields.email, subject: e.target.value })} placeholder="Inquiry" />
+                    </div>
+                    <div className={inputCls}>
+                      <Label htmlFor="em-body">Message (optional)</Label>
+                      <textarea id="em-body" value={fields.email.body} onChange={(e) => patch('email', { ...fields.email, body: e.target.value })} rows={2}
+                        className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" />
+                    </div>
+                  </div>
+                )}
+
+                {qrType === 'phone' && (
+                  <div className={inputCls}>
+                    <Label htmlFor="ph-num">Phone number</Label>
+                    <Input id="ph-num" type="tel" value={fields.phone} onChange={(e) => patch('phone', e.target.value)} placeholder="+1 555 123 4567" />
+                    <p className="text-xs text-muted-foreground">Scanning opens the dialer with this number ready to call.</p>
+                  </div>
+                )}
+
+                {qrType === 'sms' && (
+                  <div className="space-y-4">
+                    <div className={inputCls}>
+                      <Label htmlFor="sms-num">Phone number</Label>
+                      <Input id="sms-num" type="tel" value={fields.sms.number} onChange={(e) => patch('sms', { ...fields.sms, number: e.target.value })} placeholder="+1 555 123 4567" />
+                    </div>
+                    <div className={inputCls}>
+                      <Label htmlFor="sms-msg">Pre-filled message (optional)</Label>
+                      <Input id="sms-msg" value={fields.sms.message} onChange={(e) => patch('sms', { ...fields.sms, message: e.target.value })} placeholder="Hi! I scanned your code." />
+                    </div>
+                  </div>
+                )}
+
+                {qrType === 'vcard' && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div className={inputCls}>
+                        <Label htmlFor="vc-first">First name</Label>
+                        <Input id="vc-first" value={fields.vcard.firstName} onChange={(e) => patch('vcard', { ...fields.vcard, firstName: e.target.value })} />
+                      </div>
+                      <div className={inputCls}>
+                        <Label htmlFor="vc-last">Last name</Label>
+                        <Input id="vc-last" value={fields.vcard.lastName} onChange={(e) => patch('vcard', { ...fields.vcard, lastName: e.target.value })} />
+                      </div>
+                      <div className={inputCls}>
+                        <Label htmlFor="vc-phone">Phone</Label>
+                        <Input id="vc-phone" type="tel" value={fields.vcard.phone} onChange={(e) => patch('vcard', { ...fields.vcard, phone: e.target.value })} />
+                      </div>
+                      <div className={inputCls}>
+                        <Label htmlFor="vc-email">Email</Label>
+                        <Input id="vc-email" type="email" value={fields.vcard.email} onChange={(e) => patch('vcard', { ...fields.vcard, email: e.target.value })} />
+                      </div>
+                      <div className={inputCls}>
+                        <Label htmlFor="vc-org">Company (optional)</Label>
+                        <Input id="vc-org" value={fields.vcard.org} onChange={(e) => patch('vcard', { ...fields.vcard, org: e.target.value })} />
+                      </div>
+                      <div className={inputCls}>
+                        <Label htmlFor="vc-title">Job title (optional)</Label>
+                        <Input id="vc-title" value={fields.vcard.title} onChange={(e) => patch('vcard', { ...fields.vcard, title: e.target.value })} />
+                      </div>
+                    </div>
+                    <div className={inputCls}>
+                      <Label htmlFor="vc-url">Website (optional)</Label>
+                      <Input id="vc-url" value={fields.vcard.url} onChange={(e) => patch('vcard', { ...fields.vcard, url: e.target.value })} placeholder="https://…" />
+                    </div>
+                    <p className="text-xs text-muted-foreground">Scanning opens “Add contact” with everything filled in — works on iPhone and Android, no app needed.</p>
+                  </div>
+                )}
+              </>
             ) : (
-              <div className="space-y-2">
+              <div className={inputCls}>
                 <Label htmlFor="bulk">One entry per line · {bulkCount}</Label>
                 <textarea
                   id="bulk"
@@ -293,16 +454,20 @@ export function QrCodeTool() {
                   <p className="text-sm text-muted-foreground">code{bulkCount === 1 ? '' : 's'} ready</p>
                 </div>
               ) : (
-                <canvas ref={canvasRef} className="h-auto w-full max-w-[260px] rounded-md" />
+                <canvas ref={canvasRef} className={cn('h-auto w-full max-w-[260px] rounded-md', !payload && 'opacity-30')} />
               )}
             </div>
 
+            {!bulkMode && hint && (
+              <p className="text-center text-xs text-muted-foreground">{hint}</p>
+            )}
+
             {!bulkMode ? (
               <div className="grid w-full grid-cols-2 gap-3">
-                <Button onClick={downloadPng}>
+                <Button onClick={downloadPng} disabled={!payload}>
                   <Download /> PNG
                 </Button>
-                <Button variant="outline" onClick={downloadSvg}>
+                <Button variant="outline" onClick={downloadSvg} disabled={!payload}>
                   <Download /> SVG
                 </Button>
               </div>
@@ -319,7 +484,7 @@ export function QrCodeTool() {
         </Card>
       </div>
 
-      <KeepGoing exclude="/qr-code-generator" />
+      <KeepGoing exclude={excludeFromRail} />
     </div>
   );
 }

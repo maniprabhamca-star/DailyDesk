@@ -34,6 +34,8 @@ const ROUTES: Array<{ path: string; priority: number; changeFrequency: MetadataR
   { path: '/unit-converter', priority: 0.8, changeFrequency: 'monthly' },
   { path: '/color-picker', priority: 0.8, changeFrequency: 'monthly' },
   { path: '/qr-code-generator', priority: 0.9, changeFrequency: 'monthly' },
+  { path: '/wifi-qr-code', priority: 0.9, changeFrequency: 'monthly' },
+  { path: '/vcard-qr-code', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/password-generator', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/pricing', priority: 0.8, changeFrequency: 'monthly' },
   { path: '/security', priority: 0.4, changeFrequency: 'yearly' },

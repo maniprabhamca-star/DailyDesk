@@ -3,9 +3,9 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { PasswordTool } from '@/components/tools/password-tool';
 
 export const metadata: Metadata = {
-  title: 'Strong Password Generator — Free, No Signup | DailyDesk',
+  title: 'Strong Password Generator — Passwords & Passphrases | DailyDesk',
   description:
-    'Generate strong random passwords free, with a live strength meter. Uses your device’s secure random generator — nothing is sent or stored, ever.',
+    'Generate strong random passwords or memorable passphrases free, with a strength meter and time-to-crack estimate. On-device — nothing is sent or stored, ever.',
   alternates: { canonical: '/password-generator' },
   openGraph: {
     images: ['/og.png'],
@@ -46,13 +46,25 @@ const faqs = [
     q: 'Should I reuse a generated password on multiple sites?',
     a: 'No — use a unique password for every account, so one leaked site can’t unlock the others. A password manager makes that effortless: generate here, store it there.',
   },
+  {
+    q: 'What is a passphrase, and when should I use one?',
+    a: 'A passphrase strings random words together (correct-horse-battery style). Each word adds about 13 bits of strength, and 5+ words rivals a long random password — while being far easier to remember and type. Ideal for master passwords and anything you type by hand.',
+  },
+  {
+    q: 'Where do the passphrase words come from?',
+    a: 'The EFF Large Wordlist — 7,776 carefully chosen, easy-to-type words published by the Electronic Frontier Foundation (CC-BY 3.0), the same list used by leading password managers. It ships inside the app, so words are picked on your device.',
+  },
+  {
+    q: 'How is the time-to-crack estimated?',
+    a: 'From the entropy bits, assuming a fast offline attack at 10 billion guesses per second — a deliberately pessimistic scenario. Real website logins are rate-limited and millions of times slower, so the shown time is a conservative lower bound.',
+  },
 ];
 
 export default function PasswordGeneratorPage() {
   return (
     <PdfToolPage
       title="Password generator"
-      description="Strong, random passwords with a live strength meter — created with your device’s secure random generator. Nothing is ever sent or stored."
+      description="Strong random passwords and easy-to-remember passphrases, with a live strength meter and time-to-crack estimate — created with your device’s secure random generator. Nothing is ever sent or stored."
       steps={steps}
       faqs={faqs}
     >
