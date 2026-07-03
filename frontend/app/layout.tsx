@@ -7,6 +7,7 @@ import { CommandPalette } from '@/components/command-palette';
 import { CookieBanner } from '@/components/cookie-banner';
 import { PwaRegister } from '@/components/pwa-register';
 import { RecordRecent } from '@/components/app/record-recent';
+import { UsageBeacon } from '@/components/app/usage-beacon';
 import { SITE_URL, SITE_NAME } from '@/lib/site';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
@@ -61,6 +62,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <CookieBanner />
             <PwaRegister />
             <RecordRecent />
+            <UsageBeacon />
           </AuthProvider>
         </ThemeProvider>
       </body>
