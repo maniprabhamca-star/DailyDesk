@@ -148,7 +148,7 @@ export function ShowcasePanel() {
 
       <div className="relative z-10 flex items-center gap-2.5 font-semibold">
         <BrandMark className="size-8" />
-        DailyDesk
+        DiemDesk
       </div>
 
       <div className="relative my-6 flex-1">

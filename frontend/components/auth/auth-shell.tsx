@@ -10,7 +10,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
         {/* Mobile brand header (panel is hidden on small screens) */}
         <Link href="/" className="mb-8 flex items-center gap-2 md:hidden">
           <BrandMark className="size-8" />
-          <span className="text-lg font-semibold">DailyDesk</span>
+          <span className="text-lg font-semibold">DiemDesk</span>
         </Link>
         <div className="w-full max-w-sm">{children}</div>
       </div>

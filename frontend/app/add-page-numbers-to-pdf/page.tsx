@@ -3,13 +3,13 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { PageNumbersTool } from '@/components/pdf/page-numbers-tool';
 
 export const metadata: Metadata = {
-  title: 'Add Page Numbers to PDF — Free, In Your Browser | DailyDesk',
+  title: 'Add Page Numbers to PDF — Free, In Your Browser | DiemDesk',
   description:
     'Add page numbers to a PDF, free and in your browser. Choose the position, format, and where numbering starts — no signup, no watermark, your file never leaves your device.',
   alternates: { canonical: '/add-page-numbers-to-pdf' },
   openGraph: {
     images: ['/og.png'],
-    title: 'Add Page Numbers to PDF — Free | DailyDesk',
+    title: 'Add Page Numbers to PDF — Free | DiemDesk',
     description: 'Number your PDF pages privately in your browser. Pick the corner, format, and start number. Free, no signup, no watermark.',
     type: 'website',
   },

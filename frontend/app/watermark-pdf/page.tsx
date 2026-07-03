@@ -3,13 +3,13 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { WatermarkTool } from '@/components/pdf/watermark-tool';
 
 export const metadata: Metadata = {
-  title: 'Watermark PDF — Stamp Text on Every Page Free | DailyDesk',
+  title: 'Watermark PDF — Stamp Text on Every Page Free | DiemDesk',
   description:
     'Add a text watermark to a PDF free, in your browser — live preview, diagonal, straight or tiled, any color and opacity. No signup, no watermark-on-your-watermark, and your file is never uploaded.',
   alternates: { canonical: '/watermark-pdf' },
   openGraph: {
     images: ['/og.png'],
-    title: 'Watermark PDF — Stamp Text on Every Page Free | DailyDesk',
+    title: 'Watermark PDF — Stamp Text on Every Page Free | DiemDesk',
     description: 'Stamp CONFIDENTIAL, DRAFT, or any text across your PDF with a live preview — free, private, in your browser.',
     type: 'website',
   },

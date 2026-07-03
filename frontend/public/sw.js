@@ -1,4 +1,4 @@
-/* DailyDesk service worker — conservative, offline-capable.
+/* DiemDesk service worker — conservative, offline-capable.
    - Online navigations always hit the network FIRST (no stale content while online),
      caching each page for offline fallback.
    - Immutable static assets (_next/static, fonts, images, wasm) are cache-first.

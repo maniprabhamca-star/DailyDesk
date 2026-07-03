@@ -3,13 +3,13 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { JpgToPdfTool } from '@/components/pdf/jpg-to-pdf-tool';
 
 export const metadata: Metadata = {
-  title: 'JPG to PDF — Convert Images to PDF Free, In Your Browser | DailyDesk',
+  title: 'JPG to PDF — Convert Images to PDF Free, In Your Browser | DiemDesk',
   description:
     'Convert JPG and PNG images to a PDF, free and instantly. Reorder pages, choose page size, no signup, no watermark — and your images never leave your browser.',
   alternates: { canonical: '/jpg-to-pdf' },
   openGraph: {
     images: ['/og.png'],
-    title: 'JPG to PDF — Convert Images to PDF Free | DailyDesk',
+    title: 'JPG to PDF — Convert Images to PDF Free | DiemDesk',
     description: 'Turn JPG and PNG images into a PDF, privately in your browser. Free, no signup, no watermark.',
     type: 'website',
   },

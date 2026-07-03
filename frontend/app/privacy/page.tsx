@@ -5,13 +5,13 @@ import {
 import { LegalPage, Section, Callout } from '@/components/legal/legal-page';
 
 export const metadata: Metadata = {
-  title: 'Privacy — Plain-English Privacy Policy | DailyDesk',
+  title: 'Privacy — Plain-English Privacy Policy | DiemDesk',
   description:
-    'DailyDesk in plain English: your files are processed in your browser and never uploaded, we don&rsquo;t sell your data, AI runs only when you ask, and the File Vault is encrypted so even we can&rsquo;t read it.',
+    'DiemDesk in plain English: your files are processed in your browser and never uploaded, we don&rsquo;t sell your data, AI runs only when you ask, and the File Vault is encrypted so even we can&rsquo;t read it.',
   alternates: { canonical: '/privacy' },
   openGraph: {
     images: ['/og.png'],
-    title: 'Privacy at DailyDesk',
+    title: 'Privacy at DiemDesk',
     description: 'No uploads, no selling data, no tracking ads. Privacy explained in plain English.',
     type: 'website',
   },
@@ -117,7 +117,7 @@ export default function PrivacyPage() {
           <Mail className="mt-0.5 size-5 shrink-0 text-primary" />
           <span>
             Email us at{' '}
-            <a href="mailto:privacy@dailydesk.app" className="font-semibold text-primary hover:underline">privacy@dailydesk.app</a>{' '}
+            <a href="mailto:privacy@diemdesk.com" className="font-semibold text-primary hover:underline">privacy@diemdesk.com</a>{' '}
             and we&rsquo;ll be glad to help.
           </span>
         </p>

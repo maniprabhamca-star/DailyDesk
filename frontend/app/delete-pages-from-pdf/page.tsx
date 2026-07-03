@@ -3,13 +3,13 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { DeletePagesTool } from '@/components/pdf/delete-pages-tool';
 
 export const metadata: Metadata = {
-  title: 'Delete Pages from PDF — Remove PDF Pages Free | DailyDesk',
+  title: 'Delete Pages from PDF — Remove PDF Pages Free | DiemDesk',
   description:
     'Delete pages from a PDF, free and in your browser. See every page, tap the ones to remove, and download — no signup, no watermark, your file never leaves your device.',
   alternates: { canonical: '/delete-pages-from-pdf' },
   openGraph: {
     images: ['/og.png'],
-    title: 'Delete Pages from PDF — Remove PDF Pages Free | DailyDesk',
+    title: 'Delete Pages from PDF — Remove PDF Pages Free | DiemDesk',
     description: 'Visually remove pages from a PDF, privately in your browser. Free, no signup, no watermark.',
     type: 'website',
   },

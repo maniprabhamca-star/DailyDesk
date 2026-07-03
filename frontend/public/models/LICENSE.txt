@@ -1,4 +1,4 @@
-isnet-quint8.onnx — background-removal model for DailyDesk's on-device
+isnet-quint8.onnx — background-removal model for DiemDesk's on-device
 Remove Background tool.
 
 Derived from the IS-Net "isnet-general-use" pretrained model of the DIS

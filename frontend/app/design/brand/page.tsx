@@ -4,7 +4,7 @@ import type { Metadata } from 'next';
 // hand-drawn brand-mark concepts to replace the stock lucide grid icon.
 // All geometry is ours — license-clean for commercial use.
 export const metadata: Metadata = {
-  title: 'Brand mark concepts | DailyDesk',
+  title: 'Brand mark concepts | DiemDesk',
   robots: { index: false, follow: false },
 };
 
@@ -23,7 +23,7 @@ function MarkA({ size = 64, radius = 0.28 }: { size?: number; radius?: number })
 }
 
 // B — "D monogram": bold geometric D built from a bar + bowl with a keyhole
-// counter — reads DailyDesk at a glance, scales down to 16px cleanly.
+// counter — reads DiemDesk at a glance, scales down to 16px cleanly.
 function MarkB({ size = 64, radius = 0.28 }: { size?: number; radius?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden>
@@ -51,7 +51,7 @@ function MarkC({ size = 64, radius = 0.28 }: { size?: number; radius?: number })
 
 const CONCEPTS = [
   { id: 'A', name: 'Lifted tile', blurb: 'Evolution of today’s grid — one tile lifts and tilts, like picking up a tool. Familiar, dynamic, ownable.', Mark: MarkA },
-  { id: 'B', name: 'D monogram', blurb: 'A bold geometric D. Unmistakably “DailyDesk”, crisp at every size, most timeless of the three.', Mark: MarkB },
+  { id: 'B', name: 'D monogram', blurb: 'A bold geometric D. Unmistakably “DiemDesk”, crisp at every size, most timeless of the three.', Mark: MarkB },
   { id: 'C', name: 'Shield tile', blurb: 'The privacy promise as the mark itself — shield + check. Strongest brand-message pairing.', Mark: MarkC },
 ];
 
@@ -90,12 +90,12 @@ export default function BrandPage() {
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
               <div className="flex items-center gap-2.5 rounded-xl border bg-background px-4 py-3">
                 <Mark size={32} />
-                <span className="text-lg font-semibold tracking-tight">DailyDesk</span>
+                <span className="text-lg font-semibold tracking-tight">DiemDesk</span>
                 <span className="ml-auto text-[10px] text-muted-foreground">header · light</span>
               </div>
               <div className="flex items-center gap-2.5 rounded-xl bg-[#0f172a] px-4 py-3">
                 <Mark size={32} />
-                <span className="text-lg font-semibold tracking-tight text-white">DailyDesk</span>
+                <span className="text-lg font-semibold tracking-tight text-white">DiemDesk</span>
                 <span className="ml-auto text-[10px] text-slate-500">footer · dark</span>
               </div>
             </div>

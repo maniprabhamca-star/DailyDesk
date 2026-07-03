@@ -61,7 +61,7 @@ export function SiteHeader({ heroSearchRef }: { heroSearchRef?: React.RefObject<
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-5 px-4 sm:px-6">
         <Link href="/" className="flex items-center gap-2.5">
           <BrandMark className="size-8" />
-          <span className="text-lg font-semibold tracking-tight">DailyDesk</span>
+          <span className="text-lg font-semibold tracking-tight">DiemDesk</span>
         </Link>
         <div ref={toolsRef} className="relative hidden sm:block">
           <button onClick={() => setMenuOpen((o) => !o)} className="flex items-center gap-1 text-sm font-medium text-foreground/80 hover:text-foreground">

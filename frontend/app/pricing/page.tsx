@@ -154,7 +154,7 @@ export default function PricingPage() {
 
         {/* Comparison table */}
         <h2 className="mt-16 text-center text-2xl font-bold tracking-tight">How we compare</h2>
-        <p className="mt-2 text-center text-sm text-muted-foreground">See exactly what you get with DailyDesk versus typical competitor free plans.</p>
+        <p className="mt-2 text-center text-sm text-muted-foreground">See exactly what you get with DiemDesk versus typical competitor free plans.</p>
         <div className="mt-6 overflow-x-auto">
           <table className="w-full min-w-[720px] border-separate border-spacing-0">
             <thead>
@@ -164,8 +164,8 @@ export default function PricingPage() {
                   Competitors
                   <span className="block text-[11px] font-normal text-muted-foreground/70">typical free plan</span>
                 </th>
-                <th className="w-28 pb-3 text-center align-bottom text-sm font-semibold">DailyDesk<span className="block text-[11px] font-normal text-muted-foreground">Free</span></th>
-                <th className="w-36 rounded-t-xl bg-primary/5 px-2 pb-3 pt-3 text-center align-bottom text-sm font-bold text-primary">DailyDesk<span className="block text-[11px] font-semibold">Pro</span></th>
+                <th className="w-28 pb-3 text-center align-bottom text-sm font-semibold">DiemDesk<span className="block text-[11px] font-normal text-muted-foreground">Free</span></th>
+                <th className="w-36 rounded-t-xl bg-primary/5 px-2 pb-3 pt-3 text-center align-bottom text-sm font-bold text-primary">DiemDesk<span className="block text-[11px] font-semibold">Pro</span></th>
               </tr>
             </thead>
             <tbody>
@@ -206,7 +206,7 @@ export default function PricingPage() {
           <div className="mt-4 grid gap-5 sm:grid-cols-2">
             <div className="rounded-xl bg-emerald-500/5 p-4">
               <p className="flex items-center gap-2 text-sm font-semibold text-foreground"><CloudOff className="size-4 text-emerald-600" /> Everyday tools — nothing is stored</p>
-              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">When you use our everyday in-browser tools — merge, compress, edit, sign and more — your files are processed entirely on your device and <strong>never reach our servers</strong>. By default, DailyDesk saves nothing — there&rsquo;s nothing to leak.</p>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">When you use our everyday in-browser tools — merge, compress, edit, sign and more — your files are processed entirely on your device and <strong>never reach our servers</strong>. By default, DiemDesk saves nothing — there&rsquo;s nothing to leak.</p>
             </div>
             <div className="rounded-xl bg-emerald-500/5 p-4">
               <p className="flex items-center gap-2 text-sm font-semibold text-foreground"><Lock className="size-4 text-emerald-600" /> File Vault — optional &amp; encrypted</p>
@@ -220,7 +220,7 @@ export default function PricingPage() {
           <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-emerald-500 text-white"><CloudOff className="size-6" strokeWidth={2.25} /></span>
           <h2 className="mt-4 text-xl font-bold tracking-tight">The privacy others can&rsquo;t match</h2>
           <p className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground">
-            Unlike other PDF tools, DailyDesk runs your everyday tools right in your browser — those files are never uploaded. The few tools that need a server (AI, Office conversions, OCR) are minimal and transparent. Free or Pro, your documents stay yours. <Link href="/security" className="font-medium text-primary hover:underline">How it works →</Link>
+            Unlike other PDF tools, DiemDesk runs your everyday tools right in your browser — those files are never uploaded. The few tools that need a server (AI, Office conversions, OCR) are minimal and transparent. Free or Pro, your documents stay yours. <Link href="/security" className="font-medium text-primary hover:underline">How it works →</Link>
           </p>
         </div>
 

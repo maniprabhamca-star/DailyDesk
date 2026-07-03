@@ -3,13 +3,13 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { OfficeToPdfTool } from '@/components/tools/office-to-pdf-tool';
 
 export const metadata: Metadata = {
-  title: 'Excel to PDF — Convert XLSX to PDF Free | DailyDesk',
+  title: 'Excel to PDF — Convert XLSX to PDF Free | DiemDesk',
   description:
     'Convert an Excel spreadsheet (XLSX, XLS, ODS, CSV) to PDF free — every sheet paginated cleanly. No signup, no watermark. Sent encrypted, converted, and deleted from our server immediately.',
   alternates: { canonical: '/excel-to-pdf' },
   openGraph: {
     images: ['/og.png'],
-    title: 'Excel to PDF — Convert XLSX to PDF Free | DailyDesk',
+    title: 'Excel to PDF — Convert XLSX to PDF Free | DiemDesk',
     description: 'Turn spreadsheets into shareable PDFs free — converted securely and deleted immediately.',
     type: 'website',
   },

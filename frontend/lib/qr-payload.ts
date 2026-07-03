@@ -21,7 +21,7 @@ export type QrFields = {
 };
 
 export const EMPTY_FIELDS: QrFields = {
-  link: 'https://dailydesk.app',
+  link: 'https://diemdesk.com',
   text: '',
   wifi: { ssid: '', password: '', security: 'WPA', hidden: false },
   email: { to: '', subject: '', body: '' },

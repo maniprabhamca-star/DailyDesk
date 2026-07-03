@@ -3,13 +3,13 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { ReorderTool } from '@/components/pdf/reorder-tool';
 
 export const metadata: Metadata = {
-  title: 'Reorder PDF Pages — Drag & Drop, Free | DailyDesk',
+  title: 'Reorder PDF Pages — Drag & Drop, Free | DiemDesk',
   description:
     'Rearrange PDF pages free, in your browser — drag pages into a new order (or reverse the whole document), preview every page, and download. No signup, no watermark, your file is never uploaded.',
   alternates: { canonical: '/reorder-pdf' },
   openGraph: {
     images: ['/og.png'],
-    title: 'Reorder PDF Pages — Drag & Drop, Free | DailyDesk',
+    title: 'Reorder PDF Pages — Drag & Drop, Free | DiemDesk',
     description: 'Drag PDF pages into a new order with a visual preview — free, private, in your browser.',
     type: 'website',
   },

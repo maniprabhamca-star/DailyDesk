@@ -3,13 +3,13 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { CompressImageTool } from '@/components/tools/compress-image-tool';
 
 export const metadata: Metadata = {
-  title: 'Compress Image — JPG, PNG & WebP Free | DailyDesk',
+  title: 'Compress Image — JPG, PNG & WebP Free | DiemDesk',
   description:
     'Compress images free, right in your browser — shrink JPG, PNG, and WebP with the pro-grade mozjpeg encoder, compare before and after, and your photo is never uploaded.',
   alternates: { canonical: '/compress-image' },
   openGraph: {
     images: ['/og.png'],
-    title: 'Compress Image — JPG, PNG & WebP Free | DailyDesk',
+    title: 'Compress Image — JPG, PNG & WebP Free | DiemDesk',
     description: 'Shrink JPG, PNG, and WebP privately in your browser. Pro-grade encoder, before/after compare, no upload.',
     type: 'website',
   },

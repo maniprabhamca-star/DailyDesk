@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { downloadBlob as download } from '@/lib/download';
 import { KeepGoing } from '@/components/app/keep-going';
 
-// PDF -> Word is DailyDesk's FIRST server-processed tool: real PDF-to-editable
+// PDF -> Word is DiemDesk's FIRST server-processed tool: real PDF-to-editable
 // conversion needs an office engine that can't run in a browser. The honesty
 // rules apply hard here — the UI says clearly that this one uploads, that the
 // file is deleted immediately after conversion, and the page never carries the

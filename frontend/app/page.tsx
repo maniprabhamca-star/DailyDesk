@@ -64,11 +64,11 @@ export default function Home() {
       {/* Feature spotlights */}
       <FeatureSpotlights />
 
-      {/* Why DailyDesk */}
+      {/* Why DiemDesk */}
       <section className="border-y bg-muted/30 py-16">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <Reveal className="mb-8 text-center">
-            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Why DailyDesk</h2>
+            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Why DiemDesk</h2>
             <p className="mt-2 text-muted-foreground">Built private, fast, and free — without the catch.</p>
           </Reveal>
           <div className="grid gap-4 sm:grid-cols-2">

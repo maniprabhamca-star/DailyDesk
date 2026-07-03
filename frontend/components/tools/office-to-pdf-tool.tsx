@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
 
-// Shared engine for Word/Excel/PowerPoint -> PDF (DailyDesk's server tier —
+// Shared engine for Word/Excel/PowerPoint -> PDF (DiemDesk's server tier —
 // LibreOffice is its STRONG direction, so output fidelity is excellent).
 // Same honesty rules as PDF->Word: clear server disclosure, encrypted in
 // transit, deleted immediately. The output is a normal PDF, so "Keep moving"

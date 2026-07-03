@@ -3,13 +3,13 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { QrCodeTool } from '@/components/tools/qr-code-tool';
 
 export const metadata: Metadata = {
-  title: 'WiFi QR Code Generator — Share Your Wi-Fi Free | DailyDesk',
+  title: 'WiFi QR Code Generator — Share Your Wi-Fi Free | DiemDesk',
   description:
     'Make a QR code that connects guests to your Wi-Fi in one scan — no typing passwords. Free, generated in your browser: your network password is never uploaded.',
   alternates: { canonical: '/wifi-qr-code' },
   openGraph: {
     images: ['/og.png'],
-    title: 'WiFi QR Code Generator — Share Your Wi-Fi Free | DailyDesk',
+    title: 'WiFi QR Code Generator — Share Your Wi-Fi Free | DiemDesk',
     description: 'One scan connects guests to your Wi-Fi. Free, in your browser — the password never leaves your device.',
     type: 'website',
   },

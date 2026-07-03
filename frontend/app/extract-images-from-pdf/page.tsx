@@ -3,13 +3,13 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { ExtractImagesTool } from '@/components/pdf/extract-images-tool';
 
 export const metadata: Metadata = {
-  title: 'Extract Images from PDF — Original Quality, Free | DailyDesk',
+  title: 'Extract Images from PDF — Original Quality, Free | DiemDesk',
   description:
     'Pull every embedded image out of a PDF at original quality, free and in your browser. Photos export as the exact JPGs inside the file, graphics as lossless PNGs — no signup, no watermark, nothing uploaded.',
   alternates: { canonical: '/extract-images-from-pdf' },
   openGraph: {
     images: ['/og.png'],
-    title: 'Extract Images from PDF — Original Quality, Free | DailyDesk',
+    title: 'Extract Images from PDF — Original Quality, Free | DiemDesk',
     description: 'Get the actual pictures inside a PDF — original JPGs and lossless PNGs, privately in your browser. Free, no signup.',
     type: 'website',
   },

@@ -37,7 +37,7 @@ export function SiteFooter() {
           <div>
             <Link href="/" className="flex items-center gap-2.5">
               <BrandMark className="size-8" />
-              <span className="text-lg font-semibold tracking-tight text-white">DailyDesk</span>
+              <span className="text-lg font-semibold tracking-tight text-white">DiemDesk</span>
             </Link>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-slate-400">
               Every daily tool — private, fast, and free. Your files never leave your device.
@@ -85,10 +85,10 @@ export function SiteFooter() {
         {/* Background wordmark — desktop flourish; right-aligned to content, above the divider.
             lg-only because the bottom bar stacks taller on small screens (would cross). */}
         <div aria-hidden className="pointer-events-none absolute bottom-[70px] right-6 -z-10 hidden select-none whitespace-nowrap pb-2 text-[72px] font-bold leading-none tracking-tighter text-white/[0.04] lg:block">
-          DailyDesk
+          DiemDesk
         </div>
         <div className="mt-7 flex flex-col items-center justify-between gap-3 border-t border-white/10 pt-6 text-xs text-slate-500 sm:flex-row">
-          <p>© {new Date().getFullYear()} DailyDesk · Private preview</p>
+          <p>© {new Date().getFullYear()} DiemDesk · Private preview</p>
           <p className="flex items-center gap-2 text-emerald-300">
             <span className="relative flex size-2"><span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-60" /><span className="relative inline-flex size-2 rounded-full bg-emerald-400" /></span>
             In-browser tools never upload your files — verify in the Network tab

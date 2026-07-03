@@ -22,7 +22,7 @@ export function PdfToolPage({
     '@graph': [
       {
         '@type': 'SoftwareApplication',
-        name: `${title} — DailyDesk`,
+        name: `${title} — DiemDesk`,
         applicationCategory: 'BusinessApplication',
         operatingSystem: 'Web',
         offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },

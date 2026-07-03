@@ -3,13 +3,13 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { FlattenTool } from '@/components/pdf/flatten-tool';
 
 export const metadata: Metadata = {
-  title: 'Flatten PDF — Make Forms & Annotations Uneditable, Free | DailyDesk',
+  title: 'Flatten PDF — Make Forms & Annotations Uneditable, Free | DiemDesk',
   description:
     'Flatten a PDF free and in your browser: make filled form fields, signatures and annotations permanent, or lock every page as an image so nothing can be changed. No upload, no signup, no page limits.',
   alternates: { canonical: '/flatten-pdf' },
   openGraph: {
     images: ['/og.png'],
-    title: 'Flatten PDF — Make Forms & Annotations Uneditable, Free | DailyDesk',
+    title: 'Flatten PDF — Make Forms & Annotations Uneditable, Free | DiemDesk',
     description: 'Make filled forms, signatures and annotations permanent — flattened on your device, never uploaded. No page limits.',
     type: 'website',
   },

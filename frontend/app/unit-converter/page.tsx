@@ -3,13 +3,13 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { UnitConverterTool } from '@/components/tools/unit-converter-tool';
 
 export const metadata: Metadata = {
-  title: 'Unit Converter — Length, Weight, Temperature & More | DailyDesk',
+  title: 'Unit Converter — Length, Weight, Temperature & More | DiemDesk',
   description:
     'Convert length, weight, temperature, area, volume, speed, time, and data sizes instantly — precise factors, both directions, free and offline-friendly in your browser.',
   alternates: { canonical: '/unit-converter' },
   openGraph: {
     images: ['/og.png'],
-    title: 'Unit Converter — Length, Weight, Temperature & More | DailyDesk',
+    title: 'Unit Converter — Length, Weight, Temperature & More | DiemDesk',
     description: 'Instant, precise unit conversion across 8 categories — right in your browser.',
     type: 'website',
   },

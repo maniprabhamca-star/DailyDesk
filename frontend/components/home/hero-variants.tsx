@@ -81,7 +81,7 @@ function FramedSlider() {
         <span className="size-2 rounded-full bg-red-400" />
         <span className="size-2 rounded-full bg-amber-400" />
         <span className="size-2 rounded-full bg-emerald-400" />
-        <span className="ml-2 flex-1 truncate rounded-md border bg-background px-2 py-1 text-center text-[11px] text-muted-foreground">dailydesk.app/{s.slug}</span>
+        <span className="ml-2 flex-1 truncate rounded-md border bg-background px-2 py-1 text-center text-[11px] text-muted-foreground">diemdesk.com/{s.slug}</span>
         <ArrowRight className="size-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
       </div>
       <div className="relative h-[188px]">

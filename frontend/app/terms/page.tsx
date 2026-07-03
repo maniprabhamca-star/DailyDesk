@@ -6,14 +6,14 @@ import {
 import { LegalPage, Section, Callout } from '@/components/legal/legal-page';
 
 export const metadata: Metadata = {
-  title: 'Terms of Service | DailyDesk',
+  title: 'Terms of Service | DiemDesk',
   description:
-    'The rules for using DailyDesk, in plain English: acceptable use, accounts and billing, your ownership of your files, AI and File Vault terms, and our liability.',
+    'The rules for using DiemDesk, in plain English: acceptable use, accounts and billing, your ownership of your files, AI and File Vault terms, and our liability.',
   alternates: { canonical: '/terms' },
   openGraph: {
     images: ['/og.png'],
-    title: 'Terms of Service — DailyDesk',
-    description: 'The rules for using DailyDesk, written in plain English.',
+    title: 'Terms of Service — DiemDesk',
+    description: 'The rules for using DiemDesk, written in plain English.',
     type: 'website',
   },
 };
@@ -23,13 +23,13 @@ export default function TermsPage() {
     <LegalPage
       eyebrow="The rules of the road"
       title="Terms of Service"
-      intro="These terms are the agreement between you and DailyDesk for using our tools. We&rsquo;ve written them in plain English so you can actually read them. By using DailyDesk, you agree to what&rsquo;s below."
+      intro="These terms are the agreement between you and DiemDesk for using our tools. We&rsquo;ve written them in plain English so you can actually read them. By using DiemDesk, you agree to what&rsquo;s below."
       updated="June 2026"
     >
       <Callout tone="success" icon={<CheckCircle2 className="size-5" />} title="The short version">
         <ul className="ml-4 list-disc space-y-1">
           <li><strong>You own your files</strong> — we never claim any rights to your content.</li>
-          <li>Use DailyDesk for lawful purposes; don&rsquo;t abuse or attack the service.</li>
+          <li>Use DiemDesk for lawful purposes; don&rsquo;t abuse or attack the service.</li>
           <li>Pro is a subscription that renews until you cancel.</li>
           <li>AI results aren&rsquo;t guaranteed perfect — always review important output.</li>
           <li>If you lose your File Vault passphrase, your files can&rsquo;t be recovered.</li>
@@ -40,9 +40,9 @@ export default function TermsPage() {
         <p className="flex gap-3">
           <FileText className="mt-0.5 size-5 shrink-0 text-primary" />
           <span>
-            By accessing or using DailyDesk, you agree to these Terms of Service and to our{' '}
+            By accessing or using DiemDesk, you agree to these Terms of Service and to our{' '}
             <a href="/privacy" className="font-semibold text-primary hover:underline">Privacy Policy</a>. If you don&rsquo;t
-            agree, please don&rsquo;t use the service. If you&rsquo;re using DailyDesk on behalf of a company, you confirm
+            agree, please don&rsquo;t use the service. If you&rsquo;re using DiemDesk on behalf of a company, you confirm
             you&rsquo;re authorised to accept these terms for it.
           </span>
         </p>
@@ -50,7 +50,7 @@ export default function TermsPage() {
 
       <Section id="service" title="2. The service">
         <p>
-          DailyDesk provides online productivity tools — including PDF tools, a QR generator, image tools, and AI
+          DiemDesk provides online productivity tools — including PDF tools, a QR generator, image tools, and AI
           features. Most tools run inside your browser. We work hard to keep the service available and improving, but we
           may add, change, or remove features, and there may be occasional downtime for maintenance or reasons beyond our
           control.
@@ -58,7 +58,7 @@ export default function TermsPage() {
       </Section>
 
       <Section id="acceptable-use" title="3. Acceptable use">
-        <p>To keep DailyDesk safe and reliable for everyone, you agree <strong>not</strong> to:</p>
+        <p>To keep DiemDesk safe and reliable for everyone, you agree <strong>not</strong> to:</p>
         <ul className="ml-1 space-y-2">
           {[
             'Use the service for anything illegal, or to process content you don&rsquo;t have the right to use.',
@@ -92,7 +92,7 @@ export default function TermsPage() {
           <CreditCard className="mt-0.5 size-5 shrink-0 text-primary" />
           <div className="space-y-3">
             <p>
-              DailyDesk offers a free plan and a paid <strong>Pro</strong> subscription. Pro is billed in advance on a
+              DiemDesk offers a free plan and a paid <strong>Pro</strong> subscription. Pro is billed in advance on a
               recurring basis (monthly or annually, as you choose) and <strong>renews automatically</strong> until you
               cancel.
             </p>
@@ -109,7 +109,7 @@ export default function TermsPage() {
       <Section id="your-content" title="6. Your content stays yours">
         <Callout tone="success" icon={<FolderLock className="size-5" />} title="You own what you create and upload">
           <p>
-            DailyDesk claims <strong>no ownership</strong> of your files or content. For in-browser tools, your files are
+            DiemDesk claims <strong>no ownership</strong> of your files or content. For in-browser tools, your files are
             never sent to us at all. For features that do involve our servers (like the File Vault), you grant us only the
             limited permission needed to actually provide that feature to you — nothing more. We don&rsquo;t use your
             content to advertise, and we don&rsquo;t sell it.
@@ -145,12 +145,12 @@ export default function TermsPage() {
           <ShieldAlert className="mt-0.5 size-5 shrink-0 text-amber-600" />
           <div className="space-y-3">
             <p>
-              DailyDesk is provided <strong>&ldquo;as is&rdquo; and &ldquo;as available&rdquo;</strong>, without warranties
+              DiemDesk is provided <strong>&ldquo;as is&rdquo; and &ldquo;as available&rdquo;</strong>, without warranties
               of any kind. We don&rsquo;t guarantee the service will be uninterrupted, error-free, or that results will meet
               your specific needs.
             </p>
             <p>
-              To the fullest extent permitted by law, DailyDesk and its team won&rsquo;t be liable for indirect,
+              To the fullest extent permitted by law, DiemDesk and its team won&rsquo;t be liable for indirect,
               incidental, or consequential damages, or for loss of data, profits, or files arising from your use of the
               service. Always keep your own backups of important files.
             </p>
@@ -162,7 +162,7 @@ export default function TermsPage() {
         <p className="flex gap-3">
           <LogOut className="mt-0.5 size-5 shrink-0 text-primary" />
           <span>
-            You can stop using DailyDesk at any time and delete your account. We may suspend or terminate access if you
+            You can stop using DiemDesk at any time and delete your account. We may suspend or terminate access if you
             violate these terms or to protect the service and its users. On termination, your right to use the service ends,
             and we&rsquo;ll handle your data as described in our{' '}
             <a href="/privacy" className="font-semibold text-primary hover:underline">Privacy Policy</a>.
@@ -174,7 +174,7 @@ export default function TermsPage() {
         <p className="flex gap-3">
           <Landmark className="mt-0.5 size-5 shrink-0 text-primary" />
           <span>
-            DailyDesk is operated from the United States. These terms are governed by the laws of the United States and the
+            DiemDesk is operated from the United States. These terms are governed by the laws of the United States and the
             State of Georgia, without regard to conflict-of-law rules. Any disputes will be handled in the courts located
             in the State of Georgia, unless applicable law requires otherwise. If any part of these terms is found
             unenforceable, the rest stays in effect.
@@ -187,7 +187,7 @@ export default function TermsPage() {
           <RefreshCw className="mt-0.5 size-5 shrink-0 text-primary" />
           <span>
             We may update these terms from time to time. If we make material changes, we&rsquo;ll update the date at the top
-            and, where appropriate, notify you. Continuing to use DailyDesk after changes take effect means you accept the
+            and, where appropriate, notify you. Continuing to use DiemDesk after changes take effect means you accept the
             updated terms.
           </span>
         </p>
@@ -198,7 +198,7 @@ export default function TermsPage() {
           <Mail className="mt-0.5 size-5 shrink-0 text-primary" />
           <span>
             Questions about these terms? Email us at{' '}
-            <a href="mailto:support@dailydesk.app" className="font-semibold text-primary hover:underline">support@dailydesk.app</a>.
+            <a href="mailto:support@diemdesk.com" className="font-semibold text-primary hover:underline">support@diemdesk.com</a>.
           </span>
         </p>
       </Section>

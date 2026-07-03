@@ -1,4 +1,4 @@
-// Generate DailyDesk brand assets (option A "lifted tile") — icons + OG image.
+// Generate DiemDesk brand assets (option A "lifted tile") — icons + OG image.
 // Draws the exact BrandMark geometry with canvas primitives.
 const fs = require('fs');
 const { createCanvas } = require('@napi-rs/canvas');
@@ -68,7 +68,7 @@ g.drawImage(mark, 90, 130);
 // wordmark
 g.fillStyle = '#ffffff';
 g.font = 'bold 92px "Segoe UI", Arial, sans-serif';
-g.fillText('DailyDesk', 236, 224);
+g.fillText('DiemDesk', 236, 224);
 // tagline
 g.font = 'bold 44px "Segoe UI", Arial, sans-serif';
 g.fillStyle = '#e2e8f0';

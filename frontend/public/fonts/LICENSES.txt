@@ -1,4 +1,4 @@
-DailyDesk bundled watermark fonts — all licensed under the SIL Open Font License 1.1.
+DiemDesk bundled watermark fonts — all licensed under the SIL Open Font License 1.1.
 Sources: Google Fonts (github.com/google/fonts). Copyright notices + full OFL text below.
 
 === oswald ===

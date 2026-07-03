@@ -3,13 +3,13 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { OfficeToPdfTool } from '@/components/tools/office-to-pdf-tool';
 
 export const metadata: Metadata = {
-  title: 'Word to PDF — Convert DOCX to PDF Free | DailyDesk',
+  title: 'Word to PDF — Convert DOCX to PDF Free | DiemDesk',
   description:
     'Convert a Word document (DOCX, DOC, ODT, RTF) to PDF free — layout, fonts, and images preserved. No signup, no watermark. Sent encrypted, converted, and deleted from our server immediately.',
   alternates: { canonical: '/word-to-pdf' },
   openGraph: {
     images: ['/og.png'],
-    title: 'Word to PDF — Convert DOCX to PDF Free | DailyDesk',
+    title: 'Word to PDF — Convert DOCX to PDF Free | DiemDesk',
     description: 'Turn Word documents into polished PDFs free — converted securely and deleted immediately.',
     type: 'website',
   },

@@ -6,14 +6,14 @@ import {
 import { LegalPage, Section, Callout, FlowStep } from '@/components/legal/legal-page';
 
 export const metadata: Metadata = {
-  title: 'Refund Policy — Money-Back Guarantee | DailyDesk',
+  title: 'Refund Policy — Money-Back Guarantee | DiemDesk',
   description:
-    'DailyDesk Pro comes with a money-back guarantee: 14 days for monthly plans, 30 days for annual plans. Not happy? Email us for a full refund — no hoops, no fine print.',
+    'DiemDesk Pro comes with a money-back guarantee: 14 days for monthly plans, 30 days for annual plans. Not happy? Email us for a full refund — no hoops, no fine print.',
   alternates: { canonical: '/refund-policy' },
   openGraph: {
     images: ['/og.png'],
-    title: 'Refund Policy — DailyDesk',
-    description: 'A clear money-back guarantee on DailyDesk Pro: 14 days monthly, 30 days annual.',
+    title: 'Refund Policy — DiemDesk',
+    description: 'A clear money-back guarantee on DiemDesk Pro: 14 days monthly, 30 days annual.',
     type: 'website',
   },
 };
@@ -23,7 +23,7 @@ export default function RefundPolicyPage() {
     <LegalPage
       eyebrow="Fair & simple"
       title="Refund Policy"
-      intro="We want you to genuinely love DailyDesk Pro — and if you don&rsquo;t, we make getting your money back easy. No hoops, no buried fine print. This page explains exactly when refunds apply, how to request one, and what happens when you cancel."
+      intro="We want you to genuinely love DiemDesk Pro — and if you don&rsquo;t, we make getting your money back easy. No hoops, no buried fine print. This page explains exactly when refunds apply, how to request one, and what happens when you cancel."
       updated="June 2026"
     >
       {/* Headline guarantee */}
@@ -108,7 +108,7 @@ export default function RefundPolicyPage() {
       {/* How to request */}
       <Section id="how" title="How to request a refund">
         <ol className="space-y-4">
-          <FlowStep n={1} title="Email us">Write to <a href="mailto:support@dailydesk.app" className="font-semibold text-primary hover:underline">support@dailydesk.app</a> from the email address on your account, with the subject &ldquo;Refund request.&rdquo;</FlowStep>
+          <FlowStep n={1} title="Email us">Write to <a href="mailto:support@diemdesk.com" className="font-semibold text-primary hover:underline">support@diemdesk.com</a> from the email address on your account, with the subject &ldquo;Refund request.&rdquo;</FlowStep>
           <FlowStep n={2} title="Share a couple of details">Include your account email and roughly when you subscribed. You don&rsquo;t need to justify your reason — we won&rsquo;t ask you to jump through hoops.</FlowStep>
           <FlowStep n={3} title="We confirm and refund">We&rsquo;ll reply to confirm and send the refund to your original payment method. Refunds are typically issued within <strong>5&ndash;10 business days</strong>; how quickly it lands depends on your bank or card provider.</FlowStep>
         </ol>
@@ -132,7 +132,7 @@ export default function RefundPolicyPage() {
             </p>
             <p>
               The version of this policy that was in effect <strong>at the time of your purchase</strong> applies to that
-              purchase. We encourage you to review this page from time to time. By continuing to use DailyDesk, or by
+              purchase. We encourage you to review this page from time to time. By continuing to use DiemDesk, or by
               purchasing or renewing a subscription after an update is posted, you accept the current Refund Policy.
             </p>
           </div>
@@ -148,7 +148,7 @@ export default function RefundPolicyPage() {
             Refund Policy works alongside our{' '}
             <a href="/terms" className="font-semibold text-primary hover:underline">Terms of Service</a>. If anything here
             is unclear, just email{' '}
-            <a href="mailto:support@dailydesk.app" className="font-semibold text-primary hover:underline">support@dailydesk.app</a>{' '}
+            <a href="mailto:support@diemdesk.com" className="font-semibold text-primary hover:underline">support@diemdesk.com</a>{' '}
             — we&rsquo;re happy to help.
           </span>
         </p>

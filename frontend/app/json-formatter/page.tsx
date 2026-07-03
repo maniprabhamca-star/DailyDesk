@@ -3,13 +3,13 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { JsonFormatterTool } from '@/components/tools/json-formatter-tool';
 
 export const metadata: Metadata = {
-  title: 'JSON Formatter — Beautify, Validate & Minify JSON | DailyDesk',
+  title: 'JSON Formatter — Beautify, Validate & Minify JSON | DiemDesk',
   description:
     'Format, validate, and minify JSON instantly in your browser — clear error messages with line and column, sorted keys, syntax highlighting. Free, no signup, and your data never leaves your device.',
   alternates: { canonical: '/json-formatter' },
   openGraph: {
     images: ['/og.png'],
-    title: 'JSON Formatter — Beautify, Validate & Minify JSON | DailyDesk',
+    title: 'JSON Formatter — Beautify, Validate & Minify JSON | DiemDesk',
     description: 'Pretty-print, validate, and minify JSON privately in your browser, with line/column error messages.',
     type: 'website',
   },

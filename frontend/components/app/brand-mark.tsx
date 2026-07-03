@@ -1,4 +1,4 @@
-// DailyDesk brand mark — "lifted tile" (option A, user-approved 2026-07-02).
+// DiemDesk brand mark — "lifted tile" (option A, user-approved 2026-07-02).
 // The grid identity with one tile picked up and tilted: a tool being grabbed.
 // Original geometry (license-clean). Same art generates the favicons/OG image
 // (scripts draw it with canvas primitives) — keep them in sync if this changes.

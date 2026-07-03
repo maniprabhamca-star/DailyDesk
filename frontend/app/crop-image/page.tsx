@@ -3,13 +3,13 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { CropImageTool } from '@/components/tools/crop-image-tool';
 
 export const metadata: Metadata = {
-  title: 'Crop Image — Free Online Photo Cropper | DailyDesk',
+  title: 'Crop Image — Free Online Photo Cropper | DiemDesk',
   description:
     'Crop a photo free in your browser — drag the crop box exactly where you want it, with 1:1, 4:3, 16:9, and 3:2 presets. Full resolution kept, nothing uploaded, no signup.',
   alternates: { canonical: '/crop-image' },
   openGraph: {
     images: ['/og.png'],
-    title: 'Crop Image — Free Online Photo Cropper | DailyDesk',
+    title: 'Crop Image — Free Online Photo Cropper | DiemDesk',
     description: 'Drag-to-crop with aspect presets, privately in your browser. Free, no signup.',
     type: 'website',
   },

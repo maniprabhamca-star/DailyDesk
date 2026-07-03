@@ -3,13 +3,13 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { ProtectTool } from '@/components/pdf/protect-tool';
 
 export const metadata: Metadata = {
-  title: 'Protect PDF — Password Protect with AES-256, Free | DailyDesk',
+  title: 'Protect PDF — Password Protect with AES-256, Free | DiemDesk',
   description:
     'Add a password to a PDF with AES-256 encryption, free and in your browser — your file AND your password never leave your device. Optionally block printing and copying. No signup, no watermark.',
   alternates: { canonical: '/protect-pdf' },
   openGraph: {
     images: ['/og.png'],
-    title: 'Protect PDF — Password Protect with AES-256, Free | DailyDesk',
+    title: 'Protect PDF — Password Protect with AES-256, Free | DiemDesk',
     description: 'Password-protect a PDF with bank-grade AES-256, privately in your browser. Free, no signup.',
     type: 'website',
   },

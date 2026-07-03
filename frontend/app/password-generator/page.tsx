@@ -3,13 +3,13 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { PasswordTool } from '@/components/tools/password-tool';
 
 export const metadata: Metadata = {
-  title: 'Strong Password Generator — Passwords & Passphrases | DailyDesk',
+  title: 'Strong Password Generator — Passwords & Passphrases | DiemDesk',
   description:
     'Generate strong random passwords or memorable passphrases free, with a strength meter and time-to-crack estimate. On-device — nothing is sent or stored, ever.',
   alternates: { canonical: '/password-generator' },
   openGraph: {
     images: ['/og.png'],
-    title: 'Strong Password Generator — Free, No Signup | DailyDesk',
+    title: 'Strong Password Generator — Free, No Signup | DiemDesk',
     description: 'Strong random passwords with a strength meter — generated on your device, never sent anywhere.',
     type: 'website',
   },
@@ -27,7 +27,7 @@ const faqs = [
     a: 'Here, yes — the password is created on your own device with the browser’s cryptographically secure random generator (crypto.getRandomValues) and never sent anywhere. You can even switch off Wi-Fi after the page loads and it keeps working, which would be impossible if passwords went to a server.',
   },
   {
-    q: 'Does DailyDesk see or store my passwords?',
+    q: 'Does DiemDesk see or store my passwords?',
     a: 'No. Generation, display, and copying all happen locally in your browser. Nothing is transmitted, logged, or stored — check your browser’s Network tab while generating to confirm.',
   },
   {

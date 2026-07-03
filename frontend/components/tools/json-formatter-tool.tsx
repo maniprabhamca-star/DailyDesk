@@ -64,7 +64,7 @@ function highlight(json: string): React.ReactNode {
 }
 
 const SAMPLE = `{
-  "product": "DailyDesk",
+  "product": "DiemDesk",
   "tools": 23,
   "private": true,
   "features": ["merge", "split", "compress"],

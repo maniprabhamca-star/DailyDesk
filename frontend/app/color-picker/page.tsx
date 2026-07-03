@@ -3,13 +3,13 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { ColorPickerTool } from '@/components/tools/color-picker-tool';
 
 export const metadata: Metadata = {
-  title: 'Color Picker — HEX, RGB, HSL, Shades & Contrast | DailyDesk',
+  title: 'Color Picker — HEX, RGB, HSL, Shades & Contrast | DiemDesk',
   description:
     'Pick any color and get HEX, RGB, and HSL with one-click copy — plus shades, tints, complementary color, a screen eyedropper, and WCAG contrast checks. Free, in your browser.',
   alternates: { canonical: '/color-picker' },
   openGraph: {
     images: ['/og.png'],
-    title: 'Color Picker — HEX, RGB, HSL, Shades & Contrast | DailyDesk',
+    title: 'Color Picker — HEX, RGB, HSL, Shades & Contrast | DiemDesk',
     description: 'HEX/RGB/HSL conversion, shades and tints, eyedropper, and WCAG contrast — free in your browser.',
     type: 'website',
   },

@@ -3,13 +3,13 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { RemoveBackgroundTool } from '@/components/tools/remove-background-tool';
 
 export const metadata: Metadata = {
-  title: 'Remove Background from Image — Free, On Your Device | DailyDesk',
+  title: 'Remove Background from Image — Free, On Your Device | DiemDesk',
   description:
     'Remove image backgrounds with AI that runs on your device — your photo is never uploaded. Free, full resolution, transparent PNG, no signup, no watermark.',
   alternates: { canonical: '/remove-background' },
   openGraph: {
     images: ['/og.png'],
-    title: 'Remove Background from Image — Free, On Your Device | DailyDesk',
+    title: 'Remove Background from Image — Free, On Your Device | DiemDesk',
     description: 'AI background removal that never uploads your photo. Free, full resolution, transparent PNG.',
     type: 'website',
   },

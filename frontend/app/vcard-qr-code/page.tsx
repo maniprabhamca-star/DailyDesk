@@ -3,13 +3,13 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { QrCodeTool } from '@/components/tools/qr-code-tool';
 
 export const metadata: Metadata = {
-  title: 'vCard QR Code Generator — Contact Card QR Free | DailyDesk',
+  title: 'vCard QR Code Generator — Contact Card QR Free | DiemDesk',
   description:
     'Turn your contact details into a QR code — one scan adds you to their phone. Free vCard QR generator that runs in your browser: your details are never uploaded.',
   alternates: { canonical: '/vcard-qr-code' },
   openGraph: {
     images: ['/og.png'],
-    title: 'vCard QR Code Generator — Contact Card QR Free | DailyDesk',
+    title: 'vCard QR Code Generator — Contact Card QR Free | DiemDesk',
     description: 'One scan saves your contact card. Free, in your browser — your details never leave your device.',
     type: 'website',
   },

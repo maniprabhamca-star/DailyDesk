@@ -1,6 +1,6 @@
 // In-browser file hand-off between tools — the engine behind "Keep moving".
 //
-// Because every DailyDesk tool runs client-side, a tool's output files are
+// Because every DiemDesk tool runs client-side, a tool's output files are
 // already in the browser. This lets one tool pass its real result files
 // straight into the next tool with ZERO re-upload / re-download — something
 // server-based competitors (iLovePDF, Smallpdf) can't do seamlessly.

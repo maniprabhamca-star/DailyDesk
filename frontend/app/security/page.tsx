@@ -6,13 +6,13 @@ import {
 import { LegalPage, Section, Callout, FlowStep } from '@/components/legal/legal-page';
 
 export const metadata: Metadata = {
-  title: 'Security — How DailyDesk Protects Your Files | DailyDesk',
+  title: 'Security — How DiemDesk Protects Your Files | DiemDesk',
   description:
-    'How DailyDesk keeps your documents safe: in-browser processing so files never leave your device, end-to-end encrypted File Vault (zero-knowledge, AES-256), and exactly how AI features handle your data.',
+    'How DiemDesk keeps your documents safe: in-browser processing so files never leave your device, end-to-end encrypted File Vault (zero-knowledge, AES-256), and exactly how AI features handle your data.',
   alternates: { canonical: '/security' },
   openGraph: {
     images: ['/og.png'],
-    title: 'Security at DailyDesk',
+    title: 'Security at DiemDesk',
     description: 'In-browser processing, zero-knowledge encrypted File Vault, and transparent AI handling.',
     type: 'website',
   },
@@ -22,8 +22,8 @@ export default function SecurityPage() {
   return (
     <LegalPage
       eyebrow="Trust & Safety"
-      title="Security at DailyDesk"
-      intro="We built DailyDesk around a single idea: your files are yours. Most tools run entirely inside your browser, so your documents never reach our servers in the first place. Here is exactly how everything works — in plain language."
+      title="Security at DiemDesk"
+      intro="We built DiemDesk around a single idea: your files are yours. Most tools run entirely inside your browser, so your documents never reach our servers in the first place. Here is exactly how everything works — in plain language."
       updated="June 2026"
     >
       {/* Motto / promise */}
@@ -77,7 +77,7 @@ export default function SecurityPage() {
           <li className="flex gap-3"><Lock className="mt-0.5 size-5 shrink-0 text-emerald-600" /><span><strong className="text-foreground">In-browser processing.</strong> File operations run on your device using modern web technology (WebAssembly and the browser&rsquo;s native APIs) — the same engine that powers the page you&rsquo;re reading.</span></li>
           <li className="flex gap-3"><ShieldCheck className="mt-0.5 size-5 shrink-0 text-emerald-600" /><span><strong className="text-foreground">AES-256 encryption.</strong> The File Vault uses AES-256-GCM — the same encryption standard trusted by banks and governments — applied <em>on your device</em>, in your browser, via the standard Web Crypto API.</span></li>
           <li className="flex gap-3"><KeyRound className="mt-0.5 size-5 shrink-0 text-emerald-600" /><span><strong className="text-foreground">Strong key derivation.</strong> Your vault key is derived from your passphrase using Argon2, a modern, deliberately slow function that makes guessing attacks impractical.</span></li>
-          <li className="flex gap-3"><Server className="mt-0.5 size-5 shrink-0 text-emerald-600" /><span><strong className="text-foreground">Encrypted connections.</strong> All traffic to DailyDesk is protected with TLS (HTTPS), and our servers are hardened and kept up to date.</span></li>
+          <li className="flex gap-3"><Server className="mt-0.5 size-5 shrink-0 text-emerald-600" /><span><strong className="text-foreground">Encrypted connections.</strong> All traffic to DiemDesk is protected with TLS (HTTPS), and our servers are hardened and kept up to date.</span></li>
         </ul>
       </Section>
 
@@ -135,7 +135,7 @@ export default function SecurityPage() {
         <Callout tone="default" icon={<Sparkles className="size-5" />} title="The honest trade-off">
           <p>
             Unlike our in-browser tools, AI features <strong>do</strong> transmit your text for the moment it takes to
-            answer — that&rsquo;s simply how AI works. The difference with DailyDesk is that it&rsquo;s always{' '}
+            answer — that&rsquo;s simply how AI works. The difference with DiemDesk is that it&rsquo;s always{' '}
             <strong>your choice</strong>, it&rsquo;s used <strong>only for your request</strong>, and it&rsquo;s{' '}
             <strong>never retained or sold</strong>.
           </p>
@@ -144,7 +144,7 @@ export default function SecurityPage() {
 
       <Section id="file-vault" title="File Vault — end-to-end encrypted storage">
         <p>
-          Most of DailyDesk never stores your files. The <strong>File Vault</strong> is the one exception — and it&rsquo;s
+          Most of DiemDesk never stores your files. The <strong>File Vault</strong> is the one exception — and it&rsquo;s
           built so that <strong>even we can never read what&rsquo;s inside it</strong>. This is called{' '}
           <em>zero-knowledge</em> (or end-to-end) encryption, the same approach used by privacy-first services like Proton
           Drive and Tresorit.
@@ -200,7 +200,7 @@ export default function SecurityPage() {
       <Section id="disclosure" title="Found a security issue?">
         <p>
           We welcome responsible disclosure. If you believe you&rsquo;ve found a vulnerability, please email{' '}
-          <a href="mailto:security@dailydesk.app" className="font-semibold text-primary hover:underline">security@dailydesk.app</a>{' '}
+          <a href="mailto:security@diemdesk.com" className="font-semibold text-primary hover:underline">security@diemdesk.com</a>{' '}
           with the details. We&rsquo;ll investigate promptly and keep you updated.
         </p>
       </Section>

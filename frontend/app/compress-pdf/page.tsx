@@ -4,13 +4,13 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { CompressTool } from '@/components/pdf/compress-tool';
 
 export const metadata: Metadata = {
-  title: 'Compress PDF — Reduce PDF File Size Free | DailyDesk',
+  title: 'Compress PDF — Reduce PDF File Size Free | DiemDesk',
   description:
     'Compress a PDF to make it smaller, free and in your browser. Shrinks images and scanned pages — even files other tools return unchanged — while text stays crisp. No signup, no watermark, your file never leaves your device.',
   alternates: { canonical: '/compress-pdf' },
   openGraph: {
     images: ['/og.png'],
-    title: 'Compress PDF — Reduce PDF File Size Free | DailyDesk',
+    title: 'Compress PDF — Reduce PDF File Size Free | DiemDesk',
     description: 'Make your PDF smaller privately in your browser. Shrinks images, keeps text sharp. Free, no signup, no watermark.',
     type: 'website',
   },
@@ -27,7 +27,7 @@ const faqs = [
   { q: 'Is my PDF uploaded to a server?', a: 'No. Compression runs entirely inside your browser using your device, so your file never leaves your computer.' },
   { q: 'Will my text get blurry?', a: 'No. We only shrink and re-encode the images inside the PDF — the text and vector graphics are left completely untouched, so they stay crisp and selectable.' },
   { q: 'How much smaller will it get?', a: 'It depends on the file. Image-heavy PDFs (scans, photos) often shrink by half or more. PDFs that are mostly text are already small, so there may be little to gain — and we never hand back a larger file.' },
-  { q: 'Another tool said my PDF can’t be compressed. Can DailyDesk still shrink it?', a: 'Often, yes — especially scanned documents. Many tools give up on scans stored in formats like JPEG 2000 and hand the file back nearly unchanged. DailyDesk detects those pages and rebuilds them at the right resolution: in our test, a 27 MB scanned book that other tools returned about 1% smaller came out 60–75% smaller — still crisp and readable, and the file never left the browser.' },
+  { q: 'Another tool said my PDF can’t be compressed. Can DiemDesk still shrink it?', a: 'Often, yes — especially scanned documents. Many tools give up on scans stored in formats like JPEG 2000 and hand the file back nearly unchanged. DiemDesk detects those pages and rebuilds them at the right resolution: in our test, a 27 MB scanned book that other tools returned about 1% smaller came out 60–75% smaller — still crisp and readable, and the file never left the browser.' },
   { q: 'Which level should I choose?', a: 'Recommended suits most files. Choose Light to keep the most image detail, or Strong for the smallest possible size when quality is less critical.' },
   { q: 'Is anything besides images touched?', a: 'Two lossless extras: embedded fonts are slimmed (unused glyph outlines removed — the text itself is untouched), and hidden metadata (author name, editing history, the XMP packet, embedded thumbnails) is cleaned out. That saves bytes and doubles as a small privacy win — the document looks and renders exactly the same.' },
 ];
@@ -44,7 +44,7 @@ export default function CompressPdfPage() {
 
       {/* Put to the test — proof-led differentiator band. Every number here is a
           real, documented test result (27.1MB JPEG-2000 scanned book: Smallpdf/
-          iLovePDF ≈1%, DailyDesk Recommended 60% / Maximum 75%) — keep it honest
+          iLovePDF ≈1%, DiemDesk Recommended 60% / Maximum 75%) — keep it honest
           if levels are ever retuned. */}
       <section aria-label="Put to the test" className="mt-8 rounded-2xl border bg-card p-6 shadow-soft sm:p-7">
         <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
@@ -55,7 +55,7 @@ export default function CompressPdfPage() {
             <h2 className="text-xl font-bold tracking-tight">The scans other tools give up on</h2>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
               We tested a 27 MB scanned book that big-name tools returned almost unchanged.
-              DailyDesk rebuilt it page by page — without the file ever leaving your browser.
+              DiemDesk rebuilt it page by page — without the file ever leaving your browser.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               {[

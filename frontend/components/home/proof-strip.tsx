@@ -15,7 +15,7 @@ export function ProofStrip() {
           <h2 className="mt-3 text-xl font-bold tracking-tight text-white sm:text-2xl">The scans other tools give up on</h2>
           <p className="mt-2 text-sm leading-relaxed text-slate-400">
             We tested a 27 MB scanned book that big-name tools returned almost unchanged —
-            DailyDesk cut it by 75%, without the file ever leaving the browser.
+            DiemDesk cut it by 75%, without the file ever leaving the browser.
           </p>
           <Link href="/compress-pdf" className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-300 transition-all hover:gap-2.5">
             Try Compress PDF <ArrowRight className="size-4" />

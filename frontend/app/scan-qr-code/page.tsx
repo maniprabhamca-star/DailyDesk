@@ -3,13 +3,13 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { ScanQrTool } from '@/components/tools/scan-qr-tool';
 
 export const metadata: Metadata = {
-  title: 'QR Code Scanner — Scan a QR Code From an Image, Free | DailyDesk',
+  title: 'QR Code Scanner — Scan a QR Code From an Image, Free | DiemDesk',
   description:
     'Scan a QR code from a photo or screenshot right in your browser — the image is never uploaded. Reads links, Wi-Fi passwords, contact cards, email, SMS and more. Free, no signup, no app to install.',
   alternates: { canonical: '/scan-qr-code' },
   openGraph: {
     images: ['/og.png'],
-    title: 'QR Code Scanner — Scan a QR Code From an Image, Free | DailyDesk',
+    title: 'QR Code Scanner — Scan a QR Code From an Image, Free | DiemDesk',
     description: 'Decode any QR code from a photo or screenshot, privately in your browser. Links, Wi-Fi, contacts, and more.',
     type: 'website',
   },

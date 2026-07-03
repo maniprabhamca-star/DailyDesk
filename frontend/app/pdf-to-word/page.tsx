@@ -3,13 +3,13 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { PdfToWordTool } from '@/components/tools/pdf-to-word-tool';
 
 export const metadata: Metadata = {
-  title: 'PDF to Word — Convert PDF to Editable DOCX Free | DailyDesk',
+  title: 'PDF to Word — Convert PDF to Editable DOCX Free | DiemDesk',
   description:
     'Convert a PDF to an editable Word document (.docx) free — no signup, no watermark. Sent over an encrypted connection, converted, and deleted from our server immediately.',
   alternates: { canonical: '/pdf-to-word' },
   openGraph: {
     images: ['/og.png'],
-    title: 'PDF to Word — Convert PDF to Editable DOCX Free | DailyDesk',
+    title: 'PDF to Word — Convert PDF to Editable DOCX Free | DiemDesk',
     description: 'Turn a PDF into an editable Word document free — converted securely and deleted immediately.',
     type: 'website',
   },
