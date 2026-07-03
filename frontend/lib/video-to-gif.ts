@@ -20,21 +20,30 @@ export type VideoMeta = { duration: number; width: number; height: number };
 // a shorter clip / lower fps instead of freezing the tab.
 export const MAX_FRAMES = 450;
 
-/** Load a video File and resolve once its duration/dimensions are known. */
+const UNREADABLE = 'Could not read this video. Most MP4, WebM and MOV files work — some formats aren’t supported by your browser.';
+
+/** Load a video File and resolve once its duration/dimensions are known. The
+ * element is attached to the DOM (off-screen) because a detached <video> won't
+ * reliably start decoding in some browsers, and a timeout guarantees we surface
+ * a clear error instead of hanging on an unreadable/corrupt file. The caller owns
+ * the returned element (remove it + revoke the url when done). */
 export function loadVideoMeta(file: File): Promise<{ video: HTMLVideoElement; meta: VideoMeta; url: string }> {
   const url = URL.createObjectURL(file);
   const video = document.createElement('video');
   video.muted = true;
   video.playsInline = true;
   video.preload = 'auto';
-  video.src = url;
+  video.style.cssText = 'position:fixed;left:-9999px;top:0;width:2px;height:2px;opacity:0;pointer-events:none';
+  document.body.appendChild(video);
   return new Promise((resolve, reject) => {
-    video.onloadedmetadata = () =>
-      resolve({ video, meta: { duration: video.duration || 0, width: video.videoWidth, height: video.videoHeight }, url });
-    video.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error('Could not read this video. Most MP4, WebM and MOV files work; some formats aren’t supported by your browser.'));
-    };
+    let settled = false;
+    const done = (fn: () => void) => { if (settled) return; settled = true; clearTimeout(timer); fn(); };
+    const timer = setTimeout(() => done(() => { video.remove(); URL.revokeObjectURL(url); reject(new Error(UNREADABLE)); }), 20000);
+    video.onloadedmetadata = () => done(() =>
+      resolve({ video, meta: { duration: video.duration || 0, width: video.videoWidth, height: video.videoHeight }, url }));
+    video.onerror = () => done(() => { video.remove(); URL.revokeObjectURL(url); reject(new Error(UNREADABLE)); });
+    video.src = url;
+    video.load();
   });
 }
 
@@ -108,5 +117,6 @@ export async function videoToGif(
     URL.revokeObjectURL(url);
     video.removeAttribute('src');
     video.load();
+    video.remove();
   }
 }

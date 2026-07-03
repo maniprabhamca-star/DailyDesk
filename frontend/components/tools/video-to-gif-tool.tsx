@@ -48,7 +48,8 @@ export function VideoToGifTool() {
     if (!canProcessSize(f.size, plan)) { setError(null); setTooBig({ name: f.name, size: f.size }); return; }
     setTooBig(null); setError(null); setResult(null);
     try {
-      const { meta: m, url } = await loadVideoMeta(f);
+      const { video, meta: m, url } = await loadVideoMeta(f);
+      video.remove(); // preview uses its own <video>; keep the url alive for it
       setMeta(m);
       setPreviewUrl(url);
       setFile(f);
