@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { catalog } from '@/components/app/catalog';
 import { HeaderSearch } from '@/components/app/header-search';
+import { HeaderUser } from '@/components/app/header-user';
+import { useAuth } from '@/lib/auth';
 
 function openCommand() {
   window.dispatchEvent(new Event('dd-command-open'));
@@ -26,6 +28,7 @@ export function SiteHeader({ heroSearchRef }: { heroSearchRef?: React.RefObject<
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showHeaderSearch, setShowHeaderSearch] = useState(!heroSearchRef);
   const toolsRef = useRef<HTMLDivElement>(null);
+  const { user, logout } = useAuth();
 
   // Home only: reveal the header search once the hero search scrolls up behind the sticky
   // header, so there's never two searches on screen. The page scroller is `window`, which
@@ -110,8 +113,7 @@ export function SiteHeader({ heroSearchRef }: { heroSearchRef?: React.RefObject<
             <ShieldCheck className="size-3.5" /> On your device
           </span>
           <ThemeToggle />
-          <Button asChild size="sm" variant="ghost" className="hidden sm:inline-flex"><Link href="/login">Log in</Link></Button>
-          <Button asChild size="sm" className="hidden sm:inline-flex"><Link href="/register">Get started</Link></Button>
+          <HeaderUser />
           <button onClick={() => setMobileOpen((o) => !o)} aria-label="Menu" aria-expanded={mobileOpen} className="flex size-9 items-center justify-center rounded-lg border text-foreground/80 sm:hidden">
             {mobileOpen ? <X className="size-5" /> : <Menu className="size-5" />}
           </button>
@@ -124,11 +126,22 @@ export function SiteHeader({ heroSearchRef }: { heroSearchRef?: React.RefObject<
             {[
               { label: 'All tools', href: '/#tools' },
               { label: 'Pricing', href: '/pricing' },
-              { label: 'Log in', href: '/login' },
+              ...(user ? [] : [{ label: 'Log in', href: '/login' }]),
             ].map((l) => (
               <Link key={l.label} href={l.href} onClick={() => setMobileOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-medium text-foreground/90 hover:bg-accent">{l.label}</Link>
             ))}
-            <Button asChild size="sm" className="mt-1.5 w-full"><Link href="/register" onClick={() => setMobileOpen(false)}>Get started</Link></Button>
+            {user ? (
+              <>
+                <div className="mt-1 flex items-center gap-2 rounded-lg px-3 py-2 text-sm">
+                  <span className="flex size-8 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground">{user.name?.trim()?.[0]?.toUpperCase() || 'U'}</span>
+                  <span className="truncate font-medium">{user.name}</span>
+                  {user.plan === 'pro' && <span className="rounded-full bg-amber-400 px-1.5 text-[10px] font-bold uppercase text-amber-950">Pro</span>}
+                </div>
+                <Button size="sm" variant="outline" className="mt-1 w-full" onClick={() => { logout(); setMobileOpen(false); }}>Log out</Button>
+              </>
+            ) : (
+              <Button asChild size="sm" className="mt-1.5 w-full"><Link href="/register" onClick={() => setMobileOpen(false)}>Get started</Link></Button>
+            )}
           </div>
         </div>
       )}
