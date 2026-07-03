@@ -1,4 +1,4 @@
-import { Combine, Split, RotateCw, FileMinus, ListOrdered, Shrink, FileImage, Image as ImageIcon, Images, Fingerprint, Lock, Unlock, PenTool, QrCode, KeyRound, Layers, ScanLine, type LucideIcon } from 'lucide-react';
+import { Combine, Split, RotateCw, FileMinus, ListOrdered, Shrink, FileImage, Image as ImageIcon, Images, Fingerprint, Lock, Unlock, PenTool, QrCode, KeyRound, Layers, ScanLine, Clapperboard, type LucideIcon } from 'lucide-react';
 
 // Single source of truth for the live tool set + how tools relate, so the
 // "Keep moving" (carry the file forward) and "Keep going" (what's next) rails are
@@ -51,6 +51,8 @@ export const TOOLS: Record<string, Tool> = {
     tile: 'from-emerald-500/10 to-emerald-500/0 hover:border-emerald-500/40', chip: 'bg-emerald-500' },
   '/scan-qr-code': { href: '/scan-qr-code', name: 'QR scanner', icon: ScanLine, blurb: 'Read a QR code from any image', moveLabel: 'Scan a QR code', acceptsPdf: false,
     tile: 'from-teal-500/10 to-teal-500/0 hover:border-teal-500/40', chip: 'bg-teal-600' },
+  '/video-to-gif': { href: '/video-to-gif', name: 'Video to GIF', icon: Clapperboard, blurb: 'Turn a clip into an animated GIF', moveLabel: 'Make a GIF', acceptsPdf: false,
+    tile: 'from-fuchsia-500/10 to-fuchsia-500/0 hover:border-fuchsia-500/40', chip: 'bg-fuchsia-600' },
   '/password-generator': { href: '/password-generator', name: 'Password', icon: KeyRound, blurb: 'Generate a strong, private password', moveLabel: 'Make a password', acceptsPdf: false,
     tile: 'from-violet-500/10 to-violet-500/0 hover:border-violet-500/40', chip: 'bg-violet-500' },
 };
@@ -73,6 +75,7 @@ const NEXT: Record<string, string[]> = {
   '/jpg-to-pdf': ['/compress-pdf', '/merge-pdf', '/add-page-numbers-to-pdf', '/rotate-pdf'],
   '/qr-code-generator': ['/scan-qr-code', '/password-generator', '/compress-pdf'],
   '/scan-qr-code': ['/qr-code-generator', '/password-generator', '/compress-pdf'],
+  '/video-to-gif': ['/compress-pdf', '/qr-code-generator', '/jpg-to-pdf'],
   '/password-generator': ['/qr-code-generator', '/compress-pdf', '/merge-pdf'],
 };
 

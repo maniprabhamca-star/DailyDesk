@@ -94,7 +94,7 @@ export const catalog: CatGroup[] = [
       { name: 'HEIC to JPG', href: '/heic-to-jpg', icon: Smartphone, badge: 'device' },
       { name: 'Background remover', href: '/remove-background', icon: Eraser, badge: 'device' },
       { name: 'Compress video', icon: Film, badge: 'device', soon: true },
-      { name: 'Video to GIF', icon: Clapperboard, badge: 'device', soon: true },
+      { name: 'Video to GIF', href: '/video-to-gif', icon: Clapperboard, badge: 'device' },
     ],
   },
   {
