@@ -45,9 +45,9 @@ export const TOOLS: Record<string, Tool> = {
     tile: 'from-orange-500/10 to-orange-500/0 hover:border-orange-500/40', chip: 'bg-orange-500' },
   '/unlock-pdf': { href: '/unlock-pdf', name: 'Unlock PDF', icon: Unlock, blurb: 'Remove a password you know', moveLabel: 'Remove the password', acceptsPdf: true,
     tile: 'from-cyan-500/10 to-cyan-500/0 hover:border-cyan-500/40', chip: 'bg-cyan-600' },
-  '/tools/qr-code': { href: '/tools/qr-code', name: 'QR code', icon: QrCode, blurb: 'Make a scannable QR in seconds', moveLabel: 'Make a QR code', acceptsPdf: false,
+  '/qr-code-generator': { href: '/qr-code-generator', name: 'QR code', icon: QrCode, blurb: 'Make a scannable QR in seconds', moveLabel: 'Make a QR code', acceptsPdf: false,
     tile: 'from-emerald-500/10 to-emerald-500/0 hover:border-emerald-500/40', chip: 'bg-emerald-500' },
-  '/tools/password': { href: '/tools/password', name: 'Password', icon: KeyRound, blurb: 'Generate a strong, private password', moveLabel: 'Make a password', acceptsPdf: false,
+  '/password-generator': { href: '/password-generator', name: 'Password', icon: KeyRound, blurb: 'Generate a strong, private password', moveLabel: 'Make a password', acceptsPdf: false,
     tile: 'from-violet-500/10 to-violet-500/0 hover:border-violet-500/40', chip: 'bg-violet-500' },
 };
 
@@ -66,13 +66,13 @@ const NEXT: Record<string, string[]> = {
   '/protect-pdf': ['/unlock-pdf', '/sign-pdf', '/remove-pdf-metadata'],
   '/unlock-pdf': ['/protect-pdf', '/compress-pdf', '/merge-pdf'],
   '/jpg-to-pdf': ['/compress-pdf', '/merge-pdf', '/add-page-numbers-to-pdf', '/rotate-pdf'],
-  '/tools/qr-code': ['/tools/password', '/compress-pdf', '/pdf-to-jpg'],
-  '/tools/password': ['/tools/qr-code', '/compress-pdf', '/merge-pdf'],
+  '/qr-code-generator': ['/password-generator', '/compress-pdf', '/pdf-to-jpg'],
+  '/password-generator': ['/qr-code-generator', '/compress-pdf', '/merge-pdf'],
 };
 
 // Sensible fallback order for any tool without an explicit list (and to backfill
 // short lists), so a rail is never empty.
-const DEFAULT_ORDER = ['/compress-pdf', '/merge-pdf', '/split-pdf', '/pdf-to-jpg', '/rotate-pdf', '/add-page-numbers-to-pdf', '/delete-pages-from-pdf', '/jpg-to-pdf', '/tools/qr-code', '/tools/password'];
+const DEFAULT_ORDER = ['/compress-pdf', '/merge-pdf', '/split-pdf', '/pdf-to-jpg', '/rotate-pdf', '/add-page-numbers-to-pdf', '/delete-pages-from-pdf', '/jpg-to-pdf', '/qr-code-generator', '/password-generator'];
 
 // Ordered, de-duplicated, self-excluded list of relevant next tools. Backfilled
 // from DEFAULT_ORDER so it's never short or empty.

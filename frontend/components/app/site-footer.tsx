@@ -6,7 +6,7 @@ const COLUMNS = [
   { title: 'Tools', color: '#a78bfa', links: [
     { label: 'Compress PDF', href: '/compress-pdf' },
     { label: 'Merge PDF', href: '/merge-pdf' },
-    { label: 'QR generator', href: '/tools/qr-code' },
+    { label: 'QR generator', href: '/qr-code-generator' },
     { label: 'All tools', href: '/#tools' },
   ] },
   { title: 'Product', color: '#2dd4bf', links: [

@@ -28,7 +28,7 @@ export default function RegisterPage() {
     setError(null);
     try {
       await register(name, email, password);
-      router.push('/tools/qr-code');
+      router.push('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
     } finally {

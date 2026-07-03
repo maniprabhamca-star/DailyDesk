@@ -77,8 +77,8 @@ export const catalog: CatGroup[] = [
   },
   {
     label: 'Generators', color: '#4f46e5', tools: [
-      { name: 'QR generator', href: '/tools/qr-code', icon: QrCode, badge: 'device' },
-      { name: 'Password', href: '/tools/password', icon: KeyRound, badge: 'device' },
+      { name: 'QR generator', href: '/qr-code-generator', icon: QrCode, badge: 'device' },
+      { name: 'Password', href: '/password-generator', icon: KeyRound, badge: 'device' },
     ],
   },
   {

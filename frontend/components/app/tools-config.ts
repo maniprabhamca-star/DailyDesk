@@ -29,11 +29,11 @@ export const toolGroups: ToolGroup[] = [
   {
     label: 'Quick tools',
     tools: [
-      { id: 'qr-code', name: 'QR generator', href: '/tools/qr-code', icon: QrCode, available: true, description: 'Custom QR codes with logo and bulk export', color: '#4f46e5' },
+      { id: 'qr-code', name: 'QR generator', href: '/qr-code-generator', icon: QrCode, available: true, description: 'Custom QR codes with logo and bulk export', color: '#4f46e5' },
       { id: 'pdf', name: 'PDF workspace', href: '/tools/pdf', icon: FileText, available: false, description: 'Merge, split, compress, edit and e-sign', color: '#dc2626' },
       { id: 'image-compress', name: 'Image compressor', href: '/tools/image-compress', icon: ImageIcon, available: false, description: 'Shrink JPG, PNG and WebP without quality loss', color: '#0284c7' },
       { id: 'bg-remover', name: 'Background remover', href: '/tools/bg-remover', icon: Eraser, available: false, description: 'Erase image backgrounds automatically', color: '#7c3aed' },
-      { id: 'password', name: 'Password generator', href: '/tools/password', icon: KeyRound, available: true, description: 'Generate strong, secure passwords', color: '#059669' },
+      { id: 'password', name: 'Password generator', href: '/password-generator', icon: KeyRound, available: true, description: 'Generate strong, secure passwords', color: '#059669' },
     ],
   },
   {
