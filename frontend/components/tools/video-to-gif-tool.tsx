@@ -36,6 +36,9 @@ export function VideoToGifTool() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ url: string; size: number; blob: Blob; secs: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Bumped on new file / reset so a slow or stuck render can't revive its old
+  // spinner or drop a stale GIF onto a different video.
+  const jobRef = useRef(0);
 
   useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
   useEffect(() => () => { if (result) URL.revokeObjectURL(result.url); }, [result]);
@@ -47,6 +50,7 @@ export function VideoToGifTool() {
       return;
     }
     if (!canProcessSize(f.size, plan)) { setError(null); setTooBig({ name: f.name, size: f.size }); return; }
+    jobRef.current++; setBusy(false); setProgress(null);
     setTooBig(null); setError(null); setResult(null);
     try {
       const { video, meta: m, url } = await loadVideoMeta(f);
@@ -63,25 +67,28 @@ export function VideoToGifTool() {
   function pick(files: FileList | null) { void loadOne(files?.[0]); }
 
   function reset() {
+    jobRef.current++; setBusy(false);
     setFile(null); setMeta(null); setResult(null); setError(null); setProgress(null);
     setPreviewUrl(null);
   }
 
   async function run() {
     if (!file || !meta) return;
+    const job = ++jobRef.current;
     setBusy(true); setError(null); setResult(null); setProgress(null);
     try {
       // Lazy-load the encoder so the route stays light until someone converts.
       const { videoToGif } = await import('@/lib/video-to-gif');
       const t0 = performance.now();
-      const blob = await videoToGif(file, opts, (done, total) => setProgress({ done, total }));
+      const blob = await videoToGif(file, opts, (done, total) => { if (jobRef.current === job) setProgress({ done, total }); });
+      if (jobRef.current !== job) return; // superseded by a new file/run
       const secs = (performance.now() - t0) / 1000;
       setResult({ url: URL.createObjectURL(blob), size: blob.size, blob, secs });
       download(blob, `${file.name.replace(/\.[^.]+$/, '')}.gif`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not build the GIF.');
+      if (jobRef.current === job) setError(e instanceof Error ? e.message : 'Could not build the GIF.');
     } finally {
-      setBusy(false); setProgress(null);
+      if (jobRef.current === job) { setBusy(false); setProgress(null); }
     }
   }
 

@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { downloadBlob as download } from '@/lib/download';
 import { KeepGoing } from '@/components/app/keep-going';
 import { BigFileHint } from '@/components/app/big-file-hint';
+import { SavingsRing } from '@/components/app/savings-ring';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
 import { loadVideoMeta, type VideoMeta } from '@/lib/video-to-gif';
@@ -45,6 +46,10 @@ export function CompressVideoTool() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<(CompressResult & { secs: number }) | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Bumped whenever a new file is loaded or the tool is reset, so a slow/stuck
+  // compression (e.g. an over-large file) can never revive its old spinner or
+  // stamp a stale result onto a different video.
+  const jobRef = useRef(0);
 
   useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
   useEffect(() => () => { if (result) URL.revokeObjectURL(URL.createObjectURL(result.blob)); }, [result]);
@@ -55,6 +60,7 @@ export function CompressVideoTool() {
       setError('Please choose a video file (MP4, WebM, MOV…).'); return;
     }
     if (!canProcessSize(f.size, plan)) { setError(null); setTooBig({ name: f.name, size: f.size }); return; }
+    jobRef.current++; setBusy(false); setPct(0);
     setTooBig(null); setError(null); setResult(null);
     try {
       const { video, meta: m, url } = await loadVideoMeta(f);
@@ -63,21 +69,25 @@ export function CompressVideoTool() {
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not read this video.'); }
   }
   function pick(files: FileList | null) { void loadOne(files?.[0]); }
-  function reset() { setFile(null); setMeta(null); setResult(null); setError(null); setPct(0); setPreviewUrl(null); }
+  function reset() { jobRef.current++; setBusy(false); setFile(null); setMeta(null); setResult(null); setError(null); setPct(0); setPreviewUrl(null); }
 
   async function run() {
     if (!file) return;
+    const job = ++jobRef.current;
     setBusy(true); setError(null); setResult(null); setPct(0);
     try {
       const { compressVideo } = await import('@/lib/compress-video');
       const t0 = performance.now();
-      const res = await compressVideo(file, { pref, quality, maxHeight }, (fr) => setPct(Math.round(fr * 100)));
+      const res = await compressVideo(file, { pref, quality, maxHeight }, (fr) => { if (jobRef.current === job) setPct(Math.round(fr * 100)); });
+      if (jobRef.current !== job) return; // superseded by a new file/run — drop this result
       const secs = (performance.now() - t0) / 1000;
       setResult({ ...res, secs });
       download(res.blob, `${file.name.replace(/\.[^.]+$/, '')}-compressed.${res.ext}`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not compress the video.');
-    } finally { setBusy(false); }
+      if (jobRef.current === job) setError(e instanceof Error ? e.message : 'Could not compress the video.');
+    } finally {
+      if (jobRef.current === job) setBusy(false);
+    }
   }
 
   const saved = result ? file!.size - result.blob.size : 0;
@@ -166,14 +176,11 @@ export function CompressVideoTool() {
         )}
 
         {result && file && (
-          <div className="mt-5 rounded-xl border bg-card p-4 text-center">
+          <div className="mt-5">
             {saved > 0 ? (
-              <>
-                <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">−{savedPct}%</p>
-                <p className="mt-1 text-sm text-muted-foreground">{fmt(file.size)} → <span className="font-medium text-foreground">{fmt(result.blob.size)}</span> · {result.label} · {result.secs.toFixed(1)}s</p>
-              </>
+              <SavingsRing savedPct={savedPct} beforeLabel={fmt(file.size)} afterLabel={fmt(result.blob.size)} note={`${result.label} · ${result.secs.toFixed(1)}s`} />
             ) : (
-              <p className="text-sm text-muted-foreground">This video is already efficiently compressed — the re‑encoded {result.label} file is {fmt(result.blob.size)} ({result.secs.toFixed(1)}s). Try a lower quality or resolution for more shrink.</p>
+              <p className="rounded-xl border bg-card p-4 text-center text-sm text-muted-foreground">This video is already efficiently compressed — the re‑encoded {result.label} file is {fmt(result.blob.size)} ({result.secs.toFixed(1)}s). Try a lower quality or resolution for more shrink.</p>
             )}
             <div className="mt-3 flex flex-wrap justify-center gap-2">
               <Button size="sm" onClick={() => download(result.blob, `${file.name.replace(/\.[^.]+$/, '')}-compressed.${result.ext}`)}><Download className="size-4" /> Download again</Button>
