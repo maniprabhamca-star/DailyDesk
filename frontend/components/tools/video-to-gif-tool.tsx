@@ -33,7 +33,7 @@ export function VideoToGifTool() {
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<{ url: string; size: number; blob: Blob } | null>(null);
+  const [result, setResult] = useState<{ url: string; size: number; blob: Blob; secs: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
@@ -72,8 +72,10 @@ export function VideoToGifTool() {
     try {
       // Lazy-load the encoder so the route stays light until someone converts.
       const { videoToGif } = await import('@/lib/video-to-gif');
+      const t0 = performance.now();
       const blob = await videoToGif(file, opts, (done, total) => setProgress({ done, total }));
-      setResult({ url: URL.createObjectURL(blob), size: blob.size, blob });
+      const secs = (performance.now() - t0) / 1000;
+      setResult({ url: URL.createObjectURL(blob), size: blob.size, blob, secs });
       download(blob, `${file.name.replace(/\.[^.]+$/, '')}.gif`);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not build the GIF.');
@@ -177,7 +179,7 @@ export function VideoToGifTool() {
             <div className="rounded-xl border bg-card p-4 text-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={result.url} alt="Your GIF" className="mx-auto max-h-72 rounded-lg" />
-              <p className="mt-3 text-sm text-muted-foreground">GIF ready — {fmt(result.size)}</p>
+              <p className="mt-3 text-sm text-muted-foreground">GIF ready — {fmt(result.size)} · {result.secs.toFixed(1)}s</p>
               <div className="mt-3 flex flex-wrap justify-center gap-2">
                 <Button size="sm" onClick={() => download(result.blob, `${(file?.name || 'clip').replace(/\.[^.]+$/, '')}.gif`)}>
                   <Download className="size-4" /> Download again
