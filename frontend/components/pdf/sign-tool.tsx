@@ -82,7 +82,7 @@ export function SignTool() {
   const [pos, setPos] = useState({ x: 0.55, y: 0.75, w: 0.3 }); // top-left + width, fractions
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState<{ blob: Blob; name: string } | null>(null);
+  const [done, setDone] = useState<{ blob: Blob; name: string; secs: number } | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const sigUploadRef = useRef<HTMLInputElement>(null);
@@ -271,6 +271,7 @@ export function SignTool() {
     setBusy(true);
     setError(null);
     setDone(null);
+    const t0 = performance.now();
     try {
       const out = await rewritePdf(file, {
         type: 'place-image',
@@ -279,7 +280,7 @@ export function SignTool() {
       const name = `${file.name.replace(/\.pdf$/i, '')}-signed.pdf`;
       const blob = new Blob([new Uint8Array(out)], { type: 'application/pdf' });
       download(blob, name);
-      setDone({ blob, name });
+      setDone({ blob, name, secs: (performance.now() - t0) / 1000 });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not sign the PDF.');
     } finally {
@@ -446,7 +447,7 @@ export function SignTool() {
           </Button>
         )}
 
-        {done && <PdfDone blob={done.blob} name={done.name} currentHref="/sign-pdf" fromLabel="Sign PDF" />}
+        {done && <PdfDone blob={done.blob} name={done.name} secs={done.secs} currentHref="/sign-pdf" fromLabel="Sign PDF" />}
       </CardContent>
     </Card>
   );

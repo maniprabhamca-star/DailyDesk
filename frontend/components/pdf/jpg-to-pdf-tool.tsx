@@ -62,7 +62,7 @@ export function JpgToPdfTool() {
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
-  const [done, setDone] = useState<{ blob: Blob; name: string } | null>(null);
+  const [done, setDone] = useState<{ blob: Blob; name: string; secs: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // revoke all preview URLs on unmount
@@ -133,6 +133,7 @@ export function JpgToPdfTool() {
     setError(null);
     setWarning(null);
     setDone(null);
+    const t0 = performance.now();
     try {
       const { PDFDocument } = await import('pdf-lib'); // load engine only when needed
       const pdf = await PDFDocument.create();
@@ -180,7 +181,7 @@ export function JpgToPdfTool() {
       const name = 'converted.pdf';
       const blob = new Blob([new Uint8Array(out)], { type: 'application/pdf' });
       download(blob, name);
-      setDone({ blob, name });
+      setDone({ blob, name, secs: (performance.now() - t0) / 1000 });
 
       if (skipped.length) {
         setWarning(`Converted ${pdf.getPageCount()} image${pdf.getPageCount() > 1 ? 's' : ''}. Skipped (couldn’t read): ${skipped.join(', ')}`);
@@ -271,7 +272,7 @@ export function JpgToPdfTool() {
           {busy ? <><Loader2 className="size-4 animate-spin" /> Converting…</> : <><Download className="size-4" /> Convert {items.length > 0 ? `${items.length} image${items.length > 1 ? 's' : ''} ` : ''}to PDF</>}
         </Button>
 
-        {done && <PdfDone blob={done.blob} name={done.name} currentHref="/jpg-to-pdf" fromLabel="JPG to PDF" />}
+        {done && <PdfDone blob={done.blob} name={done.name} secs={done.secs} currentHref="/jpg-to-pdf" fromLabel="JPG to PDF" />}
       </CardContent>
     </Card>
   );

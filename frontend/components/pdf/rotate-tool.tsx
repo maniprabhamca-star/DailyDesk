@@ -76,7 +76,7 @@ export function RotateTool() {
   const [parsing, setParsing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState<{ blob: Blob; name: string } | null>(null);
+  const [done, setDone] = useState<{ blob: Blob; name: string; secs: number } | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -164,13 +164,14 @@ export function RotateTool() {
     setBusy(true);
     setError(null);
     setDone(null);
+    const t0 = performance.now();
     try {
       // Rewrites run in a Web Worker so the page never freezes, even on huge files.
       const out = await rewritePdf(file, { type: 'rotate', deltas: pages.map((p) => p.delta) });
       const name = `${file.name.replace(/\.pdf$/i, '')}-rotated.pdf`;
       const blob = new Blob([new Uint8Array(out)], { type: 'application/pdf' });
       download(blob, name);
-      setDone({ blob, name });
+      setDone({ blob, name, secs: (performance.now() - t0) / 1000 });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not rotate the PDF.');
     } finally {
@@ -249,7 +250,7 @@ export function RotateTool() {
           </Button>
         )}
 
-        {done && <PdfDone blob={done.blob} name={done.name} currentHref="/rotate-pdf" fromLabel="Rotate PDF" />}
+        {done && <PdfDone blob={done.blob} name={done.name} secs={done.secs} currentHref="/rotate-pdf" fromLabel="Rotate PDF" />}
       </CardContent>
     </Card>
   );

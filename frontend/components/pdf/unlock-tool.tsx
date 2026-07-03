@@ -27,7 +27,7 @@ export function UnlockTool() {
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState<{ blob: Blob; name: string } | null>(null);
+  const [done, setDone] = useState<{ blob: Blob; name: string; secs: number } | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -60,12 +60,13 @@ export function UnlockTool() {
     setBusy(true);
     setError(null);
     setDone(null);
+    const t0 = performance.now();
     try {
       const out = await runQpdf(file, { type: 'decrypt', password: pw });
       const name = `${file.name.replace(/\.pdf$/i, '')}-unlocked.pdf`;
       const blob = new Blob([new Uint8Array(out)], { type: 'application/pdf' });
       download(blob, name);
-      setDone({ blob, name });
+      setDone({ blob, name, secs: (performance.now() - t0) / 1000 });
     } catch (e) {
       // Wrong password keeps the file loaded — the user just retypes and retries.
       if (e instanceof QpdfError && e.wrongPassword && pw === '') setError('This PDF needs its password — type it above.');
@@ -133,7 +134,7 @@ export function UnlockTool() {
           </Button>
         )}
 
-        {done && <PdfDone blob={done.blob} name={done.name} currentHref="/unlock-pdf" fromLabel="Unlock PDF" />}
+        {done && <PdfDone blob={done.blob} name={done.name} secs={done.secs} currentHref="/unlock-pdf" fromLabel="Unlock PDF" />}
       </CardContent>
     </Card>
   );

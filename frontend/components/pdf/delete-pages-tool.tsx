@@ -74,7 +74,7 @@ export function DeletePagesTool() {
   const [parsing, setParsing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState<{ blob: Blob; name: string } | null>(null);
+  const [done, setDone] = useState<{ blob: Blob; name: string; secs: number } | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -154,6 +154,7 @@ export function DeletePagesTool() {
     setBusy(true);
     setError(null);
     setDone(null);
+    const t0 = performance.now();
     try {
       // Rewrites run in a Web Worker so the page never freezes, even on huge files.
       const indices = markedPages.map((m, i) => (m ? i : -1)).filter((i) => i >= 0);
@@ -161,7 +162,7 @@ export function DeletePagesTool() {
       const name = `${file.name.replace(/\.pdf$/i, '')}-pages-removed.pdf`;
       const blob = new Blob([new Uint8Array(out)], { type: 'application/pdf' });
       download(blob, name);
-      setDone({ blob, name });
+      setDone({ blob, name, secs: (performance.now() - t0) / 1000 });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not delete the pages.');
     } finally {
@@ -242,7 +243,7 @@ export function DeletePagesTool() {
           </Button>
         )}
 
-        {done && <PdfDone blob={done.blob} name={done.name} currentHref="/delete-pages-from-pdf" fromLabel="Delete Pages" />}
+        {done && <PdfDone blob={done.blob} name={done.name} secs={done.secs} currentHref="/delete-pages-from-pdf" fromLabel="Delete Pages" />}
       </CardContent>
     </Card>
   );

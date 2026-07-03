@@ -21,7 +21,7 @@ export function MergeTool() {
   const [items, setItems] = useState<Item[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState<{ blob: Blob; name: string } | null>(null);
+  const [done, setDone] = useState<{ blob: Blob; name: string; secs: number } | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -75,6 +75,7 @@ export function MergeTool() {
     setBusy(true);
     setError(null);
     setDone(null);
+    const t0 = performance.now();
     try {
       // pdf-lib runs in the rewrite WORKER — merging very large files no longer
       // freezes the tab (buffers are transferred, zero-copy).
@@ -82,7 +83,7 @@ export function MergeTool() {
       const name = 'merged.pdf';
       const blob = new Blob([new Uint8Array(merged)], { type: 'application/pdf' });
       download(blob, name);
-      setDone({ blob, name });
+      setDone({ blob, name, secs: (performance.now() - t0) / 1000 });
     } catch (e) {
       setError(e instanceof Error ? `Could not merge: ${e.message}` : 'Could not merge the files.');
     } finally {
@@ -135,7 +136,7 @@ export function MergeTool() {
           {busy ? <><Loader2 className="size-4 animate-spin" /> Merging…</> : <><Download className="size-4" /> Merge {items.length > 0 ? `${items.length} ` : ''}PDFs</>}
         </Button>
 
-        {done && <PdfDone blob={done.blob} name={done.name} currentHref="/merge-pdf" fromLabel="Merge PDF" />}
+        {done && <PdfDone blob={done.blob} name={done.name} secs={done.secs} currentHref="/merge-pdf" fromLabel="Merge PDF" />}
       </CardContent>
     </Card>
   );

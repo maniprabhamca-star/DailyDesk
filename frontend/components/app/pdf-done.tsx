@@ -17,7 +17,7 @@ import { ResultActions } from './result-actions';
 // One line to add to a tool: <PdfDone blob name currentHref fromLabel />.
 // Suggestions come from lib/tool-graph so they're contextual to the current tool.
 
-export function PdfDone({ blob, name, currentHref, fromLabel, hideBanner = false }: { blob: Blob; name: string; currentHref: string; fromLabel: string; hideBanner?: boolean }) {
+export function PdfDone({ blob, name, currentHref, fromLabel, hideBanner = false, secs }: { blob: Blob; name: string; currentHref: string; fromLabel: string; hideBanner?: boolean; secs?: number }) {
   const router = useRouter();
   const ref = useRef<HTMLDivElement>(null);
 
@@ -50,7 +50,7 @@ export function PdfDone({ blob, name, currentHref, fromLabel, hideBanner = false
     <div ref={ref} className="mt-5 scroll-mt-20">
       {!hideBanner && (
         <div className="flex flex-col gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
-          <span className="flex items-center gap-2 text-sm font-medium"><CheckCircle2 className="size-4 text-emerald-500" /> Done — {name} saved to your device</span>
+          <span className="flex items-center gap-2 text-sm font-medium"><CheckCircle2 className="size-4 text-emerald-500" /> Done — {name} saved to your device{typeof secs === 'number' ? ` · ${secs.toFixed(1)}s` : ''}</span>
           <Button size="sm" variant="outline" onClick={() => download(blob, name)}><Download className="size-4" /> Download again</Button>
         </div>
       )}

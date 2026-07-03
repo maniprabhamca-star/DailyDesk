@@ -13,9 +13,17 @@ export type Plan = 'free' | 'pro';
 // Free plan caps single-file size; Pro is unlimited. Keep in sync with pricing copy.
 export const FREE_MAX_BYTES = 100 * 1024 * 1024; // 100 MB
 
+// Emails that are treated as Pro regardless of billing — e.g. the owner's own
+// account, so large-file (1GB+) processing works before Stripe is wired. Soft
+// client-side, like every gate here; matched case-insensitively.
+const PRO_EMAILS = ['maniprabhamca@gmail.com'];
+
 export function usePlan(): Plan {
   const { user } = useAuth();
-  return user?.plan === 'pro' ? 'pro' : 'free';
+  if (!user) return 'free';
+  if (user.plan === 'pro') return 'pro';
+  if (user.email && PRO_EMAILS.includes(user.email.trim().toLowerCase())) return 'pro';
+  return 'free';
 }
 
 // True when a file of this size is allowed to be processed on the given plan.

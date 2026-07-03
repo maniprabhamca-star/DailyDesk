@@ -34,7 +34,7 @@ export function SplitTool() {
   const [ranges, setRanges] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState<{ blob: Blob; name: string } | null>(null);
+  const [done, setDone] = useState<{ blob: Blob; name: string; secs: number } | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -93,6 +93,7 @@ export function SplitTool() {
     setBusy(true);
     setError(null);
     setDone(null);
+    const t0 = performance.now();
     try {
       // pdf-lib runs in the rewrite WORKER — the page stays responsive even on
       // very large files (main-thread applies used to freeze the tab).
@@ -104,7 +105,7 @@ export function SplitTool() {
         const name = `${base}-extracted.pdf`;
         const blob = new Blob([new Uint8Array(bytes)], { type: 'application/pdf' });
         download(blob, name);
-        setDone({ blob, name }); // single PDF → chainable via Keep moving
+        setDone({ blob, name, secs: (performance.now() - t0) / 1000 }); // single PDF → chainable via Keep moving
       } else {
         const parts = await splitPdf(file, mode === 'each' ? { type: 'split-each' } : { type: 'split-chunks', every });
         const JSZip = (await import('jszip')).default;
@@ -213,7 +214,7 @@ export function SplitTool() {
           </Button>
         )}
 
-        {done && <PdfDone blob={done.blob} name={done.name} currentHref="/split-pdf" fromLabel="Split PDF" />}
+        {done && <PdfDone blob={done.blob} name={done.name} secs={done.secs} currentHref="/split-pdf" fromLabel="Split PDF" />}
       </CardContent>
     </Card>
   );

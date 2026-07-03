@@ -211,7 +211,7 @@ export function WatermarkTool() {
   const [imageName, setImageName] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState<{ blob: Blob; name: string } | null>(null);
+  const [done, setDone] = useState<{ blob: Blob; name: string; secs: number } | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
   const [preview, setPreview] = useState<RenderedPage | null>(null);
   const [previewBusy, setPreviewBusy] = useState(false);
@@ -302,6 +302,7 @@ export function WatermarkTool() {
     setBusy(true);
     setError(null);
     setDone(null);
+    const t0 = performance.now();
     try {
       if (settings.range.trim()) parseRanges(settings.range, 1e9); // early syntax check w/ big cap
       const s = settings;
@@ -334,7 +335,7 @@ export function WatermarkTool() {
       const name = `${file.name.replace(/\.pdf$/i, '')}-watermarked.pdf`;
       const blob = new Blob([new Uint8Array(out)], { type: 'application/pdf' });
       download(blob, name);
-      setDone({ blob, name });
+      setDone({ blob, name, secs: (performance.now() - t0) / 1000 });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not watermark the PDF.');
     } finally {
@@ -532,7 +533,7 @@ export function WatermarkTool() {
           </Button>
         )}
 
-        {done && <PdfDone blob={done.blob} name={done.name} currentHref="/watermark-pdf" fromLabel="Watermark PDF" />}
+        {done && <PdfDone blob={done.blob} name={done.name} secs={done.secs} currentHref="/watermark-pdf" fromLabel="Watermark PDF" />}
       </CardContent>
     </Card>
   );

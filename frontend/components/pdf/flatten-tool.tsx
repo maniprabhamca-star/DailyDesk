@@ -33,7 +33,7 @@ export function FlattenTool() {
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState<{ blob: Blob; name: string } | null>(null);
+  const [done, setDone] = useState<{ blob: Blob; name: string; secs: number } | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -84,6 +84,7 @@ export function FlattenTool() {
     setError(null);
     setDone(null);
     setProgress(null);
+    const t0 = performance.now();
     try {
       const out = mode === 'fields'
         ? await runQpdf(file, { type: 'flatten' })
@@ -91,7 +92,7 @@ export function FlattenTool() {
       const name = `${file.name.replace(/\.pdf$/i, '')}-flattened.pdf`;
       const blob = new Blob([new Uint8Array(out)], { type: 'application/pdf' });
       download(blob, name);
-      setDone({ blob, name });
+      setDone({ blob, name, secs: (performance.now() - t0) / 1000 });
     } catch (e) {
       if (e instanceof QpdfError) setError(e.message);
       else if (e instanceof Error && /password/i.test(e.message)) setError('This PDF is password-protected — remove the password first with Unlock PDF, then flatten it.');
@@ -208,7 +209,7 @@ export function FlattenTool() {
           </Button>
         )}
 
-        {done && <PdfDone blob={done.blob} name={done.name} currentHref="/flatten-pdf" fromLabel="Flatten PDF" />}
+        {done && <PdfDone blob={done.blob} name={done.name} secs={done.secs} currentHref="/flatten-pdf" fromLabel="Flatten PDF" />}
       </CardContent>
     </Card>
   );

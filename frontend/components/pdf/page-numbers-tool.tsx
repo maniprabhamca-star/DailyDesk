@@ -56,7 +56,7 @@ export function PageNumbersTool() {
   const [ranges, setRanges] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState<{ blob: Blob; name: string } | null>(null);
+  const [done, setDone] = useState<{ blob: Blob; name: string; secs: number } | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -109,6 +109,7 @@ export function PageNumbersTool() {
     setBusy(true);
     setError(null);
     setDone(null);
+    const t0 = performance.now();
     try {
       // pdf-lib runs in the rewrite WORKER — numbering very large files no
       // longer freezes the tab. The stamp itself happens in pdf-rewrite-core.
@@ -121,7 +122,7 @@ export function PageNumbersTool() {
       const name = `${file.name.replace(/\.pdf$/i, '')}-numbered.pdf`;
       const blob = new Blob([new Uint8Array(out)], { type: 'application/pdf' });
       download(blob, name);
-      setDone({ blob, name });
+      setDone({ blob, name, secs: (performance.now() - t0) / 1000 });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not add page numbers.');
     } finally {
@@ -254,7 +255,7 @@ export function PageNumbersTool() {
           </Button>
         )}
 
-        {done && <PdfDone blob={done.blob} name={done.name} currentHref="/add-page-numbers-to-pdf" fromLabel="Page Numbers" />}
+        {done && <PdfDone blob={done.blob} name={done.name} secs={done.secs} currentHref="/add-page-numbers-to-pdf" fromLabel="Page Numbers" />}
       </CardContent>
     </Card>
   );
