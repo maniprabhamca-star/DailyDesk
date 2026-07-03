@@ -11,6 +11,7 @@ type AuthContextValue = {
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
+  refreshUser: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -52,8 +53,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   }
 
+  // Re-read the account from the server (fresh token + plan). Used after a Stripe
+  // upgrade so the new plan takes effect without re-login. Silent on failure.
+  async function refreshUser() {
+    try {
+      const res = await api.get('/api/user/me');
+      if (res?.token && res?.user) persist(res.token, res.user);
+    } catch {
+      /* not logged in or transient — leave the cached user as-is */
+    }
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

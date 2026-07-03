@@ -1,4 +1,20 @@
 const db = require('../db');
+const { signToken } = require('../utils/token');
+
+// Re-read the account from the DB and return a FRESH token + user. The frontend
+// calls this after returning from Stripe checkout so a plan change (free→pro)
+// takes effect immediately without a full re-login.
+exports.getMe = async (req, res) => {
+  try {
+    const { rows } = await db.query('SELECT id, name, email, plan FROM users WHERE id = $1', [req.user.userId]);
+    if (rows.length === 0) return res.status(404).json({ error: 'User not found' });
+    const u = rows[0];
+    res.json({ token: signToken(u.id, u.email, u.plan), user: { id: u.id, name: u.name, email: u.email, plan: u.plan } });
+  } catch (err) {
+    console.error('getMe error:', err);
+    res.status(500).json({ error: 'Failed to refresh account' });
+  }
+};
 
 exports.getProfile = async (req, res) => {
   try {

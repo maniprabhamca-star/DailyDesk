@@ -20,6 +20,10 @@ app.use(cors({
   credentials: true,
 }));
 
+// Stripe webhook — must run BEFORE the JSON parser and rate limiter: Stripe
+// needs the exact raw body to verify the signature, and it controls the volume.
+app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), require('./routes/stripe').webhookHandler);
+
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -42,6 +46,7 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/user', require('./routes/user'));
 app.use('/api/convert', require('./routes/convert'));
 app.use('/api/events', require('./routes/events'));
+app.use('/api/stripe', require('./routes/stripe').router);
 
 // 404 handler
 app.use((req, res) => {
