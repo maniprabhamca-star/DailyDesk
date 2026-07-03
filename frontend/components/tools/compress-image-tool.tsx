@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { encodeJpeg } from '@/lib/mozjpeg';
 import { downloadBlob as download } from '@/lib/download';
 import { KeepGoing } from '@/components/app/keep-going';
+import { BigFileHint } from '@/components/app/big-file-hint';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
 import { BeforeAfter } from '@/components/pdf/before-after';
@@ -167,6 +168,7 @@ export function CompressImageTool() {
         <CardContent className="p-5">
           {/* value reset: browsers only fire change when the selection differs */}
           <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" className="hidden" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
+          {file && <BigFileHint bytes={file.size} threshold={500 * 1024 * 1024} />}
 
           {tooBig ? (
             <UpgradeNotice

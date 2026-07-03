@@ -30,6 +30,7 @@ const faqs = [
   { q: 'Another tool said my PDF can’t be compressed. Can DiemDesk still shrink it?', a: 'Often, yes — especially scanned documents. Many tools give up on scans stored in formats like JPEG 2000 and hand the file back nearly unchanged. DiemDesk detects those pages and rebuilds them at the right resolution: in our test, a 27 MB scanned book that other tools returned about 1% smaller came out 60–75% smaller — still crisp and readable, and the file never left the browser.' },
   { q: 'Which level should I choose?', a: 'Recommended suits most files. Choose Light to keep the most image detail, or Strong for the smallest possible size when quality is less critical.' },
   { q: 'Is anything besides images touched?', a: 'Two lossless extras: embedded fonts are slimmed (unused glyph outlines removed — the text itself is untouched), and hidden metadata (author name, editing history, the XMP packet, embedded thumbnails) is cleaned out. That saves bytes and doubles as a small privacy win — the document looks and renders exactly the same.' },
+  { q: 'Is there a file size limit?', a: 'No server limit — nothing is uploaded, so it all runs in your browser. The practical limit is your device’s memory rather than a fixed number: most PDFs are fine, and very large scanned files simply take longer (a desktop with more RAM helps).' },
 ];
 
 export default function CompressPdfPage() {

@@ -28,6 +28,7 @@ const faqs = [
   { q: 'Why does it take about as long as the video?', a: 'To stay private and on-device, we re-encode the video as it plays through once, so processing time is roughly the clip’s length. It’s the honest trade for never uploading your file. A quick way to speed things up and shrink more is to drop the resolution.' },
   { q: 'Does it keep the sound?', a: 'This first version re-encodes the video track for maximum shrink; audio handling depends on your browser. If keeping the original audio is essential, test a short clip first — and tell us, since audio passthrough is on our list.' },
   { q: 'Can it beat the big online compressors?', a: 'On raw ratio, tuned server-side tools can still edge ahead — but they upload your video. Our win is privacy (nothing leaves your device), no server size limits, it’s free, and we use modern codecs (VP9/AV1) that compress far better than the H.264 most tools output.' },
+  { q: 'Is there a file size limit?', a: 'No server limit — nothing is uploaded. But compressing runs in your browser’s memory, and video is heavy (frames decode to raw pixels), so very large or long videos can be slow or run out of memory. Short-to-medium clips and a lower resolution work best; huge multi-gigabyte files are the one job genuinely better suited to a desktop or a server.' },
 ];
 
 export default function CompressVideoPage() {

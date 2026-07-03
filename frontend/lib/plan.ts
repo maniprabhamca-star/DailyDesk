@@ -14,12 +14,20 @@ export type Plan = 'free' | 'pro';
 export const FREE_MAX_BYTES = 100 * 1024 * 1024; // 100 MB
 
 // Emails that are treated as Pro regardless of billing — e.g. the owner's own
-// account, so large-file (1GB+) processing works before Stripe is wired. Soft
+// account, so large-file processing works before Stripe is wired. Soft
 // client-side, like every gate here; matched case-insensitively.
 const PRO_EMAILS = ['maniprabhamca@gmail.com'];
 
+// The owner's private-preview bypass cookie (see nginx dd-admin-bypass.conf) also
+// unlocks Pro on the client, so the owner gets unlimited size WITHOUT app login —
+// the same cookie that skips the gate lifts the size cap. Only the owner has it.
+function hasOwnerCookie(): boolean {
+  return typeof document !== 'undefined' && /(?:^|;\s*)ddadmin=[^;]+/.test(document.cookie);
+}
+
 export function usePlan(): Plan {
   const { user } = useAuth();
+  if (hasOwnerCookie()) return 'pro';
   if (!user) return 'free';
   if (user.plan === 'pro') return 'pro';
   if (user.email && PRO_EMAILS.includes(user.email.trim().toLowerCase())) return 'pro';

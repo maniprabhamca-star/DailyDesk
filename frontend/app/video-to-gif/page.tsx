@@ -28,6 +28,7 @@ const faqs = [
   { q: 'Why is there a frame limit?', a: 'GIF is an old format that balloons with too many frames — a long clip at high fps can be tens of megabytes and freeze any browser. We cap the frames and nudge you toward a shorter clip or lower fps so the result stays usable.' },
   { q: 'Can I make it loop, or play once?', a: 'Both. “Loop forever” is on by default (the classic GIF behaviour); turn it off and the animation plays a single time and stops on the last frame.' },
   { q: 'Does the GIF have sound?', a: 'No — the GIF format has no audio at all. If you need sound, keep it as a video. GIFs are silent by design, which is exactly why they autoplay everywhere.' },
+  { q: 'Is there a file size limit?', a: 'No server limit — the video never leaves your device. Because only the trimmed clip is sampled (not the whole file), even large source videos work fine; a very long clip at a high frame rate is what to avoid, not a big file.' },
 ];
 
 export default function VideoToGifPage() {

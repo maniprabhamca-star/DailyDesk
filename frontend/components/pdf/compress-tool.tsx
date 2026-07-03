@@ -17,6 +17,7 @@ import { stripDocMetadata } from '@/lib/pdf-sanitize';
 import { PageStrip } from '@/components/pdf/page-strip';
 import { BeforeAfter } from '@/components/pdf/before-after';
 import { SavingsRing } from '@/components/app/savings-ring';
+import { BigFileHint } from '@/components/app/big-file-hint';
 
 // Uint8Array from pdf-lib/file APIs can be typed as ArrayBufferLike-backed; wrap
 // to a fresh ArrayBuffer-backed copy so it satisfies the strict BlobPart type.
@@ -819,6 +820,7 @@ export function CompressTool() {
         {/* value reset: browsers only fire change when the selection differs, so
             re-picking the same file after "Compress another" would do nothing */}
         <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
+        {file && <BigFileHint bytes={file.size} threshold={400 * 1024 * 1024} />}
         {handoffNote && (
           <p className="mb-3 flex items-center gap-2 rounded-lg border border-primary/25 bg-primary/[0.06] px-3 py-2 text-sm text-foreground">
             <Zap className="size-4 shrink-0 text-primary" /> {handoffNote}

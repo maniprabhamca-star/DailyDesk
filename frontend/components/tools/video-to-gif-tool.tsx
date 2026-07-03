@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { downloadBlob as download } from '@/lib/download';
 import { KeepGoing } from '@/components/app/keep-going';
+import { BigFileHint } from '@/components/app/big-file-hint';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
 import { loadVideoMeta, frameCount, type VideoMeta, type VideoGifOptions } from '@/lib/video-to-gif';
@@ -121,6 +122,8 @@ export function VideoToGifTool() {
         )}
         <input ref={inputRef} type="file" accept="video/*,.mp4,.webm,.mov,.m4v,.avi,.mkv,.ogg" className="hidden"
           onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
+
+        {file && <BigFileHint bytes={file.size} threshold={500 * 1024 * 1024} />}
 
         {file && meta && !result && (
           <div className="mt-4 grid gap-4">
