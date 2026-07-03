@@ -23,6 +23,13 @@ function friendly(op: QpdfOp, code: number): QpdfError {
   if (op.type === 'decrypt') {
     return new QpdfError('That password didn’t unlock this PDF — double-check it and try again.', true);
   }
+  if (op.type === 'flatten') {
+    return new QpdfError(
+      code === 2
+        ? 'This PDF is password-protected — remove the password first with Unlock PDF, then flatten it.'
+        : 'Could not flatten this PDF — it may be corrupted.',
+    );
+  }
   return new QpdfError(
     code === 2
       ? 'Could not protect this PDF. If it already has a password, remove it first with Unlock PDF.'

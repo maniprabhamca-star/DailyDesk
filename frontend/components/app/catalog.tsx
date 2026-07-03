@@ -1,7 +1,7 @@
 import {
   Combine, Split, Shrink, RotateCw, FileMinus, ListOrdered,
   FileImage, Image as ImageIcon, FileType, FileType2, Code2, Presentation, FileSpreadsheet, FileCheck,
-  PenLine, Highlighter, Stamp, EyeOff, PenTool, Lock, Unlock, Fingerprint,
+  PenLine, Highlighter, Stamp, EyeOff, PenTool, Lock, Unlock, Fingerprint, Layers, ScanLine,
   ScanText, MessageSquare, AlignLeft, Languages,
   QrCode, KeyRound, NotebookPen, Flame, Wallet, FolderLock, Link2,
   ImageDown, Smartphone, Eraser, Film, Clapperboard, ArrowLeftRight, Images, Scaling, Repeat, Crop,
@@ -63,6 +63,7 @@ export const catalog: CatGroup[] = [
       { name: 'Remove metadata', href: '/remove-pdf-metadata', icon: Fingerprint, badge: 'device' },
       { name: 'Redact PDF', icon: EyeOff, badge: 'device', soon: true },
       { name: 'Sign PDF', href: '/sign-pdf', icon: PenTool, badge: 'device' },
+      { name: 'Flatten PDF', href: '/flatten-pdf', icon: Layers, badge: 'device' },
       { name: 'Protect PDF', href: '/protect-pdf', icon: Lock, badge: 'device' },
       { name: 'Unlock PDF', href: '/unlock-pdf', icon: Unlock, badge: 'device' },
     ],
@@ -78,6 +79,7 @@ export const catalog: CatGroup[] = [
   {
     label: 'Generators', color: '#4f46e5', tools: [
       { name: 'QR generator', href: '/qr-code-generator', icon: QrCode, badge: 'device' },
+      { name: 'QR scanner', href: '/scan-qr-code', icon: ScanLine, badge: 'device' },
       { name: 'Password', href: '/password-generator', icon: KeyRound, badge: 'device' },
     ],
   },

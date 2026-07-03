@@ -1,4 +1,4 @@
-import { Combine, Split, RotateCw, FileMinus, ListOrdered, Shrink, FileImage, Image as ImageIcon, Images, Fingerprint, Lock, Unlock, PenTool, QrCode, KeyRound, type LucideIcon } from 'lucide-react';
+import { Combine, Split, RotateCw, FileMinus, ListOrdered, Shrink, FileImage, Image as ImageIcon, Images, Fingerprint, Lock, Unlock, PenTool, QrCode, KeyRound, Layers, ScanLine, type LucideIcon } from 'lucide-react';
 
 // Single source of truth for the live tool set + how tools relate, so the
 // "Keep moving" (carry the file forward) and "Keep going" (what's next) rails are
@@ -45,8 +45,12 @@ export const TOOLS: Record<string, Tool> = {
     tile: 'from-orange-500/10 to-orange-500/0 hover:border-orange-500/40', chip: 'bg-orange-500' },
   '/unlock-pdf': { href: '/unlock-pdf', name: 'Unlock PDF', icon: Unlock, blurb: 'Remove a password you know', moveLabel: 'Remove the password', acceptsPdf: true,
     tile: 'from-cyan-500/10 to-cyan-500/0 hover:border-cyan-500/40', chip: 'bg-cyan-600' },
+  '/flatten-pdf': { href: '/flatten-pdf', name: 'Flatten PDF', icon: Layers, blurb: 'Make forms & annotations permanent', moveLabel: 'Flatten it', acceptsPdf: true,
+    tile: 'from-stone-500/10 to-stone-500/0 hover:border-stone-500/40', chip: 'bg-stone-500' },
   '/qr-code-generator': { href: '/qr-code-generator', name: 'QR code', icon: QrCode, blurb: 'Make a scannable QR in seconds', moveLabel: 'Make a QR code', acceptsPdf: false,
     tile: 'from-emerald-500/10 to-emerald-500/0 hover:border-emerald-500/40', chip: 'bg-emerald-500' },
+  '/scan-qr-code': { href: '/scan-qr-code', name: 'QR scanner', icon: ScanLine, blurb: 'Read a QR code from any image', moveLabel: 'Scan a QR code', acceptsPdf: false,
+    tile: 'from-teal-500/10 to-teal-500/0 hover:border-teal-500/40', chip: 'bg-teal-600' },
   '/password-generator': { href: '/password-generator', name: 'Password', icon: KeyRound, blurb: 'Generate a strong, private password', moveLabel: 'Make a password', acceptsPdf: false,
     tile: 'from-violet-500/10 to-violet-500/0 hover:border-violet-500/40', chip: 'bg-violet-500' },
 };
@@ -62,11 +66,13 @@ const NEXT: Record<string, string[]> = {
   '/pdf-to-jpg': ['/extract-images-from-pdf', '/jpg-to-pdf', '/compress-pdf'],
   '/extract-images-from-pdf': ['/jpg-to-pdf', '/compress-pdf', '/pdf-to-jpg'],
   '/remove-pdf-metadata': ['/compress-pdf', '/watermark-pdf', '/merge-pdf'],
-  '/sign-pdf': ['/protect-pdf', '/watermark-pdf', '/merge-pdf'],
+  '/sign-pdf': ['/flatten-pdf', '/protect-pdf', '/watermark-pdf', '/merge-pdf'],
+  '/flatten-pdf': ['/protect-pdf', '/compress-pdf', '/remove-pdf-metadata', '/merge-pdf'],
   '/protect-pdf': ['/unlock-pdf', '/sign-pdf', '/remove-pdf-metadata'],
-  '/unlock-pdf': ['/protect-pdf', '/compress-pdf', '/merge-pdf'],
+  '/unlock-pdf': ['/flatten-pdf', '/protect-pdf', '/compress-pdf', '/merge-pdf'],
   '/jpg-to-pdf': ['/compress-pdf', '/merge-pdf', '/add-page-numbers-to-pdf', '/rotate-pdf'],
-  '/qr-code-generator': ['/password-generator', '/compress-pdf', '/pdf-to-jpg'],
+  '/qr-code-generator': ['/scan-qr-code', '/password-generator', '/compress-pdf'],
+  '/scan-qr-code': ['/qr-code-generator', '/password-generator', '/compress-pdf'],
   '/password-generator': ['/qr-code-generator', '/compress-pdf', '/merge-pdf'],
 };
 

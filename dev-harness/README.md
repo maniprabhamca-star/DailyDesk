@@ -24,6 +24,28 @@ from a folder that has them). Node 22+ recommended (pdfjs v6 engines).
   48 imgs (incl. SMask alpha composites), gut-book 116 imgs (114 JPX recovered
   via pdf.js callback-form objs.get — the sync form throws "not resolved yet"
   because image data arrives AFTER getOperatorList resolves), text-only 0 imgs.
+- `compose.js` — byte-composition analyzer (images/fonts/XMP/content per file).
+- `jobber-sim.js` — full office compress pipeline sim (surgical + REAL fontgut
+  lib bundled to fontgut-lib.cjs, needs react-stub.cjs alias + the fetch shim
+  for /pdfjs assets + file:// workerSrc). Proved the two 2026-07-02 levers:
+  re-encode at-target DCT when bpp>0.10 (17KB) + metadata strip (3KB) →
+  jobber.pdf 349,044 -> 224KB sim / 207KiB live (Smallpdf basic: 220kB).
+- `jobber-diff.js` — page-render pixel-diff of original vs compressed.
+- `wmfont-qa.js` — embeds every public/fonts TTF via @pdf-lib/fontkit
+  (subset:true) + renders; note fontkit CJS default-export interop.
+- `sanitize-qa.js` — real lib/pdf-sanitize.ts (bundle to sanitize-lib.cjs):
+  scan -> strip -> output re-scan must be CLEAN + pixel-identical renders.
+- `flatten-qa.js` — THE GATE for Flatten PDF: builds a fillable fixture
+  (text field + checkbox), flattens with the EXACT shipping qpdf args
+  (keep in sync with frontend/lib/qpdf-args.ts — no `--` separator), asserts
+  0 fields/widgets remain AND the values are still inked (pixel check), runs
+  the REAL lib/pdf-flatten.ts scan (bundle to flatten-lib.cjs), and checks
+  encrypted input fails with exit 2 (mapped to "unlock first" in the UI).
+- `scan-qr-qa.js` — THE GATE for the Scan QR tool: real lib/qr-parse.ts +
+  lib/qr-payload.ts (bundles qr-parse-lib.cjs / qr-payload-lib.cjs), 28
+  checks: every payload type round-trips through generate->jsQR->parse incl.
+  escaping-heavy Wi-Fi/vCard, MECARD->.vcf, inverted codes, a QR embedded in
+  a 1920×1080 screenshot, and our own styled (rounded+gradient) QR output.
 
 ## Font subsetting — state as of 2026-07-02
 Corruption found: gutted output drops letters (D,O,M,N,G,b,f,g,z…) on page 1

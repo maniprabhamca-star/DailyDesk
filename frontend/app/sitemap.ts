@@ -23,6 +23,8 @@ const ROUTES: Array<{ path: string; priority: number; changeFrequency: MetadataR
   { path: '/protect-pdf', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/unlock-pdf', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/watermark-pdf', priority: 0.9, changeFrequency: 'monthly' },
+  { path: '/flatten-pdf', priority: 0.9, changeFrequency: 'monthly' },
+  { path: '/scan-qr-code', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/reorder-pdf', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/compress-image', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/heic-to-jpg', priority: 0.9, changeFrequency: 'monthly' },
