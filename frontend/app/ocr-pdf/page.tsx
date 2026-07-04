@@ -25,8 +25,8 @@ const faqs = [
   { q: 'What does OCR do?', a: 'OCR (optical character recognition) reads the text inside a scan or photo, which is otherwise just a picture. You get back a PDF whose text you can select, copy, and search — plus the plain text on its own.' },
   { q: 'Why does this tool use a server?', a: 'Accurate text recognition uses a full OCR engine (Tesseract) that runs best on a server. To keep it private, your pages are prepared in your browser first, sent over an encrypted connection, read, and then deleted immediately — nothing is stored or logged. See the “Where your data goes” table on our Security page.' },
   { q: 'Does the layout stay the same?', a: 'Yes — the searchable PDF keeps your original page image exactly as-is and adds an invisible, selectable text layer on top. So it looks identical, but the text is now searchable and copyable.' },
-  { q: 'Which languages are supported?', a: 'English today, with more languages on the way. Clear, straight scans work best; very faint, skewed, or handwritten pages are harder for any OCR.' },
-  { q: 'Is there a limit?', a: 'Up to 30 pages and 100 MB per job for now — enough for most documents.' },
+  { q: 'Which languages are supported?', a: 'Twelve so far — English, Spanish, French, German, Portuguese, Italian, Dutch, Russian, Chinese (Simplified), Japanese, Arabic, and Hindi — with more on the way. Pick yours before running. Clear, straight scans work best; very faint, skewed, or handwritten pages are harder for any OCR.' },
+  { q: 'How big a document can it handle?', a: 'Large ones. Pages are prepared in your browser and streamed to the server in small batches, so a 100-plus-page, tens-of-megabytes PDF works fine without overloading anything — up to 500 pages per job. You can also OCR just a page range, and choose Best (300 DPI, most accurate) or Fast (200 DPI) quality.' },
 ];
 
 export default function OcrPdfPage() {

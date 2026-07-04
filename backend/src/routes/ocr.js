@@ -16,20 +16,30 @@ const { makeStore, redisDown } = require('../utils/rateLimitStore');
 
 const router = express.Router();
 
-const MAX_PAGES = 30;
-const MAX_FILE_BYTES = 15 * 1024 * 1024;   // per page image
-const MAX_TOTAL_BYTES = 150 * 1024 * 1024;
+// The client sends the document in BATCHES of pages (it rasterizes + streams so
+// any size / page count works). These caps are PER BATCH, not per document.
+const MAX_PAGES = 20;                       // pages per batch
+const MAX_FILE_BYTES = 20 * 1024 * 1024;    // per page image
+const MAX_TOTAL_BYTES = 90 * 1024 * 1024;   // per batch
 const TIMEOUT_MS = 180 * 1000;
-const MAX_CONCURRENT = 2;
+const MAX_CONCURRENT = 3;
 let active = 0;
+
+// Installed Tesseract language packs (keep in sync with the VPS + the frontend
+// language list). Combine with '+' for mixed-language docs.
+const LANGS = new Set(['eng', 'spa', 'fra', 'deu', 'por', 'ita', 'nld', 'rus', 'chi_sim', 'jpn', 'ara', 'hin']);
+function safeLang(raw) {
+  const parts = String(raw || 'eng').split('+').map((s) => s.trim()).filter((s) => LANGS.has(s));
+  return parts.length ? parts.join('+') : 'eng';
+}
 
 router.use(rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 15,
+  max: 200, // batched: a large doc = many small requests
   keyGenerator: clientKey,
   store: makeStore('rl:ocr:'),
   skip: () => redisDown(),
-  message: { error: 'Too many OCR jobs — please try again in a few minutes.' },
+  message: { error: 'Too many OCR requests — please try again in a few minutes.' },
 }));
 
 const upload = multer({
@@ -57,8 +67,9 @@ router.post('/', (req, res) => {
       const listPath = path.join(dir, 'list.txt');
       fs.writeFileSync(listPath, imgPaths.join('\n'));
 
+      const lang = safeLang(req.body && req.body.lang);
       await new Promise((resolve, reject) => {
-        execFile('tesseract', [listPath, outBase, '-l', 'eng', 'pdf', 'txt'],
+        execFile('tesseract', [listPath, outBase, '-l', lang, 'pdf', 'txt'],
           { timeout: TIMEOUT_MS, maxBuffer: 20 * 1024 * 1024 },
           (err) => (err ? reject(err) : resolve()));
       });
