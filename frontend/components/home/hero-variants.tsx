@@ -113,7 +113,7 @@ function ProductCluster() {
     { bg: 'bg-rose-600', Icon: Combine, cls: '-right-4 -bottom-4' },
   ];
   return (
-    <div className="relative mx-auto flex h-[452px] w-full max-w-[520px] items-center justify-center">
+    <div className="relative mx-auto flex h-[348px] w-full max-w-[520px] items-center justify-center md:h-[452px]">
       <div aria-hidden className="pointer-events-none absolute inset-8 rounded-[40px]" style={{ background: 'radial-gradient(closest-side, rgba(124,58,237,0.10), transparent)' }} />
       {/* the sliding browser-framed product shot with tool tiles on its corners */}
       <div className="relative w-[360px] max-w-[92%]">
