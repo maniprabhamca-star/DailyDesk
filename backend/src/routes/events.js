@@ -4,6 +4,7 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const { clientKey } = require('../utils/rateLimitKey');
+const { makeStore, redisDown } = require('../utils/rateLimitStore');
 const jwt = require('jsonwebtoken');
 const { trackEvent } = require('../utils/trackEvent');
 
@@ -14,6 +15,8 @@ router.use(rateLimit({
   windowMs: 60 * 1000,
   max: 120,
   keyGenerator: clientKey,
+  store: makeStore('rl:events:'),
+  skip: () => redisDown(),
   message: { error: 'Too many events' },
 }));
 

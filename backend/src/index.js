@@ -6,6 +6,7 @@ const morgan = require('morgan');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const { clientKey } = require('./utils/rateLimitKey');
+const { makeStore, redisDown } = require('./utils/rateLimitStore');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -39,8 +40,9 @@ const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 300,
   keyGenerator: clientKey,
+  store: makeStore('rl:global:'),
   message: { error: 'Too many requests, please try again later.' },
-  skip: (req) => req.originalUrl.startsWith('/api/events'),
+  skip: (req) => redisDown() || req.originalUrl.startsWith('/api/events'),
 });
 app.use('/api/', limiter);
 

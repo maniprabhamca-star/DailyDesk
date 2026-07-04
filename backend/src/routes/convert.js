@@ -7,6 +7,7 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const { clientKey } = require('../utils/rateLimitKey');
+const { makeStore, redisDown } = require('../utils/rateLimitStore');
 const multer = require('multer');
 const { execFile } = require('child_process');
 const fs = require('fs');
@@ -24,6 +25,8 @@ router.use(rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
   keyGenerator: clientKey,
+  store: makeStore('rl:convert:'),
+  skip: () => redisDown(),
   message: { error: 'Too many conversions — please try again in a few minutes.' },
 }));
 
