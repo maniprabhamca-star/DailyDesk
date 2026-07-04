@@ -156,9 +156,9 @@ export function OcrTool() {
 
       setMsg('Assembling searchable PDF…');
       const { PDFDocument } = await import('pdf-lib');
-      let blob: Blob;
+      let outBytes: Uint8Array;
       if (chunks.length === 1) {
-        blob = new Blob([chunks[0].buffer as ArrayBuffer], { type: 'application/pdf' });
+        outBytes = chunks[0];
       } else {
         const merged = await PDFDocument.create();
         for (const chunk of chunks) {
@@ -166,8 +166,9 @@ export function OcrTool() {
           const copied = await merged.copyPages(src, src.getPageIndices());
           copied.forEach((p) => merged.addPage(p));
         }
-        blob = new Blob([await merged.save()], { type: 'application/pdf' });
+        outBytes = await merged.save();
       }
+      const blob = new Blob([outBytes as unknown as BlobPart], { type: 'application/pdf' });
 
       const name = `${file.name.replace(/\.[^.]+$/, '')}-ocr.pdf`;
       download(blob, name);
