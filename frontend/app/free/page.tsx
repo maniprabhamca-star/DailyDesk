@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ShieldCheck, CloudOff, Sparkles, MessageSquare, Crown, Check } from 'lucide-react';
+import { ShieldCheck, CloudOff, Sparkles, MessageSquare, Crown, Check, Award } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SiteHeader } from '@/components/app/site-header';
 import { SiteFooter } from '@/components/app/site-footer';
@@ -90,6 +90,16 @@ export default function FreePage() {
           <p className="mt-5 text-sm text-muted-foreground">
             Planned at <strong className="text-foreground">${PRICING.pro.monthly}/month</strong> (or {PRICING.pro.annualNote}) when it launches — but not yet. There&rsquo;s nothing to buy today.
           </p>
+
+          <div className="mt-4 rounded-xl border border-amber-400/40 bg-amber-400/10 p-4">
+            <p className="flex items-center gap-2 text-sm font-semibold text-amber-700 dark:text-amber-400">
+              <Award className="size-4" /> Founding member offer
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Go Pro in the launch window and <strong className="text-foreground">lock in $4.99/month for life</strong> —
+              even as we add features and the price rises later. Our thank-you for being here early.
+            </p>
+          </div>
         </section>
 
         {/* Help shape Pro — feedback ask */}
