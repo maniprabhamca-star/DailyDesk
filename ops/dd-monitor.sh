@@ -71,7 +71,7 @@ send_email() { # subject body
   [ -z "$recipients" ] && return 0
   local subject="$1" body="$2" to
   for to in ${recipients//,/ }; do
-    printf 'From: %s\r\nTo: %s\r\nSubject: %s\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n%s\r\n' \
+    printf 'From: DiemDesk Alerts <%s>\r\nTo: %s\r\nSubject: %s\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n%s\r\n' \
       "${EMAIL_FROM}" "$to" "[DiemDesk] $subject" "$body" \
     | curl -s -m 15 --ssl-reqd --url "smtps://${SMTP_HOST}:${SMTP_PORT:-465}" \
         --mail-from "${EMAIL_FROM}" --mail-rcpt "$to" \
@@ -255,9 +255,10 @@ case "$MODE" in
         && echo "  ntfy: sent to $NTFY_TOPIC"
     else echo "  ntfy: (NTFY_TOPIC unset)"; fi
     send_email "Test alert" "If you got this email, DiemDesk email alerts work. $(date)"
-    [ -n "${ALERT_EMAILS:-}" ] && echo "  email: attempted to $ALERT_EMAILS" || echo "  email: (not configured)"
+    _r=$(pg "select string_agg(email, ',') from alert_recipients where active=true" 2>/dev/null); [ -z "$_r" ] && _r="${ALERT_EMAILS:-}"
+    if [ -n "${SMTP_HOST:-}" ] && [ -n "$_r" ]; then echo "  email: sent to $_r"; else echo "  email: (not configured)"; fi
     send_sms "DiemDesk test alert — SMS works. $(date)"
-    [ -n "${ALERT_SMS:-}" ] && echo "  sms: attempted to $ALERT_SMS" || echo "  sms: (not configured)"
+    [ -n "${ALERT_SMS:-}" ] && echo "  sms: sent to $ALERT_SMS" || echo "  sms: (not configured)"
     ;;
   *) echo "usage: dd-monitor {infra|growth|test}"; exit 1 ;;
 esac
