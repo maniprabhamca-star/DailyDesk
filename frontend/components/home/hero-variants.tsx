@@ -84,7 +84,7 @@ function FramedSlider() {
         <span className="ml-2 flex-1 truncate rounded-md border bg-background px-2 py-1 text-center text-[11px] text-muted-foreground">diemdesk.com/{s.slug}</span>
         <ArrowRight className="size-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
       </div>
-      <div className="relative h-[188px]">
+      <div className="relative h-[212px]">
         {SLIDES.map((sl, idx) => (
           <div key={sl.slug} className={`absolute inset-0 transition-opacity duration-500 ${idx === i ? 'opacity-100' : 'opacity-0'}`} aria-hidden={idx !== i}>
             <ToolScene {...sl} />
@@ -113,10 +113,10 @@ function ProductCluster() {
     { bg: 'bg-rose-600', Icon: Combine, cls: '-right-4 -bottom-4' },
   ];
   return (
-    <div className="relative mx-auto flex h-[400px] w-full max-w-[430px] items-center justify-center">
-      <div aria-hidden className="pointer-events-none absolute inset-10 rounded-[40px]" style={{ background: 'radial-gradient(closest-side, rgba(124,58,237,0.10), transparent)' }} />
+    <div className="relative mx-auto flex h-[452px] w-full max-w-[520px] items-center justify-center">
+      <div aria-hidden className="pointer-events-none absolute inset-8 rounded-[40px]" style={{ background: 'radial-gradient(closest-side, rgba(124,58,237,0.10), transparent)' }} />
       {/* the sliding browser-framed product shot with tool tiles on its corners */}
-      <div className="relative w-[300px] max-w-[84%]">
+      <div className="relative w-[360px] max-w-[92%]">
         <FramedSlider />
         {tiles.map((t, i) => (
           <span key={i} className={`absolute z-10 flex size-10 items-center justify-center rounded-2xl text-white shadow-lift ring-4 ring-background ${t.bg} ${t.cls}`}>
