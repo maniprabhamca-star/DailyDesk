@@ -1,0 +1,188 @@
+#!/usr/bin/env bash
+# DiemDesk server monitor + capacity/growth predictor + push alerts.
+#
+# Modes:
+#   dd-monitor infra    -> sample host/API/DB health, alert on threshold breaches (run every 5 min)
+#   dd-monitor growth   -> snapshot users/DAU, project days-to-capacity, daily digest (run daily)
+#   dd-monitor test     -> send a test push so you can confirm notifications work
+#
+# Alerts are pushed to ntfy.sh (free, no account — you just subscribe to the
+# topic on your phone). Config (topic + optional overrides) lives in
+# /etc/dd-monitor.conf so the secret-ish topic stays out of git.
+#
+# Design goals: zero heavy deps (bash + awk + curl + psql + redis-cli), never
+# crash the box, dedupe alerts with a cooldown, and warn BEFORE thresholds are
+# hit by projecting the growth trend.
+set -uo pipefail
+
+# ---- config (overridable via /etc/dd-monitor.conf) -------------------------
+NTFY_URL="https://ntfy.sh"
+NTFY_TOPIC=""                     # REQUIRED — set in /etc/dd-monitor.conf
+ENV_FILE="/var/www/dailydesk/backend/.env"
+STATE_DIR="/var/lib/dd-monitor"
+INFRA_CSV="/var/log/dd-metrics.csv"
+DAILY_CSV="/var/log/dd-daily.csv"
+API_HEALTH="http://127.0.0.1:4000/health"
+COOLDOWN=21600                    # 6h between repeat alerts for the same key
+
+# Infra thresholds (WARN / CRIT)
+LOAD_RATIO_WARN=0.625; LOAD_RATIO_CRIT=0.85    # load1 / cores  (0.625 = 2.5 of 4 cores)
+MEM_WARN=70;  MEM_CRIT=88                       # % RAM used
+DISK_WARN=80; DISK_CRIT=92                       # % disk used
+P95_WARN=300; P95_CRIT=800                       # API p95 latency ms
+PGCONN_WARN=0.70; PGCONN_CRIT=0.90               # active / max_connections
+
+# Capacity milestones (DAU) + how many days of lead-time you want before a breach
+VERTICAL_AT_DAU=40000      # bump the box (8 cores + more workers) before ~50k
+HORIZONTAL_AT_DAU=90000    # multi-server + managed DB before ~100k
+LEAD_DAYS=7                # warn this many days before the projected crossing
+
+[ -f /etc/dd-monitor.conf ] && . /etc/dd-monitor.conf
+
+mkdir -p "$STATE_DIR"
+MODE="${1:-infra}"
+
+# ---- helpers ---------------------------------------------------------------
+gt() { awk -v a="$1" -v b="$2" 'BEGIN{exit !(a+0>b+0)}'; }   # a > b ?
+
+# push to phone via ntfy, with per-key cooldown so we don't spam
+notify() { # key priority tags title message
+  local key="$1" prio="$2" tags="$3" title="$4" msg="$5"
+  local now last f="$STATE_DIR/alert_$1.ts"
+  now=$(date +%s); last=0; [ -f "$f" ] && last=$(cat "$f" 2>/dev/null || echo 0)
+  if [ $((now - last)) -lt "$COOLDOWN" ] && [ "$prio" != "max" ]; then return; fi
+  [ -z "$NTFY_TOPIC" ] && { echo "[dd-monitor] NTFY_TOPIC unset"; return; }
+  curl -s -m 10 \
+    -H "Title: $title" -H "Priority: $prio" -H "Tags: $tags" \
+    -d "$msg" "$NTFY_URL/$NTFY_TOPIC" >/dev/null 2>&1
+  echo "$now" > "$f"
+  echo "[dd-monitor] alerted: $title — $msg"
+}
+clear_alert() { rm -f "$STATE_DIR/alert_$1.ts" 2>/dev/null; }  # reset cooldown when healthy
+
+# DB query helper (reads creds from backend .env)
+pg() {
+  local u p n
+  u=$(grep -E '^DB_USER=' "$ENV_FILE" | cut -d= -f2-)
+  p=$(grep -E '^DB_PASSWORD=' "$ENV_FILE" | cut -d= -f2-)
+  n=$(grep -E '^DB_NAME=' "$ENV_FILE" | cut -d= -f2-)
+  PGPASSWORD="$p" psql -U "$u" -d "$n" -h 127.0.0.1 -tAc "$1" 2>/dev/null
+}
+
+# ---- infra mode ------------------------------------------------------------
+infra() {
+  local cores load1 loadratio mem_used mem_total mem_pct disk_pct
+  cores=$(nproc)
+  load1=$(awk '{print $1}' /proc/loadavg)
+  loadratio=$(awk -v l="$load1" -v c="$cores" 'BEGIN{printf "%.3f", l/c}')
+  read -r mem_total mem_used < <(free -m | awk '/^Mem:/{print $2, $3}')
+  mem_pct=$(awk -v u="$mem_used" -v t="$mem_total" 'BEGIN{printf "%.1f", 100*u/t}')
+  disk_pct=$(df -P / | awk 'NR==2{gsub("%","",$5); print $5}')
+
+  # API p95 latency: 20 quick health probes, take the 95th percentile (ms)
+  local times=() t p95
+  for _ in $(seq 1 20); do
+    t=$(curl -s -o /dev/null -m 5 -w '%{time_total}' "$API_HEALTH" 2>/dev/null || echo 5)
+    times+=("$(awk -v x="$t" 'BEGIN{printf "%.0f", x*1000}')")
+  done
+  p95=$(printf '%s\n' "${times[@]}" | sort -n | awk '{a[NR]=$0} END{print a[int(NR*0.95+0.999)]}')
+
+  # Postgres connections vs max
+  local pgc pgmax pgratio
+  pgc=$(pg "select count(*) from pg_stat_activity"); pgc=${pgc:-0}
+  pgmax=$(pg "show max_connections"); pgmax=${pgmax:-100}
+  pgratio=$(awk -v a="$pgc" -v b="$pgmax" 'BEGIN{printf "%.3f", (b>0)?a/b:0}')
+
+  local redis_ok; redis_ok=$(redis-cli ping 2>/dev/null || echo DOWN)
+
+  # log a row for history/trends
+  echo "$(date -u +%FT%TZ),$loadratio,$mem_pct,$disk_pct,$p95,$pgc,$pgmax,$redis_ok" >> "$INFRA_CSV"
+
+  # evaluate thresholds -> alerts (CRIT beats WARN; clear cooldown when healthy)
+  if   gt "$loadratio" "$LOAD_RATIO_CRIT"; then notify load crit rotating_light "DiemDesk CPU CRITICAL" "load ${load1} on ${cores} cores (ratio ${loadratio}). Scale the box NOW."
+  elif gt "$loadratio" "$LOAD_RATIO_WARN"; then notify load high warning "DiemDesk CPU high" "load ${load1}/${cores} cores (ratio ${loadratio}). Approaching capacity — plan the vertical bump."
+  else clear_alert load; fi
+
+  if   gt "$mem_pct" "$MEM_CRIT"; then notify mem crit rotating_light "DiemDesk RAM CRITICAL" "RAM ${mem_pct}% used."
+  elif gt "$mem_pct" "$MEM_WARN"; then notify mem high warning "DiemDesk RAM high" "RAM ${mem_pct}% used."
+  else clear_alert mem; fi
+
+  if   gt "$disk_pct" "$DISK_CRIT"; then notify disk crit rotating_light "DiemDesk disk CRITICAL" "disk ${disk_pct}% full."
+  elif gt "$disk_pct" "$DISK_WARN"; then notify disk high warning "DiemDesk disk high" "disk ${disk_pct}% full."
+  else clear_alert disk; fi
+
+  if   gt "$p95" "$P95_CRIT"; then notify lat crit rotating_light "DiemDesk API latency CRITICAL" "health p95 ${p95}ms."
+  elif gt "$p95" "$P95_WARN"; then notify lat high warning "DiemDesk API latency high" "health p95 ${p95}ms — investigate / scale."
+  else clear_alert lat; fi
+
+  if   gt "$pgratio" "$PGCONN_CRIT"; then notify pg crit rotating_light "DiemDesk Postgres conns CRITICAL" "${pgc}/${pgmax} connections. Add pgbouncer / managed DB."
+  elif gt "$pgratio" "$PGCONN_WARN"; then notify pg high warning "DiemDesk Postgres conns high" "${pgc}/${pgmax} connections."
+  else clear_alert pg; fi
+
+  [ "$redis_ok" != "PONG" ] && notify redis crit rotating_light "DiemDesk Redis DOWN" "redis-cli ping => ${redis_ok}. Rate limiter is failing open."
+
+  echo "OK load=${loadratio} mem=${mem_pct}% disk=${disk_pct}% p95=${p95}ms pg=${pgc}/${pgmax} redis=${redis_ok}"
+}
+
+# ---- growth mode -----------------------------------------------------------
+growth() {
+  local today total dau signups pro
+  today=$(date -u +%F)
+  total=$(pg "select count(*) from users"); total=${total:-0}
+  pro=$(pg "select count(*) from users where plan='pro'"); pro=${pro:-0}
+  signups=$(pg "select count(*) from users where created_at > now() - interval '24 hours'"); signups=${signups:-0}
+  dau=$(pg "select count(distinct coalesce(user_id::text, ip_address::text)) from user_events where created_at > now() - interval '24 hours'"); dau=${dau:-0}
+
+  # one snapshot row per day (idempotent)
+  touch "$DAILY_CSV"
+  if ! grep -q "^$today," "$DAILY_CSV"; then
+    echo "$today,$total,$dau,$signups,$pro" >> "$DAILY_CSV"
+  fi
+
+  # project DAU: linear fit over the trailing history (needs >=2 days)
+  local proj_msg="not enough history yet (collecting daily snapshots)"
+  local ndays; ndays=$(wc -l < "$DAILY_CSV")
+  if [ "$ndays" -ge 2 ]; then
+    # slope = (dau_today - dau_first) / days_span ; project days to each milestone
+    proj_msg=$(awk -F, -v vday="$VERTICAL_AT_DAU" -v hday="$HORIZONTAL_AT_DAU" -v lead="$LEAD_DAYS" '
+      { d[NR]=$3; day[NR]=$1 }
+      END{
+        n=NR; first=d[1]; last=d[n];
+        # days span from first to last row
+        span=n-1; if(span<1) span=1;
+        slope=(last-first)/span;   # DAU per day
+        if(slope<=0){ print "flat/declining DAU (" last " today) — no scaling pressure"; exit }
+        vdays=(vday-last)/slope; hdays=(hday-last)/slope;
+        msg=sprintf("DAU %d, growing ~%.0f/day.", last, slope);
+        if(vdays>0) msg=sprintf("%s ~%.0f days to %d (vertical bump).", msg, vdays, vday);
+        if(hdays>0) msg=sprintf("%s ~%.0f days to %d (go multi-server).", msg, hdays, hday);
+        print msg;
+        # advance-warning flag consumed by the caller
+        if(vdays>0 && vdays<=lead) print "WARN_VERTICAL " int(vdays);
+        if(hdays>0 && hdays<=lead) print "WARN_HORIZONTAL " int(hdays);
+      }' "$DAILY_CSV")
+  fi
+
+  # fire advance-warning pushes if the projection says a milestone is near
+  if echo "$proj_msg" | grep -q "WARN_VERTICAL"; then
+    local dleft; dleft=$(echo "$proj_msg" | awk '/WARN_VERTICAL/{print $2}')
+    notify grow_v max chart_with_upwards_trend "DiemDesk: scale up soon" "Growth projects ~${dleft} days to the vertical-scale point (${VERTICAL_AT_DAU} DAU). Resize the box + add workers ahead of the peak."
+  fi
+  if echo "$proj_msg" | grep -q "WARN_HORIZONTAL"; then
+    local dleft; dleft=$(echo "$proj_msg" | awk '/WARN_HORIZONTAL/{print $2}')
+    notify grow_h max chart_with_upwards_trend "DiemDesk: go multi-server soon" "Growth projects ~${dleft} days to the horizontal-scale point (${HORIZONTAL_AT_DAU} DAU). Stand up a 2nd node + managed DB now."
+  fi
+
+  local clean; clean=$(echo "$proj_msg" | grep -v '^WARN_' | head -1)
+  # daily digest (always sent, low priority)
+  notify digest_$today default bar_chart "DiemDesk daily: ${total} users, ${dau} DAU" \
+    "Total ${total} (Pro ${pro}) · signups 24h ${signups} · DAU ${dau}. ${clean}"
+  echo "growth: total=$total dau=$dau signups=$signups pro=$pro :: $clean"
+}
+
+case "$MODE" in
+  infra)  infra ;;
+  growth) growth ;;
+  test)   NTFY_TOPIC="${NTFY_TOPIC}"; curl -s -m 10 -H "Title: DiemDesk test alert" -H "Tags: white_check_mark" -d "If you see this on your phone, alerts work. $(date)" "$NTFY_URL/$NTFY_TOPIC" >/dev/null && echo "sent test to $NTFY_TOPIC" ;;
+  *) echo "usage: dd-monitor {infra|growth|test}"; exit 1 ;;
+esac
