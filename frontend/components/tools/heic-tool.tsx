@@ -1,5 +1,6 @@
 'use client';
 
+import { formatDuration } from '@/lib/format';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Upload, X, Download, Loader2, ImageIcon, FileImage, FileText, CheckCircle2, RotateCcw, AlertTriangle, Sparkles } from 'lucide-react';
@@ -219,7 +220,7 @@ export function HeicTool() {
               <CheckCircle2 className="size-5 text-emerald-500" />
               <div>
                 <p className="text-sm font-semibold">Done — {results.length} photo{results.length === 1 ? '' : 's'} converted</p>
-                <p className="text-xs text-muted-foreground">{format.toUpperCase()} · {fmt(totalBytes)} total{elapsed != null ? ` · ${elapsed.toFixed(1)}s` : ''}</p>
+                <p className="text-xs text-muted-foreground">{format.toUpperCase()} · {fmt(totalBytes)} total{elapsed != null ? ` · ${formatDuration(elapsed)}` : ''}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">

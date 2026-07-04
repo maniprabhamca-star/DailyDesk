@@ -1,5 +1,6 @@
 'use client';
 
+import { formatDuration } from '@/lib/format';
 import { useEffect, useRef, useState } from 'react';
 import { Upload, Film, X, Loader2, Download, Clapperboard, RotateCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -189,7 +190,7 @@ export function VideoToGifTool() {
             <div className="rounded-xl border bg-card p-4 text-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={result.url} alt="Your GIF" className="mx-auto max-h-72 rounded-lg" />
-              <p className="mt-3 text-sm text-muted-foreground">GIF ready — {fmt(result.size)} · {result.secs.toFixed(1)}s</p>
+              <p className="mt-3 text-sm text-muted-foreground">GIF ready — {fmt(result.size)} · {formatDuration(result.secs)}</p>
               <div className="mt-3 flex flex-wrap justify-center gap-2">
                 <Button size="sm" onClick={() => download(result.blob, `${(file?.name || 'clip').replace(/\.[^.]+$/, '')}.gif`)}>
                   <Download className="size-4" /> Download again

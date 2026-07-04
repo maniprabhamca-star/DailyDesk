@@ -1,5 +1,6 @@
 'use client';
 
+import { formatDuration } from '@/lib/format';
 import { useEffect, useRef, useState } from 'react';
 import { Upload, FileImage, X, Download, Loader2, Shrink, CheckCircle2, Type, Eye, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -269,7 +270,7 @@ export function CompressImageTool() {
                 </div>
               ) : (
                 <>
-                  <SavingsRing savedPct={saved} beforeLabel={fmt(done.before)} afterLabel={fmt(done.after)} note={`${done.w}×${done.h}px JPG · ${done.secs.toFixed(1)}s`} />
+                  <SavingsRing savedPct={saved} beforeLabel={fmt(done.before)} afterLabel={fmt(done.after)} note={`${done.w}×${done.h}px JPG · ${formatDuration(done.secs)}`} />
                   <div className="mt-4">
                     <BeforeAfter
                       before={srcUrl && srcDims ? { url: srcUrl, w: srcDims.w, h: srcDims.h } : null}

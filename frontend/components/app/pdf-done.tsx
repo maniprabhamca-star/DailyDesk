@@ -6,6 +6,7 @@ import { FileText, Download, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { setHandoff } from '@/lib/handoff';
 import { downloadBlob as download } from '@/lib/download';
+import { formatDuration } from '@/lib/format';
 import { nextFor } from '@/lib/tool-graph';
 import { KeepMoving, type MoveAction } from './keep-moving';
 import { KeepGoing } from './keep-going';
@@ -50,7 +51,7 @@ export function PdfDone({ blob, name, currentHref, fromLabel, hideBanner = false
     <div ref={ref} className="mt-5 scroll-mt-20">
       {!hideBanner && (
         <div className="flex flex-col gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
-          <span className="flex items-center gap-2 text-sm font-medium"><CheckCircle2 className="size-4 text-emerald-500" /> Done — {name} saved to your device{typeof secs === 'number' ? ` · ${secs.toFixed(1)}s` : ''}</span>
+          <span className="flex items-center gap-2 text-sm font-medium"><CheckCircle2 className="size-4 text-emerald-500" /> Done — {name} saved to your device{typeof secs === 'number' ? ` · ${formatDuration(secs)}` : ''}</span>
           <Button size="sm" variant="outline" onClick={() => download(blob, name)}><Download className="size-4" /> Download again</Button>
         </div>
       )}

@@ -1,5 +1,6 @@
 'use client';
 
+import { formatDuration } from '@/lib/format';
 import { useRef, useState } from 'react';
 import { Upload, FileText, X, Download, Loader2, FileType, CheckCircle2, RotateCcw, Cloud } from 'lucide-react';
 import Link from 'next/link';
@@ -161,7 +162,7 @@ export function PdfToWordTool() {
               <CheckCircle2 className="size-5 shrink-0 text-emerald-500" />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold">Done — {done.name} saved</p>
-                <p className="text-xs text-muted-foreground">{fmt(done.blob.size)} · {done.secs.toFixed(1)}s · your PDF was deleted from the server the moment this downloaded</p>
+                <p className="text-xs text-muted-foreground">{fmt(done.blob.size)} · {formatDuration(done.secs)} · your PDF was deleted from the server the moment this downloaded</p>
               </div>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={() => { setDone(null); setFile(null); }}><RotateCcw className="size-4" /> New PDF</Button>

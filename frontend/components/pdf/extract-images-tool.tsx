@@ -1,5 +1,6 @@
 'use client';
 
+import { formatDuration } from '@/lib/format';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Upload, FileText, X, Download, Loader2, Images, FileImage, CheckCircle2, RotateCcw, Info, Zap, BadgeCheck } from 'lucide-react';
@@ -368,7 +369,7 @@ export function ExtractImagesTool() {
                 <p className="text-sm font-semibold">Done — {results.length} image{results.length === 1 ? '' : 's'} extracted</p>
                 <p className="text-xs text-muted-foreground">
                   {originals > 0 ? `${originals} original JPG${originals === 1 ? '' : 's'} · ` : ''}
-                  {fmt(totalBytes)} total{elapsed != null ? ` · ${elapsed.toFixed(1)}s` : ''}
+                  {fmt(totalBytes)} total{elapsed != null ? ` · ${formatDuration(elapsed)}` : ''}
                 </p>
               </div>
             </div>

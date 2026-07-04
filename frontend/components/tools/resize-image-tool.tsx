@@ -1,5 +1,6 @@
 'use client';
 
+import { formatDuration } from '@/lib/format';
 import { useEffect, useRef, useState } from 'react';
 import { Upload, X, Download, Loader2, ImageIcon, CheckCircle2, RotateCcw, Link2, Unlink2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -205,7 +206,7 @@ export function ResizeImageTool() {
               <CheckCircle2 className="size-5 shrink-0 text-emerald-500" />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold">Resized — {done.name} saved</p>
-                <p className="text-xs text-muted-foreground">{done.w}×{done.h} · {fmt(done.blob.size)} (was {fmt(file?.size || 0)}) · {done.secs.toFixed(1)}s</p>
+                <p className="text-xs text-muted-foreground">{done.w}×{done.h} · {fmt(done.blob.size)} (was {fmt(file?.size || 0)}) · {formatDuration(done.secs)}</p>
               </div>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={() => setDone(null)}><RotateCcw className="size-4" /> Again</Button>

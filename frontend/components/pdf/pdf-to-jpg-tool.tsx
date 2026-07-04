@@ -1,5 +1,6 @@
 'use client';
 
+import { formatDuration } from '@/lib/format';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Upload, FileText, X, Download, Loader2, ImageIcon, FileImage, CheckCircle2, RotateCcw, AlertTriangle, Zap } from 'lucide-react';
@@ -300,7 +301,7 @@ export function PdfToJpgTool() {
               <div>
                 <p className="text-sm font-semibold">Done — {results.length} image{results.length === 1 ? '' : 's'} ready</p>
                 <p className="text-xs text-muted-foreground">
-                  {format.toUpperCase()} · {PRESET[preset].dpi} DPI · {fmt(totalBytes)} total{elapsed != null ? ` · ${elapsed.toFixed(1)}s` : ''}
+                  {format.toUpperCase()} · {PRESET[preset].dpi} DPI · {fmt(totalBytes)} total{elapsed != null ? ` · ${formatDuration(elapsed)}` : ''}
                 </p>
               </div>
             </div>

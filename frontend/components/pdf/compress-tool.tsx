@@ -8,6 +8,7 @@ import type { PDFRawStream as RawStream } from 'pdf-lib';
 import { encodeJpeg } from '@/lib/mozjpeg';
 import { takeHandoff } from '@/lib/handoff';
 import { downloadBlob as download } from '@/lib/download';
+import { formatDuration } from '@/lib/format';
 import { PdfDone } from '@/components/app/pdf-done';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
@@ -781,7 +782,7 @@ export function CompressTool() {
       const after = outBytes.length;
       const name = `${file.name.replace(/\.pdf$/i, '')}-compressed.pdf`;
       const secs = (performance.now() - startedAt) / 1000;
-      const took = secs < 60 ? `${Math.round(secs)}s` : `${Math.floor(secs / 60)}m ${Math.round(secs % 60)}s`;
+      const took = formatDuration(secs);
       const savedFrac = before > 0 ? 1 - after / before : 0;
 
       // "Already optimized" only when we genuinely couldn't shrink it (<1%).

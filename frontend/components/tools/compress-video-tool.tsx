@@ -1,5 +1,6 @@
 'use client';
 
+import { formatDuration } from '@/lib/format';
 import { useEffect, useRef, useState } from 'react';
 import { Upload, Film, X, Loader2, Download, Shrink, RotateCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -178,9 +179,9 @@ export function CompressVideoTool() {
         {result && file && (
           <div className="mt-5">
             {saved > 0 ? (
-              <SavingsRing savedPct={savedPct} beforeLabel={fmt(file.size)} afterLabel={fmt(result.blob.size)} note={`${result.label} · ${result.secs.toFixed(1)}s`} />
+              <SavingsRing savedPct={savedPct} beforeLabel={fmt(file.size)} afterLabel={fmt(result.blob.size)} note={`${result.label} · ${formatDuration(result.secs)}`} />
             ) : (
-              <p className="rounded-xl border bg-card p-4 text-center text-sm text-muted-foreground">This video is already efficiently compressed — the re‑encoded {result.label} file is {fmt(result.blob.size)} ({result.secs.toFixed(1)}s). Try a lower quality or resolution for more shrink.</p>
+              <p className="rounded-xl border bg-card p-4 text-center text-sm text-muted-foreground">This video is already efficiently compressed — the re‑encoded {result.label} file is {fmt(result.blob.size)} ({formatDuration(result.secs)}). Try a lower quality or resolution for more shrink.</p>
             )}
             <div className="mt-3 flex flex-wrap justify-center gap-2">
               <Button size="sm" onClick={() => download(result.blob, `${file.name.replace(/\.[^.]+$/, '')}-compressed.${result.ext}`)}><Download className="size-4" /> Download again</Button>

@@ -1,5 +1,6 @@
 'use client';
 
+import { formatDuration } from '@/lib/format';
 import { useEffect, useRef, useState } from 'react';
 import { Upload, X, Download, Eraser, CheckCircle2, RotateCcw, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -178,7 +179,7 @@ export function RemoveBackgroundTool() {
               <CheckCircle2 className="size-5 shrink-0 text-emerald-500" />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold">Background removed — transparent PNG ready</p>
-                <p className="text-xs text-muted-foreground">{fmt(done.png.size)} · full {done.w}×{done.h} resolution · {(done.ms / 1000).toFixed(1)}s on your device</p>
+                <p className="text-xs text-muted-foreground">{fmt(done.png.size)} · full {done.w}×{done.h} resolution · {formatDuration(done.ms / 1000)} on your device</p>
               </div>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={() => setDone(null)}><RotateCcw className="size-4" /> Again</Button>
