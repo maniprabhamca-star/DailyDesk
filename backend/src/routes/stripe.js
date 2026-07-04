@@ -73,12 +73,12 @@ async function webhookHandler(req, res) {
       const session = event.data.object;
       const userId = session.client_reference_id || (session.metadata && session.metadata.userId);
       if (userId) {
-        await db.query('UPDATE users SET plan = $1, stripe_customer_id = $2 WHERE id = $3', ['pro', session.customer || null, userId]);
+        await db.query('UPDATE users SET plan = $1, stripe_customer_id = $2, updated_at = now() WHERE id = $3', ['pro', session.customer || null, userId]);
         console.log(`Stripe: user ${userId} → pro`);
       }
     } else if (event.type === 'customer.subscription.deleted') {
       const sub = event.data.object;
-      await db.query("UPDATE users SET plan = 'free' WHERE stripe_customer_id = $1", [sub.customer]);
+      await db.query("UPDATE users SET plan = 'free', updated_at = now() WHERE stripe_customer_id = $1", [sub.customer]);
       console.log(`Stripe: customer ${sub.customer} → free`);
     }
   } catch (err) {
