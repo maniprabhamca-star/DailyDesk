@@ -5,9 +5,15 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
+const { clientKey } = require('./utils/rateLimitKey');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
+
+// Behind Cloudflare -> nginx (two proxies). Trust them so req.ip resolves to the
+// real client instead of the loopback peer. (A number, not `true`, so it stays
+// spoof-resistant and doesn't trip express-rate-limit's permissive-proxy check.)
+app.set('trust proxy', 2);
 
 // Security middleware
 app.use(helmet());
@@ -24,11 +30,17 @@ app.use(cors({
 // needs the exact raw body to verify the signature, and it controls the volume.
 app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), require('./routes/stripe').webhookHandler);
 
-// Rate limiting
+// Global rate limit — a coarse safety net, keyed per real client (see clientKey).
+// 300 / 15 min ≈ 20 req/min per user: generous for normal browsing + auth, still
+// a backstop against abuse. Sensitive/expensive routes add stricter limits below.
+// Analytics beacons are frequent and have their own limiter, so exclude them here
+// to stop them from draining a user's global budget.
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100,
+  max: 300,
+  keyGenerator: clientKey,
   message: { error: 'Too many requests, please try again later.' },
+  skip: (req) => req.originalUrl.startsWith('/api/events'),
 });
 app.use('/api/', limiter);
 

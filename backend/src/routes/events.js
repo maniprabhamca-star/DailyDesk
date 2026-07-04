@@ -3,15 +3,17 @@
 // this records a 'module_used' row in user_events (with user_id if logged in).
 const express = require('express');
 const rateLimit = require('express-rate-limit');
+const { clientKey } = require('../utils/rateLimitKey');
 const jwt = require('jsonwebtoken');
 const { trackEvent } = require('../utils/trackEvent');
 
 const router = express.Router();
 
-// Beacons are frequent-ish but cheap; cap per-IP to avoid abuse.
+// Beacons are frequent-ish but cheap; cap per-client to avoid abuse.
 router.use(rateLimit({
   windowMs: 60 * 1000,
   max: 120,
+  keyGenerator: clientKey,
   message: { error: 'Too many events' },
 }));
 

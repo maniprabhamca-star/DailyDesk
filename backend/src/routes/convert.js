@@ -6,6 +6,7 @@
 // "processed on our servers, then deleted" tier from /security).
 const express = require('express');
 const rateLimit = require('express-rate-limit');
+const { clientKey } = require('../utils/rateLimitKey');
 const multer = require('multer');
 const { execFile } = require('child_process');
 const fs = require('fs');
@@ -22,6 +23,7 @@ const TIMEOUT_MS = 120 * 1000;
 router.use(rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
+  keyGenerator: clientKey,
   message: { error: 'Too many conversions — please try again in a few minutes.' },
 }));
 
