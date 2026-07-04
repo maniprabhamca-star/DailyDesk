@@ -115,6 +115,32 @@ email, source page) with a filter by category (bug/idea/praise/other) and a
 count badge (`summary.unread`). A `status` column exists (`new` default) so you
 can add "mark as read/resolved" later (`UPDATE feedback SET status='read' WHERE id=…`).
 
+## Usage metrics panel (added 2026-07-04) — the "who's using it" dashboard
+This is the demand dashboard for the Pro-launch decision. Usage is tracked
+first-party (no third-party trackers): a beacon fires on every tool-page open →
+`user_events` table, now including an anonymous **`visitor_id`** (random UUID from
+the browser, no PII) so unique/returning visitors are accurate without signup.
+
+**Endpoint:** `GET /api/events/stats` with header `x-admin-token: <ADMIN_API_TOKEN>`
+(same token as the feedback endpoint). Returns:
+```json
+{ "registered_users": 12, "signups_24h": 2, "signups_7d": 6,
+  "unique_visitors": 3400, "dau": 210, "wau": 900, "mau": 3100,
+  "returning_visitors": 640, "total_tool_uses": 8200,
+  "top_tools": [ { "module": "compress-pdf", "uses": 1900 }, … ] }
+```
+Returns **404 until `ADMIN_API_TOKEN` is set** (it is set on the VPS `.env`).
+
+**UI suggestion — a "Usage" / "Growth" page with:**
+- **Top cards:** Unique visitors, DAU / WAU / MAU, **Returning visitors** (the key retention signal), Registered users, Signups (24h / 7d), Total tool uses.
+- **Top tools** bar list (`top_tools`) — what people actually use → what to build Pro around.
+- Pair with the growth trend from `/var/log/dd-daily.csv` (DAU over time) for a line chart.
+- **Framing for the owner:** registered-user count is *not* the headline (signup is optional by design); **unique visitors + returning rate + top tools + feedback** are the Pro-launch confidence signals.
+
+Definitions: visitor key = `coalesce(visitor_id, ip_address)`; **returning** = a
+visitor seen on ≥ 2 distinct days. Rows predating this change have no
+`visitor_id` and fall back to IP.
+
 ## Notes for the implementer
 - Files update on the cron cadence, not per-request — that's fine; label the panel
   with `current.ts` so staleness is visible.

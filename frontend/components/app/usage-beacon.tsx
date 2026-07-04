@@ -11,6 +11,24 @@ const TOOL_HREFS = new Set(
 
 const API = process.env.NEXT_PUBLIC_API_URL || '';
 
+// Stable, anonymous, first-party visitor id (random UUID in localStorage — no
+// personal data, no third-party tracker). Lets us count unique + returning
+// visitors accurately without requiring signup.
+function getVisitorId(): string | null {
+  try {
+    let v = localStorage.getItem('dd_vid');
+    if (!v) {
+      v = typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      localStorage.setItem('dd_vid', v);
+    }
+    return v;
+  } catch {
+    return null;
+  }
+}
+
 // Fire-and-forget usage beacon. When a tool page opens, tell the backend which
 // tool it was so the admin portal's Module Usage / activity reflect real use.
 // Sends the auth token when logged in (so it attributes to the user); otherwise
@@ -34,7 +52,7 @@ export function UsageBeacon() {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ module: moduleName }),
+        body: JSON.stringify({ module: moduleName, visitorId: getVisitorId() }),
       }).catch(() => {});
     } catch {
       /* ignore */
