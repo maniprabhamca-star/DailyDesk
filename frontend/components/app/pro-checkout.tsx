@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Loader2, Check } from 'lucide-react';
+import { Loader2, Check, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth';
 import { usePlan } from '@/lib/plan';
 import { api } from '@/lib/api';
+import { BILLING_ENABLED } from '@/lib/flags';
 
 // The "Go Pro" CTA. Adapts to state: logged-out → register; free + logged-in →
 // start Stripe Checkout; already Pro → confirm. On returning from Checkout
@@ -34,6 +35,15 @@ export function ProCheckout({ className = '', size, interval = 'month' }: { clas
       setMsg(e instanceof Error ? e.message : 'Could not start checkout.');
     }
     setBusy(false);
+  }
+
+  // Free-launch period: billing is off — show Pro as "coming soon" everywhere.
+  if (!BILLING_ENABLED) {
+    return (
+      <Button size={size} className={className} variant="secondary" disabled>
+        <Clock className="size-4" /> Pro — coming soon
+      </Button>
+    );
   }
 
   let btn;

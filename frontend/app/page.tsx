@@ -2,8 +2,10 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { ShieldCheck, Smartphone, Check, BadgeCheck, Lock } from 'lucide-react';
+import { ShieldCheck, Smartphone, Check, BadgeCheck, Lock, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { LaunchBanner } from '@/components/app/launch-banner';
+import { BILLING_ENABLED } from '@/lib/flags';
 import { SiteHeader } from '@/components/app/site-header';
 import { SiteFooter } from '@/components/app/site-footer';
 import { HeroHybrid } from '@/components/home/hero-variants';
@@ -47,6 +49,8 @@ export default function Home() {
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
         <div className="absolute -top-40 left-1/2 size-[620px] -translate-x-1/2 rounded-full bg-primary/15 blur-[120px]" />
       </div>
+
+      <LaunchBanner />
 
       <SiteHeader />
 
@@ -122,7 +126,11 @@ export default function Home() {
             <ul className="mt-5 space-y-2.5 text-sm">
               {PRICING.proFeatures.slice(0, 6).map((t) => <li key={t} className="flex items-start gap-2"><Check className="mt-0.5 size-4 shrink-0 text-primary" /> {t}</li>)}
             </ul>
-            <Button asChild className="mt-6 w-full"><Link href="/register">Go Pro</Link></Button>
+            {BILLING_ENABLED ? (
+              <Button asChild className="mt-6 w-full"><Link href="/register">Go Pro</Link></Button>
+            ) : (
+              <Button className="mt-6 w-full" variant="secondary" disabled><Clock className="size-4" /> Pro — coming soon</Button>
+            )}
           </div>
         </div>
         <p className="mt-6 text-center text-sm"><Link href="/pricing" className="font-medium text-primary hover:underline">See full pricing &amp; feature comparison →</Link></p>
