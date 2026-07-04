@@ -33,20 +33,24 @@ function fmt(bytes: number) {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-// 0-based page indices from a "1-10, 20" style range (blank = all).
+// 0-based page indices from a "1-10, 20" style range (blank = all). ES5-safe
+// (no Set spread / destructuring — the repo targets ES5).
 function parseRange(str: string, total: number): number[] {
   const s = str.trim();
   if (!s) return Array.from({ length: total }, (_, i) => i);
-  const set = new Set<number>();
-  for (const part of s.split(',')) {
+  const seen: Record<number, boolean> = {};
+  const out: number[] = [];
+  s.split(',').forEach((part) => {
     const m = part.trim().match(/^(\d+)\s*(?:-\s*(\d+))?$/);
-    if (!m) continue;
+    if (!m) return;
     let a = parseInt(m[1], 10);
     let b = m[2] ? parseInt(m[2], 10) : a;
-    if (a > b) [a, b] = [b, a];
-    for (let p = a; p <= b; p++) if (p >= 1 && p <= total) set.add(p - 1);
-  }
-  return [...set].sort((x, y) => x - y);
+    if (a > b) { const t = a; a = b; b = t; }
+    for (let p = a; p <= b; p++) {
+      if (p >= 1 && p <= total && !seen[p]) { seen[p] = true; out.push(p - 1); }
+    }
+  });
+  return out.sort((x, y) => x - y);
 }
 
 function b64ToBytes(b64: string): Uint8Array {
