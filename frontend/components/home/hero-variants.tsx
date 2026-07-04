@@ -106,7 +106,7 @@ function ProductCluster() {
   // Slider (the cycling live-tool showcase) is the star; a few calm tool tiles frame it.
   const tiles = [
     { bg: 'bg-violet-500', Icon: PenTool, cls: 'left-0 top-8' },
-    { bg: 'bg-amber-500', Icon: ImageIcon, cls: 'right-1 top-2' },
+    { bg: 'bg-amber-500', Icon: ImageIcon, cls: 'right-1 top-8' },
     { bg: 'bg-teal-500', Icon: Shrink, cls: 'left-1 bottom-6' },
     { bg: 'bg-rose-600', Icon: Combine, cls: 'right-0 bottom-6' },
   ];

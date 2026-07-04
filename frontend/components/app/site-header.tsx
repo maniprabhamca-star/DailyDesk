@@ -71,7 +71,7 @@ export function SiteHeader({ heroSearchRef }: { heroSearchRef?: React.RefObject<
             Tools <ChevronDown className={`size-4 transition-transform ${menuOpen ? 'rotate-180' : ''}`} />
           </button>
           {menuOpen && (
-            <div className="absolute left-0 top-8 z-40 w-[720px] columns-3 gap-x-5 rounded-xl border bg-popover p-5 shadow-lift">
+            <div className="absolute left-0 top-8 z-40 max-h-[calc(100vh-6rem)] w-[720px] overflow-y-auto overscroll-contain rounded-xl border bg-popover p-5 shadow-lift [column-fill:balance] sm:columns-3 sm:gap-x-5">
               {catalog.map((g) => (
                 <div key={g.label} className="mb-4 break-inside-avoid">
                   <p className="mb-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">{g.label}</p>
