@@ -6,18 +6,20 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { downloadBlob as download } from '@/lib/download';
+import { formatDuration } from '@/lib/format';
 import { PdfDone } from '@/components/app/pdf-done';
 import { openPdf, yieldToLoop, type PdfHandle } from '@/lib/pdf-render';
 
-// OCR — scanned PDF/image → searchable PDF + text. Handles ANY size: pages are
-// rasterized to PNG in the browser (pdf.js) and STREAMED to the server in small
-// batches (Tesseract), then the per-batch searchable PDFs are merged client-side
-// with pdf-lib. So a 116-page / 27MB doc works, memory stays low, progress is
-// smooth, and no single request is huge. License-clean: no Ghostscript/Poppler.
+// OCR — scanned PDF/image → SEARCHABLE PDF + text, at ~the original file size.
+// Pipeline (license-clean, no Ghostscript/Poppler): pages are rasterized in the
+// browser (pdf.js) and streamed to the server in batches; Tesseract returns WORD
+// BOUNDING BOXES (TSV); we then overlay an INVISIBLE text layer onto the ORIGINAL
+// pages with pdf-lib. So the original images/compression are kept — the file
+// barely grows — and the text becomes selectable/searchable.
 
-const MAX_INPUT_BYTES = 500 * 1024 * 1024; // generous — pdf.js streams large PDFs
+const MAX_INPUT_BYTES = 500 * 1024 * 1024;
 const MAX_TOTAL_PAGES = 500;
-const BATCH_PAGES = 12;                      // pages per server request
+const BATCH_PAGES = 12;
 const MAX_LONG_EDGE = 3500;
 
 const LANGUAGES = [
@@ -27,14 +29,15 @@ const LANGUAGES = [
   { id: 'jpn', name: 'Japanese' }, { id: 'ara', name: 'Arabic' }, { id: 'hin', name: 'Hindi' },
 ];
 
+type Word = { t: string; x: number; y: number; w: number; h: number };
+type ProcPage = { origIndex: number; imgW: number; imgH: number; words: Word[] };
+
 function fmt(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-// 0-based page indices from a "1-10, 20" style range (blank = all). ES5-safe
-// (no Set spread / destructuring — the repo targets ES5).
 function parseRange(str: string, total: number): number[] {
   const s = str.trim();
   if (!s) return Array.from({ length: total }, (_, i) => i);
@@ -46,23 +49,14 @@ function parseRange(str: string, total: number): number[] {
     let a = parseInt(m[1], 10);
     let b = m[2] ? parseInt(m[2], 10) : a;
     if (a > b) { const t = a; a = b; b = t; }
-    for (let p = a; p <= b; p++) {
-      if (p >= 1 && p <= total && !seen[p]) { seen[p] = true; out.push(p - 1); }
-    }
+    for (let p = a; p <= b; p++) if (p >= 1 && p <= total && !seen[p]) { seen[p] = true; out.push(p - 1); }
   });
   return out.sort((x, y) => x - y);
 }
 
-function b64ToBytes(b64: string): Uint8Array {
-  const bin = atob(b64);
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  return bytes;
-}
-
-// JPEG q88, NOT PNG: a 300-DPI full-page PNG of a scan is 3-8MB (uploads crawl on
-// a 277-page doc); JPEG is 10-20× smaller and OCR accuracy is unaffected.
-async function renderPageJpeg(handle: PdfHandle, index: number, dpi: number): Promise<Blob> {
+// Rasterize a PDF page to a JPEG (q88) at the chosen DPI. JPEG (not PNG) keeps
+// the UPLOAD small; the output PDF reuses the ORIGINAL pages, not these.
+async function rasterizePage(handle: PdfHandle, index: number, dpi: number): Promise<{ blob: Blob; w: number; h: number }> {
   const page = await handle.doc.getPage(index + 1);
   const base = page.getViewport({ scale: 1 });
   let scale = dpi / 72;
@@ -77,12 +71,13 @@ async function renderPageJpeg(handle: PdfHandle, index: number, dpi: number): Pr
   cx.fillStyle = '#ffffff';
   cx.fillRect(0, 0, canvas.width, canvas.height);
   await page.render({ canvas, viewport, background: 'rgba(255,255,255,1)', intent: 'print' }).promise;
+  const w = canvas.width, h = canvas.height;
   const blob = await new Promise<Blob>((res, rej) => canvas.toBlob((b) => (b ? res(b) : rej(new Error('render failed'))), 'image/jpeg', 0.88));
   canvas.width = 0; canvas.height = 0;
-  return blob;
+  return { blob, w, h };
 }
 
-async function ocrBatch(blobs: Blob[], lang: string): Promise<{ pdf: Uint8Array; text: string }> {
+async function ocrBatch(blobs: Blob[], lang: string): Promise<{ pages: { words: Word[] }[]; text: string }> {
   const form = new FormData();
   blobs.forEach((b, i) => form.append('pages', b, `p${i}.jpg`));
   form.append('lang', lang);
@@ -92,8 +87,74 @@ async function ocrBatch(blobs: Blob[], lang: string): Promise<{ pdf: Uint8Array;
     try { const j = await res.json(); if (j.error) msg = j.error; } catch { /* ignore */ }
     throw new Error(msg);
   }
-  const j = await res.json();
-  return { pdf: b64ToBytes(j.pdf), text: j.text || '' };
+  return res.json();
+}
+
+async function imageSize(file: File): Promise<{ w: number; h: number }> {
+  try {
+    const b = await createImageBitmap(file);
+    const s = { w: b.width, h: b.height };
+    if (b.close) b.close();
+    return s;
+  } catch {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+      img.onerror = () => reject(new Error('Could not read the image.'));
+      img.src = URL.createObjectURL(file);
+    });
+  }
+}
+
+// Overlay an invisible (opacity 0), selectable text layer onto the ORIGINAL PDF.
+async function buildSearchablePdf(fileBytes: Uint8Array, processed: ProcPage[]): Promise<Blob> {
+  const { PDFDocument, StandardFonts } = await import('pdf-lib');
+  const doc = await PDFDocument.load(fileBytes, { ignoreEncryption: true });
+  const helv = await doc.embedFont(StandardFonts.Helvetica);
+  const count = doc.getPageCount();
+  processed.forEach((pg) => {
+    if (pg.origIndex >= count) return;
+    const page = doc.getPage(pg.origIndex);
+    const pw = page.getWidth();
+    const ph = page.getHeight();
+    const sx = pw / pg.imgW;
+    const sy = ph / pg.imgH;
+    pg.words.forEach((wd) => {
+      const size = Math.max(wd.h * sy, 1);
+      try { page.drawText(wd.t, { x: wd.x * sx, y: ph - (wd.y + wd.h) * sy, size, font: helv, opacity: 0 }); } catch { /* skip non-encodable */ }
+    });
+  });
+  const bytes = await doc.save();
+  return new Blob([bytes as unknown as BlobPart], { type: 'application/pdf' });
+}
+
+// Image input → a PDF that embeds the ORIGINAL image (kept small) + invisible text.
+async function buildImagePdf(file: File, imgW: number, imgH: number, words: Word[]): Promise<Blob> {
+  const { PDFDocument, StandardFonts } = await import('pdf-lib');
+  const doc = await PDFDocument.create();
+  const helv = await doc.embedFont(StandardFonts.Helvetica);
+  const isPng = /png$/i.test(file.type) || /\.png$/i.test(file.name);
+  const isJpg = /jpe?g$/i.test(file.type) || /\.jpe?g$/i.test(file.name);
+  let img;
+  if (isPng) img = await doc.embedPng(new Uint8Array(await file.arrayBuffer()));
+  else if (isJpg) img = await doc.embedJpg(new Uint8Array(await file.arrayBuffer()));
+  else {
+    // webp/tiff/bmp → re-encode to JPEG via canvas so pdf-lib can embed it.
+    const bmp = await createImageBitmap(file);
+    const c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height;
+    c.getContext('2d')!.drawImage(bmp, 0, 0); if (bmp.close) bmp.close();
+    const jpg = await new Promise<Blob>((res) => c.toBlob((b) => res(b!), 'image/jpeg', 0.9));
+    img = await doc.embedJpg(new Uint8Array(await jpg.arrayBuffer()));
+    c.width = 0; c.height = 0;
+  }
+  const page = doc.addPage([imgW, imgH]);
+  page.drawImage(img, { x: 0, y: 0, width: imgW, height: imgH });
+  words.forEach((wd) => {
+    const size = Math.max(wd.h, 1);
+    try { page.drawText(wd.t, { x: wd.x, y: imgH - (wd.y + wd.h), size, font: helv, opacity: 0 }); } catch { /* skip */ }
+  });
+  const bytes = await doc.save();
+  return new Blob([bytes as unknown as BlobPart], { type: 'application/pdf' });
 }
 
 export function OcrTool() {
@@ -110,14 +171,9 @@ export function OcrTool() {
   const [text, setText] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  // Cancellation guard (quality-bar rule: never leave a spinner stuck). Bumped on
-  // cancel/new-file; the run loop checks it and stops quietly.
   const jobRef = useRef(0);
 
-  function cancelJob() {
-    jobRef.current++;
-    setBusy(false); setMsg(null); setProg(0);
-  }
+  function cancelJob() { jobRef.current++; setBusy(false); setMsg(null); setProg(0); }
 
   function loadOne(f?: File) {
     if (!f) return;
@@ -132,20 +188,21 @@ export function OcrTool() {
     if (!file) return;
     const myJob = ++jobRef.current;
     const alive = () => jobRef.current === myJob;
-    setBusy(true); setError(null); setDone(null); setText(null); setProg(0);
-    setMsg('Opening document…');
+    setBusy(true); setError(null); setDone(null); setText(null); setProg(0); setMsg('Opening document…');
     const t0 = performance.now();
     const dpi = quality === 'best' ? 300 : 200;
     let handle: PdfHandle | null = null;
     try {
-      const chunks: Uint8Array[] = [];
+      const processed: ProcPage[] = [];
       const texts: string[] = [];
 
       if (isImage) {
         setMsg('Recognising…');
-        const { pdf, text: tx } = await ocrBatch([file], lang);
+        const size = await imageSize(file);
+        const { pages, text: tx } = await ocrBatch([file], lang);
         if (!alive()) return;
-        chunks.push(pdf); texts.push(tx);
+        processed.push({ origIndex: 0, imgW: size.w, imgH: size.h, words: (pages[0] && pages[0].words) || [] });
+        texts.push(tx);
       } else {
         handle = await openPdf(file);
         if (!alive()) return;
@@ -154,37 +211,36 @@ export function OcrTool() {
         let truncated = false;
         if (indices.length > MAX_TOTAL_PAGES) { indices = indices.slice(0, MAX_TOTAL_PAGES); truncated = true; }
         const total = indices.length;
-
         const batches: number[][] = [];
         for (let i = 0; i < indices.length; i += BATCH_PAGES) batches.push(indices.slice(i, i + BATCH_PAGES));
 
         let prepared = 0;
-        const renderBatch = async (batch: number[]): Promise<Blob[]> => {
-          const blobs: Blob[] = [];
+        const renderBatch = async (batch: number[]) => {
+          const out: { blob: Blob; w: number; h: number; origIndex: number }[] = [];
           for (const idx of batch) {
             if (!alive()) throw new Error('__cancelled');
             prepared++;
             setMsg(`Preparing page ${prepared} of ${total}…`);
-            blobs.push(await renderPageJpeg(handle!, idx, dpi));
+            const r = await rasterizePage(handle!, idx, dpi);
+            out.push({ blob: r.blob, w: r.w, h: r.h, origIndex: idx });
             await yieldToLoop();
           }
-          return blobs;
+          return out;
         };
 
-        // Pipeline: render the NEXT batch while the server OCRs the current one —
-        // the render work fills the network wait, roughly halving wall time.
         let doneCount = 0;
-        let pending: Promise<Blob[]> = renderBatch(batches[0]);
+        let pending = renderBatch(batches[0]);
         for (let b = 0; b < batches.length; b++) {
-          const blobs = await pending;
+          const rendered = await pending;
           if (!alive()) return;
-          const ocrPromise = ocrBatch(blobs, lang);
+          const ocrP = ocrBatch(rendered.map((r) => r.blob), lang);
           pending = b + 1 < batches.length ? renderBatch(batches[b + 1]) : Promise.resolve([]);
-          pending.catch(() => {}); // cancellation of the prefetch is handled on await
-          const { pdf, text: tx } = await ocrPromise;
+          pending.catch(() => {});
+          const { pages, text: tx } = await ocrP;
           if (!alive()) return;
-          chunks.push(pdf); texts.push(tx);
-          doneCount += blobs.length;
+          rendered.forEach((r, i) => processed.push({ origIndex: r.origIndex, imgW: r.w, imgH: r.h, words: (pages[i] && pages[i].words) || [] }));
+          texts.push(tx);
+          doneCount += rendered.length;
           setProg(Math.round((doneCount / total) * 100));
           setMsg(`Recognised ${doneCount} of ${total} pages…`);
           await yieldToLoop();
@@ -192,21 +248,11 @@ export function OcrTool() {
         if (truncated) setError(`Note: OCR ran on the first ${MAX_TOTAL_PAGES} pages (the current limit).`);
       }
 
-      setMsg('Assembling searchable PDF…');
-      const { PDFDocument } = await import('pdf-lib');
-      let outBytes: Uint8Array;
-      if (chunks.length === 1) {
-        outBytes = chunks[0];
-      } else {
-        const merged = await PDFDocument.create();
-        for (const chunk of chunks) {
-          const src = await PDFDocument.load(chunk);
-          const copied = await merged.copyPages(src, src.getPageIndices());
-          copied.forEach((p) => merged.addPage(p));
-        }
-        outBytes = await merged.save();
-      }
-      const blob = new Blob([outBytes as unknown as BlobPart], { type: 'application/pdf' });
+      if (!alive()) return;
+      setMsg('Adding the searchable text layer…');
+      const blob = isImage
+        ? await buildImagePdf(file, processed[0].imgW, processed[0].imgH, processed[0].words)
+        : await buildSearchablePdf(new Uint8Array(await file.arrayBuffer()), processed);
 
       const name = `${file.name.replace(/\.[^.]+$/, '')}-ocr.pdf`;
       if (!alive()) return;
@@ -215,10 +261,10 @@ export function OcrTool() {
       setText((texts.join('\n\n') || '').trim() || null);
     } catch (e) {
       const m = e instanceof Error ? e.message : 'OCR failed — please try again.';
-      if (m !== '__cancelled' && alive()) setError(m);
+      if (m !== '__cancelled' && jobRef.current === myJob) setError(m);
     } finally {
       if (handle) await handle.destroy();
-      if (alive()) { setBusy(false); setMsg(null); }
+      if (jobRef.current === myJob) { setBusy(false); setMsg(null); }
     }
   }
 
@@ -257,7 +303,6 @@ export function OcrTool() {
           </div>
         )}
 
-        {/* Options */}
         {file && !done && (
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
             <div>
@@ -285,7 +330,7 @@ export function OcrTool() {
               </div>
             )}
             <p className="text-xs text-muted-foreground sm:col-span-3">
-              Tip: OCR reads every page individually, so long documents take a few minutes. For 100+ pages, <span className="font-medium">Fast</span> is ~2× quicker — or try a page range first.
+              Tip: OCR reads every page individually, so long documents take a few minutes. For 100+ pages, <span className="font-medium">Fast</span> is ~2× quicker — or try a page range first. Your original pages are kept, so the file barely grows.
             </p>
           </div>
         )}

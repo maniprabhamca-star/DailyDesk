@@ -73,16 +73,30 @@ router.post('/', (req, res) => {
       fs.writeFileSync(listPath, imgPaths.join('\n'));
 
       const lang = safeLang(req.body && req.body.lang);
+      // TSV = word bounding boxes (not a re-rendered image PDF), so the client can
+      // overlay an invisible text layer onto the ORIGINAL pages — output stays ~
+      // the original size instead of ballooning.
       await new Promise((resolve, reject) => {
-        execFile('tesseract', [listPath, outBase, '-l', lang, 'pdf', 'txt'],
-          { timeout: TIMEOUT_MS, maxBuffer: 20 * 1024 * 1024 },
+        execFile('tesseract', [listPath, outBase, '-l', lang, 'tsv', 'txt'],
+          { timeout: TIMEOUT_MS, maxBuffer: 40 * 1024 * 1024 },
           (err) => (err ? reject(err) : resolve()));
       });
 
-      const pdf = fs.readFileSync(`${outBase}.pdf`);
+      const tsv = fs.readFileSync(`${outBase}.tsv`, 'utf8');
+      const pages = Array.from({ length: files.length }, () => []);
+      tsv.split('\n').forEach((line, i) => {
+        if (i === 0) return; // header
+        const c = line.split('\t');
+        if (c.length < 12 || c[0] !== '5') return;           // level 5 = a word
+        const t = c[11];
+        if (!t || !t.trim() || parseFloat(c[10]) < 30) return; // conf < 30 = junk
+        const idx = parseInt(c[1], 10) - 1;                   // page_num is 1-based
+        if (idx < 0 || idx >= files.length) return;
+        pages[idx].push({ t, x: +c[6], y: +c[7], w: +c[8], h: +c[9] });
+      });
       let text = '';
-      try { text = fs.readFileSync(`${outBase}.txt`, 'utf8'); } catch { /* text optional */ }
-      res.json({ pdf: pdf.toString('base64'), text, pages: files.length });
+      try { text = fs.readFileSync(`${outBase}.txt`, 'utf8'); } catch { /* optional */ }
+      res.json({ pages: pages.map((words) => ({ words })), text });
     } catch (err) {
       console.error('OCR error:', err.message);
       res.status(500).json({ error: 'OCR failed — please try a clearer scan or fewer pages.' });
