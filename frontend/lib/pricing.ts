@@ -15,7 +15,6 @@ export const PRICING = {
     'Full-strength compression — Strong & Maximum',
     'Edit, annotate & sign',
     'Single-file Office conversions (PDF ↔ Word/Excel/PPT)',
-    'OCR — scanned PDFs to searchable text (up to 20 MB)',
     'Video compress & Video → GIF',
     'No ads, no watermarks, no signup',
   ],

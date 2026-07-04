@@ -2,6 +2,7 @@ import { ChevronDown } from 'lucide-react';
 import { SiteHeader } from '@/components/app/site-header';
 import { SiteFooter } from '@/components/app/site-footer';
 import { ToolGate } from '@/components/app/tool-gate';
+import { UpgradeCard } from '@/components/app/upgrade-card';
 
 export type Faq = { q: string; a: string };
 
@@ -83,6 +84,7 @@ export function PdfToolPage({
       </main>
 
       <SiteFooter />
+      <UpgradeCard />
     </div>
   );
 }

@@ -90,7 +90,7 @@ export default function AccountPage() {
             <>
               <p className="mt-4 text-sm text-muted-foreground">Upgrade to unlock:</p>
               <ul className="mt-2 grid gap-2 text-sm text-foreground/90 sm:grid-cols-2">
-                {['Unlimited file size', 'Batch processing — many files at once', 'Office conversions (PDF ↔ Word/Excel/PPT) & OCR', 'More AI actions per day'].map((f) => (
+                {['Unlimited file size', 'Batch processing — many files at once', 'OCR & Office conversions on files over 20 MB', 'More AI actions (coming soon)'].map((f) => (
                   <li key={f} className="flex items-center gap-2"><Crown className="size-4 shrink-0 text-amber-500" /> {f}</li>
                 ))}
               </ul>

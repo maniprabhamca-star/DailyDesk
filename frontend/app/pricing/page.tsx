@@ -49,7 +49,7 @@ const groups: { title: string; rows: Row[] }[] = [
       { label: 'Full in-place text editing — change existing text', comp: 'Paid only', free: false, pro: true },
       { label: 'Batch processing — many files at once', comp: 'Paid only', free: false, pro: true },
       { label: 'Office conversions — PDF ↔ Word, Excel, PowerPoint', comp: 'Paid / limited', free: 'Single files', pro: 'Single + batch' },
-      { label: 'OCR — scanned PDFs to searchable text', comp: 'Paid only', free: 'Up to 20 MB', pro: 'Unlimited' },
+      { label: 'OCR — scanned PDFs to searchable text', comp: 'Paid only', free: 'Coming soon', pro: 'Coming soon' },
       { label: 'Saved workflows — one-click automations', comp: 'Paid only', free: false, pro: true },
     ],
   },
@@ -72,7 +72,7 @@ const groups: { title: string; rows: Row[] }[] = [
 const faqs = [
   { q: 'Is the free plan really free?', a: 'Yes — unlimited use of all our core tools, no ads, no watermarks, no credit card. Our everyday tools run in your browser, so they cost us nothing to give away.' },
   { q: 'Can I edit a PDF for free?', a: 'Yes. Annotating, highlighting, drawing, filling forms, and signing are free and unlimited. Only full in-place text editing — rewriting the existing text inside a PDF — is a Pro feature, the same as Adobe, Foxit, and Smallpdf.' },
-  { q: 'What do I actually get with Pro?', a: 'Scale and power features: batch processing (many files at once), unlimited file size (Free already handles up to 100 MB in your browser), OCR and Office conversions on files over 20 MB, full in-place text editing, saved workflows, and priority speed. AI actions and an encrypted File Vault come a little later. To be clear: OCR up to 20 MB and single-file Office conversions are free for everyone.' },
+  { q: 'What do I actually get with Pro?', a: 'Scale and power features: batch processing (many files at once), unlimited file size (Free already handles up to 100 MB in your browser), OCR and Office conversions on files over 20 MB, full in-place text editing, saved workflows, and priority speed. AI actions and an encrypted File Vault come a little later. To be clear: single-file Office conversions are free today, and OCR (free up to 20 MB) is coming soon.' },
   { q: 'Can I cancel anytime?', a: 'Yes — cancel in one click; you keep Pro until the end of your paid period. New subscribers are also covered by our money-back guarantee (14 days monthly / 30 days annual).' },
   { q: 'Do you store my files?', a: 'No — by default nothing is saved on our servers. Our everyday tools process your files right in your browser. A few tools do use our servers — Office conversions and OCR (processed, then deleted), and later AI (sent for that one request) — but nothing is stored. The only feature that stores files is the optional File Vault, and it’s encrypted on your device before upload, so even we can’t read it. The 1 GB / unlimited figures apply only to that opt-in Vault.' },
   { q: 'Are my files safe?', a: 'Our everyday tools never upload your files — everything happens on your device. The few tools that need a server (Office conversions, OCR, and later AI) are minimal and we’re upfront about them, and the optional File Vault is end-to-end encrypted so even we can’t read it. See our Security page for details.' },

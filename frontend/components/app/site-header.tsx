@@ -95,13 +95,13 @@ export function SiteHeader({ heroSearchRef }: { heroSearchRef?: React.RefObject<
                 {MENU_COLUMNS.map((col, i) => (
                   <div key={i} className="min-w-0">
                     {col.map((g) => (
-                      <div key={g.label} className="mb-4">
-                        <p className="mb-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">{g.label}</p>
-                        <div className="space-y-0.5">
+                      <div key={g.label} className="mb-3">
+                        <p className="mb-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">{g.label}</p>
+                        <div className="space-y-px">
                           {g.tools.map((t) => {
                             const Icon = t.icon;
                             const row = (
-                              <div className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-accent">
+                              <div className="flex items-center gap-2 rounded-md px-2 py-1 hover:bg-accent">
                                 <Icon className="size-4 shrink-0" style={{ color: g.color }} strokeWidth={2.25} />
                                 <span className="truncate text-[13px] font-medium">{t.name}</span>
                                 {t.soon && <span className="ml-auto text-[10px] text-muted-foreground">soon</span>}
