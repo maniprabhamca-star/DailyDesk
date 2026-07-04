@@ -60,7 +60,9 @@ function b64ToBytes(b64: string): Uint8Array {
   return bytes;
 }
 
-async function renderPagePng(handle: PdfHandle, index: number, dpi: number): Promise<Blob> {
+// JPEG q88, NOT PNG: a 300-DPI full-page PNG of a scan is 3-8MB (uploads crawl on
+// a 277-page doc); JPEG is 10-20× smaller and OCR accuracy is unaffected.
+async function renderPageJpeg(handle: PdfHandle, index: number, dpi: number): Promise<Blob> {
   const page = await handle.doc.getPage(index + 1);
   const base = page.getViewport({ scale: 1 });
   let scale = dpi / 72;
@@ -75,14 +77,14 @@ async function renderPagePng(handle: PdfHandle, index: number, dpi: number): Pro
   cx.fillStyle = '#ffffff';
   cx.fillRect(0, 0, canvas.width, canvas.height);
   await page.render({ canvas, viewport, background: 'rgba(255,255,255,1)', intent: 'print' }).promise;
-  const blob = await new Promise<Blob>((res, rej) => canvas.toBlob((b) => (b ? res(b) : rej(new Error('render failed'))), 'image/png'));
+  const blob = await new Promise<Blob>((res, rej) => canvas.toBlob((b) => (b ? res(b) : rej(new Error('render failed'))), 'image/jpeg', 0.88));
   canvas.width = 0; canvas.height = 0;
   return blob;
 }
 
 async function ocrBatch(blobs: Blob[], lang: string): Promise<{ pdf: Uint8Array; text: string }> {
   const form = new FormData();
-  blobs.forEach((b, i) => form.append('pages', b, `p${i}.png`));
+  blobs.forEach((b, i) => form.append('pages', b, `p${i}.jpg`));
   form.append('lang', lang);
   const res = await fetch('/api/ocr', { method: 'POST', body: form });
   if (!res.ok) {
@@ -108,6 +110,14 @@ export function OcrTool() {
   const [text, setText] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Cancellation guard (quality-bar rule: never leave a spinner stuck). Bumped on
+  // cancel/new-file; the run loop checks it and stops quietly.
+  const jobRef = useRef(0);
+
+  function cancelJob() {
+    jobRef.current++;
+    setBusy(false); setMsg(null); setProg(0);
+  }
 
   function loadOne(f?: File) {
     if (!f) return;
@@ -120,7 +130,10 @@ export function OcrTool() {
 
   async function run() {
     if (!file) return;
+    const myJob = ++jobRef.current;
+    const alive = () => jobRef.current === myJob;
     setBusy(true); setError(null); setDone(null); setText(null); setProg(0);
+    setMsg('Opening document…');
     const t0 = performance.now();
     const dpi = quality === 'best' ? 300 : 200;
     let handle: PdfHandle | null = null;
@@ -131,24 +144,49 @@ export function OcrTool() {
       if (isImage) {
         setMsg('Recognising…');
         const { pdf, text: tx } = await ocrBatch([file], lang);
+        if (!alive()) return;
         chunks.push(pdf); texts.push(tx);
       } else {
         handle = await openPdf(file);
+        if (!alive()) return;
         let indices = parseRange(range, handle.numPages);
         if (!indices.length) throw new Error('No pages selected — check the page range.');
         let truncated = false;
         if (indices.length > MAX_TOTAL_PAGES) { indices = indices.slice(0, MAX_TOTAL_PAGES); truncated = true; }
         const total = indices.length;
-        let doneCount = 0;
-        for (let i = 0; i < indices.length; i += BATCH_PAGES) {
-          const batch = indices.slice(i, i + BATCH_PAGES);
+
+        const batches: number[][] = [];
+        for (let i = 0; i < indices.length; i += BATCH_PAGES) batches.push(indices.slice(i, i + BATCH_PAGES));
+
+        let prepared = 0;
+        const renderBatch = async (batch: number[]): Promise<Blob[]> => {
           const blobs: Blob[] = [];
-          for (const idx of batch) { blobs.push(await renderPagePng(handle, idx, dpi)); await yieldToLoop(); }
-          const { pdf, text: tx } = await ocrBatch(blobs, lang);
+          for (const idx of batch) {
+            if (!alive()) throw new Error('__cancelled');
+            prepared++;
+            setMsg(`Preparing page ${prepared} of ${total}…`);
+            blobs.push(await renderPageJpeg(handle!, idx, dpi));
+            await yieldToLoop();
+          }
+          return blobs;
+        };
+
+        // Pipeline: render the NEXT batch while the server OCRs the current one —
+        // the render work fills the network wait, roughly halving wall time.
+        let doneCount = 0;
+        let pending: Promise<Blob[]> = renderBatch(batches[0]);
+        for (let b = 0; b < batches.length; b++) {
+          const blobs = await pending;
+          if (!alive()) return;
+          const ocrPromise = ocrBatch(blobs, lang);
+          pending = b + 1 < batches.length ? renderBatch(batches[b + 1]) : Promise.resolve([]);
+          pending.catch(() => {}); // cancellation of the prefetch is handled on await
+          const { pdf, text: tx } = await ocrPromise;
+          if (!alive()) return;
           chunks.push(pdf); texts.push(tx);
-          doneCount += batch.length;
+          doneCount += blobs.length;
           setProg(Math.round((doneCount / total) * 100));
-          setMsg(`Recognising page ${doneCount} of ${total}…`);
+          setMsg(`Recognised ${doneCount} of ${total} pages…`);
           await yieldToLoop();
         }
         if (truncated) setError(`Note: OCR ran on the first ${MAX_TOTAL_PAGES} pages (the current limit).`);
@@ -171,14 +209,16 @@ export function OcrTool() {
       const blob = new Blob([outBytes as unknown as BlobPart], { type: 'application/pdf' });
 
       const name = `${file.name.replace(/\.[^.]+$/, '')}-ocr.pdf`;
+      if (!alive()) return;
       download(blob, name);
       setDone({ blob, name, secs: (performance.now() - t0) / 1000 });
       setText((texts.join('\n\n') || '').trim() || null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'OCR failed — please try again.');
+      const m = e instanceof Error ? e.message : 'OCR failed — please try again.';
+      if (m !== '__cancelled' && alive()) setError(m);
     } finally {
       if (handle) await handle.destroy();
-      setBusy(false); setMsg(null);
+      if (alive()) { setBusy(false); setMsg(null); }
     }
   }
 
@@ -213,7 +253,7 @@ export function OcrTool() {
               <p className="truncate text-sm font-medium">{file.name}</p>
               <p className="text-xs text-muted-foreground">{fmt(file.size)}</p>
             </div>
-            <Button size="icon" variant="ghost" aria-label="Remove" onClick={() => { setFile(null); setDone(null); setText(null); setError(null); }}><X className="size-4" /></Button>
+            <Button size="icon" variant="ghost" aria-label="Remove" onClick={() => { cancelJob(); setFile(null); setDone(null); setText(null); setError(null); }}><X className="size-4" /></Button>
           </div>
         )}
 
@@ -244,6 +284,9 @@ export function OcrTool() {
                   className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm" />
               </div>
             )}
+            <p className="text-xs text-muted-foreground sm:col-span-3">
+              Tip: OCR reads every page individually, so long documents take a few minutes. For 100+ pages, <span className="font-medium">Fast</span> is ~2× quicker — or try a page range first.
+            </p>
           </div>
         )}
 
@@ -252,7 +295,10 @@ export function OcrTool() {
             <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
               <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${prog}%` }} />
             </div>
-            <p className="mt-1.5 text-center text-xs text-muted-foreground">{msg || 'Working…'}</p>
+            <div className="mt-1.5 flex items-center justify-center gap-3">
+              <p className="text-center text-xs text-muted-foreground">{msg || 'Working…'}</p>
+              <button onClick={cancelJob} className="text-xs font-medium text-destructive hover:underline">Cancel</button>
+            </div>
           </div>
         )}
 
