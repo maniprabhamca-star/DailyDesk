@@ -14,6 +14,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const crypto = require('crypto');
+const { isDisabled } = require('../utils/toolFlag');
 
 const router = express.Router();
 
@@ -68,13 +69,13 @@ const MIME = {
   pdf: 'application/pdf',
 };
 
-function convertRoute({ upload, sofficeArgs, outExt, failMessage }) {
+function convertRoute({ upload, sofficeArgs, outExt, failMessage, slugFor }) {
   return (req, res) => {
     if (inFlight >= MAX_CONCURRENT) {
       res.status(503).json({ error: 'busy', message: 'The converter is busy right now — try again in a moment.' });
       return;
     }
-    upload.single('file')(req, res, (upErr) => {
+    upload.single('file')(req, res, async (upErr) => {
       if (upErr) {
         const tooBig = upErr.code === 'LIMIT_FILE_SIZE';
         res.status(tooBig ? 413 : 400).json({
@@ -85,6 +86,14 @@ function convertRoute({ upload, sofficeArgs, outExt, failMessage }) {
       }
       if (!req.file) {
         res.status(400).json({ error: 'no-file', message: 'Please upload a file.' });
+        return;
+      }
+      // Server-side kill switch: if an admin has disabled this tool, refuse here
+      // too (so a direct API call can't bypass the hidden front-end button).
+      const slug = typeof slugFor === 'function' ? slugFor(req.file) : slugFor;
+      if (slug && (await isDisabled(slug))) {
+        cleanup([req.file.path]);
+        res.status(503).json({ error: 'tool-disabled', message: 'This tool is temporarily unavailable. Please try again later.' });
         return;
       }
       const input = req.file.path;
@@ -124,10 +133,20 @@ function convertRoute({ upload, sofficeArgs, outExt, failMessage }) {
   };
 }
 
+// office-to-pdf serves three front-end tools from one endpoint — pick the slug
+// from the actual file so the kill switch can target each one independently.
+function officeSlug(file) {
+  const name = (file && file.originalname || '').toLowerCase();
+  if (/\.(xlsx?|ods|csv)$/i.test(name)) return '/excel-to-pdf';
+  if (/\.(pptx?|odp)$/i.test(name)) return '/powerpoint-to-pdf';
+  return '/word-to-pdf'; // docx/doc/odt/rtf and default
+}
+
 router.post('/pdf-to-word', convertRoute({
   upload: makeUpload('pdf'),
   sofficeArgs: ['--infilter=writer_pdf_import', '--convert-to', 'docx:MS Word 2007 XML'],
   outExt: 'docx',
+  slugFor: '/pdf-to-word',
   failMessage: 'Could not convert this PDF. Password-protected or damaged files can’t be converted — unlock it first if it has a password.',
 }));
 
@@ -135,6 +154,7 @@ router.post('/office-to-pdf', convertRoute({
   upload: makeUpload('office'),
   sofficeArgs: ['--convert-to', 'pdf'],
   outExt: 'pdf',
+  slugFor: officeSlug,
   failMessage: 'Could not convert this document. Password-protected or damaged files can’t be converted.',
 }));
 
