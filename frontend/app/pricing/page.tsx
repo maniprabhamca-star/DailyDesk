@@ -18,7 +18,7 @@ const groups: { title: string; rows: Row[] }[] = [
   {
     title: 'Value & trust',
     rows: [
-      { label: 'Price per year', comp: 'Up to ~$240', free: '$0', pro: '~$59' },
+      { label: 'Price per year', comp: 'Up to ~$240', free: '$0', pro: '~$60' },
       { label: 'Tools available', comp: '~21', free: '25+', pro: '25+' },
       { label: 'Works offline in your browser', comp: 'Paid apps only', free: 'Coming soon', pro: 'Coming soon', link: { href: '/security#offline', text: 'See how it works' } },
       { label: 'No signup required to use tools', comp: false, free: true, pro: true },
@@ -112,7 +112,7 @@ export default function PricingPage() {
             <span className={`absolute top-1 size-5 rounded-full bg-primary transition-all ${annual ? 'left-6' : 'left-1'}`} />
           </button>
           <span className={`text-sm font-medium ${annual ? 'text-foreground' : 'text-muted-foreground'}`}>
-            Annual <span className="ml-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-600">save ~18%</span>
+            Annual <span className="ml-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-600">save ~16%</span>
           </span>
         </div>
 

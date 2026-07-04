@@ -4,9 +4,9 @@
 export const PRICING = {
   pro: {
     monthly: '5.98',
-    // Annual $59/yr → $4.92/mo effective ("under $5/month" — the hook). ~18% off monthly.
-    annualPerMonth: '4.92',
-    annualNote: '$59 billed yearly',
+    // Annual $60/yr → clean $5.00/mo effective, ~16% off (≈2 months free).
+    annualPerMonth: '5',
+    annualNote: '$60 billed yearly',
   },
   freeFeatures: [
     'Every tool — PDF, image, video & utilities',
