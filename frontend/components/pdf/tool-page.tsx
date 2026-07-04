@@ -1,6 +1,7 @@
 import { ChevronDown } from 'lucide-react';
 import { SiteHeader } from '@/components/app/site-header';
 import { SiteFooter } from '@/components/app/site-footer';
+import { ToolGate } from '@/components/app/tool-gate';
 
 export type Faq = { q: string; a: string };
 
@@ -51,7 +52,7 @@ export function PdfToolPage({
           <p className="mx-auto mt-3 max-w-xl text-muted-foreground">{description}</p>
         </div>
 
-        <div className="mt-8">{children}</div>
+        <div className="mt-8"><ToolGate>{children}</ToolGate></div>
 
         <section className="mt-14">
           <h2 className="text-xl font-bold tracking-tight">How it works</h2>

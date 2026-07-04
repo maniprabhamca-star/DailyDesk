@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 import { AuthProvider } from '@/lib/auth';
+import { ToolFlagsProvider } from '@/lib/tool-flags';
 import { CommandPalette } from '@/components/command-palette';
 import { CookieBanner } from '@/components/cookie-banner';
 import { PwaRegister } from '@/components/pwa-register';
@@ -57,7 +58,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd) }} />
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
           <AuthProvider>
-            {children}
+            <ToolFlagsProvider>
+              {children}
+            </ToolFlagsProvider>
             <CommandPalette />
             <CookieBanner />
             <PwaRegister />

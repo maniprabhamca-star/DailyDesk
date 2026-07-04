@@ -141,6 +141,26 @@ Definitions: visitor key = `coalesce(visitor_id, ip_address)`; **returning** = a
 visitor seen on ≥ 2 distinct days. Rows predating this change have no
 `visitor_id` and fall back to IP.
 
+## Tool enable/disable panel (added 2026-07-04) — the kill switch + status control
+Turn any tool **enabled / coming_soon / pro / disabled** from the admin, no deploy.
+The site reads a flag map and gates each tool live (kill switch for bugs/abuse/
+server-overload, and admin-controlled coming-soon/Pro status).
+
+Backend (already built + live):
+- `GET /api/tools/flags` — **public**, `{ "flags": { "/word-to-pdf": "coming_soon", … } }` (only non-`enabled` tools; cached 30s; fail-open to `{}`).
+- `GET /api/tools/flags/all` — **admin** (`x-admin-token`): every stored flag incl. `updated_at`.
+- `PUT /api/tools/flags` — **admin**: body `{ "slug": "/word-to-pdf", "status": "coming_soon" }`. `status` ∈ `enabled|coming_soon|pro|disabled`. Upsert; setting `enabled` effectively clears it.
+
+Slugs = the tool's route path (e.g. `/merge-pdf`, `/word-to-pdf`) — from `frontend/components/app/catalog.tsx` (`href`). Statuses:
+- `enabled` — normal (default).
+- `coming_soon` — front-end shows a "Coming soon" panel instead of the tool.
+- `disabled` — shows "Temporarily unavailable" (maintenance/kill switch).
+- `pro` — reserved; passes through for now (real Pro gating is the billing flag) — treat as future.
+
+Frontend consumption (already wired): `lib/tool-flags.tsx` (`ToolFlagsProvider` in the root layout + `useToolStatus(slug)`); `components/app/tool-gate.tsx` wraps the shared `PdfToolPage` tool area and gates by pathname. *(Tools not on the `PdfToolPage` shell need the same one-line `<ToolGate>` wrap — extension noted for later.)*
+
+**UI suggestion:** a tools table (from `GET /flags/all` + the catalog list) with a status dropdown per tool → `PUT /api/tools/flags` on change; a prominent "disable" (kill switch) action; show `updated_at`. Optional later: enforce `disabled`/`coming_soon` at the **API layer** too (e.g. the convert endpoints check the flag) so a killed server-tool can't be hit directly — the current gate is front-end only.
+
 ## Notes for the implementer
 - Files update on the cron cadence, not per-request — that's fine; label the panel
   with `current.ts` so staleness is visible.
