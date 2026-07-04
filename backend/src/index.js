@@ -59,6 +59,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/user', require('./routes/user'));
 app.use('/api/convert', require('./routes/convert'));
+app.use('/api/ocr', require('./routes/ocr'));
 app.use('/api/events', require('./routes/events'));
 app.use('/api/feedback', require('./routes/feedback'));
 app.use('/api/tools', require('./routes/tools'));
