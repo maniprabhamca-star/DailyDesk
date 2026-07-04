@@ -3,7 +3,7 @@
 
 export const PRICING = {
   pro: {
-    monthly: '5.99',
+    monthly: '5.98',
     // Annual $59/yr → $4.92/mo effective ("under $5/month" — the hook). ~18% off monthly.
     annualPerMonth: '4.92',
     annualNote: '$59 billed yearly',
