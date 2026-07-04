@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DiemDesk Alerts — Email & SMS Setup</title>
+<style>
+  :root{--brand:#4f46e5;--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;--bg:#f1f5f9;}
+  *{box-sizing:border-box;} body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;line-height:1.65;}
+  .wrap{max-width:860px;margin:0 auto;padding:32px 20px 80px;}
+  .doc{background:#fff;border:1px solid var(--line);border-radius:16px;padding:40px 48px;box-shadow:0 4px 24px rgba(15,23,42,.06);}
+  h1{font-size:28px;margin:0 0 16px;padding-bottom:14px;border-bottom:3px solid var(--brand);display:inline-block;}
+  h2{font-size:21px;margin:34px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--line);}
+  h3{font-size:16px;margin:24px 0 8px;}
+  p,li{font-size:15px;} a{color:var(--brand);text-decoration:none;} a:hover{text-decoration:underline;}
+  code{background:#eef2ff;color:#3730a3;padding:2px 6px;border-radius:6px;font-family:ui-monospace,Consolas,monospace;font-size:.88em;}
+  pre{background:#0f172a;color:#e2e8f0;padding:16px 18px;border-radius:12px;overflow:auto;} pre code{background:none;color:inherit;padding:0;}
+  table{border-collapse:collapse;width:100%;margin:14px 0;font-size:14px;} th,td{border:1px solid var(--line);padding:8px 12px;text-align:left;} th{background:#f8fafc;font-weight:600;}
+  blockquote{margin:14px 0;padding:8px 16px;border-left:4px solid var(--brand);background:#f8fafc;color:var(--muted);border-radius:0 8px 8px 0;}
+  hr{border:none;border-top:1px solid var(--line);margin:28px 0;} ul,ol{padding-left:24px;} li{margin:4px 0;}
+</style></head><body><div class="wrap"><div class="doc"><h1 id="diemdesk-alerts--email--sms-setup">DiemDesk Alerts — Email &amp; SMS Setup</h1>
+<p><code>dd-monitor</code> already pushes <strong>phone alerts (ntfy)</strong> the moment a threshold is
+crossed. It now <em>also</em> supports <strong>email</strong> and <strong>SMS</strong> on the same alerts — both are
+<strong>optional and dormant</strong> until you add credentials to <code>/etc/dd-monitor.conf</code>.
+Nothing else changes; the monitor keeps running on its 5-minute cycle.</p>
+<h2 id="how-alerts-fan-out">How alerts fan out</h2>
+<p>When a threshold is breached, <code>notify()</code> sends to <strong>all configured channels</strong> at once,
+sharing one 6-hour per-signal cooldown (so no spam):</p>
+<table>
+<thead>
+<tr>
+<th>Channel</th>
+<th>Fires on</th>
+<th>Cost</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>📱 <strong>ntfy push</strong></td>
+<td>every alert</td>
+<td>free</td>
+<td>already live</td>
+</tr>
+<tr>
+<td>✉️ <strong>Email</strong></td>
+<td>every alert (warn + critical + daily digest)</td>
+<td>free/cheap</td>
+<td>to your recipient list</td>
+</tr>
+<tr>
+<td>💬 <strong>SMS</strong></td>
+<td><strong>CRITICAL only</strong> by default</td>
+<td>~$0.008/text</td>
+<td>for the &quot;wake me up&quot; events</td>
+</tr>
+</tbody></table>
+<p><strong>Why SMS on critical-only:</strong> you don&#39;t want a 3 a.m. text for a minor warning. SMS is
+reserved for genuine &quot;server on fire&quot; events (CPU/RAM/disk critical, Redis down, DB
+connections critical). Set <code>SMS_ON_CRIT_ONLY=0</code> if you want SMS for warnings too.</p>
+<hr>
+<h2 id="what-to-provide">What to provide</h2>
+<h3 id="email-pick-one-method">Email (pick ONE method)</h3>
+<p><strong>Option A — Gmail (fastest, no new signup):</strong></p>
+<ol>
+<li>Turn on 2-Step Verification on your Google account</li>
+<li>Google Account → Security → <strong>App passwords</strong> → generate one (16 characters)</li>
+<li>Give me: that app password + the <strong>recipient email list</strong></li>
+</ol>
+<p><strong>Option B — Professional sender <code>alerts@diemdesk.com</code> (better deliverability):</strong>
+Use a provider (Mailgun / SendGrid / Amazon SES / Resend). Verify <code>diemdesk.com</code>
+(a few DNS records on Cloudflare — I can guide), then give me the SMTP host/port/
+user/pass it provides + the recipient list.</p>
+<blockquote>
+<p>Either way it plugs into the same settings. Start with Gmail; upgrade later if you want.</p>
+</blockquote>
+<h3 id="sms-optional-via-twilio">SMS (optional, via Twilio)</h3>
+<ol>
+<li>Sign up at twilio.com, buy a phone number (~$1/mo)</li>
+<li>From the console, copy <strong>Account SID</strong>, <strong>Auth Token</strong>, and your <strong>Twilio number</strong></li>
+<li>Give me those + the <strong>phone number(s)</strong> to alert (in +1XXXXXXXXXX format)</li>
+</ol>
+<hr>
+<h2 id="where-its-configured-etcdd-monitorconf">Where it&#39;s configured (<code>/etc/dd-monitor.conf</code>)</h2>
+<pre><code class="language-bash"># Email
+SMTP_HOST=&quot;smtp.gmail.com&quot;; SMTP_PORT=465
+SMTP_USER=&quot;you@gmail.com&quot;;  SMTP_PASS=&quot;xxxx xxxx xxxx xxxx&quot;
+EMAIL_FROM=&quot;you@gmail.com&quot;
+ALERT_EMAILS=&quot;you@x.com,ops@y.com&quot;          # the email list
+
+# SMS (Twilio) — critical only
+TWILIO_SID=&quot;ACxxxx…&quot;; TWILIO_TOKEN=&quot;xxxx&quot;; TWILIO_FROM=&quot;+1555…&quot;
+ALERT_SMS=&quot;+1555…,+1444…&quot;
+SMS_ON_CRIT_ONLY=1
+</code></pre>
+<h2 id="test-it">Test it</h2>
+<p>After the config is set:</p>
+<pre><code>dd-monitor test      # sends a test to ntfy + email + SMS, prints what it attempted
+</code></pre>
+<h2 id="suggestions">Suggestions</h2>
+<ul>
+<li><strong>Keep ntfy</strong> as the primary phone alert — it&#39;s free and instant. Email + SMS are
+belt-and-suspenders (and email gives you a searchable record + the daily digest).</li>
+<li>Alerts arrive within ~5 min (the cron cycle). If you want criticals detected faster,
+we can run <code>dd-monitor infra</code> every 1–2 minutes — it&#39;s lightweight.</li>
+<li>Optional nice-to-have: an <strong>&quot;all-clear&quot; email</strong> when a critical resolves. Say the word
+and I&#39;ll add it.</li>
+</ul>
+</div></div></body></html>
