@@ -34,6 +34,16 @@ export function usePlan(): Plan {
   return 'free';
 }
 
+// True only for the OWNER (ddadmin bypass cookie, or a PRO_EMAILS account). Used
+// to let the owner see/test tools that are hidden from the public (coming_soon /
+// disabled via the admin tool-flags) — build tools privately, launch later.
+export function useIsOwner(): boolean {
+  const { user } = useAuth();
+  if (hasOwnerCookie()) return true;
+  if (user?.email && PRO_EMAILS.includes(user.email.trim().toLowerCase())) return true;
+  return false;
+}
+
 // True when a file of this size is allowed to be processed on the given plan.
 export function canProcessSize(bytes: number, plan: Plan): boolean {
   return plan === 'pro' || bytes <= FREE_MAX_BYTES;

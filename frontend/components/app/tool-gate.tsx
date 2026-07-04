@@ -2,18 +2,35 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Clock, Wrench } from 'lucide-react';
+import { Clock, Wrench, EyeOff } from 'lucide-react';
 import { useToolStatus } from '@/lib/tool-flags';
+import { useIsOwner } from '@/lib/plan';
 import { Button } from '@/components/ui/button';
 
-// Wraps a tool's interactive area. If the admin has set this tool's status to
-// 'coming_soon' or 'disabled', it shows a friendly panel instead of the tool.
+// Wraps a tool's interactive area. If the admin set this tool to 'coming_soon'
+// or 'disabled', the PUBLIC sees a friendly panel — but the OWNER still sees and
+// can use the real tool (with a "hidden from public" ribbon), so tools can be
+// built and tested in production before being enabled at launch.
 // 'enabled' and 'pro' pass through (Pro gating is handled separately by billing).
 export function ToolGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const status = useToolStatus(pathname);
+  const isOwner = useIsOwner();
 
   if (status === 'enabled' || status === 'pro') return <>{children}</>;
+
+  // Owner bypass: show the real tool + a private-preview ribbon.
+  if (isOwner) {
+    return (
+      <div>
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-amber-400/40 bg-amber-400/10 px-3 py-2 text-xs font-medium text-amber-700 dark:text-amber-400">
+          <EyeOff className="size-4 shrink-0" />
+          Hidden from the public ({status === 'disabled' ? 'disabled' : 'coming soon'}) — only you can see this. Enable it in the admin when ready.
+        </div>
+        {children}
+      </div>
+    );
+  }
 
   const disabled = status === 'disabled';
   const Icon = disabled ? Wrench : Clock;
