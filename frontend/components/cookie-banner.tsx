@@ -43,12 +43,12 @@ export function CookieBanner() {
     <div className="fixed inset-x-3 bottom-3 z-50 mx-auto max-w-3xl">
       <div className="overflow-hidden rounded-2xl border bg-card shadow-lift">
         <div className="flex flex-col md:flex-row md:items-stretch">
-          {/* File → device → lock flow — bold brand-indigo panel */}
-          <div className="flex items-center justify-center gap-2.5 bg-gradient-to-br from-primary to-violet-600 px-4 py-3 md:justify-start md:py-4">
-            <span className="flex size-9 items-center justify-center rounded-lg bg-white/20 text-white"><FileText className="size-[18px]" strokeWidth={2.25} /></span>
-            <ArrowRight className="size-4 text-white/80" strokeWidth={2.5} />
-            <span className="flex size-9 items-center justify-center rounded-lg bg-white text-primary shadow-soft"><Laptop className="size-[18px]" strokeWidth={2.25} /></span>
-            <Lock className="size-4 text-white/90" strokeWidth={2.5} />
+          {/* File → device → lock flow — soft brand-indigo tint, one solid device tile as the accent */}
+          <div className="flex items-center justify-center gap-2.5 border-b border-primary/15 bg-gradient-to-br from-primary/15 to-violet-500/10 px-4 py-3 md:justify-start md:border-b-0 md:border-r md:py-4">
+            <span className="flex size-9 items-center justify-center rounded-lg bg-card text-primary shadow-soft"><FileText className="size-[18px]" strokeWidth={2.25} /></span>
+            <ArrowRight className="size-4 text-primary/60" strokeWidth={2.5} />
+            <span className="flex size-9 items-center justify-center rounded-lg bg-primary text-white shadow-soft"><Laptop className="size-[18px]" strokeWidth={2.25} /></span>
+            <Lock className="size-4 text-primary/60" strokeWidth={2.5} />
           </div>
 
           {/* Message */}
