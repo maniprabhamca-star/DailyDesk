@@ -5,9 +5,10 @@ const { requireAuth } = require('../middleware/auth');
 // Stripe subscription billing for DiemDesk Pro. Everything here is ENV-GATED:
 // if STRIPE_SECRET_KEY isn't set, the endpoints report "not configured" and the
 // webhook no-ops — so the app runs perfectly fine before billing is wired.
-// Set on the server (never in code): STRIPE_SECRET_KEY, STRIPE_PRICE_ID,
-// STRIPE_WEBHOOK_SECRET. FRONTEND_URL controls the return URLs.
-const PRICE_ID = process.env.STRIPE_PRICE_ID;
+// Set on the server (never in code): STRIPE_SECRET_KEY, STRIPE_PRICE_ID (monthly),
+// STRIPE_PRICE_ID_YEARLY (annual), STRIPE_WEBHOOK_SECRET. FRONTEND_URL = return URLs.
+const PRICE_MONTHLY = process.env.STRIPE_PRICE_ID;
+const PRICE_YEARLY = process.env.STRIPE_PRICE_ID_YEARLY;
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
 const FRONTEND = process.env.FRONTEND_URL || 'https://diemdesk.com';
 
@@ -24,7 +25,10 @@ const router = express.Router();
 // Start a hosted Checkout for the Pro subscription; returns the redirect URL.
 router.post('/create-checkout-session', requireAuth, async (req, res) => {
   const s = getStripe();
-  if (!s || !PRICE_ID) return res.status(503).json({ error: 'Billing isn’t set up yet — please try again shortly.' });
+  // Which billing period? Default to monthly; annual when explicitly requested.
+  const interval = req.body && req.body.interval === 'year' ? 'year' : 'month';
+  const priceId = interval === 'year' ? PRICE_YEARLY : PRICE_MONTHLY;
+  if (!s || !priceId) return res.status(503).json({ error: 'Billing isn’t set up yet — please try again shortly.' });
   try {
     const { rows } = await db.query('SELECT email, plan, stripe_customer_id FROM users WHERE id = $1', [req.user.userId]);
     const user = rows[0];
@@ -33,7 +37,7 @@ router.post('/create-checkout-session', requireAuth, async (req, res) => {
 
     const session = await s.checkout.sessions.create({
       mode: 'subscription',
-      line_items: [{ price: PRICE_ID, quantity: 1 }],
+      line_items: [{ price: priceId, quantity: 1 }],
       client_reference_id: String(req.user.userId),
       // Reuse an existing customer if we have one, else let Stripe create one
       // pre-filled with their email.

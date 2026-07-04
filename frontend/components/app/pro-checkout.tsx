@@ -11,7 +11,7 @@ import { api } from '@/lib/api';
 // The "Go Pro" CTA. Adapts to state: logged-out → register; free + logged-in →
 // start Stripe Checkout; already Pro → confirm. On returning from Checkout
 // (?upgraded=1) it refreshes the plan so Pro takes effect without a re-login.
-export function ProCheckout({ className = '', size }: { className?: string; size?: 'sm' | 'lg' | 'icon' }) {
+export function ProCheckout({ className = '', size, interval = 'month' }: { className?: string; size?: 'sm' | 'lg' | 'icon'; interval?: 'month' | 'year' }) {
   const { user, loading, refreshUser } = useAuth();
   const plan = usePlan();
   const [busy, setBusy] = useState(false);
@@ -27,7 +27,7 @@ export function ProCheckout({ className = '', size }: { className?: string; size
   async function upgrade() {
     setBusy(true); setMsg(null);
     try {
-      const res = await api.post('/api/stripe/create-checkout-session', {});
+      const res = await api.post('/api/stripe/create-checkout-session', { interval });
       if (res?.url) { window.location.href = res.url as string; return; }
       setMsg('Could not start checkout. Please try again.');
     } catch (e) {

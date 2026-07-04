@@ -140,7 +140,7 @@ export default function PricingPage() {
             <p className="mt-1 text-sm text-muted-foreground">For power users & businesses.</p>
             <p className="mt-5"><span className="text-4xl font-bold">${proPerMonth}</span><span className="text-muted-foreground"> /month</span></p>
             <p className="mt-1 text-xs text-muted-foreground">{proSub}</p>
-            <ProCheckout className="mt-6" />
+            <ProCheckout className="mt-6" interval={annual ? 'year' : 'month'} />
             <ul className="mt-6 space-y-2.5 text-sm">
               {PRICING.proFeatures.map((f) => (
                 <li key={f} className="flex items-start gap-2.5"><Check className="mt-0.5 size-[18px] shrink-0 text-emerald-600" strokeWidth={2.75} /> {f}</li>
@@ -194,7 +194,7 @@ export default function PricingPage() {
                 <td className="px-3 pt-5"> </td>
                 <td className="px-3 pt-5"> </td>
                 <td className="px-3 pt-5 text-center"><Button asChild variant="outline" size="sm"><Link href="/register">Start free</Link></Button></td>
-                <td className="rounded-b-xl bg-primary/5 px-3 pb-5 pt-5 text-center"><ProCheckout size="sm" /></td>
+                <td className="rounded-b-xl bg-primary/5 px-3 pb-5 pt-5 text-center"><ProCheckout size="sm" interval={annual ? 'year' : 'month'} /></td>
               </tr>
             </tfoot>
           </table>
