@@ -61,10 +61,16 @@ gt() { awk -v a="$1" -v b="$2" 'BEGIN{exit !(a+0>b+0)}'; }   # a > b ?
 
 # ---- extra notification channels (optional, config-driven) -----------------
 # Email via SMTP (curl speaks SMTP — no MTA/extra package needed).
+# Recipients come from the admin-managed DB table (alert_recipients); if that's
+# empty/unavailable, fall back to ALERT_EMAILS in the config.
 send_email() { # subject body
-  if [ -z "${ALERT_EMAILS:-}" ] || [ -z "${SMTP_HOST:-}" ]; then return 0; fi
+  [ -z "${SMTP_HOST:-}" ] && return 0
+  local recipients
+  recipients=$(pg "select string_agg(email, ',') from alert_recipients where active=true" 2>/dev/null)
+  [ -z "$recipients" ] && recipients="${ALERT_EMAILS:-}"
+  [ -z "$recipients" ] && return 0
   local subject="$1" body="$2" to
-  for to in ${ALERT_EMAILS//,/ }; do
+  for to in ${recipients//,/ }; do
     printf 'From: %s\r\nTo: %s\r\nSubject: %s\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n%s\r\n' \
       "${EMAIL_FROM}" "$to" "[DiemDesk] $subject" "$body" \
     | curl -s -m 15 --ssl-reqd --url "smtps://${SMTP_HOST}:${SMTP_PORT:-465}" \
