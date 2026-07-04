@@ -31,38 +31,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(false);
   }, []);
 
-  function persist(token: string, u: User) {
+  // Stable identities: these are consumed inside effect dependency lists
+  // (e.g. the account page's refreshUser-on-load), so a fresh reference every
+  // render would loop the effect and hammer the API.
+  const persist = useCallback((token: string, u: User) => {
     localStorage.setItem('dd_token', token);
     localStorage.setItem('dd_user', JSON.stringify(u));
     setUser(u);
-  }
+  }, []);
 
-  async function login(email: string, password: string) {
+  const login = useCallback(async (email: string, password: string) => {
     const res = await api.post('/api/auth/login', { email, password });
     persist(res.token, res.user);
-  }
+  }, [persist]);
 
-  async function register(name: string, email: string, password: string) {
+  const register = useCallback(async (name: string, email: string, password: string) => {
     const res = await api.post('/api/auth/register', { name, email, password });
     persist(res.token, res.user);
-  }
+  }, [persist]);
 
-  function logout() {
+  const logout = useCallback(() => {
     localStorage.removeItem('dd_token');
     localStorage.removeItem('dd_user');
     setUser(null);
-  }
+  }, []);
 
   // Re-read the account from the server (fresh token + plan). Used after a Stripe
   // upgrade so the new plan takes effect without re-login. Silent on failure.
-  async function refreshUser() {
+  const refreshUser = useCallback(async () => {
     try {
       const res = await api.get('/api/user/me');
       if (res?.token && res?.user) persist(res.token, res.user);
     } catch {
       /* not logged in or transient — leave the cached user as-is */
     }
-  }
+  }, [persist]);
 
   return (
     <AuthContext.Provider value={{ user, loading, login, register, logout, refreshUser }}>
