@@ -17,10 +17,13 @@
   blockquote{margin:14px 0;padding:8px 16px;border-left:4px solid var(--brand);background:#f8fafc;color:var(--muted);border-radius:0 8px 8px 0;}
   hr{border:none;border-top:1px solid var(--line);margin:28px 0;} ul,ol{padding-left:24px;} li{margin:4px 0;}
 </style></head><body><div class="wrap"><div class="doc"><h1 id="diemdesk-alerts--email--sms-setup">DiemDesk Alerts — Email &amp; SMS Setup</h1>
-<p><code>dd-monitor</code> already pushes <strong>phone alerts (ntfy)</strong> the moment a threshold is
-crossed. It now <em>also</em> supports <strong>email</strong> and <strong>SMS</strong> on the same alerts — both are
-<strong>optional and dormant</strong> until you add credentials to <code>/etc/dd-monitor.conf</code>.
-Nothing else changes; the monitor keeps running on its 5-minute cycle.</p>
+<p><code>dd-monitor</code> pushes <strong>phone alerts (ntfy)</strong> the moment a threshold is crossed, and
+now <em>also</em> sends <strong>email</strong> (✅ live) and optionally <strong>SMS</strong> on the same alerts.</p>
+<p><strong>Status:</strong> Email is configured — alerts send via Gmail SMTP (from
+<code>mcamanigandan@gmail.com</code>). SMS is ready but dormant until Twilio credentials are added.</p>
+<p><strong>Managing the email list:</strong> add/remove recipients in the <strong>admin tool → Monitoring →
+Alert email recipients</strong> (no server access or redeploy needed — <code>dd-monitor</code> reads the
+list live from the database). The <code>ALERT_EMAILS</code> config value is only a fallback.</p>
 <h2 id="how-alerts-fan-out">How alerts fan out</h2>
 <p>When a threshold is breached, <code>notify()</code> sends to <strong>all configured channels</strong> at once,
 sharing one 6-hour per-signal cooldown (so no spam):</p>

@@ -1,9 +1,14 @@
 # DiemDesk Alerts — Email & SMS Setup
 
-`dd-monitor` already pushes **phone alerts (ntfy)** the moment a threshold is
-crossed. It now *also* supports **email** and **SMS** on the same alerts — both are
-**optional and dormant** until you add credentials to `/etc/dd-monitor.conf`.
-Nothing else changes; the monitor keeps running on its 5-minute cycle.
+`dd-monitor` pushes **phone alerts (ntfy)** the moment a threshold is crossed, and
+now *also* sends **email** (✅ live) and optionally **SMS** on the same alerts.
+
+**Status:** Email is configured — alerts send via Gmail SMTP (from
+`mcamanigandan@gmail.com`). SMS is ready but dormant until Twilio credentials are added.
+
+**Managing the email list:** add/remove recipients in the **admin tool → Monitoring →
+Alert email recipients** (no server access or redeploy needed — `dd-monitor` reads the
+list live from the database). The `ALERT_EMAILS` config value is only a fallback.
 
 ## How alerts fan out
 When a threshold is breached, `notify()` sends to **all configured channels** at once,
