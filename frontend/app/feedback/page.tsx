@@ -49,7 +49,8 @@ export default function FeedbackPage() {
           <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary"><MessageSquare className="size-6" /></span>
           <h1 className="mt-4 text-3xl font-bold tracking-tight">Tell us what you think</h1>
           <p className="mt-2 text-muted-foreground">
-            We&rsquo;re in launch and building with your input. What do you love, what&rsquo;s missing, what would make DiemDesk perfect for you?
+            We&rsquo;re in launch and building with your input. Which tools do you love? What would you want in
+            <strong className="text-foreground"> Pro</strong> — OCR, batch, bigger files, AI? What&rsquo;s missing?
           </p>
         </div>
 
@@ -83,7 +84,7 @@ export default function FeedbackPage() {
             <div className="space-y-1.5">
               <Label htmlFor="message">Your feedback</Label>
               <textarea id="message" required value={message} onChange={(e) => setMessage(e.target.value)} rows={5} maxLength={5000}
-                placeholder="Tell us anything — a tool you'd love, a bug you hit, or what you think so far…"
+                placeholder="Tell us anything — the tools you love, a feature you'd pay for in Pro (OCR, batch, bigger files, AI…), a bug, or what you think so far…"
                 className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
             </div>
 

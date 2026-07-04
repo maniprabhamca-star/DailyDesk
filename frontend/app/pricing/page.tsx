@@ -46,7 +46,7 @@ const groups: { title: string; rows: Row[] }[] = [
       { label: 'Edit & annotate — highlight, draw, fill, sign', comp: 'Limited per day', free: true, pro: true },
       { label: 'Full in-place text editing — change existing text', comp: 'Paid only', free: false, pro: true },
       { label: 'Batch processing — many files at once', comp: 'Paid only', free: false, pro: true },
-      { label: 'Office conversions — PDF ↔ Word, Excel, PowerPoint', comp: 'Paid / limited', free: false, pro: true },
+      { label: 'Office conversions — PDF ↔ Word, Excel, PowerPoint', comp: 'Paid / limited', free: 'Single files', pro: 'Single + batch' },
       { label: 'OCR — scanned PDFs to searchable text', comp: 'Paid only', free: false, pro: true },
       { label: 'Saved workflows — one-click automations', comp: 'Paid only', free: false, pro: true },
     ],

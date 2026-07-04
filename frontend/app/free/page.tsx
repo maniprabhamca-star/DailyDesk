@@ -7,19 +7,21 @@ import { liveToolCount } from '@/components/app/catalog';
 import { PRICING } from '@/lib/pricing';
 
 const freeNow = [
-  'Every tool — merge, split, compress, convert, edit, sign, QR, and more',
-  'Works worldwide, in any modern browser, on desktop and mobile',
-  'No signup, no watermarks, no ads',
-  'Full-strength compression and editing — nothing crippled',
-  'Your files never leave your device — processed in your browser',
+  'Every tool — PDF, image, video, QR & utilities',
+  'Unlimited use — no daily task limits (competitors cap you)',
+  'Single-file Office conversions — PDF ↔ Word, Excel, PowerPoint',
+  'Video compress & Video → GIF — private, right in your browser',
+  'Full-strength compression & editing — nothing crippled',
+  'No signup, no watermarks, no ads — files never leave your device',
 ];
 
 const proLater = [
-  'Batch processing — many files at once',
-  'Office conversions (PDF ↔ Word, Excel, PowerPoint) & OCR',
-  'Full in-place PDF text editing',
-  'Unlimited file size + more AI actions a day',
-  'Saved one-click workflows + unlimited encrypted File Vault',
+  'OCR — turn scanned PDFs into editable, searchable text',
+  'Batch processing — many files in one go',
+  'Unlimited file size',
+  'Saved one-click workflows',
+  'Priority speed & support',
+  'More AI actions + encrypted File Vault (a little later)',
 ];
 
 export default function FreePage() {
@@ -88,6 +90,18 @@ export default function FreePage() {
           <p className="mt-5 text-sm text-muted-foreground">
             Planned at <strong className="text-foreground">${PRICING.pro.monthly}/month</strong> (or {PRICING.pro.annualNote}) when it launches — but not yet. There&rsquo;s nothing to buy today.
           </p>
+        </section>
+
+        {/* Help shape Pro — feedback ask */}
+        <section className="mt-6 rounded-2xl border bg-primary/5 p-7 text-center">
+          <span className="mx-auto flex size-11 items-center justify-center rounded-full bg-primary/15 text-primary"><MessageSquare className="size-6" /></span>
+          <h2 className="mt-4 text-lg font-bold">Help shape Pro</h2>
+          <p className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground">
+            You decide what Pro becomes. Tell us <strong className="text-foreground">which tools you love</strong> and
+            <strong className="text-foreground"> which features you&rsquo;d pay for</strong> — OCR, batch, bigger files,
+            AI, something we haven&rsquo;t thought of? Your feedback directly sets our roadmap.
+          </p>
+          <Button asChild className="mt-5"><Link href="/feedback">Share what you want →</Link></Button>
         </section>
 
         {/* Privacy reminder */}
