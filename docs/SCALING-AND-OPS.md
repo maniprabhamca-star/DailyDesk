@@ -92,7 +92,7 @@ lead time to run the slower steps *before* the peak — which is exactly the
 
 ## 5. Monitoring — what's installed & how to read it
 
-Two layers:
+Two layers (layer **a** is installed and running; layer **b** is optional):
 
 ### a) `dd-monitor` (custom, lightweight) — the actionable layer
 [`ops/dd-monitor.sh`](../ops/dd-monitor.sh), deployed to `/usr/local/bin/dd-monitor`.
@@ -113,11 +113,17 @@ tail /var/log/dd-metrics.csv     # ts,loadratio,mem%,disk%,p95ms,pgconn,pgmax,re
 cat  /var/log/dd-daily.csv       # date,total_users,dau,signups,pro
 ```
 
-### b) Netdata (visual, real-time) — the dashboard layer
-Per-second dashboard for CPU/RAM/load/disk/net/postgres/redis at
-`http://<server>:19999` (keep it firewalled to your IP / behind the gate). Use it
-to *see* what an alert is about and to eyeball trends. Its own anomaly detection
-is a bonus; `dd-monitor` remains the source of push alerts.
+### b) Netdata (visual, real-time) — the dashboard layer *(optional, not yet installed)*
+`dd-monitor` above is live and handles all alerting. For a per-second visual
+dashboard (CPU/RAM/load/disk/net/postgres/redis) add Netdata when you want to
+*see* trends:
+```
+wget -qO- https://get.netdata.cloud/kickstart.sh | sh -s -- --dont-wait --disable-telemetry --stable-channel
+# then bind it to localhost only and view over an SSH tunnel (don't expose :19999):
+printf '[web]\n  bind to = 127.0.0.1\n' >> /etc/netdata/netdata.conf && systemctl restart netdata
+#   ssh -L 19999:127.0.0.1:19999 root@<server>   → open http://localhost:19999
+```
+Its anomaly detection is a bonus; `dd-monitor` remains the source of push alerts.
 
 ---
 
