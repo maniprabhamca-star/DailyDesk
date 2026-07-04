@@ -15,8 +15,8 @@ export const PRICING = {
     'No ads, no watermarks, no signup wall',
     'Core tools stay in your browser',
     'Files up to 100 MB',
-    '5 AI actions / day',
-    '1 GB encrypted File Vault',
+    'AI actions — coming soon',
+    'Encrypted File Vault — coming soon',
   ],
   proFeatures: [
     'Everything in Free, with no limits',
@@ -26,8 +26,8 @@ export const PRICING = {
     'OCR — scanned PDFs to searchable text',
     'Unlimited file size (free caps at 100 MB)',
     'Saved one-click workflows',
-    '70 AI actions / day',
-    'Unlimited encrypted File Vault',
+    'More AI actions per day — coming soon',
+    'Unlimited encrypted File Vault — coming soon',
     'Priority speed & support',
   ],
 } as const;

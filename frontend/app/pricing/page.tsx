@@ -54,8 +54,8 @@ const groups: { title: string; rows: Row[] }[] = [
   {
     title: 'AI & secure storage',
     rows: [
-      { label: 'AI actions — summarize, chat, translate', comp: 'None free / paid credits', free: '5 / day', pro: '70 / day' },
-      { label: 'Opt-in encrypted File Vault (optional cloud storage)', comp: 'Not offered', free: '1 GB', pro: 'Unlimited' },
+      { label: 'AI actions — summarize, chat, translate', comp: 'None free / paid credits', free: 'Coming soon', pro: 'Coming soon' },
+      { label: 'Opt-in encrypted File Vault (optional cloud storage)', comp: 'Not offered', free: 'Coming soon', pro: 'Coming soon' },
     ],
   },
   {
