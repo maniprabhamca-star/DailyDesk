@@ -3,10 +3,10 @@
 
 export const PRICING = {
   pro: {
-    monthly: '4.99',
-    // "$4/mo" framing (user-approved): clean number; the yearly note carries the detail.
-    annualPerMonth: '4',
-    annualNote: '$49 billed yearly',
+    monthly: '5.99',
+    // Annual $59/yr → $4.92/mo effective ("under $5/month" — the hook). ~18% off monthly.
+    annualPerMonth: '4.92',
+    annualNote: '$59 billed yearly',
   },
   freeFeatures: [
     'Every tool — PDF, image, video & utilities',
