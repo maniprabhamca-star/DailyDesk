@@ -22,6 +22,8 @@ ENV_FILE="/var/www/dailydesk/backend/.env"
 STATE_DIR="/var/lib/dd-monitor"
 INFRA_CSV="/var/log/dd-metrics.csv"
 DAILY_CSV="/var/log/dd-daily.csv"
+STATUS_JSON="/var/log/dd-status.json"     # latest infra sample (admin dashboard reads this)
+GROWTH_JSON="/var/log/dd-growth.json"     # latest growth snapshot + projection
 API_HEALTH="http://127.0.0.1:4000/health"
 COOLDOWN=21600                    # 6h between repeat alerts for the same key
 
@@ -98,6 +100,11 @@ infra() {
   # log a row for history/trends
   echo "$(date -u +%FT%TZ),$loadratio,$mem_pct,$disk_pct,$p95,$pgc,$pgmax,$redis_ok" >> "$INFRA_CSV"
 
+  # machine-readable snapshot for the admin dashboard (one file = current state)
+  cat > "$STATUS_JSON" <<JSON
+{"ts":"$(date -u +%FT%TZ)","load1":$load1,"cores":$cores,"load_ratio":$loadratio,"mem_pct":$mem_pct,"disk_pct":$disk_pct,"api_p95_ms":$p95,"pg_conn":$pgc,"pg_max":$pgmax,"redis":"$redis_ok","thresholds":{"load_ratio_warn":$LOAD_RATIO_WARN,"load_ratio_crit":$LOAD_RATIO_CRIT,"mem_warn":$MEM_WARN,"mem_crit":$MEM_CRIT,"disk_warn":$DISK_WARN,"disk_crit":$DISK_CRIT,"p95_warn":$P95_WARN,"p95_crit":$P95_CRIT,"pgconn_warn":$PGCONN_WARN,"pgconn_crit":$PGCONN_CRIT}}
+JSON
+
   # evaluate thresholds -> alerts (CRIT beats WARN; clear cooldown when healthy)
   if   gt "$loadratio" "$LOAD_RATIO_CRIT"; then notify load crit rotating_light "DiemDesk CPU CRITICAL" "load ${load1} on ${cores} cores (ratio ${loadratio}). Scale the box NOW."
   elif gt "$loadratio" "$LOAD_RATIO_WARN"; then notify load high warning "DiemDesk CPU high" "load ${load1}/${cores} cores (ratio ${loadratio}). Approaching capacity — plan the vertical bump."
@@ -173,7 +180,12 @@ growth() {
     notify grow_h max chart_with_upwards_trend "DiemDesk: go multi-server soon" "Growth projects ~${dleft} days to the horizontal-scale point (${HORIZONTAL_AT_DAU} DAU). Stand up a 2nd node + managed DB now."
   fi
 
-  local clean; clean=$(echo "$proj_msg" | grep -v '^WARN_' | head -1)
+  local clean; clean=$(echo "$proj_msg" | grep -v '^WARN_' | head -1); clean=${clean//\"/}
+
+  # machine-readable growth snapshot for the admin dashboard
+  cat > "$GROWTH_JSON" <<JSON
+{"date":"$today","total_users":$total,"dau":$dau,"signups_24h":$signups,"pro":$pro,"projection":"$clean","milestones":{"vertical_at_dau":$VERTICAL_AT_DAU,"horizontal_at_dau":$HORIZONTAL_AT_DAU,"lead_days":$LEAD_DAYS}}
+JSON
   # daily digest (always sent, low priority)
   notify digest_$today default bar_chart "DiemDesk daily: ${total} users, ${dau} DAU" \
     "Total ${total} (Pro ${pro}) · signups 24h ${signups} · DAU ${dau}. ${clean}"

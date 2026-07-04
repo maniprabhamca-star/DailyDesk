@@ -1,0 +1,97 @@
+# Admin Dashboard — Monitoring & Growth Panel (build spec / handoff)
+
+Hand this to the session that owns the **backend admin tool** (`dailydesk-admin`).
+Goal: surface the live server monitoring + growth prediction (already running via
+`dd-monitor`, see [SCALING-AND-OPS.md](SCALING-AND-OPS.md)) as a panel in the admin
+UI — no need to re-implement sampling; just read what the monitor already writes.
+
+## What already exists (data sources)
+`dd-monitor` runs on the VPS via cron (infra every 5 min, growth daily). It writes:
+
+| File (on the VPS) | Content | Refresh |
+|---|---|---|
+| `/var/log/dd-status.json` | **Current** infra sample + thresholds (see shape below) | every 5 min |
+| `/var/log/dd-growth.json` | **Current** growth snapshot + projection text | daily |
+| `/var/log/dd-metrics.csv` | Infra **history** — `ts,load_ratio,mem_pct,disk_pct,p95_ms,pg_conn,pg_max,redis` | every 5 min |
+| `/var/log/dd-daily.csv` | Growth **history** — `date,total_users,dau,signups,pro` | daily |
+| `/var/log/dd-monitor.log` | Human log incl. alert lines | on alert |
+
+`dd-status.json` shape:
+```json
+{ "ts":"2026-07-04T01:06:05Z","load1":0.00,"cores":4,"load_ratio":0.000,
+  "mem_pct":6.7,"disk_pct":8,"api_p95_ms":2,"pg_conn":6,"pg_max":100,"redis":"PONG",
+  "thresholds":{"load_ratio_warn":0.625,"load_ratio_crit":0.85,"mem_warn":70,"mem_crit":88,
+    "disk_warn":80,"disk_crit":92,"p95_warn":300,"p95_crit":800,"pgconn_warn":0.70,"pgconn_crit":0.90} }
+```
+`dd-growth.json` shape:
+```json
+{ "date":"2026-07-04","total_users":2,"dau":2,"signups_24h":1,"pro":1,
+  "projection":"DAU 2, growing ~1/day. ~... days to 40000 (vertical bump).",
+  "milestones":{"vertical_at_dau":40000,"horizontal_at_dau":90000,"lead_days":7} }
+```
+
+## Recommended architecture
+The admin tool is on the **same box**, so the simplest path is: admin backend
+reads these files + the DB, exposes one JSON endpoint, admin frontend renders it.
+
+**Add one endpoint** (admin-auth protected):
+```
+GET /admin/monitoring  ->  {
+  current:  <contents of dd-status.json>,
+  growth:   <contents of dd-growth.json>,
+  infraHistory: [ {ts,load_ratio,mem_pct,disk_pct,p95_ms,pg_conn,pg_max,redis}, ... ],  // parse tail of dd-metrics.csv (e.g. last 288 = 24h)
+  dailyHistory: [ {date,total_users,dau,signups,pro}, ... ],                              // parse dd-daily.csv
+  recentAlerts: [ "…log line…", ... ]                                                      // grep 'alerted:' tail of dd-monitor.log
+}
+```
+Reading files in Node: `fs.readFileSync('/var/log/dd-status.json','utf8')` etc.,
+wrapped in try/catch (return nulls if a file is missing). CSV parse = split lines
+on `\n`, fields on `,`. No new dependency needed.
+
+> If the admin tool can't read `/var/log`, either (a) run it as a user with read
+> access, or (b) point `dd-monitor`'s `STATUS_JSON`/`*_CSV` paths (top of the
+> script) at a shared dir the admin can read, or (c) query Postgres directly for
+> the growth numbers (see queries below) and only the infra part needs the files.
+
+Live DB queries the growth numbers come from (if you prefer querying over reading `dd-daily.csv`):
+```sql
+-- total, pro, signups(24h), DAU(24h)
+select count(*) from users;
+select count(*) from users where plan='pro';
+select count(*) from users where created_at > now() - interval '24 hours';
+select count(distinct coalesce(user_id::text, ip_address::text))
+  from user_events where created_at > now() - interval '24 hours';
+```
+
+## Projection algorithm (port of the bash logic, if you want to compute in-app)
+Linear fit over `dailyHistory[].dau`:
+```
+slope   = (dau_last - dau_first) / (n_days - 1)      // DAU/day; if <=0 => no pressure
+daysTo(milestone) = (milestone - dau_last) / slope   // show if > 0
+// show an "advance warning" badge when 0 < daysTo(vertical_at_dau) <= lead_days
+```
+
+## UI recommendation
+- **Status cards** (top row): CPU load (`load_ratio` × `cores` = load1), RAM %, Disk %,
+  API p95 ms, Postgres `pg_conn/pg_max`, Redis up/down. Color each with the
+  thresholds from `dd-status.json` (green < warn, amber ≥ warn, red ≥ crit).
+- **Line charts** (last 24h / 7d from `dd-metrics.csv`): load_ratio and API p95 over time.
+- **Growth chart** (`dd-daily.csv`): DAU + total users over time, with a dashed
+  **projected trend line** and a callout: *"~N days to the next scale step (40k DAU)."*
+- **Advance-warning banner** when the projection is within `lead_days`.
+- **Alerts feed**: last N lines from `recentAlerts`.
+- **Thresholds/what-happens-next**: small legend linking to SCALING-AND-OPS.md so
+  whoever's on call knows the action for each trigger.
+
+## Auth / security
+Gate `/admin/monitoring` behind the admin tool's existing admin auth (it's
+operational data). Do not expose it publicly. Don't put the ntfy topic in any
+response (it lives only in `/etc/dd-monitor.conf`).
+
+## Notes for the implementer
+- Files update on the cron cadence, not per-request — that's fine; label the panel
+  with `current.ts` so staleness is visible.
+- `dd-monitor` is the source of truth for thresholds; the dashboard should read
+  them from `dd-status.json` rather than hard-coding, so tuning `/etc/dd-monitor.conf`
+  flows through automatically.
+- To force-refresh while testing: SSH `dd-monitor infra` / `dd-monitor growth`.
