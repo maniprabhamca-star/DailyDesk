@@ -39,6 +39,18 @@ VERTICAL_AT_DAU=40000      # bump the box (8 cores + more workers) before ~50k
 HORIZONTAL_AT_DAU=90000    # multi-server + managed DB before ~100k
 LEAD_DAYS=7                # warn this many days before the projected crossing
 
+# ---- Email alerts (optional). SMTP works with any provider: Gmail app-password,
+#      Mailgun, SendGrid, Amazon SES, etc. Set these in /etc/dd-monitor.conf.
+SMTP_HOST=""; SMTP_PORT=465; SMTP_USER=""; SMTP_PASS=""
+EMAIL_FROM="alerts@diemdesk.com"
+ALERT_EMAILS=""            # comma-separated recipient list (the "email list")
+
+# ---- SMS alerts (optional, via Twilio). By default SMS fires on CRITICAL only,
+#      so you're not texted for every warning. Set SMS_ON_CRIT_ONLY=0 to get all.
+TWILIO_SID=""; TWILIO_TOKEN=""; TWILIO_FROM=""
+ALERT_SMS=""               # comma-separated E.164 numbers, e.g. +15551234567
+SMS_ON_CRIT_ONLY=1
+
 [ -f /etc/dd-monitor.conf ] && . /etc/dd-monitor.conf
 
 mkdir -p "$STATE_DIR"
@@ -47,16 +59,50 @@ MODE="${1:-infra}"
 # ---- helpers ---------------------------------------------------------------
 gt() { awk -v a="$1" -v b="$2" 'BEGIN{exit !(a+0>b+0)}'; }   # a > b ?
 
-# push to phone via ntfy, with per-key cooldown so we don't spam
+# ---- extra notification channels (optional, config-driven) -----------------
+# Email via SMTP (curl speaks SMTP — no MTA/extra package needed).
+send_email() { # subject body
+  if [ -z "${ALERT_EMAILS:-}" ] || [ -z "${SMTP_HOST:-}" ]; then return 0; fi
+  local subject="$1" body="$2" to
+  for to in ${ALERT_EMAILS//,/ }; do
+    printf 'From: %s\r\nTo: %s\r\nSubject: %s\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n%s\r\n' \
+      "${EMAIL_FROM}" "$to" "[DiemDesk] $subject" "$body" \
+    | curl -s -m 15 --ssl-reqd --url "smtps://${SMTP_HOST}:${SMTP_PORT:-465}" \
+        --mail-from "${EMAIL_FROM}" --mail-rcpt "$to" \
+        --user "${SMTP_USER}:${SMTP_PASS}" -T - >/dev/null 2>&1
+  done
+}
+# SMS via Twilio.
+send_sms() { # message
+  if [ -z "${ALERT_SMS:-}" ] || [ -z "${TWILIO_SID:-}" ]; then return 0; fi
+  local msg="$1" num
+  for num in ${ALERT_SMS//,/ }; do
+    curl -s -m 15 -X POST "https://api.twilio.com/2010-04-01/Accounts/${TWILIO_SID}/Messages.json" \
+      --data-urlencode "To=${num}" --data-urlencode "From=${TWILIO_FROM}" \
+      --data-urlencode "Body=${msg}" -u "${TWILIO_SID}:${TWILIO_TOKEN}" >/dev/null 2>&1
+  done
+}
+
+# Fan out an alert to phone push (ntfy) + email + SMS, with per-key cooldown so
+# we don't spam. Email goes on every alert; SMS on CRITICAL only (by default).
 notify() { # key priority tags title message
   local key="$1" prio="$2" tags="$3" title="$4" msg="$5"
   local now last f="$STATE_DIR/alert_$1.ts"
   now=$(date +%s); last=0; [ -f "$f" ] && last=$(cat "$f" 2>/dev/null || echo 0)
   if [ $((now - last)) -lt "$COOLDOWN" ] && [ "$prio" != "max" ]; then return; fi
-  [ -z "$NTFY_TOPIC" ] && { echo "[dd-monitor] NTFY_TOPIC unset"; return; }
-  curl -s -m 10 \
-    -H "Title: $title" -H "Priority: $prio" -H "Tags: $tags" \
-    -d "$msg" "$NTFY_URL/$NTFY_TOPIC" >/dev/null 2>&1
+
+  # 1) phone push (ntfy)
+  if [ -n "${NTFY_TOPIC:-}" ]; then
+    curl -s -m 10 -H "Title: $title" -H "Priority: $prio" -H "Tags: $tags" \
+      -d "$msg" "$NTFY_URL/$NTFY_TOPIC" >/dev/null 2>&1
+  fi
+  # 2) email — every alert
+  send_email "$title" "$msg"
+  # 3) SMS — critical only (unless SMS_ON_CRIT_ONLY=0)
+  if [ "$prio" = "crit" ] || [ "${SMS_ON_CRIT_ONLY:-1}" = "0" ]; then
+    send_sms "$title: $msg"
+  fi
+
   echo "$now" > "$f"
   echo "[dd-monitor] alerted: $title — $msg"
 }
@@ -195,6 +241,17 @@ JSON
 case "$MODE" in
   infra)  infra ;;
   growth) growth ;;
-  test)   NTFY_TOPIC="${NTFY_TOPIC}"; curl -s -m 10 -H "Title: DiemDesk test alert" -H "Tags: white_check_mark" -d "If you see this on your phone, alerts work. $(date)" "$NTFY_URL/$NTFY_TOPIC" >/dev/null && echo "sent test to $NTFY_TOPIC" ;;
+  test)
+    echo "Testing notification channels…"
+    if [ -n "${NTFY_TOPIC:-}" ]; then
+      curl -s -m 10 -H "Title: DiemDesk test alert" -H "Tags: white_check_mark" \
+        -d "If you see this on your phone, ntfy alerts work. $(date)" "$NTFY_URL/$NTFY_TOPIC" >/dev/null \
+        && echo "  ntfy: sent to $NTFY_TOPIC"
+    else echo "  ntfy: (NTFY_TOPIC unset)"; fi
+    send_email "Test alert" "If you got this email, DiemDesk email alerts work. $(date)"
+    [ -n "${ALERT_EMAILS:-}" ] && echo "  email: attempted to $ALERT_EMAILS" || echo "  email: (not configured)"
+    send_sms "DiemDesk test alert — SMS works. $(date)"
+    [ -n "${ALERT_SMS:-}" ] && echo "  sms: attempted to $ALERT_SMS" || echo "  sms: (not configured)"
+    ;;
   *) echo "usage: dd-monitor {infra|growth|test}"; exit 1 ;;
 esac
