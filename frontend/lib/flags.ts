@@ -11,5 +11,7 @@ export const BILLING_ENABLED = false;
 // launch — since Pro isn't purchasable yet, we never dangle a price. When a file
 // is over the cap while this is OFF, the notice degrades to a neutral
 // "file too large" message with no Pro pitch. Flip ON with BILLING_ENABLED at
-// Pro launch to turn the size cap into a real upsell.
-export const PRO_UPSELL_ENABLED = false;
+// Pro launch to turn the size cap into a real upsell. Default OFF; a preview
+// server can force it ON for testing via NEXT_PUBLIC_PRO_UPSELL=1 (never set in
+// production).
+export const PRO_UPSELL_ENABLED = process.env.NEXT_PUBLIC_PRO_UPSELL === '1';

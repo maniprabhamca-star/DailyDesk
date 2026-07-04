@@ -9,6 +9,8 @@ import { downloadBlob as download } from '@/lib/download';
 import { formatDuration } from '@/lib/format';
 import { PdfDone } from '@/components/app/pdf-done';
 import { openPdf, yieldToLoop, type PdfHandle } from '@/lib/pdf-render';
+import { usePlan } from '@/lib/plan';
+import { UpgradeNotice } from '@/components/app/upgrade-notice';
 
 // OCR — scanned PDF/image → SEARCHABLE PDF + text, at ~the original file size.
 // Pipeline (license-clean, no Ghostscript/Poppler): pages are rasterized in the
@@ -18,6 +20,9 @@ import { openPdf, yieldToLoop, type PdfHandle } from '@/lib/pdf-render';
 // barely grows — and the text becomes selectable/searchable.
 
 const MAX_INPUT_BYTES = 500 * 1024 * 1024;
+// OCR runs on our server (CPU cost), so free users are capped at 20 MB; Pro is
+// unlimited. Client tools stay at 100 MB — this tighter cap is OCR-specific.
+const OCR_FREE_MAX = 20 * 1024 * 1024;
 const MAX_TOTAL_PAGES = 500;
 const BATCH_PAGES = 12;
 const MAX_LONG_EDGE = 3500;
@@ -175,7 +180,9 @@ async function buildImagePdf(file: File, imgW: number, imgH: number, words: Word
 }
 
 export function OcrTool() {
+  const plan = usePlan();
   const [file, setFile] = useState<File | null>(null);
+  const [tooBig, setTooBig] = useState<{ name: string; size: number } | null>(null);
   const [isImage, setIsImage] = useState(false);
   const [lang, setLang] = useState('eng');
   const [quality, setQuality] = useState<'best' | 'fast'>('best');
@@ -198,6 +205,8 @@ export function OcrTool() {
     const pdf = f.type === 'application/pdf' || /\.pdf$/i.test(f.name);
     if (!img && !pdf) { setError('Please choose a PDF or an image (PNG, JPG, TIFF…).'); return; }
     if (f.size > MAX_INPUT_BYTES) { setError(`This file is ${fmt(f.size)} — the limit is ${fmt(MAX_INPUT_BYTES)}.`); return; }
+    setTooBig(null);
+    if (plan !== 'pro' && f.size > OCR_FREE_MAX) { setError(null); setFile(null); setTooBig({ name: f.name, size: f.size }); return; }
     setError(null); setDone(null); setText(null); setIsImage(img && !pdf); setFile(f);
   }
 
@@ -298,7 +307,9 @@ export function OcrTool() {
         </p>
 
         <input ref={inputRef} type="file" accept="application/pdf,image/*" className="hidden" onChange={(e) => { loadOne(e.target.files?.[0]); e.currentTarget.value = ''; }} />
-        {!file ? (
+        {tooBig ? (
+          <UpgradeNotice fileName={tooBig.name} sizeText={fmt(tooBig.size)} limitText="20 MB" onReset={() => { setTooBig(null); inputRef.current?.click(); }} />
+        ) : !file ? (
           <div
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => { e.preventDefault(); loadOne(e.dataTransfer.files?.[0]); }}

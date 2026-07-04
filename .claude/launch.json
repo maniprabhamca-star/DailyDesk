@@ -36,6 +36,12 @@
       "runtimeExecutable": "node",
       "runtimeArgs": ["scripts/preview-brand.mjs", "D", "3004"],
       "port": 3004
+    },
+    {
+      "name": "upsell-test",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["scripts/preview-upsell.mjs", "3005"],
+      "port": 3005
     }
   ]
 }
