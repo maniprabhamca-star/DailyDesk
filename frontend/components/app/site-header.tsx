@@ -94,6 +94,7 @@ export function SiteHeader({ heroSearchRef }: { heroSearchRef?: React.RefObject<
           )}
         </div>
         <Link href="/pricing" className="hidden text-sm font-medium text-foreground/80 hover:text-foreground sm:block">Pricing</Link>
+        <Link href="/feedback" className="hidden text-sm font-medium text-foreground/80 hover:text-foreground sm:block">Feedback</Link>
 
         {/* Center command search — the primary way to navigate (search-first workspace).
             A real input: results drop down inline as you type (HeaderSearch); ⌘K still
@@ -126,6 +127,7 @@ export function SiteHeader({ heroSearchRef }: { heroSearchRef?: React.RefObject<
             {[
               { label: 'All tools', href: '/#tools' },
               { label: 'Pricing', href: '/pricing' },
+              { label: 'Feedback', href: '/feedback' },
               ...(user ? [] : [{ label: 'Log in', href: '/login' }]),
             ].map((l) => (
               <Link key={l.label} href={l.href} onClick={() => setMobileOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-medium text-foreground/90 hover:bg-accent">{l.label}</Link>

@@ -1,7 +1,8 @@
-// User feedback ingest. Stores submissions in the `feedback` table (Postgres).
-// Anonymous is allowed; if a valid JWT is present we attach the user id.
-// View submissions in the DB (TablePlus) or the admin tool:
-//   SELECT created_at, category, rating, email, message FROM feedback ORDER BY created_at DESC;
+// User feedback ingest + admin read.
+//   POST /api/feedback           — public (rate-limited); stores a row.
+//   GET  /api/feedback?limit=100 — admin only (x-admin-token: $ADMIN_API_TOKEN).
+// Anonymous submit is allowed; a valid JWT attaches the user id.
+// Stored in the `feedback` table (Postgres). The admin dashboard reads via GET.
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const jwt = require('jsonwebtoken');
@@ -11,15 +12,15 @@ const { makeStore, redisDown } = require('../utils/rateLimitStore');
 
 const router = express.Router();
 
-// Cap submissions per client so the form can't be spammed.
-router.use(rateLimit({
+// Cap submissions per client so the form can't be spammed (POST only).
+const submitLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
   max: 20,
   keyGenerator: clientKey,
   store: makeStore('rl:feedback:'),
   skip: () => redisDown(),
   message: { error: 'Too many submissions — please try again in a few minutes.' },
-}));
+});
 
 const CATEGORIES = new Set(['bug', 'idea', 'praise', 'other']);
 
@@ -30,7 +31,7 @@ function optionalUserId(req) {
   catch { return null; }
 }
 
-router.post('/', async (req, res) => {
+router.post('/', submitLimiter, async (req, res) => {
   const { message, email, category, rating, page } = req.body || {};
   if (!message || typeof message !== 'string' || message.trim().length < 3) {
     return res.status(400).json({ error: 'Please share a little more detail.' });
@@ -57,6 +58,30 @@ router.post('/', async (req, res) => {
   } catch (err) {
     console.error('feedback insert error:', err.message);
     res.status(500).json({ error: 'Could not save your feedback — please try again.' });
+  }
+});
+
+// Admin read for the admin dashboard. Token-guarded; returns 404 if unconfigured
+// (so it's invisible until you set ADMIN_API_TOKEN on the server).
+router.get('/', async (req, res) => {
+  const token = process.env.ADMIN_API_TOKEN;
+  if (!token || req.headers['x-admin-token'] !== token) return res.status(404).json({ error: 'Not found' });
+  const limit = Math.min(parseInt(req.query.limit, 10) || 100, 500);
+  try {
+    const { rows } = await db.query(
+      `SELECT id, created_at, user_id, email, category, rating, message, page, status
+       FROM feedback ORDER BY created_at DESC LIMIT $1`, [limit],
+    );
+    const counts = await db.query(
+      `SELECT count(*)::int AS total,
+              count(*) FILTER (WHERE created_at > now() - interval '24 hours')::int AS last_24h,
+              count(*) FILTER (WHERE status = 'new')::int AS unread
+       FROM feedback`,
+    );
+    res.json({ summary: counts.rows[0], feedback: rows });
+  } catch (err) {
+    console.error('feedback list error:', err.message);
+    res.status(500).json({ error: 'Could not load feedback' });
   }
 });
 

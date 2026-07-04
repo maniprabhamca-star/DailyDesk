@@ -88,6 +88,33 @@ Gate `/admin/monitoring` behind the admin tool's existing admin auth (it's
 operational data). Do not expose it publicly. Don't put the ntfy topic in any
 response (it lives only in `/etc/dd-monitor.conf`).
 
+## Feedback panel (added 2026-07-04)
+User feedback from the `/feedback` page is stored in the Postgres **`feedback`**
+table. Two ways to surface it in the admin dashboard:
+
+**Option A — backend API (recommended; decoupled):**
+`GET /api/feedback?limit=100` with header `x-admin-token: <ADMIN_API_TOKEN>`
+returns:
+```json
+{ "summary": { "total": 42, "last_24h": 5, "unread": 12 },
+  "feedback": [ { "id":7,"created_at":"…","user_id":null,"email":"…","category":"idea",
+                  "rating":null,"message":"…","page":"/compress-pdf","status":"new" }, … ] }
+```
+Returns **404 until `ADMIN_API_TOKEN` is set** on the backend `.env` (so the
+endpoint is invisible/disabled by default). Ask for the token value (stored
+server-side, not in git).
+
+**Option B — direct DB (same box):**
+```sql
+SELECT created_at, category, rating, email, message, page, status
+FROM feedback ORDER BY created_at DESC LIMIT 100;
+```
+
+**UI suggestion:** a "Feedback" nav item → a table (date, category chip, message,
+email, source page) with a filter by category (bug/idea/praise/other) and a
+count badge (`summary.unread`). A `status` column exists (`new` default) so you
+can add "mark as read/resolved" later (`UPDATE feedback SET status='read' WHERE id=…`).
+
 ## Notes for the implementer
 - Files update on the cron cadence, not per-request — that's fine; label the panel
   with `current.ts` so staleness is visible.
