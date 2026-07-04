@@ -8,7 +8,7 @@ import {
 import { BrandMark } from '@/components/app/brand-mark';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
-import { catalog } from '@/components/app/catalog';
+import { catalog, type CatGroup } from '@/components/app/catalog';
 import { HeaderSearch } from '@/components/app/header-search';
 import { HeaderUser } from '@/components/app/header-user';
 import { useAuth } from '@/lib/auth';
@@ -16,6 +16,25 @@ import { useAuth } from '@/lib/auth';
 function openCommand() {
   window.dispatchEvent(new Event('dd-command-open'));
 }
+
+// Distribute catalog groups into N balanced columns for the Tools mega-menu.
+// Using a real grid of pre-filled columns (not CSS `columns`) means the panel
+// grows DOWNWARD only — it can never spill into extra columns sideways, which
+// was the horizontal-scroll bug. Greedy: each group joins the shortest column,
+// so heights stay even and everything fits on one screen without scrolling.
+// Recomputed once at module load (catalog is static).
+function buildMenuColumns(cols: number): CatGroup[][] {
+  const columns: CatGroup[][] = Array.from({ length: cols }, () => []);
+  const weight = new Array(cols).fill(0);
+  for (const g of catalog) {
+    let shortest = 0;
+    for (let i = 1; i < cols; i++) if (weight[i] < weight[shortest]) shortest = i;
+    columns[shortest].push(g);
+    weight[shortest] += g.tools.length + 1.6; // +header row
+  }
+  return columns;
+}
+const MENU_COLUMNS = buildMenuColumns(4);
 
 /**
  * Shared site header (home + tool pages + pricing + legal pages).
@@ -71,25 +90,31 @@ export function SiteHeader({ heroSearchRef }: { heroSearchRef?: React.RefObject<
             Tools <ChevronDown className={`size-4 transition-transform ${menuOpen ? 'rotate-180' : ''}`} />
           </button>
           {menuOpen && (
-            <div className="absolute left-0 top-8 z-40 max-h-[calc(100vh-6rem)] w-[720px] overflow-y-auto overscroll-contain rounded-xl border bg-popover p-5 shadow-lift [column-fill:balance] sm:columns-3 sm:gap-x-5">
-              {catalog.map((g) => (
-                <div key={g.label} className="mb-4 break-inside-avoid">
-                  <p className="mb-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">{g.label}</p>
-                  <div className="space-y-0.5">
-                    {g.tools.map((t) => {
-                      const Icon = t.icon;
-                      const row = (
-                        <div className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-accent">
-                          <Icon className="size-4 shrink-0" style={{ color: g.color }} strokeWidth={2.25} />
-                          <span className="truncate text-[13px] font-medium">{t.name}</span>
-                          {t.soon && <span className="ml-auto text-[10px] text-muted-foreground">soon</span>}
+            <div className="absolute left-0 top-8 z-40 w-[min(920px,calc(100vw-2rem))] max-h-[calc(100vh-5.5rem)] overflow-y-auto overflow-x-hidden overscroll-contain rounded-xl border bg-popover p-4 shadow-lift">
+              <div className="grid grid-cols-2 gap-x-5 lg:grid-cols-4">
+                {MENU_COLUMNS.map((col, i) => (
+                  <div key={i} className="min-w-0">
+                    {col.map((g) => (
+                      <div key={g.label} className="mb-4">
+                        <p className="mb-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">{g.label}</p>
+                        <div className="space-y-0.5">
+                          {g.tools.map((t) => {
+                            const Icon = t.icon;
+                            const row = (
+                              <div className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-accent">
+                                <Icon className="size-4 shrink-0" style={{ color: g.color }} strokeWidth={2.25} />
+                                <span className="truncate text-[13px] font-medium">{t.name}</span>
+                                {t.soon && <span className="ml-auto text-[10px] text-muted-foreground">soon</span>}
+                              </div>
+                            );
+                            return t.href ? <Link key={t.name} href={t.href} onClick={() => setMenuOpen(false)}>{row}</Link> : <div key={t.name} className="cursor-default opacity-70">{row}</div>;
+                          })}
                         </div>
-                      );
-                      return t.href ? <Link key={t.name} href={t.href} onClick={() => setMenuOpen(false)}>{row}</Link> : <div key={t.name} className="cursor-default opacity-70">{row}</div>;
-                    })}
+                      </div>
+                    ))}
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           )}
         </div>

@@ -6,6 +6,36 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "frontend", "run", "dev"],
       "port": 3000
+    },
+    {
+      "name": "dailydesk-frontend-prod",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "frontend", "run", "start"],
+      "port": 3000
+    },
+    {
+      "name": "brand-a-lifted-tile",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["scripts/preview-brand.mjs", "A", "3001"],
+      "port": 3001
+    },
+    {
+      "name": "brand-b-monogram-d",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["scripts/preview-brand.mjs", "B", "3002"],
+      "port": 3002
+    },
+    {
+      "name": "brand-c-daybreak",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["scripts/preview-brand.mjs", "C", "3003"],
+      "port": 3003
+    },
+    {
+      "name": "brand-d-spark",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["scripts/preview-brand.mjs", "D", "3004"],
+      "port": 3004
     }
   ]
 }

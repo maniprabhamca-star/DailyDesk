@@ -10,6 +10,7 @@ import { ProCheckout } from '@/components/app/pro-checkout';
 import { SiteHeader } from '@/components/app/site-header';
 import { SiteFooter } from '@/components/app/site-footer';
 import { PRICING } from '@/lib/pricing';
+import { liveToolCount } from '@/components/app/catalog';
 
 type Cell = boolean | string;
 type Row = { label: string; comp: Cell; free: Cell; pro: Cell; link?: { href: string; text: string } };
@@ -19,7 +20,7 @@ const groups: { title: string; rows: Row[] }[] = [
     title: 'Value & trust',
     rows: [
       { label: 'Price per year', comp: 'Up to ~$240', free: '$0', pro: '~$60' },
-      { label: 'Tools available', comp: '~21', free: '25+', pro: '25+' },
+      { label: 'Tools available', comp: '~21', free: `${liveToolCount}+`, pro: `${liveToolCount}+` },
       { label: 'Works offline in your browser', comp: 'Paid apps only', free: 'Coming soon', pro: 'Coming soon', link: { href: '/security#offline', text: 'See how it works' } },
       { label: 'No signup required to use tools', comp: false, free: true, pro: true },
       { label: 'Money-back guarantee', comp: 'Conditional / none', free: 'Always free', pro: '14–30 days, no questions' },
@@ -41,7 +42,8 @@ const groups: { title: string; rows: Row[] }[] = [
       { label: 'Core PDF tools — merge, split, rotate, organize', comp: 'Limited per day', free: true, pro: true },
       { label: 'Convert (JPG ↔ PDF, and more)', comp: 'Limited per day', free: true, pro: true },
       { label: 'QR code & password generators', comp: 'Rarely offered', free: true, pro: true },
-      { label: 'Maximum file size', comp: '~15–25 MB', free: '20 MB', pro: 'Unlimited' },
+      { label: 'File size — in-browser tools (compress, merge, edit, images)', comp: 'Big, but ~2 runs/day', free: '100 MB, unlimited runs', pro: 'Unlimited' },
+      { label: 'File size — server tools (OCR, Office conversions)', comp: 'Paid only', free: '20 MB', pro: 'Unlimited' },
       { label: 'Compression', comp: 'Basic free / strong paid', free: 'Strong & Maximum', pro: 'Strong & Maximum' },
       { label: 'Edit & annotate — highlight, draw, fill, sign', comp: 'Limited per day', free: true, pro: true },
       { label: 'Full in-place text editing — change existing text', comp: 'Paid only', free: false, pro: true },
@@ -70,10 +72,10 @@ const groups: { title: string; rows: Row[] }[] = [
 const faqs = [
   { q: 'Is the free plan really free?', a: 'Yes — unlimited use of all our core tools, no ads, no watermarks, no credit card. Our everyday tools run in your browser, so they cost us nothing to give away.' },
   { q: 'Can I edit a PDF for free?', a: 'Yes. Annotating, highlighting, drawing, filling forms, and signing are free and unlimited. Only full in-place text editing — rewriting the existing text inside a PDF — is a Pro feature, the same as Adobe, Foxit, and Smallpdf.' },
-  { q: 'What do I actually get with Pro?', a: 'Power features beyond the basics: full text editing, batch processing, Office conversions (PDF↔Word/Excel/PPT), OCR, unlimited file size, saved workflows, 70 AI actions a day, and unlimited encrypted File Vault storage.' },
+  { q: 'What do I actually get with Pro?', a: 'Scale and power features: batch processing (many files at once), unlimited file size (Free already handles up to 100 MB in your browser), OCR and Office conversions on files over 20 MB, full in-place text editing, saved workflows, and priority speed. AI actions and an encrypted File Vault come a little later. To be clear: OCR up to 20 MB and single-file Office conversions are free for everyone.' },
   { q: 'Can I cancel anytime?', a: 'Yes — cancel in one click; you keep Pro until the end of your paid period. New subscribers are also covered by our money-back guarantee (14 days monthly / 30 days annual).' },
-  { q: 'Do you store my files?', a: 'No — by default nothing is saved on our servers. Our everyday tools process your files right in your browser. A few Pro tools do use our servers — Office conversions and OCR (processed, then deleted) and AI (sent for that one request) — but nothing is stored. The only feature that stores files is the optional File Vault, and it’s encrypted on your device before upload, so even we can’t read it. The 1 GB / unlimited figures apply only to that opt-in Vault.' },
-  { q: 'Are my files safe?', a: 'Our everyday tools never upload your files — everything happens on your device. The few Pro tools that need a server (AI, Office conversions, OCR) are minimal and we’re upfront about them, and the optional File Vault is end-to-end encrypted so even we can’t read it. See our Security page for details.' },
+  { q: 'Do you store my files?', a: 'No — by default nothing is saved on our servers. Our everyday tools process your files right in your browser. A few tools do use our servers — Office conversions and OCR (processed, then deleted), and later AI (sent for that one request) — but nothing is stored. The only feature that stores files is the optional File Vault, and it’s encrypted on your device before upload, so even we can’t read it. The 1 GB / unlimited figures apply only to that opt-in Vault.' },
+  { q: 'Are my files safe?', a: 'Our everyday tools never upload your files — everything happens on your device. The few tools that need a server (Office conversions, OCR, and later AI) are minimal and we’re upfront about them, and the optional File Vault is end-to-end encrypted so even we can’t read it. See our Security page for details.' },
 ];
 
 function CellView({ value, tone }: { value: Cell; tone?: 'pro' | 'muted' }) {

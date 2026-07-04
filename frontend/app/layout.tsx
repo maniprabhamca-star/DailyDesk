@@ -10,8 +10,16 @@ import { PwaRegister } from '@/components/pwa-register';
 import { RecordRecent } from '@/components/app/record-recent';
 import { UsageBeacon } from '@/components/app/usage-beacon';
 import { SITE_URL, SITE_NAME } from '@/lib/site';
+import { faviconDataUri, isBrandVariant } from '@/components/app/brand-variants';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
+
+// Preview servers (NEXT_PUBLIC_BRAND_VARIANT) swap the tab favicon to the
+// candidate mark so it matches the header logo; production uses the static set.
+const BV = process.env.NEXT_PUBLIC_BRAND_VARIANT;
+const iconsMeta: Metadata['icons'] = isBrandVariant(BV)
+  ? { icon: faviconDataUri(BV) }
+  : { icon: [{ url: '/favicon.ico', sizes: '32x32' }, { url: '/icon-192.png', type: 'image/png' }], apple: '/apple-touch-icon.png' };
 
 // Site-wide SEO defaults. Every indexable page overrides title/description/
 // canonical with its own; this supplies the base (metadataBase makes canonical
@@ -35,7 +43,7 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
   manifest: '/manifest.webmanifest',
   appleWebApp: { capable: true, title: SITE_NAME, statusBarStyle: 'default' },
-  icons: { icon: [{ url: '/favicon.ico', sizes: '32x32' }, { url: '/icon-192.png', type: 'image/png' }], apple: '/apple-touch-icon.png' },
+  icons: iconsMeta,
 };
 
 export const viewport: Viewport = {
