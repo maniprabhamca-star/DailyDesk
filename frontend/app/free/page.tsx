@@ -96,8 +96,9 @@ export default function FreePage() {
               <Award className="size-4" /> Founding member offer
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Go Pro in the launch window and <strong className="text-foreground">lock in $4.99/month for life</strong> —
-              even as we add features and the price rises later. Our thank-you for being here early.
+              Be one of the <strong className="text-foreground">first 1,000</strong> to go Pro and
+              <strong className="text-foreground"> lock in $4.99/month for life</strong> — even as we add features and the
+              price rises later. Our thank-you for being here early.
             </p>
           </div>
         </section>
