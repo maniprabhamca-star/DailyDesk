@@ -22,11 +22,28 @@ const MAX_TOTAL_PAGES = 500;
 const BATCH_PAGES = 12;
 const MAX_LONG_EDGE = 3500;
 
+// English first, then alphabetical. The server has all 100+ Tesseract packs and
+// validates the code, so this list can grow freely.
 const LANGUAGES = [
-  { id: 'eng', name: 'English' }, { id: 'spa', name: 'Spanish' }, { id: 'fra', name: 'French' },
-  { id: 'deu', name: 'German' }, { id: 'por', name: 'Portuguese' }, { id: 'ita', name: 'Italian' },
-  { id: 'nld', name: 'Dutch' }, { id: 'rus', name: 'Russian' }, { id: 'chi_sim', name: 'Chinese (Simplified)' },
-  { id: 'jpn', name: 'Japanese' }, { id: 'ara', name: 'Arabic' }, { id: 'hin', name: 'Hindi' },
+  { id: 'eng', name: 'English' },
+  { id: 'afr', name: 'Afrikaans' }, { id: 'ara', name: 'Arabic' }, { id: 'hye', name: 'Armenian' },
+  { id: 'aze', name: 'Azerbaijani' }, { id: 'ben', name: 'Bengali' }, { id: 'bul', name: 'Bulgarian' },
+  { id: 'cat', name: 'Catalan' }, { id: 'chi_sim', name: 'Chinese (Simplified)' }, { id: 'chi_tra', name: 'Chinese (Traditional)' },
+  { id: 'hrv', name: 'Croatian' }, { id: 'ces', name: 'Czech' }, { id: 'dan', name: 'Danish' },
+  { id: 'nld', name: 'Dutch' }, { id: 'est', name: 'Estonian' }, { id: 'fil', name: 'Filipino' },
+  { id: 'fin', name: 'Finnish' }, { id: 'fra', name: 'French' }, { id: 'kat', name: 'Georgian' },
+  { id: 'deu', name: 'German' }, { id: 'ell', name: 'Greek' }, { id: 'guj', name: 'Gujarati' },
+  { id: 'heb', name: 'Hebrew' }, { id: 'hin', name: 'Hindi' }, { id: 'hun', name: 'Hungarian' },
+  { id: 'ind', name: 'Indonesian' }, { id: 'ita', name: 'Italian' }, { id: 'jpn', name: 'Japanese' },
+  { id: 'kan', name: 'Kannada' }, { id: 'kaz', name: 'Kazakh' }, { id: 'kor', name: 'Korean' },
+  { id: 'lav', name: 'Latvian' }, { id: 'lit', name: 'Lithuanian' }, { id: 'msa', name: 'Malay' },
+  { id: 'mal', name: 'Malayalam' }, { id: 'mar', name: 'Marathi' }, { id: 'nor', name: 'Norwegian' },
+  { id: 'fas', name: 'Persian' }, { id: 'pol', name: 'Polish' }, { id: 'por', name: 'Portuguese' },
+  { id: 'pan', name: 'Punjabi' }, { id: 'ron', name: 'Romanian' }, { id: 'rus', name: 'Russian' },
+  { id: 'srp', name: 'Serbian' }, { id: 'slv', name: 'Slovenian' }, { id: 'spa', name: 'Spanish' },
+  { id: 'swa', name: 'Swahili' }, { id: 'swe', name: 'Swedish' }, { id: 'tam', name: 'Tamil' },
+  { id: 'tel', name: 'Telugu' }, { id: 'tha', name: 'Thai' }, { id: 'tur', name: 'Turkish' },
+  { id: 'ukr', name: 'Ukrainian' }, { id: 'urd', name: 'Urdu' }, { id: 'vie', name: 'Vietnamese' },
 ];
 
 type Word = { t: string; x: number; y: number; w: number; h: number };

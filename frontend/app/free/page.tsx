@@ -8,6 +8,7 @@ import { PRICING } from '@/lib/pricing';
 
 const freeNow = [
   'Every tool — PDF, image, video, QR & utilities',
+  'OCR — turn scanned PDFs into searchable text (up to 20 MB)',
   'Unlimited use — no daily task limits (competitors cap you)',
   'Single-file Office conversions — PDF ↔ Word, Excel, PowerPoint',
   'Video compress & Video → GIF — private, right in your browser',

@@ -26,9 +26,16 @@ const TIMEOUT_MS = 180 * 1000;
 const MAX_CONCURRENT = 3;
 let active = 0;
 
-// Installed Tesseract language packs (keep in sync with the VPS + the frontend
-// language list). Combine with '+' for mixed-language docs.
-const LANGS = new Set(['eng', 'spa', 'fra', 'deu', 'por', 'ita', 'nld', 'rus', 'chi_sim', 'jpn', 'ara', 'hin']);
+// Whatever Tesseract language packs are installed on this box — detected once at
+// startup, so adding a pack (apt install tesseract-ocr-xxx) just works with no
+// code change. Combine with '+' for mixed-language docs.
+const LANGS = new Set(['eng']);
+try {
+  require('child_process').execSync('tesseract --list-langs', { encoding: 'utf8' })
+    .split('\n').slice(1).map((s) => s.trim()).filter(Boolean)
+    .forEach((l) => { if (l !== 'osd') LANGS.add(l); });
+} catch (e) { console.error('tesseract --list-langs failed:', e.message); }
+
 function safeLang(raw) {
   const parts = String(raw || 'eng').split('+').map((s) => s.trim()).filter((s) => LANGS.has(s));
   return parts.length ? parts.join('+') : 'eng';
