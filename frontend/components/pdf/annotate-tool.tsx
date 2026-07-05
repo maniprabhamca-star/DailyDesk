@@ -23,10 +23,32 @@ type Tool = 'highlight' | 'pen' | 'rect' | 'text';
 type Pt = { x: number; y: number };
 type Stroke = { kind: 'pen' | 'highlight'; color: string; w: number; pts: Pt[] };
 type RectA = { kind: 'rect'; color: string; w: number; a: Pt; b: Pt };
-type TextA = { kind: 'text'; color: string; size: number; at: Pt; text: string };
+type TextA = { kind: 'text'; color: string; size: number; at: Pt; text: string; font: string; bold: boolean; italic: boolean; underline: boolean };
 type Anno = Stroke | RectA | TextA;
 
 const COLORS = ['#facc15', '#ef4444', '#2563eb', '#16a34a', '#7c3aed', '#111827'];
+
+// Text fonts. Web fonts are the same OFL files the watermark tool bundles
+// (@font-face in globals.css); the rest are safe system stacks. Text is drawn
+// to canvas, so faux bold/italic synthesise fine even where only a regular face
+// is loaded — we still await document.fonts.load before rasterising.
+const FONTS: { label: string; css: string }[] = [
+  { label: 'Sans', css: 'system-ui, sans-serif' },
+  { label: 'Serif', css: 'Georgia, "Times New Roman", serif' },
+  { label: 'Mono', css: 'ui-monospace, "Courier New", monospace' },
+  { label: 'Open Sans', css: '"Open Sans", sans-serif' },
+  { label: 'Roboto', css: 'Roboto, sans-serif' },
+  { label: 'Lato', css: 'Lato, sans-serif' },
+  { label: 'Merriweather', css: 'Merriweather, serif' },
+  { label: 'Playfair', css: '"Playfair Display", serif' },
+  { label: 'Oswald', css: 'Oswald, sans-serif' },
+  { label: 'Bebas Neue', css: '"Bebas Neue", sans-serif' },
+  { label: 'Comic Neue', css: '"Comic Neue", cursive' },
+  { label: 'Pacifico', css: 'Pacifico, cursive' },
+];
+function fontSpec(fs: number, a: { font: string; bold: boolean; italic: boolean }) {
+  return `${a.italic ? 'italic ' : ''}${a.bold ? '700' : '400'} ${fs}px ${a.font}`;
+}
 
 function fmt(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -63,14 +85,22 @@ function paint(ctx: CanvasRenderingContext2D, W: number, H: number, list: Anno[]
       ctx.globalAlpha = 1;
       ctx.textBaseline = 'top';
       const fs = Math.max(10, a.size * H);
-      ctx.font = `600 ${fs}px ui-sans-serif, system-ui, sans-serif`;
+      const x = a.at.x * W, y = a.at.y * H;
+      ctx.font = fontSpec(fs, a);
       // Dark halo behind the glyphs so any colour (incl. yellow) stays legible.
       ctx.lineJoin = 'round';
       ctx.strokeStyle = 'rgba(0,0,0,0.5)';
       ctx.lineWidth = Math.max(2, fs * 0.14);
-      ctx.strokeText(a.text, a.at.x * W, a.at.y * H);
+      ctx.strokeText(a.text, x, y);
       ctx.fillStyle = a.color;
-      ctx.fillText(a.text, a.at.x * W, a.at.y * H);
+      ctx.fillText(a.text, x, y);
+      if (a.underline) {
+        const tw = ctx.measureText(a.text).width;
+        const uy = y + fs * 1.04;
+        ctx.strokeStyle = a.color;
+        ctx.lineWidth = Math.max(1, fs * 0.06);
+        ctx.beginPath(); ctx.moveTo(x, uy); ctx.lineTo(x + tw, uy); ctx.stroke();
+      }
     } else {
       ctx.globalAlpha = a.kind === 'highlight' ? 0.38 : 1;
       ctx.strokeStyle = a.color;
@@ -95,6 +125,10 @@ export function AnnotateTool() {
   const [tool, setTool] = useState<Tool>('highlight');
   const [color, setColor] = useState(COLORS[0]);
   const [weight, setWeight] = useState(4);
+  const [font, setFont] = useState(FONTS[0].css);
+  const [bold, setBold] = useState(false);
+  const [italic, setItalic] = useState(false);
+  const [underline, setUnderline] = useState(false);
   const [annos, setAnnos] = useState<Record<number, Anno[]>>({});
   const [textDraft, setTextDraft] = useState<{ x: number; y: number; value: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -196,6 +230,15 @@ export function AnnotateTool() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [textDraft !== null]);
 
+  // Preload the chosen font (canvas can't paint a web font until it's loaded)
+  // and repaint so the live text matches the exported result.
+  useEffect(() => {
+    if (typeof document === 'undefined' || !document.fonts) return;
+    let stale = false;
+    document.fonts.load(fontSpec(24, { font, bold, italic })).then(() => { if (!stale) repaint(); }).catch(() => {});
+    return () => { stale = true; };
+  }, [font, bold, italic, repaint]);
+
   function frac(e: React.PointerEvent): Pt {
     const r = wrapRef.current!.getBoundingClientRect();
     return { x: Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), y: Math.min(1, Math.max(0, (e.clientY - r.top) / r.height)) };
@@ -204,7 +247,20 @@ export function AnnotateTool() {
   function onDown(e: React.PointerEvent<HTMLCanvasElement>) {
     if (!preview) return;
     const p = frac(e);
-    if (tool === 'text') { setTextDraft({ x: p.x, y: p.y, value: '' }); return; }
+    if (tool === 'text') {
+      const hit = findTextAt(p);
+      if (hit >= 0) {
+        // Re-open an existing text to edit/finish it, restoring its style.
+        const t = (annos[sel] || [])[hit] as TextA;
+        setAnnos((a) => ({ ...a, [sel]: (a[sel] || []).filter((_, i) => i !== hit) }));
+        setColor(t.color); setFont(t.font); setBold(t.bold); setItalic(t.italic); setUnderline(t.underline);
+        setWeight(Math.min(10, Math.max(1, Math.round((t.size - 0.016) / 0.006))));
+        setTextDraft({ x: t.at.x, y: t.at.y, value: t.text });
+      } else {
+        setTextDraft({ x: p.x, y: p.y, value: '' });
+      }
+      return;
+    }
     e.currentTarget.setPointerCapture(e.pointerId);
     drawing.current = true;
     if (tool === 'rect') live.current = { kind: 'rect', color, w: widthFrac('pen', weight), a: p, b: p };
@@ -231,10 +287,26 @@ export function AnnotateTool() {
 
   function commitText() {
     if (textDraft && textDraft.value.trim()) {
-      const t: TextA = { kind: 'text', color, size: fontFrac(weight), at: { x: textDraft.x, y: textDraft.y }, text: textDraft.value.trim() };
+      const t: TextA = { kind: 'text', color, size: fontFrac(weight), at: { x: textDraft.x, y: textDraft.y }, text: textDraft.value.trim(), font, bold, italic, underline };
       setAnnos((a) => ({ ...a, [sel]: [...(a[sel] || []), t] }));
     }
     setTextDraft(null);
+  }
+
+  // Approximate bounding box of a placed text, for click-to-edit hit testing.
+  // size is a fraction of page HEIGHT; width is estimated from character count
+  // and converted to a fraction of page WIDTH via the preview aspect ratio.
+  function findTextAt(p: Pt): number {
+    const list = annos[sel] || [];
+    const aspect = preview ? preview.h / preview.w : 1.3;
+    for (let i = list.length - 1; i >= 0; i--) {
+      const a = list[i];
+      if (a.kind !== 'text') continue;
+      const hFrac = a.size * 1.25;
+      const wFrac = Math.max(0.03, a.text.length * a.size * 0.55 * aspect);
+      if (p.x >= a.at.x - 0.01 && p.x <= a.at.x + wFrac && p.y >= a.at.y - 0.01 && p.y <= a.at.y + hFrac) return i;
+    }
+    return -1;
   }
   function undo() { setAnnos((a) => ({ ...a, [sel]: (a[sel] || []).slice(0, -1) })); }
   function clearPage() { setAnnos((a) => ({ ...a, [sel]: [] })); }
@@ -246,6 +318,11 @@ export function AnnotateTool() {
     setBusy(true); setError(null); setDone(null);
     const t0 = performance.now();
     try {
+      // Make sure every custom font used is loaded before we rasterise a page,
+      // otherwise the export could fall back to a default face.
+      if (typeof document !== 'undefined' && document.fonts) {
+        for (const idx of annotatedPages) for (const a of annos[idx]) if (a.kind === 'text') { try { await document.fonts.load(fontSpec(24, a)); } catch { /* ignore */ } }
+      }
       let current: File | Blob = file;
       for (const idx of annotatedPages) {
         const rp = await renderPage(handle, idx, dprTarget(1000, 2, 2000));
@@ -334,6 +411,33 @@ export function AnnotateTool() {
               </div>
             </div>
 
+            {/* Text options — font + bold/italic/underline (Text tool only) */}
+            {tool === 'text' && (
+              <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border bg-card p-2.5">
+                <span className="text-xs font-medium text-muted-foreground">Font</span>
+                <select
+                  value={font}
+                  onChange={(e) => setFont(e.target.value)}
+                  className="rounded-lg border border-border bg-card px-2 py-1.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                >
+                  {FONTS.map((f) => <option key={f.label} value={f.css} style={{ fontFamily: f.css }}>{f.label}</option>)}
+                </select>
+                <div className="flex items-center gap-1">
+                  {([['B', bold, setBold, 'font-bold'], ['I', italic, setItalic, 'italic'], ['U', underline, setUnderline, 'underline']] as const).map(([lbl, on, set, cls]) => (
+                    <button
+                      key={lbl}
+                      onClick={() => set((v) => !v)}
+                      aria-pressed={on}
+                      className={`size-8 rounded-lg border text-sm ${cls} transition-all ${on ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-border bg-card hover:border-primary/40'}`}
+                    >
+                      {lbl}
+                    </button>
+                  ))}
+                </div>
+                <span className="ml-auto text-[11px] text-muted-foreground">Tip: click a placed text to edit it</span>
+              </div>
+            )}
+
             {/* Annotation surface */}
             <div className="mt-3 flex items-start justify-center rounded-xl border bg-muted/30 p-3">
               {preview ? (
@@ -350,12 +454,17 @@ export function AnnotateTool() {
                       ref={textInputRef}
                       value={textDraft.value}
                       onChange={(e) => setTextDraft((d) => (d ? { ...d, value: e.target.value } : d))}
-                      onKeyDown={(e) => { if (e.key === 'Enter') commitText(); if (e.key === 'Escape') setTextDraft(null); }}
+                      // Enter/Tab place the text and keep you on the page — preventDefault
+                      // stops focus jumping to the Save button below.
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); commitText(); }
+                        else if (e.key === 'Escape') { e.preventDefault(); setTextDraft(null); }
+                      }}
                       onBlur={commitText}
                       onPointerDown={(e) => e.stopPropagation()}
                       placeholder="Type, then Enter"
-                      className="absolute z-10 rounded border-2 border-primary bg-white/95 px-1.5 py-0.5 text-sm text-black shadow-lg outline-none"
-                      style={{ left: `${textDraft.x * 100}%`, top: `${textDraft.y * 100}%`, color }}
+                      className="absolute z-10 rounded border-2 border-primary bg-white/95 px-1.5 py-0.5 text-sm shadow-lg outline-none"
+                      style={{ left: `${textDraft.x * 100}%`, top: `${textDraft.y * 100}%`, color, fontFamily: font, fontWeight: bold ? 700 : 400, fontStyle: italic ? 'italic' : 'normal', textDecoration: underline ? 'underline' : 'none' }}
                     />
                   )}
                 </div>
