@@ -7,9 +7,21 @@
 // by the header <BrandMark> and the browser-tab favicon (faviconDataUri), so a
 // server's logo and favicon always match. License-clean, original geometry.
 
-export type BrandVariant = 'A' | 'B' | 'C' | 'D' | 'E';
+export type BrandVariant = 'A' | 'B' | 'C' | 'D' | 'E' | 'L1' | 'LA' | 'LC' | 'LD';
+
+// Shared lifted "D" tile (white tile, indigo D) reused by the L* variants below.
+const D_TILE = '<g transform="rotate(9 32 15)"><rect x="24" y="7" width="16" height="16" rx="4.5" fill="#fff"/><path fill-rule="evenodd" fill="#4F46E5" d="M28 9.5 H32.5 C35.7 9.5 37.8 12 37.8 15 C37.8 18 35.7 20.5 32.5 20.5 H28 Z M30.4 11.8 V18.2 H32.5 C34.3 18.2 35.4 16.9 35.4 15 C35.4 13.1 34.3 11.8 32.5 11.8 Z"/></g>';
+const BASE = '<rect width="48" height="48" rx="13.5" fill="#4F46E5"/>';
 
 export const BRAND_INNER: Record<BrandVariant, string> = {
+  // L1 — lifted D, plain white document tiles (user's kept pick).
+  L1: `${BASE}<rect x="10" y="10" width="12" height="12" rx="3.5" fill="#fff"/><rect x="10" y="26" width="12" height="12" rx="3.5" fill="#fff"/><rect x="26" y="26" width="12" height="12" rx="3.5" fill="#fff"/>${D_TILE}`,
+  // LA — lifted D, amber/green/coral document tiles (office-suite feel, distinct colors). RECOMMENDED.
+  LA: `${BASE}<rect x="10" y="10" width="12" height="12" rx="3.5" fill="#FBBF24"/><rect x="10" y="26" width="12" height="12" rx="3.5" fill="#22C55E"/><rect x="26" y="26" width="12" height="12" rx="3.5" fill="#F87171"/>${D_TILE}`,
+  // LC — lifted D, office palette blue/green/amber tiles.
+  LC: `${BASE}<rect x="10" y="10" width="12" height="12" rx="3.5" fill="#60A5FA"/><rect x="10" y="26" width="12" height="12" rx="3.5" fill="#34D399"/><rect x="26" y="26" width="12" height="12" rx="3.5" fill="#FBBF24"/>${D_TILE}`,
+  // LD — lifted D with white "text line" hints, MUTED/desaturated palette (premium document feel).
+  LD: `${BASE}<rect x="10" y="10" width="12" height="12" rx="3.5" fill="#E0BE6A"/><rect x="12.5" y="14" width="7" height="1.4" rx="0.7" fill="#fff" opacity="0.8"/><rect x="12.5" y="17" width="5" height="1.4" rx="0.7" fill="#fff" opacity="0.8"/><rect x="10" y="26" width="12" height="12" rx="3.5" fill="#74AE8C"/><rect x="12.5" y="30" width="7" height="1.4" rx="0.7" fill="#fff" opacity="0.8"/><rect x="12.5" y="33" width="5" height="1.4" rx="0.7" fill="#fff" opacity="0.8"/><rect x="26" y="26" width="12" height="12" rx="3.5" fill="#CE8686"/><rect x="28.5" y="30" width="7" height="1.4" rx="0.7" fill="#fff" opacity="0.8"/><rect x="28.5" y="33" width="5" height="1.4" rx="0.7" fill="#fff" opacity="0.8"/>${D_TILE}`,
   // A — refined lifted tile: the current concept, but full-opacity tiles and a
   // gold lifted tile so it reads crisp instead of washed-out.
   A: '<rect width="48" height="48" rx="13.5" fill="#4F46E5"/><rect x="9" y="9" width="13" height="13" rx="3.5" fill="#fff"/><rect x="9" y="26" width="13" height="13" rx="3.5" fill="#fff"/><rect x="26" y="26" width="13" height="13" rx="3.5" fill="#fff"/><rect x="25" y="7" width="15" height="15" rx="4" fill="#FBBF24" transform="rotate(10 32 14)"/>',

@@ -42,6 +42,30 @@
       "runtimeExecutable": "node",
       "runtimeArgs": ["scripts/preview-upsell.mjs", "3005"],
       "port": 3005
+    },
+    {
+      "name": "logo-1-white",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["scripts/preview-brand.mjs", "L1", "3001"],
+      "port": 3001
+    },
+    {
+      "name": "logo-A-vivid",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["scripts/preview-brand.mjs", "LA", "3002"],
+      "port": 3002
+    },
+    {
+      "name": "logo-C-office",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["scripts/preview-brand.mjs", "LC", "3003"],
+      "port": 3003
+    },
+    {
+      "name": "logo-D-doclines",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["scripts/preview-brand.mjs", "LD", "3004"],
+      "port": 3004
     }
   ]
 }
