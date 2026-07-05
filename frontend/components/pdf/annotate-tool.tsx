@@ -50,14 +50,26 @@ function paint(ctx: CanvasRenderingContext2D, W: number, H: number, list: Anno[]
     if (a.kind === 'rect') {
       ctx.globalAlpha = 1;
       ctx.strokeStyle = a.color;
-      ctx.lineWidth = Math.max(1, a.w * W);
+      ctx.lineWidth = Math.max(2, a.w * W);
+      // A soft shadow gives the outline edge definition on any background, so a
+      // light colour (e.g. yellow) doesn't vanish on a white page.
+      ctx.shadowColor = 'rgba(0,0,0,0.25)';
+      ctx.shadowBlur = 2;
       const x = Math.min(a.a.x, a.b.x) * W, y = Math.min(a.a.y, a.b.y) * H;
       ctx.strokeRect(x, y, Math.abs(a.b.x - a.a.x) * W, Math.abs(a.b.y - a.a.y) * H);
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
     } else if (a.kind === 'text') {
       ctx.globalAlpha = 1;
-      ctx.fillStyle = a.color;
       ctx.textBaseline = 'top';
-      ctx.font = `600 ${Math.max(10, a.size * H)}px ui-sans-serif, system-ui, sans-serif`;
+      const fs = Math.max(10, a.size * H);
+      ctx.font = `600 ${fs}px ui-sans-serif, system-ui, sans-serif`;
+      // Dark halo behind the glyphs so any colour (incl. yellow) stays legible.
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+      ctx.lineWidth = Math.max(2, fs * 0.14);
+      ctx.strokeText(a.text, a.at.x * W, a.at.y * H);
+      ctx.fillStyle = a.color;
       ctx.fillText(a.text, a.at.x * W, a.at.y * H);
     } else {
       ctx.globalAlpha = a.kind === 'highlight' ? 0.38 : 1;
@@ -89,6 +101,7 @@ export function AnnotateTool() {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ blob: Blob; name: string; secs: number } | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
+  const [brandName, setBrandName] = useState(false); // opt-in "-diemdesk" filename suffix
 
   const inputRef = useRef<HTMLInputElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -233,7 +246,7 @@ export function AnnotateTool() {
         const out = await rewritePdf(current, { type: 'place-image', opts: { pageNo: idx + 1, xFrac: 0, yFrac: 0, wFrac: 1, imageBytes: buf, isPng: true } });
         current = new Blob([new Uint8Array(out)], { type: 'application/pdf' });
       }
-      const name = `${file.name.replace(/\.pdf$/i, '')}-annotated.pdf`;
+      const name = `${file.name.replace(/\.pdf$/i, '')}-annotated${brandName ? '-diemdesk' : ''}.pdf`;
       const blob: Blob = current;
       download(blob, name);
       setDone({ blob, name, secs: (performance.now() - t0) / 1000 });
@@ -348,9 +361,15 @@ export function AnnotateTool() {
         {error && <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
 
         {file && !done && (
-          <Button className="mt-5 w-full" size="lg" onClick={apply} disabled={busy || annotatedPages.length === 0}>
-            {busy ? <><Loader2 className="size-4 animate-spin" /> Saving…</> : <><Highlighter className="size-4" /> Save annotated PDF</>}
-          </Button>
+          <>
+            <label className="mt-4 flex cursor-pointer items-center justify-center gap-2 text-xs text-muted-foreground">
+              <input type="checkbox" checked={brandName} onChange={(e) => setBrandName(e.target.checked)} className="size-3.5 accent-primary" />
+              Add &ldquo;-diemdesk&rdquo; to the file name
+            </label>
+            <Button className="mt-2 w-full" size="lg" onClick={apply} disabled={busy || annotatedPages.length === 0}>
+              {busy ? <><Loader2 className="size-4 animate-spin" /> Saving…</> : <><Highlighter className="size-4" /> Save annotated PDF</>}
+            </Button>
+          </>
         )}
 
         {done && <PdfDone blob={done.blob} name={done.name} secs={done.secs} currentHref="/annotate-pdf" fromLabel="Annotate PDF" />}

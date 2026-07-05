@@ -80,6 +80,7 @@ export function RedactTool() {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ blob: Blob; name: string; secs: number } | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
+  const [brandName, setBrandName] = useState(false); // opt-in "-diemdesk" filename suffix
   const [query, setQuery] = useState('');
   const [scanning, setScanning] = useState<string | null>(null); // label of the scan in flight
   const [scanNote, setScanNote] = useState<string | null>(null);
@@ -286,7 +287,7 @@ export function RedactTool() {
       out.setTitle(''); out.setAuthor(''); out.setSubject(''); out.setKeywords([]);
       out.setProducer('DiemDesk'); out.setCreator('DiemDesk');
       const bytes = await out.save();
-      const name = `${file.name.replace(/\.pdf$/i, '')}-redacted.pdf`;
+      const name = `${file.name.replace(/\.pdf$/i, '')}-redacted${brandName ? '-diemdesk' : ''}.pdf`;
       const blob = new Blob([bytes as unknown as BlobPart], { type: 'application/pdf' });
       download(blob, name);
       setDone({ blob, name, secs: (performance.now() - t0) / 1000 });
@@ -440,9 +441,15 @@ export function RedactTool() {
         {error && <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
 
         {file && !done && (
-          <Button className="mt-5 w-full" size="lg" onClick={apply} disabled={busy || redactedPages.length === 0}>
-            {busy ? <><Loader2 className="size-4 animate-spin" /> Redacting…</> : <><EyeOff className="size-4" /> Redact &amp; download</>}
-          </Button>
+          <>
+            <label className="mt-4 flex cursor-pointer items-center justify-center gap-2 text-xs text-muted-foreground">
+              <input type="checkbox" checked={brandName} onChange={(e) => setBrandName(e.target.checked)} className="size-3.5 accent-primary" />
+              Add &ldquo;-diemdesk&rdquo; to the file name
+            </label>
+            <Button className="mt-2 w-full" size="lg" onClick={apply} disabled={busy || redactedPages.length === 0}>
+              {busy ? <><Loader2 className="size-4 animate-spin" /> Redacting…</> : <><EyeOff className="size-4" /> Redact &amp; download</>}
+            </Button>
+          </>
         )}
 
         {done && <PdfDone blob={done.blob} name={done.name} secs={done.secs} currentHref="/redact-pdf" fromLabel="Redact PDF" />}
