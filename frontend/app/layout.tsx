@@ -26,17 +26,17 @@ const iconsMeta: Metadata['icons'] = isBrandVariant(BV)
 // + OG URLs absolute, per Google's specs) and the home page's metadata.
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: 'DiemDesk — Every Daily Tool, Private by Design',
+  title: 'Free PDF Tools — Merge, Compress, Convert & Sign | DiemDesk',
   description:
-    'Merge, split, compress and convert PDFs, generate QR codes and strong passwords — free, no signup, no watermark. In-browser tools never upload your files.',
+    'Free online PDF tools — merge, split, compress, convert & sign PDFs, plus image, QR and everyday tools. No signup, no watermark, no upload: everything runs in your browser.',
   applicationName: SITE_NAME,
   alternates: { canonical: '/' },
   openGraph: {
     siteName: SITE_NAME,
     type: 'website',
     locale: 'en_US',
-    title: 'DiemDesk — Every Daily Tool, Private by Design',
-    description: 'Free PDF, QR and password tools that run in your browser — no signup, no watermark, files never uploaded.',
+    title: 'Free PDF & Everyday Tools, Private by Design | DiemDesk',
+    description: 'Free PDF, image, QR and password tools that run in your browser — no signup, no watermark, files never uploaded.',
     images: ['/og.png'],
   },
   twitter: { card: 'summary_large_image', images: ['/og.png'] },
