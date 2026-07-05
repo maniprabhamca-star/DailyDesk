@@ -66,6 +66,12 @@
       "runtimeExecutable": "node",
       "runtimeArgs": ["scripts/preview-brand.mjs", "LD", "3004"],
       "port": 3004
+    },
+    {
+      "name": "footer-mono",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["scripts/preview-footer-mono.mjs", "3001"],
+      "port": 3001
     }
   ]
 }

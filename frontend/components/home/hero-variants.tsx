@@ -136,9 +136,9 @@ export function HeroHybrid() {
           <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
             <ShieldCheck className="size-3.5" /> Private by design
           </span>
-          <h1 className="mt-5 text-4xl font-bold leading-[1.04] tracking-tight sm:text-5xl lg:text-6xl">
+          <h1 className="mt-5 text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl">
             Every daily tool.<br />
-            <span className="text-primary">Your files stay yours.</span>
+            <span className="text-primary lg:whitespace-nowrap">Your files stay yours.</span>
           </h1>
           <p className="mt-5 max-w-md text-lg leading-relaxed text-muted-foreground">
             Merge, compress, convert, sign — {liveToolCount}+ PDF and everyday tools. Free, no signup, and private by default.

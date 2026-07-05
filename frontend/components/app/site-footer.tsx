@@ -2,6 +2,10 @@ import Link from 'next/link';
 import { ShieldCheck, Apple, Play, MapPin, Lock, EyeOff } from 'lucide-react';
 import { BrandMark } from '@/components/app/brand-mark';
 
+// Preview toggle: a server started with NEXT_PUBLIC_FOOTER_WM=mono renders the
+// footer watermark in grayscale so we can compare colorful vs monochrome.
+const FOOTER_WM_MONO = process.env.NEXT_PUBLIC_FOOTER_WM === 'mono';
+
 const COLUMNS = [
   { title: 'Tools', color: '#a78bfa', links: [
     { label: 'Compress PDF', href: '/compress-pdf' },
@@ -85,10 +89,11 @@ export function SiteFooter() {
             </span>
           ))}
         </div>
-        {/* Background wordmark — desktop flourish; right-aligned to content, above the divider.
-            lg-only because the bottom bar stacks taller on small screens (would cross). */}
-        <div aria-hidden className="pointer-events-none absolute bottom-[70px] right-6 -z-10 hidden select-none whitespace-nowrap pb-2 text-[72px] font-bold leading-none tracking-tighter text-white/[0.04] lg:block">
-          DiemDesk
+        {/* Background brand mark — desktop flourish, bleeds off the bottom-right corner
+            (cropped by the footer's overflow-hidden). lg-only so it never crosses the
+            taller stacked bar on small screens. */}
+        <div aria-hidden className={`pointer-events-none absolute -bottom-14 -right-10 -z-10 hidden lg:block ${FOOTER_WM_MONO ? 'opacity-[0.10] grayscale' : 'opacity-[0.08]'}`}>
+          <BrandMark className="size-[320px]" />
         </div>
         <div className="mt-7 flex flex-col items-center justify-between gap-3 border-t border-white/10 pt-6 text-xs text-slate-500 sm:flex-row">
           <p>© {new Date().getFullYear()} DiemDesk · Private preview</p>
