@@ -22,7 +22,7 @@ const steps = [
 ];
 
 const faqs = [
-  { q: 'Is it really free?', a: 'Yes — rotating PDFs is completely free, with no signup, no watermark, and no file-size paywall.' },
+  { q: 'Is it really free?', a: 'Yes — rotating PDFs is completely free, with no signup, no watermark, and no daily limits.' },
   { q: 'Is my PDF uploaded to a server?', a: 'No. The rotation happens entirely inside your browser using your device, so your file never leaves your computer.' },
   { q: 'Can I rotate only certain pages?', a: 'Yes. You see a thumbnail of every page — rotate any single page with its left/right buttons, or tick several (or Select all) and rotate them together.' },
   { q: 'Does rotating reduce quality?', a: 'No. Rotation only changes how each page is displayed — the text and images are untouched, so quality is preserved.' },

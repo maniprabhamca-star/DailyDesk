@@ -23,7 +23,7 @@ const steps = [
 ];
 
 const faqs = [
-  { q: 'Is it really free?', a: 'Yes — compressing PDFs is completely free, with no signup, no watermark, and no file-size paywall.' },
+  { q: 'Is it really free?', a: 'Yes — compressing PDFs is completely free, with no signup, no watermark, and no daily limits.' },
   { q: 'Is my PDF uploaded to a server?', a: 'No. Compression runs entirely inside your browser using your device, so your file never leaves your computer.' },
   { q: 'Will my text get blurry?', a: 'No. We only shrink and re-encode the images inside the PDF — the text and vector graphics are left completely untouched, so they stay crisp and selectable.' },
   { q: 'How much smaller will it get?', a: 'It depends on the file. Image-heavy PDFs (scans, photos) often shrink by half or more. PDFs that are mostly text are already small, so there may be little to gain — and we never hand back a larger file.' },

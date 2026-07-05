@@ -22,7 +22,7 @@ const steps = [
 ];
 
 const faqs = [
-  { q: 'Is it really free?', a: 'Yes — converting PDF pages to images is completely free, with no signup, no watermark, and no file-size paywall.' },
+  { q: 'Is it really free?', a: 'Yes — converting PDF pages to images is completely free, with no signup, no watermark, and no daily limits.' },
   { q: 'Is my PDF uploaded to a server?', a: 'No. The conversion happens entirely inside your browser using your device, so your PDF never leaves your computer.' },
   { q: 'JPG or PNG — which should I pick?', a: 'JPG gives smaller files and is great for photos and scans. PNG is lossless and better for sharp text or transparency.' },
   { q: 'Can I convert only some pages?', a: 'Yes. Type page numbers and ranges separated by commas — for example, 1-3, 5, 8-10.' },

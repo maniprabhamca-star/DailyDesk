@@ -44,7 +44,8 @@ export default function SecurityPage() {
         <Callout tone="success" icon={<CloudOff className="size-5" />} title="Zero uploads for in-browser tools">
           <p>
             There is no copy of your file on our servers — not during processing, not after. Close the tab and there is
-            nothing left anywhere but on your own computer. No accounts required, no watermarks, no file-size paywalls.
+            nothing left anywhere but on your own computer. No accounts required, no watermarks, and no daily limits —
+            just generous file sizes (competitors cap you at ~15 MB or a couple of tasks a day).
           </p>
         </Callout>
       </Section>

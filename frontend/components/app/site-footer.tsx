@@ -17,6 +17,7 @@ const COLUMNS = [
     { label: 'Log in', href: '/login' },
   ] },
   { title: 'Legal', color: '#fbbf24', links: [
+    { label: 'About', href: '/about' },
     { label: 'Privacy', href: '/privacy' },
     { label: 'Security', href: '/security' },
     { label: 'Terms', href: '/terms' },

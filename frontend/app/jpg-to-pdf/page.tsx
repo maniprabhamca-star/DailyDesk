@@ -22,7 +22,7 @@ const steps = [
 ];
 
 const faqs = [
-  { q: 'Is it really free?', a: 'Yes — converting images to PDF is completely free, with no signup, no watermark, and no file-size paywall.' },
+  { q: 'Is it really free?', a: 'Yes — converting images to PDF is completely free, with no signup, no watermark, and no daily limits.' },
   { q: 'Are my images uploaded to a server?', a: 'No. The conversion happens entirely inside your browser using your device, so your images never leave your computer.' },
   { q: 'Which image formats are supported?', a: 'JPG/JPEG and PNG images. You can mix both in a single PDF.' },
   { q: 'Can I put several images into one PDF?', a: 'Yes. Add as many images as you like and drag them into the order you want — each becomes a page.' },

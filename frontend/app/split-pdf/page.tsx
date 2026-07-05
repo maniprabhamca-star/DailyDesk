@@ -22,7 +22,7 @@ const steps = [
 ];
 
 const faqs = [
-  { q: 'Is it really free?', a: 'Yes — splitting PDFs is completely free, with no signup, no watermark, and no file-size paywall.' },
+  { q: 'Is it really free?', a: 'Yes — splitting PDFs is completely free, with no signup, no watermark, and no daily limits.' },
   { q: 'Is my PDF uploaded to a server?', a: 'No. The split happens entirely inside your browser using your device, so your file never leaves your computer.' },
   { q: 'How do I choose which pages to extract?', a: 'Type page numbers and ranges separated by commas — for example, 1-3, 5, 8-10. The extracted pages become one new PDF.' },
   { q: 'Can I split every page into a separate file?', a: 'Yes. Choose “Each page as a file” and you’ll get a ZIP containing one PDF per page.' },

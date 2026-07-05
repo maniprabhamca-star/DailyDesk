@@ -22,7 +22,7 @@ const steps = [
 ];
 
 const faqs = [
-  { q: 'Is it really free?', a: 'Yes — deleting PDF pages is completely free, with no signup, no watermark, and no file-size paywall.' },
+  { q: 'Is it really free?', a: 'Yes — deleting PDF pages is completely free, with no signup, no watermark, and no daily limits.' },
   { q: 'Is my PDF uploaded to a server?', a: 'No. Pages are removed entirely inside your browser using your device, so your file never leaves your computer.' },
   { q: 'How do I choose which pages to remove?', a: 'You see a thumbnail of every page — just tap the ones you want to delete (they turn red). Tap again to keep them, or use Select all.' },
   { q: 'Does removing pages reduce quality?', a: 'No. The pages you keep are copied across untouched, so their text and images stay exactly as they were.' },

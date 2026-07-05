@@ -22,7 +22,7 @@ const steps = [
 ];
 
 const faqs = [
-  { q: 'Is it really free?', a: 'Yes — merging PDFs is completely free, with no signup, no watermark, and no file-size paywall.' },
+  { q: 'Is it really free?', a: 'Yes — merging PDFs is completely free, with no signup, no watermark, and no daily limits.' },
   { q: 'Are my files uploaded to a server?', a: 'No. The merge happens entirely inside your browser using your device, so your documents never leave your computer.' },
   { q: 'Is there a limit on how many PDFs I can merge?', a: 'You can merge as many PDFs as your device can comfortably handle. Everything is processed locally.' },
   { q: 'Can I reorder the files before merging?', a: 'Yes. Use the up and down arrows to arrange the files in the exact order you want before merging.' },
