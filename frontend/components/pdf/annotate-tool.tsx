@@ -117,13 +117,30 @@ export function AnnotateTool() {
   const [bold, setBold] = useState(false);
   const [italic, setItalic] = useState(false);
   const [underline, setUnderline] = useState(false);
-  // Switch family, dropping bold/italic the new family can't do (matches Watermark).
-  const pickFamily = (f: Family) => {
-    setFamily(f);
-    if (!FAMILIES[f].bold) setBold(false);
-    if (!FAMILIES[f].italic) setItalic(false);
-  };
   const [annos, setAnnos] = useState<Record<number, Anno[]>>({});
+  const [selIdx, setSelIdx] = useState<number | null>(null); // selected placed text (current page)
+
+  // Patch the selected placed text in place — this is what lets the toolbar
+  // restyle an already-placed text (font/colour/size/bold/italic/underline)
+  // instead of only affecting the next one you add.
+  const patchSelected = (patch: Partial<TextA>) => {
+    if (selIdx === null) return;
+    setAnnos((a) => {
+      const list = a[sel] || [];
+      const cur = list[selIdx];
+      if (!cur || cur.kind !== 'text') return a;
+      const next = list.slice();
+      next[selIdx] = { ...cur, ...patch };
+      return { ...a, [sel]: next };
+    });
+  };
+  // Switch family (drop bold/italic the family can't do) + apply to any selection.
+  const pickFamily = (f: Family) => {
+    const nb = FAMILIES[f].bold ? bold : false;
+    const ni = FAMILIES[f].italic ? italic : false;
+    setFamily(f); setBold(nb); setItalic(ni);
+    patchSelected({ family: f, bold: nb, italic: ni });
+  };
   const [textDraft, setTextDraft] = useState<{ x: number; y: number; value: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -185,12 +202,32 @@ export function AnnotateTool() {
     const ctx = c.getContext('2d'); if (!ctx) return;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, c.width, c.height);
-    const list = [...(annos[sel] || [])];
+    const pageList = annos[sel] || [];
+    const list = [...pageList];
     if (live.current) list.push(live.current);
     paint(ctx, c.width, c.height, list);
-  }, [annos, sel]);
+    // Selection outline around the selected placed text (dashed indigo box).
+    const selA = selIdx !== null ? pageList[selIdx] : undefined;
+    if (selA && selA.kind === 'text') {
+      const aspect = preview ? preview.h / preview.w : 1.3;
+      const hFrac = selA.size * 1.3, wFrac = Math.max(0.03, selA.text.length * selA.size * 0.55 * aspect);
+      ctx.strokeStyle = '#6366f1'; ctx.lineWidth = 1.5; ctx.setLineDash([6, 4]);
+      ctx.strokeRect((selA.at.x - 0.006) * c.width, (selA.at.y - 0.006) * c.height, (wFrac + 0.012) * c.width, (hFrac + 0.012) * c.height);
+      ctx.setLineDash([]);
+    }
+  }, [annos, sel, selIdx, preview]);
 
   useEffect(() => { repaint(); }, [repaint, preview]);
+  // Repaint whenever a web font finishes loading, so text painted before its
+  // font was ready gets redrawn in the correct typeface.
+  useEffect(() => {
+    if (typeof document === 'undefined' || !document.fonts) return;
+    const onDone = () => repaint();
+    document.fonts.addEventListener('loadingdone', onDone);
+    return () => document.fonts.removeEventListener('loadingdone', onDone);
+  }, [repaint]);
+  // Deselect when switching tool or page.
+  useEffect(() => { setSelIdx(null); }, [tool, sel]);
   useEffect(() => {
     const onResize = () => repaint();
     window.addEventListener('resize', onResize);
@@ -233,7 +270,7 @@ export function AnnotateTool() {
     return () => { stale = true; };
   }, [family, bold, italic, repaint]);
 
-  function frac(e: React.PointerEvent): Pt {
+  function frac(e: React.MouseEvent): Pt {
     const r = wrapRef.current!.getBoundingClientRect();
     return { x: Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), y: Math.min(1, Math.max(0, (e.clientY - r.top) / r.height)) };
   }
@@ -244,13 +281,16 @@ export function AnnotateTool() {
     if (tool === 'text') {
       const hit = findTextAt(p);
       if (hit >= 0) {
-        // Re-open an existing text to edit/finish it, restoring its style.
+        // Single click SELECTS a placed text and loads its style into the
+        // toolbar — now changing font/colour/size/style restyles it live.
+        // (Double-click to edit the words — see onDblClick.)
         const t = (annos[sel] || [])[hit] as TextA;
-        setAnnos((a) => ({ ...a, [sel]: (a[sel] || []).filter((_, i) => i !== hit) }));
+        setSelIdx(hit);
         setColor(t.color); setFamily(t.family); setBold(t.bold); setItalic(t.italic); setUnderline(t.underline);
         setWeight(Math.min(10, Math.max(1, Math.round((t.size - 0.016) / 0.006))));
-        setTextDraft({ x: t.at.x, y: t.at.y, value: t.text });
       } else {
+        // Empty space → deselect and start a new text.
+        setSelIdx(null);
         setTextDraft({ x: p.x, y: p.y, value: '' });
       }
       return;
@@ -279,6 +319,20 @@ export function AnnotateTool() {
     setAnnos((a) => ({ ...a, [sel]: [...(a[sel] || []), committed] }));
   }
 
+  // Double-click a placed text to edit its WORDS (single click just selects it).
+  function onDblClick(e: React.MouseEvent<HTMLCanvasElement>) {
+    if (tool !== 'text' || !preview) return;
+    const p = frac(e);
+    const hit = findTextAt(p);
+    if (hit < 0) return;
+    const t = (annos[sel] || [])[hit] as TextA;
+    setSelIdx(null);
+    setAnnos((a) => ({ ...a, [sel]: (a[sel] || []).filter((_, i) => i !== hit) }));
+    setColor(t.color); setFamily(t.family); setBold(t.bold); setItalic(t.italic); setUnderline(t.underline);
+    setWeight(Math.min(10, Math.max(1, Math.round((t.size - 0.016) / 0.006))));
+    setTextDraft({ x: t.at.x, y: t.at.y, value: t.text });
+  }
+
   function commitText() {
     if (textDraft && textDraft.value.trim()) {
       const t: TextA = { kind: 'text', color, size: fontFrac(weight), at: { x: textDraft.x, y: textDraft.y }, text: textDraft.value.trim(), family, bold, italic, underline };
@@ -302,8 +356,8 @@ export function AnnotateTool() {
     }
     return -1;
   }
-  function undo() { setAnnos((a) => ({ ...a, [sel]: (a[sel] || []).slice(0, -1) })); }
-  function clearPage() { setAnnos((a) => ({ ...a, [sel]: [] })); }
+  function undo() { setSelIdx(null); setAnnos((a) => ({ ...a, [sel]: (a[sel] || []).slice(0, -1) })); }
+  function clearPage() { setSelIdx(null); setAnnos((a) => ({ ...a, [sel]: [] })); }
 
   const annotatedPages = Object.keys(annos).map(Number).filter((i) => (annos[i] || []).length > 0).sort((x, y) => x - y);
 
@@ -391,13 +445,13 @@ export function AnnotateTool() {
               </div>
               <div className="flex items-center gap-1.5">
                 {COLORS.map((c) => (
-                  <button key={c} onClick={() => setColor(c)} aria-label={`colour ${c}`} aria-pressed={color === c}
+                  <button key={c} onClick={() => { setColor(c); patchSelected({ color: c }); }} aria-label={`colour ${c}`} aria-pressed={color === c}
                     className={`size-7 rounded-full border-2 ${color === c ? 'border-primary ring-2 ring-primary/30' : 'border-transparent'}`} style={{ backgroundColor: c }} />
                 ))}
               </div>
               <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
                 Size
-                <input type="range" min={1} max={10} value={weight} onChange={(e) => setWeight(Number(e.target.value))} className="dd-range w-24" />
+                <input type="range" min={1} max={10} value={weight} onChange={(e) => { const n = Number(e.target.value); setWeight(n); patchSelected({ size: fontFrac(n) }); }} className="dd-range w-24" />
               </label>
               <div className="ml-auto flex items-center gap-2">
                 <Button size="sm" variant="outline" title="Undo (Ctrl+Z)" onClick={undo} disabled={!(annos[sel] || []).length}><Undo2 className="size-4" /> Undo</Button>
@@ -411,18 +465,18 @@ export function AnnotateTool() {
                 <span className="text-xs font-medium text-muted-foreground">Font</span>
                 <FontSelect value={family} onChange={pickFamily} className="w-44" />
                 <div className="flex items-center gap-1">
-                  <button onClick={() => setBold((v) => !v)} aria-pressed={bold} aria-label="Bold"
+                  <button onClick={() => { const v = !bold; setBold(v); patchSelected({ bold: v }); }} aria-pressed={bold} aria-label="Bold"
                     disabled={!FAMILIES[family].bold}
                     title={!FAMILIES[family].bold ? `${FAMILIES[family].label} has no bold style` : undefined}
                     className={`flex size-9 items-center justify-center rounded-lg border transition-all disabled:cursor-not-allowed disabled:opacity-40 ${bold ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-primary/40'}`}><Bold className="size-4" /></button>
-                  <button onClick={() => setItalic((v) => !v)} aria-pressed={italic} aria-label="Italic"
+                  <button onClick={() => { const v = !italic; setItalic(v); patchSelected({ italic: v }); }} aria-pressed={italic} aria-label="Italic"
                     disabled={!FAMILIES[family].italic}
                     title={!FAMILIES[family].italic ? `${FAMILIES[family].label} has no italic style` : undefined}
                     className={`flex size-9 items-center justify-center rounded-lg border transition-all disabled:cursor-not-allowed disabled:opacity-40 ${italic ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-primary/40'}`}><Italic className="size-4" /></button>
-                  <button onClick={() => setUnderline((v) => !v)} aria-pressed={underline} aria-label="Underline"
+                  <button onClick={() => { const v = !underline; setUnderline(v); patchSelected({ underline: v }); }} aria-pressed={underline} aria-label="Underline"
                     className={`flex size-9 items-center justify-center rounded-lg border transition-all ${underline ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-primary/40'}`}><Underline className="size-4" /></button>
                 </div>
-                <span className="ml-auto text-[11px] text-muted-foreground">Tip: click a placed text to edit it</span>
+                <span className="ml-auto text-[11px] text-muted-foreground">Click a text to select &amp; restyle it · double-click to edit the words</span>
               </div>
             )}
 
@@ -435,7 +489,7 @@ export function AnnotateTool() {
                   <canvas
                     ref={canvasRef}
                     className={`absolute inset-0 h-full w-full touch-none ${tool === 'text' ? 'cursor-text' : 'cursor-crosshair'}`}
-                    onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerLeave={onUp}
+                    onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerLeave={onUp} onDoubleClick={onDblClick}
                   />
                   {textDraft && (
                     <input
