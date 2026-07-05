@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Upload, FileText, X, Loader2, Highlighter, Pen, Square, Type, Undo2, Trash2, Zap, Bold, Italic, Underline } from 'lucide-react';
+import { Upload, FileText, X, Loader2, Highlighter, Pen, Square, Circle, Minus, ArrowUpRight, Shapes, ChevronDown, Type, Undo2, Trash2, Zap, Bold, Italic, Underline } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { downloadBlob as download } from '@/lib/download';
@@ -21,12 +21,15 @@ import { FontSelect } from '@/components/app/font-select';
 // notes never leave the browser. Coordinates are stored as page fractions so the
 // on-screen canvas and the high-res export stay pixel-perfect at any size.
 
-type Tool = 'highlight' | 'pen' | 'rect' | 'text';
+type ShapeKind = 'rect' | 'circle' | 'line' | 'arrow';
+type Tool = 'highlight' | 'pen' | ShapeKind | 'text';
 type Pt = { x: number; y: number };
 type Stroke = { kind: 'pen' | 'highlight'; color: string; w: number; pts: Pt[] };
-type RectA = { kind: 'rect'; color: string; w: number; a: Pt; b: Pt };
+type ShapeA = { kind: ShapeKind; color: string; w: number; a: Pt; b: Pt };
 type TextA = { kind: 'text'; color: string; size: number; at: Pt; text: string; family: Family; bold: boolean; italic: boolean; underline: boolean };
-type Anno = Stroke | RectA | TextA;
+type Anno = Stroke | ShapeA | TextA;
+const SHAPE_KINDS: ShapeKind[] = ['rect', 'circle', 'line', 'arrow'];
+const isShape = (t: Tool): t is ShapeKind => (SHAPE_KINDS as string[]).includes(t);
 
 const COLORS = ['#facc15', '#ef4444', '#2563eb', '#16a34a', '#7c3aed', '#111827'];
 
@@ -57,16 +60,37 @@ function paint(ctx: CanvasRenderingContext2D, W: number, H: number, list: Anno[]
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   for (const a of list) {
-    if (a.kind === 'rect') {
+    if (a.kind === 'rect' || a.kind === 'circle' || a.kind === 'line' || a.kind === 'arrow') {
       ctx.globalAlpha = 1;
       ctx.strokeStyle = a.color;
       ctx.lineWidth = Math.max(2, a.w * W);
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
       // A soft shadow gives the outline edge definition on any background, so a
       // light colour (e.g. yellow) doesn't vanish on a white page.
-      ctx.shadowColor = 'rgba(0,0,0,0.25)';
+      ctx.shadowColor = 'rgba(0,0,0,0.22)';
       ctx.shadowBlur = 2;
-      const x = Math.min(a.a.x, a.b.x) * W, y = Math.min(a.a.y, a.b.y) * H;
-      ctx.strokeRect(x, y, Math.abs(a.b.x - a.a.x) * W, Math.abs(a.b.y - a.a.y) * H);
+      const ax = a.a.x * W, ay = a.a.y * H, bx = a.b.x * W, by = a.b.y * H;
+      if (a.kind === 'rect') {
+        ctx.strokeRect(Math.min(ax, bx), Math.min(ay, by), Math.abs(bx - ax), Math.abs(by - ay));
+      } else if (a.kind === 'circle') {
+        const cx = (ax + bx) / 2, cy = (ay + by) / 2;
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, Math.max(1, Math.abs(bx - ax) / 2), Math.max(1, Math.abs(by - ay) / 2), 0, 0, Math.PI * 2);
+        ctx.stroke();
+      } else {
+        // line + (for arrow) a two-stroke arrowhead at the b end
+        ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+        if (a.kind === 'arrow') {
+          const ang = Math.atan2(by - ay, bx - ax);
+          const head = Math.max(10, a.w * W * 3.4);
+          const spread = Math.PI / 7;
+          ctx.beginPath();
+          ctx.moveTo(bx, by); ctx.lineTo(bx - head * Math.cos(ang - spread), by - head * Math.sin(ang - spread));
+          ctx.moveTo(bx, by); ctx.lineTo(bx - head * Math.cos(ang + spread), by - head * Math.sin(ang + spread));
+          ctx.stroke();
+        }
+      }
       ctx.shadowColor = 'transparent';
       ctx.shadowBlur = 0;
     } else if (a.kind === 'text') {
@@ -89,7 +113,7 @@ function paint(ctx: CanvasRenderingContext2D, W: number, H: number, list: Anno[]
         ctx.lineWidth = Math.max(1, fs * 0.06);
         ctx.beginPath(); ctx.moveTo(x, uy); ctx.lineTo(x + tw, uy); ctx.stroke();
       }
-    } else {
+    } else if (a.kind === 'pen' || a.kind === 'highlight') {
       ctx.globalAlpha = a.kind === 'highlight' ? 0.38 : 1;
       ctx.strokeStyle = a.color;
       ctx.lineWidth = Math.max(1, a.w * W);
@@ -113,6 +137,8 @@ export function AnnotateTool() {
   const [tool, setTool] = useState<Tool>('highlight');
   const [color, setColor] = useState(COLORS[0]);
   const [weight, setWeight] = useState(4);
+  const [shape, setShape] = useState<ShapeKind>('rect'); // last-picked shape for the Shapes button
+  const [shapesOpen, setShapesOpen] = useState(false);
   const [family, setFamily] = useState<Family>('helvetica');
   const [bold, setBold] = useState(false);
   const [italic, setItalic] = useState(false);
@@ -152,8 +178,9 @@ export function AnnotateTool() {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const textInputRef = useRef<HTMLInputElement>(null);
+  const shapesRef = useRef<HTMLDivElement>(null);
   const drawing = useRef(false);
-  const live = useRef<Stroke | RectA | null>(null);
+  const live = useRef<Stroke | ShapeA | null>(null);
 
   async function loadOne(f?: File) {
     if (!f) return;
@@ -228,6 +255,13 @@ export function AnnotateTool() {
   }, [repaint]);
   // Deselect when switching tool or page.
   useEffect(() => { setSelIdx(null); }, [tool, sel]);
+  // Close the Shapes menu on an outside click.
+  useEffect(() => {
+    if (!shapesOpen) return;
+    const onDown = (e: MouseEvent) => { if (shapesRef.current && !shapesRef.current.contains(e.target as Node)) setShapesOpen(false); };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [shapesOpen]);
   useEffect(() => {
     const onResize = () => repaint();
     window.addEventListener('resize', onResize);
@@ -297,25 +331,30 @@ export function AnnotateTool() {
     }
     e.currentTarget.setPointerCapture(e.pointerId);
     drawing.current = true;
-    if (tool === 'rect') live.current = { kind: 'rect', color, w: widthFrac('pen', weight), a: p, b: p };
+    setSelIdx(null);
+    if (isShape(tool)) live.current = { kind: tool, color, w: widthFrac('pen', weight), a: p, b: p };
     else live.current = { kind: tool, color, w: widthFrac(tool, weight), pts: [p] };
     repaint();
   }
   function onMove(e: React.PointerEvent<HTMLCanvasElement>) {
     if (!drawing.current || !live.current) return;
+    const cur = live.current;
     const p = frac(e);
-    if (live.current.kind === 'rect') live.current.b = p;
-    else live.current.pts.push(p);
+    if (cur.kind === 'pen' || cur.kind === 'highlight') cur.pts.push(p);
+    else if (cur.kind === 'rect' || cur.kind === 'circle' || cur.kind === 'line' || cur.kind === 'arrow') cur.b = p;
     repaint();
   }
   function onUp() {
     if (!drawing.current || !live.current) { drawing.current = false; return; }
     const committed = live.current;
     live.current = null; drawing.current = false;
-    // A box needs a real drag — ignore an accidental click (a 0-size box would
-    // be invisible and look like "nothing happened"). Pen/highlight taps are
-    // kept (they render as a dot).
-    if (committed.kind === 'rect' && (Math.abs(committed.b.x - committed.a.x) < 0.006 || Math.abs(committed.b.y - committed.a.y) < 0.006)) { repaint(); return; }
+    // Shapes need a real drag — ignore an accidental click. Box/circle need area
+    // in both axes; line/arrow just need length. Pen/highlight taps are kept (dot).
+    if (committed.kind === 'rect' || committed.kind === 'circle') {
+      if (Math.abs(committed.b.x - committed.a.x) < 0.006 || Math.abs(committed.b.y - committed.a.y) < 0.006) { repaint(); return; }
+    } else if (committed.kind === 'line' || committed.kind === 'arrow') {
+      if (Math.hypot(committed.b.x - committed.a.x, committed.b.y - committed.a.y) < 0.01) { repaint(); return; }
+    }
     setAnnos((a) => ({ ...a, [sel]: [...(a[sel] || []), committed] }));
   }
 
@@ -399,6 +438,13 @@ export function AnnotateTool() {
     </button>
   );
 
+  const SHAPE_META: Record<ShapeKind, { icon: React.ReactNode; label: string }> = {
+    rect: { icon: <Square className="size-4" />, label: 'Rectangle' },
+    circle: { icon: <Circle className="size-4" />, label: 'Ellipse' },
+    line: { icon: <Minus className="size-4" />, label: 'Line' },
+    arrow: { icon: <ArrowUpRight className="size-4" />, label: 'Arrow' },
+  };
+
   return (
     <Card>
       <CardContent className="p-5">
@@ -440,7 +486,24 @@ export function AnnotateTool() {
               <div className="grid grid-cols-4 gap-2">
                 {toolBtn('highlight', <Highlighter className="size-4" />, 'Highlight')}
                 {toolBtn('pen', <Pen className="size-4" />, 'Draw')}
-                {toolBtn('rect', <Square className="size-4" />, 'Box')}
+                <div className="relative" ref={shapesRef}>
+                  <button
+                    onClick={() => { setTool(shape); setTextDraft(null); setShapesOpen((o) => !o); }}
+                    aria-pressed={isShape(tool)} aria-haspopup="menu" aria-expanded={shapesOpen}
+                    className={`flex w-full items-center justify-center gap-1 rounded-xl border px-2 py-2 text-sm font-medium transition-all ${isShape(tool) ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-border bg-card hover:border-primary/40'}`}>
+                    {SHAPE_META[shape].icon} <Shapes className="size-4" /> <ChevronDown className={`size-3.5 transition-transform ${shapesOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {shapesOpen && (
+                    <div role="menu" className="absolute left-0 top-full z-20 mt-1 w-40 rounded-lg border bg-card p-1 shadow-lg">
+                      {SHAPE_KINDS.map((s) => (
+                        <button key={s} role="menuitem" onClick={() => { setShape(s); setTool(s); setTextDraft(null); setShapesOpen(false); }}
+                          className={`flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-sm transition-colors hover:bg-accent ${tool === s ? 'text-primary' : ''}`}>
+                          {SHAPE_META[s].icon} {SHAPE_META[s].label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 {toolBtn('text', <Type className="size-4" />, 'Text')}
               </div>
               <div className="flex items-center gap-1.5">
