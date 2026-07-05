@@ -50,11 +50,11 @@ const steps = [
 ];
 
 const compareRows = [
-  { label: 'Price', them: '$4–20 / month', us: 'Free' },
   { label: 'Daily limits', them: '~2 tasks/day', us: 'Unlimited' },
   { label: 'Sign-up required', them: 'Usually', us: 'Never' },
   { label: 'Files sent to their servers', them: 'Yes', us: 'No — in your browser' },
   { label: 'Beyond PDF (image, video, QR)', them: 'PDF only', us: 'All included' },
+  { label: 'Cost to lift the limits', them: '$4–20 / month', us: 'Free — nothing to lift' },
 ];
 
 const homeFaqs = [
@@ -177,9 +177,10 @@ export default function Home() {
           </div>
           <p className="mt-4 text-center text-sm"><Link href="/compare" className="font-medium text-primary hover:underline">See the full comparison →</Link></p>
           <p className="mt-2 text-center text-xs text-muted-foreground">
-            Comparing our free plan with a typical paid plan. The everyday tools stay free — an optional{' '}
+            Both are free to start — but a typical free plan caps everyday use, and lifting those caps is what costs
+            $4–20/mo. Ours has no such cap. An optional{' '}
             <Link href="/pricing" className="underline hover:text-foreground">Pro plan</Link> (planned ~$5.98/mo) later adds
-            power features like batch and OCR.
+            power features like batch and OCR, not everyday limits.
           </p>
         </Reveal>
       </section>
