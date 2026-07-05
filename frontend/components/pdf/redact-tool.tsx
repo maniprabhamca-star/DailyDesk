@@ -43,7 +43,8 @@ function fmt(bytes: number) {
 
 // Draw the redaction boxes onto ctx (W×H). Used for both the on-screen overlay
 // (boxes only, over the page <img>) and the export (composited over the raster).
-function drawBoxes(ctx: CanvasRenderingContext2D, W: number, H: number, list: Box[], style: Style) {
+function drawBoxes(ctx: CanvasRenderingContext2D, W: number, H: number, list: Box[], style: Style, label = 'REDACTED') {
+  const text = label.trim();
   for (const b of list) {
     const x = Math.min(b.a.x, b.b.x) * W, y = Math.min(b.a.y, b.b.y) * H;
     const w = Math.abs(b.b.x - b.a.x) * W, h = Math.abs(b.b.y - b.a.y) * H;
@@ -52,13 +53,13 @@ function drawBoxes(ctx: CanvasRenderingContext2D, W: number, H: number, list: Bo
     ctx.fillStyle = style === 'white' ? '#ffffff' : '#000000';
     ctx.fillRect(x, y, w, h);
     if (style === 'white') { ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); }
-    if (style === 'label') {
-      const fs = Math.max(8, Math.min(h * 0.55, w / (8 * 0.62)));
+    if (style === 'label' && text) {
+      const fs = Math.max(8, Math.min(h * 0.55, w / (text.length * 0.62)));
       ctx.fillStyle = '#ffffff';
       ctx.font = `bold ${fs}px ui-sans-serif, system-ui, sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('REDACTED', x + w / 2, y + h / 2);
+      ctx.fillText(text, x + w / 2, y + h / 2);
       ctx.textAlign = 'left';
     }
   }
@@ -73,6 +74,7 @@ export function RedactTool() {
   const [sel, setSel] = useState(0);
   const [preview, setPreview] = useState<RenderedPage | null>(null);
   const [style, setStyle] = useState<Style>('black');
+  const [labelText, setLabelText] = useState('REDACTED');
   const [boxes, setBoxes] = useState<Record<number, Box[]>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -94,7 +96,7 @@ export function RedactTool() {
     if (!f) return;
     if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) { setError('Please choose a PDF file.'); return; }
     if (!canProcessSize(f.size, plan)) { setError(null); setTooBig({ name: f.name, size: f.size }); return; }
-    setTooBig(null); setError(null); setDone(null); setBusy(true); setBoxes({});
+    setTooBig(null); setError(null); setDone(null); setBusy(true); setBoxes({}); setPreview(null);
     try {
       const h = await openPdf(f);
       if (handle) void handle.destroy();
@@ -113,10 +115,12 @@ export function RedactTool() {
   }, []);
   useEffect(() => () => { if (handle) void handle.destroy(); }, [handle]);
 
+  // Keep the previous page visible until the next render is ready (no
+  // collapse-to-spinner flicker on page change). A fresh file clears preview in
+  // loadOne, so the first page still shows a clean loading state.
   useEffect(() => {
     if (!handle) return;
     let cancelled = false;
-    setPreview(null);
     void renderPage(handle, sel, dprTarget(560, 2.2, 1700)).then((p) => { if (!cancelled) setPreview(p); }).catch(() => {});
     return () => { cancelled = true; };
   }, [handle, sel]);
@@ -134,8 +138,8 @@ export function RedactTool() {
     ctx.clearRect(0, 0, c.width, c.height);
     const list = [...(boxes[sel] || [])];
     if (live.current) list.push(live.current);
-    drawBoxes(ctx, c.width, c.height, list, style);
-  }, [boxes, sel, style]);
+    drawBoxes(ctx, c.width, c.height, list, style, labelText);
+  }, [boxes, sel, style, labelText]);
 
   useEffect(() => { repaint(); }, [repaint, preview]);
   useEffect(() => {
@@ -143,6 +147,22 @@ export function RedactTool() {
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, [repaint]);
+
+  // Ctrl/Cmd+Z removes the last redaction box on the current page (ignored while
+  // typing in the search or label fields).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z')) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      if (!file) return;
+      e.preventDefault();
+      undo();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [file, sel]);
 
   function frac(e: React.PointerEvent): Pt {
     const r = wrapRef.current!.getBoundingClientRect();
@@ -247,7 +267,7 @@ export function RedactTool() {
           img.src = rp.url;
           await img.decode();
           ctx.drawImage(img, 0, 0, rp.w, rp.h);
-          drawBoxes(ctx, rp.w, rp.h, boxes[i], style);
+          drawBoxes(ctx, rp.w, rp.h, boxes[i], style, labelText);
           const png = await new Promise<ArrayBuffer>((res, rej) =>
             cvs.toBlob((b) => (b ? b.arrayBuffer().then(res) : rej(new Error('render failed'))), 'image/png'));
           cvs.width = 0; cvs.height = 0;
@@ -324,9 +344,19 @@ export function RedactTool() {
                 {styleBtn('black', 'Black')}
                 {styleBtn('white', 'White')}
                 {styleBtn('label', 'Labelled')}
+                {style === 'label' && (
+                  <input
+                    value={labelText}
+                    onChange={(e) => setLabelText(e.target.value)}
+                    maxLength={24}
+                    placeholder="REDACTED"
+                    aria-label="Label text"
+                    className="w-32 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                  />
+                )}
               </div>
               <div className="ml-auto flex items-center gap-2">
-                <Button size="sm" variant="outline" onClick={undo} disabled={!(boxes[sel] || []).length}><Undo2 className="size-4" /> Undo</Button>
+                <Button size="sm" variant="outline" title="Undo (Ctrl+Z)" onClick={undo} disabled={!(boxes[sel] || []).length}><Undo2 className="size-4" /> Undo</Button>
                 <Button size="sm" variant="outline" onClick={clearPage} disabled={!(boxes[sel] || []).length}><Trash2 className="size-4" /> Clear page</Button>
               </div>
             </div>
@@ -375,10 +405,10 @@ export function RedactTool() {
                 </>
               ) : (
                 <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
-                  <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Lock className="size-3.5" /> Search every page for a word, or auto-find emails, phone numbers, SSNs &amp; card numbers — then box them all at once.
+                  <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                    <Lock className="mt-px size-3.5 shrink-0" /> <span>Drawing redaction boxes by hand is <strong className="font-semibold text-foreground">always free</strong>. Pro adds automatic search &amp; presets — find a word, or every email, phone, SSN &amp; card number, and box them all at once.</span>
                   </p>
-                  <Button asChild size="sm" variant="outline" className="sm:ml-auto"><Link href="/pricing">Upgrade to Pro</Link></Button>
+                  <Button asChild size="sm" variant="outline" className="shrink-0 sm:ml-auto"><Link href="/pricing">Upgrade to Pro</Link></Button>
                 </div>
               )}
             </div>

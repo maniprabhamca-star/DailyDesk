@@ -100,7 +100,7 @@ export function AnnotateTool() {
     if (!f) return;
     if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) { setError('Please choose a PDF file.'); return; }
     if (!canProcessSize(f.size, plan)) { setError(null); setTooBig({ name: f.name, size: f.size }); return; }
-    setTooBig(null); setError(null); setDone(null); setBusy(true); setAnnos({});
+    setTooBig(null); setError(null); setDone(null); setBusy(true); setAnnos({}); setPreview(null);
     try {
       const h = await openPdf(f);
       if (handle) void handle.destroy();
@@ -119,11 +119,14 @@ export function AnnotateTool() {
   }, []);
   useEffect(() => () => { if (handle) void handle.destroy(); }, [handle]);
 
-  // Render the current page for the annotation surface.
+  // Render the current page for the annotation surface. We intentionally DON'T
+  // clear the old preview here — keeping the previous page on screen until the
+  // new one is ready stops the surface from collapsing to a spinner and back
+  // on every page change (the "flicker/dance"). A fresh file clears preview in
+  // loadOne, so the first page still shows a clean loading state.
   useEffect(() => {
     if (!handle) return;
     let cancelled = false;
-    setPreview(null);
     void renderPage(handle, sel, dprTarget(560, 2.2, 1700)).then((p) => { if (!cancelled) setPreview(p); }).catch(() => {});
     return () => { cancelled = true; };
   }, [handle, sel]);
@@ -152,6 +155,22 @@ export function AnnotateTool() {
     return () => window.removeEventListener('resize', onResize);
   }, [repaint]);
 
+  // Ctrl/Cmd+Z removes the last annotation on the current page (ignored while
+  // typing in the text field or any other input).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z')) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      if (!file) return;
+      e.preventDefault();
+      undo();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [file, sel]);
+
   function frac(e: React.PointerEvent): Pt {
     const r = wrapRef.current!.getBoundingClientRect();
     return { x: Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), y: Math.min(1, Math.max(0, (e.clientY - r.top) / r.height)) };
@@ -178,6 +197,10 @@ export function AnnotateTool() {
     if (!drawing.current || !live.current) { drawing.current = false; return; }
     const committed = live.current;
     live.current = null; drawing.current = false;
+    // A box needs a real drag — ignore an accidental click (a 0-size box would
+    // be invisible and look like "nothing happened"). Pen/highlight taps are
+    // kept (they render as a dot).
+    if (committed.kind === 'rect' && (Math.abs(committed.b.x - committed.a.x) < 0.006 || Math.abs(committed.b.y - committed.a.y) < 0.006)) { repaint(); return; }
     setAnnos((a) => ({ ...a, [sel]: [...(a[sel] || []), committed] }));
   }
 
@@ -281,7 +304,7 @@ export function AnnotateTool() {
                 <input type="range" min={1} max={10} value={weight} onChange={(e) => setWeight(Number(e.target.value))} className="dd-range w-24" />
               </label>
               <div className="ml-auto flex items-center gap-2">
-                <Button size="sm" variant="outline" onClick={undo} disabled={!(annos[sel] || []).length}><Undo2 className="size-4" /> Undo</Button>
+                <Button size="sm" variant="outline" title="Undo (Ctrl+Z)" onClick={undo} disabled={!(annos[sel] || []).length}><Undo2 className="size-4" /> Undo</Button>
                 <Button size="sm" variant="outline" onClick={clearPage} disabled={!(annos[sel] || []).length}><Trash2 className="size-4" /> Clear page</Button>
               </div>
             </div>
