@@ -50,10 +50,11 @@ const steps = [
 ];
 
 const compareRows = [
+  { label: 'Price', them: '$4–20 / month', us: 'Free' },
   { label: 'Daily limits', them: '~2 tasks/day', us: 'Unlimited' },
   { label: 'Sign-up required', them: 'Usually', us: 'Never' },
   { label: 'Files sent to their servers', them: 'Yes', us: 'No — in your browser' },
-  { label: 'Beyond PDF', them: 'PDF only', us: 'Images, video & QR' },
+  { label: 'Beyond PDF (image, video, QR)', them: 'PDF only', us: 'All included' },
 ];
 
 const homeFaqs = [
@@ -164,13 +165,13 @@ export default function Home() {
             <div className="grid grid-cols-[1.3fr_1fr_1fr] bg-muted/40 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
               <div className="px-3 py-2.5"> </div>
               <div className="px-3 py-2.5 text-center">Typical PDF site</div>
-              <div className="px-3 py-2.5 text-center text-primary">DiemDesk</div>
+              <div className="bg-primary/[0.07] px-3 py-2.5 text-center text-primary">DiemDesk</div>
             </div>
             {compareRows.map((r) => (
               <div key={r.label} className="grid grid-cols-[1.3fr_1fr_1fr] border-t text-[13px] sm:text-sm">
                 <div className="px-3 py-3 font-medium">{r.label}</div>
                 <div className="flex items-center justify-center gap-1.5 px-3 py-3 text-center text-muted-foreground"><X className="size-3.5 shrink-0 text-muted-foreground/40" /> {r.them}</div>
-                <div className="flex items-center justify-center gap-1.5 px-3 py-3 text-center font-medium text-emerald-700 dark:text-emerald-400"><Check className="size-4 shrink-0 text-emerald-600" strokeWidth={2.75} /> {r.us}</div>
+                <div className="flex items-center justify-center gap-1.5 bg-primary/[0.07] px-3 py-3 text-center font-medium text-emerald-700 dark:text-emerald-400"><Check className="size-4 shrink-0 text-emerald-600" strokeWidth={2.75} /> {r.us}</div>
               </div>
             ))}
           </div>
