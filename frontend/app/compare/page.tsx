@@ -42,7 +42,7 @@ const ROWS: { label: string; cells: [Cell, Cell, Cell, Cell]; note?: string }[] 
   },
   { label: 'Use a tool without an account', cells: [true, 'For most', 'For most', 'Account required'] },
   { label: 'No ads, no watermarks on free', cells: [true, 'Some limits', 'Ads on free', '—'] },
-  { label: 'Batch processing included free', cells: ['Most tools', 'Paid', 'Paid', 'Paid'] },
+  { label: 'Combine unlimited files free (merge, images → PDF)', cells: [true, 'Capped / paid', 'Up to 25 files', 'Trial only'] },
   {
     label: 'Beyond PDF — image, QR, password & video tools',
     cells: [`${liveToolCount}+ tools`, 'PDF-focused', 'PDF-focused', 'PDF-focused'],
