@@ -175,7 +175,12 @@ export default function Home() {
               </div>
             ))}
           </div>
-          <p className="mt-4 text-center text-sm"><Link href="/pricing" className="font-medium text-primary hover:underline">See the full comparison →</Link></p>
+          <p className="mt-4 text-center text-sm"><Link href="/compare" className="font-medium text-primary hover:underline">See the full comparison →</Link></p>
+          <p className="mt-2 text-center text-xs text-muted-foreground">
+            Comparing our free plan with a typical paid plan. The everyday tools stay free — an optional{' '}
+            <Link href="/pricing" className="underline hover:text-foreground">Pro plan</Link> (planned ~$5.98/mo) later adds
+            power features like batch and OCR.
+          </p>
         </Reveal>
       </section>
 

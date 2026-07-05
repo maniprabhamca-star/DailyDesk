@@ -151,8 +151,19 @@ export default function ComparePage() {
           . Also worth a look: <strong>Sejda</strong> (free: 3 tasks/hour, 50&nbsp;MB, 200 pages; paid from ~$7.50/week).
         </p>
 
+        {/* Per-competitor deep dives (internal links → the /*-alternative pages). */}
+        <div className="mx-auto mt-10 max-w-2xl text-center">
+          <p className="text-sm font-medium">Switching from a specific tool?</p>
+          <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1.5 text-sm">
+            <Link href="/smallpdf-alternative" className="text-primary hover:underline">Smallpdf alternative</Link>
+            <Link href="/ilovepdf-alternative" className="text-primary hover:underline">iLovePDF alternative</Link>
+            <Link href="/sejda-alternative" className="text-primary hover:underline">Sejda alternative</Link>
+            <Link href="/adobe-acrobat-alternative" className="text-primary hover:underline">Adobe Acrobat alternative</Link>
+          </div>
+        </div>
+
         {/* Honest caveats — never advertise what isn't live yet as if it were. */}
-        <div className="mx-auto mt-8 max-w-2xl rounded-xl border border-amber-300/50 bg-amber-50/40 p-4 text-sm text-muted-foreground dark:border-amber-500/25 dark:bg-amber-950/10">
+        <div className="mx-auto mt-10 max-w-2xl rounded-xl border border-amber-300/50 bg-amber-50/40 p-4 text-sm text-muted-foreground dark:border-amber-500/25 dark:bg-amber-950/10">
           <p>
             <strong className="text-foreground">Fair disclosure:</strong> DiemDesk is in pre-launch. Annotate, Redact
             and OCR are marked <em>coming soon</em> and roll out shortly; the Pro plan isn&rsquo;t on sale yet, so
