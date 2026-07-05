@@ -19,7 +19,7 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 const BV = process.env.NEXT_PUBLIC_BRAND_VARIANT;
 const iconsMeta: Metadata['icons'] = isBrandVariant(BV)
   ? { icon: faviconDataUri(BV) }
-  : { icon: [{ url: '/favicon.ico', sizes: '32x32' }, { url: '/icon-192.png', type: 'image/png' }], apple: '/apple-touch-icon.png' };
+  : { icon: [{ url: '/favicon.ico?v=2', sizes: '32x32' }, { url: '/icon-192.png?v=2', type: 'image/png' }], apple: '/apple-touch-icon.png?v=2' };
 
 // Site-wide SEO defaults. Every indexable page overrides title/description/
 // canonical with its own; this supplies the base (metadataBase makes canonical
