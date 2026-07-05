@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { ShieldCheck, Smartphone, Check, BadgeCheck, Lock, Clock } from 'lucide-react';
+import { ShieldCheck, Smartphone, Check, BadgeCheck, Infinity as InfinityIcon, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { LaunchBanner } from '@/components/app/launch-banner';
 import { BILLING_ENABLED } from '@/lib/flags';
@@ -30,16 +30,16 @@ function Reveal({ children, className, delay = 0 }: { children: React.ReactNode;
 }
 
 const why = [
-  { icon: ShieldCheck, title: 'Files never leave your browser', body: 'Core tools run 100% on your device — nothing is uploaded to any server.' },
-  { icon: BadgeCheck, title: 'Free, no signup', body: 'Use the core tools free — no account, no watermark, no catch.' },
-  { icon: Smartphone, title: 'Every device', body: 'A premium experience on desktop and mobile. Native apps on the way.' },
-  { icon: Lock, title: 'Encrypted when saved', body: 'Optional saved files use AES-256 encryption — only you hold the key.' },
+  { icon: ShieldCheck, color: '#059669', title: 'Files never leave your browser', body: 'Core tools run 100% on your device — nothing is uploaded to any server.' },
+  { icon: BadgeCheck, color: '#4f46e5', title: 'Free, no signup', body: 'Use the core tools free — no account, no watermark, no catch.' },
+  { icon: Smartphone, color: '#0891b2', title: 'Every device', body: 'A premium experience on desktop and mobile. Native apps on the way.' },
+  { icon: InfinityIcon, color: '#d97706', title: 'No daily limits', body: 'Use every tool as often as you like — no 2-tasks-a-day caps like other sites.' },
 ];
 
-const stats = [
+const stats: { v: string; l: string; note?: string }[] = [
   { v: `${liveToolCount}`, l: 'Tools and growing' },
   { v: '0', l: 'Ads or trackers' },
-  { v: '100%', l: 'Yours' },
+  { v: '0', l: 'Files uploaded', note: 'for in-browser tools' },
   { v: '$0', l: 'To get started' },
 ];
 
@@ -79,7 +79,7 @@ export default function Home() {
             {why.map((w, i) => (
               <Reveal key={w.title} delay={i % 2}>
                 <div className="flex h-full items-start gap-3.5 rounded-2xl border bg-card p-4 shadow-soft sm:p-5">
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><w.icon className="size-5" /></span>
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `${w.color}1a`, color: w.color }}><w.icon className="size-5" /></span>
                   <div className="min-w-0">
                     <h3 className="text-[15px] font-semibold">{w.title}</h3>
                     <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{w.body}</p>
@@ -98,6 +98,7 @@ export default function Home() {
             <div key={s.l} className="border-border px-4 text-center sm:border-l sm:first:border-l-0">
               <p className="text-3xl font-bold tracking-tight text-primary sm:text-4xl">{s.v}</p>
               <p className="mt-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">{s.l}</p>
+              {s.note && <p className="mt-0.5 text-[10px] text-muted-foreground/70">{s.note}</p>}
             </div>
           ))}
         </div>

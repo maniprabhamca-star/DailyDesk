@@ -92,9 +92,9 @@ export default function SecurityPage() {
           <li className="flex gap-3"><FileCheck2 className="mt-0.5 size-5 shrink-0 text-emerald-600" /><span><strong className="text-foreground">Fast and responsive.</strong> The heavy lifting runs on WebAssembly, and the app pauses between steps so your browser stays smooth while it works.</span></li>
           <li className="flex gap-3"><ShieldCheck className="mt-0.5 size-5 shrink-0 text-emerald-600" /><span><strong className="text-foreground">Sensible limits.</strong> Caps on file size and rendering quality stop any single job from running away with your device&rsquo;s resources.</span></li>
         </ul>
-        <Callout tone="default" icon={<AlertTriangle className="size-5" />} title="The honest trade-off">
+        <Callout tone="default" icon={<AlertTriangle className="size-5" />} title="One thing about large files">
           <p>
-            Larger files naturally use more of your device&rsquo;s power — that&rsquo;s the cost of keeping them
+            Big files use more of your own device&rsquo;s power — that&rsquo;s the price of keeping them
             off our servers and fully private. For everyday documents, you won&rsquo;t notice a thing.
           </p>
         </Callout>
@@ -133,7 +133,7 @@ export default function SecurityPage() {
           <FlowStep n={2} title="Your document&rsquo;s text is sent for that one request">The relevant text is sent over an encrypted connection to our AI provider, processed in real time, and the answer is returned to you.</FlowStep>
           <FlowStep n={3} title="It is not stored or used to train models">We do not keep a copy of your document to power AI, and your content is not used to train AI models.</FlowStep>
         </ol>
-        <Callout tone="default" icon={<Sparkles className="size-5" />} title="The honest trade-off">
+        <Callout tone="default" icon={<Sparkles className="size-5" />} title="Where AI is different">
           <p>
             Unlike our in-browser tools, AI features <strong>do</strong> transmit your text for the moment it takes to
             answer — that&rsquo;s simply how AI works. The difference with DiemDesk is that it&rsquo;s always{' '}
@@ -177,7 +177,7 @@ export default function SecurityPage() {
             including us. They are permanently lost.
           </p>
           <p>
-            This is the same trade-off as a cryptocurrency wallet or a true zero-knowledge service: total privacy means
+            This works just like a cryptocurrency wallet or a true zero-knowledge service: total privacy means
             total responsibility for your passphrase.
           </p>
         </Callout>
