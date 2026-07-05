@@ -93,7 +93,7 @@ export default function ComparePage() {
     <div className="flex min-h-screen flex-col">
       <SiteHeader />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
-      <main className="mx-auto w-full max-w-5xl px-4 py-14 sm:px-6">
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-14 sm:px-6">
         <div className="mx-auto max-w-2xl text-center">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-600/25 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-400">
             <ShieldCheck className="size-3.5" /> Compared honestly, with sources

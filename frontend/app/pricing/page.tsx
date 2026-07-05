@@ -95,10 +95,10 @@ export default function PricingPage() {
   const proSub = annual ? PRICING.pro.annualNote : 'billed monthly';
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
       <SiteHeader />
 
-      <main className="mx-auto max-w-5xl px-4 py-14 sm:px-6">
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-14 sm:px-6">
         {/* Hero */}
         <div className="text-center">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-600">

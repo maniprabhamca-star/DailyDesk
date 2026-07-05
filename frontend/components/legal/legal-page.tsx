@@ -17,10 +17,10 @@ export function LegalPage({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
       <SiteHeader />
 
-      <main className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
+      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-12 sm:px-6">
         <p className="text-sm font-bold uppercase tracking-wider text-primary">{eyebrow}</p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">{title}</h1>
         <p className="mt-4 text-lg leading-relaxed text-muted-foreground">{intro}</p>
