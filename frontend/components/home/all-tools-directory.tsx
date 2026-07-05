@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { CSSProperties } from 'react';
-import { Search, Wand2, CloudOff, Ban, UserX, Droplets } from 'lucide-react';
+import { CSSProperties, useState } from 'react';
+import { Search } from 'lucide-react';
 import { catalog, BADGE, type CatTool } from '@/components/app/catalog';
 
 // Per-tool colour + one-line benefit. Each tool gets its OWN hue (not one colour
@@ -95,60 +95,56 @@ function Tile({ t, groupColor }: { t: CatTool; groupColor: string }) {
 }
 
 export function AllToolsDirectory() {
+  const [q, setQ] = useState('');
+  const query = q.trim().toLowerCase();
+  const matches = (t: CatTool) =>
+    !query || t.name.toLowerCase().includes(query) || (META[t.name]?.desc?.toLowerCase().includes(query) ?? false);
+  const empty = catalog.every((g) => !g.tools.some(matches));
+
   return (
-    <section id="tools" className="scroll-mt-20 border-t bg-muted/20">
-      <div className="mx-auto max-w-6xl px-4 pb-8 pt-10 sm:px-6">
-        {/* Trust strip — one straight line on all sizes (smaller on mobile so it never wraps) */}
-        <div className="mb-9 flex items-center justify-center gap-x-3 sm:gap-x-7">
-          {[
-            { icon: CloudOff, t: 'No file uploads' },
-            { icon: Ban, t: 'No ads' },
-            { icon: UserX, t: 'No signup' },
-            { icon: Droplets, t: 'No watermark' },
-          ].map((x) => (
-            <span key={x.t} className="flex items-center gap-1 whitespace-nowrap text-[11px] font-semibold text-foreground/80 sm:gap-1.5 sm:text-sm">
-              <x.icon className="size-3.5 shrink-0 text-emerald-600 sm:size-4" strokeWidth={2.25} /> {x.t}
-            </span>
-          ))}
-        </div>
-
-        <div className="mb-5 flex items-center justify-between gap-3">
-          <h2 className="text-2xl font-bold tracking-tight">All tools</h2>
-          <button onClick={() => window.dispatchEvent(new Event('dd-command-open'))} className="flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground">
-            <Search className="size-4" /> Filter…
-            <kbd className="rounded border px-1 text-[10px]">⌘K</kbd>
-          </button>
-        </div>
-
-        {/* Workflows (coming soon) */}
-        <div className="mb-8">
-          <p className="mb-2.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-violet-600">
-            <Wand2 className="size-4" strokeWidth={2.25} /> Workflows <span className="rounded-full bg-violet-100 px-1.5 py-0.5 text-[9px] text-violet-700 dark:bg-violet-950/50">coming soon</span>
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {['Merge → Compress', 'Scan → OCR → Compress', 'Images → PDF → Sign'].map((w) => (
-              <span key={w} className="rounded-full border bg-card px-3.5 py-2 text-xs font-medium text-muted-foreground">{w}</span>
-            ))}
+    <section id="tools" className="scroll-mt-20 bg-muted/20">
+      <div className="mx-auto max-w-6xl px-4 pb-10 pt-9 sm:px-6">
+        {/* Heading + a REAL live filter (narrows the grid as you type) */}
+        <div className="mb-7 flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">All tools</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Pick a tool — most run right in your browser, nothing uploaded.</p>
+          </div>
+          <div className="relative w-40 shrink-0 sm:w-60">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Filter tools…"
+              aria-label="Filter tools"
+              className="w-full rounded-lg border bg-background py-2 pl-9 pr-3 text-sm outline-none transition-colors focus:border-primary/50 focus:ring-2 focus:ring-primary/15"
+            />
           </div>
         </div>
 
-        {/* Grouped tile grids */}
+        {/* Grouped tile grids (filtered live) */}
         <div className="space-y-8">
-          {catalog.map((g) => (
-            <div key={g.label}>
-              <p className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                <span className="size-2 rounded-full" style={{ backgroundColor: g.color }} /> {g.label}
-              </p>
-              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-                {g.tools.map((t) => <Tile key={t.name} t={t} groupColor={g.color} />)}
+          {catalog.map((g) => {
+            const tools = g.tools.filter(matches);
+            if (tools.length === 0) return null;
+            return (
+              <div key={g.label}>
+                <p className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  <span className="size-2 rounded-full" style={{ backgroundColor: g.color }} /> {g.label}
+                </p>
+                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+                  {tools.map((t) => <Tile key={t.name} t={t} groupColor={g.color} />)}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
+          {empty && (
+            <p className="py-10 text-center text-sm text-muted-foreground">No tools match &ldquo;{q}&rdquo;.</p>
+          )}
         </div>
 
-        {/* Legend — "where each tool runs". Clean, left-aligned 2×2 grid centered as a
-            block on mobile (icons line up per column); centered wrapping row on desktop. */}
-        <div className="mt-9 border-y pb-6 pt-6">
+        {/* Legend — "where each tool runs" (single subtle divider, no boxed band) */}
+        <div className="mt-10 border-t border-border/60 pt-6">
           <p className="mb-4 text-center text-xs text-muted-foreground">Where each tool runs — your files stay on your device for everything that can run there.</p>
           <div className="mx-auto grid w-fit grid-cols-[auto_auto] justify-items-start gap-x-8 gap-y-3 sm:flex sm:w-auto sm:flex-wrap sm:justify-center sm:gap-x-5 sm:gap-y-2">
             {(Object.keys(BADGE) as (keyof typeof BADGE)[]).map((k) => {
