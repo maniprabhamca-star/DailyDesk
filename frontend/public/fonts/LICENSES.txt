@@ -52,6 +52,9 @@ the SIL Open Font License 1.1 EXCEPT Arimo (skipped) — the ones bundled here a
   Inter, Montserrat, Poppins, Nunito, Mulish, Work Sans, Raleway, Rubik,
   Anton, Josefin Sans, Lora, Bitter, Caveat, Dancing Script,
   Carlito (Calibri-metric), Caladea (Cambria-metric), Roboto Mono.
+DejaVu Sans (Verdana-style, regular/bold/italic) is NOT OFL — it's under the
+permissive DejaVu / Bitstream Vera Fonts license (free for commercial use +
+redistribution + embedding). Full text in DejaVu-LICENSE.txt.
 Each is © its respective Project Authors with any Reserved Font Names; all
 licensed under the SIL Open Font License, Version 1.1 (full text below).
 

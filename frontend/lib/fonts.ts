@@ -9,7 +9,7 @@
 // text renders the REAL weight/slant (not faux) for the families that have them.
 
 export type Family =
-  | 'helvetica' | 'inter' | 'roboto' | 'opensans' | 'lato' | 'carlito'
+  | 'helvetica' | 'dejavusans' | 'inter' | 'roboto' | 'opensans' | 'lato' | 'carlito'
   | 'montserrat' | 'poppins' | 'nunito' | 'mulish' | 'worksans'
   | 'raleway' | 'rubik' | 'oswald' | 'bebas' | 'anton' | 'josefinsans' | 'comic'
   | 'times' | 'merriweather' | 'playfair' | 'lora' | 'bitter' | 'caladea'
@@ -32,6 +32,7 @@ export type FamilyInfo = {
 // limitation there only; Annotate bold is real. Poppins ships true static faces.
 export const FAMILIES: Record<Family, FamilyInfo> = {
   helvetica: { label: 'Helvetica', css: 'Helvetica, Arial, sans-serif', bold: true, italic: true },
+  dejavusans: { label: 'DejaVu Sans (Verdana)', css: "'DejaVu Sans', sans-serif", bold: true, italic: true, files: { regular: '/fonts/dejavusans.ttf', bold: '/fonts/dejavusans-bold.ttf', italic: '/fonts/dejavusans-italic.ttf' } },
   inter: { label: 'Inter', css: "'Inter', sans-serif", bold: true, italic: true, files: { regular: '/fonts/inter.ttf', italic: '/fonts/inter-italic.ttf' } },
   roboto: { label: 'Roboto', css: 'Roboto, sans-serif', bold: true, italic: true, files: { regular: '/fonts/roboto-regular.ttf', bold: '/fonts/roboto-bold.ttf', italic: '/fonts/roboto-italic.ttf' } },
   opensans: { label: 'Open Sans', css: "'Open Sans', sans-serif", bold: true, italic: true, files: { regular: '/fonts/open-sans-regular.ttf', bold: '/fonts/open-sans-bold.ttf', italic: '/fonts/open-sans-italic.ttf' } },

@@ -99,16 +99,13 @@ function paint(ctx: CanvasRenderingContext2D, W: number, H: number, list: Anno[]
       ctx.shadowColor = 'transparent';
       ctx.shadowBlur = 0;
     } else if (a.kind === 'text') {
+      // Clean text — just the glyphs in the chosen colour/font (no outline/halo),
+      // so the typeface and weight read exactly as picked (like Smallpdf).
       ctx.globalAlpha = 1;
       ctx.textBaseline = 'top';
       const fs = Math.max(10, a.size * H);
       const x = a.at.x * W, y = a.at.y * H;
       ctx.font = fontSpec(fs, a);
-      // Dark halo behind the glyphs so any colour (incl. yellow) stays legible.
-      ctx.lineJoin = 'round';
-      ctx.strokeStyle = 'rgba(0,0,0,0.5)';
-      ctx.lineWidth = Math.max(2, fs * 0.14);
-      ctx.strokeText(a.text, x, y);
       ctx.fillStyle = a.color;
       ctx.fillText(a.text, x, y);
       if (a.underline) {
@@ -593,10 +590,12 @@ export function AnnotateTool() {
                     className={`size-7 rounded-full border-2 ${color === c ? 'border-primary ring-2 ring-primary/30' : 'border-transparent'}`} style={{ backgroundColor: c }} />
                 ))}
               </div>
-              <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                Size
-                <input type="range" min={1} max={10} value={weight} onChange={(e) => { const n = Number(e.target.value); setWeight(n); patchSelected({ size: fontFrac(n) }); }} className="dd-range w-24" />
-              </label>
+              {tool !== 'text' && (
+                <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                  Size
+                  <input type="range" min={1} max={10} value={weight} onChange={(e) => setWeight(Number(e.target.value))} className="dd-range w-24" />
+                </label>
+              )}
               <div className="ml-auto flex items-center gap-2">
                 <Button size="sm" variant="outline" title="Undo (Ctrl+Z)" onClick={undo} disabled={!(annos[sel] || []).length}><Undo2 className="size-4" /> Undo</Button>
                 <Button size="sm" variant="outline" onClick={clearPage} disabled={!(annos[sel] || []).length && !pageImages.length}><Trash2 className="size-4" /> Clear page</Button>
@@ -620,6 +619,11 @@ export function AnnotateTool() {
                   <button onClick={() => { const v = !underline; setUnderline(v); patchSelected({ underline: v }); }} aria-pressed={underline} aria-label="Underline"
                     className={`flex size-9 items-center justify-center rounded-lg border transition-all ${underline ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-primary/40'}`}><Underline className="size-4" /></button>
                 </div>
+                <label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                  Size
+                  <input type="range" min={1} max={16} value={weight} onChange={(e) => { const n = Number(e.target.value); setWeight(n); patchSelected({ size: fontFrac(n) }); }} className="dd-range w-24" />
+                  <span className="w-8 tabular-nums text-foreground">{Math.round(fontFrac(weight) * 792)}pt</span>
+                </label>
                 <span className="ml-auto text-[11px] text-muted-foreground">Click a text to select &amp; restyle it · double-click to edit the words</span>
               </div>
             )}
