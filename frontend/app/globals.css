@@ -125,6 +125,34 @@
 @font-face { font-family: 'Oswald'; src: url('/fonts/oswald-bold.ttf') format('truetype'); font-weight: 700; font-display: swap; }
 @font-face { font-family: 'Comic Neue'; src: url('/fonts/comic-neue-bold.ttf') format('truetype'); font-weight: 700; font-display: swap; }
 @font-face { font-family: 'Comic Neue'; src: url('/fonts/comic-neue-italic.ttf') format('truetype'); font-style: italic; font-display: swap; }
+/* Extended family pack — most are VARIABLE ttf (one file, weight axis 100–900),
+   declared with a weight RANGE so canvas + CSS get a real bold. OFL/Apache
+   (see public/fonts/LICENSES.txt). Poppins ships static regular/bold/italic. */
+@font-face { font-family: 'Inter'; src: url('/fonts/inter.ttf') format('truetype'); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: 'Inter'; src: url('/fonts/inter-italic.ttf') format('truetype'); font-weight: 100 900; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Montserrat'; src: url('/fonts/montserrat.ttf') format('truetype'); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: 'Montserrat'; src: url('/fonts/montserrat-italic.ttf') format('truetype'); font-weight: 100 900; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Poppins'; src: url('/fonts/poppins-regular.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'Poppins'; src: url('/fonts/poppins-bold.ttf') format('truetype'); font-weight: 700; font-display: swap; }
+@font-face { font-family: 'Poppins'; src: url('/fonts/poppins-italic.ttf') format('truetype'); font-style: italic; font-display: swap; }
+@font-face { font-family: 'Nunito'; src: url('/fonts/nunito.ttf') format('truetype'); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: 'Nunito'; src: url('/fonts/nunito-italic.ttf') format('truetype'); font-weight: 100 900; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Mulish'; src: url('/fonts/mulish.ttf') format('truetype'); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: 'Mulish'; src: url('/fonts/mulish-italic.ttf') format('truetype'); font-weight: 100 900; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Work Sans'; src: url('/fonts/worksans.ttf') format('truetype'); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: 'Work Sans'; src: url('/fonts/worksans-italic.ttf') format('truetype'); font-weight: 100 900; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Raleway'; src: url('/fonts/raleway.ttf') format('truetype'); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: 'Raleway'; src: url('/fonts/raleway-italic.ttf') format('truetype'); font-weight: 100 900; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Rubik'; src: url('/fonts/rubik.ttf') format('truetype'); font-weight: 300 900; font-display: swap; }
+@font-face { font-family: 'Rubik'; src: url('/fonts/rubik-italic.ttf') format('truetype'); font-weight: 300 900; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Anton'; src: url('/fonts/anton.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'Josefin Sans'; src: url('/fonts/josefinsans.ttf') format('truetype'); font-weight: 100 700; font-display: swap; }
+@font-face { font-family: 'Lora'; src: url('/fonts/lora.ttf') format('truetype'); font-weight: 400 700; font-display: swap; }
+@font-face { font-family: 'Lora'; src: url('/fonts/lora-italic.ttf') format('truetype'); font-weight: 400 700; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Bitter'; src: url('/fonts/bitter.ttf') format('truetype'); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: 'Bitter'; src: url('/fonts/bitter-italic.ttf') format('truetype'); font-weight: 100 900; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Caveat'; src: url('/fonts/caveat.ttf') format('truetype'); font-weight: 400 700; font-display: swap; }
+@font-face { font-family: 'Dancing Script'; src: url('/fonts/dancingscript.ttf') format('truetype'); font-weight: 400 700; font-display: swap; }
 
 /* Header logo delight: the three colour tiles do a soft, staggered bounce every
    ~10s (a brief "dance" at the end of each cycle). Subtle by design; disabled

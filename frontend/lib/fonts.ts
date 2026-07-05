@@ -9,9 +9,12 @@
 // text renders the REAL weight/slant (not faux) for the families that have them.
 
 export type Family =
-  | 'helvetica' | 'opensans' | 'roboto' | 'lato'
-  | 'times' | 'merriweather' | 'playfair'
-  | 'oswald' | 'bebas' | 'comic' | 'pacifico' | 'courier';
+  | 'helvetica' | 'inter' | 'roboto' | 'opensans' | 'lato'
+  | 'montserrat' | 'poppins' | 'nunito' | 'mulish' | 'worksans'
+  | 'raleway' | 'rubik' | 'oswald' | 'bebas' | 'anton' | 'josefinsans' | 'comic'
+  | 'times' | 'merriweather' | 'playfair' | 'lora' | 'bitter'
+  | 'courier'
+  | 'pacifico' | 'caveat' | 'dancingscript';
 
 export type FamilyInfo = {
   label: string;
@@ -21,19 +24,39 @@ export type FamilyInfo = {
   files?: { regular: string; bold?: string; italic?: string };
 };
 
+// NOTE: the newer families ship as VARIABLE ttf (one file covers all weights) —
+// globals.css declares them @font-face with a font-weight RANGE, so canvas text
+// (Annotate) gets a REAL bold from the weight axis, and pdf-lib (Watermark)
+// embeds them fine (verified). For variable families we don't ship a separate
+// bold file, so Watermark's bold renders at the default weight — a minor cosmetic
+// limitation there only; Annotate bold is real. Poppins ships true static faces.
 export const FAMILIES: Record<Family, FamilyInfo> = {
   helvetica: { label: 'Helvetica', css: 'Helvetica, Arial, sans-serif', bold: true, italic: true },
-  opensans: { label: 'Open Sans', css: "'Open Sans', sans-serif", bold: true, italic: true, files: { regular: '/fonts/open-sans-regular.ttf', bold: '/fonts/open-sans-bold.ttf', italic: '/fonts/open-sans-italic.ttf' } },
+  inter: { label: 'Inter', css: "'Inter', sans-serif", bold: true, italic: true, files: { regular: '/fonts/inter.ttf', italic: '/fonts/inter-italic.ttf' } },
   roboto: { label: 'Roboto', css: 'Roboto, sans-serif', bold: true, italic: true, files: { regular: '/fonts/roboto-regular.ttf', bold: '/fonts/roboto-bold.ttf', italic: '/fonts/roboto-italic.ttf' } },
+  opensans: { label: 'Open Sans', css: "'Open Sans', sans-serif", bold: true, italic: true, files: { regular: '/fonts/open-sans-regular.ttf', bold: '/fonts/open-sans-bold.ttf', italic: '/fonts/open-sans-italic.ttf' } },
   lato: { label: 'Lato', css: 'Lato, sans-serif', bold: true, italic: true, files: { regular: '/fonts/lato-regular.ttf', bold: '/fonts/lato-bold.ttf', italic: '/fonts/lato-italic.ttf' } },
+  montserrat: { label: 'Montserrat', css: "'Montserrat', sans-serif", bold: true, italic: true, files: { regular: '/fonts/montserrat.ttf', italic: '/fonts/montserrat-italic.ttf' } },
+  poppins: { label: 'Poppins', css: "'Poppins', sans-serif", bold: true, italic: true, files: { regular: '/fonts/poppins-regular.ttf', bold: '/fonts/poppins-bold.ttf', italic: '/fonts/poppins-italic.ttf' } },
+  nunito: { label: 'Nunito', css: "'Nunito', sans-serif", bold: true, italic: true, files: { regular: '/fonts/nunito.ttf', italic: '/fonts/nunito-italic.ttf' } },
+  mulish: { label: 'Mulish', css: "'Mulish', sans-serif", bold: true, italic: true, files: { regular: '/fonts/mulish.ttf', italic: '/fonts/mulish-italic.ttf' } },
+  worksans: { label: 'Work Sans', css: "'Work Sans', sans-serif", bold: true, italic: true, files: { regular: '/fonts/worksans.ttf', italic: '/fonts/worksans-italic.ttf' } },
+  raleway: { label: 'Raleway', css: "'Raleway', sans-serif", bold: true, italic: true, files: { regular: '/fonts/raleway.ttf', italic: '/fonts/raleway-italic.ttf' } },
+  rubik: { label: 'Rubik', css: "'Rubik', sans-serif", bold: true, italic: true, files: { regular: '/fonts/rubik.ttf', italic: '/fonts/rubik-italic.ttf' } },
+  oswald: { label: 'Oswald', css: 'Oswald, sans-serif', bold: true, italic: false, files: { regular: '/fonts/oswald-regular.ttf', bold: '/fonts/oswald-bold.ttf' } },
+  bebas: { label: 'Bebas Neue', css: "'Bebas Neue', sans-serif", bold: false, italic: false, files: { regular: '/fonts/bebas-neue-regular.ttf' } },
+  anton: { label: 'Anton', css: "'Anton', sans-serif", bold: false, italic: false, files: { regular: '/fonts/anton.ttf' } },
+  josefinsans: { label: 'Josefin Sans', css: "'Josefin Sans', sans-serif", bold: true, italic: false, files: { regular: '/fonts/josefinsans.ttf' } },
+  comic: { label: 'Comic Neue', css: "'Comic Neue', cursive", bold: true, italic: true, files: { regular: '/fonts/comic-neue-regular.ttf', bold: '/fonts/comic-neue-bold.ttf', italic: '/fonts/comic-neue-italic.ttf' } },
   times: { label: 'Times', css: "'Times New Roman', Times, serif", bold: true, italic: true },
   merriweather: { label: 'Merriweather', css: 'Merriweather, serif', bold: true, italic: true, files: { regular: '/fonts/merriweather-regular.ttf', bold: '/fonts/merriweather-bold.ttf', italic: '/fonts/merriweather-italic.ttf' } },
   playfair: { label: 'Playfair Display', css: "'Playfair Display', serif", bold: true, italic: true, files: { regular: '/fonts/playfair-regular.ttf', bold: '/fonts/playfair-bold.ttf', italic: '/fonts/playfair-italic.ttf' } },
-  oswald: { label: 'Oswald', css: 'Oswald, sans-serif', bold: true, italic: false, files: { regular: '/fonts/oswald-regular.ttf', bold: '/fonts/oswald-bold.ttf' } },
-  bebas: { label: 'Bebas Neue', css: "'Bebas Neue', sans-serif", bold: false, italic: false, files: { regular: '/fonts/bebas-neue-regular.ttf' } },
-  comic: { label: 'Comic Neue', css: "'Comic Neue', cursive", bold: true, italic: true, files: { regular: '/fonts/comic-neue-regular.ttf', bold: '/fonts/comic-neue-bold.ttf', italic: '/fonts/comic-neue-italic.ttf' } },
-  pacifico: { label: 'Pacifico', css: 'Pacifico, cursive', bold: false, italic: false, files: { regular: '/fonts/pacifico-regular.ttf' } },
+  lora: { label: 'Lora', css: "'Lora', serif", bold: true, italic: true, files: { regular: '/fonts/lora.ttf', italic: '/fonts/lora-italic.ttf' } },
+  bitter: { label: 'Bitter', css: "'Bitter', serif", bold: true, italic: true, files: { regular: '/fonts/bitter.ttf', italic: '/fonts/bitter-italic.ttf' } },
   courier: { label: 'Courier', css: "'Courier New', Courier, monospace", bold: true, italic: true },
+  pacifico: { label: 'Pacifico', css: 'Pacifico, cursive', bold: false, italic: false, files: { regular: '/fonts/pacifico-regular.ttf' } },
+  caveat: { label: 'Caveat', css: "'Caveat', cursive", bold: false, italic: false, files: { regular: '/fonts/caveat.ttf' } },
+  dancingscript: { label: 'Dancing Script', css: "'Dancing Script', cursive", bold: false, italic: false, files: { regular: '/fonts/dancingscript.ttf' } },
 };
 
 export const FAMILY_KEYS = Object.keys(FAMILIES) as Family[];

@@ -46,6 +46,14 @@ Copyright 2018 The Pacifico Project Authors (https://github.com/googlefonts/Paci
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
 
+=== Extended family pack (added for Annotate + Watermark) ===
+The following are also from Google Fonts (github.com/google/fonts). All under
+the SIL Open Font License 1.1 EXCEPT Arimo (skipped) — the ones bundled here are OFL:
+  Inter, Montserrat, Poppins, Nunito, Mulish, Work Sans, Raleway, Rubik,
+  Anton, Josefin Sans, Lora, Bitter, Caveat, Dancing Script.
+Each is © its respective Project Authors with any Reserved Font Names; all
+licensed under the SIL Open Font License, Version 1.1 (full text below).
+
 === SIL OPEN FONT LICENSE 1.1 (applies to all fonts above) ===
 This license is copied below, and is also available with a FAQ at:
 https://scripts.sil.org/OFL
