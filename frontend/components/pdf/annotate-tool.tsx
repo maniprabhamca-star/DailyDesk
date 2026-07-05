@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Upload, FileText, X, Loader2, Highlighter, Pen, Square, Circle, Minus, ArrowUpRight, Shapes, ChevronDown, Type, Undo2, Trash2, Zap, Bold, Italic, Underline } from 'lucide-react';
+import { Upload, FileText, X, Loader2, Highlighter, Pen, Square, Circle, Minus, ArrowUpRight, Shapes, ChevronDown, Type, Undo2, Trash2, Zap, Bold, Italic, Underline, Signature as SignatureIcon, ImagePlus } from 'lucide-react';
+import { SignatureMaker } from './signature-maker';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { downloadBlob as download } from '@/lib/download';
@@ -28,6 +29,10 @@ type Stroke = { kind: 'pen' | 'highlight'; color: string; w: number; pts: Pt[] }
 type ShapeA = { kind: ShapeKind; color: string; w: number; a: Pt; b: Pt };
 type TextA = { kind: 'text'; color: string; size: number; at: Pt; text: string; family: Family; bold: boolean; italic: boolean; underline: boolean };
 type Anno = Stroke | ShapeA | TextA;
+// Images + signatures live as draggable overlays (not on the stroke canvas) and
+// are composited into the page at export. x/y = top-left fraction, w = width
+// fraction of the page, aspect = image height/width (in px).
+type ImageItem = { id: string; page: number; x: number; y: number; w: number; aspect: number; src: string };
 const SHAPE_KINDS: ShapeKind[] = ['rect', 'circle', 'line', 'arrow'];
 const isShape = (t: Tool): t is ShapeKind => (SHAPE_KINDS as string[]).includes(t);
 
@@ -173,8 +178,14 @@ export function AnnotateTool() {
   const [done, setDone] = useState<{ blob: Blob; name: string; secs: number } | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
   const [brandName, setBrandName] = useState(false); // opt-in "-diemdesk" filename suffix
+  const [images, setImages] = useState<ImageItem[]>([]);
+  const [selImg, setSelImg] = useState<string | null>(null); // selected image/signature id
+  const [sigOpen, setSigOpen] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
+  const imgFileRef = useRef<HTMLInputElement>(null);
+  const imgCache = useRef<Map<string, HTMLImageElement>>(new Map());
+  const imgDrag = useRef<{ id: string; mode: 'move' | 'resize'; ox: number; oy: number; startW: number } | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const textInputRef = useRef<HTMLInputElement>(null);
@@ -186,7 +197,7 @@ export function AnnotateTool() {
     if (!f) return;
     if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) { setError('Please choose a PDF file.'); return; }
     if (!canProcessSize(f.size, plan)) { setError(null); setTooBig({ name: f.name, size: f.size }); return; }
-    setTooBig(null); setError(null); setDone(null); setBusy(true); setAnnos({}); setPreview(null);
+    setTooBig(null); setError(null); setDone(null); setBusy(true); setAnnos({}); setImages([]); setSelImg(null); imgCache.current.clear(); setPreview(null);
     try {
       const h = await openPdf(f);
       if (handle) void handle.destroy();
@@ -311,6 +322,7 @@ export function AnnotateTool() {
 
   function onDown(e: React.PointerEvent<HTMLCanvasElement>) {
     if (!preview) return;
+    setSelImg(null); // clicking the page deselects any image/signature
     const p = frac(e);
     if (tool === 'text') {
       const hit = findTextAt(p);
@@ -398,27 +410,84 @@ export function AnnotateTool() {
     return -1;
   }
   function undo() { setSelIdx(null); setAnnos((a) => ({ ...a, [sel]: (a[sel] || []).slice(0, -1) })); }
-  function clearPage() { setSelIdx(null); setAnnos((a) => ({ ...a, [sel]: [] })); }
+  function clearPage() { setSelIdx(null); setSelImg(null); setAnnos((a) => ({ ...a, [sel]: [] })); setImages((arr) => arr.filter((i) => i.page !== sel)); }
+
+  // ---- images / signatures (draggable overlays, composited at export) -------
+  function addImageSrc(src: string, aspect: number) {
+    const el = new Image();
+    el.onload = () => {
+      imgCache.current.set(src, el);
+      const id = Math.random().toString(36).slice(2);
+      setImages((a) => [...a, { id, page: sel, x: 0.34, y: 0.42, w: 0.32, aspect, src }]);
+      setSelImg(id); setSelIdx(null);
+    };
+    el.src = src;
+  }
+  function pickImageFile(files: FileList | null) {
+    const f = files?.[0]; if (!f) return;
+    if (!/^image\/(png|jpe?g|webp|gif)$/i.test(f.type) && !/\.(png|jpe?g|webp|gif)$/i.test(f.name)) { setError('Please choose a PNG, JPG, WebP or GIF image.'); return; }
+    setError(null);
+    const reader = new FileReader();
+    reader.onload = () => { const url = String(reader.result); const probe = new Image(); probe.onload = () => addImageSrc(url, probe.naturalHeight / probe.naturalWidth); probe.src = url; };
+    reader.readAsDataURL(f);
+  }
+  function deleteImage(id: string) { setImages((a) => a.filter((i) => i.id !== id)); if (selImg === id) setSelImg(null); }
+  function imgDown(e: React.PointerEvent<HTMLElement>, id: string, mode: 'move' | 'resize') {
+    e.stopPropagation();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const im = images.find((i) => i.id === id); if (!im) return;
+    setSelImg(id); setSelIdx(null);
+    imgDrag.current = { id, mode, ox: e.clientX, oy: e.clientY, startW: im.w };
+    if (mode === 'move' && wrapRef.current) {
+      const r = wrapRef.current.getBoundingClientRect();
+      imgDrag.current.ox = e.clientX - r.left - im.x * r.width;
+      imgDrag.current.oy = e.clientY - r.top - im.y * r.height;
+    }
+  }
+  function imgMove(e: React.PointerEvent<HTMLElement>) {
+    const d = imgDrag.current; if (!d || !wrapRef.current) return;
+    const r = wrapRef.current.getBoundingClientRect();
+    setImages((arr) => arr.map((im) => {
+      if (im.id !== d.id) return im;
+      if (d.mode === 'move') {
+        const hFrac = im.w * im.aspect * (r.width / r.height);
+        const x = Math.min(Math.max((e.clientX - r.left - d.ox) / r.width, 0), Math.max(0, 1 - im.w));
+        const y = Math.min(Math.max((e.clientY - r.top - d.oy) / r.height, 0), Math.max(0, 1 - hFrac));
+        return { ...im, x, y };
+      }
+      const w = Math.min(Math.max(d.startW + (e.clientX - d.ox) / r.width, 0.05), 1 - im.x);
+      return { ...im, w };
+    }));
+  }
+  function imgUp() { imgDrag.current = null; }
+  const pageImages = images.filter((i) => i.page === sel);
 
   const annotatedPages = Object.keys(annos).map(Number).filter((i) => (annos[i] || []).length > 0).sort((x, y) => x - y);
+  // Pages that need rendering = those with strokes/shapes/text OR an image/signature.
+  const markedPages = Array.from(new Set([...annotatedPages, ...images.map((i) => i.page)])).sort((x, y) => x - y);
 
   async function apply() {
-    if (!file || !handle || annotatedPages.length === 0) return;
+    if (!file || !handle || markedPages.length === 0) return;
     setBusy(true); setError(null); setDone(null);
     const t0 = performance.now();
     try {
       // Make sure every custom font used is loaded before we rasterise a page,
       // otherwise the export could fall back to a default face.
       if (typeof document !== 'undefined' && document.fonts) {
-        for (const idx of annotatedPages) for (const a of annos[idx]) if (a.kind === 'text') { try { await document.fonts.load(fontSpec(24, a)); } catch { /* ignore */ } }
+        for (const idx of markedPages) for (const a of (annos[idx] || [])) if (a.kind === 'text') { try { await document.fonts.load(fontSpec(24, a)); } catch { /* ignore */ } }
       }
       let current: File | Blob = file;
-      for (const idx of annotatedPages) {
+      for (const idx of markedPages) {
         const rp = await renderPage(handle, idx, dprTarget(1000, 2, 2000));
         const cvs = document.createElement('canvas');
         cvs.width = rp.w; cvs.height = rp.h;
         const ctx = cvs.getContext('2d')!;
-        paint(ctx, rp.w, rp.h, annos[idx]);
+        paint(ctx, rp.w, rp.h, annos[idx] || []);
+        // Composite images/signatures on this page (aspect preserved in px).
+        for (const im of images.filter((i) => i.page === idx)) {
+          const el = imgCache.current.get(im.src);
+          if (el) { const w = im.w * rp.w; ctx.drawImage(el, im.x * rp.w, im.y * rp.h, w, w * im.aspect); }
+        }
         const buf = await new Promise<ArrayBuffer>((res, rej) =>
           cvs.toBlob((b) => (b ? b.arrayBuffer().then(res) : rej(new Error('render failed'))), 'image/png'));
         const out = await rewritePdf(current, { type: 'place-image', opts: { pageNo: idx + 1, xFrac: 0, yFrac: 0, wFrac: 1, imageBytes: buf, isPng: true } });
@@ -451,6 +520,8 @@ export function AnnotateTool() {
     <Card>
       <CardContent className="p-5">
         <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
+        <input ref={imgFileRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="hidden" onChange={(e) => { pickImageFile(e.target.files); e.currentTarget.value = ''; }} />
+        {sigOpen && <SignatureMaker onClose={() => setSigOpen(false)} onCreate={(url, aspect) => addImageSrc(url, aspect)} />}
         {handoffNote && (
           <p className="mb-3 flex items-center gap-2 rounded-lg border border-primary/25 bg-primary/[0.06] px-3 py-2 text-sm text-foreground">
             <Zap className="size-4 shrink-0 text-primary" /> {handoffNote}
@@ -477,7 +548,7 @@ export function AnnotateTool() {
               <p className="truncate text-sm font-medium">{file.name}</p>
               <p className="text-xs text-muted-foreground">{fmt(file.size)} · {pageCount} page{pageCount === 1 ? '' : 's'}</p>
             </div>
-            <Button size="icon" variant="ghost" aria-label="Remove" onClick={() => { if (handle) void handle.destroy(); setHandle(null); setFile(null); setDone(null); setError(null); setAnnos({}); }}><X className="size-4" /></Button>
+            <Button size="icon" variant="ghost" aria-label="Remove" onClick={() => { if (handle) void handle.destroy(); setHandle(null); setFile(null); setDone(null); setError(null); setAnnos({}); setImages([]); setSelImg(null); imgCache.current.clear(); }}><X className="size-4" /></Button>
           </div>
         )}
 
@@ -485,7 +556,7 @@ export function AnnotateTool() {
           <div className="mt-4">
             {/* Toolbar */}
             <div className="flex flex-wrap items-center gap-3">
-              <div className="grid grid-cols-4 gap-2">
+              <div className="flex flex-wrap gap-2">
                 {toolBtn('highlight', <Highlighter className="size-4" />, 'Highlight')}
                 {toolBtn('pen', <Pen className="size-4" />, 'Draw')}
                 <div className="relative" ref={shapesRef}>
@@ -507,6 +578,14 @@ export function AnnotateTool() {
                   )}
                 </div>
                 {toolBtn('text', <Type className="size-4" />, 'Text')}
+                <button onClick={() => setSigOpen(true)}
+                  className="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-card px-2 py-2 text-sm font-medium transition-all hover:border-primary/40">
+                  <SignatureIcon className="size-4" /> Sign
+                </button>
+                <button onClick={() => imgFileRef.current?.click()}
+                  className="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-card px-2 py-2 text-sm font-medium transition-all hover:border-primary/40">
+                  <ImagePlus className="size-4" /> Image
+                </button>
               </div>
               <div className="flex items-center gap-1.5">
                 {COLORS.map((c) => (
@@ -520,7 +599,7 @@ export function AnnotateTool() {
               </label>
               <div className="ml-auto flex items-center gap-2">
                 <Button size="sm" variant="outline" title="Undo (Ctrl+Z)" onClick={undo} disabled={!(annos[sel] || []).length}><Undo2 className="size-4" /> Undo</Button>
-                <Button size="sm" variant="outline" onClick={clearPage} disabled={!(annos[sel] || []).length}><Trash2 className="size-4" /> Clear page</Button>
+                <Button size="sm" variant="outline" onClick={clearPage} disabled={!(annos[sel] || []).length && !pageImages.length}><Trash2 className="size-4" /> Clear page</Button>
               </div>
             </div>
 
@@ -574,6 +653,25 @@ export function AnnotateTool() {
                       style={{ left: `${textDraft.x * 100}%`, top: `${textDraft.y * 100}%`, color, fontFamily: FAMILIES[family].css, fontWeight: bold ? 700 : 400, fontStyle: italic ? 'italic' : 'normal', textDecoration: underline ? 'underline' : 'none' }}
                     />
                   )}
+                  {/* Draggable image / signature overlays (composited into the page at export) */}
+                  {pageImages.map((im) => (
+                    <div key={im.id}
+                      onPointerDown={(e) => imgDown(e, im.id, 'move')} onPointerMove={imgMove} onPointerUp={imgUp}
+                      className={`absolute cursor-move rounded-sm ${selImg === im.id ? 'ring-2 ring-primary' : 'ring-1 ring-transparent hover:ring-primary/40'}`}
+                      style={{ left: `${im.x * 100}%`, top: `${im.y * 100}%`, width: `${im.w * 100}%` }}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={im.src} alt="" className="pointer-events-none block w-full select-none" draggable={false} />
+                      {selImg === im.id && (
+                        <>
+                          <button onPointerDown={(e) => { e.stopPropagation(); deleteImage(im.id); }} aria-label="Delete"
+                            className="absolute -right-2 -top-2 z-10 flex size-5 items-center justify-center rounded-full bg-destructive text-white shadow"><X className="size-3" /></button>
+                          <div onPointerDown={(e) => imgDown(e, im.id, 'resize')} onPointerMove={imgMove} onPointerUp={imgUp}
+                            className="absolute -bottom-1.5 -right-1.5 z-10 size-3.5 cursor-nwse-resize rounded-sm border-2 border-primary bg-white" aria-label="Resize" />
+                        </>
+                      )}
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <div className="flex h-72 items-center justify-center"><Loader2 className="size-5 animate-spin text-muted-foreground" /></div>
@@ -582,7 +680,7 @@ export function AnnotateTool() {
 
             {pageCount > 1 && <PageStrip handle={handle} count={pageCount} selected={sel} onSelect={(i) => { setTextDraft(null); setSel(i); }} className="mt-2" />}
             <p className="mt-2 text-center text-xs text-muted-foreground">
-              {annotatedPages.length ? `${annotatedPages.length} page${annotatedPages.length === 1 ? '' : 's'} marked up` : 'Pick a tool and mark up the page — everything stays on your device.'}
+              {markedPages.length ? `${markedPages.length} page${markedPages.length === 1 ? '' : 's'} marked up` : 'Pick a tool and mark up the page — everything stays on your device.'}
             </p>
           </div>
         )}
@@ -595,7 +693,7 @@ export function AnnotateTool() {
               <input type="checkbox" checked={brandName} onChange={(e) => setBrandName(e.target.checked)} className="size-3.5 accent-primary" />
               Add &ldquo;-diemdesk&rdquo; to the file name
             </label>
-            <Button className="mt-2 w-full" size="lg" onClick={apply} disabled={busy || annotatedPages.length === 0}>
+            <Button className="mt-2 w-full" size="lg" onClick={apply} disabled={busy || markedPages.length === 0}>
               {busy ? <><Loader2 className="size-4 animate-spin" /> Saving…</> : <><Highlighter className="size-4" /> Save annotated PDF</>}
             </Button>
           </>
