@@ -50,7 +50,8 @@ This Font Software is licensed under the SIL Open Font License, Version 1.1.
 The following are also from Google Fonts (github.com/google/fonts). All under
 the SIL Open Font License 1.1 EXCEPT Arimo (skipped) — the ones bundled here are OFL:
   Inter, Montserrat, Poppins, Nunito, Mulish, Work Sans, Raleway, Rubik,
-  Anton, Josefin Sans, Lora, Bitter, Caveat, Dancing Script.
+  Anton, Josefin Sans, Lora, Bitter, Caveat, Dancing Script,
+  Carlito (Calibri-metric), Caladea (Cambria-metric), Roboto Mono.
 Each is © its respective Project Authors with any Reserved Font Names; all
 licensed under the SIL Open Font License, Version 1.1 (full text below).
 

@@ -153,6 +153,15 @@
 @font-face { font-family: 'Bitter'; src: url('/fonts/bitter-italic.ttf') format('truetype'); font-weight: 100 900; font-style: italic; font-display: swap; }
 @font-face { font-family: 'Caveat'; src: url('/fonts/caveat.ttf') format('truetype'); font-weight: 400 700; font-display: swap; }
 @font-face { font-family: 'Dancing Script'; src: url('/fonts/dancingscript.ttf') format('truetype'); font-weight: 400 700; font-display: swap; }
+/* Metric-compatible + mono (Smallpdf parity): Carlito≈Calibri, Caladea≈Cambria (static faces), Roboto Mono (variable). */
+@font-face { font-family: 'Carlito'; src: url('/fonts/carlito.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'Carlito'; src: url('/fonts/carlito-bold.ttf') format('truetype'); font-weight: 700; font-display: swap; }
+@font-face { font-family: 'Carlito'; src: url('/fonts/carlito-italic.ttf') format('truetype'); font-style: italic; font-display: swap; }
+@font-face { font-family: 'Caladea'; src: url('/fonts/caladea.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'Caladea'; src: url('/fonts/caladea-bold.ttf') format('truetype'); font-weight: 700; font-display: swap; }
+@font-face { font-family: 'Caladea'; src: url('/fonts/caladea-italic.ttf') format('truetype'); font-style: italic; font-display: swap; }
+@font-face { font-family: 'Roboto Mono'; src: url('/fonts/robotomono.ttf') format('truetype'); font-weight: 100 700; font-display: swap; }
+@font-face { font-family: 'Roboto Mono'; src: url('/fonts/robotomono-italic.ttf') format('truetype'); font-weight: 100 700; font-style: italic; font-display: swap; }
 
 /* Header logo delight: the three colour tiles do a soft, staggered bounce every
    ~10s (a brief "dance" at the end of each cycle). Subtle by design; disabled
