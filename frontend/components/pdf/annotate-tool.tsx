@@ -375,7 +375,9 @@ export function AnnotateTool() {
   function commitText() {
     if (textDraft && textDraft.value.trim()) {
       const t: TextA = { kind: 'text', color, size: fontFrac(weight), at: { x: textDraft.x, y: textDraft.y }, text: textDraft.value.trim(), family, bold, italic, underline };
+      const idx = (annos[sel] || []).length; // the new text's index
       setAnnos((a) => ({ ...a, [sel]: [...(a[sel] || []), t] }));
+      setSelIdx(idx); // keep it selected so the toolbar (font/colour/B/I/U/size) restyles it live
     }
     setTextDraft(null);
   }
