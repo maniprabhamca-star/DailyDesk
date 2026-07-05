@@ -16,6 +16,7 @@ const COLUMNS = [
   { title: 'Product', color: '#2dd4bf', links: [
     { label: 'Free during launch', href: '/free' },
     { label: 'Pricing', href: '/pricing' },
+    { label: 'Compare', href: '/compare' },
     { label: 'Feedback', href: '/feedback' },
     { label: 'Get started', href: '/register' },
     { label: 'Log in', href: '/login' },
