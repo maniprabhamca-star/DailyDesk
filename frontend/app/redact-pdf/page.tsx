@@ -27,6 +27,7 @@ const faqs = [
   { q: 'Is my file uploaded anywhere?', a: 'No. Redaction runs entirely in your browser — the document is opened locally and rebuilt on your device. Nothing is sent to a server.' },
   { q: 'Does it remove hidden information too?', a: 'Yes — the exported file has its metadata (author, title, keywords, producer) stripped, so hidden details don’t travel with it.' },
   { q: 'Can I redact several pages?', a: 'Yes. Move between pages and box anything sensitive; every page you mark is redacted in the final file. Pages you don’t touch are copied through untouched.' },
+  { q: 'Can it find and redact every match for me? (Pro)', a: 'Yes — Find & redact is a Pro feature. Search the document’s text for a word, name or number and it boxes every match at once, plus one-tap presets for emails, phone numbers, SSNs and card numbers. It finds the matches for you to review, then the export removes them for good. Drawing boxes by hand is always free.' },
 ];
 
 export default function RedactPdfPage() {

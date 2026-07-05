@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Upload, FileText, X, Loader2, EyeOff, Undo2, Trash2, Zap, ShieldCheck } from 'lucide-react';
+import Link from 'next/link';
+import { Upload, FileText, X, Loader2, EyeOff, Undo2, Trash2, Zap, ShieldCheck, Search, Sparkles, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
 import { takeHandoff } from '@/lib/handoff';
-import { openPdf, renderPage, dprTarget, type PdfHandle, type RenderedPage } from '@/lib/pdf-render';
+import { openPdf, renderPage, dprTarget, getPdfjs, type PdfHandle, type RenderedPage } from '@/lib/pdf-render';
 import { PageStrip } from '@/components/pdf/page-strip';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
@@ -21,6 +22,18 @@ import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
 type Pt = { x: number; y: number };
 type Box = { a: Pt; b: Pt };
 type Style = 'black' | 'white' | 'label';
+
+// Pro "pattern presets": auto-find common sensitive data across the whole
+// document. Each tests a single text run (pdf.js emits text per run) — a match
+// means that run gets boxed for the user to review before the true-removal
+// export. Deliberately greedy (covers the whole run that contains a match)
+// because for redaction over-covering is safe and under-covering is not.
+const PATTERNS: { id: string; label: string; test: RegExp }[] = [
+  { id: 'email', label: 'Emails', test: /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i },
+  { id: 'phone', label: 'Phone numbers', test: /(?:\+?\d[\s().-]?){7,}\d/ },
+  { id: 'ssn', label: 'SSNs', test: /\b\d{3}-\d{2}-\d{4}\b/ },
+  { id: 'card', label: 'Card numbers', test: /\b(?:\d[ -]?){13,16}\b/ },
+];
 
 function fmt(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -65,6 +78,11 @@ export function RedactTool() {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ blob: Blob; name: string; secs: number } | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
+  const [scanning, setScanning] = useState<string | null>(null); // label of the scan in flight
+  const [scanNote, setScanNote] = useState<string | null>(null);
+
+  const isPro = plan === 'pro'; // owner cookie / Pro email resolve to 'pro' via usePlan()
 
   const inputRef = useRef<HTMLInputElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -154,6 +172,56 @@ export function RedactTool() {
 
   function undo() { setBoxes((s) => ({ ...s, [sel]: (s[sel] || []).slice(0, -1) })); }
   function clearPage() { setBoxes((s) => ({ ...s, [sel]: [] })); }
+
+  // Pro: scan every page's text layer and box each run that matches `test`, so
+  // the user reviews the candidates before the true-removal export. Positions
+  // come from pdf.js — each run's transform maps to device pixels via the
+  // page viewport, then to page fractions (resolution-independent, matching how
+  // manual boxes are stored). Never redacts blindly: it only adds boxes.
+  const scan = useCallback(async (test: (s: string) => boolean, label: string) => {
+    if (!handle || scanning) return;
+    setScanning(label); setScanNote(null); setError(null);
+    try {
+      const pdfjs = await getPdfjs();
+      const next: Record<number, Box[]> = {};
+      for (const k of Object.keys(boxes)) next[Number(k)] = [...boxes[Number(k)]];
+      let hits = 0; let firstHit = -1;
+      for (let i = 0; i < handle.numPages; i++) {
+        const page = await handle.doc.getPage(i + 1);
+        const vp = page.getViewport({ scale: 1 });
+        const tc = await page.getTextContent();
+        for (const it of tc.items as Array<{ str?: string; transform?: number[]; width?: number; height?: number }>) {
+          const s = it.str;
+          if (!s || !s.trim() || !it.transform || !test(s)) continue;
+          const m = pdfjs.Util.transform(vp.transform, it.transform);
+          const fontH = Math.hypot(m[2], m[3]) || (it.height || 8);
+          const w = (it.width || 0) * vp.scale;
+          const left = m[4];
+          const top = m[5] - fontH; // baseline → top edge
+          const pad = fontH * 0.2;
+          const a = { x: Math.max(0, (left - pad) / vp.width), y: Math.max(0, (top - pad) / vp.height) };
+          const b = { x: Math.min(1, (left + w + pad) / vp.width), y: Math.min(1, (top + fontH + pad) / vp.height) };
+          if (b.x - a.x < 0.004 || b.y - a.y < 0.004) continue;
+          (next[i] ||= []).push({ a, b });
+          hits++; if (firstHit < 0) firstHit = i;
+        }
+      }
+      setBoxes(next);
+      if (firstHit >= 0) setSel(firstHit);
+      setScanNote(hits
+        ? `Found ${hits} match${hits === 1 ? '' : 'es'} for ${label} — review the boxes on each page, then Redact & download.`
+        : `No matches for ${label} in this document's text. (Scanned pages that have selectable text.)`);
+    } catch {
+      setError('Could not scan this PDF’s text. It may be a scanned/image-only PDF — draw the boxes by hand instead.');
+    } finally { setScanning(null); }
+  }, [handle, boxes, scanning]);
+
+  const runSearch = () => {
+    const q = query.trim();
+    if (!q) return;
+    const needle = q.toLowerCase();
+    void scan((s) => s.toLowerCase().includes(needle), `“${q}”`);
+  };
 
   const redactedPages = Object.keys(boxes).map(Number).filter((i) => (boxes[i] || []).length > 0).sort((x, y) => x - y);
   const totalBoxes = redactedPages.reduce((n, i) => n + boxes[i].length, 0);
@@ -261,6 +329,58 @@ export function RedactTool() {
                 <Button size="sm" variant="outline" onClick={undo} disabled={!(boxes[sel] || []).length}><Undo2 className="size-4" /> Undo</Button>
                 <Button size="sm" variant="outline" onClick={clearPage} disabled={!(boxes[sel] || []).length}><Trash2 className="size-4" /> Clear page</Button>
               </div>
+            </div>
+
+            {/* Pro v2 — Search & Redact + pattern presets. Finds matches in the
+                text layer and boxes them for review; the export still truly
+                removes them. Gated: free users see the locked panel + upgrade. */}
+            <div className="mt-3 rounded-xl border border-amber-300/50 bg-amber-50/40 p-3 dark:border-amber-500/25 dark:bg-amber-950/10">
+              <div className="mb-2 flex items-center gap-2">
+                <Sparkles className="size-4 text-amber-500" />
+                <span className="text-sm font-semibold">Find &amp; redact</span>
+                <span className="rounded-full bg-amber-400 px-1.5 py-px text-[10px] font-bold uppercase tracking-wide text-amber-950">Pro</span>
+                <span className="ml-auto text-[11px] text-muted-foreground">Searches this page&apos;s selectable text</span>
+              </div>
+              {isPro ? (
+                <>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border bg-card px-2.5 focus-within:ring-1 focus-within:ring-primary">
+                      <Search className="size-4 shrink-0 text-muted-foreground" />
+                      <input
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') runSearch(); }}
+                        placeholder="Find a word, name or number to redact everywhere…"
+                        className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none"
+                      />
+                    </div>
+                    <Button size="sm" onClick={runSearch} disabled={!!scanning || !query.trim()}>
+                      {scanning && scanning.startsWith('“') ? <Loader2 className="size-4 animate-spin" /> : <Search className="size-4" />} Find all
+                    </Button>
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    <span className="text-[11px] font-medium text-muted-foreground">Presets:</span>
+                    {PATTERNS.map((p) => (
+                      <button
+                        key={p.id}
+                        onClick={() => void scan((s) => p.test.test(s), p.label)}
+                        disabled={!!scanning}
+                        className="rounded-full border border-border bg-card px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-amber-400 hover:bg-amber-100/50 disabled:opacity-50 dark:hover:bg-amber-950/30"
+                      >
+                        {scanning === p.label ? <Loader2 className="inline size-3 animate-spin" /> : null} {p.label}
+                      </button>
+                    ))}
+                  </div>
+                  {scanNote && <p className="mt-2 text-xs text-muted-foreground">{scanNote}</p>}
+                </>
+              ) : (
+                <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
+                  <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Lock className="size-3.5" /> Search every page for a word, or auto-find emails, phone numbers, SSNs &amp; card numbers — then box them all at once.
+                  </p>
+                  <Button asChild size="sm" variant="outline" className="sm:ml-auto"><Link href="/pricing">Upgrade to Pro</Link></Button>
+                </div>
+              )}
             </div>
 
             <div className="mt-3 flex items-start justify-center rounded-xl border bg-muted/30 p-3">
