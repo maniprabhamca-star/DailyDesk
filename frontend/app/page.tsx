@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { ShieldCheck, Smartphone, Check, BadgeCheck, Infinity as InfinityIcon, Sparkles } from 'lucide-react';
+import { ShieldCheck, Smartphone, Check, BadgeCheck, Infinity as InfinityIcon, Sparkles, MousePointerClick, Laptop, Download, X, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { LaunchBanner } from '@/components/app/launch-banner';
 import { BILLING_ENABLED } from '@/lib/flags';
@@ -43,12 +43,41 @@ const stats: { v: string; l: string; note?: string }[] = [
   { v: '$0', l: 'To get started' },
 ];
 
+const steps = [
+  { icon: MousePointerClick, color: '#4f46e5', title: 'Pick a tool', body: 'Choose from 35+ tools and drop your file in — no account, no upload to a server.' },
+  { icon: Laptop, color: '#0d9488', title: 'It runs in your browser', body: 'Your own device does the work. The file is opened locally and never sent to us.' },
+  { icon: Download, color: '#059669', title: 'Download the result', body: 'Save it straight back to your device. Close the tab and nothing is left anywhere else.' },
+];
+
+const compareRows = [
+  { label: 'Daily limits', them: '~2 tasks/day', us: 'Unlimited' },
+  { label: 'Sign-up required', them: 'Usually', us: 'Never' },
+  { label: 'Files sent to their servers', them: 'Yes', us: 'No — in your browser' },
+  { label: 'Beyond PDF', them: 'PDF only', us: 'Images, video & QR' },
+];
+
+const homeFaqs = [
+  { q: 'Is it really free?', a: 'Yes — every tool is free right now, worldwide, with no signup, no watermarks and no daily task limits. In-browser tools handle files up to 100 MB; the few server tools (like OCR) up to 20 MB — still more generous than most free tools. Because they run in your browser, the core tools cost us nothing and stay free.' },
+  { q: 'Are my files private?', a: 'The core tools run entirely in your browser, so your files are never uploaded. A few tools (OCR, Office conversions) use our servers and are processed then deleted — and we say which, up front.' },
+  { q: 'Do I need an account?', a: 'No. Use any tool without signing up. An account only matters later, for Pro.' },
+  { q: 'Which browsers work?', a: 'Any modern browser — Chrome, Edge, Firefox or Safari — on desktop or mobile.' },
+  { q: 'Is it safe for sensitive documents?', a: 'Yes. Because in-browser tools never send your file anywhere, you can check for yourself: open your browser’s Network tab while you use a tool and you’ll see zero uploads.' },
+];
+
+const homeFaqJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: homeFaqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
+};
+
 export default function Home() {
   return (
     <div className="relative min-h-screen overflow-x-clip bg-background text-foreground">
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
         <div className="absolute -top-40 left-1/2 size-[620px] -translate-x-1/2 rounded-full bg-primary/15 blur-[120px]" />
       </div>
+
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(homeFaqJsonLd) }} />
 
       <LaunchBanner />
 
@@ -64,6 +93,29 @@ export default function Home() {
 
       {/* Verifiable proof — the documented compress test (our kind of social proof) */}
       <ProofStrip />
+
+      {/* How it works */}
+      <section id="how" className="mx-auto max-w-5xl scroll-mt-20 px-4 py-14 sm:px-6">
+        <Reveal className="mb-9 text-center">
+          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">How it works</h2>
+          <p className="mt-2 text-muted-foreground">Three steps — and your files never leave your device.</p>
+        </Reveal>
+        <div className="grid gap-4 sm:grid-cols-3">
+          {steps.map((s, i) => (
+            <Reveal key={s.title} delay={i}>
+              <div className="flex h-full flex-col rounded-2xl border bg-card p-6 shadow-soft">
+                <div className="flex items-center gap-3">
+                  <span className="flex size-10 items-center justify-center rounded-xl" style={{ backgroundColor: `${s.color}1a`, color: s.color }}><s.icon className="size-5" /></span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Step {i + 1}</span>
+                </div>
+                <h3 className="mt-4 text-[15px] font-semibold">{s.title}</h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{s.body}</p>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+        <p className="mt-6 text-center text-sm"><Link href="/security" className="font-medium text-primary hover:underline">See exactly where your data goes →</Link></p>
+      </section>
 
       {/* Feature spotlights */}
       <FeatureSpotlights />
@@ -102,6 +154,28 @@ export default function Home() {
             </div>
           ))}
         </div>
+      </section>
+
+      {/* Compare — vs typical PDF sites */}
+      <section className="mx-auto max-w-3xl px-4 pb-6 sm:px-6">
+        <Reveal className="rounded-2xl border bg-card p-6 shadow-soft sm:p-8">
+          <h2 className="text-center text-2xl font-bold tracking-tight">DiemDesk vs typical PDF sites</h2>
+          <div className="mt-6 overflow-hidden rounded-xl border">
+            <div className="grid grid-cols-[1.3fr_1fr_1fr] bg-muted/40 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+              <div className="px-3 py-2.5"> </div>
+              <div className="px-3 py-2.5 text-center">Typical PDF site</div>
+              <div className="px-3 py-2.5 text-center text-primary">DiemDesk</div>
+            </div>
+            {compareRows.map((r) => (
+              <div key={r.label} className="grid grid-cols-[1.3fr_1fr_1fr] border-t text-[13px] sm:text-sm">
+                <div className="px-3 py-3 font-medium">{r.label}</div>
+                <div className="flex items-center justify-center gap-1.5 px-3 py-3 text-center text-muted-foreground"><X className="size-3.5 shrink-0 text-muted-foreground/40" /> {r.them}</div>
+                <div className="flex items-center justify-center gap-1.5 px-3 py-3 text-center font-medium text-emerald-700 dark:text-emerald-400"><Check className="size-4 shrink-0 text-emerald-600" strokeWidth={2.75} /> {r.us}</div>
+              </div>
+            ))}
+          </div>
+          <p className="mt-4 text-center text-sm"><Link href="/pricing" className="font-medium text-primary hover:underline">See the full comparison →</Link></p>
+        </Reveal>
       </section>
 
       {/* Pricing — slim launch callout while free; full Free/Pro cards return once BILLING_ENABLED */}
@@ -149,6 +223,24 @@ export default function Home() {
             <p className="mt-5 text-xs text-muted-foreground">Founding offer at launch — the first 1,000 members lock in $4.99/mo for life.</p>
           </div>
         )}
+      </section>
+
+      {/* Common questions */}
+      <section className="mx-auto max-w-2xl px-4 pb-16 sm:px-6">
+        <Reveal className="mb-6 text-center">
+          <h2 className="text-2xl font-bold tracking-tight">Common questions</h2>
+        </Reveal>
+        <div className="divide-y rounded-xl border bg-card">
+          {homeFaqs.map((f) => (
+            <details key={f.q} className="group p-4">
+              <summary className="flex cursor-pointer list-none items-center justify-between font-medium">
+                {f.q}
+                <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+              </summary>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{f.a}</p>
+            </details>
+          ))}
+        </div>
       </section>
 
       {/* Closing CTA */}

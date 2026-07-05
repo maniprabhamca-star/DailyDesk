@@ -145,7 +145,7 @@ export function HeroHybrid() {
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-4">
             <Button asChild size="lg"><Link href="/register">Start free</Link></Button>
-            <Link href="/security" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+            <Link href="/#how" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
               See how it works <ArrowRight className="size-4" />
             </Link>
           </div>
