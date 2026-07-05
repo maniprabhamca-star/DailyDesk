@@ -106,6 +106,7 @@ export function AnnotateTool() {
   const inputRef = useRef<HTMLInputElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const textInputRef = useRef<HTMLInputElement>(null);
   const drawing = useRef(false);
   const live = useRef<Stroke | RectA | null>(null);
 
@@ -183,6 +184,17 @@ export function AnnotateTool() {
     return () => window.removeEventListener('keydown', onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [file, sel]);
+
+  // When the text draft opens, focus its input on the NEXT frame. Focusing
+  // during the same click that opened it (autoFocus) let the click steal focus
+  // straight back, firing onBlur and closing the empty draft instantly — which
+  // looked like "clicking does nothing". Deferring past the click fixes it.
+  useEffect(() => {
+    if (!textDraft) return;
+    const id = requestAnimationFrame(() => textInputRef.current?.focus());
+    return () => cancelAnimationFrame(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [textDraft !== null]);
 
   function frac(e: React.PointerEvent): Pt {
     const r = wrapRef.current!.getBoundingClientRect();
@@ -335,13 +347,14 @@ export function AnnotateTool() {
                   />
                   {textDraft && (
                     <input
-                      autoFocus
+                      ref={textInputRef}
                       value={textDraft.value}
                       onChange={(e) => setTextDraft((d) => (d ? { ...d, value: e.target.value } : d))}
                       onKeyDown={(e) => { if (e.key === 'Enter') commitText(); if (e.key === 'Escape') setTextDraft(null); }}
                       onBlur={commitText}
+                      onPointerDown={(e) => e.stopPropagation()}
                       placeholder="Type, then Enter"
-                      className="absolute z-10 rounded border-2 border-primary bg-white/95 px-1.5 py-0.5 text-sm text-black outline-none"
+                      className="absolute z-10 rounded border-2 border-primary bg-white/95 px-1.5 py-0.5 text-sm text-black shadow-lg outline-none"
                       style={{ left: `${textDraft.x * 100}%`, top: `${textDraft.y * 100}%`, color }}
                     />
                   )}
