@@ -113,7 +113,7 @@ function ProductCluster() {
     { bg: 'bg-rose-600', Icon: Combine, cls: '-right-4 -bottom-4' },
   ];
   return (
-    <div className="relative mx-auto flex h-[320px] w-full max-w-[520px] items-center justify-center md:h-[368px]">
+    <div className="relative mx-auto flex h-[320px] w-full max-w-[520px] items-center justify-center md:h-[368px] md:translate-y-6">
       <div aria-hidden className="pointer-events-none absolute inset-8 rounded-[40px]" style={{ background: 'radial-gradient(closest-side, rgba(124,58,237,0.10), transparent)' }} />
       {/* the sliding browser-framed product shot with tool tiles on its corners */}
       <div className="relative w-[360px] max-w-[86%] md:max-w-[92%]">
@@ -131,7 +131,7 @@ function ProductCluster() {
 export function HeroHybrid() {
   return (
     <section className="relative overflow-hidden">
-      <div className="mx-auto grid max-w-6xl items-start gap-10 px-4 pb-8 pt-4 sm:px-6 sm:pb-12 sm:pt-6 md:grid-cols-2 lg:gap-16">
+      <div className="mx-auto grid max-w-6xl items-start gap-10 px-4 pb-8 pt-7 sm:px-6 sm:pb-12 sm:pt-9 md:grid-cols-2 lg:gap-16">
         <div>
           <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
             <ShieldCheck className="size-3.5" /> Private by design

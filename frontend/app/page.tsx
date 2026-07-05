@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { ShieldCheck, Smartphone, Check, BadgeCheck, Infinity as InfinityIcon, Clock } from 'lucide-react';
+import { ShieldCheck, Smartphone, Check, BadgeCheck, Infinity as InfinityIcon, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { LaunchBanner } from '@/components/app/launch-banner';
 import { BILLING_ENABLED } from '@/lib/flags';
@@ -104,37 +104,51 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Pricing */}
+      {/* Pricing — slim launch callout while free; full Free/Pro cards return once BILLING_ENABLED */}
       <section id="pricing" className="mx-auto max-w-4xl px-4 pb-16 sm:px-6">
-        <Reveal className="mb-10 text-center">
-          <h2 className="text-2xl font-bold tracking-tight">Simple pricing</h2>
-          <p className="mt-2 text-muted-foreground">Start free. Upgrade when you need more.</p>
-        </Reveal>
-        <div className="grid gap-5 sm:grid-cols-2">
-          <div className="flex flex-col rounded-2xl border bg-card p-6 shadow-soft">
-            <p className="text-sm font-medium text-muted-foreground">Free</p>
-            <p className="mt-2 text-4xl font-bold">$0<span className="text-base font-normal text-muted-foreground">/forever</span></p>
-            <ul className="mt-6 space-y-2.5 text-sm">
-              {PRICING.freeFeatures.slice(0, 6).map((t) => <li key={t} className="flex items-start gap-2"><Check className="mt-0.5 size-4 shrink-0 text-primary" /> {t}</li>)}
-            </ul>
-            <Button asChild variant="outline" className="mt-6 w-full"><Link href="/register">Get started free</Link></Button>
+        {BILLING_ENABLED ? (
+          <>
+            <Reveal className="mb-10 text-center">
+              <h2 className="text-2xl font-bold tracking-tight">Simple pricing</h2>
+              <p className="mt-2 text-muted-foreground">Start free. Upgrade when you need more.</p>
+            </Reveal>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div className="flex flex-col rounded-2xl border bg-card p-6 shadow-soft">
+                <p className="text-sm font-medium text-muted-foreground">Free</p>
+                <p className="mt-2 text-4xl font-bold">$0<span className="text-base font-normal text-muted-foreground">/forever</span></p>
+                <ul className="mt-6 space-y-2.5 text-sm">
+                  {PRICING.freeFeatures.slice(0, 6).map((t) => <li key={t} className="flex items-start gap-2"><Check className="mt-0.5 size-4 shrink-0 text-primary" /> {t}</li>)}
+                </ul>
+                <Button asChild variant="outline" className="mt-6 w-full"><Link href="/register">Get started free</Link></Button>
+              </div>
+              <div className="relative flex flex-col rounded-2xl border-2 border-primary bg-card p-6 shadow-lift">
+                <span className="absolute -top-3 left-6 rounded-full bg-primary px-3 py-0.5 text-xs font-medium text-primary-foreground">Most popular</span>
+                <p className="text-sm font-medium text-primary">Pro</p>
+                <p className="mt-2 text-4xl font-bold">${PRICING.pro.monthly}<span className="text-base font-normal text-muted-foreground">/mo</span></p>
+                <p className="mt-1 text-xs text-muted-foreground">or {PRICING.pro.annualNote}</p>
+                <ul className="mt-5 space-y-2.5 text-sm">
+                  {PRICING.proFeatures.slice(0, 6).map((t) => <li key={t} className="flex items-start gap-2"><Check className="mt-0.5 size-4 shrink-0 text-primary" /> {t}</li>)}
+                </ul>
+                <Button asChild className="mt-6 w-full"><Link href="/register">Go Pro</Link></Button>
+              </div>
+            </div>
+            <p className="mt-6 text-center text-sm"><Link href="/pricing" className="font-medium text-primary hover:underline">See full pricing &amp; feature comparison →</Link></p>
+          </>
+        ) : (
+          <div className="rounded-2xl border bg-card p-8 text-center shadow-soft sm:p-10">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+              <Sparkles className="size-3.5" /> Launch pricing
+            </span>
+            <h2 className="mt-4 text-2xl font-bold tracking-tight sm:text-3xl">Everything&rsquo;s free during launch</h2>
+            <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
+              Every tool, for everyone, worldwide — no signup, no limits, no watermarks. Pro (power features for heavy and business users) comes later, from <strong className="text-foreground">${PRICING.pro.monthly}/mo</strong>. Nothing to buy today.
+            </p>
+            <div className="mt-6">
+              <Button asChild size="lg" variant="outline"><Link href="/pricing">See pricing &amp; what Pro adds →</Link></Button>
+            </div>
+            <p className="mt-5 text-xs text-muted-foreground">Founding offer at launch — the first 1,000 members lock in $4.99/mo for life.</p>
           </div>
-          <div className="relative flex flex-col rounded-2xl border-2 border-primary bg-card p-6 shadow-lift">
-            <span className="absolute -top-3 left-6 rounded-full bg-primary px-3 py-0.5 text-xs font-medium text-primary-foreground">Most popular</span>
-            <p className="text-sm font-medium text-primary">Pro</p>
-            <p className="mt-2 text-4xl font-bold">${PRICING.pro.annualPerMonth}<span className="text-base font-normal text-muted-foreground">/mo</span></p>
-            <p className="mt-1 text-xs text-muted-foreground">{PRICING.pro.annualNote}</p>
-            <ul className="mt-5 space-y-2.5 text-sm">
-              {PRICING.proFeatures.slice(0, 6).map((t) => <li key={t} className="flex items-start gap-2"><Check className="mt-0.5 size-4 shrink-0 text-primary" /> {t}</li>)}
-            </ul>
-            {BILLING_ENABLED ? (
-              <Button asChild className="mt-6 w-full"><Link href="/register">Go Pro</Link></Button>
-            ) : (
-              <Button className="mt-6 w-full" variant="secondary" disabled><Clock className="size-4" /> Pro — coming soon</Button>
-            )}
-          </div>
-        </div>
-        <p className="mt-6 text-center text-sm"><Link href="/pricing" className="font-medium text-primary hover:underline">See full pricing &amp; feature comparison →</Link></p>
+        )}
       </section>
 
       {/* Closing CTA */}
