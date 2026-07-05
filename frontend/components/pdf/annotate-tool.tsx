@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Upload, FileText, X, Loader2, Highlighter, Pen, Square, Type, Undo2, Trash2, Zap } from 'lucide-react';
+import { Upload, FileText, X, Loader2, Highlighter, Pen, Square, Type, Undo2, Trash2, Zap, Bold, Italic, Underline } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { downloadBlob as download } from '@/lib/download';
@@ -12,6 +12,8 @@ import { openPdf, renderPage, dprTarget, type PdfHandle, type RenderedPage } fro
 import { PageStrip } from '@/components/pdf/page-strip';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
+import { FAMILIES, type Family } from '@/lib/fonts';
+import { FontSelect } from '@/components/app/font-select';
 
 // Annotate PDF — highlight, draw, box and type on a live page preview, then
 // flatten the markup onto the original pages with the shared place-image rewrite
@@ -23,31 +25,17 @@ type Tool = 'highlight' | 'pen' | 'rect' | 'text';
 type Pt = { x: number; y: number };
 type Stroke = { kind: 'pen' | 'highlight'; color: string; w: number; pts: Pt[] };
 type RectA = { kind: 'rect'; color: string; w: number; a: Pt; b: Pt };
-type TextA = { kind: 'text'; color: string; size: number; at: Pt; text: string; font: string; bold: boolean; italic: boolean; underline: boolean };
+type TextA = { kind: 'text'; color: string; size: number; at: Pt; text: string; family: Family; bold: boolean; italic: boolean; underline: boolean };
 type Anno = Stroke | RectA | TextA;
 
 const COLORS = ['#facc15', '#ef4444', '#2563eb', '#16a34a', '#7c3aed', '#111827'];
 
-// Text fonts. Web fonts are the same OFL files the watermark tool bundles
-// (@font-face in globals.css); the rest are safe system stacks. Text is drawn
-// to canvas, so faux bold/italic synthesise fine even where only a regular face
-// is loaded — we still await document.fonts.load before rasterising.
-const FONTS: { label: string; css: string }[] = [
-  { label: 'Sans', css: 'system-ui, sans-serif' },
-  { label: 'Serif', css: 'Georgia, "Times New Roman", serif' },
-  { label: 'Mono', css: 'ui-monospace, "Courier New", monospace' },
-  { label: 'Open Sans', css: '"Open Sans", sans-serif' },
-  { label: 'Roboto', css: 'Roboto, sans-serif' },
-  { label: 'Lato', css: 'Lato, sans-serif' },
-  { label: 'Merriweather', css: 'Merriweather, serif' },
-  { label: 'Playfair', css: '"Playfair Display", serif' },
-  { label: 'Oswald', css: 'Oswald, sans-serif' },
-  { label: 'Bebas Neue', css: '"Bebas Neue", sans-serif' },
-  { label: 'Comic Neue', css: '"Comic Neue", cursive' },
-  { label: 'Pacifico', css: 'Pacifico, cursive' },
-];
-function fontSpec(fs: number, a: { font: string; bold: boolean; italic: boolean }) {
-  return `${a.italic ? 'italic ' : ''}${a.bold ? '700' : '400'} ${fs}px ${a.font}`;
+// The font list is shared with the Watermark tool (lib/fonts FAMILIES) so it's
+// identical everywhere. Text is drawn to canvas; globals.css declares the real
+// bold/italic @font-face for the families that ship them, and we await
+// document.fonts.load before rasterising.
+function fontSpec(fs: number, a: { family: Family; bold: boolean; italic: boolean }) {
+  return `${a.italic ? 'italic ' : ''}${a.bold ? '700' : '400'} ${fs}px ${FAMILIES[a.family].css}`;
 }
 
 function fmt(bytes: number) {
@@ -125,10 +113,16 @@ export function AnnotateTool() {
   const [tool, setTool] = useState<Tool>('highlight');
   const [color, setColor] = useState(COLORS[0]);
   const [weight, setWeight] = useState(4);
-  const [font, setFont] = useState(FONTS[0].css);
+  const [family, setFamily] = useState<Family>('helvetica');
   const [bold, setBold] = useState(false);
   const [italic, setItalic] = useState(false);
   const [underline, setUnderline] = useState(false);
+  // Switch family, dropping bold/italic the new family can't do (matches Watermark).
+  const pickFamily = (f: Family) => {
+    setFamily(f);
+    if (!FAMILIES[f].bold) setBold(false);
+    if (!FAMILIES[f].italic) setItalic(false);
+  };
   const [annos, setAnnos] = useState<Record<number, Anno[]>>({});
   const [textDraft, setTextDraft] = useState<{ x: number; y: number; value: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -235,9 +229,9 @@ export function AnnotateTool() {
   useEffect(() => {
     if (typeof document === 'undefined' || !document.fonts) return;
     let stale = false;
-    document.fonts.load(fontSpec(24, { font, bold, italic })).then(() => { if (!stale) repaint(); }).catch(() => {});
+    document.fonts.load(fontSpec(24, { family, bold, italic })).then(() => { if (!stale) repaint(); }).catch(() => {});
     return () => { stale = true; };
-  }, [font, bold, italic, repaint]);
+  }, [family, bold, italic, repaint]);
 
   function frac(e: React.PointerEvent): Pt {
     const r = wrapRef.current!.getBoundingClientRect();
@@ -253,7 +247,7 @@ export function AnnotateTool() {
         // Re-open an existing text to edit/finish it, restoring its style.
         const t = (annos[sel] || [])[hit] as TextA;
         setAnnos((a) => ({ ...a, [sel]: (a[sel] || []).filter((_, i) => i !== hit) }));
-        setColor(t.color); setFont(t.font); setBold(t.bold); setItalic(t.italic); setUnderline(t.underline);
+        setColor(t.color); setFamily(t.family); setBold(t.bold); setItalic(t.italic); setUnderline(t.underline);
         setWeight(Math.min(10, Math.max(1, Math.round((t.size - 0.016) / 0.006))));
         setTextDraft({ x: t.at.x, y: t.at.y, value: t.text });
       } else {
@@ -287,7 +281,7 @@ export function AnnotateTool() {
 
   function commitText() {
     if (textDraft && textDraft.value.trim()) {
-      const t: TextA = { kind: 'text', color, size: fontFrac(weight), at: { x: textDraft.x, y: textDraft.y }, text: textDraft.value.trim(), font, bold, italic, underline };
+      const t: TextA = { kind: 'text', color, size: fontFrac(weight), at: { x: textDraft.x, y: textDraft.y }, text: textDraft.value.trim(), family, bold, italic, underline };
       setAnnos((a) => ({ ...a, [sel]: [...(a[sel] || []), t] }));
     }
     setTextDraft(null);
@@ -415,24 +409,18 @@ export function AnnotateTool() {
             {tool === 'text' && (
               <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border bg-card p-2.5">
                 <span className="text-xs font-medium text-muted-foreground">Font</span>
-                <select
-                  value={font}
-                  onChange={(e) => setFont(e.target.value)}
-                  className="rounded-lg border border-border bg-card px-2 py-1.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                >
-                  {FONTS.map((f) => <option key={f.label} value={f.css} style={{ fontFamily: f.css }}>{f.label}</option>)}
-                </select>
+                <FontSelect value={family} onChange={pickFamily} className="w-44" />
                 <div className="flex items-center gap-1">
-                  {([['B', bold, setBold, 'font-bold'], ['I', italic, setItalic, 'italic'], ['U', underline, setUnderline, 'underline']] as const).map(([lbl, on, set, cls]) => (
-                    <button
-                      key={lbl}
-                      onClick={() => set((v) => !v)}
-                      aria-pressed={on}
-                      className={`size-8 rounded-lg border text-sm ${cls} transition-all ${on ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-border bg-card hover:border-primary/40'}`}
-                    >
-                      {lbl}
-                    </button>
-                  ))}
+                  <button onClick={() => setBold((v) => !v)} aria-pressed={bold} aria-label="Bold"
+                    disabled={!FAMILIES[family].bold}
+                    title={!FAMILIES[family].bold ? `${FAMILIES[family].label} has no bold style` : undefined}
+                    className={`flex size-9 items-center justify-center rounded-lg border transition-all disabled:cursor-not-allowed disabled:opacity-40 ${bold ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-primary/40'}`}><Bold className="size-4" /></button>
+                  <button onClick={() => setItalic((v) => !v)} aria-pressed={italic} aria-label="Italic"
+                    disabled={!FAMILIES[family].italic}
+                    title={!FAMILIES[family].italic ? `${FAMILIES[family].label} has no italic style` : undefined}
+                    className={`flex size-9 items-center justify-center rounded-lg border transition-all disabled:cursor-not-allowed disabled:opacity-40 ${italic ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-primary/40'}`}><Italic className="size-4" /></button>
+                  <button onClick={() => setUnderline((v) => !v)} aria-pressed={underline} aria-label="Underline"
+                    className={`flex size-9 items-center justify-center rounded-lg border transition-all ${underline ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-primary/40'}`}><Underline className="size-4" /></button>
                 </div>
                 <span className="ml-auto text-[11px] text-muted-foreground">Tip: click a placed text to edit it</span>
               </div>
@@ -464,7 +452,7 @@ export function AnnotateTool() {
                       onPointerDown={(e) => e.stopPropagation()}
                       placeholder="Type, then Enter"
                       className="absolute z-10 rounded border-2 border-primary bg-white/95 px-1.5 py-0.5 text-sm shadow-lg outline-none"
-                      style={{ left: `${textDraft.x * 100}%`, top: `${textDraft.y * 100}%`, color, fontFamily: font, fontWeight: bold ? 700 : 400, fontStyle: italic ? 'italic' : 'normal', textDecoration: underline ? 'underline' : 'none' }}
+                      style={{ left: `${textDraft.x * 100}%`, top: `${textDraft.y * 100}%`, color, fontFamily: FAMILIES[family].css, fontWeight: bold ? 700 : 400, fontStyle: italic ? 'italic' : 'normal', textDecoration: underline ? 'underline' : 'none' }}
                     />
                   )}
                 </div>

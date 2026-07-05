@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Upload, FileText, X, Download, Loader2, Stamp, Zap, Type as TypeIcon, Image as ImageIcon, Bold, Italic, ChevronDown, Check } from 'lucide-react';
+import { Upload, FileText, X, Download, Loader2, Stamp, Zap, Type as TypeIcon, Image as ImageIcon, Bold, Italic } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { takeHandoff } from '@/lib/handoff';
@@ -13,6 +13,8 @@ import { openPdf, renderPage, dprTarget, type PdfHandle, type RenderedPage } fro
 import { parseRanges } from '@/lib/page-ranges';
 import { rewritePdf } from '@/lib/pdf-rewrite';
 import type { StampCore, StampLayer } from '@/lib/pdf-stamp';
+import { FAMILIES, loadFontBytes, type Family } from '@/lib/fonts';
+import { FontSelect } from '@/components/app/font-select';
 
 // Watermark PDF — text OR logo/image stamps, 100% in the browser (pdf-lib), with
 // a LIVE first-page preview that updates as every setting changes. Feature set
@@ -29,85 +31,6 @@ const TONES: Record<Tone, { rgb: [number, number, number]; label: string; chip: 
   blue: { rgb: [0.15, 0.39, 0.92], label: 'Blue', chip: '#2563eb' },
   black: { rgb: [0.1, 0.1, 0.1], label: 'Black', chip: '#111827' },
 };
-type Family =
-  | 'helvetica' | 'opensans' | 'roboto' | 'lato'
-  | 'times' | 'merriweather' | 'playfair'
-  | 'oswald' | 'bebas' | 'comic' | 'pacifico' | 'courier';
-
-// The full font-family list (iLovePDF-style dropdown). One record drives
-// everything: the dropdown labels (each rendered in its real face via the
-// @font-face rules in globals.css), bold/italic availability, and which
-// bundled file to embed. Built-ins (Helvetica/Times/Courier) ship inside
-// pdf-lib; the other nine are OFL-licensed TTFs in public/fonts/ (see
-// LICENSES.txt), fetched only when picked and embedded with subset:true so
-// the output PDF gains just the glyphs the watermark uses (a few KB).
-// No bold-italic files: bold wins when both toggles are on.
-const FAMILIES: Record<Family, { label: string; css: string; bold: boolean; italic: boolean; files?: { regular: string; bold?: string; italic?: string } }> = {
-  helvetica: { label: 'Helvetica', css: 'Helvetica, Arial, sans-serif', bold: true, italic: true },
-  opensans: { label: 'Open Sans', css: "'Open Sans', sans-serif", bold: true, italic: true, files: { regular: '/fonts/open-sans-regular.ttf', bold: '/fonts/open-sans-bold.ttf', italic: '/fonts/open-sans-italic.ttf' } },
-  roboto: { label: 'Roboto', css: 'Roboto, sans-serif', bold: true, italic: true, files: { regular: '/fonts/roboto-regular.ttf', bold: '/fonts/roboto-bold.ttf', italic: '/fonts/roboto-italic.ttf' } },
-  lato: { label: 'Lato', css: 'Lato, sans-serif', bold: true, italic: true, files: { regular: '/fonts/lato-regular.ttf', bold: '/fonts/lato-bold.ttf', italic: '/fonts/lato-italic.ttf' } },
-  times: { label: 'Times', css: "'Times New Roman', Times, serif", bold: true, italic: true },
-  merriweather: { label: 'Merriweather', css: 'Merriweather, serif', bold: true, italic: true, files: { regular: '/fonts/merriweather-regular.ttf', bold: '/fonts/merriweather-bold.ttf', italic: '/fonts/merriweather-italic.ttf' } },
-  playfair: { label: 'Playfair Display', css: "'Playfair Display', serif", bold: true, italic: true, files: { regular: '/fonts/playfair-regular.ttf', bold: '/fonts/playfair-bold.ttf', italic: '/fonts/playfair-italic.ttf' } },
-  oswald: { label: 'Oswald', css: 'Oswald, sans-serif', bold: true, italic: false, files: { regular: '/fonts/oswald-regular.ttf', bold: '/fonts/oswald-bold.ttf' } },
-  bebas: { label: 'Bebas Neue', css: "'Bebas Neue', sans-serif", bold: false, italic: false, files: { regular: '/fonts/bebas-neue-regular.ttf' } },
-  comic: { label: 'Comic Neue', css: "'Comic Neue', cursive", bold: true, italic: true, files: { regular: '/fonts/comic-neue-regular.ttf', bold: '/fonts/comic-neue-bold.ttf', italic: '/fonts/comic-neue-italic.ttf' } },
-  pacifico: { label: 'Pacifico', css: 'Pacifico, cursive', bold: false, italic: false, files: { regular: '/fonts/pacifico-regular.ttf' } },
-  courier: { label: 'Courier', css: "'Courier New', Courier, monospace", bold: true, italic: true },
-};
-const fontBytesCache = new Map<string, Promise<Uint8Array>>();
-function loadFontBytes(url: string): Promise<Uint8Array> {
-  let p = fontBytesCache.get(url);
-  if (!p) {
-    p = fetch(url).then(async (r) => {
-      if (!r.ok) throw new Error(`font ${r.status}`);
-      return new Uint8Array(await r.arrayBuffer());
-    });
-    p.catch(() => fontBytesCache.delete(url)); // don't cache failures
-    fontBytesCache.set(url, p);
-  }
-  return p;
-}
-
-// iLovePDF-style font dropdown: every option rendered in its actual typeface
-// (the bundled families are declared @font-face in globals.css over the same
-// /fonts files, so the browser lazy-loads each face the first time it's shown).
-function FontSelect({ value, onChange }: { value: Family; onChange: (f: Family) => void }) {
-  const [open, setOpen] = useState(false);
-  const boxRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const onDoc = (e: MouseEvent) => { if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false); };
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
-    document.addEventListener('mousedown', onDoc);
-    document.addEventListener('keydown', onKey);
-    return () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey); };
-  }, [open]);
-  return (
-    <div ref={boxRef} className="relative">
-      <button type="button" onClick={() => setOpen((o) => !o)} aria-haspopup="listbox" aria-expanded={open} aria-label="Font family"
-        className="flex h-10 w-full items-center justify-between rounded-lg border bg-card px-3 text-sm transition-colors hover:border-primary/40 focus:border-primary focus:outline-none">
-        <span style={{ fontFamily: FAMILIES[value].css }}>{FAMILIES[value].label}</span>
-        <ChevronDown className={`size-4 shrink-0 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
-      </button>
-      {open && (
-        <ul role="listbox" aria-label="Font families" className="absolute z-30 mt-1 max-h-64 w-full overflow-auto rounded-lg border bg-card py-1 shadow-lg">
-          {(Object.keys(FAMILIES) as Family[]).map((f) => (
-            <li key={f} role="option" aria-selected={f === value}>
-              <button type="button" onClick={() => { onChange(f); setOpen(false); }}
-                className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-[15px] transition-colors hover:bg-accent ${f === value ? 'bg-primary/5 text-primary' : ''}`}
-                style={{ fontFamily: FAMILIES[f].css }}>
-                {FAMILIES[f].label}
-                {f === value && <Check className="size-4 shrink-0" />}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
 
 const ROTATIONS = [0, 30, 45, 90] as const;
 

@@ -110,6 +110,21 @@
 @font-face { font-family: 'Bebas Neue'; src: url('/fonts/bebas-neue-regular.ttf') format('truetype'); font-display: swap; }
 @font-face { font-family: 'Comic Neue'; src: url('/fonts/comic-neue-regular.ttf') format('truetype'); font-display: swap; }
 @font-face { font-family: 'Pacifico'; src: url('/fonts/pacifico-regular.ttf') format('truetype'); font-display: swap; }
+/* Bold + italic faces so canvas text (Annotate) renders the REAL weight/slant
+   instead of a synthesised one, for the families that ship those files. */
+@font-face { font-family: 'Open Sans'; src: url('/fonts/open-sans-bold.ttf') format('truetype'); font-weight: 700; font-display: swap; }
+@font-face { font-family: 'Open Sans'; src: url('/fonts/open-sans-italic.ttf') format('truetype'); font-style: italic; font-display: swap; }
+@font-face { font-family: 'Roboto'; src: url('/fonts/roboto-bold.ttf') format('truetype'); font-weight: 700; font-display: swap; }
+@font-face { font-family: 'Roboto'; src: url('/fonts/roboto-italic.ttf') format('truetype'); font-style: italic; font-display: swap; }
+@font-face { font-family: 'Lato'; src: url('/fonts/lato-bold.ttf') format('truetype'); font-weight: 700; font-display: swap; }
+@font-face { font-family: 'Lato'; src: url('/fonts/lato-italic.ttf') format('truetype'); font-style: italic; font-display: swap; }
+@font-face { font-family: 'Merriweather'; src: url('/fonts/merriweather-bold.ttf') format('truetype'); font-weight: 700; font-display: swap; }
+@font-face { font-family: 'Merriweather'; src: url('/fonts/merriweather-italic.ttf') format('truetype'); font-style: italic; font-display: swap; }
+@font-face { font-family: 'Playfair Display'; src: url('/fonts/playfair-bold.ttf') format('truetype'); font-weight: 700; font-display: swap; }
+@font-face { font-family: 'Playfair Display'; src: url('/fonts/playfair-italic.ttf') format('truetype'); font-style: italic; font-display: swap; }
+@font-face { font-family: 'Oswald'; src: url('/fonts/oswald-bold.ttf') format('truetype'); font-weight: 700; font-display: swap; }
+@font-face { font-family: 'Comic Neue'; src: url('/fonts/comic-neue-bold.ttf') format('truetype'); font-weight: 700; font-display: swap; }
+@font-face { font-family: 'Comic Neue'; src: url('/fonts/comic-neue-italic.ttf') format('truetype'); font-style: italic; font-display: swap; }
 
 /* Header logo delight: the three colour tiles do a soft, staggered bounce every
    ~10s (a brief "dance" at the end of each cycle). Subtle by design; disabled
