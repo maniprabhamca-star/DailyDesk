@@ -110,3 +110,23 @@
 @font-face { font-family: 'Bebas Neue'; src: url('/fonts/bebas-neue-regular.ttf') format('truetype'); font-display: swap; }
 @font-face { font-family: 'Comic Neue'; src: url('/fonts/comic-neue-regular.ttf') format('truetype'); font-display: swap; }
 @font-face { font-family: 'Pacifico'; src: url('/fonts/pacifico-regular.ttf') format('truetype'); font-display: swap; }
+
+/* Header logo delight: the three colour tiles do a soft, staggered bounce every
+   ~10s (a brief "dance" at the end of each cycle). Subtle by design; disabled
+   when the visitor prefers reduced motion. */
+@keyframes dd-tile-dance {
+  0%, 86%, 100% { transform: translateY(0) scale(1); }
+  90% { transform: translateY(-1.6px) scale(1.1); }
+  94% { transform: translateY(0) scale(0.94); }
+  97% { transform: translateY(-0.6px) scale(1); }
+}
+.dd-tile { transform-box: fill-box; transform-origin: center; animation: dd-tile-dance 10s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .dd-tile { animation: none; } }
+@keyframes dd-d-dance {
+  0%, 86%, 100% { transform: rotate(9deg) translateY(0) scale(1); }
+  90% { transform: rotate(9deg) translateY(-1.6px) scale(1.08); }
+  94% { transform: rotate(9deg) translateY(0) scale(0.94); }
+  97% { transform: rotate(9deg) translateY(-0.6px) scale(1); }
+}
+.dd-d { transform-box: fill-box; transform-origin: center; animation: dd-d-dance 10s ease-in-out infinite; animation-delay: 0.36s; }
+@media (prefers-reduced-motion: reduce) { .dd-d { animation: none; transform: rotate(9deg); } }
