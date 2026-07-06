@@ -279,8 +279,8 @@ export function EditTool() {
                       onChange={(e) => setEditing((d) => (d ? { ...d, value: e.target.value } : d))}
                       onKeyDown={(e) => { if (e.key === 'Enter') commitEdit(); else if (e.key === 'Escape') setEditing(null); }}
                       onBlur={commitEdit}
-                      className="absolute z-10 rounded border-2 border-primary bg-white px-1 text-black shadow-lg outline-none"
-                      style={{ left: `${editing.run.x * 100}%`, top: `${editing.run.y * 100}%`, height: `${editing.run.h * 100}%`, minWidth: `${Math.max(editing.run.w, 0.1) * 100}%`, fontSize: `${editing.run.size * (wrapRef.current?.getBoundingClientRect().height || 500)}px`, fontFamily: FAMILIES[editing.run.family].css }}
+                      className="absolute z-10 box-content rounded-[3px] border border-primary bg-white px-0.5 leading-none shadow-sm outline-none ring-2 ring-primary/25"
+                      style={{ left: `${editing.run.x * 100}%`, top: `${(editing.run.y - editing.run.h * 0.16) * 100}%`, height: `${editing.run.h * 1.3 * 100}%`, minWidth: `${Math.max(editing.run.w, 0.03) * 100}%`, fontSize: `${editing.run.size * (wrapRef.current?.getBoundingClientRect().height || 500)}px`, fontFamily: FAMILIES[editing.run.family].css, color: editing.run.color }}
                     />
                   )}
                 </div>

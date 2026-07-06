@@ -107,7 +107,10 @@ export function SiteHeader({ heroSearchRef }: { heroSearchRef?: React.RefObject<
                                 {t.soon && <span className="ml-auto text-[10px] text-muted-foreground">soon</span>}
                               </div>
                             );
-                            return t.href ? <Link key={t.name} href={t.href} onClick={() => setMenuOpen(false)}>{row}</Link> : <div key={t.name} className="cursor-default opacity-70">{row}</div>;
+                            // "soon" tools (incl. owner-only-until-Pro: Annotate/Redact/Edit)
+                            // show but are NOT clickable for the public — only the owner reaches
+                            // them by URL, where the gate serves the real tool.
+                            return t.href && !t.soon ? <Link key={t.name} href={t.href} onClick={() => setMenuOpen(false)}>{row}</Link> : <div key={t.name} className="cursor-default opacity-70">{row}</div>;
                           })}
                         </div>
                       </div>

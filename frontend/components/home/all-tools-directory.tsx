@@ -87,7 +87,9 @@ function Tile({ t, groupColor }: { t: CatTool; groupColor: string }) {
     </div>
   );
 
-  return t.href ? (
+  // "soon" tools show but aren't clickable for the public (owner-only-until-Pro
+  // tools like Annotate/Redact/Edit reach the real tool only by URL, via the gate).
+  return t.href && !t.soon ? (
     <Link href={t.href} className="block">{inner}</Link>
   ) : (
     <div className="cursor-default">{inner}</div>
