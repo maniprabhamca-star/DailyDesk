@@ -38,24 +38,32 @@ walls follow from this:
 **Bottom line:** true Approach B in a browser is not achievable — it's a PDF
 format limitation, not an effort limitation. Only Adobe does a heavy version.
 
-## What DiemDesk does — the hybrid (max quality that's physically possible)
+## What DiemDesk does — line‑level re‑encoding (max quality that's physically possible)
 Private, in‑browser, and better than the overlay‑only competitors:
 
-1. **Precise detection.** pdf.js gives every text run's exact box, size, colour,
-   and font (same technique as Redact's search). Click a line → we know exactly
-   what and where it is, pre‑filled with the original words.
-2. **True re‑encoding where the format allows** (the real Approach‑B tier).
-   If the run's font is a **standard base‑14 font** (Helvetica/Times/Courier —
-   always available, never subsetted) or a fully‑embedded font that already has
-   your glyphs, we edit the text **natively** — no cover‑up.
-3. **Seamless cover‑and‑redraw everywhere else** (the universal tier). We sample
-   the local background so the patch is invisible, then redraw your text in the
-   **closest match from our 30 bundled fonts** at the original size/colour.
+1. **Precise detection.** pdf.js gives every text line's exact box, size, colour,
+   and font (same technique as Redact's search), split into words. Click a word →
+   we know exactly what and where it is, pre‑filled with the original text.
+2. **Line reflow — solves the "no reflow" wall.** A PDF line is one unit, so we
+   edit at the **line** level: cover the original line, then **redraw the whole
+   line word‑by‑word** with your edit swapped in, advancing by each word's real
+   width. Everything after the edit **shifts naturally** — no overlap when a word
+   gets longer, no gap when it gets shorter. This is the behaviour real editors
+   have and the overlay tools don't.
+3. **True re‑encoding.** Every redrawn word is **real vector text**, not a raster
+   patch — crisp at any zoom and selectable/searchable. Base‑14 fonts
+   (Helvetica/Times/Courier) need no embedding; other families embed the matched
+   **bundled OFL font** (fontkit subset). Unedited lines are left 100% untouched,
+   so the rest of the page stays pixel‑perfect.
 
-### Honest limitation (shown in the UI)
-Edits over **photos/textured backgrounds**, or text in **exotic subsetted fonts**,
-use the cover‑redraw path and may show a faint patch or a substitute font. For
-normal documents (the vast majority) the result looks native.
+### Honest limitations (disclosed in the UI)
+- **Copy layer.** Covering paints over the original glyphs but can't delete them
+  from the page's text stream (pdf‑lib limitation), so a text‑copy of an edited
+  word may still yield the original underneath the cover. For true removal of
+  sensitive text, use **Redact**.
+- **Backgrounds/exotic fonts.** Edits over **photos/textured backgrounds** or text
+  in **exotic subsetted fonts** use the cover path and may show a faint patch or a
+  substitute font. For normal documents (the vast majority) the result looks native.
 
 100% on‑device — the file never leaves the browser (unlike the competitors, who
 upload). See [[dailydesk-architecture]].

@@ -24,6 +24,62 @@ const trackLimiter = rateLimit({
 
 const MODULE_RE = /^[a-z0-9-]{1,50}$/;
 
+// First-party client-error store (privacy-first alternative to Sentry). Created
+// lazily so no separate migration step is needed on deploy.
+let errorTableReady = null;
+function ensureErrorTable() {
+  if (!errorTableReady) {
+    errorTableReady = db.query(`
+      CREATE TABLE IF NOT EXISTS client_errors (
+        id BIGSERIAL PRIMARY KEY,
+        message   TEXT NOT NULL,
+        source    TEXT,
+        stack     TEXT,
+        path      VARCHAR(200),
+        visitor_id VARCHAR(64),
+        ip_address INET,
+        user_agent VARCHAR(500),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
+      CREATE INDEX IF NOT EXISTS idx_client_errors_created ON client_errors(created_at DESC);
+    `).catch((e) => { errorTableReady = null; throw e; });
+  }
+  return errorTableReady;
+}
+
+// Client errors are rarer but a broken build could burst them; cap hard.
+const errorLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 40,
+  keyGenerator: clientKey,
+  store: makeStore('rl:cerr:'),
+  skip: () => redisDown(),
+  message: { error: 'Too many reports' },
+});
+
+// Report a client-side error. Public + rate-limited; never disrupts the app.
+router.post('/error', errorLimiter, async (req, res) => {
+  const b = req.body || {};
+  const message = typeof b.message === 'string' ? b.message.slice(0, 500).trim() : '';
+  if (!message) return res.status(204).end();
+  const source = typeof b.source === 'string' ? b.source.slice(0, 300) : null;
+  const stack = typeof b.stack === 'string' ? b.stack.slice(0, 2000) : null;
+  const path = typeof b.path === 'string' ? b.path.slice(0, 200) : null;
+  const vid = b.visitorId ? String(b.visitorId).slice(0, 64) : null;
+  const fwd = req.headers['x-forwarded-for'];
+  const ip = (fwd ? fwd.split(',')[0].trim() : req.ip) || null;
+  const ua = (req.headers['user-agent'] || '').slice(0, 500);
+  try {
+    await ensureErrorTable();
+    await db.query(
+      `INSERT INTO client_errors (message, source, stack, path, visitor_id, ip_address, user_agent)
+       VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+      [message, source, stack, path, vid, ip, ua]
+    );
+  } catch (e) { console.error('client error store failed:', e.message); }
+  res.status(204).end();
+});
+
 router.post('/track', trackLimiter, (req, res) => {
   const { module, action, visitorId } = req.body || {};
   // Ignore malformed input silently — this endpoint must never disrupt the app.
@@ -109,6 +165,31 @@ router.get('/stats', async (req, res) => {
   } catch (err) {
     console.error('usage stats error:', err.message);
     res.status(500).json({ error: 'Could not load usage stats' });
+  }
+});
+
+// Recent client errors for the owner dashboard — grouped by message+source,
+// most-frequent first. 404 for everyone but the owner (same gate as /stats).
+router.get('/errors', async (req, res) => {
+  if (!(await isOwnerRequest(req))) return res.status(404).json({ error: 'Not found' });
+  try {
+    await ensureErrorTable();
+    const { rows } = await db.query(`
+      SELECT message, source,
+             count(*)::int AS count,
+             max(created_at) AS last_seen,
+             count(DISTINCT coalesce(visitor_id, ip_address::text))::int AS visitors,
+             (array_agg(path ORDER BY created_at DESC))[1] AS last_path
+      FROM client_errors
+      WHERE created_at > now() - interval '30 days'
+      GROUP BY message, source
+      ORDER BY count DESC, last_seen DESC
+      LIMIT 50`);
+    const total = await db.query(`SELECT count(*)::int AS c FROM client_errors WHERE created_at > now() - interval '24 hours'`);
+    res.json({ groups: rows, last_24h: total.rows[0].c });
+  } catch (err) {
+    console.error('client errors list failed:', err.message);
+    res.status(500).json({ error: 'Could not load errors' });
   }
 });
 

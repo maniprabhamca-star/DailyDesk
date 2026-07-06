@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { Loader2, RefreshCw, ShieldCheck, BarChart3, Users, UserPlus, MousePointerClick, Repeat } from 'lucide-react';
+import { Loader2, RefreshCw, ShieldCheck, BarChart3, Users, UserPlus, MousePointerClick, Repeat, AlertTriangle } from 'lucide-react';
 import { SiteHeader } from '@/components/app/site-header';
 import { SiteFooter } from '@/components/app/site-footer';
 import { Button } from '@/components/ui/button';
@@ -29,9 +29,13 @@ function Metric({ icon: Icon, label, value, sub }: { icon: typeof Users; label: 
   );
 }
 
+type ErrGroup = { message: string; source: string | null; count: number; last_seen: string; visitors: number; last_path: string | null };
+type ErrData = { groups: ErrGroup[]; last_24h: number };
+
 export default function DashboardPage() {
   const isOwner = useIsOwner();
   const [stats, setStats] = useState<Stats | null>(null);
+  const [errs, setErrs] = useState<ErrData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,6 +54,8 @@ export default function DashboardPage() {
         throw new Error(`Request failed (${res.status})`);
       }
       setStats(await res.json());
+      // Errors are best-effort — don't fail the whole dashboard if this 500s.
+      try { const er = await fetch(`${API}/api/events/errors`, { headers }); if (er.ok) setErrs(await er.json()); } catch { /* ignore */ }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not load stats.');
     } finally { setLoading(false); }
@@ -107,6 +113,29 @@ export default function DashboardPage() {
                         <div className="h-full rounded bg-primary/70" style={{ width: `${Math.max(4, (t.uses / maxUse) * 100)}%` }} />
                       </div>
                       <span className="w-12 shrink-0 text-right text-sm tabular-nums text-muted-foreground">{t.uses.toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <section className="mt-8">
+              <h2 className="flex items-center gap-2 text-lg font-semibold">
+                <AlertTriangle className="size-4 text-amber-500" /> Client errors
+                {errs && <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">{errs.last_24h} in 24h</span>}
+              </h2>
+              <p className="mt-1 text-xs text-muted-foreground">Uncaught JS errors real browsers hit — first-party, so you catch a broken tool without any third-party tracker.</p>
+              {!errs || errs.groups.length === 0 ? (
+                <p className="mt-3 rounded-lg border border-emerald-600/20 bg-emerald-500/5 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-400">No errors reported. 🎉</p>
+              ) : (
+                <div className="mt-3 space-y-2">
+                  {errs.groups.map((g, i) => (
+                    <div key={i} className="rounded-lg border bg-card p-3 text-sm shadow-soft">
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="min-w-0 flex-1 break-words font-medium">{g.message}</p>
+                        <span className="shrink-0 rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive">{g.count}×</span>
+                      </div>
+                      <p className="mt-1 truncate text-xs text-muted-foreground">{g.last_path || g.source || ''} · {g.visitors} visitor{g.visitors === 1 ? '' : 's'} · last {new Date(g.last_seen).toLocaleString()}</p>
                     </div>
                   ))}
                 </div>

@@ -10,6 +10,7 @@ import { PwaRegister } from '@/components/pwa-register';
 import { CloudflareAnalytics } from '@/components/cloudflare-analytics';
 import { RecordRecent } from '@/components/app/record-recent';
 import { UsageBeacon } from '@/components/app/usage-beacon';
+import { ErrorBeacon } from '@/components/app/error-beacon';
 import { SITE_URL, SITE_NAME } from '@/lib/site';
 import { faviconDataUri, isBrandVariant } from '@/components/app/brand-variants';
 
@@ -75,6 +76,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <PwaRegister />
             <RecordRecent />
             <UsageBeacon />
+            <ErrorBeacon />
           </AuthProvider>
           <CloudflareAnalytics />
         </ThemeProvider>

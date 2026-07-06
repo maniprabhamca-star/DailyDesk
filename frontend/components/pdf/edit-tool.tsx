@@ -1,33 +1,57 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { Upload, FileText, X, Loader2, Pencil, Undo2, Zap } from 'lucide-react';
+import { useEffect, useRef, useState, useCallback, type CSSProperties } from 'react';
+import { Upload, FileText, X, Loader2, Pencil, Undo2, Redo2, Bold, Italic, Trash2, Minus, Plus, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
 import { takeHandoff } from '@/lib/handoff';
-import { rewritePdf } from '@/lib/pdf-rewrite';
 import { openPdf, renderPage, dprTarget, getPdfjs, type PdfHandle, type RenderedPage } from '@/lib/pdf-render';
 import { PageStrip } from '@/components/pdf/page-strip';
+import { FontSelect } from '@/components/app/font-select';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
 import { FAMILIES, type Family } from '@/lib/fonts';
+import { applyLineEdits, COVER_TOP, COVER_H, BASELINE, type LineEdit } from '@/lib/pdf-edit-text';
 
 // Edit PDF — HYBRID in-place text editing (see docs/edit-pdf-approach.md).
-// pdf.js detects each text run's exact box/size; clicking one lets you edit the
-// words. On export we cover the original run with its sampled background colour
-// and redraw the new text in a matched font/size/ink — the seamless overlay
-// that looks native on normal documents. 100% on-device.
+// pdf.js detects each LINE of text (box, size, colour) and splits it into words.
+// Click a word to retype/reformat it; the whole line reflows live (trailing words
+// shift, no overlap) because a PDF line is one unit. Edited lines render as crisp
+// DOM text over an opaque cover of the original; on export they're re-encoded as
+// REAL vector text, leaving every unedited line pixel-perfect. 100% on-device.
 
-type Run = { id: string; text: string; x: number; y: number; w: number; h: number; size: number; family: Family; color: string; bg: string };
+type Line = {
+  id: string; page: number;
+  x: number; y: number; w: number; h: number;           // line box (top-left fractions)
+  family: Family; color: string; bg: string; bold: boolean; italic: boolean;
+  parts: string[];                                        // words + whitespace, in order
+  boxes: ({ x: number; y: number; w: number; h: number } | null)[]; // per-word hit box
+};
+type Edit = { text: string; family: Family; size: number; color: string; bold: boolean; italic: boolean };
+type EditMap = Record<string, Edit>;
+
+const SWATCHES = ['#111827', '#374151', '#dc2626', '#ea580c', '#ca8a04', '#059669', '#2563eb', '#7c3aed', '#ffffff'];
+const key = (lineId: string, i: number) => `${lineId}#${i}`;
+
+let measureCtx: CanvasRenderingContext2D | null = null;
+function measureWidth(text: string, cssFont: string): number {
+  if (typeof document === 'undefined') return 0;
+  if (!measureCtx) measureCtx = document.createElement('canvas').getContext('2d');
+  if (!measureCtx) return 0;
+  measureCtx.font = cssFont;
+  return measureCtx.measureText(text).width;
+}
+function cssFont(family: Family, bold: boolean, italic: boolean, px: number): string {
+  return `${italic ? 'italic ' : ''}${bold ? '700 ' : '400 '}${px}px ${FAMILIES[family].css}`;
+}
 
 function fmt(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
-
 function matchFamily(fontName?: string): Family {
   const n = (fontName || '').toLowerCase();
   if (/times|serif|roman|georgia|garamond|minion|book/.test(n)) return 'times';
@@ -35,21 +59,17 @@ function matchFamily(fontName?: string): Family {
   return 'helvetica';
 }
 
-// Paint the cover-and-redraw for one edited run onto ctx (W×H device px).
-function paintEdit(ctx: CanvasRenderingContext2D, W: number, H: number, r: Run, text: string) {
-  const x = r.x * W, y = r.y * H, w = r.w * W, h = r.h * H;
-  // Cover the original word — bleed generously top/bottom so ascenders and
-  // descenders of the old glyphs are fully hidden (no ghosting behind the edit).
-  const bx = Math.max(1, w * 0.02 + h * 0.06);
-  ctx.fillStyle = r.bg;
-  ctx.fillRect(x - bx, y - h * 0.18, w + bx * 2, h * 1.36);
-  if (!text) return;
-  const fs = r.size * H;
-  ctx.fillStyle = r.color;
-  ctx.textBaseline = 'alphabetic';
-  ctx.font = `${fs}px ${FAMILIES[r.family].css}`;
-  // Baseline ≈ box top + ascent; with the box top on the ascent line, that's 0.8·h.
-  ctx.fillText(text, x, y + h * 0.8);
+function defaultEdit(line: Line, i: number): Edit {
+  return { text: line.parts[i], family: line.family, size: line.h, color: line.color, bold: line.bold, italic: line.italic };
+}
+function editOf(line: Line, i: number, edits: EditMap): Edit {
+  return edits[key(line.id, i)] ?? defaultEdit(line, i);
+}
+function partEdited(line: Line, i: number, e: Edit): boolean {
+  return e.text !== line.parts[i] || e.family !== line.family || e.color !== line.color || e.bold !== line.bold || e.italic !== line.italic || Math.abs(e.size - line.h) > 1e-4;
+}
+function lineHasEdits(line: Line, edits: EditMap): boolean {
+  return line.parts.some((p, i) => p.trim() && edits[key(line.id, i)] && partEdited(line, i, edits[key(line.id, i)]));
 }
 
 export function EditTool() {
@@ -60,9 +80,11 @@ export function EditTool() {
   const [pageCount, setPageCount] = useState(0);
   const [sel, setSel] = useState(0);
   const [preview, setPreview] = useState<RenderedPage | null>(null);
-  const [runs, setRuns] = useState<Record<number, Run[]>>({});
-  const [edits, setEdits] = useState<Record<string, string>>({}); // runId → new text
-  const [editing, setEditing] = useState<{ run: Run; value: string; caret: number } | null>(null);
+  const [disp, setDisp] = useState({ w: 0, h: 0 });
+  const [lines, setLines] = useState<Record<number, Line[]>>({});
+  const [edits, setEdits] = useState<EditMap>({});
+  const [editing, setEditing] = useState<{ lineId: string; i: number } | null>(null);
+  const [caret, setCaret] = useState(0);
   const [hover, setHover] = useState<string | null>(null);
   const [detecting, setDetecting] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -70,16 +92,21 @@ export function EditTool() {
   const [done, setDone] = useState<{ blob: Blob; name: string; secs: number } | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
 
+  const [past, setPast] = useState<EditMap[]>([]);
+  const [future, setFuture] = useState<EditMap[]>([]);
+  const sessionRef = useRef<EditMap | null>(null);
+
   const inputRef = useRef<HTMLInputElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
   const editRef = useRef<HTMLInputElement>(null);
 
   async function loadOne(f?: File) {
     if (!f) return;
     if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) { setError('Please choose a PDF file.'); return; }
     if (!canProcessSize(f.size, plan)) { setError(null); setTooBig({ name: f.name, size: f.size }); return; }
-    setTooBig(null); setError(null); setDone(null); setBusy(true); setRuns({}); setEdits({}); setEditing(null); setPreview(null);
+    setTooBig(null); setError(null); setDone(null); setBusy(true);
+    setLines({}); setEdits({}); setEditing(null); setPreview(null); setPast([]); setFuture([]);
     try {
       const h = await openPdf(f);
       if (handle) void handle.destroy();
@@ -98,46 +125,49 @@ export function EditTool() {
   }, []);
   useEffect(() => () => { if (handle) void handle.destroy(); }, [handle]);
 
-  // Render the page + detect its text runs (with sampled ink/background colours).
+  useEffect(() => {
+    const m = () => { const im = imgRef.current; if (im) setDisp({ w: im.clientWidth, h: im.clientHeight }); };
+    m(); window.addEventListener('resize', m);
+    return () => window.removeEventListener('resize', m);
+  }, [preview]);
+
+  // Render the page + detect its lines (with sampled ink/background colours).
   useEffect(() => {
     if (!handle) return;
     let cancelled = false;
     setDetecting(true); setEditing(null);
     (async () => {
-      const rp = await renderPage(handle, sel, dprTarget(560, 2.2, 1700));
+      const rp = await renderPage(handle, sel, dprTarget(620, 2.2, 1800));
       if (cancelled) return;
       setPreview(rp);
-      if (runs[sel]) { setDetecting(false); return; }
+      if (lines[sel]) { setDetecting(false); return; }
       try {
         const pdfjs = await getPdfjs();
         const page = await handle.doc.getPage(sel + 1);
         const vp = page.getViewport({ scale: 1 });
         const tc = await page.getTextContent();
-        // Sample colours from the rendered page bitmap.
         const img = new Image(); img.src = rp.url; await img.decode();
         const sc = document.createElement('canvas'); sc.width = rp.w; sc.height = rp.h;
         const sctx = sc.getContext('2d')!; sctx.drawImage(img, 0, 0, rp.w, rp.h);
         const px = sctx.getImageData(0, 0, rp.w, rp.h).data;
         const at = (cx: number, cy: number) => { const i = (Math.min(rp.h - 1, Math.max(0, cy)) * rp.w + Math.min(rp.w - 1, Math.max(0, cx))) * 4; return [px[i], px[i + 1], px[i + 2]]; };
-        const list: Run[] = [];
-        // Ink colour = the darkest pixel over a DENSE grid across the word (a
-        // single line missed thin/short glyphs and grabbed grey edges). Falls
-        // back to near-black if the word is faint. Background = pixel above.
+        // Ink = darkest pixel over a dense grid spanning the whole line; bg = pixel
+        // just above the line. Near-black fallback for faint text.
         const sample = (x0: number, x1: number, topPt: number, hPt: number) => {
           let dark = [17, 24, 39], best = 999;
           for (let ky = 1; ky <= 6; ky++) {
             const cy = (topPt + hPt * (ky / 8)) / vp.height * rp.h;
-            for (let kx = 0; kx <= 8; kx++) {
-              const cx = (x0 + (x1 - x0) * kx / 8) / vp.width * rp.w;
+            for (let kx = 0; kx <= 16; kx++) {
+              const cx = (x0 + (x1 - x0) * kx / 16) / vp.width * rp.w;
               const [r0, g0, b0] = at(cx, cy); const lum = r0 + g0 + b0;
               if (lum < best) { best = lum; dark = [r0, g0, b0]; }
             }
           }
-          // If nothing genuinely dark was found, keep the near-black default.
           if (best > 360) dark = [17, 24, 39];
           const [br, bg2, bb] = at(((x0 + x1) / 2) / vp.width * rp.w, (topPt - hPt * 0.35) / vp.height * rp.h);
           return { color: `rgb(${dark[0]},${dark[1]},${dark[2]})`, bg: `rgb(${br},${bg2},${bb})` };
         };
+        const list: Line[] = [];
         for (const it of tc.items as Array<{ str?: string; transform?: number[]; width?: number; height?: number; fontName?: string }>) {
           const s = it.str;
           if (!s || !s.trim() || !it.transform) continue;
@@ -145,126 +175,149 @@ export function EditTool() {
           const fontH = Math.hypot(m[2], m[3]) || (it.height || 8);
           const w = (it.width || 0) * vp.scale;
           if (w < 2 || fontH < 4) continue;
-          // Box top ≈ cap/ascent line (not the full em) so the highlight sits ON
-          // the glyphs, not floating above them. paintEdit's baseline factor (0.8)
-          // matches this so redrawn text lands on the original baseline.
-          const left = m[4], top = m[5] - fontH * 0.8;
+          const left = m[4], top = m[5] - fontH * BASELINE;
           const family = matchFamily(it.fontName);
-          // Split the line into WORDS so a click edits ONE word, not the whole
-          // line. Per-word widths are measured with a matched font, then scaled
-          // so the whole run matches the PDF's real width (approximate but tight).
-          sctx.font = `100px ${FAMILIES[family].css}`;
-          const parts = s.split(/(\s+)/);
-          let measured = 0; const segs: { text: string; start: number; mw: number }[] = [];
-          for (const part of parts) { const mw = sctx.measureText(part).width; segs.push({ text: part, start: measured, mw }); measured += mw; }
+          const fn = (it.fontName || '').toLowerCase();
+          const bold = /bold|black|heavy|semibold|w[6-9]00/.test(fn);
+          const italic = /italic|oblique/.test(fn);
+          const { color, bg } = sample(left, left + w, top, fontH);
+          // Split into words + whitespace; measure per-word boxes for hit-testing.
+          sctx.font = cssFont(family, bold, italic, 100);
+          const parts = s.split(/(\s+)/).filter((p) => p !== '');
+          let measured = 0; const off: number[] = [];
+          const widths = parts.map((p) => { off.push(measured); const mw = sctx.measureText(p).width; measured += mw; return mw; });
           const scl = measured > 0 ? w / measured : 0;
-          for (const seg of segs) {
-            if (!seg.text.trim()) continue;
-            const wx = left + seg.start * scl, ww = seg.mw * scl;
-            if (ww < 1) continue;
-            const { color, bg } = sample(wx, wx + ww, top, fontH);
-            list.push({ id: `${sel}-${list.length}`, text: seg.text, x: wx / vp.width, y: top / vp.height, w: ww / vp.width, h: fontH / vp.height, size: fontH / vp.height, family, color, bg });
-          }
+          const boxes = parts.map((p, i) => p.trim() ? { x: (left + off[i] * scl) / vp.width, y: top / vp.height, w: (widths[i] * scl) / vp.width, h: fontH / vp.height } : null);
+          list.push({ id: `${sel}-L${list.length}`, page: sel, x: left / vp.width, y: top / vp.height, w: w / vp.width, h: fontH / vp.height, family, color, bg, bold, italic, parts, boxes });
         }
-        if (!cancelled) setRuns((prev) => ({ ...prev, [sel]: list }));
-      } catch { /* image-only page → no runs */ }
+        if (!cancelled) setLines((prev) => ({ ...prev, [sel]: list }));
+      } catch { /* image-only page → no lines */ }
       if (!cancelled) setDetecting(false);
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [handle, sel]);
 
-  const pageRuns = runs[sel] || [];
+  const pageLines = lines[sel] || [];
+  const activeLine = editing ? pageLines.find((l) => l.id === editing.lineId) ?? null : null;
+  const activeEdit = activeLine && editing ? editOf(activeLine, editing.i, edits) : null;
+  const famInfo = activeEdit ? FAMILIES[activeEdit.family] : null;
 
-  const repaint = useCallback(() => {
-    const c = canvasRef.current, wrap = wrapRef.current;
-    if (!c || !wrap) return;
-    const rect = wrap.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
-    if (c.width !== Math.round(rect.width * dpr) || c.height !== Math.round(rect.height * dpr)) { c.width = Math.round(rect.width * dpr); c.height = Math.round(rect.height * dpr); }
-    const ctx = c.getContext('2d'); if (!ctx) return;
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, c.width, c.height);
-    // Cover-and-redraw for every edited run on this page.
-    for (const r of pageRuns) { const t = edits[r.id]; if (t !== undefined && t !== r.text) paintEdit(ctx, c.width, c.height, r, t); }
-    // Hover highlight — a soft filled swatch over the word (like selecting text),
-    // not a dashed box. Skips the word being edited.
-    if (hover && (!editing || editing.run.id !== hover)) {
-      const r = pageRuns.find((x) => x.id === hover);
-      if (r) {
-        const px = r.x * c.width, py = r.y * c.height, pw = r.w * c.width, ph = r.h * c.height;
-        const pad = ph * 0.12, rad = Math.min(4, ph * 0.25);
-        ctx.beginPath();
-        if (ctx.roundRect) ctx.roundRect(px - pad, py - pad, pw + pad * 2, ph + pad * 2, rad);
-        else ctx.rect(px - pad, py - pad, pw + pad * 2, ph + pad * 2);
-        ctx.fillStyle = 'rgba(79,70,229,0.16)';
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(79,70,229,0.55)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-      }
-    }
-  }, [pageRuns, edits, hover, editing]);
+  function beginSession() { if (!sessionRef.current) sessionRef.current = edits; }
+  function endSession(next: EditMap) {
+    const snap = sessionRef.current; sessionRef.current = null;
+    if (snap && JSON.stringify(snap) !== JSON.stringify(next)) { setPast((p) => [...p, snap]); setFuture([]); }
+  }
+  function patchActive(patch: Partial<Edit>) {
+    if (!activeLine || !editing) return;
+    beginSession();
+    setEdits((s) => ({ ...s, [key(activeLine.id, editing.i)]: { ...editOf(activeLine, editing.i, s), ...patch } }));
+  }
+  function openWord(line: Line, i: number, clickFrac: number) {
+    if (editing && (editing.lineId !== line.id || editing.i !== i)) endSession(edits);
+    setEditing({ lineId: line.id, i });
+    const e = editOf(line, i, edits);
+    setCaret(Math.round(Math.min(1, Math.max(0, clickFrac)) * e.text.length));
+  }
+  function closeWord() { if (editing) { endSession(edits); setEditing(null); } }
+  function deleteActive() { patchActive({ text: '' }); }
 
-  useEffect(() => { repaint(); }, [repaint, preview]);
+  function undo() {
+    setPast((p) => { if (!p.length) return p; const prev = p[p.length - 1]; setFuture((f) => [edits, ...f]); setEdits(prev); setEditing(null); sessionRef.current = null; return p.slice(0, -1); });
+  }
+  function redo() {
+    setFuture((f) => { if (!f.length) return f; const next = f[0]; setPast((p) => [...p, edits]); setEdits(next); setEditing(null); sessionRef.current = null; return f.slice(1); });
+  }
 
-  function frac(e: React.PointerEvent | React.MouseEvent) {
-    const r = wrapRef.current!.getBoundingClientRect();
-    return { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height };
-  }
-  function runAt(p: { x: number; y: number }): Run | null {
-    for (let i = pageRuns.length - 1; i >= 0; i--) { const r = pageRuns[i]; if (p.x >= r.x - 0.004 && p.x <= r.x + r.w + 0.004 && p.y >= r.y - 0.004 && p.y <= r.y + r.h + 0.004) return r; }
-    return null;
-  }
-  function onMove(e: React.MouseEvent) { const r = runAt(frac(e)); setHover(r?.id ?? null); if (canvasRef.current) canvasRef.current.style.cursor = r ? 'text' : 'default'; }
-  function onClick(e: React.MouseEvent) {
-    const p = frac(e);
-    const r = runAt(p);
-    if (!r) return;
-    const val = edits[r.id] ?? r.text;
-    // Drop the caret roughly where you clicked (not at the end of the line).
-    const rel = r.w > 0 ? Math.min(1, Math.max(0, (p.x - r.x) / r.w)) : 0;
-    setEditing({ run: r, value: val, caret: Math.round(rel * val.length) });
-  }
-  // Focus the edit input on the next frame and place the caret where you clicked.
   useEffect(() => {
     if (!editing || !editRef.current) return;
     const el = editRef.current;
-    const id = requestAnimationFrame(() => { try { el.focus(); el.setSelectionRange(editing.caret, editing.caret); } catch { /* ignore */ } });
+    const id = requestAnimationFrame(() => { try { el.focus(); el.setSelectionRange(caret, caret); } catch { /* ignore */ } });
     return () => cancelAnimationFrame(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editing?.run.id]);
-  function commitEdit() { if (editing) setEdits((s) => ({ ...s, [editing.run.id]: editing.value })); setEditing(null); }
+  }, [editing?.lineId, editing?.i]);
 
-  const editedIds = Object.keys(edits).filter((id) => { const r = pageRunsAll(runs, id); return r && edits[id] !== r.text; });
-  const editedCount = editedIds.length;
+  useEffect(() => {
+    if (!file || done) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      const k = e.key.toLowerCase();
+      if (k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
+      else if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); redo(); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [file, done, edits, past, future]);
+
+  function frac(e: React.MouseEvent) {
+    const r = wrapRef.current!.getBoundingClientRect();
+    return { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height };
+  }
+  function hitWord(p: { x: number; y: number }): { line: Line; i: number } | null {
+    for (let li = pageLines.length - 1; li >= 0; li--) {
+      const line = pageLines[li];
+      for (let i = line.boxes.length - 1; i >= 0; i--) {
+        const b = line.boxes[i]; if (!b) continue;
+        if (p.x >= b.x - 0.004 && p.x <= b.x + b.w + 0.004 && p.y >= b.y - 0.004 && p.y <= b.y + b.h + 0.004) return { line, i };
+      }
+    }
+    return null;
+  }
+  function onMove(e: React.MouseEvent) { const h = hitWord(frac(e)); setHover(h ? key(h.line.id, h.i) : null); }
+  function onClick(e: React.MouseEvent) { const p = frac(e); const h = hitWord(p); if (h) { const b = h.line.boxes[h.i]!; openWord(h.line, h.i, b.w > 0 ? (p.x - b.x) / b.w : 0); } else closeWord(); }
+
+  const editCount = pageLines.length
+    ? Object.keys(edits).reduce((n, k) => { const [lineId, iStr] = k.split('#'); const p = Number(lineId.split('-')[0]); const line = (lines[p] || []).find((l) => l.id === lineId); const i = Number(iStr); return line && line.parts[i]?.trim() && partEdited(line, i, edits[k]) ? n + 1 : n; }, 0)
+    : 0;
 
   async function apply() {
-    if (!file || !handle || editedCount === 0) return;
+    if (!file || editCount === 0) return;
     setBusy(true); setError(null); setDone(null);
     const t0 = performance.now();
     try {
-      const pages = Array.from(new Set(editedIds.map((id) => Number(id.split('-')[0])))).sort((a, b) => a - b);
-      let current: File | Blob = file;
-      for (const idx of pages) {
-        const rp = await renderPage(handle, idx, dprTarget(1200, 2, 2200));
-        const cvs = document.createElement('canvas'); cvs.width = rp.w; cvs.height = rp.h;
-        const ctx = cvs.getContext('2d')!;
-        const img = new Image(); img.src = rp.url; await img.decode();
-        ctx.drawImage(img, 0, 0, rp.w, rp.h);
-        for (const r of (runs[idx] || [])) { const t = edits[r.id]; if (t !== undefined && t !== r.text) paintEdit(ctx, rp.w, rp.h, r, t); }
-        const buf = await new Promise<ArrayBuffer>((res, rej) => cvs.toBlob((b) => (b ? b.arrayBuffer().then(res) : rej(new Error('render failed'))), 'image/png'));
-        const out = await rewritePdf(current, { type: 'place-image', opts: { pageNo: idx + 1, xFrac: 0, yFrac: 0, wFrac: 1, imageBytes: buf, isPng: true } });
-        current = new Blob([new Uint8Array(out)], { type: 'application/pdf' });
+      const list: LineEdit[] = [];
+      for (const [pStr, ls] of Object.entries(lines)) {
+        const p = Number(pStr);
+        for (const line of ls) {
+          if (!lineHasEdits(line, edits)) continue;
+          const parts = line.parts.map((orig, i) => {
+            if (!orig.trim()) return { text: orig, family: line.family, color: line.color, bold: line.bold, italic: line.italic };
+            const e = editOf(line, i, edits);
+            return { text: e.text, family: e.family, sizeFrac: e.size, color: e.color, bold: e.bold, italic: e.italic };
+          });
+          list.push({ page: p, xFrac: line.x, yFrac: line.y, wFrac: line.w, hFrac: line.h, bg: line.bg, parts });
+        }
       }
+      const outBytes = await applyLineEdits(await file.arrayBuffer(), list);
       const name = `${file.name.replace(/\.pdf$/i, '')}-edited.pdf`;
-      const blob: Blob = current;
+      const blob = new Blob([outBytes.slice()], { type: 'application/pdf' });
       download(blob, name);
       setDone({ blob, name, secs: (performance.now() - t0) / 1000 });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not save the edited PDF.');
     } finally { setBusy(false); }
   }
+
+  // Geometry for a line overlay (cover box + text container anchored on baseline).
+  function lineGeom(line: Line): { cover: CSSProperties; container: CSSProperties; fontPx: number } {
+    const bxFrac = line.w * 0.02 + line.h * 0.06;
+    const fontPx = line.h * disp.h;
+    const baselinePx = (line.y + BASELINE * line.h) * disp.h;
+    const cover: CSSProperties = {
+      left: `${(line.x - bxFrac) * 100}%`, top: `${(line.y - COVER_TOP * line.h) * 100}%`,
+      width: `${(line.w + bxFrac * 2) * 100}%`, height: `${COVER_H * line.h * 100}%`, background: line.bg,
+    };
+    const container: CSSProperties = {
+      left: `${line.x * 100}%`, top: `${baselinePx - BASELINE * fontPx}px`,
+      fontSize: `${fontPx}px`, lineHeight: 1, fontFamily: FAMILIES[line.family].css, color: line.color,
+      whiteSpace: 'pre', fontWeight: line.bold ? 700 : 400, fontStyle: line.italic ? 'italic' : 'normal',
+    };
+    return { cover, container, fontPx };
+  }
+
+  const canUndo = past.length > 0, canRedo = future.length > 0;
+  const tbBtn = 'flex size-9 items-center justify-center rounded-lg text-sm font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed';
 
   return (
     <Card>
@@ -279,47 +332,125 @@ export function EditTool() {
             className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border p-8 text-center transition-colors hover:border-primary/50 hover:bg-accent/40">
             <Upload className="size-7 text-muted-foreground" />
             <p className="mt-2 text-sm font-medium">Drop a PDF here, or click to choose</p>
-            <p className="text-xs text-muted-foreground">Click any text to edit it — right in your browser, never uploaded</p>
+            <p className="text-xs text-muted-foreground">Click any word to edit it — right in your browser, never uploaded</p>
           </div>
         ) : (
           <div className="flex items-center gap-3 rounded-lg border bg-card p-2.5">
             <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-red-100 text-red-600 dark:bg-red-950/40"><FileText className="size-4" /></span>
             <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{file.name}</p><p className="text-xs text-muted-foreground">{fmt(file.size)} · {pageCount} page{pageCount === 1 ? '' : 's'}</p></div>
-            <Button size="icon" variant="ghost" aria-label="Remove" onClick={() => { if (handle) void handle.destroy(); setHandle(null); setFile(null); setDone(null); setError(null); setRuns({}); setEdits({}); }}><X className="size-4" /></Button>
+            <Button size="icon" variant="ghost" aria-label="Remove" onClick={() => { if (handle) void handle.destroy(); setHandle(null); setFile(null); setDone(null); setError(null); setLines({}); setEdits({}); setPast([]); setFuture([]); }}><X className="size-4" /></Button>
           </div>
         )}
 
         {file && !done && (
           <div className="mt-4">
-            <p className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground"><Pencil className="size-3.5 text-primary" /> Click any word to edit it. {detecting && <span className="inline-flex items-center gap-1"><Loader2 className="size-3 animate-spin" /> finding text…</span>}</p>
+            {/* Premium formatting toolbar — acts on the selected word */}
+            <div className="mb-3 flex flex-wrap items-center gap-1.5 rounded-2xl border bg-card p-1.5 shadow-soft">
+              <FontSelect value={activeEdit?.family ?? 'helvetica'} onChange={(f) => patchActive({ family: f })} className="w-44" />
+              <span className="mx-0.5 h-6 w-px bg-border/70" />
+              <button className={`${tbBtn} hover:bg-accent`} title="Smaller" disabled={!activeEdit} onClick={() => patchActive({ size: Math.max(0.006, activeEdit!.size * 0.92) })}><Minus className="size-4" /></button>
+              <span className="w-9 text-center text-xs tabular-nums text-muted-foreground">{activeEdit ? Math.round(activeEdit.size * disp.h) : '—'}</span>
+              <button className={`${tbBtn} hover:bg-accent`} title="Larger" disabled={!activeEdit} onClick={() => patchActive({ size: Math.min(0.2, activeEdit!.size * 1.08) })}><Plus className="size-4" /></button>
+              <span className="mx-0.5 h-6 w-px bg-border/70" />
+              <button className={`${tbBtn} ${activeEdit?.bold ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}`} title="Bold" aria-pressed={!!activeEdit?.bold} disabled={!activeEdit || !famInfo?.bold} onClick={() => patchActive({ bold: !activeEdit!.bold })}><Bold className="size-4" /></button>
+              <button className={`${tbBtn} ${activeEdit?.italic ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}`} title="Italic" aria-pressed={!!activeEdit?.italic} disabled={!activeEdit || !famInfo?.italic} onClick={() => patchActive({ italic: !activeEdit!.italic })}><Italic className="size-4" /></button>
+              <span className="mx-0.5 h-6 w-px bg-border/70" />
+              <div className="flex items-center gap-1 px-0.5">
+                {SWATCHES.map((c) => (
+                  <button key={c} disabled={!activeEdit} aria-label={`colour ${c}`} aria-pressed={activeEdit?.color === c} onClick={() => patchActive({ color: c })}
+                    className={`size-5 rounded-full ring-offset-1 ring-offset-card transition-all disabled:opacity-40 ${activeEdit?.color === c ? 'ring-2 ring-primary' : 'ring-1 ring-border hover:ring-primary/50'}`} style={{ backgroundColor: c }} />
+                ))}
+              </div>
+              <span className="mx-0.5 h-6 w-px bg-border/70" />
+              <button className={`${tbBtn} text-destructive hover:bg-destructive/10`} title="Delete this word" disabled={!activeEdit} onClick={deleteActive}><Trash2 className="size-4" /></button>
+              <div className="ml-auto flex items-center gap-1">
+                <button className={`${tbBtn} hover:bg-accent`} title="Undo (Ctrl+Z)" disabled={!canUndo} onClick={undo}><Undo2 className="size-4" /></button>
+                <button className={`${tbBtn} hover:bg-accent`} title="Redo (Ctrl+Y)" disabled={!canRedo} onClick={redo}><Redo2 className="size-4" /></button>
+              </div>
+            </div>
+
+            <p className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Pencil className="size-3.5 text-primary" />
+              {activeEdit ? 'Editing a word — type, then format with the toolbar. The line reflows as you go.' : 'Click any word to edit it.'}
+              {detecting && <span className="inline-flex items-center gap-1"><Loader2 className="size-3 animate-spin" /> finding text…</span>}
+            </p>
 
             <div className="flex items-start justify-center rounded-xl border bg-muted/30 p-3">
               {preview ? (
                 <div ref={wrapRef} className="relative inline-block leading-[0]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={preview.url} alt={`Page ${sel + 1}`} className="max-h-[34rem] max-w-full rounded border bg-white shadow-md" draggable={false} />
-                  <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" onMouseMove={onMove} onMouseLeave={() => setHover(null)} onClick={onClick} />
-                  {editing && (
-                    <input
-                      ref={editRef}
-                      value={editing.value}
-                      onChange={(e) => setEditing((d) => (d ? { ...d, value: e.target.value } : d))}
-                      onKeyDown={(e) => { if (e.key === 'Enter') commitEdit(); else if (e.key === 'Escape') setEditing(null); }}
-                      onBlur={commitEdit}
-                      size={Math.max(2, editing.value.length + 1)}
-                      className="absolute z-10 box-content w-auto rounded-[3px] border border-primary bg-white px-0.5 leading-none shadow-sm outline-none ring-2 ring-primary/25"
-                      style={{ left: `${editing.run.x * 100}%`, top: `${(editing.run.y - editing.run.h * 0.16) * 100}%`, height: `${editing.run.h * 1.3 * 100}%`, fontSize: `${editing.run.size * (wrapRef.current?.getBoundingClientRect().height || 500)}px`, fontFamily: FAMILIES[editing.run.family].css, color: editing.run.color }}
-                    />
-                  )}
+                  <img ref={imgRef} src={preview.url} alt={`Page ${sel + 1}`} className="max-h-[34rem] max-w-full rounded border bg-white shadow-md" draggable={false} onLoad={() => { const im = imgRef.current; if (im) setDisp({ w: im.clientWidth, h: im.clientHeight }); }} />
+
+                  {/* Edited/active line overlays — crisp DOM text that reflows live. */}
+                  <div className="pointer-events-none absolute inset-0">
+                    {pageLines.map((line) => {
+                      const isActive = editing?.lineId === line.id;
+                      if (!isActive && !lineHasEdits(line, edits)) return null;
+                      const { cover, container } = lineGeom(line);
+                      return (
+                        <span key={`ov-${line.id}`}>
+                          <span className="absolute" style={cover} />
+                          <span className="absolute" style={container}>
+                            {line.parts.map((orig, i) => {
+                              const isWord = !!orig.trim();
+                              const e = isWord ? editOf(line, i, edits) : null;
+                              if (isActive && editing!.i === i) {
+                                // placeholder keeps layout width while the real <input> (below) sits on top
+                                return <span key={i} style={{ visibility: 'hidden', ...(e ? { fontFamily: FAMILIES[e.family].css, fontSize: `${e.size * disp.h}px`, fontWeight: e.bold ? 700 : 400, fontStyle: e.italic ? 'italic' : 'normal' } : undefined) }}>{e?.text || ' '}</span>;
+                              }
+                              if (!e) return <span key={i}>{orig}</span>;
+                              return <span key={i} style={{ fontFamily: FAMILIES[e.family].css, fontSize: `${e.size * disp.h}px`, color: e.color, fontWeight: e.bold ? 700 : 400, fontStyle: e.italic ? 'italic' : 'normal' }}>{e.text}</span>;
+                            })}
+                          </span>
+                        </span>
+                      );
+                    })}
+                    {/* hover highlight */}
+                    {hover && hover !== (editing ? key(editing.lineId, editing.i) : null) && (() => {
+                      const [lid, iStr] = hover.split('#'); const line = pageLines.find((l) => l.id === lid); const b = line?.boxes[Number(iStr)]; if (!b) return null;
+                      const pad = b.h * 0.12;
+                      return <span className="absolute rounded-[3px]" style={{ left: `${(b.x - pad) * 100}%`, top: `${(b.y - pad) * 100}%`, width: `${(b.w + pad * 2) * 100}%`, height: `${(b.h + pad * 2) * 100}%`, background: 'rgba(79,70,229,0.16)', boxShadow: 'inset 0 0 0 1px rgba(79,70,229,0.55)' }} />;
+                    })()}
+                  </div>
+
+                  {/* click/hover surface */}
+                  <div className="absolute inset-0" style={{ cursor: hover ? 'text' : 'default' }} onMouseMove={onMove} onMouseLeave={() => setHover(null)} onClick={onClick} />
+
+                  {/* the live editor input — positioned exactly over its word in the reflowed line */}
+                  {activeLine && activeEdit && editing && (() => {
+                    const { fontPx } = lineGeom(activeLine);
+                    const px = activeEdit.size * disp.h;
+                    // x offset = width of all parts before the edited one, in the reflowed line
+                    let offset = 0;
+                    for (let j = 0; j < editing.i; j++) {
+                      const pe = activeLine.parts[j].trim() ? editOf(activeLine, j, edits) : null;
+                      const t = pe ? pe.text : activeLine.parts[j];
+                      const f = pe ? cssFont(pe.family, pe.bold, pe.italic, pe.size * disp.h) : cssFont(activeLine.family, activeLine.bold, activeLine.italic, fontPx);
+                      offset += measureWidth(t, f);
+                    }
+                    const baselinePx = (activeLine.y + BASELINE * activeLine.h) * disp.h;
+                    return (
+                      <input
+                        ref={editRef}
+                        value={activeEdit.text}
+                        onChange={(ev) => { const t = ev.target.value; beginSession(); setEdits((s) => ({ ...s, [key(activeLine.id, editing.i)]: { ...editOf(activeLine, editing.i, s), text: t } })); }}
+                        onKeyDown={(ev) => { if (ev.key === 'Enter') { ev.preventDefault(); closeWord(); } else if (ev.key === 'Escape') { setEditing(null); sessionRef.current = null; } }}
+                        onBlur={closeWord}
+                        size={Math.max(1, activeEdit.text.length)}
+                        className="absolute z-20 rounded-[2px] p-0 outline-none ring-2 ring-primary/60"
+                        style={{ left: `${activeLine.x * disp.w + offset}px`, top: `${baselinePx - BASELINE * px}px`, height: `${px * 1.18}px`, lineHeight: `${px * 1.18}px`, fontFamily: FAMILIES[activeEdit.family].css, fontSize: `${px}px`, fontWeight: activeEdit.bold ? 700 : 400, fontStyle: activeEdit.italic ? 'italic' : 'normal', color: activeEdit.color, background: activeLine.bg, caretColor: '#4f46e5' }}
+                      />
+                    );
+                  })()}
                 </div>
               ) : (
                 <div className="flex h-72 items-center justify-center"><Loader2 className="size-5 animate-spin text-muted-foreground" /></div>
               )}
             </div>
 
-            {pageCount > 1 && <PageStrip handle={handle} count={pageCount} selected={sel} onSelect={(i) => { setEditing(null); setSel(i); }} className="mt-2" />}
+            {pageCount > 1 && <PageStrip handle={handle} count={pageCount} selected={sel} onSelect={(i) => { closeWord(); setSel(i); }} className="mt-2" />}
             <p className="mt-2 text-center text-xs text-muted-foreground">
-              {editedCount ? `${editedCount} edit${editedCount === 1 ? '' : 's'} made. Edits over photos or unusual fonts may show a patch (see how it works).` : 'Hover shows editable text. Not every PDF has selectable text — scanned pages can’t be edited.'}
+              {editCount ? `${editCount} word${editCount === 1 ? '' : 's'} edited. Edited lines are re-encoded as real text; edits over photos may show a faint patch.` : 'Hover shows editable words. Scanned pages have no selectable text to edit.'}
             </p>
           </div>
         )}
@@ -327,7 +458,7 @@ export function EditTool() {
         {error && <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
 
         {file && !done && (
-          <Button className="mt-4 w-full" size="lg" onClick={apply} disabled={busy || editedCount === 0}>
+          <Button className="mt-4 w-full" size="lg" onClick={apply} disabled={busy || editCount === 0}>
             {busy ? <><Loader2 className="size-4 animate-spin" /> Saving…</> : <><Pencil className="size-4" /> Save edited PDF</>}
           </Button>
         )}
@@ -336,10 +467,4 @@ export function EditTool() {
       </CardContent>
     </Card>
   );
-}
-
-// Find a run by id across all pages (for counting edits after page changes).
-function pageRunsAll(runs: Record<number, Run[]>, id: string): Run | undefined {
-  const p = Number(id.split('-')[0]);
-  return (runs[p] || []).find((r) => r.id === id);
 }
