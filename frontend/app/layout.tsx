@@ -7,6 +7,7 @@ import { ToolFlagsProvider } from '@/lib/tool-flags';
 import { CommandPalette } from '@/components/command-palette';
 import { CookieBanner } from '@/components/cookie-banner';
 import { PwaRegister } from '@/components/pwa-register';
+import { CloudflareAnalytics } from '@/components/cloudflare-analytics';
 import { RecordRecent } from '@/components/app/record-recent';
 import { UsageBeacon } from '@/components/app/usage-beacon';
 import { SITE_URL, SITE_NAME } from '@/lib/site';
@@ -75,6 +76,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <RecordRecent />
             <UsageBeacon />
           </AuthProvider>
+          <CloudflareAnalytics />
         </ThemeProvider>
       </body>
     </html>
