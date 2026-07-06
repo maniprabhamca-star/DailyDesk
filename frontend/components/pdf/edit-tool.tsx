@@ -38,16 +38,17 @@ function matchFamily(fontName?: string): Family {
 // Paint the cover-and-redraw for one edited run onto ctx (W×H device px).
 function paintEdit(ctx: CanvasRenderingContext2D, W: number, H: number, r: Run, text: string) {
   const x = r.x * W, y = r.y * H, w = r.w * W, h = r.h * H;
-  // Cover the original with a small bleed so anti-aliased edges are hidden.
-  const bleed = Math.max(1, h * 0.12);
+  // Cover the original word — bleed generously top/bottom so ascenders and
+  // descenders of the old glyphs are fully hidden (no ghosting behind the edit).
+  const bx = Math.max(1, w * 0.02 + h * 0.06);
   ctx.fillStyle = r.bg;
-  ctx.fillRect(x - bleed, y - bleed, w + bleed * 2, h + bleed * 2);
+  ctx.fillRect(x - bx, y - h * 0.18, w + bx * 2, h * 1.36);
   if (!text) return;
   const fs = r.size * H;
   ctx.fillStyle = r.color;
   ctx.textBaseline = 'alphabetic';
   ctx.font = `${fs}px ${FAMILIES[r.family].css}`;
-  // Baseline ≈ top + ascent; alphabetic baseline sits ~0.8 of the box down.
+  // Baseline ≈ box top + ascent; with the box top on the ascent line, that's 0.8·h.
   ctx.fillText(text, x, y + h * 0.8);
 }
 
@@ -119,10 +120,21 @@ export function EditTool() {
         const px = sctx.getImageData(0, 0, rp.w, rp.h).data;
         const at = (cx: number, cy: number) => { const i = (Math.min(rp.h - 1, Math.max(0, cy)) * rp.w + Math.min(rp.w - 1, Math.max(0, cx))) * 4; return [px[i], px[i + 1], px[i + 2]]; };
         const list: Run[] = [];
-        // Sample ink (darkest) + background (just above) for a device-px x-range.
+        // Ink colour = the darkest pixel over a DENSE grid across the word (a
+        // single line missed thin/short glyphs and grabbed grey edges). Falls
+        // back to near-black if the word is faint. Background = pixel above.
         const sample = (x0: number, x1: number, topPt: number, hPt: number) => {
-          let dark = [0, 0, 0], best = 999;
-          for (let k = 0; k <= 4; k++) { const cx = (x0 + (x1 - x0) * k / 4) / vp.width * rp.w; const cy = (topPt + hPt * 0.5) / vp.height * rp.h; const [r0, g0, b0] = at(cx, cy); const lum = r0 + g0 + b0; if (lum < best) { best = lum; dark = [r0, g0, b0]; } }
+          let dark = [17, 24, 39], best = 999;
+          for (let ky = 1; ky <= 6; ky++) {
+            const cy = (topPt + hPt * (ky / 8)) / vp.height * rp.h;
+            for (let kx = 0; kx <= 8; kx++) {
+              const cx = (x0 + (x1 - x0) * kx / 8) / vp.width * rp.w;
+              const [r0, g0, b0] = at(cx, cy); const lum = r0 + g0 + b0;
+              if (lum < best) { best = lum; dark = [r0, g0, b0]; }
+            }
+          }
+          // If nothing genuinely dark was found, keep the near-black default.
+          if (best > 360) dark = [17, 24, 39];
           const [br, bg2, bb] = at(((x0 + x1) / 2) / vp.width * rp.w, (topPt - hPt * 0.35) / vp.height * rp.h);
           return { color: `rgb(${dark[0]},${dark[1]},${dark[2]})`, bg: `rgb(${br},${bg2},${bb})` };
         };
@@ -294,8 +306,9 @@ export function EditTool() {
                       onChange={(e) => setEditing((d) => (d ? { ...d, value: e.target.value } : d))}
                       onKeyDown={(e) => { if (e.key === 'Enter') commitEdit(); else if (e.key === 'Escape') setEditing(null); }}
                       onBlur={commitEdit}
-                      className="absolute z-10 box-content rounded-[3px] border border-primary bg-white px-0.5 leading-none shadow-sm outline-none ring-2 ring-primary/25"
-                      style={{ left: `${editing.run.x * 100}%`, top: `${(editing.run.y - editing.run.h * 0.16) * 100}%`, height: `${editing.run.h * 1.3 * 100}%`, minWidth: `${Math.max(editing.run.w, 0.03) * 100}%`, fontSize: `${editing.run.size * (wrapRef.current?.getBoundingClientRect().height || 500)}px`, fontFamily: FAMILIES[editing.run.family].css, color: editing.run.color }}
+                      size={Math.max(2, editing.value.length + 1)}
+                      className="absolute z-10 box-content w-auto rounded-[3px] border border-primary bg-white px-0.5 leading-none shadow-sm outline-none ring-2 ring-primary/25"
+                      style={{ left: `${editing.run.x * 100}%`, top: `${(editing.run.y - editing.run.h * 0.16) * 100}%`, height: `${editing.run.h * 1.3 * 100}%`, fontSize: `${editing.run.size * (wrapRef.current?.getBoundingClientRect().height || 500)}px`, fontFamily: FAMILIES[editing.run.family].css, color: editing.run.color }}
                     />
                   )}
                 </div>
