@@ -263,8 +263,8 @@ export function AnnotateTool() {
     document.fonts.addEventListener('loadingdone', onDone);
     return () => document.fonts.removeEventListener('loadingdone', onDone);
   }, [repaint]);
-  // Deselect when switching tool or page.
-  useEffect(() => { setSelIdx(null); }, [tool, sel]);
+  // Deselect when switching tool or page; clear any inline cursor override.
+  useEffect(() => { setSelIdx(null); if (canvasRef.current) canvasRef.current.style.cursor = ''; }, [tool, sel]);
   // Close the Shapes menu on an outside click.
   useEffect(() => {
     if (!shapesOpen) return;
@@ -360,11 +360,20 @@ export function AnnotateTool() {
     });
   }
   function onMove(e: React.PointerEvent<HTMLCanvasElement>) {
-    // "＋ click to add text" hint follows the cursor while the Text tool is armed.
-    if (tool === 'text' && !textDraft && !textDrag.current && hintRef.current && wrapRef.current) {
-      const r = wrapRef.current.getBoundingClientRect();
-      hintRef.current.style.transform = `translate(${e.clientX - r.left + 14}px, ${e.clientY - r.top + 14}px)`;
-      hintRef.current.style.opacity = '1';
+    // Text tool hover: over an existing text show a MOVE cursor and hide the
+    // add-text hint (you'd drag it there); over empty space show the "＋ click
+    // to add text" hint following the cursor.
+    if (tool === 'text' && !textDraft && !textDrag.current) {
+      const overText = findTextAt(frac(e)) >= 0;
+      if (canvasRef.current) canvasRef.current.style.cursor = overText ? 'move' : 'text';
+      if (hintRef.current && wrapRef.current) {
+        if (overText) { hintRef.current.style.opacity = '0'; }
+        else {
+          const r = wrapRef.current.getBoundingClientRect();
+          hintRef.current.style.transform = `translate(${e.clientX - r.left + 14}px, ${e.clientY - r.top + 14}px)`;
+          hintRef.current.style.opacity = '1';
+        }
+      }
     }
     if (textDrag.current) {
       const d = textDrag.current; const q = frac(e);

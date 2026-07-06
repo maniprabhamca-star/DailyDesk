@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { PenTool, Type as TypeIcon, ImagePlus, Eraser, Check, X } from 'lucide-react';
+import { PenTool, Type as TypeIcon, ImagePlus, Eraser, Check, X, Undo2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 // Reusable signature builder (draw / type / upload) — the same approach as the
@@ -47,27 +47,55 @@ export function SignatureMaker({ onClose, onCreate }: { onClose: () => void; onC
   const drawRef = useRef<HTMLCanvasElement>(null);
   const uploadRef = useRef<HTMLInputElement>(null);
   const drawing = useRef(false);
-  const hasInk = useRef(false);
+  // Stroke history (CSS-px points) so Ctrl+Z / the Undo button can remove the last stroke.
+  const strokes = useRef<{ x: number; y: number }[][]>([]);
+  const cur = useRef<{ x: number; y: number }[]>([]);
 
+  function redraw() {
+    const c = drawRef.current; if (!c) return;
+    const ctx = c.getContext('2d')!;
+    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, c.width, c.height); ctx.restore();
+    ctx.lineWidth = 2.6; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = INKS[ink];
+    const all = drawing.current ? [...strokes.current, cur.current] : strokes.current;
+    for (const s of all) {
+      if (!s.length) continue;
+      ctx.beginPath();
+      s.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
+      if (s.length === 1) ctx.lineTo(s[0].x + 0.1, s[0].y);
+      ctx.stroke();
+    }
+  }
   function initDraw() {
     const c = drawRef.current; if (!c) return;
     const dpr = window.devicePixelRatio || 1;
     c.width = Math.round(c.clientWidth * dpr); c.height = Math.round(200 * dpr);
-    const ctx = c.getContext('2d')!;
-    ctx.scale(dpr, dpr); ctx.lineWidth = 2.6; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = INKS[ink];
-    hasInk.current = false;
+    c.getContext('2d')!.scale(dpr, dpr);
+    strokes.current = []; cur.current = []; drawing.current = false;
+    redraw();
   }
+  function clearDraw() { strokes.current = []; cur.current = []; redraw(); }
+  function undoDraw() { strokes.current.pop(); redraw(); }
   useEffect(() => { if (source === 'draw') initDraw(); /* eslint-disable-next-line */ }, [source]);
-  useEffect(() => { const ctx = drawRef.current?.getContext('2d'); if (ctx) ctx.strokeStyle = INKS[ink]; }, [ink]);
+  useEffect(() => { redraw(); /* eslint-disable-next-line */ }, [ink]);
+  // Ctrl/Cmd+Z removes the last drawn stroke (Draw tab only).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (source !== 'draw') return;
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z') { e.preventDefault(); undoDraw(); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line
+  }, [source]);
 
   function dpos(e: React.PointerEvent<HTMLCanvasElement>) { const r = drawRef.current!.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
-  function down(e: React.PointerEvent<HTMLCanvasElement>) { e.currentTarget.setPointerCapture(e.pointerId); drawing.current = true; hasInk.current = true; const { x, y } = dpos(e); const ctx = e.currentTarget.getContext('2d')!; ctx.beginPath(); ctx.moveTo(x, y); }
-  function move(e: React.PointerEvent<HTMLCanvasElement>) { if (!drawing.current) return; const { x, y } = dpos(e); const ctx = e.currentTarget.getContext('2d')!; ctx.lineTo(x, y); ctx.stroke(); }
-  function up() { drawing.current = false; }
+  function down(e: React.PointerEvent<HTMLCanvasElement>) { e.currentTarget.setPointerCapture(e.pointerId); drawing.current = true; cur.current = [dpos(e)]; redraw(); }
+  function move(e: React.PointerEvent<HTMLCanvasElement>) { if (!drawing.current) return; cur.current.push(dpos(e)); redraw(); }
+  function up() { if (drawing.current && cur.current.length) strokes.current.push(cur.current); cur.current = []; drawing.current = false; }
 
   function adopt(c: HTMLCanvasElement) { onCreate(c.toDataURL('image/png'), c.height / c.width); onClose(); }
 
-  function useDrawn() { const c = drawRef.current; if (!c || !hasInk.current) { setErr('Draw your signature first.'); return; } const t = trimCanvas(c); if (!t) { setErr('Draw your signature first.'); return; } adopt(t); }
+  function useDrawn() { const c = drawRef.current; if (!c || !strokes.current.length) { setErr('Draw your signature first.'); return; } const t = trimCanvas(c); if (!t) { setErr('Draw your signature first.'); return; } adopt(t); }
   async function useTyped() {
     const text = typed.trim(); if (!text) { setErr('Type your name first.'); return; }
     const font = TYPE_FONTS.find((f) => f.id === typeFont)!;
@@ -114,7 +142,8 @@ export function SignatureMaker({ onClose, onCreate }: { onClose: () => void; onC
               {(Object.keys(INKS) as Ink[]).map((i) => (
                 <button key={i} onClick={() => setInk(i)} aria-label={`${i} ink`} aria-pressed={ink === i} className={`size-7 rounded-full border-2 ${ink === i ? 'border-primary ring-2 ring-primary/30' : 'border-transparent'}`} style={{ backgroundColor: INKS[i] }} />
               ))}
-              <Button size="sm" variant="outline" onClick={initDraw}><Eraser className="size-4" /> Clear</Button>
+              <Button size="sm" variant="outline" title="Undo (Ctrl+Z)" onClick={undoDraw}><Undo2 className="size-4" /> Undo</Button>
+              <Button size="sm" variant="outline" onClick={clearDraw}><Eraser className="size-4" /> Clear</Button>
               <Button size="sm" className="ml-auto" onClick={useDrawn}><Check className="size-4" /> Add</Button>
             </div>
           </div>
