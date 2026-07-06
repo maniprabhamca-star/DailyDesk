@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Upload, FileText, X, Loader2, Highlighter, Pen, Square, Circle, Minus, ArrowUpRight, Shapes, ChevronDown, Type, Undo2, Trash2, Zap, Bold, Italic, Underline, Signature as SignatureIcon, ImagePlus } from 'lucide-react';
+import { Upload, FileText, X, Loader2, Highlighter, Pen, Square, Circle, Minus, ArrowUpRight, ChevronDown, Type, Undo2, Trash2, Zap, Bold, Italic, Underline, Signature as SignatureIcon, ImagePlus } from 'lucide-react';
 import { SignatureMaker } from './signature-maker';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -499,10 +499,18 @@ export function AnnotateTool() {
     } finally { setBusy(false); }
   }
 
+  // Premium segmented tool button: filled when active, quiet hover otherwise.
+  // Label collapses to icon-only on small screens for a tidy bar.
   const toolBtn = (id: Tool, icon: React.ReactNode, label: string) => (
-    <button key={id} onClick={() => { setTool(id); setTextDraft(null); }} aria-pressed={tool === id}
-      className={`flex items-center justify-center gap-1.5 rounded-xl border px-2 py-2 text-sm font-medium transition-all ${tool === id ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-border bg-card hover:border-primary/40'}`}>
-      {icon} {label}
+    <button key={id} onClick={() => { setTool(id); setTextDraft(null); }} aria-pressed={tool === id} title={label}
+      className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-all ${tool === id ? 'bg-primary text-primary-foreground shadow-sm' : 'text-foreground/80 hover:bg-accent'}`}>
+      {icon} <span className="hidden md:inline">{label}</span>
+    </button>
+  );
+  const actionBtn = (onClick: () => void, icon: React.ReactNode, label: string) => (
+    <button onClick={onClick} title={label}
+      className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-foreground/80 transition-all hover:bg-accent">
+      {icon} <span className="hidden md:inline">{label}</span>
     </button>
   );
 
@@ -551,61 +559,60 @@ export function AnnotateTool() {
 
         {file && !done && (
           <div className="mt-4">
-            {/* Toolbar */}
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex flex-wrap gap-2">
-                {toolBtn('highlight', <Highlighter className="size-4" />, 'Highlight')}
-                {toolBtn('pen', <Pen className="size-4" />, 'Draw')}
-                <div className="relative" ref={shapesRef}>
-                  <button
-                    onClick={() => { setTool(shape); setTextDraft(null); setShapesOpen((o) => !o); }}
-                    aria-pressed={isShape(tool)} aria-haspopup="menu" aria-expanded={shapesOpen}
-                    className={`flex w-full items-center justify-center gap-1 rounded-xl border px-2 py-2 text-sm font-medium transition-all ${isShape(tool) ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-border bg-card hover:border-primary/40'}`}>
-                    {SHAPE_META[shape].icon} <Shapes className="size-4" /> <ChevronDown className={`size-3.5 transition-transform ${shapesOpen ? 'rotate-180' : ''}`} />
-                  </button>
-                  {shapesOpen && (
-                    <div role="menu" className="absolute left-0 top-full z-20 mt-1 w-40 rounded-lg border bg-card p-1 shadow-lg">
-                      {SHAPE_KINDS.map((s) => (
-                        <button key={s} role="menuitem" onClick={() => { setShape(s); setTool(s); setTextDraft(null); setShapesOpen(false); }}
-                          className={`flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-sm transition-colors hover:bg-accent ${tool === s ? 'text-primary' : ''}`}>
-                          {SHAPE_META[s].icon} {SHAPE_META[s].label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                {toolBtn('text', <Type className="size-4" />, 'Text')}
-                <button onClick={() => setSigOpen(true)}
-                  className="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-card px-2 py-2 text-sm font-medium transition-all hover:border-primary/40">
-                  <SignatureIcon className="size-4" /> Sign
+            {/* Premium toolbar — one cohesive bar, grouped by dividers */}
+            <div className="flex flex-wrap items-center gap-1.5 rounded-2xl border bg-card p-1.5 shadow-soft">
+              {toolBtn('highlight', <Highlighter className="size-4" />, 'Highlight')}
+              {toolBtn('pen', <Pen className="size-4" />, 'Draw')}
+              <div className="relative" ref={shapesRef}>
+                <button
+                  onClick={() => { setTool(shape); setTextDraft(null); setShapesOpen((o) => !o); }}
+                  aria-pressed={isShape(tool)} aria-haspopup="menu" aria-expanded={shapesOpen} title="Shapes"
+                  className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-all ${isShape(tool) ? 'bg-primary text-primary-foreground shadow-sm' : 'text-foreground/80 hover:bg-accent'}`}>
+                  {SHAPE_META[shape].icon} <span className="hidden md:inline">Shapes</span> <ChevronDown className={`size-3.5 transition-transform ${shapesOpen ? 'rotate-180' : ''}`} />
                 </button>
-                <button onClick={() => imgFileRef.current?.click()}
-                  className="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-card px-2 py-2 text-sm font-medium transition-all hover:border-primary/40">
-                  <ImagePlus className="size-4" /> Image
-                </button>
+                {shapesOpen && (
+                  <div role="menu" className="absolute left-0 top-full z-20 mt-1 w-40 rounded-xl border bg-card p-1 shadow-lift">
+                    {SHAPE_KINDS.map((s) => (
+                      <button key={s} role="menuitem" onClick={() => { setShape(s); setTool(s); setTextDraft(null); setShapesOpen(false); }}
+                        className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm transition-colors hover:bg-accent ${tool === s ? 'text-primary' : ''}`}>
+                        {SHAPE_META[s].icon} {SHAPE_META[s].label}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div className="flex items-center gap-1.5">
+              {toolBtn('text', <Type className="size-4" />, 'Text')}
+              <span className="mx-0.5 h-6 w-px bg-border/70" />
+              {actionBtn(() => setSigOpen(true), <SignatureIcon className="size-4" />, 'Sign')}
+              {actionBtn(() => imgFileRef.current?.click(), <ImagePlus className="size-4" />, 'Image')}
+              <span className="mx-0.5 h-6 w-px bg-border/70" />
+              <div className="flex items-center gap-1.5 px-0.5">
                 {COLORS.map((c) => (
                   <button key={c} onClick={() => { setColor(c); patchSelected({ color: c }); }} aria-label={`colour ${c}`} aria-pressed={color === c}
-                    className={`size-7 rounded-full border-2 ${color === c ? 'border-primary ring-2 ring-primary/30' : 'border-transparent'}`} style={{ backgroundColor: c }} />
+                    className={`size-6 rounded-full ring-offset-1 ring-offset-card transition-all ${color === c ? 'ring-2 ring-primary' : 'ring-1 ring-border hover:ring-primary/50'}`} style={{ backgroundColor: c }} />
                 ))}
               </div>
               {tool !== 'text' && (
-                <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                  Size
-                  <input type="range" min={1} max={10} value={weight} onChange={(e) => setWeight(Number(e.target.value))} className="dd-range w-24" />
-                </label>
+                <>
+                  <span className="mx-0.5 h-6 w-px bg-border/70" />
+                  <label className="flex items-center gap-2 px-1 text-xs font-medium text-muted-foreground">
+                    Size
+                    <input type="range" min={1} max={10} value={weight} onChange={(e) => setWeight(Number(e.target.value))} className="dd-range w-20" />
+                  </label>
+                </>
               )}
-              <div className="ml-auto flex items-center gap-2">
-                <Button size="sm" variant="outline" title="Undo (Ctrl+Z)" onClick={undo} disabled={!(annos[sel] || []).length}><Undo2 className="size-4" /> Undo</Button>
-                <Button size="sm" variant="outline" onClick={clearPage} disabled={!(annos[sel] || []).length && !pageImages.length}><Trash2 className="size-4" /> Clear page</Button>
+              <div className="ml-auto flex items-center gap-0.5">
+                <button title="Undo (Ctrl+Z)" onClick={undo} disabled={!(annos[sel] || []).length}
+                  className="flex size-8 items-center justify-center rounded-lg text-foreground/70 transition-colors hover:bg-accent disabled:opacity-30 disabled:hover:bg-transparent"><Undo2 className="size-4" /></button>
+                <button title="Clear page" onClick={clearPage} disabled={!(annos[sel] || []).length && !pageImages.length}
+                  className="flex size-8 items-center justify-center rounded-lg text-foreground/70 transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-foreground/70"><Trash2 className="size-4" /></button>
               </div>
             </div>
 
             {/* Text options — font + bold/italic/underline (Text tool only) */}
             {tool === 'text' && (
-              <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border bg-card p-2.5">
-                <span className="text-xs font-medium text-muted-foreground">Font</span>
+              <div className="mt-2 flex flex-wrap items-center gap-2 rounded-2xl border bg-card p-2 shadow-soft">
+                <span className="pl-1 text-xs font-medium text-muted-foreground">Font</span>
                 <FontSelect value={family} onChange={pickFamily} className="w-44" />
                 <div className="flex items-center gap-1">
                   <button onClick={() => { const v = !bold; setBold(v); patchSelected({ bold: v }); }} aria-pressed={bold} aria-label="Bold"
