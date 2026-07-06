@@ -45,12 +45,32 @@ router.post('/track', trackLimiter, (req, res) => {
   res.status(204).end();
 });
 
-// Usage metrics for the admin dashboard. Token-guarded; 404 until ADMIN_API_TOKEN
-// is set (so it's invisible by default). visitor key = anonymous id, falling back
-// to IP for older rows without one.
-router.get('/stats', async (req, res) => {
+// Owner emails allowed to view the web dashboard (in addition to the CLI admin
+// token). Mirrors the frontend PRO_EMAILS owner list.
+const OWNER_EMAILS = (process.env.OWNER_EMAILS || 'maniprabhamca@gmail.com,mrmanigandan@gmail.com')
+  .split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
+
+// True for the CLI admin token OR a logged-in OWNER account (JWT → email in list).
+async function isOwnerRequest(req) {
   const token = process.env.ADMIN_API_TOKEN;
-  if (!token || req.headers['x-admin-token'] !== token) return res.status(404).json({ error: 'Not found' });
+  if (token && req.headers['x-admin-token'] === token) return true;
+  const auth = req.headers.authorization;
+  if (auth && auth.startsWith('Bearer ')) {
+    try {
+      const { userId } = jwt.verify(auth.split(' ')[1], process.env.JWT_SECRET);
+      const r = await db.query('SELECT email FROM users WHERE id = $1', [userId]);
+      const email = r.rows[0] && r.rows[0].email ? r.rows[0].email.toLowerCase() : null;
+      return !!email && OWNER_EMAILS.includes(email);
+    } catch { /* invalid token → not owner */ }
+  }
+  return false;
+}
+
+// Usage metrics for the owner dashboard. 404 for everyone except the admin token
+// or a logged-in owner (so it's invisible by default). visitor key = anonymous
+// id, falling back to IP for older rows without one.
+router.get('/stats', async (req, res) => {
+  if (!(await isOwnerRequest(req))) return res.status(404).json({ error: 'Not found' });
 
   const V = 'coalesce(visitor_id, ip_address::text)';
   const rows = (sql) => db.query(sql).then((r) => r.rows);
