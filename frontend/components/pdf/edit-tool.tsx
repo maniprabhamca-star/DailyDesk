@@ -119,6 +119,13 @@ export function EditTool() {
         const px = sctx.getImageData(0, 0, rp.w, rp.h).data;
         const at = (cx: number, cy: number) => { const i = (Math.min(rp.h - 1, Math.max(0, cy)) * rp.w + Math.min(rp.w - 1, Math.max(0, cx))) * 4; return [px[i], px[i + 1], px[i + 2]]; };
         const list: Run[] = [];
+        // Sample ink (darkest) + background (just above) for a device-px x-range.
+        const sample = (x0: number, x1: number, topPt: number, hPt: number) => {
+          let dark = [0, 0, 0], best = 999;
+          for (let k = 0; k <= 4; k++) { const cx = (x0 + (x1 - x0) * k / 4) / vp.width * rp.w; const cy = (topPt + hPt * 0.5) / vp.height * rp.h; const [r0, g0, b0] = at(cx, cy); const lum = r0 + g0 + b0; if (lum < best) { best = lum; dark = [r0, g0, b0]; } }
+          const [br, bg2, bb] = at(((x0 + x1) / 2) / vp.width * rp.w, (topPt - hPt * 0.35) / vp.height * rp.h);
+          return { color: `rgb(${dark[0]},${dark[1]},${dark[2]})`, bg: `rgb(${br},${bg2},${bb})` };
+        };
         for (const it of tc.items as Array<{ str?: string; transform?: number[]; width?: number; height?: number; fontName?: string }>) {
           const s = it.str;
           if (!s || !s.trim() || !it.transform) continue;
@@ -127,18 +134,22 @@ export function EditTool() {
           const w = (it.width || 0) * vp.scale;
           if (w < 2 || fontH < 4) continue;
           const left = m[4], top = m[5] - fontH;
-          const bx = left / vp.width, by = top / vp.height, bw = w / vp.width, bh = fontH / vp.height;
-          // ink = darkest pixel in the box; bg = pixel just above the box.
-          let dark = [0, 0, 0], best = 999;
-          for (let sx = 0; sx <= 5; sx++) { const cx = (left + (w * sx) / 5) / vp.width * rp.w; const cy = (top + fontH * 0.5) / vp.height * rp.h; const [r0, g0, b0] = at(cx, cy); const lum = r0 + g0 + b0; if (lum < best) { best = lum; dark = [r0, g0, b0]; } }
-          const [br, bg2, bb] = at((left + w * 0.5) / vp.width * rp.w, (top - fontH * 0.35) / vp.height * rp.h);
-          list.push({
-            id: `${sel}-${list.length}`, text: s,
-            x: bx, y: by, w: bw, h: bh, size: bh,
-            family: matchFamily(it.fontName),
-            color: `rgb(${dark[0]},${dark[1]},${dark[2]})`,
-            bg: `rgb(${br},${bg2},${bb})`,
-          });
+          const family = matchFamily(it.fontName);
+          // Split the line into WORDS so a click edits ONE word, not the whole
+          // line. Per-word widths are measured with a matched font, then scaled
+          // so the whole run matches the PDF's real width (approximate but tight).
+          sctx.font = `100px ${FAMILIES[family].css}`;
+          const parts = s.split(/(\s+)/);
+          let measured = 0; const segs: { text: string; start: number; mw: number }[] = [];
+          for (const part of parts) { const mw = sctx.measureText(part).width; segs.push({ text: part, start: measured, mw }); measured += mw; }
+          const scl = measured > 0 ? w / measured : 0;
+          for (const seg of segs) {
+            if (!seg.text.trim()) continue;
+            const wx = left + seg.start * scl, ww = seg.mw * scl;
+            if (ww < 1) continue;
+            const { color, bg } = sample(wx, wx + ww, top, fontH);
+            list.push({ id: `${sel}-${list.length}`, text: seg.text, x: wx / vp.width, y: top / vp.height, w: ww / vp.width, h: fontH / vp.height, size: fontH / vp.height, family, color, bg });
+          }
         }
         if (!cancelled) setRuns((prev) => ({ ...prev, [sel]: list }));
       } catch { /* image-only page → no runs */ }
@@ -253,7 +264,7 @@ export function EditTool() {
 
         {file && !done && (
           <div className="mt-4">
-            <p className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground"><Pencil className="size-3.5 text-primary" /> Click any line of text to edit it. {detecting && <span className="inline-flex items-center gap-1"><Loader2 className="size-3 animate-spin" /> finding text…</span>}</p>
+            <p className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground"><Pencil className="size-3.5 text-primary" /> Click any word to edit it. {detecting && <span className="inline-flex items-center gap-1"><Loader2 className="size-3 animate-spin" /> finding text…</span>}</p>
 
             <div className="flex items-start justify-center rounded-xl border bg-muted/30 p-3">
               {preview ? (
