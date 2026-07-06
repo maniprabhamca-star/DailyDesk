@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Upload, FileText, X, Loader2, Highlighter, Pen, Square, Circle, Minus, ArrowUpRight, ChevronDown, Type, Undo2, Trash2, Zap, Bold, Italic, Underline, Signature as SignatureIcon, ImagePlus } from 'lucide-react';
+import { Upload, FileText, X, Loader2, Highlighter, Pen, Square, Circle, Minus, ArrowUpRight, ChevronDown, Type, Undo2, Trash2, Zap, Bold, Italic, Underline, Signature as SignatureIcon, ImagePlus, Plus } from 'lucide-react';
 import { SignatureMaker } from './signature-maker';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -36,7 +36,7 @@ type ImageItem = { id: string; page: number; x: number; y: number; w: number; as
 const SHAPE_KINDS: ShapeKind[] = ['rect', 'circle', 'line', 'arrow'];
 const isShape = (t: Tool): t is ShapeKind => (SHAPE_KINDS as string[]).includes(t);
 
-const COLORS = ['#facc15', '#ef4444', '#2563eb', '#16a34a', '#7c3aed', '#111827'];
+const COLORS = ['#111827', '#ef4444', '#2563eb', '#16a34a', '#7c3aed', '#facc15'];
 
 // The font list is shared with the Watermark tool (lib/fonts FAMILIES) so it's
 // identical everywhere. Text is drawn to canvas; globals.css declares the real
@@ -187,8 +187,10 @@ export function AnnotateTool() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const textInputRef = useRef<HTMLInputElement>(null);
   const shapesRef = useRef<HTMLDivElement>(null);
+  const hintRef = useRef<HTMLDivElement>(null); // "＋ click to add text" cursor hint
   const drawing = useRef(false);
   const live = useRef<Stroke | ShapeA | null>(null);
+  const textDrag = useRef<{ idx: number; ox: number; oy: number } | null>(null); // dragging a placed text
 
   async function loadOne(f?: File) {
     if (!f) return;
@@ -324,13 +326,16 @@ export function AnnotateTool() {
     if (tool === 'text') {
       const hit = findTextAt(p);
       if (hit >= 0) {
-        // Single click SELECTS a placed text and loads its style into the
-        // toolbar — now changing font/colour/size/style restyles it live.
-        // (Double-click to edit the words — see onDblClick.)
+        // Single click SELECTS a placed text + starts a drag so it can be moved
+        // anywhere. Changing font/colour/size restyles it live; double-click
+        // edits the words (onDblClick).
         const t = (annos[sel] || [])[hit] as TextA;
         setSelIdx(hit);
         setColor(t.color); setFamily(t.family); setBold(t.bold); setItalic(t.italic); setUnderline(t.underline);
         setWeight(Math.min(10, Math.max(1, Math.round((t.size - 0.016) / 0.006))));
+        e.currentTarget.setPointerCapture(e.pointerId);
+        textDrag.current = { idx: hit, ox: p.x - t.at.x, oy: p.y - t.at.y };
+        if (hintRef.current) hintRef.current.style.opacity = '0';
       } else {
         // Empty space → deselect and start a new text.
         setSelIdx(null);
@@ -345,7 +350,27 @@ export function AnnotateTool() {
     else live.current = { kind: tool, color, w: widthFrac(tool, weight), pts: [p] };
     repaint();
   }
+  function moveText(idx: number, at: Pt) {
+    setAnnos((a) => {
+      const list = a[sel] || [];
+      const cur = list[idx];
+      if (!cur || cur.kind !== 'text') return a;
+      const next = list.slice(); next[idx] = { ...cur, at };
+      return { ...a, [sel]: next };
+    });
+  }
   function onMove(e: React.PointerEvent<HTMLCanvasElement>) {
+    // "＋ click to add text" hint follows the cursor while the Text tool is armed.
+    if (tool === 'text' && !textDraft && !textDrag.current && hintRef.current && wrapRef.current) {
+      const r = wrapRef.current.getBoundingClientRect();
+      hintRef.current.style.transform = `translate(${e.clientX - r.left + 14}px, ${e.clientY - r.top + 14}px)`;
+      hintRef.current.style.opacity = '1';
+    }
+    if (textDrag.current) {
+      const d = textDrag.current; const q = frac(e);
+      moveText(d.idx, { x: Math.min(1, Math.max(0, q.x - d.ox)), y: Math.min(1, Math.max(0, q.y - d.oy)) });
+      return;
+    }
     if (!drawing.current || !live.current) return;
     const cur = live.current;
     const p = frac(e);
@@ -353,7 +378,9 @@ export function AnnotateTool() {
     else if (cur.kind === 'rect' || cur.kind === 'circle' || cur.kind === 'line' || cur.kind === 'arrow') cur.b = p;
     repaint();
   }
+  function onLeave() { if (hintRef.current) hintRef.current.style.opacity = '0'; onUp(); }
   function onUp() {
+    if (textDrag.current) { textDrag.current = null; return; }
     if (!drawing.current || !live.current) { drawing.current = false; return; }
     const committed = live.current;
     live.current = null; drawing.current = false;
@@ -631,7 +658,7 @@ export function AnnotateTool() {
                   <input type="range" min={1} max={16} value={weight} onChange={(e) => { const n = Number(e.target.value); setWeight(n); patchSelected({ size: fontFrac(n) }); }} className="dd-range w-24" />
                   <span className="w-8 tabular-nums text-foreground">{Math.round(fontFrac(weight) * 792)}pt</span>
                 </label>
-                <span className="ml-auto text-[11px] text-muted-foreground">Click a text to select &amp; restyle it · double-click to edit the words</span>
+                <span className="ml-auto text-[11px] text-muted-foreground">Click to select &amp; drag to move · restyle with the toolbar · double-click to edit words</span>
               </div>
             )}
 
@@ -644,25 +671,38 @@ export function AnnotateTool() {
                   <canvas
                     ref={canvasRef}
                     className={`absolute inset-0 h-full w-full touch-none ${tool === 'text' ? 'cursor-text' : 'cursor-crosshair'}`}
-                    onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerLeave={onUp} onDoubleClick={onDblClick}
+                    onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerLeave={onLeave} onDoubleClick={onDblClick}
                   />
                   {textDraft && (
-                    <input
-                      ref={textInputRef}
-                      value={textDraft.value}
-                      onChange={(e) => setTextDraft((d) => (d ? { ...d, value: e.target.value } : d))}
-                      // Enter/Tab place the text and keep you on the page — preventDefault
-                      // stops focus jumping to the Save button below.
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); commitText(); }
-                        else if (e.key === 'Escape') { e.preventDefault(); setTextDraft(null); }
-                      }}
-                      onBlur={commitText}
-                      onPointerDown={(e) => e.stopPropagation()}
-                      placeholder="Type, then Enter"
-                      className="absolute z-10 rounded border-2 border-primary bg-white/95 px-1.5 py-0.5 text-sm shadow-lg outline-none"
-                      style={{ left: `${textDraft.x * 100}%`, top: `${textDraft.y * 100}%`, color, fontFamily: FAMILIES[family].css, fontWeight: bold ? 700 : 400, fontStyle: italic ? 'italic' : 'normal', textDecoration: underline ? 'underline' : 'none' }}
-                    />
+                    <div className="absolute z-10 flex items-start gap-1" style={{ left: `${textDraft.x * 100}%`, top: `${textDraft.y * 100}%` }}>
+                      <input
+                        ref={textInputRef}
+                        value={textDraft.value}
+                        onChange={(e) => setTextDraft((d) => (d ? { ...d, value: e.target.value } : d))}
+                        // Enter/Tab place the text and keep you on the page — preventDefault
+                        // stops focus jumping to the Save button below.
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); commitText(); }
+                          else if (e.key === 'Escape') { e.preventDefault(); setTextDraft(null); }
+                        }}
+                        onBlur={commitText}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        placeholder="Type, then Enter"
+                        className="rounded border-2 border-primary bg-white/95 px-1.5 py-0.5 text-sm shadow-lg outline-none"
+                        style={{ color, fontFamily: FAMILIES[family].css, fontWeight: bold ? 700 : 400, fontStyle: italic ? 'italic' : 'normal', textDecoration: underline ? 'underline' : 'none' }}
+                      />
+                      {/* Cancel/delete the text being typed. onMouseDown preventDefault keeps
+                          the input focused so onBlur doesn't commit it before we cancel. */}
+                      <button onMouseDown={(e) => e.preventDefault()} onPointerDown={(e) => e.stopPropagation()} onClick={() => setTextDraft(null)}
+                        aria-label="Delete text" title="Delete"
+                        className="flex size-5 shrink-0 items-center justify-center rounded-full bg-destructive text-white shadow"><X className="size-3" /></button>
+                    </div>
+                  )}
+                  {/* "＋ click to add text" hint — follows the cursor when Text is armed */}
+                  {tool === 'text' && !textDraft && (
+                    <div ref={hintRef} className="pointer-events-none absolute left-0 top-0 z-20 flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[11px] font-medium text-primary-foreground opacity-0 shadow transition-opacity">
+                      <Plus className="size-3" /> Click to add text
+                    </div>
                   )}
                   {/* Draggable image / signature overlays (composited into the page at export) */}
                   {pageImages.map((im) => (
