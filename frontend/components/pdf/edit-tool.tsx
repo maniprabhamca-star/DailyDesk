@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { Upload, FileText, X, Loader2, Pencil, Undo2, Redo2, Bold, Italic, Trash2, Minus, Plus, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -13,7 +13,7 @@ import { FontSelect } from '@/components/app/font-select';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
 import { FAMILIES, type Family } from '@/lib/fonts';
-import { applyLineEdits, COVER_TOP, COVER_H, BASELINE, type LineEdit } from '@/lib/pdf-edit-text';
+import { applyLineEdits, lineFitScale, COVER_TOP, COVER_H, BASELINE, type LineEdit } from '@/lib/pdf-edit-text';
 
 // Edit PDF — HYBRID in-place text editing (see docs/edit-pdf-approach.md).
 // pdf.js detects each LINE of text (box, size, colour) and splits it into words.
@@ -99,6 +99,7 @@ export function EditTool() {
   const inputRef = useRef<HTMLInputElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const editRef = useRef<HTMLInputElement>(null);
 
   async function loadOne(f?: File) {
@@ -125,10 +126,17 @@ export function EditTool() {
   }, []);
   useEffect(() => () => { if (handle) void handle.destroy(); }, [handle]);
 
+  // Keep `disp` (the displayed image size) EXACT at all times. A one-shot
+  // measure on load reads clientHeight before layout settles (it comes back 0),
+  // which used to leave the overlay misaligned until a resize — so we observe
+  // the image and update on every size change.
   useEffect(() => {
-    const m = () => { const im = imgRef.current; if (im) setDisp({ w: im.clientWidth, h: im.clientHeight }); };
-    m(); window.addEventListener('resize', m);
-    return () => window.removeEventListener('resize', m);
+    const im = imgRef.current; if (!im) return;
+    const m = () => setDisp({ w: im.clientWidth, h: im.clientHeight });
+    m();
+    const ro = new ResizeObserver(m); ro.observe(im);
+    window.addEventListener('resize', m);
+    return () => { ro.disconnect(); window.removeEventListener('resize', m); };
   }, [preview]);
 
   // Render the page + detect its lines (with sampled ink/background colours).
@@ -299,22 +307,67 @@ export function EditTool() {
     } finally { setBusy(false); }
   }
 
-  // Geometry for a line overlay (cover box + text container anchored on baseline).
-  function lineGeom(line: Line): { cover: CSSProperties; container: CSSProperties; fontPx: number } {
-    const bxFrac = line.w * 0.02 + line.h * 0.06;
-    const fontPx = line.h * disp.h;
-    const baselinePx = (line.y + BASELINE * line.h) * disp.h;
-    const cover: CSSProperties = {
-      left: `${(line.x - bxFrac) * 100}%`, top: `${(line.y - COVER_TOP * line.h) * 100}%`,
-      width: `${(line.w + bxFrac * 2) * 100}%`, height: `${COVER_H * line.h * 100}%`, background: line.bg,
-    };
-    const container: CSSProperties = {
-      left: `${line.x * 100}%`, top: `${baselinePx - BASELINE * fontPx}px`,
-      fontSize: `${fontPx}px`, lineHeight: 1, fontFamily: FAMILIES[line.family].css, color: line.color,
-      whiteSpace: 'pre', fontWeight: line.bold ? 700 : 400, fontStyle: line.italic ? 'italic' : 'normal',
-    };
-    return { cover, container, fontPx };
+  // Per-line layout: the fit scale + each part's drawn width. Preview canvas and
+  // the editor input both use this so they stay perfectly in sync.
+  function lineMetrics(line: Line): { fit: number; widths: number[]; parts: (Edit | null)[] } {
+    const parts = line.parts.map((p, i) => (p.trim() ? editOf(line, i, edits) : null));
+    let natural = 0; const base: number[] = [];
+    line.parts.forEach((orig, i) => {
+      const e = parts[i];
+      const size = (e ? e.size : line.h) * disp.h;
+      const w = measureWidth((e ? e.text : orig) || ' ', cssFont(e ? e.family : line.family, e ? e.bold : line.bold, e ? e.italic : line.italic, size));
+      base.push(w); natural += w;
+    });
+    const fit = lineFitScale(natural, line.w * disp.w);
+    return { fit, widths: base.map((w) => w * fit), parts };
   }
+
+  // Draw the edited/active lines onto the overlay CANVAS. Cover + redrawn text
+  // live in ONE coordinate space, so they can never drift apart (that drift was
+  // the "doubling" bug when cover used % and text used px-from-a-stale-disp).
+  const paintOverlay = useCallback(() => {
+    const cv = canvasRef.current; if (!cv || !disp.w || !disp.h) return;
+    const dpr = window.devicePixelRatio || 1;
+    if (cv.width !== Math.round(disp.w * dpr) || cv.height !== Math.round(disp.h * dpr)) { cv.width = Math.round(disp.w * dpr); cv.height = Math.round(disp.h * dpr); }
+    const ctx = cv.getContext('2d'); if (!ctx) return;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, disp.w, disp.h);
+    ctx.textBaseline = 'alphabetic';
+    for (const line of pageLines) {
+      const isActive = editing?.lineId === line.id;
+      if (!isActive && !lineHasEdits(line, edits)) continue;
+      const { fit, widths, parts } = lineMetrics(line);
+      const bx = line.w * 0.02 + line.h * 0.06;
+      ctx.fillStyle = line.bg;
+      ctx.fillRect((line.x - bx) * disp.w, (line.y - COVER_TOP * line.h) * disp.h, (line.w + bx * 2) * disp.w, COVER_H * line.h * disp.h);
+      const baseY = (line.y + BASELINE * line.h) * disp.h;
+      let x = line.x * disp.w;
+      line.parts.forEach((orig, i) => {
+        const e = parts[i];
+        const t = e ? e.text : orig;
+        const isActiveWord = isActive && editing!.i === i;
+        if (t && t.trim() && !isActiveWord) {
+          ctx.font = cssFont(e ? e.family : line.family, e ? e.bold : line.bold, e ? e.italic : line.italic, (e ? e.size : line.h) * disp.h * fit);
+          ctx.fillStyle = e ? e.color : line.color;
+          ctx.fillText(t, x, baseY);
+        }
+        x += widths[i];
+      });
+    }
+    // hover highlight (skip the word being edited)
+    if (hover && hover !== (editing ? key(editing.lineId, editing.i) : null)) {
+      const [lid, iStr] = hover.split('#'); const line = pageLines.find((l) => l.id === lid); const b = line?.boxes[Number(iStr)];
+      if (b) {
+        const pad = b.h * 0.12, rx = (b.x - pad) * disp.w, ry = (b.y - pad) * disp.h, rw = (b.w + pad * 2) * disp.w, rh = (b.h + pad * 2) * disp.h;
+        ctx.fillStyle = 'rgba(79,70,229,0.16)'; ctx.strokeStyle = 'rgba(79,70,229,0.55)'; ctx.lineWidth = 1;
+        if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(rx, ry, rw, rh, 3); ctx.fill(); ctx.stroke(); }
+        else { ctx.fillRect(rx, ry, rw, rh); ctx.strokeRect(rx, ry, rw, rh); }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageLines, edits, hover, editing, disp]);
+
+  useEffect(() => { paintOverlay(); }, [paintOverlay, preview]);
 
   const canUndo = past.length > 0, canRedo = future.length > 0;
   const tbBtn = 'flex size-9 items-center justify-center rounded-lg text-sm font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed';
@@ -381,53 +434,18 @@ export function EditTool() {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img ref={imgRef} src={preview.url} alt={`Page ${sel + 1}`} className="max-h-[34rem] max-w-full rounded border bg-white shadow-md" draggable={false} onLoad={() => { const im = imgRef.current; if (im) setDisp({ w: im.clientWidth, h: im.clientHeight }); }} />
 
-                  {/* Edited/active line overlays — crisp DOM text that reflows live. */}
-                  <div className="pointer-events-none absolute inset-0">
-                    {pageLines.map((line) => {
-                      const isActive = editing?.lineId === line.id;
-                      if (!isActive && !lineHasEdits(line, edits)) return null;
-                      const { cover, container } = lineGeom(line);
-                      return (
-                        <span key={`ov-${line.id}`}>
-                          <span className="absolute" style={cover} />
-                          <span className="absolute" style={container}>
-                            {line.parts.map((orig, i) => {
-                              const isWord = !!orig.trim();
-                              const e = isWord ? editOf(line, i, edits) : null;
-                              if (isActive && editing!.i === i) {
-                                // placeholder keeps layout width while the real <input> (below) sits on top
-                                return <span key={i} style={{ visibility: 'hidden', ...(e ? { fontFamily: FAMILIES[e.family].css, fontSize: `${e.size * disp.h}px`, fontWeight: e.bold ? 700 : 400, fontStyle: e.italic ? 'italic' : 'normal' } : undefined) }}>{e?.text || ' '}</span>;
-                              }
-                              if (!e) return <span key={i}>{orig}</span>;
-                              return <span key={i} style={{ fontFamily: FAMILIES[e.family].css, fontSize: `${e.size * disp.h}px`, color: e.color, fontWeight: e.bold ? 700 : 400, fontStyle: e.italic ? 'italic' : 'normal' }}>{e.text}</span>;
-                            })}
-                          </span>
-                        </span>
-                      );
-                    })}
-                    {/* hover highlight */}
-                    {hover && hover !== (editing ? key(editing.lineId, editing.i) : null) && (() => {
-                      const [lid, iStr] = hover.split('#'); const line = pageLines.find((l) => l.id === lid); const b = line?.boxes[Number(iStr)]; if (!b) return null;
-                      const pad = b.h * 0.12;
-                      return <span className="absolute rounded-[3px]" style={{ left: `${(b.x - pad) * 100}%`, top: `${(b.y - pad) * 100}%`, width: `${(b.w + pad * 2) * 100}%`, height: `${(b.h + pad * 2) * 100}%`, background: 'rgba(79,70,229,0.16)', boxShadow: 'inset 0 0 0 1px rgba(79,70,229,0.55)' }} />;
-                    })()}
-                  </div>
+                  {/* Edited/active lines: cover + reflowed text drawn in ONE canvas
+                      (same coordinate space → can't drift → no doubling). */}
+                  <canvas ref={canvasRef} className="pointer-events-none absolute inset-0 h-full w-full" />
 
                   {/* click/hover surface */}
                   <div className="absolute inset-0" style={{ cursor: hover ? 'text' : 'default' }} onMouseMove={onMove} onMouseLeave={() => setHover(null)} onClick={onClick} />
 
-                  {/* the live editor input — positioned exactly over its word in the reflowed line */}
-                  {activeLine && activeEdit && editing && (() => {
-                    const { fontPx } = lineGeom(activeLine);
-                    const px = activeEdit.size * disp.h;
-                    // x offset = width of all parts before the edited one, in the reflowed line
-                    let offset = 0;
-                    for (let j = 0; j < editing.i; j++) {
-                      const pe = activeLine.parts[j].trim() ? editOf(activeLine, j, edits) : null;
-                      const t = pe ? pe.text : activeLine.parts[j];
-                      const f = pe ? cssFont(pe.family, pe.bold, pe.italic, pe.size * disp.h) : cssFont(activeLine.family, activeLine.bold, activeLine.italic, fontPx);
-                      offset += measureWidth(t, f);
-                    }
+                  {/* the live editor input — positioned exactly over its word slot */}
+                  {activeLine && activeEdit && editing && disp.h > 0 && (() => {
+                    const { fit, widths } = lineMetrics(activeLine);
+                    const px = activeEdit.size * disp.h * fit;
+                    let offset = 0; for (let j = 0; j < editing.i; j++) offset += widths[j];
                     const baselinePx = (activeLine.y + BASELINE * activeLine.h) * disp.h;
                     return (
                       <input
@@ -436,9 +454,8 @@ export function EditTool() {
                         onChange={(ev) => { const t = ev.target.value; beginSession(); setEdits((s) => ({ ...s, [key(activeLine.id, editing.i)]: { ...editOf(activeLine, editing.i, s), text: t } })); }}
                         onKeyDown={(ev) => { if (ev.key === 'Enter') { ev.preventDefault(); closeWord(); } else if (ev.key === 'Escape') { setEditing(null); sessionRef.current = null; } }}
                         onBlur={closeWord}
-                        size={Math.max(1, activeEdit.text.length)}
                         className="absolute z-20 rounded-[2px] p-0 outline-none ring-2 ring-primary/60"
-                        style={{ left: `${activeLine.x * disp.w + offset}px`, top: `${baselinePx - BASELINE * px}px`, height: `${px * 1.18}px`, lineHeight: `${px * 1.18}px`, fontFamily: FAMILIES[activeEdit.family].css, fontSize: `${px}px`, fontWeight: activeEdit.bold ? 700 : 400, fontStyle: activeEdit.italic ? 'italic' : 'normal', color: activeEdit.color, background: activeLine.bg, caretColor: '#4f46e5' }}
+                        style={{ left: `${activeLine.x * disp.w + offset}px`, top: `${baselinePx - BASELINE * px}px`, width: `${Math.max(px, widths[editing.i]) + 3}px`, height: `${px * 1.2}px`, lineHeight: `${px * 1.2}px`, fontFamily: FAMILIES[activeEdit.family].css, fontSize: `${px}px`, fontWeight: activeEdit.bold ? 700 : 400, fontStyle: activeEdit.italic ? 'italic' : 'normal', color: activeEdit.color, background: activeLine.bg, caretColor: '#4f46e5' }}
                       />
                     );
                   })()}

@@ -43,6 +43,15 @@ export type LineEdit = {
 export const COVER_TOP = 0.18;   // extend cover this·h above the box top
 export const COVER_H = 1.36;     // total cover height in ·h
 export const BASELINE = 0.8;     // baseline sits this·h below the box top
+export const FIT_FLOOR = 0.8;    // shrink a too-long line no smaller than this·size
+
+/** How much to scale a whole line so it fits its original width (never grows;
+ * shrinks a longer replacement to the FIT_FLOOR so it can't spill into the next
+ * run). Shared formula so preview and export agree. */
+export function lineFitScale(naturalWidth: number, maxWidth: number): number {
+  if (naturalWidth <= maxWidth || naturalWidth <= 0 || maxWidth <= 0) return 1;
+  return Math.max(FIT_FLOOR, maxWidth / naturalWidth);
+}
 
 function parseRgb(s: string): [number, number, number] {
   const m = /rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i.exec(s);
@@ -109,19 +118,25 @@ export async function applyLineEdits(src: ArrayBuffer | Uint8Array, edits: LineE
     });
 
     // 2) redraw the line, part by part, advancing x by each part's real width so
-    //    everything after an edit reflows exactly like a text editor.
+    //    everything after an edit reflows exactly like a text editor. First
+    //    measure the whole line and shrink it to fit the original width, so a
+    //    longer replacement can't spill into a neighbouring run.
     const baseY = H * (1 - L.yFrac - BASELINE * L.hFrac);
+    const fonts = await Promise.all(L.parts.map((p) => getFont(p.family, p.bold, p.italic)));
+    let natural = 0;
+    L.parts.forEach((p, i) => { natural += fonts[i].widthOfTextAtSize(p.text || ' ', (p.sizeFrac ?? L.hFrac) * H); });
+    const fit = lineFitScale(natural, L.wFrac * W);
     let x = L.xFrac * W;
-    for (const p of L.parts) {
-      if (!p.text) continue;
-      const font = await getFont(p.family, p.bold, p.italic);
-      const size = (p.sizeFrac ?? L.hFrac) * H;
+    L.parts.forEach((p, i) => {
+      if (!p.text) return;
+      const font = fonts[i];
+      const size = (p.sizeFrac ?? L.hFrac) * H * fit;
       if (p.text.trim()) {
         const [cr, cg, cb] = parseRgb(p.color);
         page.drawText(p.text, { x, y: baseY, size, font, color: rgb(cr, cg, cb) });
       }
       x += font.widthOfTextAtSize(p.text, size);
-    }
+    });
   }
 
   return doc.save();
