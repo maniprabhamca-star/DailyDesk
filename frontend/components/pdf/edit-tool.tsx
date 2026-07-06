@@ -133,7 +133,10 @@ export function EditTool() {
           const fontH = Math.hypot(m[2], m[3]) || (it.height || 8);
           const w = (it.width || 0) * vp.scale;
           if (w < 2 || fontH < 4) continue;
-          const left = m[4], top = m[5] - fontH;
+          // Box top ≈ cap/ascent line (not the full em) so the highlight sits ON
+          // the glyphs, not floating above them. paintEdit's baseline factor (0.8)
+          // matches this so redrawn text lands on the original baseline.
+          const left = m[4], top = m[5] - fontH * 0.8;
           const family = matchFamily(it.fontName);
           // Split the line into WORDS so a click edits ONE word, not the whole
           // line. Per-word widths are measured with a matched font, then scaled
@@ -172,10 +175,22 @@ export function EditTool() {
     ctx.clearRect(0, 0, c.width, c.height);
     // Cover-and-redraw for every edited run on this page.
     for (const r of pageRuns) { const t = edits[r.id]; if (t !== undefined && t !== r.text) paintEdit(ctx, c.width, c.height, r, t); }
-    // Hover highlight (skip the one being edited).
+    // Hover highlight — a soft filled swatch over the word (like selecting text),
+    // not a dashed box. Skips the word being edited.
     if (hover && (!editing || editing.run.id !== hover)) {
       const r = pageRuns.find((x) => x.id === hover);
-      if (r) { ctx.strokeStyle = 'rgba(99,102,241,0.9)'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]); ctx.strokeRect(r.x * c.width, r.y * c.height, r.w * c.width, r.h * c.height); ctx.setLineDash([]); }
+      if (r) {
+        const px = r.x * c.width, py = r.y * c.height, pw = r.w * c.width, ph = r.h * c.height;
+        const pad = ph * 0.12, rad = Math.min(4, ph * 0.25);
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(px - pad, py - pad, pw + pad * 2, ph + pad * 2, rad);
+        else ctx.rect(px - pad, py - pad, pw + pad * 2, ph + pad * 2);
+        ctx.fillStyle = 'rgba(79,70,229,0.16)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(79,70,229,0.55)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
     }
   }, [pageRuns, edits, hover, editing]);
 
