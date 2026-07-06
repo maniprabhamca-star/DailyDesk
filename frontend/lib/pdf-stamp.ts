@@ -41,6 +41,9 @@ function sinkLatestStream(page: ReturnType<PDFDocument['getPage']>): void {
 export function stampPages(doc: PDFDocument, pageNums: number[], s: StampCore, font: PDFFont | null, image: PDFImage | null): void {
   const color = rgb(s.colorRgb[0], s.colorRgb[1], s.colorRgb[2]);
   const text = s.text.trim() || 'CONFIDENTIAL';
+  // Multi-line: pdf-lib drawText doesn't handle "\n", so we split and stack the
+  // lines ourselves (empty lines keep their height via a space).
+  const lines = text.split('\n').map((l) => (l.length ? l : ' '));
   const pages = doc.getPages();
   for (const n of pageNums) {
     const page = pages[n - 1];
@@ -51,21 +54,27 @@ export function stampPages(doc: PDFDocument, pageNums: number[], s: StampCore, f
 
     // Element size: text box or scaled image.
     const fontSize = Math.max(8, Math.min(W, H) * s.sizeFrac);
+    const lineH = font ? font.heightAtSize(fontSize) * 1.2 : 0;
     let elW: number;
     let elH: number;
     if (image) {
       elW = W * s.imageScale;
       elH = (image.height / image.width) * elW;
     } else if (font) {
-      elW = font.widthOfTextAtSize(text, fontSize);
-      elH = font.heightAtSize(fontSize);
+      elW = Math.max(...lines.map((l) => font.widthOfTextAtSize(l, fontSize)));
+      elH = lines.length * lineH;
     } else {
       continue;
     }
 
     const drawOne = (x: number, y: number) => {
-      if (image) page.drawImage(image, { x, y, width: elW, height: elH, opacity: s.opacity, rotate: degrees(rot) });
-      else page.drawText(text, { x, y, size: fontSize, font: font!, color, opacity: s.opacity, rotate: degrees(rot) });
+      if (image) { page.drawImage(image, { x, y, width: elW, height: elH, opacity: s.opacity, rotate: degrees(rot) }); return; }
+      // Stack lines perpendicular to the (possibly rotated) baseline; top line highest.
+      const ux = -Math.sin(rad), uy = Math.cos(rad); // page-space "up" after rotation
+      for (let i = 0; i < lines.length; i++) {
+        const row = lines.length - 1 - i;
+        page.drawText(lines[i], { x: x + ux * row * lineH, y: y + uy * row * lineH, size: fontSize, font: font!, color, opacity: s.opacity, rotate: degrees(rot) });
+      }
     };
 
     if (s.position === 'tiled') {

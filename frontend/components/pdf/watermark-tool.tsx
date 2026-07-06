@@ -332,15 +332,16 @@ export function WatermarkTool() {
 
               {settings.mode === 'text' ? (
                 <>
-                  <label className="mt-4 block text-sm font-medium" htmlFor="wm-text">Watermark text</label>
+                  <label className="mt-4 block text-sm font-medium" htmlFor="wm-text">Watermark text <span className="font-normal text-muted-foreground">· Enter for a new line</span></label>
                   <div className="mt-1.5 flex gap-2">
-                    <input
+                    <textarea
                       id="wm-text"
                       value={settings.text}
                       onChange={(e) => set('text', e.target.value)}
-                      maxLength={60}
+                      maxLength={120}
+                      rows={2}
                       placeholder="CONFIDENTIAL"
-                      className="w-full min-w-0 flex-1 rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+                      className="w-full min-w-0 flex-1 resize-none rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
                     />
                     <button onClick={() => set('bold', !settings.bold)} aria-pressed={settings.bold} aria-label="Bold"
                       disabled={!FAMILIES[settings.family].bold}
