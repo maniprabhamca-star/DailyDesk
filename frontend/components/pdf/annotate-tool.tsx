@@ -676,7 +676,7 @@ export function AnnotateTool() {
               {preview ? (
                 <div ref={wrapRef} className="relative inline-block leading-[0]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={preview.url} alt={`Page ${sel + 1}`} className="max-h-[34rem] rounded border bg-white shadow-md" draggable={false} />
+                  <img src={preview.url} alt={`Page ${sel + 1}`} className="max-h-[34rem] max-w-full rounded border bg-white shadow-md" draggable={false} />
                   <canvas
                     ref={canvasRef}
                     className={`absolute inset-0 h-full w-full touch-none ${tool === 'text' ? 'cursor-text' : 'cursor-crosshair'}`}

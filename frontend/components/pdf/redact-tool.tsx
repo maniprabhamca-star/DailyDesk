@@ -296,10 +296,11 @@ export function RedactTool() {
     } finally { setBusy(false); }
   }
 
-  const styleBtn = (id: Style, label: string) => (
+  // Premium segmented style button (filled when active), with a swatch preview.
+  const styleBtn = (id: Style, label: string, swatch: string) => (
     <button key={id} onClick={() => setStyle(id)} aria-pressed={style === id}
-      className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${style === id ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-border bg-card hover:border-primary/40'}`}>
-      {label}
+      className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-all ${style === id ? 'bg-primary text-primary-foreground shadow-sm' : 'text-foreground/80 hover:bg-accent'}`}>
+      <span className="size-3 rounded-sm border border-black/20" style={{ background: swatch }} /> {label}
     </button>
   );
 
@@ -339,26 +340,27 @@ export function RedactTool() {
 
         {file && !done && (
           <div className="mt-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-muted-foreground">Style</span>
-                {styleBtn('black', 'Black')}
-                {styleBtn('white', 'White')}
-                {styleBtn('label', 'Labelled')}
-                {style === 'label' && (
-                  <input
-                    value={labelText}
-                    onChange={(e) => setLabelText(e.target.value)}
-                    maxLength={24}
-                    placeholder="REDACTED"
-                    aria-label="Label text"
-                    className="w-32 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                  />
-                )}
-              </div>
-              <div className="ml-auto flex items-center gap-2">
-                <Button size="sm" variant="outline" title="Undo (Ctrl+Z)" onClick={undo} disabled={!(boxes[sel] || []).length}><Undo2 className="size-4" /> Undo</Button>
-                <Button size="sm" variant="outline" onClick={clearPage} disabled={!(boxes[sel] || []).length}><Trash2 className="size-4" /> Clear page</Button>
+            {/* Premium toolbar — cohesive bar, matches the Annotate tool */}
+            <div className="flex flex-wrap items-center gap-1.5 rounded-2xl border bg-card p-1.5 shadow-soft">
+              <span className="pl-1 text-xs font-medium text-muted-foreground">Style</span>
+              {styleBtn('black', 'Black', '#111827')}
+              {styleBtn('white', 'White', '#ffffff')}
+              {styleBtn('label', 'Labelled', '#111827')}
+              {style === 'label' && (
+                <input
+                  value={labelText}
+                  onChange={(e) => setLabelText(e.target.value)}
+                  maxLength={24}
+                  placeholder="REDACTED"
+                  aria-label="Label text"
+                  className="w-32 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                />
+              )}
+              <div className="ml-auto flex items-center gap-0.5">
+                <button title="Undo (Ctrl+Z)" onClick={undo} disabled={!(boxes[sel] || []).length}
+                  className="flex size-8 items-center justify-center rounded-lg text-foreground/70 transition-colors hover:bg-accent disabled:opacity-30 disabled:hover:bg-transparent"><Undo2 className="size-4" /></button>
+                <button title="Clear page" onClick={clearPage} disabled={!(boxes[sel] || []).length}
+                  className="flex size-8 items-center justify-center rounded-lg text-foreground/70 transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-foreground/70"><Trash2 className="size-4" /></button>
               </div>
             </div>
 
@@ -418,7 +420,7 @@ export function RedactTool() {
               {preview ? (
                 <div ref={wrapRef} className="relative inline-block leading-[0]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={preview.url} alt={`Page ${sel + 1}`} className="max-h-[34rem] rounded border bg-white shadow-md" draggable={false} />
+                  <img src={preview.url} alt={`Page ${sel + 1}`} className="max-h-[34rem] max-w-full rounded border bg-white shadow-md" draggable={false} />
                   <canvas
                     ref={canvasRef}
                     className="absolute inset-0 h-full w-full cursor-crosshair touch-none"
