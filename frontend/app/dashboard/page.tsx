@@ -39,9 +39,14 @@ export default function DashboardPage() {
     setLoading(true); setError(null);
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('dd_token') : null;
-      const res = await fetch(`${API}/api/events/stats`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      // Owner bypass: the ddadmin cookie also authorises the dashboard (no app login).
+      const ownerKey = typeof document !== 'undefined' ? (document.cookie.match(/(?:^|;\s*)ddadmin=([^;]+)/)?.[1] ?? null) : null;
+      const headers: Record<string, string> = {};
+      if (token) headers.Authorization = `Bearer ${token}`;
+      if (ownerKey) headers['x-owner-key'] = decodeURIComponent(ownerKey);
+      const res = await fetch(`${API}/api/events/stats`, { headers });
       if (!res.ok) {
-        if (res.status === 404) throw new Error(token ? 'Not available for this account.' : 'Log in with your owner account to load the dashboard — the data comes from the server and needs your login (the owner cookie only unlocks the tool views).');
+        if (res.status === 404) throw new Error('Not available — log in as the owner account (or open from a browser with the owner bypass).');
         throw new Error(`Request failed (${res.status})`);
       }
       setStats(await res.json());

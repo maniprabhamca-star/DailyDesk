@@ -50,10 +50,14 @@ router.post('/track', trackLimiter, (req, res) => {
 const OWNER_EMAILS = (process.env.OWNER_EMAILS || 'maniprabhamca@gmail.com,mrmanigandan@gmail.com')
   .split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
 
-// True for the CLI admin token OR a logged-in OWNER account (JWT → email in list).
+// True for: the CLI admin token, the owner's ddadmin bypass key (so the owner
+// dashboard works WITHOUT app login — same bypass that unlocks owner-only tools),
+// OR a logged-in OWNER account (JWT → email in list).
 async function isOwnerRequest(req) {
   const token = process.env.ADMIN_API_TOKEN;
   if (token && req.headers['x-admin-token'] === token) return true;
+  const bypass = process.env.OWNER_BYPASS_KEY;
+  if (bypass && req.headers['x-owner-key'] === bypass) return true;
   const auth = req.headers.authorization;
   if (auth && auth.startsWith('Bearer ')) {
     try {
