@@ -40,7 +40,10 @@ export default function DashboardPage() {
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('dd_token') : null;
       const res = await fetch(`${API}/api/events/stats`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
-      if (!res.ok) throw new Error(res.status === 404 ? 'Not available for this account.' : `Request failed (${res.status})`);
+      if (!res.ok) {
+        if (res.status === 404) throw new Error(token ? 'Not available for this account.' : 'Log in with your owner account to load the dashboard — the data comes from the server and needs your login (the owner cookie only unlocks the tool views).');
+        throw new Error(`Request failed (${res.status})`);
+      }
       setStats(await res.json());
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not load stats.');

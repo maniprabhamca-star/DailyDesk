@@ -61,7 +61,7 @@ export function EditTool() {
   const [preview, setPreview] = useState<RenderedPage | null>(null);
   const [runs, setRuns] = useState<Record<number, Run[]>>({});
   const [edits, setEdits] = useState<Record<string, string>>({}); // runId → new text
-  const [editing, setEditing] = useState<{ run: Run; value: string } | null>(null);
+  const [editing, setEditing] = useState<{ run: Run; value: string; caret: number } | null>(null);
   const [hover, setHover] = useState<string | null>(null);
   const [detecting, setDetecting] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -179,7 +179,23 @@ export function EditTool() {
     return null;
   }
   function onMove(e: React.MouseEvent) { const r = runAt(frac(e)); setHover(r?.id ?? null); if (canvasRef.current) canvasRef.current.style.cursor = r ? 'text' : 'default'; }
-  function onClick(e: React.MouseEvent) { const r = runAt(frac(e)); if (r) setEditing({ run: r, value: edits[r.id] ?? r.text }); }
+  function onClick(e: React.MouseEvent) {
+    const p = frac(e);
+    const r = runAt(p);
+    if (!r) return;
+    const val = edits[r.id] ?? r.text;
+    // Drop the caret roughly where you clicked (not at the end of the line).
+    const rel = r.w > 0 ? Math.min(1, Math.max(0, (p.x - r.x) / r.w)) : 0;
+    setEditing({ run: r, value: val, caret: Math.round(rel * val.length) });
+  }
+  // Focus the edit input on the next frame and place the caret where you clicked.
+  useEffect(() => {
+    if (!editing || !editRef.current) return;
+    const el = editRef.current;
+    const id = requestAnimationFrame(() => { try { el.focus(); el.setSelectionRange(editing.caret, editing.caret); } catch { /* ignore */ } });
+    return () => cancelAnimationFrame(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editing?.run.id]);
   function commitEdit() { if (editing) setEdits((s) => ({ ...s, [editing.run.id]: editing.value })); setEditing(null); }
 
   const editedIds = Object.keys(edits).filter((id) => { const r = pageRunsAll(runs, id); return r && edits[id] !== r.text; });
@@ -247,7 +263,7 @@ export function EditTool() {
                   <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" onMouseMove={onMove} onMouseLeave={() => setHover(null)} onClick={onClick} />
                   {editing && (
                     <input
-                      ref={editRef} autoFocus
+                      ref={editRef}
                       value={editing.value}
                       onChange={(e) => setEditing((d) => (d ? { ...d, value: e.target.value } : d))}
                       onKeyDown={(e) => { if (e.key === 'Enter') commitEdit(); else if (e.key === 'Escape') setEditing(null); }}
