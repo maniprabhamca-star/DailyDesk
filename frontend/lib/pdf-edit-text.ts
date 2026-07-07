@@ -31,6 +31,9 @@ export type PartStyle = {
   italic: boolean;
   box?: Box;         // this word's ORIGINAL box (for in-place redraw)
   changed?: boolean; // did this word actually change? (in-place only redraws these)
+  drawSizeFrac?: number; // matched draw size (fraction of page height)
+  coverLFrac?: number;   // cover rect left/right (fraction of page width)
+  coverRFrac?: number;
 };
 
 export type LineEdit = {
@@ -120,22 +123,15 @@ export async function applyLineEdits(src: ArrayBuffer | Uint8Array, edits: LineE
         if (!p.changed || !p.box) continue;
         const b = p.box; const bh = b.hFrac * H;
         const font = await getFont(p.family, p.bold, p.italic);
-        const natSize = (p.sizeFrac ?? b.hFrac) * H;
-        let prevRight = L.xFrac; for (let j = i - 1; j >= 0; j--) { const pb = L.parts[j].box; if (pb) { prevRight = pb.xFrac + pb.wFrac; break; } }
-        let nextLeft = L.xFrac + L.wFrac + 0.02; for (let j = i + 1; j < L.parts.length; j++) { const nb = L.parts[j].box; if (nb) { nextLeft = nb.xFrac; break; } }
-        // Scale the word down only if it wouldn't fit before the next word.
-        const availFrac = Math.max(0.001, nextLeft - b.xFrac - L.hFrac * 0.10);
-        const natWFrac = p.text ? font.widthOfTextAtSize(p.text, natSize) / W : 0;
-        const scale = natWFrac > availFrac ? Math.max(0.72, availFrac / natWFrac) : 1;
-        const size = natSize * scale; const drawnW = natWFrac * scale;
-        // Cover to the MIDPOINT of the blank space on each side (hides the whole
-        // original word, never touches a neighbour).
-        const leftBound = (prevRight + b.xFrac) / 2;
-        const rightBound = (Math.max(b.xFrac + b.wFrac, b.xFrac + drawnW) + nextLeft) / 2;
-        page.drawRectangle({ x: leftBound * W, y: H * (1 - b.yFrac - (COVER_H - COVER_TOP) * b.hFrac), width: (rightBound - leftBound) * W, height: COVER_H * bh, color: rgb(ir, ig, ib) });
+        const size = (p.drawSizeFrac ?? b.hFrac) * H;
+        // Cover exactly the original word's ink box (+ the redraw width), from the
+        // values the preview computed — so export matches the preview 1:1.
+        const cl = p.coverLFrac ?? b.xFrac;
+        const cr = p.coverRFrac ?? (b.xFrac + b.wFrac);
+        page.drawRectangle({ x: cl * W, y: H * (1 - b.yFrac - (COVER_H - COVER_TOP) * b.hFrac), width: (cr - cl) * W, height: COVER_H * bh, color: rgb(ir, ig, ib) });
         if (p.text.trim()) {
-          const [cr, cg, cb] = parseRgb(p.color);
-          page.drawText(p.text, { x: b.xFrac * W, y: H * (1 - b.yFrac - BASELINE * b.hFrac), size, font, color: rgb(cr, cg, cb) });
+          const [crc, cgc, cbc] = parseRgb(p.color);
+          page.drawText(p.text, { x: b.xFrac * W, y: H * (1 - b.yFrac - BASELINE * b.hFrac), size, font, color: rgb(crc, cgc, cbc) });
         }
       }
       continue;

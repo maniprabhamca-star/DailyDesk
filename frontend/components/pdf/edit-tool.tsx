@@ -29,8 +29,9 @@ type Line = {
   inkH: number;                                           // measured rendered ink height (fraction) — for visual size match
   family: Family; color: string; bg: string; bold: boolean; italic: boolean;
   parts: string[];                                        // words + whitespace, in order
-  boxes: ({ x: number; y: number; w: number; h: number } | null)[]; // per-word hit box
+  boxes: (WordBox | null)[];                              // per-word box (refined on click)
 };
+type WordBox = { x: number; y: number; w: number; h: number; inkTop?: number; inkH?: number };
 type Edit = { text: string; family: Family; size: number; color: string; bold: boolean; italic: boolean };
 type EditMap = Record<string, Edit>;
 
@@ -207,7 +208,19 @@ export function EditTool() {
           let measured = 0; const off: number[] = [];
           const widths = parts.map((p) => { off.push(measured); const mw = sctx.measureText(p).width; measured += mw; return mw; });
           const scl = measured > 0 ? w / measured : 0;
-          const boxes = parts.map((p, i) => p.trim() ? { x: (left + off[i] * scl) / vp.width, y: top / vp.height, w: (widths[i] * scl) / vp.width, h: fontH / vp.height } : null);
+          // Per-word box (proportional — accurate for the doc font) + the word's OWN
+          // measured ink height (so the redraw matches THAT word's size, not the
+          // line's — all-caps words have no descenders and would look too big).
+          const yWt = Math.round(top / vp.height * rp.h), yWb = Math.round((top + fontH) / vp.height * rp.h);
+          const boxes = parts.map((p, i) => {
+            if (!p.trim()) return null;
+            const bxF = (left + off[i] * scl) / vp.width, bwF = (widths[i] * scl) / vp.width;
+            const bl = Math.max(0, Math.round(bxF * rp.w)), br = Math.min(rp.w - 1, Math.round((bxF + bwF) * rp.w));
+            let cT = -1, cB = -1;
+            for (let y = yWt; y <= yWb; y++) { let d = false; for (let x = bl; x <= br; x++) { const cc = at(x, y); if (cc[0] + cc[1] + cc[2] < 430) { d = true; break; } } if (d) { if (cT < 0) cT = y; cB = y; } }
+            const wInkH = (cT >= 0 && cB >= cT) ? (cB - cT + 1) / rp.h : (fontH / vp.height) * 0.7;
+            return { x: bxF, y: top / vp.height, w: bwF, h: fontH / vp.height, inkH: wInkH };
+          });
           // Measure the line's ACTUAL rendered ink height (topmost→bottommost dark
           // pixel within its em box) so the redraw can match the original's visual
           // size — the browser font at the same nominal size looks bigger otherwise.
@@ -293,7 +306,7 @@ export function EditTool() {
     return null;
   }
   function onMove(e: React.MouseEvent) { const h = hitWord(frac(e)); setHover(h ? key(h.line.id, h.i) : null); }
-  function onClick(e: React.MouseEvent) { const p = frac(e); const h = hitWord(p); if (h) { const b = h.line.boxes[h.i]!; openWord(h.line, h.i, b.w > 0 ? (p.x - b.x) / b.w : 0); } else closeWord(); }
+  function onClick(e: React.MouseEvent) { const p = frac(e); const hw = hitWord(p); if (hw) { const b = hw.line.boxes[hw.i]!; openWord(hw.line, hw.i, b.w > 0 ? (p.x - b.x) / b.w : 0); } else closeWord(); }
 
   const editCount = pageLines.length
     ? Object.keys(edits).reduce((n, k) => { const [lineId, iStr] = k.split('#'); const p = Number(lineId.split('-')[0]); const line = (lines[p] || []).find((l) => l.id === lineId); const i = Number(iStr); return line && line.parts[i]?.trim() && partEdited(line, i, edits[k]) ? n + 1 : n; }, 0)
@@ -310,15 +323,14 @@ export function EditTool() {
         for (const line of ls) {
           if (!lineHasEdits(line, edits)) continue;
           const editedSet = new Set(editedIndices(line));
-          const inPlace = false; // whole-line re-encode (matched PDF font ≈ original width)
           const parts = line.parts.map((orig, i) => {
             const b = line.boxes[i];
-            const box = b ? { xFrac: b.x, yFrac: b.y, wFrac: b.w, hFrac: b.h } : undefined;
-            if (!orig.trim()) return { text: orig, origText: orig, family: line.family, color: line.color, bold: line.bold, italic: line.italic, box, changed: false };
+            if (!orig.trim() || !b || !editedSet.has(i)) return { text: orig, origText: orig, family: line.family, color: line.color, bold: line.bold, italic: line.italic, changed: false };
             const e = editOf(line, i, edits);
-            return { text: e.text, origText: orig, family: e.family, sizeFrac: e.size, color: e.color, bold: e.bold, italic: e.italic, box, changed: editedSet.has(i) };
+            const { size, wordScaleX, coverL, coverR } = wordDraw(line, i, e);
+            return { text: e.text, origText: orig, family: e.family, color: e.color, bold: e.bold, italic: e.italic, changed: true, box: { xFrac: b.x, yFrac: b.y, wFrac: b.w, hFrac: b.h }, drawSizeFrac: (size * Math.min(1, wordScaleX)) / disp.h, coverLFrac: coverL, coverRFrac: coverR };
           });
-          list.push({ page: p, xFrac: line.x, yFrac: line.y, wFrac: line.w, hFrac: line.h, bg: line.bg, parts, inPlace });
+          list.push({ page: p, xFrac: line.x, yFrac: line.y, wFrac: line.w, hFrac: line.h, bg: line.bg, parts, inPlace: true });
         }
       }
       const outBytes = await applyLineEdits(await file.arrayBuffer(), list);
@@ -338,23 +350,29 @@ export function EditTool() {
     return out;
   }
 
-  // Whole-line layout for redraw. Each word keeps its natural SIZE (height); the
-  // whole line is only CONDENSED horizontally if the browser font renders it wider
-  // than the original line width — so the line always occupies its original box
-  // (same size, same position, never expands/shifts), no fragile word detection.
-  function lineLayout(line: Line) {
-    const parts = line.parts.map((p, i) => (p.trim() ? editOf(line, i, edits) : null));
-    // Match the redraw's visual size to the ORIGINAL line's measured ink height.
-    const nomSize = line.h * disp.h;
-    const bH = inkHeight(line.parts.join('').slice(0, 40) || 'Hg', cssFont(line.family, line.bold, line.italic, nomSize)) || nomSize * 0.7;
-    const targetH = line.inkH * disp.h;
-    const sizeScale = Math.max(0.6, Math.min(1.1, targetH > 0 && bH > 0 ? targetH / bH : 1));
-    const sizeOf = (i: number) => { const e = parts[i]; return (e ? e.size : line.h) * disp.h * sizeScale; };
-    const natW = line.parts.map((orig, i) => { const e = parts[i]; return measureWidth((e ? e.text : orig) || ' ', cssFont(e ? e.family : line.family, e ? e.bold : line.bold, e ? e.italic : line.italic, sizeOf(i))); });
-    const offs: number[] = []; let acc = 0; natW.forEach((wd) => { offs.push(acc); acc += wd; });
-    const targetW = line.w * disp.w;
-    const scaleX = acc > targetW && acc > 0 ? targetW / acc : 1; // condense if wider, never expand
-    return { parts, natW, offs, scaleX, sizeScale };
+  // Redraw geometry for ONE word, sized to match the original word's measured ink
+  // height (so it isn't bigger than the rest), covering exactly its refined ink
+  // box. Nothing else on the line is touched — so the sentence can't widen or bump.
+  function wordDraw(line: Line, i: number, e: Edit) {
+    const b = line.boxes[i]!;
+    const nominal = e.size * disp.h;
+    const targetInk = (b.inkH ?? line.h * 0.7) * disp.h;
+    const brInk = inkHeight(e.text || 'Hg', cssFont(e.family, e.bold, e.italic, nominal)) || nominal * 0.9;
+    const size = nominal * Math.max(0.5, Math.min(1.25, targetInk > 0 && brInk > 0 ? targetInk / brInk : 1));
+    const natWFrac = measureWidth(e.text || ' ', cssFont(e.family, e.bold, e.italic, size)) / disp.w;
+    let prevR = line.x; for (let j = i - 1; j >= 0; j--) { const pb = line.boxes[j]; if (pb) { prevR = pb.x + pb.w; break; } }
+    let nextL = line.x + line.w; for (let j = i + 1; j < line.parts.length; j++) { const nb = line.boxes[j]; if (nb) { nextL = nb.x; break; } }
+    // If the new word is wider than the room to the next word, CONDENSE it
+    // horizontally to fit its slot (keeps height, never overlaps the neighbour).
+    const avail = Math.max(0.001, nextL - b.x);
+    const wordScaleX = natWFrac > avail ? avail / natWFrac : 1;
+    const drawnWFrac = natWFrac * wordScaleX;
+    // Cover to the MIDPOINT of the blank space on each side — safely in the gaps,
+    // never clipping a neighbour, always fully hiding the original word.
+    const coverL = (prevR + b.x) / 2;
+    const coverR = (Math.max(b.x + b.w, b.x + drawnWFrac) + nextL) / 2;
+    const baselinePx = (line.y + BASELINE * line.h) * disp.h;
+    return { b, size, natWFrac, drawnWFrac, wordScaleX, coverL, coverR, baselinePx };
   }
 
   // Draw the edited/active lines onto the overlay CANVAS. Cover + redrawn text
@@ -374,26 +392,26 @@ export function EditTool() {
       // Guard: an invalid colour string leaves canvas fillStyle unchanged (black),
       // which is exactly how a bad sample used to blot the line. Force white.
       const bgFill = /^rgb\(\s*\d/.test(line.bg) ? line.bg : 'rgb(255,255,255)';
-      // Cover the whole line, then redraw it condensed into its original width —
-      // the line stays exactly where it was, same size, just fitted (no expansion).
-      const bx = line.w * 0.02 + line.h * 0.06;
-      ctx.fillStyle = bgFill;
-      ctx.fillRect((line.x - bx) * disp.w, (line.y - COVER_TOP * line.h) * disp.h, (line.w + bx * 2) * disp.w, COVER_H * line.h * disp.h);
-      const { parts, offs, scaleX, sizeScale } = lineLayout(line);
-      const baseY = (line.y + BASELINE * line.h) * disp.h;
-      ctx.save();
-      ctx.translate(line.x * disp.w, 0);
-      ctx.scale(scaleX, 1);
-      line.parts.forEach((orig, i) => {
-        const e = parts[i];
-        const t = e ? e.text : orig;
-        if (t && t.trim() && !(isActive && editing!.i === i)) { // active word shown by the input
-          ctx.font = cssFont(e ? e.family : line.family, e ? e.bold : line.bold, e ? e.italic : line.italic, (e ? e.size : line.h) * disp.h * sizeScale);
-          ctx.fillStyle = e ? e.color : line.color;
-          ctx.fillText(t, offs[i], baseY);
+      // Cover + redraw ONLY the edited word(s) and the one being typed — nothing
+      // else on the line is drawn, so the rest stays exactly as the original.
+      const draws = new Set(editedIndices(line));
+      if (isActive) draws.add(editing!.i);
+      Array.from(draws).forEach((i) => {
+        if (!line.boxes[i]) return;
+        const e = editOf(line, i, edits);
+        const { b, size, wordScaleX, coverL, coverR, baselinePx } = wordDraw(line, i, e);
+        ctx.fillStyle = bgFill;
+        ctx.fillRect(coverL * disp.w, (b.y - COVER_TOP * b.h) * disp.h, (coverR - coverL) * disp.w, COVER_H * b.h * disp.h);
+        if (!(isActive && editing!.i === i) && e.text.trim()) { // active word shown by the DOM input
+          ctx.font = cssFont(e.family, e.bold, e.italic, size);
+          ctx.fillStyle = e.color;
+          ctx.save();
+          ctx.translate(b.x * disp.w, 0);
+          ctx.scale(wordScaleX, 1);
+          ctx.fillText(e.text, 0, baselinePx);
+          ctx.restore();
         }
       });
-      ctx.restore();
     }
     // hover highlight (skip the word being edited)
     if (hover && hover !== (editing ? key(editing.lineId, editing.i) : null)) {
@@ -486,12 +504,9 @@ export function EditTool() {
                   {/* click/hover surface */}
                   <div className="absolute inset-0" style={{ cursor: hover ? 'text' : 'default' }} onMouseMove={onMove} onMouseLeave={() => setHover(null)} onClick={onClick} />
 
-                  {/* the live editor input — positioned over its word in the condensed line */}
-                  {activeLine && activeEdit && editing && disp.h > 0 && (() => {
-                    const { natW, offs, scaleX, sizeScale } = lineLayout(activeLine);
-                    const size = activeEdit.size * disp.h * sizeScale;
-                    const wordLeft = activeLine.x * disp.w + offs[editing.i] * scaleX;
-                    const baselinePx = (activeLine.y + BASELINE * activeLine.h) * disp.h;
+                  {/* the live editor input — positioned exactly over its word */}
+                  {activeLine && activeEdit && editing && disp.h > 0 && activeLine.boxes[editing.i] && (() => {
+                    const { b, size, natWFrac, drawnWFrac, wordScaleX, baselinePx } = wordDraw(activeLine, editing.i, activeEdit);
                     return (
                       <input
                         ref={editRef}
@@ -504,7 +519,7 @@ export function EditTool() {
                           else if (ev.key === 'Enter' || ev.key === 'Escape') { ev.preventDefault(); if (ev.key === 'Escape') { setEditing(null); sessionRef.current = null; } }
                         }}
                         className="absolute z-20 rounded-[2px] p-0 outline-none ring-2 ring-primary/60"
-                        style={{ left: `${wordLeft}px`, top: `${baselinePx - BASELINE * size}px`, width: `${(natW[editing.i] || size) + 4}px`, height: `${size * 1.2}px`, lineHeight: `${size * 1.2}px`, transform: `scaleX(${scaleX})`, transformOrigin: 'left', fontFamily: FAMILIES[activeEdit.family].css, fontSize: `${size}px`, fontWeight: activeEdit.bold ? 700 : 400, fontStyle: activeEdit.italic ? 'italic' : 'normal', color: activeEdit.color, background: activeLine.bg, caretColor: '#4f46e5' }}
+                        style={{ left: `${b.x * disp.w}px`, top: `${baselinePx - BASELINE * size}px`, width: `${Math.max(natWFrac * disp.w, size) + 4}px`, height: `${size * 1.2}px`, lineHeight: `${size * 1.2}px`, transform: `scaleX(${wordScaleX})`, transformOrigin: 'left', fontFamily: FAMILIES[activeEdit.family].css, fontSize: `${size}px`, fontWeight: activeEdit.bold ? 700 : 400, fontStyle: activeEdit.italic ? 'italic' : 'normal', color: activeEdit.color, background: activeLine.bg, caretColor: '#4f46e5' }}
                       />
                     );
                   })()}
