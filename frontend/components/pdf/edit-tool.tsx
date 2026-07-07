@@ -46,8 +46,17 @@ function measureWidth(text: string, cssFont: string): number {
   measureCtx.font = cssFont;
   return measureCtx.measureText(text).width;
 }
+// Render the redraw in the SAME font pdf.js draws the page with, so edited text
+// matches the original instead of the browser's Arial. pdf.js renders the
+// standard-14 Helvetica/Arial with LiberationSans (bundled at /pdfjs/standard_fonts/,
+// which we also load as a FontFace below). Times/Courier fall back to their CSS
+// stacks until we add TTF substitutes for those too.
+const RENDER_CSS: Partial<Record<Family, string>> = {
+  helvetica: "'DiemLiberationSans', Helvetica, Arial, sans-serif",
+};
 function cssFont(family: Family, bold: boolean, italic: boolean, px: number): string {
-  return `${italic ? 'italic ' : ''}${bold ? '700 ' : '400 '}${px}px ${FAMILIES[family].css}`;
+  const fam = RENDER_CSS[family] ?? FAMILIES[family].css;
+  return `${italic ? 'italic ' : ''}${bold ? '700 ' : '400 '}${px}px ${fam}`;
 }
 // Rendered ink height of some text in a CSS font (cap+descender) — used to match
 // the redraw's visual size to the original (browser fonts look bigger otherwise).
@@ -104,6 +113,7 @@ export function EditTool() {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ blob: Blob; name: string; secs: number } | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
+  const [fontReady, setFontReady] = useState(0);
 
   const [past, setPast] = useState<EditMap[]>([]);
   const [future, setFuture] = useState<EditMap[]>([]);
@@ -138,6 +148,24 @@ export function EditTool() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => () => { if (handle) void handle.destroy(); }, [handle]);
+
+  // Load LiberationSans (the font pdf.js renders standard Helvetica with) so our
+  // canvas redraw matches the page exactly instead of using the browser's Arial.
+  // Same files pdf.js already uses, served from /pdfjs/standard_fonts/.
+  useEffect(() => {
+    if (typeof document === 'undefined' || !('fonts' in document) || typeof FontFace === 'undefined') return;
+    const base = '/pdfjs/standard_fonts/LiberationSans';
+    const faces = [
+      new FontFace('DiemLiberationSans', `url(${base}-Regular.ttf)`, { weight: '400', style: 'normal' }),
+      new FontFace('DiemLiberationSans', `url(${base}-Bold.ttf)`, { weight: '700', style: 'normal' }),
+      new FontFace('DiemLiberationSans', `url(${base}-Italic.ttf)`, { weight: '400', style: 'italic' }),
+      new FontFace('DiemLiberationSans', `url(${base}-BoldItalic.ttf)`, { weight: '700', style: 'italic' }),
+    ];
+    let alive = true;
+    void Promise.all(faces.map((f) => f.load().then((ff) => document.fonts.add(ff)).catch(() => {})))
+      .then(() => { if (alive) setFontReady((n) => n + 1); });
+    return () => { alive = false; };
+  }, []);
 
   // Keep `disp` (the displayed image size) EXACT at all times. A one-shot
   // measure on load reads clientHeight before layout settles (it comes back 0),
@@ -489,7 +517,7 @@ export function EditTool() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pageLines, edits, hover, editing, disp]);
 
-  useEffect(() => { paintOverlay(); }, [paintOverlay, preview]);
+  useEffect(() => { paintOverlay(); }, [paintOverlay, preview, fontReady]);
 
   const canUndo = past.length > 0, canRedo = future.length > 0;
   const tbBtn = 'flex size-9 items-center justify-center rounded-lg text-sm font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed';
