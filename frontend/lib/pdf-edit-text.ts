@@ -115,14 +115,21 @@ export async function applyLineEdits(src: ArrayBuffer | Uint8Array, edits: LineE
     // left as the ORIGINAL PDF vector (perfect font match, still selectable).
     if (L.inPlace) {
       const [ir, ig, ib] = parseRgb(L.bg);
-      for (const p of L.parts) {
+      for (let i = 0; i < L.parts.length; i++) {
+        const p = L.parts[i];
         if (!p.changed || !p.box) continue;
         const b = p.box; const bh = b.hFrac * H;
-        const pbx = Math.max(1, b.wFrac * W * 0.04 + bh * 0.06);
-        page.drawRectangle({ x: b.xFrac * W - pbx, y: H * (1 - b.yFrac - (COVER_H - COVER_TOP) * b.hFrac), width: b.wFrac * W + pbx * 2, height: COVER_H * bh, color: rgb(ir, ig, ib) });
+        const font = await getFont(p.family, p.bold, p.italic);
+        const size = (p.sizeFrac ?? b.hFrac) * H;
+        const drawnW = p.text ? font.widthOfTextAtSize(p.text, size) / W : 0;
+        // Cover to the MIDPOINT of the blank space on each side (hides the whole
+        // original word, never touches a neighbour).
+        let prevRight = L.xFrac; for (let j = i - 1; j >= 0; j--) { const pb = L.parts[j].box; if (pb) { prevRight = pb.xFrac + pb.wFrac; break; } }
+        let nextX = L.xFrac + L.wFrac + 0.02; for (let j = i + 1; j < L.parts.length; j++) { const nb = L.parts[j].box; if (nb) { nextX = nb.xFrac; break; } }
+        const leftBound = (prevRight + b.xFrac) / 2;
+        const rightBound = (Math.max(b.xFrac + b.wFrac, b.xFrac + drawnW) + nextX) / 2;
+        page.drawRectangle({ x: leftBound * W, y: H * (1 - b.yFrac - (COVER_H - COVER_TOP) * b.hFrac), width: (rightBound - leftBound) * W, height: COVER_H * bh, color: rgb(ir, ig, ib) });
         if (p.text.trim()) {
-          const font = await getFont(p.family, p.bold, p.italic);
-          const size = (p.sizeFrac ?? b.hFrac) * H;
           const [cr, cg, cb] = parseRgb(p.color);
           page.drawText(p.text, { x: b.xFrac * W, y: H * (1 - b.yFrac - BASELINE * b.hFrac), size, font, color: rgb(cr, cg, cb) });
         }
@@ -149,15 +156,12 @@ export async function applyLineEdits(src: ArrayBuffer | Uint8Array, edits: LineE
     //    longer replacement can't spill into a neighbouring run.
     const baseY = H * (1 - L.yFrac - BASELINE * L.hFrac);
     const fonts = await Promise.all(L.parts.map((p) => getFont(p.family, p.bold, p.italic)));
-    // Fit relative to the ORIGINAL content width (like-for-like in the redraw
-    // font), so unchanged / shorter edits never shrink; only a longer edit does.
-    let natCur = 0, natOrig = 0;
-    L.parts.forEach((p, i) => {
-      const size = (p.sizeFrac ?? L.hFrac) * H;
-      natCur += fonts[i].widthOfTextAtSize(p.text || ' ', size);
-      natOrig += fonts[i].widthOfTextAtSize((p.origText ?? p.text) || ' ', size);
-    });
-    const fit = natOrig > 0 ? lineFitScale(natCur, natOrig) : lineFitScale(natCur, L.wFrac * W);
+    // Keep natural size; only shrink if the whole line would run past the page's
+    // right edge (never shrink just because one word got a little wider).
+    let natCur = 0;
+    L.parts.forEach((p, i) => { natCur += fonts[i].widthOfTextAtSize(p.text || ' ', (p.sizeFrac ?? L.hFrac) * H); });
+    const availLine = Math.max(1, ((1 - L.xFrac) - 0.015) * W);
+    const fit = lineFitScale(natCur, availLine);
     let x = L.xFrac * W;
     L.parts.forEach((p, i) => {
       if (!p.text) return;

@@ -311,38 +311,30 @@ export function EditTool() {
 
   // Per-line layout: the fit scale + each part's drawn width. Preview canvas and
   // the editor input both use this so they stay perfectly in sync.
-  function lineMetrics(line: Line): { fit: number; widths: number[]; parts: (Edit | null)[] } {
+  // The plan for redrawing one edited line (shared by preview + export so they
+  // agree). Natural sizes are kept; the line only shrinks if it would run past the
+  // PAGE edge. A changed word is edited IN PLACE (only it redrawn, everything else
+  // left original) whenever it still fits before the next word starts.
+  function linePlan(line: Line) {
     const parts = line.parts.map((p, i) => (p.trim() ? editOf(line, i, edits) : null));
-    let natCur = 0, natOrig = 0; const base: number[] = [];
-    const origSize = line.h * disp.h;
+    const base: number[] = [];
     line.parts.forEach((orig, i) => {
       const e = parts[i];
       const size = (e ? e.size : line.h) * disp.h;
       base.push(measureWidth((e ? e.text : orig) || ' ', cssFont(e ? e.family : line.family, e ? e.bold : line.bold, e ? e.italic : line.italic, size)));
-      natCur += base[i];
-      natOrig += measureWidth(orig || ' ', cssFont(line.family, line.bold, line.italic, origSize));
     });
-    // Shrink ONLY when the EDIT itself makes the line wider than the original
-    // content (like-for-like in the browser font). Comparing against the PDF's
-    // own width shrank every line, because browser metrics are wider than the
-    // embedded font — that made unchanged/shorter edits look smaller.
-    const fit = lineFitScale(natCur, natOrig);
-    return { fit, widths: base.map((w) => w * fit), parts };
-  }
-
-  // Decide (identically for preview + export) whether a line can be edited
-  // IN PLACE — i.e. every changed word keeps its original width, so we redraw
-  // only the changed words and leave all other text untouched (best font match).
-  // Otherwise the line must reflow (whole-line redraw).
-  function linePlan(line: Line) {
-    const m = lineMetrics(line);
     const editedIdxs: number[] = [];
-    line.parts.forEach((_o, i) => { const e = m.parts[i]; if (e && partEdited(line, i, e)) editedIdxs.push(i); });
-    const inPlace = editedIdxs.length > 0 && editedIdxs.every((i) => {
-      const b = line.boxes[i]; if (!b) return false;
-      return Math.abs(m.widths[i] - b.w * disp.w) <= Math.max(2, b.w * disp.w * 0.08);
-    });
-    return { ...m, editedIdxs, inPlace };
+    line.parts.forEach((_o, i) => { const e = parts[i]; if (e && partEdited(line, i, e)) editedIdxs.push(i); });
+    // Only shrink if the whole line would pass the page's right edge — never just
+    // because one word got a little wider (that used to shrink the entire line).
+    const total = base.reduce((a, w) => a + w, 0);
+    const availLine = Math.max(1, ((1 - line.x) - 0.015) * disp.w);
+    const fit = lineFitScale(total, availLine);
+    // In-place (redraw ONLY the changed word) needs sub-pixel-accurate word boxes,
+    // but ours are proportional estimates — it left glyph fragments of the original.
+    // Whole-line reflow is robust (covers + redraws from the line start, no
+    // fragments) and, with the page-margin fit above, keeps the original size.
+    return { fit, widths: base.map((w) => w * fit), parts, editedIdxs, inPlace: false };
   }
 
   // Draw the edited/active lines onto the overlay CANVAS. Cover + redrawn text
@@ -372,9 +364,16 @@ export function EditTool() {
       if (inPlace) {
         for (const i of editedIdxs) {
           const b = line.boxes[i]!; const e = parts[i]!;
-          const pad = b.w * 0.04 + b.h * 0.06;
+          // Cover out to the MIDPOINT of the blank space on each side, so the whole
+          // original word is hidden (no glyph fragments peeking out) without ever
+          // touching a neighbouring word.
+          let prevRight = line.x; for (let j = i - 1; j >= 0; j--) { const pb = line.boxes[j]; if (pb) { prevRight = pb.x + pb.w; break; } }
+          let nextX = line.x + line.w + 0.02; for (let j = i + 1; j < line.parts.length; j++) { const nb = line.boxes[j]; if (nb) { nextX = nb.x; break; } }
+          const drawnRight = b.x + widths[i] / disp.w;
+          const leftBound = (prevRight + b.x) / 2;
+          const rightBound = (Math.max(b.x + b.w, drawnRight) + nextX) / 2;
           ctx.fillStyle = bgFill;
-          ctx.fillRect((b.x - pad) * disp.w, (b.y - COVER_TOP * b.h) * disp.h, (b.w + pad * 2) * disp.w, COVER_H * b.h * disp.h);
+          ctx.fillRect(leftBound * disp.w, (b.y - COVER_TOP * b.h) * disp.h, (rightBound - leftBound) * disp.w, COVER_H * b.h * disp.h);
           if (e.text.trim()) {
             ctx.font = cssFont(e.family, e.bold, e.italic, e.size * disp.h);
             ctx.fillStyle = e.color;
@@ -492,7 +491,7 @@ export function EditTool() {
 
                   {/* the live editor input — positioned exactly over its word slot */}
                   {activeLine && activeEdit && editing && disp.h > 0 && (() => {
-                    const { fit, widths } = lineMetrics(activeLine);
+                    const { fit, widths } = linePlan(activeLine);
                     const px = activeEdit.size * disp.h * fit;
                     let offset = 0; for (let j = 0; j < editing.i; j++) offset += widths[j];
                     const baselinePx = (activeLine.y + BASELINE * activeLine.h) * disp.h;
