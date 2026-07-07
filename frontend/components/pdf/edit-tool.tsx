@@ -358,13 +358,20 @@ export function EditTool() {
     } finally { setBusy(false); }
   }
 
-  // Draw size for a word, matched to its measured ink height (so it doesn't render
-  // bigger/taller than the rest of the line in the browser font).
-  function matchedSize(line: Line, box: WordBox, e: Edit): number {
+  // Draw size for an edited word. The browser font at the detected nominal size can
+  // render a bit larger/smaller than the PDF's font, so we correct it — but with a
+  // SINGLE per-line factor (the line's measured ink vs the browser rendering of the
+  // same line text), NOT per-word. Matching each word to its OWN ink made words
+  // whose letters differ from the original (e.g. a capitalised replacement over a
+  // lowercase word) shrink to the wrong x-height. One factor per line keeps every
+  // edited word at a consistent em that matches the untouched words around it.
+  function matchedSize(line: Line, _box: WordBox, e: Edit): number {
     const nominal = e.size * disp.h;
-    const targetInk = (box.inkH ?? line.h * 0.7) * disp.h;
-    const brInk = inkHeight(e.text || 'Hg', cssFont(e.family, e.bold, e.italic, nominal)) || nominal * 0.9;
-    return nominal * Math.max(0.5, Math.min(1.25, targetInk > 0 && brInk > 0 ? targetInk / brInk : 1));
+    const targetInk = line.inkH * disp.h;
+    const ref = line.parts.join('').trim() || 'Hg';
+    const brInk = inkHeight(ref, cssFont(line.family, line.bold, line.italic, line.h * disp.h)) || nominal * 0.9;
+    const scale = targetInk > 0 && brInk > 0 ? targetInk / brInk : 1;
+    return nominal * Math.max(0.7, Math.min(1.12, scale));
   }
 
   // In-place cover for ONE changed word: hides just that word's box (with a small
