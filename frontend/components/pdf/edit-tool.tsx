@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Upload, FileText, X, Loader2, Pencil, Undo2, Redo2, Bold, Italic, Trash2, Minus, Plus, Zap } from 'lucide-react';
+import { Upload, FileText, X, Loader2, Pencil, Undo2, Redo2, Bold, Italic, Trash2, Minus, Plus, Zap, TextCursorInput } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { downloadBlob as download } from '@/lib/download';
@@ -34,6 +34,8 @@ type Line = {
 type WordBox = { x: number; y: number; w: number; h: number; inkTop?: number; inkH?: number };
 type Edit = { text: string; family: Family; size: number; color: string; bold: boolean; italic: boolean };
 type EditMap = Record<string, Edit>;
+// A brand-new text box the user placed (independent of the PDF's own text).
+type Added = { id: string; page: number; x: number; y: number; sizeFrac: number; text: string; family: Family; color: string; bold: boolean; italic: boolean };
 
 const SWATCHES = ['#111827', '#374151', '#dc2626', '#ea580c', '#ca8a04', '#059669', '#2563eb', '#7c3aed', '#ffffff'];
 const key = (lineId: string, i: number) => `${lineId}#${i}`;
@@ -114,6 +116,12 @@ export function EditTool() {
   const [done, setDone] = useState<{ blob: Blob; name: string; secs: number } | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
   const [fontReady, setFontReady] = useState(0);
+  // Add-text (new boxes the user places), separate from the PDF's own words.
+  const [added, setAdded] = useState<Added[]>([]);
+  const [addSel, setAddSel] = useState<string | null>(null); // id being edited
+  const [addMode, setAddMode] = useState(false);             // click-to-place armed
+  const dragRef = useRef<{ id: string; dx: number; dy: number; moved: boolean } | null>(null);
+  const addInputRef = useRef<HTMLInputElement>(null);
 
   const [past, setPast] = useState<EditMap[]>([]);
   const [future, setFuture] = useState<EditMap[]>([]);
@@ -131,6 +139,7 @@ export function EditTool() {
     if (!canProcessSize(f.size, plan)) { setError(null); setTooBig({ name: f.name, size: f.size }); return; }
     setTooBig(null); setError(null); setDone(null); setBusy(true);
     setLines({}); setEdits({}); setEditing(null); setPreview(null); setPast([]); setFuture([]);
+    setAdded([]); setAddSel(null); setAddMode(false);
     try {
       const h = await openPdf(f);
       if (handle) void handle.destroy();
@@ -303,6 +312,33 @@ export function EditTool() {
   function closeWord() { if (editing) { endSession(edits); setEditing(null); } }
   function deleteActive() { patchActive({ text: '' }); }
 
+  // ---- Add-text: new boxes placed anywhere on the page -----------------------
+  const activeAdded = addSel ? added.find((a) => a.id === addSel) ?? null : null;
+  function placeAdded(fx: number, fy: number) {
+    closeWord();
+    const id = `A${Math.random().toString(36).slice(2, 8)}`;
+    setAdded((prev) => [...prev, { id, page: sel, x: Math.max(0, Math.min(0.98, fx)), y: Math.max(0, Math.min(0.97, fy)), sizeFrac: 0.022, text: '', family: 'helvetica', color: '#111827', bold: false, italic: false }]);
+    setAddSel(id);
+    setAddMode(false);
+  }
+  function patchAdded(patch: Partial<Added>) { if (addSel) setAdded((prev) => prev.map((a) => (a.id === addSel ? { ...a, ...patch } : a))); }
+  function deleteAdded() { if (addSel) { setAdded((prev) => prev.filter((a) => a.id !== addSel)); setAddSel(null); } }
+
+  // Unified "current selection" for the toolbar — a word edit OR an added box.
+  const hasSel = !!activeEdit || !!activeAdded;
+  const selFamily: Family = activeEdit?.family ?? activeAdded?.family ?? 'helvetica';
+  const selBold = activeEdit?.bold ?? activeAdded?.bold ?? false;
+  const selItalic = activeEdit?.italic ?? activeAdded?.italic ?? false;
+  const selColor = activeEdit?.color ?? activeAdded?.color ?? '';
+  const selSizeFrac = activeEdit?.size ?? activeAdded?.sizeFrac ?? 0.02;
+  const selSizePx = selSizeFrac * disp.h;
+  const selFamInfo = FAMILIES[selFamily];
+  function patchSel(p: { family?: Family; color?: string; bold?: boolean; italic?: boolean; size?: number }) {
+    if (activeEdit) patchActive(p);
+    else if (activeAdded) { const { size, ...rest } = p; patchAdded({ ...rest, ...(size !== undefined ? { sizeFrac: size } : {}) }); }
+  }
+  function deleteSel() { if (activeEdit) deleteActive(); else if (activeAdded) deleteAdded(); }
+
   function undo() {
     setPast((p) => { if (!p.length) return p; const prev = p[p.length - 1]; setFuture((f) => [edits, ...f]); setEdits(prev); setEditing(null); sessionRef.current = null; return p.slice(0, -1); });
   }
@@ -317,6 +353,13 @@ export function EditTool() {
     return () => cancelAnimationFrame(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editing?.lineId, editing?.i]);
+
+  // Focus a newly selected/placed text box so the user can type immediately.
+  useEffect(() => {
+    if (!addSel) return;
+    const id = requestAnimationFrame(() => { try { addInputRef.current?.focus(); } catch { /* ignore */ } });
+    return () => cancelAnimationFrame(id);
+  }, [addSel]);
 
   useEffect(() => {
     if (!file || done) return;
@@ -346,14 +389,22 @@ export function EditTool() {
     return null;
   }
   function onMove(e: React.MouseEvent) { const h = hitWord(frac(e)); setHover(h ? key(h.line.id, h.i) : null); }
-  function onClick(e: React.MouseEvent) { const p = frac(e); const hw = hitWord(p); if (hw) { const b = hw.line.boxes[hw.i]!; openWord(hw.line, hw.i, b.w > 0 ? (p.x - b.x) / b.w : 0); } else closeWord(); }
+  function onClick(e: React.MouseEvent) {
+    const p = frac(e);
+    if (addMode) { placeAdded(p.x, p.y); return; }       // click-to-place a new text box
+    const hw = hitWord(p);
+    if (hw) { const b = hw.line.boxes[hw.i]!; setAddSel(null); openWord(hw.line, hw.i, b.w > 0 ? (p.x - b.x) / b.w : 0); }
+    else { closeWord(); setAddSel(null); }                // click empty space = deselect
+  }
 
   const editCount = pageLines.length
     ? Object.keys(edits).reduce((n, k) => { const [lineId, iStr] = k.split('#'); const p = Number(lineId.split('-')[0]); const line = (lines[p] || []).find((l) => l.id === lineId); const i = Number(iStr); return line && line.parts[i]?.trim() && partEdited(line, i, edits[k]) ? n + 1 : n; }, 0)
     : 0;
+  const addedCount = added.filter((a) => a.text.trim()).length;
+  const totalChanges = editCount + addedCount;
 
   async function apply() {
-    if (!file || editCount === 0) return;
+    if (!file || totalChanges === 0) return;
     setBusy(true); setError(null); setDone(null);
     const t0 = performance.now();
     try {
@@ -378,6 +429,11 @@ export function EditTool() {
             }
           }
         }
+      }
+      // Added text boxes: a positioned draw with NO cover (coverL == coverR).
+      for (const a of added) {
+        if (!a.text.trim()) continue;
+        list.push({ page: a.page, yFrac: a.y, hFrac: a.sizeFrac, bg: 'rgb(255,255,255)', coverLFrac: a.x, coverRFrac: a.x, draws: [{ text: a.text, xFrac: a.x, sizeFrac: a.sizeFrac, family: a.family, color: a.color, bold: a.bold, italic: a.italic }] });
       }
       const outBytes = await applyLineEdits(await file.arrayBuffer(), list);
       const name = `${file.name.replace(/\.pdf$/i, '')}-edited.pdf`;
@@ -541,7 +597,7 @@ export function EditTool() {
           <div className="flex items-center gap-3 rounded-lg border bg-card p-2.5">
             <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-red-100 text-red-600 dark:bg-red-950/40"><FileText className="size-4" /></span>
             <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{file.name}</p><p className="text-xs text-muted-foreground">{fmt(file.size)} · {pageCount} page{pageCount === 1 ? '' : 's'}</p></div>
-            <Button size="icon" variant="ghost" aria-label="Remove" onClick={() => { if (handle) void handle.destroy(); setHandle(null); setFile(null); setDone(null); setError(null); setLines({}); setEdits({}); setPast([]); setFuture([]); }}><X className="size-4" /></Button>
+            <Button size="icon" variant="ghost" aria-label="Remove" onClick={() => { if (handle) void handle.destroy(); setHandle(null); setFile(null); setDone(null); setError(null); setLines({}); setEdits({}); setPast([]); setFuture([]); setAdded([]); setAddSel(null); setAddMode(false); }}><X className="size-4" /></Button>
           </div>
         )}
 
@@ -552,24 +608,26 @@ export function EditTool() {
                 (that blur used to commit + exit edit mode before the style applied),
                 so font/size/bold/italic/colour change live as you type. */}
             <div className="mb-3 flex flex-wrap items-center gap-1.5 rounded-2xl border bg-card p-1.5 shadow-soft"
-              onMouseDown={(e) => { if (editing) e.preventDefault(); }}>
-              <FontSelect value={activeEdit?.family ?? 'helvetica'} onChange={(f) => patchActive({ family: f })} className="w-44" />
+              onMouseDown={(e) => { if (editing || activeAdded) e.preventDefault(); }}>
+              <button className={`${tbBtn} gap-1.5 w-auto px-2.5 ${addMode ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}`} title="Add a new text box — then click where you want it" aria-pressed={addMode} onClick={() => { setAddMode((m) => !m); closeWord(); }}><TextCursorInput className="size-4" /> <span className="text-xs font-medium">Add text</span></button>
               <span className="mx-0.5 h-6 w-px bg-border/70" />
-              <button className={`${tbBtn} hover:bg-accent`} title="Smaller" disabled={!activeEdit} onClick={() => patchActive({ size: Math.max(0.006, activeEdit!.size * 0.92) })}><Minus className="size-4" /></button>
-              <span className="w-9 text-center text-xs tabular-nums text-muted-foreground">{activeEdit ? Math.round(activeEdit.size * disp.h) : '—'}</span>
-              <button className={`${tbBtn} hover:bg-accent`} title="Larger" disabled={!activeEdit} onClick={() => patchActive({ size: Math.min(0.2, activeEdit!.size * 1.08) })}><Plus className="size-4" /></button>
+              <FontSelect value={selFamily} onChange={(f) => patchSel({ family: f })} className="w-40" />
               <span className="mx-0.5 h-6 w-px bg-border/70" />
-              <button className={`${tbBtn} ${activeEdit?.bold ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}`} title="Bold" aria-pressed={!!activeEdit?.bold} disabled={!activeEdit || !famInfo?.bold} onClick={() => patchActive({ bold: !activeEdit!.bold })}><Bold className="size-4" /></button>
-              <button className={`${tbBtn} ${activeEdit?.italic ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}`} title="Italic" aria-pressed={!!activeEdit?.italic} disabled={!activeEdit || !famInfo?.italic} onClick={() => patchActive({ italic: !activeEdit!.italic })}><Italic className="size-4" /></button>
+              <button className={`${tbBtn} hover:bg-accent`} title="Smaller" disabled={!hasSel} onClick={() => patchSel({ size: Math.max(0.006, selSizeFrac * 0.92) })}><Minus className="size-4" /></button>
+              <span className="w-9 text-center text-xs tabular-nums text-muted-foreground">{hasSel ? Math.round(selSizePx) : '—'}</span>
+              <button className={`${tbBtn} hover:bg-accent`} title="Larger" disabled={!hasSel} onClick={() => patchSel({ size: Math.min(0.2, selSizeFrac * 1.08) })}><Plus className="size-4" /></button>
+              <span className="mx-0.5 h-6 w-px bg-border/70" />
+              <button className={`${tbBtn} ${selBold && hasSel ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}`} title="Bold" aria-pressed={selBold} disabled={!hasSel || !selFamInfo?.bold} onClick={() => patchSel({ bold: !selBold })}><Bold className="size-4" /></button>
+              <button className={`${tbBtn} ${selItalic && hasSel ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}`} title="Italic" aria-pressed={selItalic} disabled={!hasSel || !selFamInfo?.italic} onClick={() => patchSel({ italic: !selItalic })}><Italic className="size-4" /></button>
               <span className="mx-0.5 h-6 w-px bg-border/70" />
               <div className="flex items-center gap-1 px-0.5">
                 {SWATCHES.map((c) => (
-                  <button key={c} disabled={!activeEdit} aria-label={`colour ${c}`} aria-pressed={activeEdit?.color === c} onClick={() => patchActive({ color: c })}
-                    className={`size-5 rounded-full ring-offset-1 ring-offset-card transition-all disabled:opacity-40 ${activeEdit?.color === c ? 'ring-2 ring-primary' : 'ring-1 ring-border hover:ring-primary/50'}`} style={{ backgroundColor: c }} />
+                  <button key={c} disabled={!hasSel} aria-label={`colour ${c}`} aria-pressed={selColor === c} onClick={() => patchSel({ color: c })}
+                    className={`size-5 rounded-full ring-offset-1 ring-offset-card transition-all disabled:opacity-40 ${selColor === c ? 'ring-2 ring-primary' : 'ring-1 ring-border hover:ring-primary/50'}`} style={{ backgroundColor: c }} />
                 ))}
               </div>
               <span className="mx-0.5 h-6 w-px bg-border/70" />
-              <button className={`${tbBtn} text-destructive hover:bg-destructive/10`} title="Delete this word" disabled={!activeEdit} onClick={deleteActive}><Trash2 className="size-4" /></button>
+              <button className={`${tbBtn} text-destructive hover:bg-destructive/10`} title={activeAdded ? 'Delete this text box' : 'Delete this word'} disabled={!hasSel} onClick={deleteSel}><Trash2 className="size-4" /></button>
               <div className="ml-auto flex items-center gap-1">
                 <button className={`${tbBtn} hover:bg-accent`} title="Undo (Ctrl+Z)" disabled={!canUndo} onClick={undo}><Undo2 className="size-4" /></button>
                 <button className={`${tbBtn} hover:bg-accent`} title="Redo (Ctrl+Y)" disabled={!canRedo} onClick={redo}><Redo2 className="size-4" /></button>
@@ -578,7 +636,7 @@ export function EditTool() {
 
             <p className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
               <Pencil className="size-3.5 text-primary" />
-              {activeEdit ? 'Editing a word — type, then format with the toolbar. Only this word changes.' : 'Click any word to edit it.'}
+              {addMode ? 'Click anywhere on the page to drop a new text box.' : activeAdded ? 'Editing a text box — type, format, or drag it to move. Delete removes it.' : activeEdit ? 'Editing a word — type, then format with the toolbar. Only this word changes.' : 'Click any word to edit it, or use “Add text”.'}
               {detecting && <span className="inline-flex items-center gap-1"><Loader2 className="size-3 animate-spin" /> finding text…</span>}
             </p>
 
@@ -593,7 +651,7 @@ export function EditTool() {
                   <canvas ref={canvasRef} className="pointer-events-none absolute inset-0 h-full w-full" />
 
                   {/* click/hover surface */}
-                  <div className="absolute inset-0" style={{ cursor: hover ? 'text' : 'default' }} onMouseMove={onMove} onMouseLeave={() => setHover(null)} onClick={onClick} />
+                  <div className="absolute inset-0" style={{ cursor: addMode ? 'crosshair' : hover ? 'text' : 'default' }} onMouseMove={onMove} onMouseLeave={() => setHover(null)} onClick={onClick} />
 
                   {/* the live editor input — positioned exactly over its word */}
                   {activeLine && activeEdit && editing && disp.h > 0 && activeLine.boxes[editing.i] && (() => {
@@ -620,15 +678,50 @@ export function EditTool() {
                       />
                     );
                   })()}
+
+                  {/* Added text boxes (new content the user placed). Selected =
+                      editable input; otherwise a draggable label (click to edit,
+                      drag to move). Rendered in the SAME font the PDF uses. */}
+                  {disp.h > 0 && added.filter((a) => a.page === sel).map((a) => {
+                    const left = a.x * disp.w, top = a.y * disp.h, size = a.sizeFrac * disp.h;
+                    const fam = RENDER_CSS[a.family] ?? FAMILIES[a.family].css;
+                    const common: React.CSSProperties = { left: `${left}px`, top: `${top}px`, fontFamily: fam, fontSize: `${size}px`, fontWeight: a.bold ? 700 : 400, fontStyle: a.italic ? 'italic' : 'normal', color: a.color, lineHeight: 1.1 };
+                    if (a.id === addSel) {
+                      return (
+                        <input key={a.id} ref={addInputRef} value={a.text} placeholder="Type…"
+                          onChange={(ev) => patchAdded({ text: ev.target.value })}
+                          onKeyDown={(ev) => {
+                            const mod = ev.ctrlKey || ev.metaKey;
+                            if (ev.key === 'Escape' || ev.key === 'Enter') { ev.preventDefault(); if (ev.key === 'Escape' && !a.text.trim()) deleteAdded(); else setAddSel(null); }
+                            else if (mod && ev.key.toLowerCase() === 'b') { ev.preventDefault(); if (selFamInfo?.bold) patchAdded({ bold: !a.bold }); }
+                            else if (mod && ev.key.toLowerCase() === 'i') { ev.preventDefault(); if (selFamInfo?.italic) patchAdded({ italic: !a.italic }); }
+                          }}
+                          className="absolute z-30 rounded-[2px] border-0 p-0 outline-none ring-2 ring-primary/70"
+                          style={{ ...common, width: `${Math.max(size * 2, measureWidth(a.text || 'Type…', cssFont(a.family, a.bold, a.italic, size)) + 8)}px`, height: `${size * 1.3}px`, background: 'rgba(255,255,255,0.65)', caretColor: '#4f46e5' }}
+                        />
+                      );
+                    }
+                    return (
+                      <div key={a.id} role="button" tabIndex={0}
+                        onPointerDown={(e) => { e.stopPropagation(); try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch { /* ignore */ } const r = wrapRef.current!.getBoundingClientRect(); dragRef.current = { id: a.id, dx: e.clientX - (r.left + left), dy: e.clientY - (r.top + top), moved: false }; }}
+                        onPointerMove={(e) => { const d = dragRef.current; if (!d || d.id !== a.id) return; const r = wrapRef.current!.getBoundingClientRect(); const nx = (e.clientX - d.dx - r.left) / r.width, ny = (e.clientY - d.dy - r.top) / r.height; if (Math.abs(e.movementX) + Math.abs(e.movementY) > 0) d.moved = true; setAdded((prev) => prev.map((x) => (x.id === a.id ? { ...x, x: Math.max(0, Math.min(0.99, nx)), y: Math.max(0, Math.min(0.99, ny)) } : x))); }}
+                        onPointerUp={() => { const d = dragRef.current; dragRef.current = null; if (d && !d.moved) { closeWord(); setAddSel(a.id); } }}
+                        className="absolute z-20 cursor-move select-none whitespace-pre rounded-[2px] ring-1 ring-transparent hover:ring-primary/40"
+                        style={common}
+                      >{a.text || <span style={{ color: '#9ca3af' }}>Text</span>}</div>
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="flex h-72 items-center justify-center"><Loader2 className="size-5 animate-spin text-muted-foreground" /></div>
               )}
             </div>
 
-            {pageCount > 1 && <PageStrip handle={handle} count={pageCount} selected={sel} onSelect={(i) => { closeWord(); setSel(i); }} className="mt-2" />}
+            {pageCount > 1 && <PageStrip handle={handle} count={pageCount} selected={sel} onSelect={(i) => { closeWord(); setAddSel(null); setAddMode(false); setSel(i); }} className="mt-2" />}
             <p className="mt-2 text-center text-xs text-muted-foreground">
-              {editCount ? `${editCount} word${editCount === 1 ? '' : 's'} edited in place — untouched words stay exactly as the original. A much longer replacement can run into the next word.` : 'Hover shows editable words. Scanned pages have no selectable text to edit.'}
+              {totalChanges
+                ? `${[editCount && `${editCount} word${editCount === 1 ? '' : 's'} edited`, addedCount && `${addedCount} text box${addedCount === 1 ? '' : 'es'} added`].filter(Boolean).join(' · ')} — edits stay in your browser.`
+                : 'Click a word to edit it, or use “Add text” to drop new text anywhere. Scanned pages have no selectable text.'}
             </p>
           </div>
         )}
@@ -636,7 +729,7 @@ export function EditTool() {
         {error && <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
 
         {file && !done && (
-          <Button className="mt-4 w-full" size="lg" onClick={apply} disabled={busy || editCount === 0}>
+          <Button className="mt-4 w-full" size="lg" onClick={apply} disabled={busy || totalChanges === 0}>
             {busy ? <><Loader2 className="size-4 animate-spin" /> Saving…</> : <><Pencil className="size-4" /> Save edited PDF</>}
           </Button>
         )}
