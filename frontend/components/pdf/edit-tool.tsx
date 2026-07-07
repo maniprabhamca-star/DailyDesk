@@ -14,6 +14,7 @@ import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
 import { FAMILIES, type Family } from '@/lib/fonts';
 import { applyLineEdits, lineFitScale, COVER_TOP, COVER_H, BASELINE, type LineEdit } from '@/lib/pdf-edit-text';
+import { pageBackground, lineColors, type RGB } from '@/lib/pdf-sample';
 
 // Edit PDF — HYBRID in-place text editing (see docs/edit-pdf-approach.md).
 // pdf.js detects each LINE of text (box, size, colour) and splits it into words.
@@ -158,23 +159,12 @@ export function EditTool() {
         const sc = document.createElement('canvas'); sc.width = rp.w; sc.height = rp.h;
         const sctx = sc.getContext('2d')!; sctx.drawImage(img, 0, 0, rp.w, rp.h);
         const px = sctx.getImageData(0, 0, rp.w, rp.h).data;
-        const at = (cx: number, cy: number) => { const i = (Math.min(rp.h - 1, Math.max(0, cy)) * rp.w + Math.min(rp.w - 1, Math.max(0, cx))) * 4; return [px[i], px[i + 1], px[i + 2]]; };
-        // Ink = darkest pixel over a dense grid spanning the whole line; bg = pixel
-        // just above the line. Near-black fallback for faint text.
-        const sample = (x0: number, x1: number, topPt: number, hPt: number) => {
-          let dark = [17, 24, 39], best = 999;
-          for (let ky = 1; ky <= 6; ky++) {
-            const cy = (topPt + hPt * (ky / 8)) / vp.height * rp.h;
-            for (let kx = 0; kx <= 16; kx++) {
-              const cx = (x0 + (x1 - x0) * kx / 16) / vp.width * rp.w;
-              const [r0, g0, b0] = at(cx, cy); const lum = r0 + g0 + b0;
-              if (lum < best) { best = lum; dark = [r0, g0, b0]; }
-            }
-          }
-          if (best > 360) dark = [17, 24, 39];
-          const [br, bg2, bb] = at(((x0 + x1) / 2) / vp.width * rp.w, (topPt - hPt * 0.35) / vp.height * rp.h);
-          return { color: `rgb(${dark[0]},${dark[1]},${dark[2]})`, bg: `rgb(${br},${bg2},${bb})` };
-        };
+        const at = (cx: number, cy: number): RGB => { const i = (Math.min(rp.h - 1, Math.max(0, cy)) * rp.w + Math.min(rp.w - 1, Math.max(0, cx))) * 4; return [px[i], px[i + 1], px[i + 2]]; };
+        // Robust colours (lib/pdf-sample) — the cover background is the MODE of the
+        // line's surrounding gaps with a page-colour fallback, so a single dark
+        // pixel can never paint the whole line black.
+        const pageBg = pageBackground(at, rp.w, rp.h);
+        const sample = (x0: number, x1: number, topPt: number, hPt: number) => lineColors(at, vp.width, vp.height, rp.w, rp.h, x0, x1, topPt, hPt, pageBg);
         const list: Line[] = [];
         for (const it of tc.items as Array<{ str?: string; transform?: number[]; width?: number; height?: number; fontName?: string }>) {
           const s = it.str;
