@@ -159,7 +159,15 @@ export function EditTool() {
         const sc = document.createElement('canvas'); sc.width = rp.w; sc.height = rp.h;
         const sctx = sc.getContext('2d')!; sctx.drawImage(img, 0, 0, rp.w, rp.h);
         const px = sctx.getImageData(0, 0, rp.w, rp.h).data;
-        const at = (cx: number, cy: number): RGB => { const i = (Math.min(rp.h - 1, Math.max(0, cy)) * rp.w + Math.min(rp.w - 1, Math.max(0, cx))) * 4; return [px[i], px[i + 1], px[i + 2]]; };
+        // MUST floor to integer pixel coords — a fractional index into the pixel
+        // array returns undefined, which produced `rgb(undefined,...)` covers
+        // (invalid → transparent in DOM = doubling, black on canvas = black bar).
+        const at = (cx: number, cy: number): RGB => {
+          const xi = Math.min(rp.w - 1, Math.max(0, Math.round(cx)));
+          const yi = Math.min(rp.h - 1, Math.max(0, Math.round(cy)));
+          const i = (yi * rp.w + xi) * 4;
+          return [px[i], px[i + 1], px[i + 2]];
+        };
         // Robust colours (lib/pdf-sample) — the cover background is the MODE of the
         // line's surrounding gaps with a page-colour fallback, so a single dark
         // pixel can never paint the whole line black.
@@ -328,7 +336,9 @@ export function EditTool() {
       if (!isActive && !lineHasEdits(line, edits)) continue;
       const { fit, widths, parts } = lineMetrics(line);
       const bx = line.w * 0.02 + line.h * 0.06;
-      ctx.fillStyle = line.bg;
+      // Guard: an invalid colour string leaves canvas fillStyle unchanged (black),
+      // which is exactly how a bad sample used to blot the line. Force white.
+      ctx.fillStyle = /^rgb\(\s*\d/.test(line.bg) ? line.bg : 'rgb(255,255,255)';
       ctx.fillRect((line.x - bx) * disp.w, (line.y - COVER_TOP * line.h) * disp.h, (line.w + bx * 2) * disp.w, COVER_H * line.h * disp.h);
       const baseY = (line.y + BASELINE * line.h) * disp.h;
       let x = line.x * disp.w;

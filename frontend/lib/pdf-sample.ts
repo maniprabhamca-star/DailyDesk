@@ -12,6 +12,7 @@ export type Sampler = (x: number, y: number) => RGB; // rendered-page pixel coor
 
 const lum = (c: RGB) => c[0] + c[1] + c[2];
 const bucket = (c: RGB) => `${c[0] >> 3}_${c[1] >> 3}_${c[2] >> 3}`;
+const finite = (c: RGB) => Number.isFinite(c[0]) && Number.isFinite(c[1]) && Number.isFinite(c[2]);
 
 /** Dominant colour of the whole rendered page = the paper colour (robust). */
 export function pageBackground(at: Sampler, rpW: number, rpH: number): RGB {
@@ -20,7 +21,7 @@ export function pageBackground(at: Sampler, rpW: number, rpH: number): RGB {
   const stepY = Math.max(1, Math.floor(rpH / 60));
   for (let y = 0; y < rpH; y += stepY) {
     for (let x = 0; x < rpW; x += stepX) {
-      const c = at(x, y); const k = bucket(c);
+      const c = at(x, y); if (!finite(c)) continue; const k = bucket(c);
       const e = counts.get(k); if (e) e.n++; else counts.set(k, { n: 1, c });
     }
   }
@@ -42,7 +43,7 @@ export function lineColors(
     const cy = (topPt + hPt * (ky / 8)) / vpH * rpH;
     for (let kx = 0; kx <= 16; kx++) {
       const cx = (x0 + (x1 - x0) * kx / 16) / vpW * rpW;
-      const c = at(cx, cy); const l = lum(c);
+      const c = at(cx, cy); if (!finite(c)) continue; const l = lum(c);
       if (l < best) { best = l; dark = c; }
     }
   }
@@ -55,7 +56,7 @@ export function lineColors(
     const cy = (topPt + hPt * f) / vpH * rpH;
     for (let kx = 0; kx <= 20; kx++) {
       const cx = (x0 + (x1 - x0) * kx / 20) / vpW * rpW;
-      const c = at(cx, cy); const k = bucket(c);
+      const c = at(cx, cy); if (!finite(c)) continue; const k = bucket(c);
       const e = counts.get(k); if (e) e.n++; else counts.set(k, { n: 1, c });
     }
   }
