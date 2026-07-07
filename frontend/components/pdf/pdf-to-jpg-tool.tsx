@@ -13,6 +13,7 @@ import { KeepGoing } from '@/components/app/keep-going';
 import { KeepMoving } from '@/components/app/keep-moving';
 import { setHandoff, takeHandoff } from '@/lib/handoff';
 import { getPdfjs, pdfDocOptions, yieldToLoop } from '@/lib/pdf-render';
+import { BeforeAfter } from '@/components/pdf/before-after';
 
 type Format = 'jpg' | 'png';
 type Preset = 'standard' | 'high' | 'max';
@@ -27,8 +28,16 @@ const PRESET: Record<Preset, { dpi: number; q: number; title: string; sub: strin
   max: { dpi: 300, q: 90, title: 'Maximum', sub: 'Print · archival' },
 };
 const MAX_DIM = 5000; // clamp very large pages (Letter@300dpi = 2550×3300; A3@300 ≈ 4960)
+const PREVIEW_CAP = 3000; // bound the single-page live preview (still keeps the DPI presets visibly distinct)
 
 type Result = { name: string; blob: Blob; url: string; page: number };
+
+// Minimal structural shape of a pdf.js page — just what the preview render uses.
+type PdfViewport = { width: number; height: number };
+type PdfPage = {
+  getViewport: (o: { scale: number }) => PdfViewport;
+  render: (o: { canvas: HTMLCanvasElement; viewport: PdfViewport; background: string; intent: string }) => { promise: Promise<void> };
+};
 
 function fmt(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -109,6 +118,13 @@ export function PdfToJpgTool() {
   const [skipped, setSkipped] = useState<number[]>([]);
   const [elapsed, setElapsed] = useState<number | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
+  // Live quality preview (JPG target): one page rendered at the selected DPI +
+  // mozjpeg quality, next to the lossless render — judge sharpness before you
+  // convert the whole document.
+  const [beforePrev, setBeforePrev] = useState<{ url: string; w: number; h: number } | null>(null);
+  const [afterPrev, setAfterPrev] = useState<{ url: string; w: number; h: number } | null>(null);
+  const [previewBusy, setPreviewBusy] = useState(false);
+  const previewDocRef = useRef<{ doc: { getPage: (n: number) => Promise<PdfPage>; numPages: number }; destroy: () => Promise<void> } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
@@ -124,6 +140,84 @@ export function PdfToJpgTool() {
     rs.forEach((r) => URL.revokeObjectURL(r.url));
   }
   useEffect(() => () => revoke(results), [results]);
+
+  function clearPreview() {
+    setBeforePrev((p) => { if (p) URL.revokeObjectURL(p.url); return null; });
+    setAfterPrev((p) => { if (p) URL.revokeObjectURL(p.url); return null; });
+  }
+
+  // Open a pdf.js handle for the live preview once per file (the full convert
+  // still opens its own throwaway handle). Loading the engine here is fine — the
+  // user has already committed a file and is choosing options.
+  useEffect(() => {
+    if (!file) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const pdfjs = await getPdfjs();
+        const task = pdfjs.getDocument(pdfDocOptions(new Uint8Array(await file.arrayBuffer())));
+        const doc = await task.promise;
+        if (cancelled) { try { await task.destroy(); } catch { /* ignore */ } return; }
+        previewDocRef.current = { doc: doc as unknown as { getPage: (n: number) => Promise<PdfPage>; numPages: number }, destroy: () => task.destroy() };
+      } catch { /* preview is optional */ }
+    })();
+    return () => {
+      cancelled = true;
+      const d = previewDocRef.current;
+      previewDocRef.current = null;
+      if (d) void d.destroy().catch(() => {});
+    };
+  }, [file]);
+
+  // Debounced single-page quality preview (JPG only — PNG is lossless, nothing to
+  // compare). Renders the first selected page at the chosen DPI, then shows the
+  // lossless render vs the mozjpeg-encoded result at the preset's quality.
+  useEffect(() => {
+    if (!file || format !== 'jpg' || pageCount === 0) { clearPreview(); return; }
+    let cancelled = false;
+    setPreviewBusy(true);
+    const t = setTimeout(async () => {
+      try {
+        const handle = previewDocRef.current;
+        if (!handle) { setPreviewBusy(false); return; }
+        let n = 1;
+        try { n = parseRanges(ranges, pageCount)[0] || 1; } catch { n = 1; }
+        const page = await handle.doc.getPage(n);
+        const { dpi, q } = PRESET[preset];
+        let s = dpi / 72;
+        let viewport = page.getViewport({ scale: s });
+        const longEdge = Math.max(viewport.width, viewport.height);
+        const cap = Math.min(MAX_DIM, PREVIEW_CAP);
+        if (longEdge > cap) { s = (s * cap) / longEdge; viewport = page.getViewport({ scale: s }); }
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.ceil(viewport.width);
+        canvas.height = Math.ceil(viewport.height);
+        const ctx = canvas.getContext('2d');
+        if (!ctx) { setPreviewBusy(false); return; }
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        await page.render({ canvas, viewport, background: 'rgba(255,255,255,1)', intent: 'print' }).promise;
+        if (cancelled) { canvas.width = 0; canvas.height = 0; return; }
+        const w = canvas.width, h = canvas.height;
+        const beforeBlob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/png'));
+        const imageData = ctx.getImageData(0, 0, w, h);
+        let afterBlob: Blob | null;
+        try { afterBlob = await encodeJpeg(imageData, q); }
+        catch { afterBlob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/jpeg', q / 100)); }
+        canvas.width = 0; canvas.height = 0;
+        if (cancelled) return;
+        if (beforeBlob) setBeforePrev((p) => { if (p) URL.revokeObjectURL(p.url); return { url: URL.createObjectURL(beforeBlob), w, h }; });
+        if (afterBlob) setAfterPrev((p) => { if (p) URL.revokeObjectURL(p.url); return { url: URL.createObjectURL(afterBlob), w, h }; });
+      } catch { /* preview is optional */ } finally {
+        if (!cancelled) setPreviewBusy(false);
+      }
+    }, 300);
+    return () => { cancelled = true; clearTimeout(t); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [file, format, preset, ranges, pageCount]);
+
+  // Release preview URLs on unmount.
+  useEffect(() => () => clearPreview(), []);
 
   // "Keep moving": pick up a PDF handed over from another tool, no re-upload.
   useEffect(() => {
@@ -173,6 +267,7 @@ export function PdfToJpgTool() {
     setError(null);
     setProgress(null);
     setElapsed(null);
+    clearPreview();
   }
 
   function startOver() {
@@ -416,6 +511,28 @@ export function PdfToJpgTool() {
               <input className={inputCls} value={ranges} onChange={(e) => setRanges(e.target.value)} placeholder="e.g. 1-3, 5, 8-10" inputMode="numeric" />
               <p className="mt-1.5 text-xs text-muted-foreground">This PDF has {pageCount} page{pageCount === 1 ? '' : 's'}. One image per page; download each one or all of them as a ZIP.</p>
             </div>
+
+            {/* Live quality preview — the first selected page at this exact DPI +
+                quality, lossless vs. JPG, so you can zoom in before converting
+                the whole document. PNG output is lossless, so no preview there. */}
+            {format === 'jpg' && (beforePrev || afterPrev || previewBusy) && (
+              <div>
+                <p className="mb-2 flex items-center gap-1.5 text-sm font-medium">
+                  Quality preview — {PRESET[preset].title} · {PRESET[preset].dpi} DPI
+                  {previewBusy && <Loader2 className="size-3.5 animate-spin text-muted-foreground" />}
+                </p>
+                <BeforeAfter
+                  before={beforePrev}
+                  after={afterPrev}
+                  beforeCaption="Lossless"
+                  afterCaption={`JPG · ${PRESET[preset].dpi} DPI`}
+                  beforeLabel="PNG render"
+                  afterLabel={`Quality ${PRESET[preset].q}`}
+                  loading={!afterPrev}
+                  zoomHint="Hover to zoom into the fine print before you convert"
+                />
+              </div>
+            )}
           </div>
         )}
 

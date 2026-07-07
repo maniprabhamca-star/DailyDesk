@@ -13,6 +13,8 @@ import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
 import { BeforeAfter } from '@/components/pdf/before-after';
 import { SavingsRing } from '@/components/app/savings-ring';
+import { buildPreviewCanvas, canvasToPngBlob, encodeCanvas } from '@/lib/image-convert';
+import { useQualityPreview } from '@/lib/use-quality-preview';
 
 // Compress Image — 100% on-device. Decode → optional downscale → re-encode with
 // mozjpeg (same WASM encoder as PDF→JPG; graceful native-canvas fallback). Never
@@ -74,17 +76,29 @@ export function CompressImageTool() {
   const [srcUrl, setSrcUrl] = useState<string | null>(null);
   const [srcDims, setSrcDims] = useState<{ w: number; h: number } | null>(null);
   const [done, setDone] = useState<{ blob: Blob; name: string; before: number; after: number; url: string; w: number; h: number; optimized: boolean; secs: number } | null>(null);
+  // Live pre-run quality preview: the original vs. what the selected quality +
+  // size will actually produce, judged with your eyes before you commit.
+  const [beforePrev, setBeforePrev] = useState<{ url: string; w: number; h: number } | null>(null);
+  const srcSourceRef = useRef<(CanvasImageSource & { width: number; height: number }) | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const doneRef = useRef<HTMLDivElement>(null);
+
+  function releaseSource() {
+    setBeforePrev((p) => { if (p) URL.revokeObjectURL(p.url); return null; });
+    const s = srcSourceRef.current as ImageBitmap | null;
+    s?.close?.();
+    srcSourceRef.current = null;
+  }
 
   useEffect(() => {
     if (done) doneRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, [done]);
 
-  // Free object URLs on unmount.
+  // Free object URLs (and the kept preview bitmap) on unmount.
   useEffect(() => () => {
     setSrcUrl((u) => { if (u) URL.revokeObjectURL(u); return null; });
     setDone((d) => { if (d) URL.revokeObjectURL(d.url); return null; });
+    releaseSource();
   }, []);
 
   function loadOne(f?: File) {
@@ -96,13 +110,34 @@ export function CompressImageTool() {
     setDone((d) => { if (d) URL.revokeObjectURL(d.url); return null; });
     setSrcUrl((u) => { if (u) URL.revokeObjectURL(u); return URL.createObjectURL(f); });
     setSrcDims(null);
+    releaseSource();
     setFile(f);
-    // Read dimensions for the info line (best-effort).
-    void decode(f).then((bmp) => {
+    // Read dimensions + keep the decoded source for the live quality preview.
+    void decode(f).then(async (bmp) => {
       setSrcDims({ w: bmp.width, h: bmp.height });
-      (bmp as ImageBitmap).close?.();
+      srcSourceRef.current = bmp as CanvasImageSource & { width: number; height: number };
+      try {
+        const { canvas, w, h } = buildPreviewCanvas(srcSourceRef.current);
+        const png = await canvasToPngBlob(canvas);
+        setBeforePrev((p) => { if (p) URL.revokeObjectURL(p.url); return { url: URL.createObjectURL(png), w, h }; });
+      } catch { /* preview is optional */ }
     }).catch(() => { /* info only */ });
   }
+
+  // Debounced preview render at the selected quality + size cap.
+  const showPreview = !!file && !done && !busy;
+  const resizeCap = resize === 'original' ? Infinity : parseInt(resize, 10);
+  const { preview, busy: previewBusy } = useQualityPreview({
+    active: showPreview,
+    signature: file ? `${file.name}:${file.size}:${file.lastModified}|${level}|${resize}` : '',
+    render: async () => {
+      const src = srcSourceRef.current;
+      if (!src) return null;
+      const { canvas, w, h } = buildPreviewCanvas(src, resizeCap);
+      const blob = await encodeCanvas(canvas, 'jpg', LEVELS[level].q);
+      return { blob, w, h };
+    },
+  });
   function pick(files: FileList | null) { loadOne(files?.[0] ?? undefined); }
 
   function clear() {
@@ -112,6 +147,7 @@ export function CompressImageTool() {
     setSrcDims(null);
     setSrcUrl((u) => { if (u) URL.revokeObjectURL(u); return null; });
     setDone((d) => { if (d) URL.revokeObjectURL(d.url); return null; });
+    releaseSource();
   }
 
   async function run() {
@@ -249,6 +285,27 @@ export function CompressImageTool() {
                   ))}
                 </div>
               </div>
+
+              {/* Live quality preview — original vs. this exact setting, before
+                  you commit. Judge sharpness with the zoom, not a number. */}
+              {(beforePrev || preview || previewBusy) && (
+                <div className="mt-4">
+                  <p className="mb-2 flex items-center gap-1.5 text-sm font-medium">
+                    Quality preview — “{LEVELS[level].title}”
+                    {previewBusy && <Loader2 className="size-3.5 animate-spin text-muted-foreground" />}
+                  </p>
+                  <BeforeAfter
+                    before={beforePrev}
+                    after={preview}
+                    beforeCaption="Original"
+                    afterCaption={LEVELS[level].title}
+                    beforeLabel="Full quality"
+                    afterLabel={`${LEVELS[level].title}${resize === 'original' ? '' : ` · ${resizeCap}px`}`}
+                    loading={!preview}
+                    zoomHint="Hover to zoom in and check the detail before you save"
+                  />
+                </div>
+              )}
             </>
           )}
 

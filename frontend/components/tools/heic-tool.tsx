@@ -13,6 +13,9 @@ import { KeepMoving } from '@/components/app/keep-moving';
 import { setHandoff } from '@/lib/handoff';
 import { yieldToLoop } from '@/lib/pdf-render';
 import { usePlan, canProcessSize, allowedBatchCount, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
+import { BeforeAfter } from '@/components/pdf/before-after';
+import { useQualityPreview } from '@/lib/use-quality-preview';
+import { buildPreviewCanvas, canvasToPngBlob, encodeCanvas } from '@/lib/image-convert';
 
 // ---- libheif loader ---------------------------------------------------------
 // The decoder is the open-source libheif compiled to WebAssembly (LGPL-3.0 —
@@ -84,11 +87,72 @@ export function HeicTool() {
   const [results, setResults] = useState<Result[]>([]);
   const [skipped, setSkipped] = useState<string[]>([]);
   const [elapsed, setElapsed] = useState<number | null>(null);
+  // Live quality preview: the first photo decoded once into a capped canvas, then
+  // re-encoded at the selected quality next to the lossless original.
+  const [beforePrev, setBeforePrev] = useState<{ url: string; w: number; h: number } | null>(null);
+  const prevCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
   function revoke(rs: Result[]) { rs.forEach((r) => URL.revokeObjectURL(r.url)); }
   useEffect(() => () => revoke(results), [results]);
+
+  function releasePreview() {
+    setBeforePrev((p) => { if (p) URL.revokeObjectURL(p.url); return null; });
+    const c = prevCanvasRef.current;
+    if (c) { c.width = 0; c.height = 0; }
+    prevCanvasRef.current = null;
+  }
+  useEffect(() => () => releasePreview(), []);
+
+  // Decode the first photo once (libheif) into a capped preview source + build the
+  // lossless "before" snapshot. Runs only after a file is added — nothing loads
+  // for visitors just reading the page.
+  const firstKey = files[0] ? `${files[0].name}:${files[0].size}:${files[0].lastModified}` : '';
+  useEffect(() => {
+    const f = files[0];
+    if (!f) { releasePreview(); return; }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const lib = await getLibheif();
+        const images = new lib.HeifDecoder().decode(new Uint8Array(await f.arrayBuffer()));
+        if (!images.length) return;
+        const img = images[0];
+        const w = img.get_width(), h = img.get_height();
+        if (!w || !h || w * h > MAX_PIXELS) { img.free?.(); return; }
+        const id = new ImageData(w, h);
+        await new Promise<void>((res, rej) => img.display(id, (d) => (d ? res() : rej(new Error('decode')))));
+        img.free?.();
+        if (cancelled) return;
+        const tmp = document.createElement('canvas');
+        tmp.width = w; tmp.height = h;
+        tmp.getContext('2d')!.putImageData(id, 0, 0);
+        const { canvas, w: pw, h: ph } = buildPreviewCanvas(tmp);
+        tmp.width = 0; tmp.height = 0;
+        if (cancelled) { canvas.width = 0; canvas.height = 0; return; }
+        prevCanvasRef.current = canvas;
+        const png = await canvasToPngBlob(canvas);
+        if (cancelled) return;
+        setBeforePrev((p) => { if (p) URL.revokeObjectURL(p.url); return { url: URL.createObjectURL(png), w: pw, h: ph }; });
+      } catch { /* preview is optional */ }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [firstKey]);
+
+  // Debounced re-encode at the selected quality (JPG only — PNG is lossless).
+  const showPreview = files.length > 0 && !busy && format === 'jpg';
+  const { preview, busy: previewBusy } = useQualityPreview({
+    active: showPreview && !!beforePrev,
+    signature: `${firstKey}|${quality}`,
+    render: async () => {
+      const c = prevCanvasRef.current;
+      if (!c) return null;
+      const blob = await encodeCanvas(c, 'jpg', Q[quality]);
+      return { blob, w: c.width, h: c.height };
+    },
+  });
 
   function addFiles(list: FileList | null) {
     if (!list) return;
@@ -112,6 +176,7 @@ export function HeicTool() {
     setError(null);
     setNotice(null);
     setElapsed(null);
+    releasePreview();
   }
 
   // "Keep moving": carry the converted photos straight into JPG→PDF.
@@ -341,6 +406,28 @@ export function HeicTool() {
                     <span className="block text-xs text-muted-foreground">Smaller files</span>
                   </button>
                 </div>
+              </div>
+            )}
+
+            {/* Live quality preview — the first photo at this exact quality vs. the
+                lossless original. iPhone HEICs can't show in a browser directly, so
+                this decodes it for you. PNG is lossless, so no preview there. */}
+            {format === 'jpg' && (beforePrev || preview || previewBusy) && (
+              <div>
+                <p className="mb-2 flex items-center gap-1.5 text-sm font-medium">
+                  Quality preview{files.length > 1 ? ' — first photo' : ''} · {quality === 'high' ? 'High' : 'Balanced'}
+                  {previewBusy && <Loader2 className="size-3.5 animate-spin text-muted-foreground" />}
+                </p>
+                <BeforeAfter
+                  before={beforePrev}
+                  after={preview}
+                  beforeCaption="Original"
+                  afterCaption={`JPG · ${quality === 'high' ? 'High' : 'Balanced'}`}
+                  beforeLabel="Full quality"
+                  afterLabel={`Quality ${Q[quality]}`}
+                  loading={!preview}
+                  zoomHint="Hover to zoom in and check the detail before you save"
+                />
               </div>
             )}
           </div>

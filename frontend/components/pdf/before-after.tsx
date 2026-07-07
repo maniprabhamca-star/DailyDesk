@@ -84,7 +84,30 @@ function Pane({ page, caption, value, success, loading }: { page: RenderedPage |
   );
 }
 
-export function BeforeAfter({ before, after, beforeLabel, afterLabel, loading }: { before: RenderedPage | null; after: RenderedPage | null; beforeLabel: string; afterLabel: string; loading?: boolean }) {
+// Captions default to the Compress wording ("Original" / "Compressed") so the
+// compression tools stay untouched; the quality-preview pass on the conversion
+// tools passes its own ("Original" / "At this quality", etc.). zoomHint lets a
+// caller replace the desktop "your text stays razor-sharp" line (images aren't
+// text) — the mobile hint is generic enough to reuse everywhere.
+export function BeforeAfter({
+  before,
+  after,
+  beforeLabel,
+  afterLabel,
+  loading,
+  beforeCaption = 'Original',
+  afterCaption = 'Compressed',
+  zoomHint = 'Hover the image to zoom in — your text stays razor-sharp',
+}: {
+  before: RenderedPage | null;
+  after: RenderedPage | null;
+  beforeLabel: string;
+  afterLabel: string;
+  loading?: boolean;
+  beforeCaption?: string;
+  afterCaption?: string;
+  zoomHint?: string;
+}) {
   const [mobileSide, setMobileSide] = useState<'before' | 'after'>('after');
 
   return (
@@ -92,20 +115,20 @@ export function BeforeAfter({ before, after, beforeLabel, afterLabel, loading }:
       <div className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
         <Search className="size-3.5 shrink-0 text-primary" />
         <span className="sm:hidden">Tap a version, then press and drag the image to zoom in</span>
-        <span className="hidden sm:inline">Hover the image to zoom in — your text stays razor-sharp</span>
+        <span className="hidden sm:inline">{zoomHint}</span>
       </div>
 
       {/* Desktop: side-by-side */}
       <div className="hidden gap-3 sm:grid sm:grid-cols-2">
-        <Pane page={before} caption="Original" value={beforeLabel} loading={loading} />
-        <Pane page={after} caption="Compressed" value={afterLabel} success loading={loading} />
+        <Pane page={before} caption={beforeCaption} value={beforeLabel} loading={loading} />
+        <Pane page={after} caption={afterCaption} value={afterLabel} success loading={loading} />
       </div>
 
       {/* Mobile: flip toggle */}
       <div className="sm:hidden">
         <Pane
           page={mobileSide === 'before' ? before : after}
-          caption={mobileSide === 'before' ? 'Original' : 'Compressed'}
+          caption={mobileSide === 'before' ? beforeCaption : afterCaption}
           value={mobileSide === 'before' ? beforeLabel : afterLabel}
           success={mobileSide === 'after'}
           loading={loading}
@@ -117,13 +140,13 @@ export function BeforeAfter({ before, after, beforeLabel, afterLabel, loading }:
               onClick={() => setMobileSide('before')}
               aria-pressed={mobileSide === 'before'}
               className={`px-4 py-1.5 text-sm transition-colors ${mobileSide === 'before' ? 'bg-card font-medium text-foreground' : 'bg-transparent text-muted-foreground'}`}
-            >Original</button>
+            >{beforeCaption}</button>
             <button
               type="button"
               onClick={() => setMobileSide('after')}
               aria-pressed={mobileSide === 'after'}
               className={`px-4 py-1.5 text-sm transition-colors ${mobileSide === 'after' ? 'bg-card font-medium text-emerald-600' : 'bg-transparent text-muted-foreground'}`}
-            >Compressed</button>
+            >{afterCaption}</button>
           </div>
         </div>
       </div>

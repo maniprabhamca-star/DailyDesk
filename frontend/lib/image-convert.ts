@@ -26,8 +26,8 @@ export async function decodeImage(file: File | Blob): Promise<ImageBitmap> {
 
 /** High-quality resample: progressive halving for big downscales (plain
  * drawImage gets muddy past ~2×), then one final smooth pass. */
-export function resample(src: ImageBitmap, w: number, h: number): HTMLCanvasElement {
-  let cur: HTMLCanvasElement | ImageBitmap = src;
+export function resample(src: CanvasImageSource & { width: number; height: number }, w: number, h: number): HTMLCanvasElement {
+  let cur: CanvasImageSource & { width: number; height: number } = src;
   let cw = src.width;
   let ch = src.height;
   while (cw / 2 >= w && ch / 2 >= h && cw > 32 && ch > 32) {
@@ -79,6 +79,32 @@ export async function encodeCanvas(canvas: HTMLCanvasElement, format: OutFormat,
     throw new Error(format === 'webp' ? 'This browser can’t create WebP — choose JPG or PNG instead.' : 'Could not encode the image.');
   }
   return blob;
+}
+
+// Live-preview helpers (quality-preview pass): re-encoding a full 48MP photo on
+// every slider tick is wasteful, so we build ONE capped source canvas per file
+// and re-encode just that at the selected setting. Artifacts are per-block, so a
+// ~1600px sample shows the real quality (and the loupe zooms it 2.4×).
+export const PREVIEW_MAX = 1600;
+
+/** Build a capped, high-quality preview canvas from a decoded image, honouring an
+ * optional extra long-edge cap (e.g. a chosen resize target). */
+export function buildPreviewCanvas(
+  bmp: CanvasImageSource & { width: number; height: number },
+  extraCap = Infinity,
+): { canvas: HTMLCanvasElement; w: number; h: number } {
+  const cap = Math.min(PREVIEW_MAX, extraCap);
+  const scale = Math.min(1, cap / Math.max(bmp.width, bmp.height));
+  const w = Math.max(1, Math.round(bmp.width * scale));
+  const h = Math.max(1, Math.round(bmp.height * scale));
+  return { canvas: resample(bmp, w, h), w, h };
+}
+
+/** Lossless PNG snapshot of a canvas — the "before" reference pane. */
+export async function canvasToPngBlob(canvas: HTMLCanvasElement): Promise<Blob> {
+  const b = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/png'));
+  if (!b) throw new Error('Could not render the preview.');
+  return b;
 }
 
 export function detectFormat(f: File): OutFormat | 'other' {

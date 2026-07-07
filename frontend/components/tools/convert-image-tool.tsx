@@ -7,9 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { downloadBlob as download } from '@/lib/download';
 import { KeepGoing } from '@/components/app/keep-going';
-import { decodeImage, encodeCanvas, canEncodeWebp, detectFormat, type OutFormat } from '@/lib/image-convert';
+import { decodeImage, encodeCanvas, canEncodeWebp, detectFormat, buildPreviewCanvas, canvasToPngBlob, type OutFormat } from '@/lib/image-convert';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
+import { BeforeAfter } from '@/components/pdf/before-after';
+import { useQualityPreview } from '@/lib/use-quality-preview';
 
 function fmt(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -28,10 +30,15 @@ export function ConvertImageTool() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ blob: Blob; name: string; url: string; secs: number } | null>(null);
+  // Live pre-run quality preview (lossy targets only): a capped source canvas
+  // re-encoded at the selected format/quality, next to the original.
+  const [beforePrev, setBeforePrev] = useState<{ url: string; w: number; h: number } | null>(null);
+  const prevCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const webpOk = typeof window !== 'undefined' && canEncodeWebp();
 
   useEffect(() => () => { if (done) URL.revokeObjectURL(done.url); }, [done]);
+  useEffect(() => () => { setBeforePrev((p) => { if (p) URL.revokeObjectURL(p.url); return null; }); }, []);
 
   async function loadOne(f?: File) {
     if (!f) return;
@@ -43,10 +50,17 @@ export function ConvertImageTool() {
     setTooBig(null);
     setError(null);
     setDone(null);
+    setBeforePrev((p) => { if (p) URL.revokeObjectURL(p.url); return null; });
+    prevCanvasRef.current = null;
     try {
       const bm = await decodeImage(f);
       setDims(`${bm.width}×${bm.height}`);
+      // Build the capped preview source + its lossless "before" snapshot.
+      const { canvas, w, h } = buildPreviewCanvas(bm);
       bm.close();
+      prevCanvasRef.current = canvas;
+      const pngUrl = URL.createObjectURL(await canvasToPngBlob(canvas));
+      setBeforePrev({ url: pngUrl, w, h });
       const df = detectFormat(f);
       setSrcFormat(df === 'other' ? (f.name.split('.').pop() || '').toLowerCase() : df);
       // sensible default target: the "opposite" of what came in
@@ -57,6 +71,19 @@ export function ConvertImageTool() {
     }
   }
   function pick(files: FileList | null) { void loadOne(files?.[0]); }
+
+  // Debounced preview render — only meaningful for lossy targets (PNG is exact).
+  const showPreview = !!file && !done && format !== 'png';
+  const { preview, busy: previewBusy } = useQualityPreview({
+    active: showPreview,
+    signature: file ? `${file.name}:${file.size}:${file.lastModified}|${format}|${quality}` : '',
+    render: async () => {
+      const c = prevCanvasRef.current;
+      if (!c) return null;
+      const blob = await encodeCanvas(c, format, quality);
+      return { blob, w: c.width, h: c.height };
+    },
+  });
 
   async function run() {
     if (!file) return;
@@ -107,7 +134,7 @@ export function ConvertImageTool() {
               <p className="truncate text-sm font-medium">{file.name}</p>
               <p className="text-xs text-muted-foreground">{srcFormat.toUpperCase()} · {dims} · {fmt(file.size)}</p>
             </div>
-            <Button size="icon" variant="ghost" aria-label="Remove" onClick={() => { setFile(null); setDone(null); setError(null); }}><X className="size-4" /></Button>
+            <Button size="icon" variant="ghost" aria-label="Remove" onClick={() => { setFile(null); setDone(null); setError(null); setBeforePrev((p) => { if (p) URL.revokeObjectURL(p.url); return null; }); prevCanvasRef.current = null; }}><X className="size-4" /></Button>
           </div>
         )}
 
@@ -127,6 +154,27 @@ export function ConvertImageTool() {
                 <input type="range" min={50} max={100} value={quality} onChange={(e) => setQuality(Number(e.target.value))} className="dd-range mt-3 w-full" />
               </label>
             )}
+          </div>
+        )}
+
+        {/* Live quality preview — see the exact detail you'll get before saving.
+            PNG is lossless, so there's nothing to preview there. */}
+        {showPreview && (beforePrev || preview || previewBusy) && (
+          <div className="mt-4">
+            <p className="mb-2 flex items-center gap-1.5 text-sm font-medium">
+              Preview — {format.toUpperCase()} at quality {quality}
+              {previewBusy && <Loader2 className="size-3.5 animate-spin text-muted-foreground" />}
+            </p>
+            <BeforeAfter
+              before={beforePrev}
+              after={preview}
+              beforeCaption="Original"
+              afterCaption={`${format.toUpperCase()} · Q${quality}`}
+              beforeLabel={srcFormat.toUpperCase()}
+              afterLabel={`Quality ${quality}`}
+              loading={!preview}
+              zoomHint="Hover to zoom in and check the detail before you save"
+            />
           </div>
         )}
 
