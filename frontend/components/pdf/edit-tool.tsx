@@ -329,23 +329,26 @@ export function EditTool() {
     setBusy(true); setError(null); setDone(null);
     const t0 = performance.now();
     try {
-      // One cover+draw PER CHANGED WORD, at that word's ORIGINAL position — so
-      // every untouched word stays the original PDF text, pixel-for-pixel, and
-      // nothing on the line moves or resizes. (A much longer replacement can
-      // overrun into the next word's gap; a same/shorter one is seamless.)
+      // Export mirrors the on-screen plan EXACTLY (same linePlan) so the saved PDF
+      // matches the preview: in-place covers per word, or a single reflow span with
+      // the shifted words when a replacement grew the line.
       const list: LineEdit[] = [];
       for (const [pStr, ls] of Object.entries(lines)) {
         const p = Number(pStr);
         for (const line of ls) {
-          line.parts.forEach((part, i) => {
-            if (!part.trim()) return;
-            const e = editOf(line, i, edits);
-            if (!partEdited(line, i, e)) return;
-            const box = line.boxes[i]; if (!box) return;
-            const c = wordCover(line, box, e);
-            const draws = e.text.trim() ? [{ text: e.text, xFrac: box.x, sizeFrac: c.size / disp.h, family: e.family, color: e.color, bold: e.bold, italic: e.italic }] : [];
-            list.push({ page: p, yFrac: line.y, hFrac: line.h, bg: line.bg, coverLFrac: c.coverL, coverRFrac: c.coverR, draws });
-          });
+          const plan = linePlan(line);
+          if (!plan) continue;
+          const drawOf = (it: PlanItem, xFrac: number) => ({ text: it.e.text, xFrac, sizeFrac: it.size / disp.h, family: it.e.family, color: it.e.color, bold: it.e.bold, italic: it.e.italic });
+          if (plan.reflow) {
+            const draws = plan.items.filter((it) => it.e.text.trim()).map((it) => drawOf(it, it.xFrac));
+            list.push({ page: p, yFrac: line.y, hFrac: line.h, bg: line.bg, coverLFrac: plan.coverL, coverRFrac: plan.coverR, draws });
+          } else {
+            for (const it of plan.items) {
+              const box = line.boxes[it.i]!; const c = wordCover(line, box, it.e);
+              const draws = it.e.text.trim() ? [drawOf(it, box.x)] : [];
+              list.push({ page: p, yFrac: line.y, hFrac: line.h, bg: line.bg, coverLFrac: c.coverL, coverRFrac: c.coverR, draws });
+            }
+          }
         }
       }
       const outBytes = await applyLineEdits(await file.arrayBuffer(), list);
@@ -374,17 +377,64 @@ export function EditTool() {
     return nominal * Math.max(0.7, Math.min(1.12, scale));
   }
 
+  // Rendered width (fraction of page) of an edited word at a given size.
+  function wordWidthFrac(e: Edit, size: number): number {
+    return e.text.trim() ? measureWidth(e.text, cssFont(e.family, e.bold, e.italic, size)) / disp.w : 0;
+  }
   // In-place cover for ONE changed word: hides just that word's box (with a small
-  // bleed) and, if a replacement is longer than the original, extends right enough
-  // to fit it. No reflow — neighbours never move, so unchanged words stay exactly
-  // as the PDF drew them. Returns the matched draw size too (single source of truth
-  // for the overlay, the live input, and the export).
+  // bleed), extending right to fit a slightly-longer replacement.
   function wordCover(line: Line, box: WordBox, e: Edit) {
     const size = matchedSize(line, box, e);
-    const newWFrac = e.text.trim() ? measureWidth(e.text, cssFont(e.family, e.bold, e.italic, size)) / disp.w : 0;
-    const coverL = Math.max(0, box.x - line.h * 0.06);
-    const coverR = box.x + Math.max(box.w, newWFrac) + line.h * 0.10;
-    return { size, coverL, coverR };
+    const w = Math.max(box.w, wordWidthFrac(e, size));
+    return { size, coverL: Math.max(0, box.x - line.h * 0.06), coverR: box.x + w + line.h * 0.10 };
+  }
+
+  type PlanItem = { i: number; xFrac: number; size: number; e: Edit };
+  type LinePlan = { items: PlanItem[]; coverL: number; coverR: number; reflow: boolean };
+  // Decide how to lay out an edited line:
+  //  • If the edits DON'T grow the line (shorter/equal), keep every edited word IN
+  //    PLACE at its own box — untouched words stay the exact original PDF pixels.
+  //  • If an edit makes the text LONGER, REFLOW from the first edit to the line end:
+  //    shift the trailing words right by the accumulated growth and redraw them at
+  //    matched size (so a longer word pushes the rest along instead of overlapping,
+  //    and no original fragment is left peeking out). Prefix words stay original.
+  function linePlan(line: Line): LinePlan | null {
+    const edited: number[] = [];
+    line.parts.forEach((p, i) => { if (p.trim() && partEdited(line, i, editOf(line, i, edits))) edited.push(i); });
+    if (!edited.length) return null;
+    // Reflow ONLY if a replacement would actually collide with its next neighbour.
+    // A same-length/shorter edit (or one that still fits before the next word) stays
+    // fully in place, so untouched words keep their exact original PDF pixels.
+    let collide = false;
+    for (const i of edited) {
+      const box = line.boxes[i]; if (!box) continue;
+      const e = editOf(line, i, edits);
+      const newW = wordWidthFrac(e, matchedSize(line, box, e));
+      let nextLeft = line.x + line.w;
+      for (let k = i + 1; k < line.boxes.length; k++) { const nb = line.boxes[k]; if (nb) { nextLeft = nb.x; break; } }
+      if (box.x + newW > nextLeft - line.h * 0.04) { collide = true; break; }
+    }
+
+    if (!collide) {
+      const items: PlanItem[] = [];
+      let cL = 1, cR = 0;
+      for (const i of edited) { const box = line.boxes[i]; if (!box) continue; const e = editOf(line, i, edits); const c = wordCover(line, box, e); items.push({ i, xFrac: box.x, size: c.size, e }); cL = Math.min(cL, c.coverL); cR = Math.max(cR, c.coverR); }
+      return { items, coverL: Math.max(0, cL), coverR: cR, reflow: false };
+    }
+
+    const firstEdit = Math.min(...edited);
+    const items: PlanItem[] = [];
+    let run = 0;
+    for (let j = firstEdit; j < line.parts.length; j++) {
+      const box = line.boxes[j]; if (!box || !line.parts[j].trim()) continue;
+      const e = editOf(line, j, edits);
+      const size = matchedSize(line, box, e);
+      items.push({ i: j, xFrac: box.x + run, size, e });
+      if (partEdited(line, j, e)) run += wordWidthFrac(e, size) - box.w;
+    }
+    const coverL = Math.max(0, line.boxes[firstEdit]!.x - line.h * 0.06);
+    const coverR = line.x + line.w + Math.max(0, run) + line.h * 0.12;
+    return { items, coverL, coverR, reflow: true };
   }
 
   // Draw the edited/active lines onto the overlay CANVAS. Cover + redrawn text
@@ -399,30 +449,31 @@ export function EditTool() {
     ctx.clearRect(0, 0, disp.w, disp.h);
     ctx.textBaseline = 'alphabetic';
     for (const line of pageLines) {
-      if (!lineHasEdits(line, edits)) continue;
+      const plan = linePlan(line);
+      if (!plan) continue;
       // Guard: an invalid colour string leaves canvas fillStyle unchanged (black),
       // which is exactly how a bad sample used to blot the line. Force white.
       const bgFill = /^rgb\(\s*\d/.test(line.bg) ? line.bg : 'rgb(255,255,255)';
       const baseY = (line.y + BASELINE * line.h) * disp.h;
       const coverTopY = (line.y - COVER_TOP * line.h) * disp.h;
       const coverHpx = COVER_H * line.h * disp.h;
-      // Only the CHANGED words are covered + redrawn, each at its ORIGINAL box
-      // position — untouched words keep their exact PDF pixels (never resized,
-      // never moved).
-      for (let i = 0; i < line.parts.length; i++) {
-        if (!line.parts[i].trim()) continue;
-        const box = line.boxes[i]; if (!box) continue;
-        const e = editOf(line, i, edits);
-        if (!partEdited(line, i, e)) continue;
-        const c = wordCover(line, box, e);
-        ctx.fillStyle = bgFill;
-        ctx.fillRect(c.coverL * disp.w, coverTopY, (c.coverR - c.coverL) * disp.w, coverHpx);
+      ctx.fillStyle = bgFill;
+      if (plan.reflow) {
+        // Longer edit: cover the whole edited-word→line-end span (no leftover
+        // fragments) and redraw the shifted words on top.
+        ctx.fillRect(plan.coverL * disp.w, coverTopY, (plan.coverR - plan.coverL) * disp.w, coverHpx);
+      } else {
+        // In place: cover only each changed word's own box; untouched words keep
+        // their exact PDF pixels.
+        for (const it of plan.items) { const box = line.boxes[it.i]!; const c = wordCover(line, box, it.e); ctx.fillRect(c.coverL * disp.w, coverTopY, (c.coverR - c.coverL) * disp.w, coverHpx); }
+      }
+      for (const it of plan.items) {
         // The word being typed is shown by the DOM input on top; a deletion just
         // leaves the cover (erased). Everything else is redrawn here.
-        if ((editing?.lineId === line.id && editing?.i === i) || !e.text.trim()) continue;
-        ctx.font = cssFont(e.family, e.bold, e.italic, c.size);
-        ctx.fillStyle = e.color;
-        ctx.fillText(e.text, box.x * disp.w, baseY);
+        if ((editing?.lineId === line.id && editing?.i === it.i) || !it.e.text.trim()) continue;
+        ctx.font = cssFont(it.e.family, it.e.bold, it.e.italic, it.size);
+        ctx.fillStyle = it.e.color;
+        ctx.fillText(it.e.text, it.xFrac * disp.w, baseY);
       }
     }
     // hover highlight (skip the word being edited)
@@ -519,7 +570,10 @@ export function EditTool() {
                   {/* the live editor input — positioned exactly over its word */}
                   {activeLine && activeEdit && editing && disp.h > 0 && activeLine.boxes[editing.i] && (() => {
                     const box = activeLine.boxes[editing.i]!;
-                    const size = matchedSize(activeLine, box, activeEdit);
+                    const plan = linePlan(activeLine);
+                    const item = plan?.items.find((it) => it.i === editing.i);
+                    const size = item ? item.size : matchedSize(activeLine, box, activeEdit);
+                    const xFrac = item ? item.xFrac : box.x;
                     const baselinePx = (activeLine.y + BASELINE * activeLine.h) * disp.h;
                     const newWpx = activeEdit.text.trim() ? measureWidth(activeEdit.text, cssFont(activeEdit.family, activeEdit.bold, activeEdit.italic, size)) : 0;
                     return (
@@ -534,7 +588,7 @@ export function EditTool() {
                           else if (ev.key === 'Enter' || ev.key === 'Escape') { ev.preventDefault(); if (ev.key === 'Escape') { setEditing(null); sessionRef.current = null; } }
                         }}
                         className="absolute z-20 rounded-[2px] p-0 outline-none ring-2 ring-primary/60"
-                        style={{ left: `${box.x * disp.w}px`, top: `${baselinePx - BASELINE * size}px`, width: `${Math.max(newWpx, box.w * disp.w, size) + 4}px`, height: `${size * 1.2}px`, lineHeight: `${size * 1.2}px`, fontFamily: FAMILIES[activeEdit.family].css, fontSize: `${size}px`, fontWeight: activeEdit.bold ? 700 : 400, fontStyle: activeEdit.italic ? 'italic' : 'normal', color: activeEdit.color, background: activeLine.bg, caretColor: '#4f46e5' }}
+                        style={{ left: `${xFrac * disp.w}px`, top: `${baselinePx - BASELINE * size}px`, width: `${Math.max(newWpx, box.w * disp.w, size) + 4}px`, height: `${size * 1.2}px`, lineHeight: `${size * 1.2}px`, fontFamily: FAMILIES[activeEdit.family].css, fontSize: `${size}px`, fontWeight: activeEdit.bold ? 700 : 400, fontStyle: activeEdit.italic ? 'italic' : 'normal', color: activeEdit.color, background: activeLine.bg, caretColor: '#4f46e5' }}
                       />
                     );
                   })()}
