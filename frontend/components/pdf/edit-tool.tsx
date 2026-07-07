@@ -288,9 +288,9 @@ export function EditTool() {
         for (const line of ls) {
           if (!lineHasEdits(line, edits)) continue;
           const parts = line.parts.map((orig, i) => {
-            if (!orig.trim()) return { text: orig, family: line.family, color: line.color, bold: line.bold, italic: line.italic };
+            if (!orig.trim()) return { text: orig, origText: orig, family: line.family, color: line.color, bold: line.bold, italic: line.italic };
             const e = editOf(line, i, edits);
-            return { text: e.text, family: e.family, sizeFrac: e.size, color: e.color, bold: e.bold, italic: e.italic };
+            return { text: e.text, origText: orig, family: e.family, sizeFrac: e.size, color: e.color, bold: e.bold, italic: e.italic };
           });
           list.push({ page: p, xFrac: line.x, yFrac: line.y, wFrac: line.w, hFrac: line.h, bg: line.bg, parts });
         }
@@ -309,14 +309,20 @@ export function EditTool() {
   // the editor input both use this so they stay perfectly in sync.
   function lineMetrics(line: Line): { fit: number; widths: number[]; parts: (Edit | null)[] } {
     const parts = line.parts.map((p, i) => (p.trim() ? editOf(line, i, edits) : null));
-    let natural = 0; const base: number[] = [];
+    let natCur = 0, natOrig = 0; const base: number[] = [];
+    const origSize = line.h * disp.h;
     line.parts.forEach((orig, i) => {
       const e = parts[i];
       const size = (e ? e.size : line.h) * disp.h;
-      const w = measureWidth((e ? e.text : orig) || ' ', cssFont(e ? e.family : line.family, e ? e.bold : line.bold, e ? e.italic : line.italic, size));
-      base.push(w); natural += w;
+      base.push(measureWidth((e ? e.text : orig) || ' ', cssFont(e ? e.family : line.family, e ? e.bold : line.bold, e ? e.italic : line.italic, size)));
+      natCur += base[i];
+      natOrig += measureWidth(orig || ' ', cssFont(line.family, line.bold, line.italic, origSize));
     });
-    const fit = lineFitScale(natural, line.w * disp.w);
+    // Shrink ONLY when the EDIT itself makes the line wider than the original
+    // content (like-for-like in the browser font). Comparing against the PDF's
+    // own width shrank every line, because browser metrics are wider than the
+    // embedded font — that made unchanged/shorter edits look smaller.
+    const fit = lineFitScale(natCur, natOrig);
     return { fit, widths: base.map((w) => w * fit), parts };
   }
 
@@ -397,8 +403,12 @@ export function EditTool() {
 
         {file && !done && (
           <div className="mt-4">
-            {/* Premium formatting toolbar — acts on the selected word */}
-            <div className="mb-3 flex flex-wrap items-center gap-1.5 rounded-2xl border bg-card p-1.5 shadow-soft">
+            {/* Premium formatting toolbar — acts on the selected word. While a word
+                is being edited, DON'T let toolbar clicks steal focus from the input
+                (that blur used to commit + exit edit mode before the style applied),
+                so font/size/bold/italic/colour change live as you type. */}
+            <div className="mb-3 flex flex-wrap items-center gap-1.5 rounded-2xl border bg-card p-1.5 shadow-soft"
+              onMouseDown={(e) => { if (editing) e.preventDefault(); }}>
               <FontSelect value={activeEdit?.family ?? 'helvetica'} onChange={(f) => patchActive({ family: f })} className="w-44" />
               <span className="mx-0.5 h-6 w-px bg-border/70" />
               <button className={`${tbBtn} hover:bg-accent`} title="Smaller" disabled={!activeEdit} onClick={() => patchActive({ size: Math.max(0.006, activeEdit!.size * 0.92) })}><Minus className="size-4" /></button>

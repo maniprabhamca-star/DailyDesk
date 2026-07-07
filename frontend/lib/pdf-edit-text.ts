@@ -21,6 +21,7 @@ import { FAMILIES, type Family, loadFontBytes } from './fonts';
 // One styled segment of a line (a word, or a run of spaces with text=' ').
 export type PartStyle = {
   text: string;
+  origText?: string; // the ORIGINAL word — lets us fit relative to original width
   family: Family;
   sizeFrac?: number; // drawn size (defaults to the line's hFrac)
   color: string;     // 'rgb(r,g,b)'
@@ -123,9 +124,15 @@ export async function applyLineEdits(src: ArrayBuffer | Uint8Array, edits: LineE
     //    longer replacement can't spill into a neighbouring run.
     const baseY = H * (1 - L.yFrac - BASELINE * L.hFrac);
     const fonts = await Promise.all(L.parts.map((p) => getFont(p.family, p.bold, p.italic)));
-    let natural = 0;
-    L.parts.forEach((p, i) => { natural += fonts[i].widthOfTextAtSize(p.text || ' ', (p.sizeFrac ?? L.hFrac) * H); });
-    const fit = lineFitScale(natural, L.wFrac * W);
+    // Fit relative to the ORIGINAL content width (like-for-like in the redraw
+    // font), so unchanged / shorter edits never shrink; only a longer edit does.
+    let natCur = 0, natOrig = 0;
+    L.parts.forEach((p, i) => {
+      const size = (p.sizeFrac ?? L.hFrac) * H;
+      natCur += fonts[i].widthOfTextAtSize(p.text || ' ', size);
+      natOrig += fonts[i].widthOfTextAtSize((p.origText ?? p.text) || ' ', size);
+    });
+    const fit = natOrig > 0 ? lineFitScale(natCur, natOrig) : lineFitScale(natCur, L.wFrac * W);
     let x = L.xFrac * W;
     L.parts.forEach((p, i) => {
       if (!p.text) return;
