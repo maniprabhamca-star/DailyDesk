@@ -167,9 +167,21 @@ export function EditTool() {
         const page = await handle.doc.getPage(sel + 1);
         const vp = page.getViewport({ scale: 1 });
         const tc = await page.getTextContent();
-        const img = new Image(); img.src = rp.url; await img.decode();
+        // Decode the rendered page to sample its pixels. Prefer createImageBitmap
+        // (fast + reliable); fall back to <img>.decode() only where it's missing.
+        // (img.decode() of a blob URL can hang in some headless engines — it stalled
+        // detection entirely — so createImageBitmap is the robust default.)
+        let src: CanvasImageSource & { close?: () => void };
+        try {
+          if (typeof createImageBitmap !== 'function') throw new Error('no-bitmap');
+          const blob = await (await fetch(rp.url)).blob();
+          src = await createImageBitmap(blob);
+        } catch {
+          const im = new Image(); im.src = rp.url; await im.decode(); src = im;
+        }
         const sc = document.createElement('canvas'); sc.width = rp.w; sc.height = rp.h;
-        const sctx = sc.getContext('2d')!; sctx.drawImage(img, 0, 0, rp.w, rp.h);
+        const sctx = sc.getContext('2d')!; sctx.drawImage(src, 0, 0, rp.w, rp.h);
+        src.close?.();
         const px = sctx.getImageData(0, 0, rp.w, rp.h).data;
         // MUST floor to integer pixel coords — a fractional index into the pixel
         // array returns undefined, which produced `rgb(undefined,...)` covers
