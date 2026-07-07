@@ -120,14 +120,18 @@ export async function applyLineEdits(src: ArrayBuffer | Uint8Array, edits: LineE
         if (!p.changed || !p.box) continue;
         const b = p.box; const bh = b.hFrac * H;
         const font = await getFont(p.family, p.bold, p.italic);
-        const size = (p.sizeFrac ?? b.hFrac) * H;
-        const drawnW = p.text ? font.widthOfTextAtSize(p.text, size) / W : 0;
+        const natSize = (p.sizeFrac ?? b.hFrac) * H;
+        let prevRight = L.xFrac; for (let j = i - 1; j >= 0; j--) { const pb = L.parts[j].box; if (pb) { prevRight = pb.xFrac + pb.wFrac; break; } }
+        let nextLeft = L.xFrac + L.wFrac + 0.02; for (let j = i + 1; j < L.parts.length; j++) { const nb = L.parts[j].box; if (nb) { nextLeft = nb.xFrac; break; } }
+        // Scale the word down only if it wouldn't fit before the next word.
+        const availFrac = Math.max(0.001, nextLeft - b.xFrac - L.hFrac * 0.10);
+        const natWFrac = p.text ? font.widthOfTextAtSize(p.text, natSize) / W : 0;
+        const scale = natWFrac > availFrac ? Math.max(0.72, availFrac / natWFrac) : 1;
+        const size = natSize * scale; const drawnW = natWFrac * scale;
         // Cover to the MIDPOINT of the blank space on each side (hides the whole
         // original word, never touches a neighbour).
-        let prevRight = L.xFrac; for (let j = i - 1; j >= 0; j--) { const pb = L.parts[j].box; if (pb) { prevRight = pb.xFrac + pb.wFrac; break; } }
-        let nextX = L.xFrac + L.wFrac + 0.02; for (let j = i + 1; j < L.parts.length; j++) { const nb = L.parts[j].box; if (nb) { nextX = nb.xFrac; break; } }
         const leftBound = (prevRight + b.xFrac) / 2;
-        const rightBound = (Math.max(b.xFrac + b.wFrac, b.xFrac + drawnW) + nextX) / 2;
+        const rightBound = (Math.max(b.xFrac + b.wFrac, b.xFrac + drawnW) + nextLeft) / 2;
         page.drawRectangle({ x: leftBound * W, y: H * (1 - b.yFrac - (COVER_H - COVER_TOP) * b.hFrac), width: (rightBound - leftBound) * W, height: COVER_H * bh, color: rgb(ir, ig, ib) });
         if (p.text.trim()) {
           const [cr, cg, cb] = parseRgb(p.color);

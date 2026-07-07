@@ -187,7 +187,10 @@ export function EditTool() {
           const bold = /bold|black|heavy|semibold|w[6-9]00/.test(fn);
           const italic = /italic|oblique/.test(fn);
           const { color, bg } = sample(left, left + w, top, fontH);
-          // Split into words + whitespace; measure per-word boxes for hit-testing.
+          // Split into words + whitespace; estimate per-word boxes, then REFINE
+          // each word's horizontal extent from the actual pixels (scan out to the
+          // white gaps that separate words). Accurate boxes are what let us cover
+          // and replace ONE word cleanly without touching its neighbours.
           sctx.font = cssFont(family, bold, italic, 100);
           const parts = s.split(/(\s+)/).filter((p) => p !== '');
           let measured = 0; const off: number[] = [];
@@ -287,8 +290,8 @@ export function EditTool() {
         const p = Number(pStr);
         for (const line of ls) {
           if (!lineHasEdits(line, edits)) continue;
-          const { editedIdxs, inPlace } = linePlan(line);
-          const editedSet = new Set(editedIdxs);
+          const editedSet = new Set(editedIndices(line));
+          const inPlace = false; // whole-line re-encode (matched PDF font ≈ original width)
           const parts = line.parts.map((orig, i) => {
             const b = line.boxes[i];
             const box = b ? { xFrac: b.x, yFrac: b.y, wFrac: b.w, hFrac: b.h } : undefined;
@@ -309,32 +312,24 @@ export function EditTool() {
     } finally { setBusy(false); }
   }
 
-  // Per-line layout: the fit scale + each part's drawn width. Preview canvas and
-  // the editor input both use this so they stay perfectly in sync.
-  // The plan for redrawing one edited line (shared by preview + export so they
-  // agree). Natural sizes are kept; the line only shrinks if it would run past the
-  // PAGE edge. A changed word is edited IN PLACE (only it redrawn, everything else
-  // left original) whenever it still fits before the next word starts.
-  function linePlan(line: Line) {
+  // Which words on a line actually changed.
+  function editedIndices(line: Line): number[] {
+    const out: number[] = [];
+    line.parts.forEach((p, i) => { if (p.trim() && partEdited(line, i, editOf(line, i, edits))) out.push(i); });
+    return out;
+  }
+
+  // Whole-line layout for redraw. Each word keeps its natural SIZE (height); the
+  // whole line is only CONDENSED horizontally if the browser font renders it wider
+  // than the original line width — so the line always occupies its original box
+  // (same size, same position, never expands/shifts), no fragile word detection.
+  function lineLayout(line: Line) {
     const parts = line.parts.map((p, i) => (p.trim() ? editOf(line, i, edits) : null));
-    const base: number[] = [];
-    line.parts.forEach((orig, i) => {
-      const e = parts[i];
-      const size = (e ? e.size : line.h) * disp.h;
-      base.push(measureWidth((e ? e.text : orig) || ' ', cssFont(e ? e.family : line.family, e ? e.bold : line.bold, e ? e.italic : line.italic, size)));
-    });
-    const editedIdxs: number[] = [];
-    line.parts.forEach((_o, i) => { const e = parts[i]; if (e && partEdited(line, i, e)) editedIdxs.push(i); });
-    // Only shrink if the whole line would pass the page's right edge — never just
-    // because one word got a little wider (that used to shrink the entire line).
-    const total = base.reduce((a, w) => a + w, 0);
-    const availLine = Math.max(1, ((1 - line.x) - 0.015) * disp.w);
-    const fit = lineFitScale(total, availLine);
-    // In-place (redraw ONLY the changed word) needs sub-pixel-accurate word boxes,
-    // but ours are proportional estimates — it left glyph fragments of the original.
-    // Whole-line reflow is robust (covers + redraws from the line start, no
-    // fragments) and, with the page-margin fit above, keeps the original size.
-    return { fit, widths: base.map((w) => w * fit), parts, editedIdxs, inPlace: false };
+    const natW = line.parts.map((orig, i) => { const e = parts[i]; const size = (e ? e.size : line.h) * disp.h; return measureWidth((e ? e.text : orig) || ' ', cssFont(e ? e.family : line.family, e ? e.bold : line.bold, e ? e.italic : line.italic, size)); });
+    const offs: number[] = []; let acc = 0; natW.forEach((wd) => { offs.push(acc); acc += wd; });
+    const targetW = line.w * disp.w;
+    const scaleX = acc > targetW && acc > 0 ? targetW / acc : 1; // condense if wider, never expand
+    return { parts, natW, offs, scaleX };
   }
 
   // Draw the edited/active lines onto the overlay CANVAS. Cover + redrawn text
@@ -351,52 +346,29 @@ export function EditTool() {
     for (const line of pageLines) {
       const isActive = editing?.lineId === line.id;
       if (!isActive && !lineHasEdits(line, edits)) continue;
-      const { fit, widths, parts, editedIdxs, inPlace: planInPlace } = linePlan(line);
       // Guard: an invalid colour string leaves canvas fillStyle unchanged (black),
       // which is exactly how a bad sample used to blot the line. Force white.
       const bgFill = /^rgb\(\s*\d/.test(line.bg) ? line.bg : 'rgb(255,255,255)';
+      // Cover the whole line, then redraw it condensed into its original width —
+      // the line stays exactly where it was, same size, just fitted (no expansion).
+      const bx = line.w * 0.02 + line.h * 0.06;
+      ctx.fillStyle = bgFill;
+      ctx.fillRect((line.x - bx) * disp.w, (line.y - COVER_TOP * line.h) * disp.h, (line.w + bx * 2) * disp.w, COVER_H * line.h * disp.h);
+      const { parts, offs, scaleX } = lineLayout(line);
       const baseY = (line.y + BASELINE * line.h) * disp.h;
-
-      // In place (only changed words redrawn) unless we're actively typing in this
-      // line (then reflow live so the caret/line stays smooth).
-      const inPlace = !isActive && planInPlace;
-
-      if (inPlace) {
-        for (const i of editedIdxs) {
-          const b = line.boxes[i]!; const e = parts[i]!;
-          // Cover out to the MIDPOINT of the blank space on each side, so the whole
-          // original word is hidden (no glyph fragments peeking out) without ever
-          // touching a neighbouring word.
-          let prevRight = line.x; for (let j = i - 1; j >= 0; j--) { const pb = line.boxes[j]; if (pb) { prevRight = pb.x + pb.w; break; } }
-          let nextX = line.x + line.w + 0.02; for (let j = i + 1; j < line.parts.length; j++) { const nb = line.boxes[j]; if (nb) { nextX = nb.x; break; } }
-          const drawnRight = b.x + widths[i] / disp.w;
-          const leftBound = (prevRight + b.x) / 2;
-          const rightBound = (Math.max(b.x + b.w, drawnRight) + nextX) / 2;
-          ctx.fillStyle = bgFill;
-          ctx.fillRect(leftBound * disp.w, (b.y - COVER_TOP * b.h) * disp.h, (rightBound - leftBound) * disp.w, COVER_H * b.h * disp.h);
-          if (e.text.trim()) {
-            ctx.font = cssFont(e.family, e.bold, e.italic, e.size * disp.h);
-            ctx.fillStyle = e.color;
-            ctx.fillText(e.text, b.x * disp.w, (b.y + BASELINE * b.h) * disp.h);
-          }
+      ctx.save();
+      ctx.translate(line.x * disp.w, 0);
+      ctx.scale(scaleX, 1);
+      line.parts.forEach((orig, i) => {
+        const e = parts[i];
+        const t = e ? e.text : orig;
+        if (t && t.trim() && !(isActive && editing!.i === i)) { // active word shown by the input
+          ctx.font = cssFont(e ? e.family : line.family, e ? e.bold : line.bold, e ? e.italic : line.italic, (e ? e.size : line.h) * disp.h);
+          ctx.fillStyle = e ? e.color : line.color;
+          ctx.fillText(t, offs[i], baseY);
         }
-      } else {
-        const bx = line.w * 0.02 + line.h * 0.06;
-        ctx.fillStyle = bgFill;
-        ctx.fillRect((line.x - bx) * disp.w, (line.y - COVER_TOP * line.h) * disp.h, (line.w + bx * 2) * disp.w, COVER_H * line.h * disp.h);
-        let x = line.x * disp.w;
-        line.parts.forEach((orig, i) => {
-          const e = parts[i];
-          const t = e ? e.text : orig;
-          const isActiveWord = isActive && editing!.i === i;
-          if (t && t.trim() && !isActiveWord) {
-            ctx.font = cssFont(e ? e.family : line.family, e ? e.bold : line.bold, e ? e.italic : line.italic, (e ? e.size : line.h) * disp.h * fit);
-            ctx.fillStyle = e ? e.color : line.color;
-            ctx.fillText(t, x, baseY);
-          }
-          x += widths[i];
-        });
-      }
+      });
+      ctx.restore();
     }
     // hover highlight (skip the word being edited)
     if (hover && hover !== (editing ? key(editing.lineId, editing.i) : null)) {
@@ -472,7 +444,7 @@ export function EditTool() {
 
             <p className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
               <Pencil className="size-3.5 text-primary" />
-              {activeEdit ? 'Editing a word — type, then format with the toolbar. The line reflows as you go.' : 'Click any word to edit it.'}
+              {activeEdit ? 'Editing a word — type, then format with the toolbar. Only this word changes.' : 'Click any word to edit it.'}
               {detecting && <span className="inline-flex items-center gap-1"><Loader2 className="size-3 animate-spin" /> finding text…</span>}
             </p>
 
@@ -489,11 +461,11 @@ export function EditTool() {
                   {/* click/hover surface */}
                   <div className="absolute inset-0" style={{ cursor: hover ? 'text' : 'default' }} onMouseMove={onMove} onMouseLeave={() => setHover(null)} onClick={onClick} />
 
-                  {/* the live editor input — positioned exactly over its word slot */}
+                  {/* the live editor input — positioned over its word in the condensed line */}
                   {activeLine && activeEdit && editing && disp.h > 0 && (() => {
-                    const { fit, widths } = linePlan(activeLine);
-                    const px = activeEdit.size * disp.h * fit;
-                    let offset = 0; for (let j = 0; j < editing.i; j++) offset += widths[j];
+                    const { natW, offs, scaleX } = lineLayout(activeLine);
+                    const size = activeEdit.size * disp.h;
+                    const wordLeft = activeLine.x * disp.w + offs[editing.i] * scaleX;
                     const baselinePx = (activeLine.y + BASELINE * activeLine.h) * disp.h;
                     return (
                       <input
@@ -507,7 +479,7 @@ export function EditTool() {
                           else if (ev.key === 'Enter' || ev.key === 'Escape') { ev.preventDefault(); if (ev.key === 'Escape') { setEditing(null); sessionRef.current = null; } }
                         }}
                         className="absolute z-20 rounded-[2px] p-0 outline-none ring-2 ring-primary/60"
-                        style={{ left: `${activeLine.x * disp.w + offset}px`, top: `${baselinePx - BASELINE * px}px`, width: `${Math.max(px, widths[editing.i]) + 3}px`, height: `${px * 1.2}px`, lineHeight: `${px * 1.2}px`, fontFamily: FAMILIES[activeEdit.family].css, fontSize: `${px}px`, fontWeight: activeEdit.bold ? 700 : 400, fontStyle: activeEdit.italic ? 'italic' : 'normal', color: activeEdit.color, background: activeLine.bg, caretColor: '#4f46e5' }}
+                        style={{ left: `${wordLeft}px`, top: `${baselinePx - BASELINE * size}px`, width: `${(natW[editing.i] || size) + 4}px`, height: `${size * 1.2}px`, lineHeight: `${size * 1.2}px`, transform: `scaleX(${scaleX})`, transformOrigin: 'left', fontFamily: FAMILIES[activeEdit.family].css, fontSize: `${size}px`, fontWeight: activeEdit.bold ? 700 : 400, fontStyle: activeEdit.italic ? 'italic' : 'normal', color: activeEdit.color, background: activeLine.bg, caretColor: '#4f46e5' }}
                       />
                     );
                   })()}
