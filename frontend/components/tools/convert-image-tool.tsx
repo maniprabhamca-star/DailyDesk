@@ -157,6 +157,14 @@ export function ConvertImageTool() {
           </div>
         )}
 
+        {/* PNG is lossless — the output is a pixel-exact copy, so there's no
+            quality tradeoff to preview. Say so instead of showing nothing. */}
+        {!!file && !done && format === 'png' && (
+          <p className="mt-4 rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+            PNG is lossless — your image is copied pixel-for-pixel, so there’s no quality to preview. (Switch to JPG or WebP to compare quality.)
+          </p>
+        )}
+
         {/* Live quality preview — see the exact detail you'll get before saving.
             PNG is lossless, so there's nothing to preview there. */}
         {showPreview && (beforePrev || preview || previewBusy) && (
