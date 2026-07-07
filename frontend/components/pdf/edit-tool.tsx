@@ -26,6 +26,7 @@ import { pageBackground, lineColors, type RGB } from '@/lib/pdf-sample';
 type Line = {
   id: string; page: number;
   x: number; y: number; w: number; h: number;           // line box (top-left fractions)
+  inkH: number;                                           // measured rendered ink height (fraction) — for visual size match
   family: Family; color: string; bg: string; bold: boolean; italic: boolean;
   parts: string[];                                        // words + whitespace, in order
   boxes: ({ x: number; y: number; w: number; h: number } | null)[]; // per-word hit box
@@ -46,6 +47,16 @@ function measureWidth(text: string, cssFont: string): number {
 }
 function cssFont(family: Family, bold: boolean, italic: boolean, px: number): string {
   return `${italic ? 'italic ' : ''}${bold ? '700 ' : '400 '}${px}px ${FAMILIES[family].css}`;
+}
+// Rendered ink height of some text in a CSS font (cap+descender) — used to match
+// the redraw's visual size to the original (browser fonts look bigger otherwise).
+function inkHeight(text: string, cssFontStr: string): number {
+  if (typeof document === 'undefined') return 0;
+  if (!measureCtx) measureCtx = document.createElement('canvas').getContext('2d');
+  if (!measureCtx) return 0;
+  measureCtx.font = cssFontStr;
+  const m = measureCtx.measureText(text || 'Hg');
+  return (m.actualBoundingBoxAscent || 0) + (m.actualBoundingBoxDescent || 0);
 }
 
 function fmt(bytes: number) {
@@ -197,7 +208,15 @@ export function EditTool() {
           const widths = parts.map((p) => { off.push(measured); const mw = sctx.measureText(p).width; measured += mw; return mw; });
           const scl = measured > 0 ? w / measured : 0;
           const boxes = parts.map((p, i) => p.trim() ? { x: (left + off[i] * scl) / vp.width, y: top / vp.height, w: (widths[i] * scl) / vp.width, h: fontH / vp.height } : null);
-          list.push({ id: `${sel}-L${list.length}`, page: sel, x: left / vp.width, y: top / vp.height, w: w / vp.width, h: fontH / vp.height, family, color, bg, bold, italic, parts, boxes });
+          // Measure the line's ACTUAL rendered ink height (topmost→bottommost dark
+          // pixel within its em box) so the redraw can match the original's visual
+          // size — the browser font at the same nominal size looks bigger otherwise.
+          const lBand = Math.max(0, Math.round(left / vp.width * rp.w)), rBand = Math.min(rp.w - 1, Math.round((left + w) / vp.width * rp.w));
+          const sTop = Math.max(0, Math.round(top / vp.height * rp.h)), sBot = Math.min(rp.h - 1, Math.round((top + fontH * 0.98) / vp.height * rp.h));
+          let capTop = -1, capBot = -1;
+          for (let yy = sTop; yy <= sBot; yy++) { let dark = false; for (let xx = lBand; xx <= rBand; xx += 2) { const c = at(xx, yy); if (c[0] + c[1] + c[2] < 430) { dark = true; break; } } if (dark) { if (capTop < 0) capTop = yy; capBot = yy; } }
+          const inkH = (capTop >= 0 && capBot >= capTop) ? (capBot - capTop + 1) / rp.h : (fontH / vp.height) * 0.7;
+          list.push({ id: `${sel}-L${list.length}`, page: sel, x: left / vp.width, y: top / vp.height, w: w / vp.width, h: fontH / vp.height, inkH, family, color, bg, bold, italic, parts, boxes });
         }
         if (!cancelled) setLines((prev) => ({ ...prev, [sel]: list }));
       } catch { /* image-only page → no lines */ }
@@ -325,11 +344,17 @@ export function EditTool() {
   // (same size, same position, never expands/shifts), no fragile word detection.
   function lineLayout(line: Line) {
     const parts = line.parts.map((p, i) => (p.trim() ? editOf(line, i, edits) : null));
-    const natW = line.parts.map((orig, i) => { const e = parts[i]; const size = (e ? e.size : line.h) * disp.h; return measureWidth((e ? e.text : orig) || ' ', cssFont(e ? e.family : line.family, e ? e.bold : line.bold, e ? e.italic : line.italic, size)); });
+    // Match the redraw's visual size to the ORIGINAL line's measured ink height.
+    const nomSize = line.h * disp.h;
+    const bH = inkHeight(line.parts.join('').slice(0, 40) || 'Hg', cssFont(line.family, line.bold, line.italic, nomSize)) || nomSize * 0.7;
+    const targetH = line.inkH * disp.h;
+    const sizeScale = Math.max(0.6, Math.min(1.1, targetH > 0 && bH > 0 ? targetH / bH : 1));
+    const sizeOf = (i: number) => { const e = parts[i]; return (e ? e.size : line.h) * disp.h * sizeScale; };
+    const natW = line.parts.map((orig, i) => { const e = parts[i]; return measureWidth((e ? e.text : orig) || ' ', cssFont(e ? e.family : line.family, e ? e.bold : line.bold, e ? e.italic : line.italic, sizeOf(i))); });
     const offs: number[] = []; let acc = 0; natW.forEach((wd) => { offs.push(acc); acc += wd; });
     const targetW = line.w * disp.w;
     const scaleX = acc > targetW && acc > 0 ? targetW / acc : 1; // condense if wider, never expand
-    return { parts, natW, offs, scaleX };
+    return { parts, natW, offs, scaleX, sizeScale };
   }
 
   // Draw the edited/active lines onto the overlay CANVAS. Cover + redrawn text
@@ -354,7 +379,7 @@ export function EditTool() {
       const bx = line.w * 0.02 + line.h * 0.06;
       ctx.fillStyle = bgFill;
       ctx.fillRect((line.x - bx) * disp.w, (line.y - COVER_TOP * line.h) * disp.h, (line.w + bx * 2) * disp.w, COVER_H * line.h * disp.h);
-      const { parts, offs, scaleX } = lineLayout(line);
+      const { parts, offs, scaleX, sizeScale } = lineLayout(line);
       const baseY = (line.y + BASELINE * line.h) * disp.h;
       ctx.save();
       ctx.translate(line.x * disp.w, 0);
@@ -363,7 +388,7 @@ export function EditTool() {
         const e = parts[i];
         const t = e ? e.text : orig;
         if (t && t.trim() && !(isActive && editing!.i === i)) { // active word shown by the input
-          ctx.font = cssFont(e ? e.family : line.family, e ? e.bold : line.bold, e ? e.italic : line.italic, (e ? e.size : line.h) * disp.h);
+          ctx.font = cssFont(e ? e.family : line.family, e ? e.bold : line.bold, e ? e.italic : line.italic, (e ? e.size : line.h) * disp.h * sizeScale);
           ctx.fillStyle = e ? e.color : line.color;
           ctx.fillText(t, offs[i], baseY);
         }
@@ -463,8 +488,8 @@ export function EditTool() {
 
                   {/* the live editor input — positioned over its word in the condensed line */}
                   {activeLine && activeEdit && editing && disp.h > 0 && (() => {
-                    const { natW, offs, scaleX } = lineLayout(activeLine);
-                    const size = activeEdit.size * disp.h;
+                    const { natW, offs, scaleX, sizeScale } = lineLayout(activeLine);
+                    const size = activeEdit.size * disp.h * sizeScale;
                     const wordLeft = activeLine.x * disp.w + offs[editing.i] * scaleX;
                     const baselinePx = (activeLine.y + BASELINE * activeLine.h) * disp.h;
                     return (
