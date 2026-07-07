@@ -19,6 +19,8 @@ import { PDFDocument, StandardFonts, rgb, type PDFFont } from 'pdf-lib';
 import { FAMILIES, type Family, loadFontBytes } from './fonts';
 
 // One styled segment of a line (a word, or a run of spaces with text=' ').
+export type Box = { xFrac: number; yFrac: number; wFrac: number; hFrac: number };
+
 export type PartStyle = {
   text: string;
   origText?: string; // the ORIGINAL word — lets us fit relative to original width
@@ -27,6 +29,8 @@ export type PartStyle = {
   color: string;     // 'rgb(r,g,b)'
   bold: boolean;
   italic: boolean;
+  box?: Box;         // this word's ORIGINAL box (for in-place redraw)
+  changed?: boolean; // did this word actually change? (in-place only redraws these)
 };
 
 export type LineEdit = {
@@ -37,6 +41,7 @@ export type LineEdit = {
   hFrac: number;  // font size / line height (fraction of page height)
   bg: string;     // 'rgb(r,g,b)' cover colour
   parts: PartStyle[]; // whole line, in order
+  inPlace?: boolean;  // redraw ONLY changed words (widths preserved) vs reflow whole line
 };
 
 // Cover bleed + baseline factors — MUST match the preview overlay in
@@ -105,6 +110,26 @@ export async function applyLineEdits(src: ArrayBuffer | Uint8Array, edits: LineE
     const page = pages[L.page];
     if (!page) continue;
     const { width: W, height: H } = page.getSize();
+
+    // IN-PLACE: only the changed words are covered + re-encoded; all other text is
+    // left as the ORIGINAL PDF vector (perfect font match, still selectable).
+    if (L.inPlace) {
+      const [ir, ig, ib] = parseRgb(L.bg);
+      for (const p of L.parts) {
+        if (!p.changed || !p.box) continue;
+        const b = p.box; const bh = b.hFrac * H;
+        const pbx = Math.max(1, b.wFrac * W * 0.04 + bh * 0.06);
+        page.drawRectangle({ x: b.xFrac * W - pbx, y: H * (1 - b.yFrac - (COVER_H - COVER_TOP) * b.hFrac), width: b.wFrac * W + pbx * 2, height: COVER_H * bh, color: rgb(ir, ig, ib) });
+        if (p.text.trim()) {
+          const font = await getFont(p.family, p.bold, p.italic);
+          const size = (p.sizeFrac ?? b.hFrac) * H;
+          const [cr, cg, cb] = parseRgb(p.color);
+          page.drawText(p.text, { x: b.xFrac * W, y: H * (1 - b.yFrac - BASELINE * b.hFrac), size, font, color: rgb(cr, cg, cb) });
+        }
+      }
+      continue;
+    }
+
     const h = L.hFrac * H;
     const bx = Math.max(1, L.wFrac * W * 0.02 + h * 0.06);
 

@@ -287,12 +287,16 @@ export function EditTool() {
         const p = Number(pStr);
         for (const line of ls) {
           if (!lineHasEdits(line, edits)) continue;
+          const { editedIdxs, inPlace } = linePlan(line);
+          const editedSet = new Set(editedIdxs);
           const parts = line.parts.map((orig, i) => {
-            if (!orig.trim()) return { text: orig, origText: orig, family: line.family, color: line.color, bold: line.bold, italic: line.italic };
+            const b = line.boxes[i];
+            const box = b ? { xFrac: b.x, yFrac: b.y, wFrac: b.w, hFrac: b.h } : undefined;
+            if (!orig.trim()) return { text: orig, origText: orig, family: line.family, color: line.color, bold: line.bold, italic: line.italic, box, changed: false };
             const e = editOf(line, i, edits);
-            return { text: e.text, origText: orig, family: e.family, sizeFrac: e.size, color: e.color, bold: e.bold, italic: e.italic };
+            return { text: e.text, origText: orig, family: e.family, sizeFrac: e.size, color: e.color, bold: e.bold, italic: e.italic, box, changed: editedSet.has(i) };
           });
-          list.push({ page: p, xFrac: line.x, yFrac: line.y, wFrac: line.w, hFrac: line.h, bg: line.bg, parts });
+          list.push({ page: p, xFrac: line.x, yFrac: line.y, wFrac: line.w, hFrac: line.h, bg: line.bg, parts, inPlace });
         }
       }
       const outBytes = await applyLineEdits(await file.arrayBuffer(), list);
@@ -326,6 +330,21 @@ export function EditTool() {
     return { fit, widths: base.map((w) => w * fit), parts };
   }
 
+  // Decide (identically for preview + export) whether a line can be edited
+  // IN PLACE — i.e. every changed word keeps its original width, so we redraw
+  // only the changed words and leave all other text untouched (best font match).
+  // Otherwise the line must reflow (whole-line redraw).
+  function linePlan(line: Line) {
+    const m = lineMetrics(line);
+    const editedIdxs: number[] = [];
+    line.parts.forEach((_o, i) => { const e = m.parts[i]; if (e && partEdited(line, i, e)) editedIdxs.push(i); });
+    const inPlace = editedIdxs.length > 0 && editedIdxs.every((i) => {
+      const b = line.boxes[i]; if (!b) return false;
+      return Math.abs(m.widths[i] - b.w * disp.w) <= Math.max(2, b.w * disp.w * 0.08);
+    });
+    return { ...m, editedIdxs, inPlace };
+  }
+
   // Draw the edited/active lines onto the overlay CANVAS. Cover + redrawn text
   // live in ONE coordinate space, so they can never drift apart (that drift was
   // the "doubling" bug when cover used % and text used px-from-a-stale-disp).
@@ -340,25 +359,45 @@ export function EditTool() {
     for (const line of pageLines) {
       const isActive = editing?.lineId === line.id;
       if (!isActive && !lineHasEdits(line, edits)) continue;
-      const { fit, widths, parts } = lineMetrics(line);
-      const bx = line.w * 0.02 + line.h * 0.06;
+      const { fit, widths, parts, editedIdxs, inPlace: planInPlace } = linePlan(line);
       // Guard: an invalid colour string leaves canvas fillStyle unchanged (black),
       // which is exactly how a bad sample used to blot the line. Force white.
-      ctx.fillStyle = /^rgb\(\s*\d/.test(line.bg) ? line.bg : 'rgb(255,255,255)';
-      ctx.fillRect((line.x - bx) * disp.w, (line.y - COVER_TOP * line.h) * disp.h, (line.w + bx * 2) * disp.w, COVER_H * line.h * disp.h);
+      const bgFill = /^rgb\(\s*\d/.test(line.bg) ? line.bg : 'rgb(255,255,255)';
       const baseY = (line.y + BASELINE * line.h) * disp.h;
-      let x = line.x * disp.w;
-      line.parts.forEach((orig, i) => {
-        const e = parts[i];
-        const t = e ? e.text : orig;
-        const isActiveWord = isActive && editing!.i === i;
-        if (t && t.trim() && !isActiveWord) {
-          ctx.font = cssFont(e ? e.family : line.family, e ? e.bold : line.bold, e ? e.italic : line.italic, (e ? e.size : line.h) * disp.h * fit);
-          ctx.fillStyle = e ? e.color : line.color;
-          ctx.fillText(t, x, baseY);
+
+      // In place (only changed words redrawn) unless we're actively typing in this
+      // line (then reflow live so the caret/line stays smooth).
+      const inPlace = !isActive && planInPlace;
+
+      if (inPlace) {
+        for (const i of editedIdxs) {
+          const b = line.boxes[i]!; const e = parts[i]!;
+          const pad = b.w * 0.04 + b.h * 0.06;
+          ctx.fillStyle = bgFill;
+          ctx.fillRect((b.x - pad) * disp.w, (b.y - COVER_TOP * b.h) * disp.h, (b.w + pad * 2) * disp.w, COVER_H * b.h * disp.h);
+          if (e.text.trim()) {
+            ctx.font = cssFont(e.family, e.bold, e.italic, e.size * disp.h);
+            ctx.fillStyle = e.color;
+            ctx.fillText(e.text, b.x * disp.w, (b.y + BASELINE * b.h) * disp.h);
+          }
         }
-        x += widths[i];
-      });
+      } else {
+        const bx = line.w * 0.02 + line.h * 0.06;
+        ctx.fillStyle = bgFill;
+        ctx.fillRect((line.x - bx) * disp.w, (line.y - COVER_TOP * line.h) * disp.h, (line.w + bx * 2) * disp.w, COVER_H * line.h * disp.h);
+        let x = line.x * disp.w;
+        line.parts.forEach((orig, i) => {
+          const e = parts[i];
+          const t = e ? e.text : orig;
+          const isActiveWord = isActive && editing!.i === i;
+          if (t && t.trim() && !isActiveWord) {
+            ctx.font = cssFont(e ? e.family : line.family, e ? e.bold : line.bold, e ? e.italic : line.italic, (e ? e.size : line.h) * disp.h * fit);
+            ctx.fillStyle = e ? e.color : line.color;
+            ctx.fillText(t, x, baseY);
+          }
+          x += widths[i];
+        });
+      }
     }
     // hover highlight (skip the word being edited)
     if (hover && hover !== (editing ? key(editing.lineId, editing.i) : null)) {
@@ -462,8 +501,12 @@ export function EditTool() {
                         ref={editRef}
                         value={activeEdit.text}
                         onChange={(ev) => { const t = ev.target.value; beginSession(); setEdits((s) => ({ ...s, [key(activeLine.id, editing.i)]: { ...editOf(activeLine, editing.i, s), text: t } })); }}
-                        onKeyDown={(ev) => { if (ev.key === 'Enter') { ev.preventDefault(); closeWord(); } else if (ev.key === 'Escape') { setEditing(null); sessionRef.current = null; } }}
-                        onBlur={closeWord}
+                        onKeyDown={(ev) => {
+                          const mod = ev.ctrlKey || ev.metaKey;
+                          if (mod && ev.key.toLowerCase() === 'b') { ev.preventDefault(); if (famInfo?.bold) patchActive({ bold: !activeEdit.bold }); }
+                          else if (mod && ev.key.toLowerCase() === 'i') { ev.preventDefault(); if (famInfo?.italic) patchActive({ italic: !activeEdit.italic }); }
+                          else if (ev.key === 'Enter' || ev.key === 'Escape') { ev.preventDefault(); if (ev.key === 'Escape') { setEditing(null); sessionRef.current = null; } }
+                        }}
                         className="absolute z-20 rounded-[2px] p-0 outline-none ring-2 ring-primary/60"
                         style={{ left: `${activeLine.x * disp.w + offset}px`, top: `${baselinePx - BASELINE * px}px`, width: `${Math.max(px, widths[editing.i]) + 3}px`, height: `${px * 1.2}px`, lineHeight: `${px * 1.2}px`, fontFamily: FAMILIES[activeEdit.family].css, fontSize: `${px}px`, fontWeight: activeEdit.bold ? 700 : 400, fontStyle: activeEdit.italic ? 'italic' : 'normal', color: activeEdit.color, background: activeLine.bg, caretColor: '#4f46e5' }}
                       />
