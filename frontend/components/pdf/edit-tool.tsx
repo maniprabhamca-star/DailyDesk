@@ -13,7 +13,7 @@ import { FontSelect } from '@/components/app/font-select';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
 import { FAMILIES, type Family } from '@/lib/fonts';
-import { applyLineEdits, lineFitScale, COVER_TOP, COVER_H, BASELINE, type LineEdit } from '@/lib/pdf-edit-text';
+import { applyLineEdits, COVER_TOP, COVER_H, BASELINE, type LineEdit } from '@/lib/pdf-edit-text';
 import { pageBackground, lineColors, type RGB } from '@/lib/pdf-sample';
 
 // Edit PDF — HYBRID in-place text editing (see docs/edit-pdf-approach.md).
@@ -322,15 +322,10 @@ export function EditTool() {
         const p = Number(pStr);
         for (const line of ls) {
           if (!lineHasEdits(line, edits)) continue;
-          const editedSet = new Set(editedIndices(line));
-          const parts = line.parts.map((orig, i) => {
-            const b = line.boxes[i];
-            if (!orig.trim() || !b || !editedSet.has(i)) return { text: orig, origText: orig, family: line.family, color: line.color, bold: line.bold, italic: line.italic, changed: false };
-            const e = editOf(line, i, edits);
-            const { size, wordScaleX, coverL, coverR } = wordDraw(line, i, e);
-            return { text: e.text, origText: orig, family: e.family, color: e.color, bold: e.bold, italic: e.italic, changed: true, box: { xFrac: b.x, yFrac: b.y, wFrac: b.w, hFrac: b.h }, drawSizeFrac: (size * Math.min(1, wordScaleX)) / disp.h, coverLFrac: coverL, coverRFrac: coverR };
-          });
-          list.push({ page: p, xFrac: line.x, yFrac: line.y, wFrac: line.w, hFrac: line.h, bg: line.bg, parts, inPlace: true });
+          const plan = lineReflow(line, false);
+          if (!plan) continue;
+          const draws = plan.draws.filter((d) => d.e.text.trim()).map((d) => ({ text: d.e.text, xFrac: d.xFrac, sizeFrac: d.size / disp.h, family: d.e.family, color: d.e.color, bold: d.e.bold, italic: d.e.italic }));
+          list.push({ page: p, yFrac: line.y, hFrac: line.h, bg: line.bg, coverLFrac: plan.coverL, coverRFrac: plan.coverR, draws });
         }
       }
       const outBytes = await applyLineEdits(await file.arrayBuffer(), list);
@@ -350,29 +345,43 @@ export function EditTool() {
     return out;
   }
 
-  // Redraw geometry for ONE word, sized to match the original word's measured ink
-  // height (so it isn't bigger than the rest), covering exactly its refined ink
-  // box. Nothing else on the line is touched — so the sentence can't widen or bump.
-  function wordDraw(line: Line, i: number, e: Edit) {
-    const b = line.boxes[i]!;
+  // Draw size for a word, matched to its measured ink height (so it doesn't render
+  // bigger/taller than the rest of the line in the browser font).
+  function matchedSize(line: Line, box: WordBox, e: Edit): number {
     const nominal = e.size * disp.h;
-    const targetInk = (b.inkH ?? line.h * 0.7) * disp.h;
+    const targetInk = (box.inkH ?? line.h * 0.7) * disp.h;
     const brInk = inkHeight(e.text || 'Hg', cssFont(e.family, e.bold, e.italic, nominal)) || nominal * 0.9;
-    const size = nominal * Math.max(0.5, Math.min(1.25, targetInk > 0 && brInk > 0 ? targetInk / brInk : 1));
-    const natWFrac = measureWidth(e.text || ' ', cssFont(e.family, e.bold, e.italic, size)) / disp.w;
-    let prevR = line.x; for (let j = i - 1; j >= 0; j--) { const pb = line.boxes[j]; if (pb) { prevR = pb.x + pb.w; break; } }
-    let nextL = line.x + line.w; for (let j = i + 1; j < line.parts.length; j++) { const nb = line.boxes[j]; if (nb) { nextL = nb.x; break; } }
-    // If the new word is wider than the room to the next word, CONDENSE it
-    // horizontally to fit its slot (keeps height, never overlaps the neighbour).
-    const avail = Math.max(0.001, nextL - b.x);
-    const wordScaleX = natWFrac > avail ? avail / natWFrac : 1;
-    const drawnWFrac = natWFrac * wordScaleX;
-    // Cover to the MIDPOINT of the blank space on each side — safely in the gaps,
-    // never clipping a neighbour, always fully hiding the original word.
-    const coverL = (prevR + b.x) / 2;
-    const coverR = (Math.max(b.x + b.w, b.x + drawnWFrac) + nextL) / 2;
-    const baselinePx = (line.y + BASELINE * line.h) * disp.h;
-    return { b, size, natWFrac, drawnWFrac, wordScaleX, coverL, coverR, baselinePx };
+    return nominal * Math.max(0.5, Math.min(1.25, targetInk > 0 && brInk > 0 ? targetInk / brInk : 1));
+  }
+
+  // Reflow plan for a line: words BEFORE the first edit are untouched (original
+  // pixels); the edited word + everything AFTER it are re-laid-out left→right at
+  // matched sizes, preserving the original inter-word gaps. So a longer word
+  // pushes the rest right (flexible) and a shorter one pulls it in — without ever
+  // resizing the font or moving the untouched prefix.
+  function lineReflow(line: Line, includeActive: boolean) {
+    const affected = editedIndices(line);
+    const active = includeActive && editing && editing.lineId === line.id ? editing.i : -1;
+    if (active >= 0) affected.push(active);
+    if (!affected.length) return null;
+    const firstEdit = Math.min(...affected);
+    const b0 = line.boxes[firstEdit]; if (!b0) return null;
+    let prevR = line.x; for (let j = firstEdit - 1; j >= 0; j--) { const pb = line.boxes[j]; if (pb) { prevR = pb.x + pb.w; break; } }
+    const draws: { i: number; xFrac: number; size: number; e: Edit; wFrac: number }[] = [];
+    let x = b0.x;
+    for (let j = firstEdit; j < line.parts.length; j++) {
+      const box = line.boxes[j]; if (!box || !line.parts[j].trim()) continue;
+      const e = editOf(line, j, edits);
+      const size = matchedSize(line, box, e);
+      const wFrac = measureWidth(e.text || ' ', cssFont(e.family, e.bold, e.italic, size)) / disp.w;
+      draws.push({ i: j, xFrac: x, size, e, wFrac });
+      let nextBox: WordBox | null = null; for (let k = j + 1; k < line.parts.length; k++) { const nb = line.boxes[k]; if (nb) { nextBox = nb; break; } }
+      const gap = nextBox ? Math.max(0, nextBox.x - (box.x + box.w)) : 0;
+      x += wFrac + gap;
+    }
+    const coverL = (prevR + b0.x) / 2;
+    const coverR = Math.max(line.x + line.w, x) + line.h * 0.12;
+    return { firstEdit, draws, coverL, coverR };
   }
 
   // Draw the edited/active lines onto the overlay CANVAS. Cover + redrawn text
@@ -392,26 +401,19 @@ export function EditTool() {
       // Guard: an invalid colour string leaves canvas fillStyle unchanged (black),
       // which is exactly how a bad sample used to blot the line. Force white.
       const bgFill = /^rgb\(\s*\d/.test(line.bg) ? line.bg : 'rgb(255,255,255)';
-      // Cover + redraw ONLY the edited word(s) and the one being typed — nothing
-      // else on the line is drawn, so the rest stays exactly as the original.
-      const draws = new Set(editedIndices(line));
-      if (isActive) draws.add(editing!.i);
-      Array.from(draws).forEach((i) => {
-        if (!line.boxes[i]) return;
-        const e = editOf(line, i, edits);
-        const { b, size, wordScaleX, coverL, coverR, baselinePx } = wordDraw(line, i, e);
-        ctx.fillStyle = bgFill;
-        ctx.fillRect(coverL * disp.w, (b.y - COVER_TOP * b.h) * disp.h, (coverR - coverL) * disp.w, COVER_H * b.h * disp.h);
-        if (!(isActive && editing!.i === i) && e.text.trim()) { // active word shown by the DOM input
-          ctx.font = cssFont(e.family, e.bold, e.italic, size);
-          ctx.fillStyle = e.color;
-          ctx.save();
-          ctx.translate(b.x * disp.w, 0);
-          ctx.scale(wordScaleX, 1);
-          ctx.fillText(e.text, 0, baselinePx);
-          ctx.restore();
-        }
-      });
+      // Reflow the edited word + everything after it (prefix stays original).
+      const plan = lineReflow(line, true);
+      if (!plan) continue;
+      const baseY = (line.y + BASELINE * line.h) * disp.h;
+      ctx.fillStyle = bgFill;
+      ctx.fillRect(plan.coverL * disp.w, (line.y - COVER_TOP * line.h) * disp.h, (plan.coverR - plan.coverL) * disp.w, COVER_H * line.h * disp.h);
+      for (const d of plan.draws) {
+        if (isActive && editing!.i === d.i) continue; // active word shown by the DOM input
+        if (!d.e.text.trim()) continue;
+        ctx.font = cssFont(d.e.family, d.e.bold, d.e.italic, d.size);
+        ctx.fillStyle = d.e.color;
+        ctx.fillText(d.e.text, d.xFrac * disp.w, baseY);
+      }
     }
     // hover highlight (skip the word being edited)
     if (hover && hover !== (editing ? key(editing.lineId, editing.i) : null)) {
@@ -506,7 +508,11 @@ export function EditTool() {
 
                   {/* the live editor input — positioned exactly over its word */}
                   {activeLine && activeEdit && editing && disp.h > 0 && activeLine.boxes[editing.i] && (() => {
-                    const { b, size, natWFrac, drawnWFrac, wordScaleX, baselinePx } = wordDraw(activeLine, editing.i, activeEdit);
+                    const plan = lineReflow(activeLine, true);
+                    const d = plan?.draws.find((x) => x.i === editing.i);
+                    if (!d) return null;
+                    const size = d.size;
+                    const baselinePx = (activeLine.y + BASELINE * activeLine.h) * disp.h;
                     return (
                       <input
                         ref={editRef}
@@ -519,7 +525,7 @@ export function EditTool() {
                           else if (ev.key === 'Enter' || ev.key === 'Escape') { ev.preventDefault(); if (ev.key === 'Escape') { setEditing(null); sessionRef.current = null; } }
                         }}
                         className="absolute z-20 rounded-[2px] p-0 outline-none ring-2 ring-primary/60"
-                        style={{ left: `${b.x * disp.w}px`, top: `${baselinePx - BASELINE * size}px`, width: `${Math.max(natWFrac * disp.w, size) + 4}px`, height: `${size * 1.2}px`, lineHeight: `${size * 1.2}px`, transform: `scaleX(${wordScaleX})`, transformOrigin: 'left', fontFamily: FAMILIES[activeEdit.family].css, fontSize: `${size}px`, fontWeight: activeEdit.bold ? 700 : 400, fontStyle: activeEdit.italic ? 'italic' : 'normal', color: activeEdit.color, background: activeLine.bg, caretColor: '#4f46e5' }}
+                        style={{ left: `${d.xFrac * disp.w}px`, top: `${baselinePx - BASELINE * size}px`, width: `${Math.max(d.wFrac * disp.w, size) + 4}px`, height: `${size * 1.2}px`, lineHeight: `${size * 1.2}px`, fontFamily: FAMILIES[activeEdit.family].css, fontSize: `${size}px`, fontWeight: activeEdit.bold ? 700 : 400, fontStyle: activeEdit.italic ? 'italic' : 'normal', color: activeEdit.color, background: activeLine.bg, caretColor: '#4f46e5' }}
                       />
                     );
                   })()}

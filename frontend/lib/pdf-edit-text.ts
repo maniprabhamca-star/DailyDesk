@@ -1,11 +1,10 @@
 // True re-encoding export for Edit PDF (see docs/edit-pdf-approach.md).
 //
-// A PDF line of text is one unit: you can't make a word longer without the rest
-// of the line moving. So we edit at the LINE level — cover the original line and
-// redraw it word-by-word in matched fonts/sizes/colours, with the edited word
-// swapped in. Trailing words reflow automatically (no overlap, no overflow), and
-// every glyph is REAL vector text (crisp + selectable). Unedited lines are left
-// completely untouched, so the rest of the page stays pixel-perfect.
+// The component works out the exact layout (cover rectangle + each redrawn word's
+// position/size, with reflow) against the on-screen render, then hands us a flat
+// list of positioned word draws per line. We just cover the affected span and
+// re-encode those words as REAL vector text in matched fonts — so the export is a
+// 1:1 match of the preview, and every UNtouched word stays the original PDF text.
 //
 // Font tiers (both "true re-encoding"):
 //   • base-14 (Helvetica / Times / Courier + bold/italic) — no embedding, tiny.
@@ -18,33 +17,25 @@
 import { PDFDocument, StandardFonts, rgb, type PDFFont } from 'pdf-lib';
 import { FAMILIES, type Family, loadFontBytes } from './fonts';
 
-// One styled segment of a line (a word, or a run of spaces with text=' ').
-export type Box = { xFrac: number; yFrac: number; wFrac: number; hFrac: number };
-
-export type PartStyle = {
+// One positioned word to (re)draw.
+export type PartDraw = {
   text: string;
-  origText?: string; // the ORIGINAL word — lets us fit relative to original width
+  xFrac: number;    // left edge (fraction of page width)
+  sizeFrac: number; // font size (fraction of page height)
   family: Family;
-  sizeFrac?: number; // drawn size (defaults to the line's hFrac)
-  color: string;     // 'rgb(r,g,b)'
+  color: string;    // 'rgb(r,g,b)'
   bold: boolean;
   italic: boolean;
-  box?: Box;         // this word's ORIGINAL box (for in-place redraw)
-  changed?: boolean; // did this word actually change? (in-place only redraws these)
-  drawSizeFrac?: number; // matched draw size (fraction of page height)
-  coverLFrac?: number;   // cover rect left/right (fraction of page width)
-  coverRFrac?: number;
 };
 
 export type LineEdit = {
-  page: number;   // 0-based
-  xFrac: number;  // line box left  (fraction of page width)
-  yFrac: number;  // line box top   (fraction of page height, y-down)
-  wFrac: number;  // original line width (fraction of page width) — cover width
-  hFrac: number;  // font size / line height (fraction of page height)
-  bg: string;     // 'rgb(r,g,b)' cover colour
-  parts: PartStyle[]; // whole line, in order
-  inPlace?: boolean;  // redraw ONLY changed words (widths preserved) vs reflow whole line
+  page: number;      // 0-based
+  yFrac: number;     // line box top (fraction of page height, y-down)
+  hFrac: number;     // line height (fraction of page height)
+  bg: string;        // 'rgb(r,g,b)' cover colour
+  coverLFrac: number; // cover rect left / right (fraction of page width)
+  coverRFrac: number;
+  draws: PartDraw[];  // the edited word(s) + everything after it, repositioned
 };
 
 // Cover bleed + baseline factors — MUST match the preview overlay in
@@ -52,15 +43,6 @@ export type LineEdit = {
 export const COVER_TOP = 0.18;   // extend cover this·h above the box top
 export const COVER_H = 1.36;     // total cover height in ·h
 export const BASELINE = 0.8;     // baseline sits this·h below the box top
-export const FIT_FLOOR = 0.8;    // shrink a too-long line no smaller than this·size
-
-/** How much to scale a whole line so it fits its original width (never grows;
- * shrinks a longer replacement to the FIT_FLOOR so it can't spill into the next
- * run). Shared formula so preview and export agree. */
-export function lineFitScale(naturalWidth: number, maxWidth: number): number {
-  if (naturalWidth <= maxWidth || naturalWidth <= 0 || maxWidth <= 0) return 1;
-  return Math.max(FIT_FLOOR, maxWidth / naturalWidth);
-}
 
 function parseRgb(s: string): [number, number, number] {
   const m = /rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i.exec(s);
@@ -75,8 +57,8 @@ function standardFontName(fam: Family, bold: boolean, italic: boolean): string |
   return null; // embeddable family
 }
 
-/** Apply line edits to a PDF, returning new bytes. Pure — no DOM, so it runs in
- * a Node test the same way it runs in the browser (base-14 tier needs no fetch). */
+/** Apply the positioned word edits to a PDF, returning new bytes. Pure — no DOM,
+ * so it runs in a Node test the same way it runs in the browser. */
 export async function applyLineEdits(src: ArrayBuffer | Uint8Array, edits: LineEdit[]): Promise<Uint8Array> {
   const doc = await PDFDocument.load(src, { ignoreEncryption: true });
   const pages = doc.getPages();
@@ -113,66 +95,21 @@ export async function applyLineEdits(src: ArrayBuffer | Uint8Array, edits: LineE
     const page = pages[L.page];
     if (!page) continue;
     const { width: W, height: H } = page.getSize();
-
-    // IN-PLACE: only the changed words are covered + re-encoded; all other text is
-    // left as the ORIGINAL PDF vector (perfect font match, still selectable).
-    if (L.inPlace) {
-      const [ir, ig, ib] = parseRgb(L.bg);
-      for (let i = 0; i < L.parts.length; i++) {
-        const p = L.parts[i];
-        if (!p.changed || !p.box) continue;
-        const b = p.box; const bh = b.hFrac * H;
-        const font = await getFont(p.family, p.bold, p.italic);
-        const size = (p.drawSizeFrac ?? b.hFrac) * H;
-        // Cover exactly the original word's ink box (+ the redraw width), from the
-        // values the preview computed — so export matches the preview 1:1.
-        const cl = p.coverLFrac ?? b.xFrac;
-        const cr = p.coverRFrac ?? (b.xFrac + b.wFrac);
-        page.drawRectangle({ x: cl * W, y: H * (1 - b.yFrac - (COVER_H - COVER_TOP) * b.hFrac), width: (cr - cl) * W, height: COVER_H * bh, color: rgb(ir, ig, ib) });
-        if (p.text.trim()) {
-          const [crc, cgc, cbc] = parseRgb(p.color);
-          page.drawText(p.text, { x: b.xFrac * W, y: H * (1 - b.yFrac - BASELINE * b.hFrac), size, font, color: rgb(crc, cgc, cbc) });
-        }
-      }
-      continue;
-    }
-
     const h = L.hFrac * H;
-    const bx = Math.max(1, L.wFrac * W * 0.02 + h * 0.06);
 
-    // 1) cover the whole original line.
+    // Cover the affected span (edited word onward), in the sampled bg colour.
     const [br, bgc, bb] = parseRgb(L.bg);
-    page.drawRectangle({
-      x: L.xFrac * W - bx,
-      y: H * (1 - L.yFrac - (COVER_H - COVER_TOP) * L.hFrac),
-      width: L.wFrac * W + bx * 2,
-      height: COVER_H * h,
-      color: rgb(br, bgc, bb),
-    });
+    const coverBottom = H * (1 - L.yFrac - (COVER_H - COVER_TOP) * L.hFrac);
+    page.drawRectangle({ x: L.coverLFrac * W, y: coverBottom, width: (L.coverRFrac - L.coverLFrac) * W, height: COVER_H * h, color: rgb(br, bgc, bb) });
 
-    // 2) redraw the line, part by part, advancing x by each part's real width so
-    //    everything after an edit reflows exactly like a text editor. First
-    //    measure the whole line and shrink it to fit the original width, so a
-    //    longer replacement can't spill into a neighbouring run.
+    // Re-encode each word as real vector text on the original baseline.
     const baseY = H * (1 - L.yFrac - BASELINE * L.hFrac);
-    const fonts = await Promise.all(L.parts.map((p) => getFont(p.family, p.bold, p.italic)));
-    // Keep natural size; only shrink if the whole line would run past the page's
-    // right edge (never shrink just because one word got a little wider).
-    let natCur = 0;
-    L.parts.forEach((p, i) => { natCur += fonts[i].widthOfTextAtSize(p.text || ' ', (p.sizeFrac ?? L.hFrac) * H); });
-    const availLine = Math.max(1, ((1 - L.xFrac) - 0.015) * W);
-    const fit = lineFitScale(natCur, availLine);
-    let x = L.xFrac * W;
-    L.parts.forEach((p, i) => {
-      if (!p.text) return;
-      const font = fonts[i];
-      const size = (p.sizeFrac ?? L.hFrac) * H * fit;
-      if (p.text.trim()) {
-        const [cr, cg, cb] = parseRgb(p.color);
-        page.drawText(p.text, { x, y: baseY, size, font, color: rgb(cr, cg, cb) });
-      }
-      x += font.widthOfTextAtSize(p.text, size);
-    });
+    for (const d of L.draws) {
+      if (!d.text.trim()) continue;
+      const font = await getFont(d.family, d.bold, d.italic);
+      const [cr, cg, cb] = parseRgb(d.color);
+      page.drawText(d.text, { x: d.xFrac * W, y: baseY, size: d.sizeFrac * H, font, color: rgb(cr, cg, cb) });
+    }
   }
 
   return doc.save();
