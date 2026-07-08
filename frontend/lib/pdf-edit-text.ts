@@ -97,7 +97,10 @@ export async function applyLineEdits(src: ArrayBuffer | Uint8Array, edits: LineE
         fontkitReady = true;
       }
       const bytes = await loadFontBytes(file);
-      f = await doc.embedFont(bytes, { subset: true });
+      // NOT subset — fontkit's subsetting corrupts some of these fonts' glyph
+      // tables (Carlito rendered as scrambled letters). Embedding the full font
+      // is a bit larger but renders correctly; it's cached per document.
+      f = await doc.embedFont(bytes, { subset: false });
       cache.set(key, f);
     }
     return f;
