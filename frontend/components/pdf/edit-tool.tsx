@@ -76,11 +76,21 @@ function fmt(bytes: number) {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
+// Map the PDF's REAL font (e.g. "BCDFEE+Calibri", "ArialMT") to the closest
+// bundled family so the redraw matches the document. Calibri → Carlito (its open
+// metric+shape twin), Arial/Helvetica → helvetica (LiberationSans), etc.
 function matchFamily(fontName?: string): Family {
   const n = (fontName || '').toLowerCase();
-  if (/times|serif|roman|georgia|garamond|minion|book/.test(n)) return 'times';
-  if (/courier|mono|consol/.test(n)) return 'courier';
-  return 'helvetica';
+  if (/calibri|carlito/.test(n)) return 'carlito';
+  if (/verdana|dejavu|tahoma|geneva|segoe/.test(n)) return 'dejavusans';
+  if (/times|roman|georgia|garamond|minion|cambria|book\b|serif/.test(n)) return 'times';
+  if (/courier|consol|\bmono\b/.test(n)) return 'courier';
+  return 'helvetica'; // Arial, Helvetica, and unknown sans-serifs
+}
+// Weight/style from the real font name.
+function styleOf(fontName?: string): { bold: boolean; italic: boolean } {
+  const n = (fontName || '').toLowerCase();
+  return { bold: /bold|black|heavy|semibold|w[6-9]00/.test(n), italic: /italic|oblique/.test(n) };
 }
 
 function defaultEdit(line: Line, i: number): Edit {
@@ -163,12 +173,17 @@ export function EditTool() {
   // Same files pdf.js already uses, served from /pdfjs/standard_fonts/.
   useEffect(() => {
     if (typeof document === 'undefined' || !('fonts' in document) || typeof FontFace === 'undefined') return;
-    const base = '/pdfjs/standard_fonts/LiberationSans';
+    const lib = '/pdfjs/standard_fonts/LiberationSans';
     const faces = [
-      new FontFace('DiemLiberationSans', `url(${base}-Regular.ttf)`, { weight: '400', style: 'normal' }),
-      new FontFace('DiemLiberationSans', `url(${base}-Bold.ttf)`, { weight: '700', style: 'normal' }),
-      new FontFace('DiemLiberationSans', `url(${base}-Italic.ttf)`, { weight: '400', style: 'italic' }),
-      new FontFace('DiemLiberationSans', `url(${base}-BoldItalic.ttf)`, { weight: '700', style: 'italic' }),
+      // Arial/Helvetica → LiberationSans (what pdf.js renders standard sans with).
+      new FontFace('DiemLiberationSans', `url(${lib}-Regular.ttf)`, { weight: '400', style: 'normal' }),
+      new FontFace('DiemLiberationSans', `url(${lib}-Bold.ttf)`, { weight: '700', style: 'normal' }),
+      new FontFace('DiemLiberationSans', `url(${lib}-Italic.ttf)`, { weight: '400', style: 'italic' }),
+      new FontFace('DiemLiberationSans', `url(${lib}-BoldItalic.ttf)`, { weight: '700', style: 'italic' }),
+      // Calibri → Carlito (its open metric+shape twin) — the most common Office font.
+      new FontFace('Carlito', `url(/fonts/carlito.ttf)`, { weight: '400', style: 'normal' }),
+      new FontFace('Carlito', `url(/fonts/carlito-bold.ttf)`, { weight: '700', style: 'normal' }),
+      new FontFace('Carlito', `url(/fonts/carlito-italic.ttf)`, { weight: '400', style: 'italic' }),
     ];
     let alive = true;
     void Promise.all(faces.map((f) => f.load().then((ff) => document.fonts.add(ff)).catch(() => {})))
@@ -234,6 +249,25 @@ export function EditTool() {
         // pixel can never paint the whole line black.
         const pageBg = pageBackground(at, rp.w, rp.h);
         const sample = (x0: number, x1: number, topPt: number, hPt: number) => lineColors(at, vp.width, vp.height, rp.w, rp.h, x0, x1, topPt, hPt, pageBg);
+        // Resolve each pdf.js loadedName ("g_d0_f2") to the PDF's REAL font
+        // ("Calibri") via commonObjs, so edits redraw in the matching family. The
+        // page was already rendered above, so the fonts are loaded (getOperatorList
+        // is cached and cheap; it just guarantees they're resolvable here).
+        try { await page.getOperatorList(); } catch { /* fonts fall back to name-guess */ }
+        const famCache = new Map<string, { family: Family; bold: boolean; italic: boolean; real?: string }>();
+        const resolveFont = (loaded?: string) => {
+          const k = loaded || '';
+          const hit = famCache.get(k); if (hit) return hit;
+          let real: string | undefined;
+          try {
+            const co = (page as unknown as { commonObjs?: { has: (n: string) => boolean; get: (n: string) => { name?: string } | null } }).commonObjs;
+            if (co && loaded && co.has(loaded)) real = co.get(loaded)?.name;
+          } catch { /* not resolved */ }
+          const name = real || loaded;
+          const info = { family: matchFamily(name), ...styleOf(name), real };
+          famCache.set(k, info);
+          return info;
+        };
         const list: Line[] = [];
         for (const it of tc.items as Array<{ str?: string; transform?: number[]; width?: number; height?: number; fontName?: string }>) {
           const s = it.str;
@@ -243,10 +277,10 @@ export function EditTool() {
           const w = (it.width || 0) * vp.scale;
           if (w < 2 || fontH < 4) continue;
           const left = m[4], top = m[5] - fontH * BASELINE;
-          const family = matchFamily(it.fontName);
-          const fn = (it.fontName || '').toLowerCase();
-          const bold = /bold|black|heavy|semibold|w[6-9]00/.test(fn);
-          const italic = /italic|oblique/.test(fn);
+          const finfo = resolveFont(it.fontName);
+          const family = finfo.family;
+          const bold = finfo.bold;
+          const italic = finfo.italic;
           const { color, bg } = sample(left, left + w, top, fontH);
           // Split into words + whitespace; estimate per-word boxes, then REFINE
           // each word's horizontal extent from the actual pixels (scan out to the
