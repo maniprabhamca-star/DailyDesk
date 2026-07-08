@@ -701,7 +701,11 @@ export function EditTool() {
           const italic = finfo.italic;
           const link = linkAt(left, top, w, fontH);
           const sampled = sample(left, left + w, top, fontH);
-          const color = textColors[textColorIndex++] || sampled.color;
+          const pdfCommandColor = textColors[textColorIndex++] || '';
+          // The rendered page is the visual truth. Some PDFs draw through CMYK,
+          // ICC profiles, or transparency, so the raw PDF command color can be a
+          // noticeably different shade than what the user sees on the page.
+          const color = sampled.color || pdfCommandColor;
           const bg = sampled.bg;
           // Split into words + whitespace; estimate per-word boxes, then REFINE
           // each word's horizontal extent from the actual pixels (scan out to the
