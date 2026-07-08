@@ -11,6 +11,7 @@ export type RGB = [number, number, number];
 export type Sampler = (x: number, y: number) => RGB; // rendered-page pixel coords
 
 const lum = (c: RGB) => c[0] + c[1] + c[2];
+const dist = (a: RGB, b: RGB) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 const bucket = (c: RGB) => `${c[0] >> 3}_${c[1] >> 3}_${c[2] >> 3}`;
 const finite = (c: RGB) => Number.isFinite(c[0]) && Number.isFinite(c[1]) && Number.isFinite(c[2]);
 
@@ -36,17 +37,27 @@ export function lineColors(
   at: Sampler, vpW: number, vpH: number, rpW: number, rpH: number,
   x0: number, x1: number, topPt: number, hPt: number, pageBg: RGB,
 ): { color: string; bg: string } {
-  // Ink = darkest pixel across a dense grid over the glyph band (thin/short
-  // glyphs and grey edges fooled a single line); near-black fallback if faint.
+  // Ink = the most common non-background colour across the glyph band. Picking
+  // the single darkest pixel makes red/blue text flip to black if one edge pixel
+  // or neighbouring glyph is darker.
+  const inkCounts = new Map<string, { n: number; c: RGB }>();
   let dark: RGB = [17, 24, 39]; let best = 999;
   for (let ky = 1; ky <= 6; ky++) {
     const cy = (topPt + hPt * (ky / 8)) / vpH * rpH;
     for (let kx = 0; kx <= 16; kx++) {
       const cx = (x0 + (x1 - x0) * kx / 16) / vpW * rpW;
       const c = at(cx, cy); if (!finite(c)) continue; const l = lum(c);
+      if (l < 720 && dist(c, pageBg) > 55) {
+        const k = bucket(c);
+        const e = inkCounts.get(k);
+        if (e) e.n++; else inkCounts.set(k, { n: 1, c });
+      }
       if (l < best) { best = l; dark = c; }
     }
   }
+  let ink: RGB | null = null; let inkN = 0;
+  inkCounts.forEach((v) => { if (v.n > inkN) { inkN = v.n; ink = v.c; } });
+  if (ink) dark = ink;
   if (best > 360) dark = [17, 24, 39];
 
   // Background = most common colour in the leading gaps just above and below the

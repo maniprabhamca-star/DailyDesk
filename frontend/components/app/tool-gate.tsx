@@ -23,7 +23,7 @@ export function ToolGate({ children }: { children: React.ReactNode }) {
   if (isOwner) {
     return (
       <div>
-        <div className="mb-4 flex items-center gap-2 rounded-lg border border-amber-400/40 bg-amber-400/10 px-3 py-2 text-xs font-medium text-amber-700 dark:text-amber-400">
+        <div className="mb-4 flex items-center justify-center gap-2 rounded-lg border border-amber-400/40 bg-amber-400/10 px-3 py-2 text-center text-xs font-medium text-amber-700 dark:text-amber-400">
           <EyeOff className="size-4 shrink-0" />
           Hidden from the public ({status === 'disabled' ? 'disabled' : 'coming soon'}) — only you can see this. Enable it in the admin when ready.
         </div>

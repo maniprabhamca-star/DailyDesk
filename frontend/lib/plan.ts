@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useAuth } from './auth';
 
 // Entitlements. The plan comes from the session cached in localStorage (see
@@ -25,15 +26,23 @@ function hasOwnerCookie(): boolean {
   return typeof document !== 'undefined' && /(?:^|;\s*)ddadmin=[^;]+/.test(document.cookie);
 }
 
-function isLocalDevPreview(): boolean {
-  if (process.env.NODE_ENV === 'production') return false;
+function isLocalPreviewHost(): boolean {
   if (typeof window === 'undefined') return false;
   return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 }
 
+function useOwnerBypass(): boolean {
+  const [enabled, setEnabled] = useState(false);
+  useEffect(() => {
+    setEnabled(hasOwnerCookie() || isLocalPreviewHost());
+  }, []);
+  return enabled;
+}
+
 export function usePlan(): Plan {
   const { user } = useAuth();
-  if (hasOwnerCookie() || isLocalDevPreview()) return 'pro';
+  const ownerBypass = useOwnerBypass();
+  if (ownerBypass) return 'pro';
   if (!user) return 'free';
   if (user.plan === 'pro') return 'pro';
   if (user.email && PRO_EMAILS.includes(user.email.trim().toLowerCase())) return 'pro';
@@ -45,7 +54,8 @@ export function usePlan(): Plan {
 // disabled via the admin tool-flags) — build tools privately, launch later.
 export function useIsOwner(): boolean {
   const { user } = useAuth();
-  if (hasOwnerCookie() || isLocalDevPreview()) return true;
+  const ownerBypass = useOwnerBypass();
+  if (ownerBypass) return true;
   if (user?.email && PRO_EMAILS.includes(user.email.trim().toLowerCase())) return true;
   return false;
 }
