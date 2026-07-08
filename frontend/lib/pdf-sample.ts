@@ -13,13 +13,14 @@ export type Sampler = (x: number, y: number) => RGB; // rendered-page pixel coor
 const lum = (c: RGB) => c[0] + c[1] + c[2];
 const dist = (a: RGB, b: RGB) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 const bucket = (c: RGB) => `${c[0] >> 3}_${c[1] >> 3}_${c[2] >> 3}`;
-const inkBucket = (c: RGB) => `${Math.round(c[0] / 4)}_${Math.round(c[1] / 4)}_${Math.round(c[2] / 4)}`;
+const inkBucket = (c: RGB) => `${Math.round(c[0] / 8)}_${Math.round(c[1] / 8)}_${Math.round(c[2] / 8)}`;
 const finite = (c: RGB) => Number.isFinite(c[0]) && Number.isFinite(c[1]) && Number.isFinite(c[2]);
 const roundRgb = (r: number, g: number, b: number): RGB => [
   Math.max(0, Math.min(255, Math.round(r))),
   Math.max(0, Math.min(255, Math.round(g))),
   Math.max(0, Math.min(255, Math.round(b))),
 ];
+const saturation = (c: RGB) => Math.max(c[0], c[1], c[2]) - Math.min(c[0], c[1], c[2]);
 
 /** Dominant colour of the whole rendered page = the paper colour (robust). */
 export function pageBackground(at: Sampler, rpW: number, rpH: number): RGB {
@@ -43,36 +44,51 @@ export function lineColors(
   at: Sampler, vpW: number, vpH: number, rpW: number, rpH: number,
   x0: number, x1: number, topPt: number, hPt: number, pageBg: RGB,
 ): { color: string; bg: string } {
-  // Ink = the most common non-background colour across the glyph band. Picking
-  // the single darkest pixel makes red/blue text flip to black if one edge pixel
-  // or neighbouring glyph is darker.
-  const inkCounts = new Map<string, { n: number; r: number; g: number; b: number; l: number }>();
-  let dark: RGB = [17, 24, 39]; let best = 999;
-  for (let ky = 1; ky <= 6; ky++) {
-    const cy = (topPt + hPt * (ky / 8)) / vpH * rpH;
-    for (let kx = 0; kx <= 16; kx++) {
-      const cx = (x0 + (x1 - x0) * kx / 16) / vpW * rpW;
-      const c = at(cx, cy); if (!finite(c)) continue; const l = lum(c);
-      if (l < 735 && dist(c, pageBg) > 48) {
-        const k = inkBucket(c);
-        const e = inkCounts.get(k);
-        if (e) { e.n++; e.r += c[0]; e.g += c[1]; e.b += c[2]; e.l += l; }
-        else inkCounts.set(k, { n: 1, r: c[0], g: c[1], b: c[2], l });
-      }
-      if (l < best) { best = l; dark = c; }
+  // Ink = the solid interior of rendered glyphs, not the antialiased edge.
+  // A sparse grid often lands on blended pixels, which makes red/blue text
+  // visibly shift the moment the editable overlay appears.
+  const inkCounts = new Map<string, { n: number; r: number; g: number; b: number; d: number; s: number }>();
+  let darkest: RGB = [17, 24, 39];
+  let darkestLum = 999;
+  let inkTotal = 0;
+  const pxX0 = Math.max(0, Math.floor(x0 / vpW * rpW));
+  const pxX1 = Math.min(rpW - 1, Math.ceil(x1 / vpW * rpW));
+  const pxY0 = Math.max(0, Math.floor((topPt + hPt * 0.08) / vpH * rpH));
+  const pxY1 = Math.min(rpH - 1, Math.ceil((topPt + hPt * 0.92) / vpH * rpH));
+  const stepX = Math.max(1, Math.floor(Math.max(1, pxX1 - pxX0) / 96));
+  const stepY = Math.max(1, Math.floor(Math.max(1, pxY1 - pxY0) / 18));
+  for (let y = pxY0; y <= pxY1; y += stepY) {
+    for (let x = pxX0; x <= pxX1; x += stepX) {
+      const c = at(x, y); if (!finite(c)) continue;
+      const l = lum(c);
+      if (l < darkestLum) { darkestLum = l; darkest = c; }
+      const d = dist(c, pageBg);
+      if (l >= 745 || d <= 42) continue;
+      const k = inkBucket(c);
+      const e = inkCounts.get(k);
+      if (e) { e.n++; e.r += c[0]; e.g += c[1]; e.b += c[2]; e.d += d; e.s += saturation(c); }
+      else inkCounts.set(k, { n: 1, r: c[0], g: c[1], b: c[2], d, s: saturation(c) });
+      inkTotal++;
     }
   }
-  let ink: RGB | null = null; let inkN = 0; let inkL = Number.POSITIVE_INFINITY;
+  let ink: RGB | null = null;
+  let bestScore = Number.NEGATIVE_INFINITY;
+  let maxN = 0;
+  inkCounts.forEach((v) => { if (v.n > maxN) maxN = v.n; });
+  const minN = Math.max(2, Math.floor(inkTotal * 0.01));
   inkCounts.forEach((v) => {
-    const avgL = v.l / v.n;
-    if (v.n > inkN || (v.n === inkN && avgL < inkL)) {
-      inkN = v.n;
-      inkL = avgL;
-      ink = roundRgb(v.r / v.n, v.g / v.n, v.b / v.n);
+    if (v.n < minN && maxN > minN) return;
+    const avg: RGB = roundRgb(v.r / v.n, v.g / v.n, v.b / v.n);
+    const avgDist = v.d / v.n;
+    const avgSat = v.s / v.n;
+    const countBonus = Math.min(1, v.n / Math.max(1, maxN)) * 36;
+    const score = avgDist + avgSat * 0.22 + countBonus;
+    if (score > bestScore) {
+      bestScore = score;
+      ink = avg;
     }
   });
-  if (ink) dark = ink;
-  else if (best > 360) dark = [17, 24, 39];
+  const dark = ink ?? (darkestLum > 360 ? [17, 24, 39] as RGB : darkest);
 
   // Background = most common colour in the leading gaps just above and below the
   // line, sampled across its width. Mode, not a single pixel.
