@@ -113,6 +113,15 @@ type Block = {
   lineH: number;                                  // line-to-line spacing (fraction of page height)
   text: string;                                   // full text, original line breaks kept as \n
 };
+type BlockStylePatch = Partial<Pick<Block, 'family' | 'size' | 'color' | 'bold' | 'italic'>>;
+type EditorSnapshot = {
+  edits: EditMap;
+  blockEdits: Record<string, string>;
+  blockStyle: Record<string, BlockStylePatch>;
+  added: Added[];
+  markups: Record<number, Markup[]>;
+  images: ImageItem[];
+};
 
 // Group detected line-runs into paragraph blocks: lines that sit directly under
 // one another, share a left edge / overlap horizontally, and are the same size
@@ -259,7 +268,7 @@ export function EditTool() {
   const [lines, setLines] = useState<Record<number, Line[]>>({});
   const [blocks, setBlocks] = useState<Record<number, Block[]>>({});
   const [blockEdits, setBlockEdits] = useState<Record<string, string>>({}); // blockId -> edited full text
-  const [blockStyle, setBlockStyle] = useState<Record<string, Partial<Pick<Block, 'family' | 'size' | 'color' | 'bold' | 'italic'>>>>({});
+  const [blockStyle, setBlockStyle] = useState<Record<string, BlockStylePatch>>({});
   const [editingBlock, setEditingBlock] = useState<string | null>(null);
   const [edits, setEdits] = useState<EditMap>({});
   const [editing, setEditing] = useState<{ lineId: string; i: number } | null>(null);
@@ -295,7 +304,10 @@ export function EditTool() {
 
   const [past, setPast] = useState<EditMap[]>([]);
   const [future, setFuture] = useState<EditMap[]>([]);
+  const [historyPast, setHistoryPast] = useState<EditorSnapshot[]>([]);
+  const [historyFuture, setHistoryFuture] = useState<EditorSnapshot[]>([]);
   const sessionRef = useRef<EditMap | null>(null);
+  const blockInputSession = useRef(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -310,6 +322,7 @@ export function EditTool() {
     if (!canProcessSize(f.size, plan)) { setError(null); setTooBig({ name: f.name, size: f.size }); return; }
     setTooBig(null); setError(null); setDone(null); setBusy(true);
     setLines({}); setEdits({}); setEditing(null); setPreview(null); setPast([]); setFuture([]);
+    setHistoryPast([]); setHistoryFuture([]); blockInputSession.current = false;
     setAdded([]); setAddSel(null); setAddMode(false);
     setBlocks({}); setBlockEdits({}); setBlockStyle({}); setEditingBlock(null);
     setTool('paragraph'); setMarkups({}); setImages([]); setSelImg(null); setSigOpen(false); imgCache.current.clear();
@@ -490,6 +503,24 @@ export function EditTool() {
   const activeEdit = activeLine && editing ? editOf(activeLine, editing.i, edits) : null;
   const famInfo = activeEdit ? FAMILIES[activeEdit.family] : null;
 
+  function snapshotEditor(): EditorSnapshot {
+    return { edits, blockEdits, blockStyle, added, markups, images };
+  }
+  function restoreEditor(snap: EditorSnapshot) {
+    setEdits(snap.edits);
+    setBlockEdits(snap.blockEdits);
+    setBlockStyle(snap.blockStyle);
+    setAdded(snap.added);
+    setMarkups(snap.markups);
+    setImages(snap.images);
+    setEditing(null); setEditingBlock(null); setAddSel(null); setSelImg(null);
+    sessionRef.current = null; blockInputSession.current = false; liveMarkup.current = null; drawing.current = false;
+  }
+  function pushHistory() {
+    setHistoryPast((p) => [...p, snapshotEditor()]);
+    setHistoryFuture([]);
+  }
+
   function beginSession() { if (!sessionRef.current) sessionRef.current = edits; }
   function endSession(next: EditMap) {
     const snap = sessionRef.current; sessionRef.current = null;
@@ -516,9 +547,9 @@ export function EditTool() {
   // Effective style = detected style with any toolbar overrides applied.
   const blockStyleOf = (b: Block) => { const o = blockStyle[b.id] || {}; return { family: o.family ?? b.family, size: o.size ?? b.size, color: o.color ?? b.color, bold: o.bold ?? b.bold, italic: o.italic ?? b.italic }; };
   const blockChanged = (b: Block) => (blockEdits[b.id] !== undefined && blockEdits[b.id] !== b.text) || !!blockStyle[b.id];
-  function openBlock(b: Block) { closeWord(); setAddSel(null); setEditingBlock(b.id); }
-  function closeBlock() { setEditingBlock(null); }
-  function patchBlock(patch: Partial<Pick<Block, 'family' | 'size' | 'color' | 'bold' | 'italic'>>) { if (editingBlock) setBlockStyle((s) => ({ ...s, [editingBlock]: { ...s[editingBlock], ...patch } })); }
+  function openBlock(b: Block) { closeWord(); setAddSel(null); blockInputSession.current = false; setEditingBlock(b.id); }
+  function closeBlock() { blockInputSession.current = false; setEditingBlock(null); }
+  function patchBlock(patch: BlockStylePatch) { if (editingBlock) { pushHistory(); setBlockStyle((s) => ({ ...s, [editingBlock]: { ...s[editingBlock], ...patch } })); } }
   function hitBlock(p: { x: number; y: number }): Block | null {
     for (let i = pageBlocks.length - 1; i >= 0; i--) { const b = pageBlocks[i]; if (p.x >= b.x - 0.006 && p.x <= b.x + b.w + 0.006 && p.y >= b.y - 0.006 && p.y <= b.y + b.h + 0.006) return b; }
     return null;
@@ -531,19 +562,25 @@ export function EditTool() {
     return { left: `${b.x * disp.w}px`, top: `${b.y * disp.h - fs * 0.08}px`, width: `${(b.w + b.w * 0.02) * disp.w}px`, minHeight: `${b.h * disp.h + fs * 0.3}px`, fontFamily: RENDER_CSS[st.family] ?? FAMILIES[st.family].css, fontSize: `${fs}px`, fontWeight: st.bold ? 700 : 400, fontStyle: st.italic ? 'italic' : 'normal', color: st.color, lineHeight: (b.lineH / b.size), whiteSpace: 'pre-wrap', wordBreak: 'break-word', background: /^rgb\(\s*\d/.test(b.bg) ? b.bg : '#ffffff', caretColor: '#4f46e5' };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeBlock, disp.h, disp.w, blockStyle]);
-  const onBlockInput = useCallback((t: string) => { setBlockEdits((s) => (editingBlock ? { ...s, [editingBlock]: t } : s)); }, [editingBlock]);
+  const onBlockInput = useCallback((t: string) => {
+    if (!editingBlock) return;
+    if (!blockInputSession.current) { pushHistory(); blockInputSession.current = true; }
+    setBlockEdits((s) => ({ ...s, [editingBlock]: t }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingBlock, edits, blockEdits, blockStyle, added, markups, images]);
 
   // ---- Add-text: new boxes placed anywhere on the page -----------------------
   const activeAdded = addSel ? added.find((a) => a.id === addSel) ?? null : null;
   function placeAdded(fx: number, fy: number) {
     closeWord();
+    pushHistory();
     const id = `A${Math.random().toString(36).slice(2, 8)}`;
     setAdded((prev) => [...prev, { id, page: sel, x: Math.max(0, Math.min(0.98, fx)), y: Math.max(0, Math.min(0.97, fy)), sizeFrac: 0.022, text: '', family: 'helvetica', color: '#111827', bold: false, italic: false }]);
     setAddSel(id);
     setAddMode(false);
   }
-  function patchAdded(patch: Partial<Added>) { if (addSel) setAdded((prev) => prev.map((a) => (a.id === addSel ? { ...a, ...patch } : a))); }
-  function deleteAdded() { if (addSel) { setAdded((prev) => prev.filter((a) => a.id !== addSel)); setAddSel(null); } }
+  function patchAdded(patch: Partial<Added>, record = true) { if (addSel) { if (record) pushHistory(); setAdded((prev) => prev.map((a) => (a.id === addSel ? { ...a, ...patch } : a))); } }
+  function deleteAdded() { if (addSel) { pushHistory(); setAdded((prev) => prev.filter((a) => a.id !== addSel)); setAddSel(null); } }
 
   function chooseTool(next: EditorTool) {
     setTool(next);
@@ -562,6 +599,7 @@ export function EditTool() {
   ])).sort((a, b) => a - b);
 
   function addImageSrc(src: string, aspect: number) {
+    pushHistory();
     const el = new Image();
     el.onload = () => {
       imgCache.current.set(src, el);
@@ -586,11 +624,12 @@ export function EditTool() {
     reader.readAsDataURL(f);
   }
 
-  function deleteImage(id: string) { setImages((a) => a.filter((i) => i.id !== id)); if (selImg === id) setSelImg(null); }
+  function deleteImage(id: string) { pushHistory(); setImages((a) => a.filter((i) => i.id !== id)); if (selImg === id) setSelImg(null); }
   function imgDown(e: React.PointerEvent<HTMLElement>, id: string, mode: 'move' | 'resize') {
     e.stopPropagation();
     e.currentTarget.setPointerCapture(e.pointerId);
     const im = images.find((i) => i.id === id); if (!im) return;
+    pushHistory();
     setSelImg(id); setAddSel(null); closeBlock(); closeWord();
     imgDrag.current = { id, mode, ox: e.clientX, oy: e.clientY, startW: im.w };
     if (mode === 'move' && wrapRef.current) {
@@ -672,11 +711,11 @@ export function EditTool() {
     } else if (committed.kind === 'line' || committed.kind === 'arrow') {
       if (Math.hypot(committed.b.x - committed.a.x, committed.b.y - committed.a.y) < 0.01) { paintMarkupOverlay(); return; }
     }
+    pushHistory();
     setMarkups((a) => ({ ...a, [sel]: [...(a[sel] || []), committed] }));
   }
 
-  function undoMarkup() { setMarkups((a) => ({ ...a, [sel]: (a[sel] || []).slice(0, -1) })); }
-  function clearPageMarkup() { setMarkups((a) => ({ ...a, [sel]: [] })); setImages((arr) => arr.filter((i) => i.page !== sel)); setSelImg(null); }
+  function clearPageMarkup() { pushHistory(); setMarkups((a) => ({ ...a, [sel]: [] })); setImages((arr) => arr.filter((i) => i.page !== sel)); setSelImg(null); }
 
   // Unified "current selection" for the toolbar — a word edit OR an added box.
   const activeBlockStyleEff = activeBlock ? blockStyleOf(activeBlock) : null;
@@ -697,10 +736,34 @@ export function EditTool() {
     if (activeEdit) deleteActive();
     else if (activeAdded) deleteAdded();
     else if (activeBlock) {
+      pushHistory();
       setBlockEdits((s) => { const n = { ...s }; delete n[activeBlock.id]; return n; });
       setBlockStyle((s) => { const n = { ...s }; delete n[activeBlock.id]; return n; });
       closeBlock();
     }
+  }
+
+  function undoEditor() {
+    if (historyPast.length) {
+      const prev = historyPast[historyPast.length - 1];
+      const current = snapshotEditor();
+      setHistoryPast((p) => p.slice(0, -1));
+      setHistoryFuture((f) => [current, ...f]);
+      restoreEditor(prev);
+      return;
+    }
+    undo();
+  }
+  function redoEditor() {
+    if (historyFuture.length) {
+      const next = historyFuture[0];
+      const current = snapshotEditor();
+      setHistoryPast((p) => [...p, current]);
+      setHistoryFuture((f) => f.slice(1));
+      restoreEditor(next);
+      return;
+    }
+    redo();
   }
 
   function undo() {
@@ -731,18 +794,18 @@ export function EditTool() {
     if (!file || done) return;
     const onKey = (e: KeyboardEvent) => {
       if (!(e.ctrlKey || e.metaKey)) return;
-      // While typing in a paragraph/text box, let the browser's own undo/redo run
-      // (native contentEditable/input history) instead of hijacking the keys.
+      // Plain inputs keep their native text undo. Paragraph blocks use the editor
+      // history so Ctrl+Z restores the whole block/tool action reliably.
       const t = e.target as HTMLElement | null;
-      if (t && (t.isContentEditable || t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
       const k = e.key.toLowerCase();
-      if (k === 'z' && !e.shiftKey) { e.preventDefault(); if (activeMarkupTool && (markups[sel] || []).length) undoMarkup(); else undo(); }
-      else if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); redo(); }
+      if (k === 'z' && !e.shiftKey) { e.preventDefault(); undoEditor(); }
+      else if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); redoEditor(); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [file, done, edits, past, future, activeMarkupTool, markups, sel]);
+  }, [file, done, edits, past, future, historyPast, historyFuture, blockEdits, blockStyle, added, markups, images]);
 
   function frac(e: React.MouseEvent) {
     const r = wrapRef.current!.getBoundingClientRect();
@@ -987,7 +1050,7 @@ export function EditTool() {
 
   useEffect(() => { paintOverlay(); }, [paintOverlay, preview, fontReady]);
 
-  const canUndo = past.length > 0, canRedo = future.length > 0;
+  const canUndo = historyPast.length > 0 || past.length > 0, canRedo = historyFuture.length > 0 || future.length > 0;
   const tbBtn = 'flex size-9 items-center justify-center rounded-lg text-sm font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed';
   const pageHasMarkup = (markups[sel] || []).length > 0 || pageImages.length > 0;
   const toolButton = (id: EditorTool, icon: React.ReactNode, label: string) => (
@@ -1012,25 +1075,26 @@ export function EditTool() {
   return (
     <Card>
       <CardContent className="p-5">
-        <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
-        <input ref={imgFileRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="hidden" onChange={(e) => { pickImageFile(e.target.files); e.currentTarget.value = ''; }} />
+        <input id="edit-pdf-upload" ref={inputRef} type="file" accept="application/pdf,.pdf" className="sr-only" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
+        <input ref={imgFileRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="sr-only" onChange={(e) => { pickImageFile(e.target.files); e.currentTarget.value = ''; }} />
         {sigOpen && <SignatureMaker onClose={() => setSigOpen(false)} onCreate={(url, aspect) => addImageSrc(url, aspect)} />}
         {handoffNote && <p className="mb-3 flex items-center gap-2 rounded-lg border border-primary/25 bg-primary/[0.06] px-3 py-2 text-sm text-foreground"><Zap className="size-4 shrink-0 text-primary" /> {handoffNote}</p>}
 
         {tooBig ? (
           <UpgradeNotice fileName={tooBig.name} sizeText={fmtBytes(tooBig.size)} limitText={fmtBytes(FREE_MAX_BYTES)} onReset={() => { setTooBig(null); inputRef.current?.click(); }} />
         ) : !file ? (
-          <div onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); pick(e.dataTransfer.files); }} onClick={() => inputRef.current?.click()}
+          <label htmlFor="edit-pdf-upload" onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); pick(e.dataTransfer.files); }}
             className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border p-8 text-center transition-colors hover:border-primary/50 hover:bg-accent/40">
             <Upload className="size-7 text-muted-foreground" />
             <p className="mt-2 text-sm font-medium">Drop a PDF here, or click to choose</p>
             <p className="text-xs text-muted-foreground">Click a paragraph to edit, or use the premium toolbar - never uploaded</p>
-          </div>
+            <span className="mt-4 inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm">Choose PDF</span>
+          </label>
         ) : (
           <div className="flex items-center gap-3 rounded-lg border bg-card p-2.5">
             <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-red-100 text-red-600 dark:bg-red-950/40"><FileText className="size-4" /></span>
             <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{file.name}</p><p className="text-xs text-muted-foreground">{fmt(file.size)} · {pageCount} page{pageCount === 1 ? '' : 's'}</p></div>
-            <Button size="icon" variant="ghost" aria-label="Remove" onClick={() => { if (handle) void handle.destroy(); setHandle(null); setFile(null); setDone(null); setError(null); setLines({}); setEdits({}); setPast([]); setFuture([]); setAdded([]); setAddSel(null); setAddMode(false); setBlocks({}); setBlockEdits({}); setBlockStyle({}); setEditingBlock(null); setMarkups({}); setImages([]); setSelImg(null); imgCache.current.clear(); }}><X className="size-4" /></Button>
+            <Button size="icon" variant="ghost" aria-label="Remove" onClick={() => { if (handle) void handle.destroy(); setHandle(null); setFile(null); setDone(null); setError(null); setLines({}); setEdits({}); setPast([]); setFuture([]); setHistoryPast([]); setHistoryFuture([]); blockInputSession.current = false; setAdded([]); setAddSel(null); setAddMode(false); setBlocks({}); setBlockEdits({}); setBlockStyle({}); setEditingBlock(null); setMarkups({}); setImages([]); setSelImg(null); imgCache.current.clear(); }}><X className="size-4" /></Button>
           </div>
         )}
 
@@ -1093,9 +1157,8 @@ export function EditTool() {
               <span className="mx-0.5 h-6 w-px bg-border/70" />
               <button className={`${tbBtn} text-destructive hover:bg-destructive/10`} title={activeAdded ? 'Delete this text box' : activeBlock ? 'Clear paragraph edit' : 'Delete selection'} disabled={!hasSel} onClick={deleteSel}><Trash2 className="size-4" /></button>
               <div className="ml-auto flex items-center gap-1">
-                <button className={`${tbBtn} hover:bg-accent`} title="Undo (Ctrl+Z)" disabled={!canUndo} onClick={undo}><Undo2 className="size-4" /></button>
-                <button className={`${tbBtn} hover:bg-accent`} title="Redo (Ctrl+Y)" disabled={!canRedo} onClick={redo}><Redo2 className="size-4" /></button>
-                <button className={`${tbBtn} hover:bg-accent`} title="Undo markup" disabled={!(markups[sel] || []).length} onClick={undoMarkup}><Highlighter className="size-4" /></button>
+                <button className={`${tbBtn} hover:bg-accent`} title="Undo (Ctrl+Z)" disabled={!canUndo} onClick={undoEditor}><Undo2 className="size-4" /></button>
+                <button className={`${tbBtn} hover:bg-accent`} title="Redo (Ctrl+Y)" disabled={!canRedo} onClick={redoEditor}><Redo2 className="size-4" /></button>
                 <button className={`${tbBtn} text-destructive hover:bg-destructive/10`} title="Clear page markup" disabled={!pageHasMarkup} onClick={clearPageMarkup}><Trash2 className="size-4" /></button>
               </div>
             </div>
@@ -1183,7 +1246,7 @@ export function EditTool() {
                     if (a.id === addSel) {
                       return (
                         <input key={a.id} ref={addInputRef} value={a.text} placeholder="Type…"
-                          onChange={(ev) => patchAdded({ text: ev.target.value })}
+                          onChange={(ev) => patchAdded({ text: ev.target.value }, false)}
                           onKeyDown={(ev) => {
                             const mod = ev.ctrlKey || ev.metaKey;
                             if (ev.key === 'Escape' || ev.key === 'Enter') { ev.preventDefault(); if (ev.key === 'Escape' && !a.text.trim()) deleteAdded(); else setAddSel(null); }
