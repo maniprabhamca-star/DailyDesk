@@ -75,14 +75,14 @@ export function lineColors(
   let bestScore = Number.NEGATIVE_INFINITY;
   let maxN = 0;
   inkCounts.forEach((v) => { if (v.n > maxN) maxN = v.n; });
-  const minN = Math.max(2, Math.floor(inkTotal * 0.01));
+  const minN = Math.max(2, Math.floor(inkTotal * 0.006));
   inkCounts.forEach((v) => {
     if (v.n < minN && maxN > minN) return;
     const avg: RGB = roundRgb(v.r / v.n, v.g / v.n, v.b / v.n);
     const avgDist = v.d / v.n;
     const avgSat = v.s / v.n;
-    const countBonus = Math.min(1, v.n / Math.max(1, maxN)) * 36;
-    const score = avgDist + avgSat * 0.22 + countBonus;
+    const countBonus = Math.min(1, v.n / Math.max(1, maxN)) * 8;
+    const score = avgDist * 1.45 + avgSat * 0.32 + countBonus;
     if (score > bestScore) {
       bestScore = score;
       ink = avg;

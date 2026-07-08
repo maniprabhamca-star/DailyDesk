@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { Loader2, FileWarning, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, FileWarning, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import { useLazyPageThumb, type PdfHandle } from '@/lib/pdf-render';
 
 // Horizontal strip of lazily-rendered page thumbnails. Only thumbnails near the
@@ -12,7 +12,7 @@ import { useLazyPageThumb, type PdfHandle } from '@/lib/pdf-render';
 
 const THUMB_CSS = 60; // displayed long edge (px)
 
-function Thumb({ handle, index, active, onSelect }: { handle: PdfHandle; index: number; active: boolean; onSelect: () => void }) {
+function Thumb({ handle, index, active, onSelect, onDelete }: { handle: PdfHandle; index: number; active: boolean; onSelect: () => void; onDelete?: () => void }) {
   const { ref, url, failed } = useLazyPageThumb<HTMLButtonElement>(handle, index, THUMB_CSS);
 
   return (
@@ -22,7 +22,7 @@ function Thumb({ handle, index, active, onSelect }: { handle: PdfHandle; index: 
       onClick={onSelect}
       aria-label={`Page ${index + 1}`}
       aria-current={active}
-      className={`relative flex h-[84px] w-16 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-white transition-all ${active ? 'border-primary ring-2 ring-primary' : 'border-border hover:border-primary/50'}`}
+      className={`group relative flex h-[84px] w-16 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-white transition-all ${active ? 'border-primary ring-2 ring-primary' : 'border-border hover:border-primary/50'}`}
     >
       {url ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -32,12 +32,31 @@ function Thumb({ handle, index, active, onSelect }: { handle: PdfHandle; index: 
       ) : (
         <Loader2 className="size-4 animate-spin text-muted-foreground" />
       )}
+      {onDelete && (
+        <span
+          role="button"
+          tabIndex={0}
+          title={`Delete page ${index + 1}`}
+          aria-label={`Delete page ${index + 1}`}
+          onClick={(e) => { e.stopPropagation(); onDelete(); }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              e.stopPropagation();
+              onDelete();
+            }
+          }}
+          className="absolute right-0.5 top-0.5 hidden size-5 items-center justify-center rounded-full bg-destructive text-white shadow group-hover:flex group-focus-visible:flex"
+        >
+          <Trash2 className="size-3" />
+        </span>
+      )}
       <span className={`absolute bottom-0.5 right-0.5 rounded px-1 text-[10px] font-medium leading-tight ${active ? 'bg-primary text-primary-foreground' : 'bg-black/55 text-white'}`}>{index + 1}</span>
     </button>
   );
 }
 
-export function PageStrip({ handle, count, selected, onSelect, className = '' }: { handle: PdfHandle | null; count: number; selected: number; onSelect: (i: number) => void; className?: string }) {
+export function PageStrip({ handle, count, selected, onSelect, onDelete, className = '' }: { handle: PdfHandle | null; count: number; selected: number; onSelect: (i: number) => void; onDelete?: (i: number) => void; className?: string }) {
   const stripRef = useRef<HTMLDivElement>(null);
 
   // Keep the selected thumb in view when navigating via the stepper / page input.
@@ -89,7 +108,7 @@ export function PageStrip({ handle, count, selected, onSelect, className = '' }:
       <div ref={stripRef} className="flex gap-2 overflow-x-auto pb-1.5">
         {pages.map((i) => (
           <span key={i} data-page={i} className="shrink-0">
-            <Thumb handle={handle} index={i} active={i === selected} onSelect={() => onSelect(i)} />
+            <Thumb handle={handle} index={i} active={i === selected} onSelect={() => onSelect(i)} onDelete={onDelete ? () => onDelete(i) : undefined} />
           </span>
         ))}
       </div>

@@ -451,6 +451,31 @@ export function EditTool() {
     } finally { setBusy(false); }
   }
   function pick(files: FileList | null) { void loadOne(files?.[0]); }
+  async function deletePage(index: number) {
+    if (!file || pageCount <= 1) return;
+    if (totalChanges > 0) {
+      setError('Please save/download your current edits before deleting pages, or delete pages first. This prevents losing unsaved edits.');
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    closeWord();
+    setAddSel(null);
+    setAddMode(false);
+    setEditingBlock(null);
+    setSelImg(null);
+    setSelStamp(null);
+    try {
+      const out = await rewritePdf(file, { type: 'delete', indices: [index] });
+      const next = new File([out.slice()], file.name, { type: 'application/pdf' });
+      await loadOne(next);
+      setSel(Math.max(0, Math.min(index, pageCount - 2)));
+    } catch {
+      setError('Could not delete that page. Please try again.');
+    } finally {
+      setBusy(false);
+    }
+  }
 
   useEffect(() => {
     const h = takeHandoff();
@@ -812,7 +837,7 @@ export function EditTool() {
     const b = activeBlock; if (!b || !disp.h) return {};
     const l = blockLayoutOf(b);
     const st = blockStyleOf(b); const fs = st.size * disp.h;
-    return { left: `${l.x * disp.w}px`, top: `${l.y * disp.h - fs * 0.08}px`, width: `${(l.w + l.w * 0.02) * disp.w}px`, minHeight: `${l.h * disp.h + fs * 0.3}px`, fontFamily: RENDER_CSS[st.family] ?? FAMILIES[st.family].css, fontSize: `${fs}px`, fontWeight: st.bold ? 700 : 400, fontStyle: st.italic ? 'italic' : 'normal', textDecorationLine: [(st.underline || st.link) && 'underline', st.strike && 'line-through'].filter(Boolean).join(' ') || 'none', textAlign: st.align, color: st.color, lineHeight: (b.lineH / b.size), whiteSpace: 'pre-wrap', wordBreak: 'break-word', background: /^rgb\(\s*\d/.test(b.bg) ? b.bg : '#ffffff', caretColor: '#4f46e5' };
+    return { left: `${l.x * disp.w}px`, top: `${l.y * disp.h - fs * 0.08}px`, width: `${(l.w + l.w * 0.02) * disp.w}px`, minHeight: `${l.h * disp.h + fs * 0.3}px`, fontFamily: RENDER_CSS[st.family] ?? FAMILIES[st.family].css, fontSize: `${fs}px`, fontWeight: st.bold ? 700 : 400, fontStyle: st.italic ? 'italic' : 'normal', textDecorationLine: [(st.underline || st.link) && 'underline', st.strike && 'line-through'].filter(Boolean).join(' ') || 'none', textDecorationColor: st.color, textAlign: st.align, color: st.color, WebkitTextFillColor: st.color, lineHeight: (b.lineH / b.size), whiteSpace: 'pre-wrap', wordBreak: 'break-word', background: /^rgb\(\s*\d/.test(b.bg) ? b.bg : '#ffffff', caretColor: '#4f46e5' };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeBlock, disp.h, disp.w, blockStyle, blockLayout]);
   const onBlockInput = useCallback((t: string) => {
@@ -1795,7 +1820,7 @@ export function EditTool() {
                           else if (ev.key === 'Enter' || ev.key === 'Escape') { ev.preventDefault(); if (ev.key === 'Escape') { setEditing(null); sessionRef.current = null; } }
                         }}
                         className="absolute z-20 rounded-[2px] p-0 outline-none ring-2 ring-primary/60"
-                        style={{ left: `${xFrac * disp.w}px`, top: `${baselinePx - BASELINE * size}px`, width: `${Math.max(newWpx, box.w * disp.w, size) + 4}px`, height: `${size * 1.2}px`, lineHeight: `${size * 1.2}px`, fontFamily: RENDER_CSS[activeEdit.family] ?? FAMILIES[activeEdit.family].css, fontSize: `${size}px`, fontWeight: activeEdit.bold ? 700 : 400, fontStyle: activeEdit.italic ? 'italic' : 'normal', textDecorationLine: [(activeEdit.underline || activeEdit.link) && 'underline', activeEdit.strike && 'line-through'].filter(Boolean).join(' ') || 'none', color: activeEdit.color, background: activeLine.bg, caretColor: '#4f46e5' }}
+                        style={{ left: `${xFrac * disp.w}px`, top: `${baselinePx - BASELINE * size}px`, width: `${Math.max(newWpx, box.w * disp.w, size) + 4}px`, height: `${size * 1.2}px`, lineHeight: `${size * 1.2}px`, fontFamily: RENDER_CSS[activeEdit.family] ?? FAMILIES[activeEdit.family].css, fontSize: `${size}px`, fontWeight: activeEdit.bold ? 700 : 400, fontStyle: activeEdit.italic ? 'italic' : 'normal', textDecorationLine: [(activeEdit.underline || activeEdit.link) && 'underline', activeEdit.strike && 'line-through'].filter(Boolean).join(' ') || 'none', textDecorationColor: activeEdit.color, color: activeEdit.color, WebkitTextFillColor: activeEdit.color, background: activeLine.bg, caretColor: '#4f46e5' }}
                       />
                     );
                   })()}
@@ -1810,7 +1835,7 @@ export function EditTool() {
                       left: `${l.x * disp.w}px`, top: `${l.y * disp.h - fs * 0.08}px`, width: `${(l.w + l.w * 0.02) * disp.w}px`, minHeight: `${l.h * disp.h + fs * 0.3}px`,
                       fontFamily: RENDER_CSS[st.family] ?? FAMILIES[st.family].css, fontSize: `${fs}px`, fontWeight: st.bold ? 700 : 400, fontStyle: st.italic ? 'italic' : 'normal',
                       textDecorationLine: [(st.underline || st.link) && 'underline', st.strike && 'line-through'].filter(Boolean).join(' ') || 'none', textAlign: st.align,
-                      color: st.color, lineHeight: b.lineH / b.size, whiteSpace: 'pre-wrap', wordBreak: 'break-word', background: /^rgb\(\s*\d/.test(b.bg) ? b.bg : '#ffffff',
+                      textDecorationColor: st.color, color: st.color, WebkitTextFillColor: st.color, lineHeight: b.lineH / b.size, whiteSpace: 'pre-wrap', wordBreak: 'break-word', background: /^rgb\(\s*\d/.test(b.bg) ? b.bg : '#ffffff',
                     };
                     return (
                       <div key={b.id} onClick={(e) => { e.stopPropagation(); openBlock(b); }} className="absolute z-20 cursor-text rounded-[2px] px-[1px]" style={style}>{blockTextOf(b)}</div>
@@ -1931,7 +1956,7 @@ export function EditTool() {
               </div>
             </div>
 
-            {pageCount > 1 && <PageStrip handle={handle} count={pageCount} selected={sel} onSelect={(i) => { closeWord(); setAddSel(null); setAddMode(false); setEditingBlock(null); setSelImg(null); setSel(i); }} className="mt-2" />}
+            {pageCount > 1 && <PageStrip handle={handle} count={pageCount} selected={sel} onSelect={(i) => { closeWord(); setAddSel(null); setAddMode(false); setEditingBlock(null); setSelImg(null); setSel(i); }} onDelete={deletePage} className="mt-2" />}
             <p className="mt-2 text-center text-xs text-muted-foreground">
               {totalChanges
                 ? `${[blockCount && `${blockCount} paragraph${blockCount === 1 ? '' : 's'} edited`, addedCount && `${addedCount} text box${addedCount === 1 ? '' : 'es'} added`, markupCount && `${markupCount} markup item${markupCount === 1 ? '' : 's'}`, imageCount && `${imageCount} image/signature${imageCount === 1 ? '' : 's'}`].filter(Boolean).join(' · ')} — edits stay in your browser.`
