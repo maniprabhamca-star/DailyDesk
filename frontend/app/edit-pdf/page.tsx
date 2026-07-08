@@ -3,38 +3,38 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { EditTool } from '@/components/pdf/edit-tool';
 
 export const metadata: Metadata = {
-  title: 'Edit PDF — Change Text in a PDF, Free | DiemDesk',
+  title: 'Edit PDF - Paragraph Editor and PDF Markup Tools | DiemDesk',
   description:
-    'Edit text in a PDF right in your browser: click any line and change the words. A smart hybrid — true edits where the font allows, seamless cover-and-redraw elsewhere. Never uploaded.',
+    'Edit PDF paragraph blocks, add text, highlight, draw, sign, and place images right in your browser. Your file stays on your device.',
   alternates: { canonical: '/edit-pdf' },
   robots: { index: false, follow: false },
   openGraph: {
     images: ['/og.png'],
-    title: 'Edit PDF — DiemDesk',
-    description: 'Click any text in a PDF and edit it, right in your browser. Nothing uploaded.',
+    title: 'Edit PDF - DiemDesk',
+    description: 'Edit PDF paragraphs and mark up documents in your browser. Nothing uploaded.',
     type: 'website',
   },
 };
 
 const steps = [
-  'Drop in a PDF — it opens in your browser, never uploaded.',
-  'Click any line of text; the words become editable in place.',
-  'Type your change and download — the original text is replaced seamlessly.',
+  'Drop in a PDF - it opens in your browser, never uploaded.',
+  'Click a detected paragraph block or use the toolbar to add text, highlight, draw, sign, or add images.',
+  'Download the edited PDF with your paragraph changes and markup applied.',
 ];
 
 const faqs = [
-  { q: 'How does editing a PDF actually work?', a: 'A PDF stores text as fixed, positioned glyphs — not paragraphs — so it can’t be edited like a Word file. We detect each line’s exact position and font, then either re-use the original font where it allows, or seamlessly cover the old text and redraw your new words in a matched font. It looks native on normal documents.' },
-  { q: 'Will it match the original font exactly?', a: 'Often, yes — for common fonts (Helvetica/Times/Courier) and fully-embedded fonts. Some PDFs embed only the letters they use, so an exact match isn’t always possible; we then pick the closest of our bundled fonts at the same size and colour.' },
-  { q: 'Why does an edit sometimes show a faint patch?', a: 'When text sits on a photo or textured background, covering the original can leave a subtle patch. It’s a limitation of the PDF format (fixed layout), not a bug — it looks clean on plain backgrounds, which is most documents.' },
-  { q: 'Can I edit a scanned PDF?', a: 'No — a scan is an image with no selectable text, so there’s nothing to click. Run OCR first to add a text layer, then edit.' },
-  { q: 'Is my file uploaded?', a: 'No. Editing runs entirely in your browser — the document is opened and rebuilt on your device. Nothing is sent to a server.' },
+  { q: 'How does paragraph editing work?', a: 'PDF text is stored as fixed positioned glyphs, not Word-style paragraphs. We group nearby text into editable paragraph blocks, cover the original block, and redraw the updated paragraph in the same place.' },
+  { q: 'Can I edit every single word separately?', a: 'No. This editor is intentionally paragraph-based, so users edit natural text blocks instead of individual words.' },
+  { q: 'What premium tools are included?', a: 'The toolbar supports paragraph edits, add text, highlight, freehand drawing, rectangle, circle, line, arrow, signatures, image placement, colors, stroke size, undo, and clear-page controls.' },
+  { q: 'Can I edit a scanned PDF?', a: 'No. A scan is an image with no selectable text, so there are no paragraph blocks to edit. Run OCR first to add a text layer, then edit.' },
+  { q: 'Is my file uploaded?', a: 'No. Editing runs entirely in your browser. The document is opened and rebuilt on your device, and nothing is sent to a server.' },
 ];
 
 export default function EditPdfPage() {
   return (
     <PdfToolPage
       title="Edit PDF"
-      description="Click any text in your PDF and change the words — a smart hybrid editor that runs entirely in your browser. Your file never leaves your device."
+      description="Edit PDF paragraph blocks and use a premium toolbar for text boxes, highlights, drawings, shapes, signatures, and images. Your file never leaves your device."
       steps={steps}
       faqs={faqs}
     >

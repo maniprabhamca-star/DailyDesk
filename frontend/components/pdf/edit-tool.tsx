@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react';
-import { Upload, FileText, X, Loader2, Pencil, Undo2, Redo2, Bold, Italic, Trash2, Minus, Plus, Zap, TextCursorInput } from 'lucide-react';
+import { Upload, FileText, X, Loader2, Pencil, Undo2, Redo2, Bold, Italic, Trash2, Minus, Plus, Zap, TextCursorInput, Highlighter, Pen, Square, Circle, ArrowUpRight, ChevronDown, Signature as SignatureIcon, ImagePlus } from 'lucide-react';
+import { SignatureMaker } from './signature-maker';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
 import { takeHandoff } from '@/lib/handoff';
+import { rewritePdf } from '@/lib/pdf-rewrite';
 import { openPdf, renderPage, dprTarget, getPdfjs, type PdfHandle, type RenderedPage } from '@/lib/pdf-render';
 import { PageStrip } from '@/components/pdf/page-strip';
 import { FontSelect } from '@/components/app/font-select';
@@ -36,6 +38,71 @@ type Edit = { text: string; family: Family; size: number; color: string; bold: b
 type EditMap = Record<string, Edit>;
 // A brand-new text box the user placed (independent of the PDF's own text).
 type Added = { id: string; page: number; x: number; y: number; sizeFrac: number; text: string; family: Family; color: string; bold: boolean; italic: boolean };
+
+type ShapeKind = 'rect' | 'circle' | 'line' | 'arrow';
+type EditorTool = 'paragraph' | 'add-text' | 'highlight' | 'pen' | ShapeKind;
+type Pt = { x: number; y: number };
+type Stroke = { kind: 'pen' | 'highlight'; color: string; w: number; pts: Pt[] };
+type ShapeMarkup = { kind: ShapeKind; color: string; w: number; a: Pt; b: Pt };
+type Markup = Stroke | ShapeMarkup;
+type ImageItem = { id: string; page: number; x: number; y: number; w: number; aspect: number; src: string };
+
+const SHAPE_KINDS: ShapeKind[] = ['rect', 'circle', 'line', 'arrow'];
+const isShape = (t: EditorTool): t is ShapeKind => (SHAPE_KINDS as string[]).includes(t);
+const isMarkupTool = (t: EditorTool) => t === 'highlight' || t === 'pen' || isShape(t);
+const MARKUP_COLORS = ['#111827', '#ef4444', '#2563eb', '#16a34a', '#7c3aed', '#facc15'];
+
+function strokeWidthFrac(tool: EditorTool, weight: number) {
+  if (tool === 'highlight') return weight * 0.006;
+  return weight * 0.0012;
+}
+
+function paintMarkups(ctx: CanvasRenderingContext2D, W: number, H: number, list: Markup[]) {
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  for (const a of list) {
+    if (a.kind === 'pen' || a.kind === 'highlight') {
+      ctx.globalAlpha = a.kind === 'highlight' ? 0.38 : 1;
+      ctx.strokeStyle = a.color;
+      ctx.lineWidth = Math.max(1, a.w * W);
+      ctx.beginPath();
+      a.pts.forEach((p, i) => (i ? ctx.lineTo(p.x * W, p.y * H) : ctx.moveTo(p.x * W, p.y * H)));
+      if (a.pts.length === 1) ctx.lineTo(a.pts[0].x * W + 0.1, a.pts[0].y * H);
+      ctx.stroke();
+      continue;
+    }
+
+    const s = a as ShapeMarkup;
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = s.color;
+    ctx.lineWidth = Math.max(2, s.w * W);
+    ctx.shadowColor = 'rgba(0,0,0,0.22)';
+    ctx.shadowBlur = 2;
+    const ax = s.a.x * W, ay = s.a.y * H, bx = s.b.x * W, by = s.b.y * H;
+    if (s.kind === 'rect') {
+      ctx.strokeRect(Math.min(ax, bx), Math.min(ay, by), Math.abs(bx - ax), Math.abs(by - ay));
+    } else if (s.kind === 'circle') {
+      const cx = (ax + bx) / 2, cy = (ay + by) / 2;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, Math.max(1, Math.abs(bx - ax) / 2), Math.max(1, Math.abs(by - ay) / 2), 0, 0, Math.PI * 2);
+      ctx.stroke();
+    } else {
+      ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+      if (s.kind === 'arrow') {
+        const ang = Math.atan2(by - ay, bx - ax);
+        const head = Math.max(10, s.w * W * 3.4);
+        const spread = Math.PI / 7;
+        ctx.beginPath();
+        ctx.moveTo(bx, by); ctx.lineTo(bx - head * Math.cos(ang - spread), by - head * Math.sin(ang - spread));
+        ctx.moveTo(bx, by); ctx.lineTo(bx - head * Math.cos(ang + spread), by - head * Math.sin(ang + spread));
+        ctx.stroke();
+      }
+    }
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+  }
+  ctx.globalAlpha = 1;
+}
 
 // A paragraph BLOCK — the Smallpdf-style unit you edit: one or more detected
 // line-runs grouped into a box you type into freely (browser wraps the text).
@@ -204,12 +271,27 @@ export function EditTool() {
   const [done, setDone] = useState<{ blob: Blob; name: string; secs: number } | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
   const [fontReady, setFontReady] = useState(0);
+  const [tool, setTool] = useState<EditorTool>('paragraph');
+  const [markupColor, setMarkupColor] = useState(MARKUP_COLORS[0]);
+  const [markupWeight, setMarkupWeight] = useState(4);
+  const [shape, setShape] = useState<ShapeKind>('rect');
+  const [shapesOpen, setShapesOpen] = useState(false);
+  const [markups, setMarkups] = useState<Record<number, Markup[]>>({});
+  const [images, setImages] = useState<ImageItem[]>([]);
+  const [selImg, setSelImg] = useState<string | null>(null);
+  const [sigOpen, setSigOpen] = useState(false);
   // Add-text (new boxes the user places), separate from the PDF's own words.
   const [added, setAdded] = useState<Added[]>([]);
   const [addSel, setAddSel] = useState<string | null>(null); // id being edited
   const [addMode, setAddMode] = useState(false);             // click-to-place armed
   const dragRef = useRef<{ id: string; dx: number; dy: number; moved: boolean } | null>(null);
   const addInputRef = useRef<HTMLInputElement>(null);
+  const imgCache = useRef<Map<string, HTMLImageElement>>(new Map());
+  const imgFileRef = useRef<HTMLInputElement>(null);
+  const imgDrag = useRef<{ id: string; mode: 'move' | 'resize'; ox: number; oy: number; startW: number } | null>(null);
+  const shapesRef = useRef<HTMLDivElement>(null);
+  const drawing = useRef(false);
+  const liveMarkup = useRef<Markup | null>(null);
 
   const [past, setPast] = useState<EditMap[]>([]);
   const [future, setFuture] = useState<EditMap[]>([]);
@@ -219,6 +301,7 @@ export function EditTool() {
   const wrapRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const markupCanvasRef = useRef<HTMLCanvasElement>(null);
   const editRef = useRef<HTMLInputElement>(null);
 
   async function loadOne(f?: File) {
@@ -229,6 +312,7 @@ export function EditTool() {
     setLines({}); setEdits({}); setEditing(null); setPreview(null); setPast([]); setFuture([]);
     setAdded([]); setAddSel(null); setAddMode(false);
     setBlocks({}); setBlockEdits({}); setBlockStyle({}); setEditingBlock(null);
+    setTool('paragraph'); setMarkups({}); setImages([]); setSelImg(null); setSigOpen(false); imgCache.current.clear();
     try {
       const h = await openPdf(f);
       if (handle) void handle.destroy();
@@ -461,6 +545,139 @@ export function EditTool() {
   function patchAdded(patch: Partial<Added>) { if (addSel) setAdded((prev) => prev.map((a) => (a.id === addSel ? { ...a, ...patch } : a))); }
   function deleteAdded() { if (addSel) { setAdded((prev) => prev.filter((a) => a.id !== addSel)); setAddSel(null); } }
 
+  function chooseTool(next: EditorTool) {
+    setTool(next);
+    setAddMode(next === 'add-text');
+    setShapesOpen(false);
+    setSelImg(null);
+    closeWord();
+    if (next !== 'paragraph') closeBlock();
+    if (next !== 'add-text') setAddSel(null);
+  }
+
+  const pageImages = images.filter((i) => i.page === sel);
+  const markedPages = Array.from(new Set([
+    ...Object.keys(markups).map(Number).filter((i) => (markups[i] || []).length > 0),
+    ...images.map((i) => i.page),
+  ])).sort((a, b) => a - b);
+
+  function addImageSrc(src: string, aspect: number) {
+    const el = new Image();
+    el.onload = () => {
+      imgCache.current.set(src, el);
+      const id = Math.random().toString(36).slice(2);
+      setImages((a) => [...a, { id, page: sel, x: 0.34, y: 0.42, w: 0.32, aspect, src }]);
+      setSelImg(id); setAddSel(null); closeBlock(); closeWord();
+    };
+    el.src = src;
+  }
+
+  function pickImageFile(files: FileList | null) {
+    const f = files?.[0]; if (!f) return;
+    if (!/^image\/(png|jpe?g|webp|gif)$/i.test(f.type) && !/\.(png|jpe?g|webp|gif)$/i.test(f.name)) { setError('Please choose a PNG, JPG, WebP or GIF image.'); return; }
+    setError(null);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const url = String(reader.result);
+      const probe = new Image();
+      probe.onload = () => addImageSrc(url, probe.naturalHeight / probe.naturalWidth);
+      probe.src = url;
+    };
+    reader.readAsDataURL(f);
+  }
+
+  function deleteImage(id: string) { setImages((a) => a.filter((i) => i.id !== id)); if (selImg === id) setSelImg(null); }
+  function imgDown(e: React.PointerEvent<HTMLElement>, id: string, mode: 'move' | 'resize') {
+    e.stopPropagation();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const im = images.find((i) => i.id === id); if (!im) return;
+    setSelImg(id); setAddSel(null); closeBlock(); closeWord();
+    imgDrag.current = { id, mode, ox: e.clientX, oy: e.clientY, startW: im.w };
+    if (mode === 'move' && wrapRef.current) {
+      const r = wrapRef.current.getBoundingClientRect();
+      imgDrag.current.ox = e.clientX - r.left - im.x * r.width;
+      imgDrag.current.oy = e.clientY - r.top - im.y * r.height;
+    }
+  }
+  function imgMove(e: React.PointerEvent<HTMLElement>) {
+    const d = imgDrag.current; if (!d || !wrapRef.current) return;
+    const r = wrapRef.current.getBoundingClientRect();
+    setImages((arr) => arr.map((im) => {
+      if (im.id !== d.id) return im;
+      if (d.mode === 'move') {
+        const hFrac = im.w * im.aspect * (r.width / r.height);
+        const x = Math.min(Math.max((e.clientX - r.left - d.ox) / r.width, 0), Math.max(0, 1 - im.w));
+        const y = Math.min(Math.max((e.clientY - r.top - d.oy) / r.height, 0), Math.max(0, 1 - hFrac));
+        return { ...im, x, y };
+      }
+      const w = Math.min(Math.max(d.startW + (e.clientX - d.ox) / r.width, 0.05), 1 - im.x);
+      return { ...im, w };
+    }));
+  }
+  function imgUp() { imgDrag.current = null; }
+
+  const paintMarkupOverlay = useCallback(() => {
+    const cv = markupCanvasRef.current; if (!cv || !disp.w || !disp.h) return;
+    const dpr = window.devicePixelRatio || 1;
+    if (cv.width !== Math.round(disp.w * dpr) || cv.height !== Math.round(disp.h * dpr)) { cv.width = Math.round(disp.w * dpr); cv.height = Math.round(disp.h * dpr); }
+    const ctx = cv.getContext('2d'); if (!ctx) return;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, disp.w, disp.h);
+    const list = [...(markups[sel] || [])];
+    if (liveMarkup.current) list.push(liveMarkup.current);
+    paintMarkups(ctx, disp.w, disp.h, list);
+  }, [disp, markups, sel]);
+
+  useEffect(() => { paintMarkupOverlay(); }, [paintMarkupOverlay, preview]);
+
+  useEffect(() => {
+    if (!shapesOpen) return;
+    const onDown = (e: MouseEvent) => { if (shapesRef.current && !shapesRef.current.contains(e.target as Node)) setShapesOpen(false); };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [shapesOpen]);
+
+  function pageFracFromClient(clientX: number, clientY: number): Pt {
+    const r = wrapRef.current!.getBoundingClientRect();
+    return { x: Math.min(1, Math.max(0, (clientX - r.left) / r.width)), y: Math.min(1, Math.max(0, (clientY - r.top) / r.height)) };
+  }
+
+  function onMarkupDown(e: React.PointerEvent<HTMLCanvasElement>) {
+    if (!preview || !isMarkupTool(tool)) return;
+    const p = pageFracFromClient(e.clientX, e.clientY);
+    e.currentTarget.setPointerCapture(e.pointerId);
+    drawing.current = true;
+    setSelImg(null); setAddSel(null); closeBlock(); closeWord();
+    liveMarkup.current = isShape(tool)
+      ? { kind: tool, color: markupColor, w: strokeWidthFrac(tool, markupWeight), a: p, b: p }
+      : { kind: tool, color: markupColor, w: strokeWidthFrac(tool, markupWeight), pts: [p] };
+    paintMarkupOverlay();
+  }
+
+  function onMarkupMove(e: React.PointerEvent<HTMLCanvasElement>) {
+    if (!drawing.current || !liveMarkup.current) return;
+    const p = pageFracFromClient(e.clientX, e.clientY);
+    const cur = liveMarkup.current;
+    if (cur.kind === 'pen' || cur.kind === 'highlight') cur.pts.push(p);
+    else (cur as ShapeMarkup).b = p;
+    paintMarkupOverlay();
+  }
+
+  function onMarkupUp() {
+    if (!drawing.current || !liveMarkup.current) { drawing.current = false; return; }
+    const committed = liveMarkup.current;
+    liveMarkup.current = null; drawing.current = false;
+    if (committed.kind === 'rect' || committed.kind === 'circle') {
+      if (Math.abs(committed.b.x - committed.a.x) < 0.006 || Math.abs(committed.b.y - committed.a.y) < 0.006) { paintMarkupOverlay(); return; }
+    } else if (committed.kind === 'line' || committed.kind === 'arrow') {
+      if (Math.hypot(committed.b.x - committed.a.x, committed.b.y - committed.a.y) < 0.01) { paintMarkupOverlay(); return; }
+    }
+    setMarkups((a) => ({ ...a, [sel]: [...(a[sel] || []), committed] }));
+  }
+
+  function undoMarkup() { setMarkups((a) => ({ ...a, [sel]: (a[sel] || []).slice(0, -1) })); }
+  function clearPageMarkup() { setMarkups((a) => ({ ...a, [sel]: [] })); setImages((arr) => arr.filter((i) => i.page !== sel)); setSelImg(null); }
+
   // Unified "current selection" for the toolbar — a word edit OR an added box.
   const activeBlockStyleEff = activeBlock ? blockStyleOf(activeBlock) : null;
   const hasSel = !!activeEdit || !!activeAdded || !!activeBlock;
@@ -476,7 +693,15 @@ export function EditTool() {
     else if (activeAdded) { const { size, ...rest } = p; patchAdded({ ...rest, ...(size !== undefined ? { sizeFrac: size } : {}) }); }
     else if (activeBlock) patchBlock(p);
   }
-  function deleteSel() { if (activeEdit) deleteActive(); else if (activeAdded) deleteAdded(); }
+  function deleteSel() {
+    if (activeEdit) deleteActive();
+    else if (activeAdded) deleteAdded();
+    else if (activeBlock) {
+      setBlockEdits((s) => { const n = { ...s }; delete n[activeBlock.id]; return n; });
+      setBlockStyle((s) => { const n = { ...s }; delete n[activeBlock.id]; return n; });
+      closeBlock();
+    }
+  }
 
   function undo() {
     setPast((p) => { if (!p.length) return p; const prev = p[p.length - 1]; setFuture((f) => [edits, ...f]); setEdits(prev); setEditing(null); sessionRef.current = null; return p.slice(0, -1); });
@@ -500,6 +725,8 @@ export function EditTool() {
     return () => cancelAnimationFrame(id);
   }, [addSel]);
 
+  const activeMarkupTool = isMarkupTool(tool);
+
   useEffect(() => {
     if (!file || done) return;
     const onKey = (e: KeyboardEvent) => {
@@ -509,13 +736,13 @@ export function EditTool() {
       const t = e.target as HTMLElement | null;
       if (t && (t.isContentEditable || t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
       const k = e.key.toLowerCase();
-      if (k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
+      if (k === 'z' && !e.shiftKey) { e.preventDefault(); if (activeMarkupTool && (markups[sel] || []).length) undoMarkup(); else undo(); }
       else if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); redo(); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [file, done, edits, past, future]);
+  }, [file, done, edits, past, future, activeMarkupTool, markups, sel]);
 
   function frac(e: React.MouseEvent) {
     const r = wrapRef.current!.getBoundingClientRect();
@@ -545,10 +772,12 @@ export function EditTool() {
     : 0;
   const addedCount = added.filter((a) => a.text.trim()).length;
   const blockCount = Object.entries(blocks).reduce((n, [, bs]) => n + bs.filter((b) => (blockEdits[b.id] !== undefined && blockEdits[b.id] !== b.text) || !!blockStyle[b.id]).length, 0);
-  const totalChanges = editCount + addedCount + blockCount;
+  const markupCount = Object.values(markups).reduce((n, list) => n + list.length, 0);
+  const imageCount = images.length;
+  const totalChanges = editCount + addedCount + blockCount + markupCount + imageCount;
 
   async function apply() {
-    if (!file || totalChanges === 0) return;
+    if (!file || !handle || totalChanges === 0) return;
     setBusy(true); setError(null); setDone(null);
     const t0 = performance.now();
     try {
@@ -589,9 +818,30 @@ export function EditTool() {
           blockList.push({ page: p, xFrac: b.x, yFrac: b.y, wFrac: b.w + b.w * 0.02, hFrac: b.h, bg: b.bg, sizeFrac: st.size, lineHFrac: b.lineH, text: blockTextOf(b), family: st.family, color: st.color, bold: st.bold, italic: st.italic });
         }
       }
-      const outBytes = await applyLineEdits(await file.arrayBuffer(), list, blockList);
+      let current: File | Blob = file;
+      if (list.length || blockList.length) {
+        const outBytes = await applyLineEdits(await file.arrayBuffer(), list, blockList);
+        current = new Blob([outBytes.slice()], { type: 'application/pdf' });
+      }
+
+      for (const idx of markedPages) {
+        const rp = await renderPage(handle, idx, dprTarget(1000, 2, 2000));
+        const cvs = document.createElement('canvas');
+        cvs.width = rp.w; cvs.height = rp.h;
+        const ctx = cvs.getContext('2d')!;
+        paintMarkups(ctx, rp.w, rp.h, markups[idx] || []);
+        for (const im of images.filter((i) => i.page === idx)) {
+          const el = imgCache.current.get(im.src);
+          if (el) { const w = im.w * rp.w; ctx.drawImage(el, im.x * rp.w, im.y * rp.h, w, w * im.aspect); }
+        }
+        const buf = await new Promise<ArrayBuffer>((resolve, reject) =>
+          cvs.toBlob((b) => (b ? b.arrayBuffer().then(resolve) : reject(new Error('render failed'))), 'image/png'));
+        const out = await rewritePdf(current, { type: 'place-image', opts: { pageNo: idx + 1, xFrac: 0, yFrac: 0, wFrac: 1, imageBytes: buf, isPng: true } });
+        current = new Blob([new Uint8Array(out)], { type: 'application/pdf' });
+      }
+
       const name = `${file.name.replace(/\.pdf$/i, '')}-edited.pdf`;
-      const blob = new Blob([outBytes.slice()], { type: 'application/pdf' });
+      const blob: Blob = current;
       download(blob, name);
       setDone({ blob, name, secs: (performance.now() - t0) / 1000 });
     } catch (e) {
@@ -739,11 +989,32 @@ export function EditTool() {
 
   const canUndo = past.length > 0, canRedo = future.length > 0;
   const tbBtn = 'flex size-9 items-center justify-center rounded-lg text-sm font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed';
+  const pageHasMarkup = (markups[sel] || []).length > 0 || pageImages.length > 0;
+  const toolButton = (id: EditorTool, icon: React.ReactNode, label: string) => (
+    <button type="button" onClick={() => chooseTool(id)} aria-pressed={tool === id} title={label}
+      className={`flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium transition-all ${tool === id ? 'bg-primary text-primary-foreground shadow-sm' : 'hover:bg-accent'}`}>
+      {icon} <span className="hidden md:inline">{label}</span>
+    </button>
+  );
+  const actionButton = (onClick: () => void, icon: React.ReactNode, label: string) => (
+    <button type="button" onClick={onClick} title={label}
+      className="flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium transition-all hover:bg-accent">
+      {icon} <span className="hidden md:inline">{label}</span>
+    </button>
+  );
+  const SHAPE_META: Record<ShapeKind, { icon: React.ReactNode; label: string }> = {
+    rect: { icon: <Square className="size-4" />, label: 'Rectangle' },
+    circle: { icon: <Circle className="size-4" />, label: 'Ellipse' },
+    line: { icon: <Minus className="size-4" />, label: 'Line' },
+    arrow: { icon: <ArrowUpRight className="size-4" />, label: 'Arrow' },
+  };
 
   return (
     <Card>
       <CardContent className="p-5">
         <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
+        <input ref={imgFileRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="hidden" onChange={(e) => { pickImageFile(e.target.files); e.currentTarget.value = ''; }} />
+        {sigOpen && <SignatureMaker onClose={() => setSigOpen(false)} onCreate={(url, aspect) => addImageSrc(url, aspect)} />}
         {handoffNote && <p className="mb-3 flex items-center gap-2 rounded-lg border border-primary/25 bg-primary/[0.06] px-3 py-2 text-sm text-foreground"><Zap className="size-4 shrink-0 text-primary" /> {handoffNote}</p>}
 
         {tooBig ? (
@@ -753,13 +1024,13 @@ export function EditTool() {
             className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border p-8 text-center transition-colors hover:border-primary/50 hover:bg-accent/40">
             <Upload className="size-7 text-muted-foreground" />
             <p className="mt-2 text-sm font-medium">Drop a PDF here, or click to choose</p>
-            <p className="text-xs text-muted-foreground">Click any word to edit it — right in your browser, never uploaded</p>
+            <p className="text-xs text-muted-foreground">Click a paragraph to edit, or use the premium toolbar - never uploaded</p>
           </div>
         ) : (
           <div className="flex items-center gap-3 rounded-lg border bg-card p-2.5">
             <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-red-100 text-red-600 dark:bg-red-950/40"><FileText className="size-4" /></span>
             <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{file.name}</p><p className="text-xs text-muted-foreground">{fmt(file.size)} · {pageCount} page{pageCount === 1 ? '' : 's'}</p></div>
-            <Button size="icon" variant="ghost" aria-label="Remove" onClick={() => { if (handle) void handle.destroy(); setHandle(null); setFile(null); setDone(null); setError(null); setLines({}); setEdits({}); setPast([]); setFuture([]); setAdded([]); setAddSel(null); setAddMode(false); setBlocks({}); setBlockEdits({}); setBlockStyle({}); setEditingBlock(null); }}><X className="size-4" /></Button>
+            <Button size="icon" variant="ghost" aria-label="Remove" onClick={() => { if (handle) void handle.destroy(); setHandle(null); setFile(null); setDone(null); setError(null); setLines({}); setEdits({}); setPast([]); setFuture([]); setAdded([]); setAddSel(null); setAddMode(false); setBlocks({}); setBlockEdits({}); setBlockStyle({}); setEditingBlock(null); setMarkups({}); setImages([]); setSelImg(null); imgCache.current.clear(); }}><X className="size-4" /></Button>
           </div>
         )}
 
@@ -770,8 +1041,30 @@ export function EditTool() {
                 (that blur used to commit + exit edit mode before the style applied),
                 so font/size/bold/italic/colour change live as you type. */}
             <div className="mb-3 flex flex-wrap items-center gap-1.5 rounded-2xl border bg-card p-1.5 shadow-soft"
-              onMouseDown={(e) => { if (editing || activeAdded) e.preventDefault(); }}>
-              <button className={`${tbBtn} gap-1.5 w-auto px-2.5 ${addMode ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}`} title="Add a new text box — then click where you want it" aria-pressed={addMode} onClick={() => { setAddMode((m) => !m); closeWord(); }}><TextCursorInput className="size-4" /> <span className="text-xs font-medium">Add text</span></button>
+              onMouseDown={(e) => { if (editing || activeAdded || activeBlock) e.preventDefault(); }}>
+              {toolButton('paragraph', <Pencil className="size-4" />, 'Edit paragraphs')}
+              <button className={`${tbBtn} gap-1.5 w-auto px-2.5 ${addMode ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}`} title="Add a new text box — then click where you want it" aria-pressed={addMode} onClick={() => { if (addMode) chooseTool('paragraph'); else chooseTool('add-text'); }}><TextCursorInput className="size-4" /> <span className="text-xs font-medium">Add text</span></button>
+              <span className="mx-0.5 h-6 w-px bg-border/70" />
+              {toolButton('highlight', <Highlighter className="size-4" />, 'Highlight')}
+              {toolButton('pen', <Pen className="size-4" />, 'Draw')}
+              <div className="relative" ref={shapesRef}>
+                <button type="button" onClick={() => { chooseTool(shape); setShapesOpen((o) => !o); }} aria-pressed={isShape(tool)} aria-haspopup="menu" aria-expanded={shapesOpen} title="Shapes"
+                  className={`flex h-9 items-center gap-1 rounded-lg px-2.5 text-sm font-medium transition-all ${isShape(tool) ? 'bg-primary text-primary-foreground shadow-sm' : 'hover:bg-accent'}`}>
+                  {SHAPE_META[shape].icon} <span className="hidden md:inline">Shapes</span> <ChevronDown className={`size-3.5 transition-transform ${shapesOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {shapesOpen && (
+                  <div role="menu" className="absolute left-0 top-full z-50 mt-1 w-40 rounded-xl border bg-card p-1 shadow-lift">
+                    {SHAPE_KINDS.map((s) => (
+                      <button key={s} type="button" role="menuitem" onClick={() => { setShape(s); chooseTool(s); }}
+                        className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm transition-colors hover:bg-accent ${tool === s ? 'text-primary' : ''}`}>
+                        {SHAPE_META[s].icon} {SHAPE_META[s].label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {actionButton(() => setSigOpen(true), <SignatureIcon className="size-4" />, 'Sign')}
+              {actionButton(() => imgFileRef.current?.click(), <ImagePlus className="size-4" />, 'Image')}
               <span className="mx-0.5 h-6 w-px bg-border/70" />
               <FontSelect value={selFamily} onChange={(f) => patchSel({ family: f })} className="w-40" />
               <span className="mx-0.5 h-6 w-px bg-border/70" />
@@ -784,21 +1077,32 @@ export function EditTool() {
               <span className="mx-0.5 h-6 w-px bg-border/70" />
               <div className="flex items-center gap-1 px-0.5">
                 {SWATCHES.map((c) => (
-                  <button key={c} disabled={!hasSel} aria-label={`colour ${c}`} aria-pressed={selColor === c} onClick={() => patchSel({ color: c })}
-                    className={`size-5 rounded-full ring-offset-1 ring-offset-card transition-all disabled:opacity-40 ${selColor === c ? 'ring-2 ring-primary' : 'ring-1 ring-border hover:ring-primary/50'}`} style={{ backgroundColor: c }} />
+                  <button key={c} disabled={!hasSel && !activeMarkupTool} aria-label={`colour ${c}`} aria-pressed={(activeMarkupTool ? markupColor : selColor) === c} onClick={() => activeMarkupTool ? setMarkupColor(c) : patchSel({ color: c })}
+                    className={`size-5 rounded-full ring-offset-1 ring-offset-card transition-all disabled:opacity-40 ${(activeMarkupTool ? markupColor : selColor) === c ? 'ring-2 ring-primary' : 'ring-1 ring-border hover:ring-primary/50'}`} style={{ backgroundColor: c }} />
                 ))}
               </div>
+              {activeMarkupTool && (
+                <>
+                  <span className="mx-0.5 h-6 w-px bg-border/70" />
+                  <label className="flex items-center gap-2 px-1 text-xs font-medium text-muted-foreground">
+                    Size
+                    <input type="range" min={1} max={10} value={markupWeight} onChange={(e) => setMarkupWeight(Number(e.target.value))} className="dd-range w-20" />
+                  </label>
+                </>
+              )}
               <span className="mx-0.5 h-6 w-px bg-border/70" />
-              <button className={`${tbBtn} text-destructive hover:bg-destructive/10`} title={activeAdded ? 'Delete this text box' : 'Delete this word'} disabled={!hasSel} onClick={deleteSel}><Trash2 className="size-4" /></button>
+              <button className={`${tbBtn} text-destructive hover:bg-destructive/10`} title={activeAdded ? 'Delete this text box' : activeBlock ? 'Clear paragraph edit' : 'Delete selection'} disabled={!hasSel} onClick={deleteSel}><Trash2 className="size-4" /></button>
               <div className="ml-auto flex items-center gap-1">
                 <button className={`${tbBtn} hover:bg-accent`} title="Undo (Ctrl+Z)" disabled={!canUndo} onClick={undo}><Undo2 className="size-4" /></button>
                 <button className={`${tbBtn} hover:bg-accent`} title="Redo (Ctrl+Y)" disabled={!canRedo} onClick={redo}><Redo2 className="size-4" /></button>
+                <button className={`${tbBtn} hover:bg-accent`} title="Undo markup" disabled={!(markups[sel] || []).length} onClick={undoMarkup}><Highlighter className="size-4" /></button>
+                <button className={`${tbBtn} text-destructive hover:bg-destructive/10`} title="Clear page markup" disabled={!pageHasMarkup} onClick={clearPageMarkup}><Trash2 className="size-4" /></button>
               </div>
             </div>
 
             <p className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
               <Pencil className="size-3.5 text-primary" />
-              {addMode ? 'Click anywhere on the page to drop a new text box.' : activeAdded ? 'Editing a text box — type, format, or drag it to move. Delete removes it.' : activeBlock ? 'Editing a paragraph — type freely; the text wraps and stays in the PDF’s font. Click outside when done.' : 'Click a paragraph to edit its text, or use “Add text”.'}
+              {activeMarkupTool ? 'Drag on the page to mark it up. Use Sign or Image to place files, then drag to move them.' : addMode ? 'Click anywhere on the page to drop a new text box.' : activeAdded ? 'Editing a text box — type, format, or drag it to move. Delete removes it.' : activeBlock ? 'Editing a paragraph — type freely; the text wraps and stays in the PDF’s font. Click outside when done.' : 'Click a paragraph to edit its text, or use “Add text”.'}
               {detecting && <span className="inline-flex items-center gap-1"><Loader2 className="size-3 animate-spin" /> finding text…</span>}
             </p>
 
@@ -811,9 +1115,17 @@ export function EditTool() {
                   {/* Edited/active lines: cover + reflowed text drawn in ONE canvas
                       (same coordinate space → can't drift → no doubling). */}
                   <canvas ref={canvasRef} className="pointer-events-none absolute inset-0 h-full w-full" />
+                  <canvas
+                    ref={markupCanvasRef}
+                    className={`absolute inset-0 h-full w-full touch-none ${activeMarkupTool ? 'cursor-crosshair' : 'pointer-events-none'}`}
+                    onPointerDown={onMarkupDown}
+                    onPointerMove={onMarkupMove}
+                    onPointerUp={onMarkupUp}
+                    onPointerLeave={onMarkupUp}
+                  />
 
                   {/* click/hover surface */}
-                  <div className="absolute inset-0" style={{ cursor: addMode ? 'crosshair' : hover ? 'text' : 'default' }} onMouseMove={onMove} onMouseLeave={() => setHover(null)} onClick={onClick} />
+                  <div className={`absolute inset-0 ${activeMarkupTool ? 'pointer-events-none' : ''}`} style={{ cursor: addMode ? 'crosshair' : hover ? 'text' : 'default' }} onMouseMove={onMove} onMouseLeave={() => setHover(null)} onClick={onClick} />
 
                   {/* the live editor input — positioned exactly over its word */}
                   {activeLine && activeEdit && editing && disp.h > 0 && activeLine.boxes[editing.i] && (() => {
@@ -893,17 +1205,35 @@ export function EditTool() {
                       >{a.text || <span style={{ color: '#9ca3af' }}>Text</span>}</div>
                     );
                   })}
+                  {disp.h > 0 && pageImages.map((im) => (
+                    <div key={im.id}
+                      onPointerDown={(e) => imgDown(e, im.id, 'move')} onPointerMove={imgMove} onPointerUp={imgUp}
+                      className={`absolute z-40 cursor-move rounded-sm ${selImg === im.id ? 'ring-2 ring-primary' : 'ring-1 ring-transparent hover:ring-primary/40'}`}
+                      style={{ left: `${im.x * 100}%`, top: `${im.y * 100}%`, width: `${im.w * 100}%` }}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={im.src} alt="" className="pointer-events-none block w-full select-none" draggable={false} />
+                      {selImg === im.id && (
+                        <>
+                          <button onPointerDown={(e) => { e.stopPropagation(); deleteImage(im.id); }} aria-label="Delete" title="Delete"
+                            className="absolute -right-2 -top-2 z-10 flex size-5 items-center justify-center rounded-full bg-destructive text-white shadow"><X className="size-3" /></button>
+                          <div onPointerDown={(e) => imgDown(e, im.id, 'resize')} onPointerMove={imgMove} onPointerUp={imgUp}
+                            className="absolute -bottom-1.5 -right-1.5 z-10 size-3.5 cursor-nwse-resize rounded-sm border-2 border-primary bg-white" aria-label="Resize" />
+                        </>
+                      )}
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <div className="flex h-72 items-center justify-center"><Loader2 className="size-5 animate-spin text-muted-foreground" /></div>
               )}
             </div>
 
-            {pageCount > 1 && <PageStrip handle={handle} count={pageCount} selected={sel} onSelect={(i) => { closeWord(); setAddSel(null); setAddMode(false); setEditingBlock(null); setSel(i); }} className="mt-2" />}
+            {pageCount > 1 && <PageStrip handle={handle} count={pageCount} selected={sel} onSelect={(i) => { closeWord(); setAddSel(null); setAddMode(false); setEditingBlock(null); setSelImg(null); setSel(i); }} className="mt-2" />}
             <p className="mt-2 text-center text-xs text-muted-foreground">
               {totalChanges
-                ? `${[blockCount && `${blockCount} paragraph${blockCount === 1 ? '' : 's'} edited`, addedCount && `${addedCount} text box${addedCount === 1 ? '' : 'es'} added`].filter(Boolean).join(' · ')} — edits stay in your browser.`
-                : 'Click a paragraph to edit its text, or use “Add text” to drop new text anywhere. Scanned pages have no selectable text.'}
+                ? `${[blockCount && `${blockCount} paragraph${blockCount === 1 ? '' : 's'} edited`, addedCount && `${addedCount} text box${addedCount === 1 ? '' : 'es'} added`, markupCount && `${markupCount} markup item${markupCount === 1 ? '' : 's'}`, imageCount && `${imageCount} image/signature${imageCount === 1 ? '' : 's'}`].filter(Boolean).join(' · ')} — edits stay in your browser.`
+                : 'Click a paragraph to edit its text, use Add text, or mark up the page. Scanned pages have no selectable text.'}
             </p>
           </div>
         )}
