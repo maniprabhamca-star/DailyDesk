@@ -192,6 +192,7 @@ export function EditTool() {
   const [lines, setLines] = useState<Record<number, Line[]>>({});
   const [blocks, setBlocks] = useState<Record<number, Block[]>>({});
   const [blockEdits, setBlockEdits] = useState<Record<string, string>>({}); // blockId -> edited full text
+  const [blockStyle, setBlockStyle] = useState<Record<string, Partial<Pick<Block, 'family' | 'size' | 'color' | 'bold' | 'italic'>>>>({});
   const [editingBlock, setEditingBlock] = useState<string | null>(null);
   const [edits, setEdits] = useState<EditMap>({});
   const [editing, setEditing] = useState<{ lineId: string; i: number } | null>(null);
@@ -227,7 +228,7 @@ export function EditTool() {
     setTooBig(null); setError(null); setDone(null); setBusy(true);
     setLines({}); setEdits({}); setEditing(null); setPreview(null); setPast([]); setFuture([]);
     setAdded([]); setAddSel(null); setAddMode(false);
-    setBlocks({}); setBlockEdits({}); setEditingBlock(null);
+    setBlocks({}); setBlockEdits({}); setBlockStyle({}); setEditingBlock(null);
     try {
       const h = await openPdf(f);
       if (handle) void handle.destroy();
@@ -428,9 +429,12 @@ export function EditTool() {
   const pageBlocks = blocks[sel] || [];
   const activeBlock = editingBlock ? pageBlocks.find((b) => b.id === editingBlock) ?? null : null;
   const blockTextOf = (b: Block) => blockEdits[b.id] ?? b.text;
-  const blockChanged = (b: Block) => blockEdits[b.id] !== undefined && blockEdits[b.id] !== b.text;
+  // Effective style = detected style with any toolbar overrides applied.
+  const blockStyleOf = (b: Block) => { const o = blockStyle[b.id] || {}; return { family: o.family ?? b.family, size: o.size ?? b.size, color: o.color ?? b.color, bold: o.bold ?? b.bold, italic: o.italic ?? b.italic }; };
+  const blockChanged = (b: Block) => (blockEdits[b.id] !== undefined && blockEdits[b.id] !== b.text) || !!blockStyle[b.id];
   function openBlock(b: Block) { closeWord(); setAddSel(null); setEditingBlock(b.id); }
   function closeBlock() { setEditingBlock(null); }
+  function patchBlock(patch: Partial<Pick<Block, 'family' | 'size' | 'color' | 'bold' | 'italic'>>) { if (editingBlock) setBlockStyle((s) => ({ ...s, [editingBlock]: { ...s[editingBlock], ...patch } })); }
   function hitBlock(p: { x: number; y: number }): Block | null {
     for (let i = pageBlocks.length - 1; i >= 0; i--) { const b = pageBlocks[i]; if (p.x >= b.x - 0.006 && p.x <= b.x + b.w + 0.006 && p.y >= b.y - 0.006 && p.y <= b.y + b.h + 0.006) return b; }
     return null;
@@ -439,9 +443,10 @@ export function EditTool() {
   // mid-typing).
   const activeBlockStyle = useMemo<React.CSSProperties>(() => {
     const b = activeBlock; if (!b || !disp.h) return {};
-    const fs = b.size * disp.h;
-    return { left: `${b.x * disp.w}px`, top: `${b.y * disp.h - fs * 0.08}px`, width: `${(b.w + b.w * 0.02) * disp.w}px`, minHeight: `${b.h * disp.h + fs * 0.3}px`, fontFamily: RENDER_CSS[b.family] ?? FAMILIES[b.family].css, fontSize: `${fs}px`, fontWeight: b.bold ? 700 : 400, fontStyle: b.italic ? 'italic' : 'normal', color: b.color, lineHeight: b.lineH / b.size, whiteSpace: 'pre-wrap', wordBreak: 'break-word', background: /^rgb\(\s*\d/.test(b.bg) ? b.bg : '#ffffff', caretColor: '#4f46e5' };
-  }, [activeBlock, disp.h, disp.w]);
+    const st = blockStyleOf(b); const fs = st.size * disp.h;
+    return { left: `${b.x * disp.w}px`, top: `${b.y * disp.h - fs * 0.08}px`, width: `${(b.w + b.w * 0.02) * disp.w}px`, minHeight: `${b.h * disp.h + fs * 0.3}px`, fontFamily: RENDER_CSS[st.family] ?? FAMILIES[st.family].css, fontSize: `${fs}px`, fontWeight: st.bold ? 700 : 400, fontStyle: st.italic ? 'italic' : 'normal', color: st.color, lineHeight: (b.lineH / b.size), whiteSpace: 'pre-wrap', wordBreak: 'break-word', background: /^rgb\(\s*\d/.test(b.bg) ? b.bg : '#ffffff', caretColor: '#4f46e5' };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeBlock, disp.h, disp.w, blockStyle]);
   const onBlockInput = useCallback((t: string) => { setBlockEdits((s) => (editingBlock ? { ...s, [editingBlock]: t } : s)); }, [editingBlock]);
 
   // ---- Add-text: new boxes placed anywhere on the page -----------------------
@@ -457,17 +462,19 @@ export function EditTool() {
   function deleteAdded() { if (addSel) { setAdded((prev) => prev.filter((a) => a.id !== addSel)); setAddSel(null); } }
 
   // Unified "current selection" for the toolbar — a word edit OR an added box.
-  const hasSel = !!activeEdit || !!activeAdded;
-  const selFamily: Family = activeEdit?.family ?? activeAdded?.family ?? 'helvetica';
-  const selBold = activeEdit?.bold ?? activeAdded?.bold ?? false;
-  const selItalic = activeEdit?.italic ?? activeAdded?.italic ?? false;
-  const selColor = activeEdit?.color ?? activeAdded?.color ?? '';
-  const selSizeFrac = activeEdit?.size ?? activeAdded?.sizeFrac ?? 0.02;
+  const activeBlockStyleEff = activeBlock ? blockStyleOf(activeBlock) : null;
+  const hasSel = !!activeEdit || !!activeAdded || !!activeBlock;
+  const selFamily: Family = activeEdit?.family ?? activeAdded?.family ?? activeBlockStyleEff?.family ?? 'helvetica';
+  const selBold = activeEdit?.bold ?? activeAdded?.bold ?? activeBlockStyleEff?.bold ?? false;
+  const selItalic = activeEdit?.italic ?? activeAdded?.italic ?? activeBlockStyleEff?.italic ?? false;
+  const selColor = activeEdit?.color ?? activeAdded?.color ?? activeBlockStyleEff?.color ?? '';
+  const selSizeFrac = activeEdit?.size ?? activeAdded?.sizeFrac ?? activeBlockStyleEff?.size ?? 0.02;
   const selSizePx = selSizeFrac * disp.h;
   const selFamInfo = FAMILIES[selFamily];
   function patchSel(p: { family?: Family; color?: string; bold?: boolean; italic?: boolean; size?: number }) {
     if (activeEdit) patchActive(p);
     else if (activeAdded) { const { size, ...rest } = p; patchAdded({ ...rest, ...(size !== undefined ? { sizeFrac: size } : {}) }); }
+    else if (activeBlock) patchBlock(p);
   }
   function deleteSel() { if (activeEdit) deleteActive(); else if (activeAdded) deleteAdded(); }
 
@@ -497,6 +504,10 @@ export function EditTool() {
     if (!file || done) return;
     const onKey = (e: KeyboardEvent) => {
       if (!(e.ctrlKey || e.metaKey)) return;
+      // While typing in a paragraph/text box, let the browser's own undo/redo run
+      // (native contentEditable/input history) instead of hijacking the keys.
+      const t = e.target as HTMLElement | null;
+      if (t && (t.isContentEditable || t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
       const k = e.key.toLowerCase();
       if (k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
       else if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); redo(); }
@@ -533,7 +544,7 @@ export function EditTool() {
     ? Object.keys(edits).reduce((n, k) => { const [lineId, iStr] = k.split('#'); const p = Number(lineId.split('-')[0]); const line = (lines[p] || []).find((l) => l.id === lineId); const i = Number(iStr); return line && line.parts[i]?.trim() && partEdited(line, i, edits[k]) ? n + 1 : n; }, 0)
     : 0;
   const addedCount = added.filter((a) => a.text.trim()).length;
-  const blockCount = Object.entries(blocks).reduce((n, [, bs]) => n + bs.filter((b) => blockEdits[b.id] !== undefined && blockEdits[b.id] !== b.text).length, 0);
+  const blockCount = Object.entries(blocks).reduce((n, [, bs]) => n + bs.filter((b) => (blockEdits[b.id] !== undefined && blockEdits[b.id] !== b.text) || !!blockStyle[b.id]).length, 0);
   const totalChanges = editCount + addedCount + blockCount;
 
   async function apply() {
@@ -573,9 +584,9 @@ export function EditTool() {
       for (const [pStr, bs] of Object.entries(blocks)) {
         const p = Number(pStr);
         for (const b of bs) {
-          const t = blockEdits[b.id];
-          if (t === undefined || t === b.text) continue;
-          blockList.push({ page: p, xFrac: b.x, yFrac: b.y, wFrac: b.w + b.w * 0.02, hFrac: b.h, bg: b.bg, sizeFrac: b.size, lineHFrac: b.lineH, text: t, family: b.family, color: b.color, bold: b.bold, italic: b.italic });
+          if (!blockChanged(b)) continue;
+          const st = blockStyleOf(b);
+          blockList.push({ page: p, xFrac: b.x, yFrac: b.y, wFrac: b.w + b.w * 0.02, hFrac: b.h, bg: b.bg, sizeFrac: st.size, lineHFrac: b.lineH, text: blockTextOf(b), family: st.family, color: st.color, bold: st.bold, italic: st.italic });
         }
       }
       const outBytes = await applyLineEdits(await file.arrayBuffer(), list, blockList);
@@ -722,7 +733,7 @@ export function EditTool() {
       else { ctx.fillRect(rx, ry, rw, rh); ctx.strokeRect(rx, ry, rw, rh); }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pageLines, edits, hover, editing, disp, pageBlocks, editingBlock, blockEdits]);
+  }, [pageLines, edits, hover, editing, disp, pageBlocks, editingBlock, blockEdits, blockStyle]);
 
   useEffect(() => { paintOverlay(); }, [paintOverlay, preview, fontReady]);
 
@@ -748,7 +759,7 @@ export function EditTool() {
           <div className="flex items-center gap-3 rounded-lg border bg-card p-2.5">
             <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-red-100 text-red-600 dark:bg-red-950/40"><FileText className="size-4" /></span>
             <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{file.name}</p><p className="text-xs text-muted-foreground">{fmt(file.size)} · {pageCount} page{pageCount === 1 ? '' : 's'}</p></div>
-            <Button size="icon" variant="ghost" aria-label="Remove" onClick={() => { if (handle) void handle.destroy(); setHandle(null); setFile(null); setDone(null); setError(null); setLines({}); setEdits({}); setPast([]); setFuture([]); setAdded([]); setAddSel(null); setAddMode(false); setBlocks({}); setBlockEdits({}); setEditingBlock(null); }}><X className="size-4" /></Button>
+            <Button size="icon" variant="ghost" aria-label="Remove" onClick={() => { if (handle) void handle.destroy(); setHandle(null); setFile(null); setDone(null); setError(null); setLines({}); setEdits({}); setPast([]); setFuture([]); setAdded([]); setAddSel(null); setAddMode(false); setBlocks({}); setBlockEdits({}); setBlockStyle({}); setEditingBlock(null); }}><X className="size-4" /></Button>
           </div>
         )}
 
@@ -834,11 +845,11 @@ export function EditTool() {
                       static text in the PDF's real font. */}
                   {disp.h > 0 && pageBlocks.map((b) => {
                     if (b.id === editingBlock || !blockChanged(b)) return null;
-                    const fs = b.size * disp.h;
+                    const st = blockStyleOf(b); const fs = st.size * disp.h;
                     const style: React.CSSProperties = {
                       left: `${b.x * disp.w}px`, top: `${b.y * disp.h - fs * 0.08}px`, width: `${(b.w + b.w * 0.02) * disp.w}px`, minHeight: `${b.h * disp.h + fs * 0.3}px`,
-                      fontFamily: RENDER_CSS[b.family] ?? FAMILIES[b.family].css, fontSize: `${fs}px`, fontWeight: b.bold ? 700 : 400, fontStyle: b.italic ? 'italic' : 'normal',
-                      color: b.color, lineHeight: b.lineH / b.size, whiteSpace: 'pre-wrap', wordBreak: 'break-word', background: /^rgb\(\s*\d/.test(b.bg) ? b.bg : '#ffffff',
+                      fontFamily: RENDER_CSS[st.family] ?? FAMILIES[st.family].css, fontSize: `${fs}px`, fontWeight: st.bold ? 700 : 400, fontStyle: st.italic ? 'italic' : 'normal',
+                      color: st.color, lineHeight: b.lineH / b.size, whiteSpace: 'pre-wrap', wordBreak: 'break-word', background: /^rgb\(\s*\d/.test(b.bg) ? b.bg : '#ffffff',
                     };
                     return (
                       <div key={b.id} onClick={(e) => { e.stopPropagation(); openBlock(b); }} className="absolute z-20 cursor-text rounded-[2px] px-[1px]" style={style}>{blockTextOf(b)}</div>
