@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react';
-import { Upload, FileText, X, Loader2, Pencil, Undo2, Redo2, Bold, Italic, Trash2, Minus, Plus, Zap, TextCursorInput, Highlighter, Pen, Square, Circle, ArrowUpRight, ChevronDown, Signature as SignatureIcon, ImagePlus, Move, Maximize2, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, Stamp as StampIcon } from 'lucide-react';
+import { Upload, FileText, X, Loader2, Pencil, Undo2, Redo2, Bold, Italic, Trash2, Minus, Plus, Zap, TextCursorInput, Highlighter, Pen, Square, Circle, ArrowUpRight, ChevronDown, Signature as SignatureIcon, ImagePlus, Move, Maximize2, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, Stamp as StampIcon, Link as LinkIcon, RotateCw } from 'lucide-react';
 import { SignatureMaker } from './signature-maker';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -29,16 +29,16 @@ type Line = {
   id: string; page: number;
   x: number; y: number; w: number; h: number;           // line box (top-left fractions)
   inkH: number;                                           // measured rendered ink height (fraction) — for visual size match
-  family: Family; color: string; bg: string; bold: boolean; italic: boolean;
+  family: Family; color: string; bg: string; bold: boolean; italic: boolean; link?: string;
   parts: string[];                                        // words + whitespace, in order
   boxes: (WordBox | null)[];                              // per-word box (refined on click)
 };
 type WordBox = { x: number; y: number; w: number; h: number; inkTop?: number; inkH?: number };
-type Edit = { text: string; family: Family; size: number; color: string; bold: boolean; italic: boolean };
+type Edit = { text: string; family: Family; size: number; color: string; bold: boolean; italic: boolean; underline?: boolean; strike?: boolean; link?: string };
 type EditMap = Record<string, Edit>;
 type TextAlign = 'left' | 'center' | 'right';
 // A brand-new text box the user placed (independent of the PDF's own text).
-type Added = { id: string; page: number; x: number; y: number; sizeFrac: number; text: string; family: Family; color: string; bold: boolean; italic: boolean; underline: boolean; strike: boolean; align: TextAlign };
+type Added = { id: string; page: number; x: number; y: number; sizeFrac: number; text: string; family: Family; color: string; bold: boolean; italic: boolean; underline: boolean; strike: boolean; align: TextAlign; link?: string };
 
 type ShapeKind = 'rect' | 'circle' | 'line' | 'arrow';
 type EditorTool = 'paragraph' | 'add-text' | 'highlight' | 'pen' | 'stamp' | ShapeKind;
@@ -47,7 +47,7 @@ type Stroke = { kind: 'pen' | 'highlight'; color: string; w: number; pts: Pt[] }
 type ShapeMarkup = { kind: ShapeKind; color: string; w: number; a: Pt; b: Pt };
 type StampMarkup = { kind: 'stamp'; color: string; text: string; x: number; y: number; w: number; h: number };
 type Markup = Stroke | ShapeMarkup | StampMarkup;
-type ImageItem = { id: string; page: number; x: number; y: number; w: number; aspect: number; src: string };
+type ImageItem = { id: string; page: number; x: number; y: number; w: number; aspect: number; src: string; rot: number };
 
 const SHAPE_KINDS: ShapeKind[] = ['rect', 'circle', 'line', 'arrow'];
 const isShape = (t: EditorTool): t is ShapeKind => (SHAPE_KINDS as string[]).includes(t);
@@ -135,12 +135,12 @@ function paintMarkups(ctx: CanvasRenderingContext2D, W: number, H: number, list:
 type Block = {
   id: string; page: number;
   x: number; y: number; w: number; h: number;   // bounding box (top-left + size, fractions)
-  family: Family; size: number; color: string; bold: boolean; italic: boolean; bg: string;
+  family: Family; size: number; color: string; bold: boolean; italic: boolean; bg: string; link?: string;
   lineH: number;                                  // line-to-line spacing (fraction of page height)
   align: TextAlign;
   text: string;                                   // full text, original line breaks kept as \n
 };
-type BlockStylePatch = Partial<Pick<Block, 'family' | 'size' | 'color' | 'bold' | 'italic'> & { underline: boolean; strike: boolean; align: TextAlign }>;
+type BlockStylePatch = Partial<Pick<Block, 'family' | 'size' | 'color' | 'bold' | 'italic'> & { underline: boolean; strike: boolean; align: TextAlign; link: string }>;
 type BlockLayout = { x: number; y: number; w: number; h: number };
 type EditorSnapshot = {
   edits: EditMap;
@@ -173,7 +173,7 @@ function looksLikeLinkColor(color: string): boolean {
 // belong to the same block. This is what lets a whole paragraph be edited at once.
 function groupBlocks(lines: Line[], page: number): Block[] {
   const rows = lines
-    .map((l) => ({ top: l.y, bottom: l.y + l.h, left: l.x, right: l.x + l.w, h: l.h, text: l.parts.join(''), family: l.family, color: l.color, bold: l.bold, italic: l.italic, bg: l.bg }))
+    .map((l) => ({ top: l.y, bottom: l.y + l.h, left: l.x, right: l.x + l.w, h: l.h, text: l.parts.join(''), family: l.family, color: l.color, bold: l.bold, italic: l.italic, bg: l.bg, link: l.link }))
     .filter((r) => r.text.trim())
     .sort((a, b) => (Math.abs(a.top - b.top) > a.h * 0.4 ? a.top - b.top : a.left - b.left));
   const blocks: Block[] = [];
@@ -191,7 +191,8 @@ function groupBlocks(lines: Line[], page: number): Block[] {
     for (let i = 1; i < cur.length; i++) gaps.push(cur[i].top - cur[i - 1].top);
     gaps.sort((a, b) => a - b);
     const lineH = gaps.length ? gaps[Math.floor(gaps.length / 2)] : first.h * 1.2;
-    blocks.push({ id: `${page}-B${blocks.length}`, page, x, y, w, h: bottom - y, family: first.family, size: first.h, color: first.color, bold: first.bold, italic: first.italic, bg: first.bg, lineH, align, text: cur.map((r) => r.text).join('\n') });
+    const sameLink = cur.every((r) => (r.link || '') === (first.link || ''));
+    blocks.push({ id: `${page}-B${blocks.length}`, page, x, y, w, h: bottom - y, family: first.family, size: first.h, color: first.color, bold: first.bold, italic: first.italic, bg: first.bg, link: sameLink ? first.link : undefined, lineH, align, text: cur.map((r) => r.text).join('\n') });
     cur = null;
   };
   for (const r of rows) {
@@ -293,13 +294,14 @@ function styleOf(fontName?: string): { bold: boolean; italic: boolean } {
 }
 
 function defaultEdit(line: Line, i: number): Edit {
-  return { text: line.parts[i], family: line.family, size: line.h, color: line.color, bold: line.bold, italic: line.italic };
+  return { text: line.parts[i], family: line.family, size: line.h, color: line.color, bold: line.bold, italic: line.italic, underline: looksLikeLinkColor(line.color) || !!line.link, strike: false, link: line.link };
 }
 function editOf(line: Line, i: number, edits: EditMap): Edit {
   return edits[key(line.id, i)] ?? defaultEdit(line, i);
 }
 function partEdited(line: Line, i: number, e: Edit): boolean {
-  return e.text !== line.parts[i] || e.family !== line.family || e.color !== line.color || e.bold !== line.bold || e.italic !== line.italic || Math.abs(e.size - line.h) > 1e-4;
+  const baseUnderline = looksLikeLinkColor(line.color) || !!line.link;
+  return e.text !== line.parts[i] || e.family !== line.family || e.color !== line.color || e.bold !== line.bold || e.italic !== line.italic || Math.abs(e.size - line.h) > 1e-4 || (e.link || '') !== (line.link || '') || !!e.strike || !!e.underline !== baseUnderline;
 }
 function lineHasEdits(line: Line, edits: EditMap): boolean {
   return line.parts.some((p, i) => p.trim() && edits[key(line.id, i)] && partEdited(line, i, edits[key(line.id, i)]));
@@ -337,9 +339,13 @@ export function EditTool() {
   const [shapesOpen, setShapesOpen] = useState(false);
   const [stampLabel, setStampLabel] = useState(STAMP_PRESETS[0]);
   const [stampsOpen, setStampsOpen] = useState(false);
+  const [customStampText, setCustomStampText] = useState('');
+  const [customStamps, setCustomStamps] = useState<string[]>([]);
   const [markups, setMarkups] = useState<Record<number, Markup[]>>({});
   const [images, setImages] = useState<ImageItem[]>([]);
   const [selImg, setSelImg] = useState<string | null>(null);
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [linkDraft, setLinkDraft] = useState('');
   const [sigOpen, setSigOpen] = useState(false);
   // Add-text (new boxes the user places), separate from the PDF's own words.
   const [added, setAdded] = useState<Added[]>([]);
@@ -349,10 +355,11 @@ export function EditTool() {
   const addInputRef = useRef<HTMLInputElement>(null);
   const imgCache = useRef<Map<string, HTMLImageElement>>(new Map());
   const imgFileRef = useRef<HTMLInputElement>(null);
-  const imgDrag = useRef<{ id: string; mode: 'move' | 'resize'; ox: number; oy: number; startW: number } | null>(null);
+  const imgDrag = useRef<{ id: string; mode: 'move' | 'resize' | 'rotate'; ox: number; oy: number; startW: number; startRot: number; cx: number; cy: number; startAngle: number } | null>(null);
   const blockDrag = useRef<{ id: string; mode: 'move' | 'resize-e' | 'resize-s' | 'resize-se'; startX: number; startY: number; start: BlockLayout } | null>(null);
   const shapesRef = useRef<HTMLDivElement>(null);
   const stampsRef = useRef<HTMLDivElement>(null);
+  const linkRef = useRef<HTMLDivElement>(null);
   const drawing = useRef(false);
   const liveMarkup = useRef<Markup | null>(null);
 
@@ -380,7 +387,7 @@ export function EditTool() {
     setHistoryPast([]); setHistoryFuture([]); blockInputSession.current = false; addedInputSession.current = false;
     setAdded([]); setAddSel(null); setAddMode(false);
     setBlocks({}); setBlockEdits({}); setBlockStyle({}); setBlockLayout({}); setEditingBlock(null);
-    setTool('paragraph'); setMarkups({}); setImages([]); setSelImg(null); setSigOpen(false); setStampsOpen(false); imgCache.current.clear();
+    setTool('paragraph'); setMarkups({}); setImages([]); setSelImg(null); setSigOpen(false); setStampsOpen(false); setLinkOpen(false); imgCache.current.clear();
     try {
       const h = await openPdf(f);
       if (handle) void handle.destroy();
@@ -450,6 +457,20 @@ export function EditTool() {
         const page = await handle.doc.getPage(sel + 1);
         const vp = page.getViewport({ scale: 1 });
         const tc = await page.getTextContent();
+        const linkAnnots: Array<{ left: number; top: number; right: number; bottom: number; url: string }> = [];
+        try {
+          const annots = await page.getAnnotations({ intent: 'display' }) as Array<{ subtype?: string; url?: string; unsafeUrl?: string; rect?: number[] }>;
+          for (const a of annots) {
+            const url = a.url || a.unsafeUrl;
+            if (a.subtype !== 'Link' || !url || !a.rect) continue;
+            const toViewportRect = (vp as unknown as { convertToViewportRectangle?: (rect: number[]) => number[] }).convertToViewportRectangle;
+            const rect = toViewportRect ? toViewportRect.call(vp, pdfjs.Util.normalizeRect(a.rect)) : pdfjs.Util.normalizeRect(a.rect);
+            const [left, top, right, bottom] = pdfjs.Util.normalizeRect(rect);
+            linkAnnots.push({ left, top, right, bottom, url });
+          }
+        } catch { /* annotations are optional */ }
+        const linkAt = (left: number, top: number, width: number, height: number) =>
+          linkAnnots.find((a) => left <= a.right && left + width >= a.left && top <= a.bottom && top + height >= a.top)?.url;
         // Decode the rendered page to sample its pixels. Prefer createImageBitmap
         // (fast + reliable); fall back to <img>.decode() only where it's missing.
         // (img.decode() of a blob URL can hang in some headless engines — it stalled
@@ -512,6 +533,7 @@ export function EditTool() {
           const family = finfo.family;
           const bold = finfo.bold;
           const italic = finfo.italic;
+          const link = linkAt(left, top, w, fontH);
           const { color, bg } = sample(left, left + w, top, fontH);
           // Split into words + whitespace; estimate per-word boxes, then REFINE
           // each word's horizontal extent from the actual pixels (scan out to the
@@ -543,7 +565,7 @@ export function EditTool() {
           let capTop = -1, capBot = -1;
           for (let yy = sTop; yy <= sBot; yy++) { let dark = false; for (let xx = lBand; xx <= rBand; xx += 2) { const c = at(xx, yy); if (c[0] + c[1] + c[2] < 430) { dark = true; break; } } if (dark) { if (capTop < 0) capTop = yy; capBot = yy; } }
           const inkH = (capTop >= 0 && capBot >= capTop) ? (capBot - capTop + 1) / rp.h : (fontH / vp.height) * 0.7;
-          list.push({ id: `${sel}-L${list.length}`, page: sel, x: left / vp.width, y: top / vp.height, w: w / vp.width, h: fontH / vp.height, inkH, family, color, bg, bold, italic, parts, boxes });
+          list.push({ id: `${sel}-L${list.length}`, page: sel, x: left / vp.width, y: top / vp.height, w: w / vp.width, h: fontH / vp.height, inkH, family, color, bg, bold, italic, link, parts, boxes });
         }
         if (!cancelled) { setLines((prev) => ({ ...prev, [sel]: list })); setBlocks((prev) => ({ ...prev, [sel]: groupBlocks(list, sel) })); }
       } catch { /* image-only page → no lines */ }
@@ -569,7 +591,7 @@ export function EditTool() {
     setAdded(snap.added);
     setMarkups(snap.markups);
     setImages(snap.images);
-    setEditing(null); setEditingBlock(null); setAddSel(null); setSelImg(null);
+    setEditing(null); setEditingBlock(null); setAddSel(null); setSelImg(null); setLinkOpen(false);
     sessionRef.current = null; blockInputSession.current = false; addedInputSession.current = false; liveMarkup.current = null; drawing.current = false;
   }
   function pushHistory() {
@@ -601,7 +623,7 @@ export function EditTool() {
   const activeBlock = editingBlock ? pageBlocks.find((b) => b.id === editingBlock) ?? null : null;
   const blockTextOf = (b: Block) => blockEdits[b.id] ?? b.text;
   // Effective style = detected style with any toolbar overrides applied.
-  const blockStyleOf = (b: Block) => { const o = blockStyle[b.id] || {}; return { family: o.family ?? b.family, size: o.size ?? b.size, color: o.color ?? b.color, bold: o.bold ?? b.bold, italic: o.italic ?? b.italic, underline: o.underline ?? looksLikeLinkColor(b.color), strike: o.strike ?? false, align: o.align ?? b.align }; };
+  const blockStyleOf = (b: Block) => { const o = blockStyle[b.id] || {}; return { family: o.family ?? b.family, size: o.size ?? b.size, color: o.color ?? b.color, bold: o.bold ?? b.bold, italic: o.italic ?? b.italic, underline: o.underline ?? (looksLikeLinkColor(b.color) || !!b.link), strike: o.strike ?? false, align: o.align ?? b.align, link: o.link ?? b.link ?? '' }; };
   const blockLayoutOf = (b: Block): BlockLayout => blockLayout[b.id] || { x: b.x, y: b.y, w: b.w, h: b.h };
   const layoutChanged = (b: Block) => { const l = blockLayout[b.id]; return !!l && (Math.abs(l.x - b.x) > 1e-5 || Math.abs(l.y - b.y) > 1e-5 || Math.abs(l.w - b.w) > 1e-5 || Math.abs(l.h - b.h) > 1e-5); };
   const blockChanged = (b: Block) => (blockEdits[b.id] !== undefined && blockEdits[b.id] !== b.text) || !!blockStyle[b.id] || layoutChanged(b);
@@ -618,7 +640,7 @@ export function EditTool() {
     const b = activeBlock; if (!b || !disp.h) return {};
     const l = blockLayoutOf(b);
     const st = blockStyleOf(b); const fs = st.size * disp.h;
-    return { left: `${l.x * disp.w}px`, top: `${l.y * disp.h - fs * 0.08}px`, width: `${(l.w + l.w * 0.02) * disp.w}px`, minHeight: `${l.h * disp.h + fs * 0.3}px`, fontFamily: RENDER_CSS[st.family] ?? FAMILIES[st.family].css, fontSize: `${fs}px`, fontWeight: st.bold ? 700 : 400, fontStyle: st.italic ? 'italic' : 'normal', textDecorationLine: [st.underline && 'underline', st.strike && 'line-through'].filter(Boolean).join(' ') || 'none', textAlign: st.align, color: st.color, lineHeight: (b.lineH / b.size), whiteSpace: 'pre-wrap', wordBreak: 'break-word', background: /^rgb\(\s*\d/.test(b.bg) ? b.bg : '#ffffff', caretColor: '#4f46e5' };
+    return { left: `${l.x * disp.w}px`, top: `${l.y * disp.h - fs * 0.08}px`, width: `${(l.w + l.w * 0.02) * disp.w}px`, minHeight: `${l.h * disp.h + fs * 0.3}px`, fontFamily: RENDER_CSS[st.family] ?? FAMILIES[st.family].css, fontSize: `${fs}px`, fontWeight: st.bold ? 700 : 400, fontStyle: st.italic ? 'italic' : 'normal', textDecorationLine: [(st.underline || st.link) && 'underline', st.strike && 'line-through'].filter(Boolean).join(' ') || 'none', textAlign: st.align, color: st.color, lineHeight: (b.lineH / b.size), whiteSpace: 'pre-wrap', wordBreak: 'break-word', background: /^rgb\(\s*\d/.test(b.bg) ? b.bg : '#ffffff', caretColor: '#4f46e5' };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeBlock, disp.h, disp.w, blockStyle, blockLayout]);
   const onBlockInput = useCallback((t: string) => {
@@ -651,6 +673,7 @@ export function EditTool() {
     setAddMode(next === 'add-text');
     setShapesOpen(false);
     setStampsOpen(false);
+    setLinkOpen(false);
     setSelImg(null);
     closeWord();
     if (next !== 'paragraph') closeBlock();
@@ -662,6 +685,7 @@ export function EditTool() {
     ...Object.keys(markups).map(Number).filter((i) => (markups[i] || []).length > 0),
     ...images.map((i) => i.page),
   ])).sort((a, b) => a - b);
+  const normDeg = (deg: number) => ((deg % 360) + 360) % 360;
 
   function addImageSrc(src: string, aspect: number) {
     pushHistory();
@@ -669,7 +693,7 @@ export function EditTool() {
     el.onload = () => {
       imgCache.current.set(src, el);
       const id = Math.random().toString(36).slice(2);
-      setImages((a) => [...a, { id, page: sel, x: 0.34, y: 0.42, w: 0.32, aspect, src }]);
+      setImages((a) => [...a, { id, page: sel, x: 0.34, y: 0.42, w: 0.32, aspect, src, rot: 0 }]);
       setSelImg(id); setAddSel(null); closeBlock(); closeWord();
     };
     el.src = src;
@@ -690,17 +714,24 @@ export function EditTool() {
   }
 
   function deleteImage(id: string) { pushHistory(); setImages((a) => a.filter((i) => i.id !== id)); if (selImg === id) setSelImg(null); }
-  function imgDown(e: React.PointerEvent<HTMLElement>, id: string, mode: 'move' | 'resize') {
+  function rotateImage(id: string, delta: number) { pushHistory(); setImages((a) => a.map((i) => (i.id === id ? { ...i, rot: normDeg((i.rot || 0) + delta) } : i))); }
+  function imgDown(e: React.PointerEvent<HTMLElement>, id: string, mode: 'move' | 'resize' | 'rotate') {
     e.stopPropagation();
+    e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId);
     const im = images.find((i) => i.id === id); if (!im) return;
     pushHistory();
     setSelImg(id); setAddSel(null); closeBlock(); closeWord();
-    imgDrag.current = { id, mode, ox: e.clientX, oy: e.clientY, startW: im.w };
+    const r = wrapRef.current?.getBoundingClientRect();
+    const hFrac = r ? im.w * im.aspect * (r.width / r.height) : im.w * im.aspect;
+    const cx = r ? r.left + (im.x + im.w / 2) * r.width : e.clientX;
+    const cy = r ? r.top + (im.y + hFrac / 2) * r.height : e.clientY;
+    const startAngle = Math.atan2(e.clientY - cy, e.clientX - cx);
+    imgDrag.current = { id, mode, ox: e.clientX, oy: e.clientY, startW: im.w, startRot: im.rot || 0, cx, cy, startAngle };
     if (mode === 'move' && wrapRef.current) {
-      const r = wrapRef.current.getBoundingClientRect();
-      imgDrag.current.ox = e.clientX - r.left - im.x * r.width;
-      imgDrag.current.oy = e.clientY - r.top - im.y * r.height;
+      const wr = wrapRef.current.getBoundingClientRect();
+      imgDrag.current.ox = e.clientX - wr.left - im.x * wr.width;
+      imgDrag.current.oy = e.clientY - wr.top - im.y * wr.height;
     }
   }
   function imgMove(e: React.PointerEvent<HTMLElement>) {
@@ -713,6 +744,11 @@ export function EditTool() {
         const x = Math.min(Math.max((e.clientX - r.left - d.ox) / r.width, 0), Math.max(0, 1 - im.w));
         const y = Math.min(Math.max((e.clientY - r.top - d.oy) / r.height, 0), Math.max(0, 1 - hFrac));
         return { ...im, x, y };
+      }
+      if (d.mode === 'rotate') {
+        const angle = Math.atan2(e.clientY - d.cy, e.clientX - d.cx);
+        const delta = (angle - d.startAngle) * 180 / Math.PI;
+        return { ...im, rot: normDeg(d.startRot + delta) };
       }
       const w = Math.min(Math.max(d.startW + (e.clientX - d.ox) / r.width, 0.05), 1 - im.x);
       return { ...im, w };
@@ -780,6 +816,13 @@ export function EditTool() {
     return () => document.removeEventListener('mousedown', onDown);
   }, [stampsOpen]);
 
+  useEffect(() => {
+    if (!linkOpen) return;
+    const onDown = (e: MouseEvent) => { if (linkRef.current && !linkRef.current.contains(e.target as Node)) setLinkOpen(false); };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [linkOpen]);
+
   function pageFracFromClient(clientX: number, clientY: number): Pt {
     const r = wrapRef.current!.getBoundingClientRect();
     return { x: Math.min(1, Math.max(0, (clientX - r.left) / r.width)), y: Math.min(1, Math.max(0, (clientY - r.top) / r.height)) };
@@ -841,31 +884,69 @@ export function EditTool() {
       ],
     }));
   }
+  function selectStamp(text: string) {
+    const next = text.trim().toUpperCase();
+    if (!next) return;
+    setStampLabel(next);
+    chooseTool('stamp');
+    setStampsOpen(false);
+  }
+  function addCustomStamp() {
+    const next = customStampText.trim().toUpperCase();
+    if (!next) return;
+    setCustomStamps((prev) => (prev.includes(next) || STAMP_PRESETS.includes(next) ? prev : [...prev, next]));
+    setCustomStampText('');
+    selectStamp(next);
+  }
 
-  // Unified "current selection" for the toolbar — a word edit OR an added box.
+  // Unified "current selection" for the toolbar — a word edit, added box, or paragraph.
   const activeBlockStyleEff = activeBlock ? blockStyleOf(activeBlock) : null;
+  const activeImage = selImg ? images.find((i) => i.id === selImg) ?? null : null;
   const hasSel = !!activeEdit || !!activeAdded || !!activeBlock;
   const selFamily: Family = activeEdit?.family ?? activeAdded?.family ?? activeBlockStyleEff?.family ?? 'helvetica';
   const selBold = activeEdit?.bold ?? activeAdded?.bold ?? activeBlockStyleEff?.bold ?? false;
   const selItalic = activeEdit?.italic ?? activeAdded?.italic ?? activeBlockStyleEff?.italic ?? false;
-  const selUnderline = activeAdded?.underline ?? activeBlockStyleEff?.underline ?? false;
-  const selStrike = activeAdded?.strike ?? activeBlockStyleEff?.strike ?? false;
+  const selUnderline = activeEdit?.underline ?? activeAdded?.underline ?? activeBlockStyleEff?.underline ?? false;
+  const selStrike = activeEdit?.strike ?? activeAdded?.strike ?? activeBlockStyleEff?.strike ?? false;
   const selAlign = activeAdded?.align ?? activeBlockStyleEff?.align ?? 'left';
   const selColor = activeEdit?.color ?? activeAdded?.color ?? activeBlockStyleEff?.color ?? '';
+  const selLink = activeEdit?.link ?? activeAdded?.link ?? activeBlockStyleEff?.link ?? '';
   const selSizeFrac = activeEdit?.size ?? activeAdded?.sizeFrac ?? activeBlockStyleEff?.size ?? 0.02;
   const selSizePx = selSizeFrac * disp.h;
   const selFamInfo = FAMILIES[selFamily];
-  function patchSel(p: { family?: Family; color?: string; bold?: boolean; italic?: boolean; size?: number; underline?: boolean; strike?: boolean; align?: TextAlign }) {
+  function patchSel(p: { family?: Family; color?: string; bold?: boolean; italic?: boolean; size?: number; underline?: boolean; strike?: boolean; align?: TextAlign; link?: string }) {
     if (activeEdit) {
-      const { underline: _u, strike: _s, align: _a, ...wordPatch } = p;
+      const { align: _a, ...wordPatch } = p;
       patchActive(wordPatch);
     }
     else if (activeAdded) { const { size, ...rest } = p; patchAdded({ ...rest, ...(size !== undefined ? { sizeFrac: size } : {}) }); }
     else if (activeBlock) patchBlock(p);
   }
+  function normalizeLinkInput(value: string) {
+    const next = value.trim();
+    if (!next) return '';
+    if (/^(https?:|mailto:|tel:)/i.test(next)) return next;
+    return `https://${next}`;
+  }
+  function openLinkMenu() {
+    if (!hasSel) return;
+    setLinkDraft(selLink || '');
+    setLinkOpen(true);
+  }
+  function applyLink() {
+    const url = normalizeLinkInput(linkDraft);
+    patchSel({ link: url, underline: !!url });
+    setLinkOpen(false);
+  }
+  function removeLink() {
+    patchSel({ link: '', underline: false });
+    setLinkDraft('');
+    setLinkOpen(false);
+  }
   function deleteSel() {
     if (activeEdit) deleteActive();
     else if (activeAdded) deleteAdded();
+    else if (activeImage) deleteImage(activeImage.id);
     else if (activeBlock) {
       pushHistory();
       setBlockEdits((s) => { const n = { ...s }; delete n[activeBlock.id]; return n; });
@@ -992,7 +1073,7 @@ export function EditTool() {
         for (const line of ls) {
           const plan = linePlan(line);
           if (!plan) continue;
-          const drawOf = (it: PlanItem, xFrac: number) => ({ text: it.e.text, xFrac, sizeFrac: it.size / disp.h, family: it.e.family, color: it.e.color, bold: it.e.bold, italic: it.e.italic });
+          const drawOf = (it: PlanItem, xFrac: number) => ({ text: it.e.text, xFrac, sizeFrac: it.size / disp.h, family: it.e.family, color: it.e.color, bold: it.e.bold, italic: it.e.italic, underline: it.e.underline, strike: it.e.strike, link: it.e.link });
           if (plan.reflow) {
             const draws = plan.items.filter((it) => it.e.text.trim()).map((it) => drawOf(it, it.xFrac));
             list.push({ page: p, yFrac: line.y, hFrac: line.h, bg: line.bg, coverLFrac: plan.coverL, coverRFrac: plan.coverR, draws });
@@ -1008,7 +1089,7 @@ export function EditTool() {
       // Added text boxes: a positioned draw with NO cover (coverL == coverR).
       for (const a of added) {
         if (!a.text.trim()) continue;
-        list.push({ page: a.page, yFrac: a.y, hFrac: a.sizeFrac, bg: 'rgb(255,255,255)', coverLFrac: a.x, coverRFrac: a.x, draws: [{ text: a.text, xFrac: a.x, sizeFrac: a.sizeFrac, family: a.family, color: a.color, bold: a.bold, italic: a.italic, underline: a.underline, strike: a.strike }] });
+        list.push({ page: a.page, yFrac: a.y, hFrac: a.sizeFrac, bg: 'rgb(255,255,255)', coverLFrac: a.x, coverRFrac: a.x, draws: [{ text: a.text, xFrac: a.x, sizeFrac: a.sizeFrac, family: a.family, color: a.color, bold: a.bold, italic: a.italic, underline: a.underline, strike: a.strike, link: a.link }] });
       }
       // Edited paragraph blocks: cover the box + re-flow the text in its font.
       const blockList: BlockEdit[] = [];
@@ -1018,7 +1099,7 @@ export function EditTool() {
           if (!blockChanged(b)) continue;
           const st = blockStyleOf(b);
           const l = blockLayoutOf(b);
-          blockList.push({ page: p, xFrac: l.x, yFrac: l.y, wFrac: l.w + l.w * 0.02, hFrac: l.h, coverXFrac: b.x, coverYFrac: b.y, coverWFrac: b.w + b.w * 0.02, coverHFrac: b.h, bg: b.bg, sizeFrac: st.size, lineHFrac: b.lineH, text: blockTextOf(b), family: st.family, color: st.color, bold: st.bold, italic: st.italic, underline: st.underline, strike: st.strike, align: st.align });
+          blockList.push({ page: p, xFrac: l.x, yFrac: l.y, wFrac: l.w + l.w * 0.02, hFrac: l.h, coverXFrac: b.x, coverYFrac: b.y, coverWFrac: b.w + b.w * 0.02, coverHFrac: b.h, bg: b.bg, sizeFrac: st.size, lineHFrac: b.lineH, text: blockTextOf(b), family: st.family, color: st.color, bold: st.bold, italic: st.italic, underline: st.underline, strike: st.strike, align: st.align, link: st.link });
         }
       }
       let current: File | Blob = file;
@@ -1035,7 +1116,17 @@ export function EditTool() {
         paintMarkups(ctx, rp.w, rp.h, markups[idx] || []);
         for (const im of images.filter((i) => i.page === idx)) {
           const el = imgCache.current.get(im.src);
-          if (el) { const w = im.w * rp.w; ctx.drawImage(el, im.x * rp.w, im.y * rp.h, w, w * im.aspect); }
+          if (el) {
+            const w = im.w * rp.w;
+            const h = w * im.aspect;
+            const x = im.x * rp.w;
+            const y = im.y * rp.h;
+            ctx.save();
+            ctx.translate(x + w / 2, y + h / 2);
+            ctx.rotate((im.rot || 0) * Math.PI / 180);
+            ctx.drawImage(el, -w / 2, -h / 2, w, h);
+            ctx.restore();
+          }
         }
         const buf = await new Promise<ArrayBuffer>((resolve, reject) =>
           cvs.toBlob((b) => (b ? b.arrayBuffer().then(resolve) : reject(new Error('render failed'))), 'image/png'));
@@ -1164,7 +1255,17 @@ export function EditTool() {
         if ((editing?.lineId === line.id && editing?.i === it.i) || !it.e.text.trim()) continue;
         ctx.font = cssFont(it.e.family, it.e.bold, it.e.italic, it.size);
         ctx.fillStyle = it.e.color;
-        ctx.fillText(it.e.text, it.xFrac * disp.w, baseY);
+        const x = it.xFrac * disp.w;
+        ctx.fillText(it.e.text, x, baseY);
+        const width = measureWidth(it.e.text, cssFont(it.e.family, it.e.bold, it.e.italic, it.size));
+        ctx.strokeStyle = it.e.color;
+        ctx.lineWidth = Math.max(1, it.size * 0.06);
+        if (it.e.underline || it.e.link) {
+          ctx.beginPath(); ctx.moveTo(x, baseY + it.size * 0.14); ctx.lineTo(x + width, baseY + it.size * 0.14); ctx.stroke();
+        }
+        if (it.e.strike) {
+          ctx.beginPath(); ctx.moveTo(x, baseY - it.size * 0.32); ctx.lineTo(x + width, baseY - it.size * 0.32); ctx.stroke();
+        }
       }
     }
     // Cover every edited/active paragraph block so the original text is hidden and
@@ -1217,6 +1318,7 @@ export function EditTool() {
     line: { icon: <Minus className="size-4" />, label: 'Line' },
     arrow: { icon: <ArrowUpRight className="size-4" />, label: 'Arrow' },
   };
+  const stampChoices = [...STAMP_PRESETS, ...customStamps.filter((s) => !STAMP_PRESETS.includes(s))];
   return (
     <Card>
       <CardContent className="p-5">
@@ -1239,7 +1341,7 @@ export function EditTool() {
           <div className="flex items-center gap-3 rounded-lg border bg-card p-2.5">
             <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-red-100 text-red-600 dark:bg-red-950/40"><FileText className="size-4" /></span>
             <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{file.name}</p><p className="text-xs text-muted-foreground">{fmt(file.size)} · {pageCount} page{pageCount === 1 ? '' : 's'}</p></div>
-            <Button size="icon" variant="ghost" aria-label="Remove" onClick={() => { if (handle) void handle.destroy(); setHandle(null); setFile(null); setDone(null); setError(null); setLines({}); setEdits({}); setPast([]); setFuture([]); setHistoryPast([]); setHistoryFuture([]); blockInputSession.current = false; addedInputSession.current = false; setAdded([]); setAddSel(null); setAddMode(false); setBlocks({}); setBlockEdits({}); setBlockStyle({}); setBlockLayout({}); setEditingBlock(null); setMarkups({}); setImages([]); setSelImg(null); setStampsOpen(false); imgCache.current.clear(); }}><X className="size-4" /></Button>
+            <Button size="icon" variant="ghost" aria-label="Remove" onClick={() => { if (handle) void handle.destroy(); setHandle(null); setFile(null); setDone(null); setError(null); setLines({}); setEdits({}); setPast([]); setFuture([]); setHistoryPast([]); setHistoryFuture([]); blockInputSession.current = false; addedInputSession.current = false; setAdded([]); setAddSel(null); setAddMode(false); setBlocks({}); setBlockEdits({}); setBlockStyle({}); setBlockLayout({}); setEditingBlock(null); setMarkups({}); setImages([]); setSelImg(null); setStampsOpen(false); setLinkOpen(false); imgCache.current.clear(); }}><X className="size-4" /></Button>
           </div>
         )}
 
@@ -1250,7 +1352,11 @@ export function EditTool() {
                 (that blur used to commit + exit edit mode before the style applied),
                 so font/size/bold/italic/colour change live as you type. */}
             <div className="mb-3 flex flex-wrap items-center gap-1.5 rounded-2xl border bg-card p-1.5 shadow-soft"
-              onMouseDown={(e) => { if (editing || activeAdded || activeBlock) e.preventDefault(); }}>
+              onMouseDown={(e) => {
+                const target = e.target as HTMLElement;
+                if (target.closest('input, textarea, select, [contenteditable="true"]')) return;
+                if (editing || activeAdded || activeBlock) e.preventDefault();
+              }}>
               {toolButton('paragraph', <Pencil className="size-4" />, 'Edit paragraphs')}
               <button className={`${tbBtn} gap-1.5 w-auto px-2.5 ${addMode ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}`} title="Add a new text box — then click where you want it" aria-pressed={addMode} onClick={() => { if (addMode) chooseTool('paragraph'); else chooseTool('add-text'); }}><TextCursorInput className="size-4" /> <span className="text-xs font-medium">Add text</span></button>
               <span className="mx-0.5 h-6 w-px bg-border/70" />
@@ -1278,13 +1384,21 @@ export function EditTool() {
                   <StampIcon className="size-4" /> <span className="hidden md:inline">Stamp</span> <ChevronDown className={`size-3.5 transition-transform ${stampsOpen ? 'rotate-180' : ''}`} />
                 </button>
                 {stampsOpen && (
-                  <div role="menu" className="absolute left-0 top-full z-50 mt-1 w-48 rounded-xl border bg-card p-1 shadow-lift">
-                    {STAMP_PRESETS.map((s) => (
-                      <button key={s} type="button" role="menuitem" onClick={() => { setStampLabel(s); chooseTool('stamp'); setStampsOpen(false); }}
+                  <div role="menu" className="absolute left-0 top-full z-50 mt-1 w-56 rounded-xl border bg-card p-1 shadow-lift">
+                    {stampChoices.map((s) => (
+                      <button key={s} type="button" role="menuitem" onClick={() => selectStamp(s)}
                         className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm transition-colors hover:bg-accent ${stampLabel === s ? 'text-primary' : ''}`}>
                         <StampIcon className="size-4" /> {s}
                       </button>
                     ))}
+                    <div className="mt-1 border-t p-2">
+                      <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Custom stamp</label>
+                      <div className="flex items-center gap-1.5">
+                        <input value={customStampText} onChange={(e) => setCustomStampText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCustomStamp(); } }} maxLength={24} placeholder="PAID"
+                          className="h-8 min-w-0 flex-1 rounded-md border bg-background px-2 text-sm outline-none focus:border-primary" />
+                        <button type="button" onClick={addCustomStamp} className="h-8 rounded-md bg-primary px-2 text-xs font-medium text-primary-foreground">Add</button>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1299,8 +1413,22 @@ export function EditTool() {
               <span className="mx-0.5 h-6 w-px bg-border/70" />
               <button className={`${tbBtn} ${selBold && hasSel ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}`} title="Bold" aria-pressed={selBold} disabled={!hasSel || !selFamInfo?.bold} onClick={() => patchSel({ bold: !selBold })}><Bold className="size-4" /></button>
               <button className={`${tbBtn} ${selItalic && hasSel ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}`} title="Italic" aria-pressed={selItalic} disabled={!hasSel || !selFamInfo?.italic} onClick={() => patchSel({ italic: !selItalic })}><Italic className="size-4" /></button>
-              <button className={`${tbBtn} ${selUnderline && hasSel ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}`} title="Underline" aria-pressed={selUnderline} disabled={!activeAdded && !activeBlock} onClick={() => patchSel({ underline: !selUnderline })}><Underline className="size-4" /></button>
-              <button className={`${tbBtn} ${selStrike && hasSel ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}`} title="Strikethrough" aria-pressed={selStrike} disabled={!activeAdded && !activeBlock} onClick={() => patchSel({ strike: !selStrike })}><Strikethrough className="size-4" /></button>
+              <button className={`${tbBtn} ${selUnderline && hasSel ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}`} title="Underline" aria-pressed={selUnderline} disabled={!hasSel} onClick={() => patchSel({ underline: !selUnderline })}><Underline className="size-4" /></button>
+              <button className={`${tbBtn} ${selStrike && hasSel ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}`} title="Strikethrough" aria-pressed={selStrike} disabled={!hasSel} onClick={() => patchSel({ strike: !selStrike })}><Strikethrough className="size-4" /></button>
+              <div className="relative" ref={linkRef}>
+                <button className={`${tbBtn} ${selLink && hasSel ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}`} title="Add or edit hyperlink" aria-pressed={!!selLink} disabled={!hasSel} onClick={openLinkMenu}><LinkIcon className="size-4" /></button>
+                {linkOpen && (
+                  <div className="absolute left-1/2 top-full z-50 mt-2 w-72 -translate-x-1/2 rounded-xl border bg-card p-2.5 shadow-lift">
+                    <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Hyperlink</label>
+                    <input value={linkDraft} onChange={(e) => setLinkDraft(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); applyLink(); } else if (e.key === 'Escape') setLinkOpen(false); }} placeholder="https://example.com"
+                      className="h-9 w-full rounded-md border bg-background px-2 text-sm outline-none focus:border-primary" autoFocus />
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                      <button type="button" onClick={removeLink} className="text-xs font-medium text-muted-foreground hover:text-destructive">Remove link</button>
+                      <button type="button" onClick={applyLink} className="h-8 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground">Apply</button>
+                    </div>
+                  </div>
+                )}
+              </div>
               <button className={`${tbBtn} ${selAlign === 'left' && (activeAdded || activeBlock) ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}`} title="Align left" disabled={!activeAdded && !activeBlock} onClick={() => patchSel({ align: 'left' })}><AlignLeft className="size-4" /></button>
               <button className={`${tbBtn} ${selAlign === 'center' && (activeAdded || activeBlock) ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}`} title="Align center" disabled={!activeAdded && !activeBlock} onClick={() => patchSel({ align: 'center' })}><AlignCenter className="size-4" /></button>
               <button className={`${tbBtn} ${selAlign === 'right' && (activeAdded || activeBlock) ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}`} title="Align right" disabled={!activeAdded && !activeBlock} onClick={() => patchSel({ align: 'right' })}><AlignRight className="size-4" /></button>
@@ -1321,7 +1449,7 @@ export function EditTool() {
                 </>
               )}
               <span className="mx-0.5 h-6 w-px bg-border/70" />
-              <button className={`${tbBtn} text-destructive hover:bg-destructive/10`} title={activeAdded ? 'Delete this text box' : activeBlock ? 'Clear paragraph edit' : 'Delete selection'} disabled={!hasSel} onClick={deleteSel}><Trash2 className="size-4" /></button>
+              <button className={`${tbBtn} text-destructive hover:bg-destructive/10`} title={activeImage ? 'Delete this image' : activeAdded ? 'Delete this text box' : activeBlock ? 'Clear paragraph edit' : 'Delete selection'} disabled={!hasSel && !activeImage} onClick={deleteSel}><Trash2 className="size-4" /></button>
               <div className="ml-auto flex items-center gap-1">
                 <button className={`${tbBtn} hover:bg-accent`} title="Undo (Ctrl+Z)" disabled={!canUndo} onClick={undoEditor}><Undo2 className="size-4" /></button>
                 <button className={`${tbBtn} hover:bg-accent`} title="Redo (Ctrl+Y)" disabled={!canRedo} onClick={redoEditor}><Redo2 className="size-4" /></button>
@@ -1378,7 +1506,7 @@ export function EditTool() {
                           else if (ev.key === 'Enter' || ev.key === 'Escape') { ev.preventDefault(); if (ev.key === 'Escape') { setEditing(null); sessionRef.current = null; } }
                         }}
                         className="absolute z-20 rounded-[2px] p-0 outline-none ring-2 ring-primary/60"
-                        style={{ left: `${xFrac * disp.w}px`, top: `${baselinePx - BASELINE * size}px`, width: `${Math.max(newWpx, box.w * disp.w, size) + 4}px`, height: `${size * 1.2}px`, lineHeight: `${size * 1.2}px`, fontFamily: RENDER_CSS[activeEdit.family] ?? FAMILIES[activeEdit.family].css, fontSize: `${size}px`, fontWeight: activeEdit.bold ? 700 : 400, fontStyle: activeEdit.italic ? 'italic' : 'normal', color: activeEdit.color, background: activeLine.bg, caretColor: '#4f46e5' }}
+                        style={{ left: `${xFrac * disp.w}px`, top: `${baselinePx - BASELINE * size}px`, width: `${Math.max(newWpx, box.w * disp.w, size) + 4}px`, height: `${size * 1.2}px`, lineHeight: `${size * 1.2}px`, fontFamily: RENDER_CSS[activeEdit.family] ?? FAMILIES[activeEdit.family].css, fontSize: `${size}px`, fontWeight: activeEdit.bold ? 700 : 400, fontStyle: activeEdit.italic ? 'italic' : 'normal', textDecorationLine: [(activeEdit.underline || activeEdit.link) && 'underline', activeEdit.strike && 'line-through'].filter(Boolean).join(' ') || 'none', color: activeEdit.color, background: activeLine.bg, caretColor: '#4f46e5' }}
                       />
                     );
                   })()}
@@ -1392,7 +1520,7 @@ export function EditTool() {
                     const style: React.CSSProperties = {
                       left: `${l.x * disp.w}px`, top: `${l.y * disp.h - fs * 0.08}px`, width: `${(l.w + l.w * 0.02) * disp.w}px`, minHeight: `${l.h * disp.h + fs * 0.3}px`,
                       fontFamily: RENDER_CSS[st.family] ?? FAMILIES[st.family].css, fontSize: `${fs}px`, fontWeight: st.bold ? 700 : 400, fontStyle: st.italic ? 'italic' : 'normal',
-                      textDecorationLine: [st.underline && 'underline', st.strike && 'line-through'].filter(Boolean).join(' ') || 'none', textAlign: st.align,
+                      textDecorationLine: [(st.underline || st.link) && 'underline', st.strike && 'line-through'].filter(Boolean).join(' ') || 'none', textAlign: st.align,
                       color: st.color, lineHeight: b.lineH / b.size, whiteSpace: 'pre-wrap', wordBreak: 'break-word', background: /^rgb\(\s*\d/.test(b.bg) ? b.bg : '#ffffff',
                     };
                     return (
@@ -1430,7 +1558,7 @@ export function EditTool() {
                   {disp.h > 0 && added.filter((a) => a.page === sel).map((a) => {
                     const left = a.x * disp.w, top = a.y * disp.h, size = a.sizeFrac * disp.h;
                     const fam = RENDER_CSS[a.family] ?? FAMILIES[a.family].css;
-                    const common: React.CSSProperties = { left: `${left}px`, top: `${top}px`, fontFamily: fam, fontSize: `${size}px`, fontWeight: a.bold ? 700 : 400, fontStyle: a.italic ? 'italic' : 'normal', textDecorationLine: [a.underline && 'underline', a.strike && 'line-through'].filter(Boolean).join(' ') || 'none', textAlign: a.align, color: a.color, lineHeight: 1.1 };
+                    const common: React.CSSProperties = { left: `${left}px`, top: `${top}px`, fontFamily: fam, fontSize: `${size}px`, fontWeight: a.bold ? 700 : 400, fontStyle: a.italic ? 'italic' : 'normal', textDecorationLine: [(a.underline || a.link) && 'underline', a.strike && 'line-through'].filter(Boolean).join(' ') || 'none', textAlign: a.align, color: a.color, lineHeight: 1.1 };
                     if (a.id === addSel) {
                       return (
                         <input key={a.id} ref={addInputRef} value={a.text} placeholder="Type…"
@@ -1463,11 +1591,16 @@ export function EditTool() {
                       style={{ left: `${im.x * 100}%`, top: `${im.y * 100}%`, width: `${im.w * 100}%` }}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={im.src} alt="" className="pointer-events-none block w-full select-none" draggable={false} />
+                      <img src={im.src} alt="" className="pointer-events-none block w-full select-none" draggable={false} style={{ transform: `rotate(${im.rot || 0}deg)`, transformOrigin: 'center' }} />
                       {selImg === im.id && (
                         <>
-                          <button onPointerDown={(e) => { e.stopPropagation(); deleteImage(im.id); }} aria-label="Delete" title="Delete"
+                          <button onPointerDown={(e) => e.stopPropagation()} onClick={() => deleteImage(im.id)} aria-label="Delete image" title="Delete image"
                             className="absolute -right-2 -top-2 z-10 flex size-5 items-center justify-center rounded-full bg-destructive text-white shadow"><X className="size-3" /></button>
+                          <button type="button" onPointerDown={(e) => imgDown(e, im.id, 'rotate')} onPointerMove={imgMove} onPointerUp={imgUp} onDoubleClick={(e) => { e.stopPropagation(); rotateImage(im.id, 90); }}
+                            aria-label="Rotate image" title="Drag to rotate; double-click for 90 degrees"
+                            className="absolute -top-9 left-1/2 z-10 flex size-7 -translate-x-1/2 touch-none items-center justify-center rounded-full border bg-card text-primary shadow-lift cursor-grab">
+                            <RotateCw className="size-3.5" />
+                          </button>
                           <div onPointerDown={(e) => imgDown(e, im.id, 'resize')} onPointerMove={imgMove} onPointerUp={imgUp}
                             className="absolute -bottom-1.5 -right-1.5 z-10 size-3.5 cursor-nwse-resize rounded-sm border-2 border-primary bg-white" aria-label="Resize" />
                         </>

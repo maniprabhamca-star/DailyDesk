@@ -14,7 +14,7 @@
 // layer underneath (pdf-lib can't surgically delete content-stream operators), so
 // a text-copy of an edited word may still yield the original underneath. For true
 // removal of sensitive text, that's what Redact is for.
-import { PDFDocument, StandardFonts, rgb, type PDFFont } from 'pdf-lib';
+import { PDFArray, PDFDocument, PDFName, PDFString, StandardFonts, rgb, type PDFFont, type PDFPage } from 'pdf-lib';
 import { FAMILIES, type Family, loadFontBytes } from './fonts';
 
 // One positioned word to (re)draw.
@@ -28,6 +28,7 @@ export type PartDraw = {
   italic: boolean;
   underline?: boolean;
   strike?: boolean;
+  link?: string;
 };
 
 export type LineEdit = {
@@ -51,7 +52,7 @@ export type BlockEdit = {
   lineHFrac: number;  // line-to-line spacing (fraction of page height)
   text: string;       // full text; \n = hard line break, otherwise wrapped
   family: Family; color: string; bold: boolean; italic: boolean;
-  underline?: boolean; strike?: boolean; align?: 'left' | 'center' | 'right';
+  underline?: boolean; strike?: boolean; align?: 'left' | 'center' | 'right'; link?: string;
 };
 
 // Cover bleed + baseline factors — MUST match the preview overlay in
@@ -78,6 +79,40 @@ function drawDecoration(page: ReturnType<PDFDocument['getPages']>[number], x: nu
   const thickness = Math.max(0.6, size * 0.06);
   if (underline) page.drawLine({ start: { x, y: baseline - size * 0.14 }, end: { x: x + width, y: baseline - size * 0.14 }, thickness, color });
   if (strike) page.drawLine({ start: { x, y: baseline + size * 0.32 }, end: { x: x + width, y: baseline + size * 0.32 }, thickness, color });
+}
+
+function normalizedUrl(url?: string): string | null {
+  const t = (url || '').trim();
+  if (!t) return null;
+  if (/^(https?:|mailto:|tel:)/i.test(t)) return t;
+  return `https://${t}`;
+}
+
+function addLinkAnnotation(doc: PDFDocument, page: PDFPage, x: number, baseline: number, width: number, size: number, url?: string) {
+  const uri = normalizedUrl(url);
+  if (!uri || width <= 0 || size <= 0) return;
+  const y1 = baseline - size * 0.24;
+  const y2 = baseline + size * 0.95;
+  const context = doc.context;
+  const annot = context.obj({
+    Type: PDFName.of('Annot'),
+    Subtype: PDFName.of('Link'),
+    Rect: [x, y1, x + width, y2],
+    Border: [0, 0, 0],
+    A: context.obj({
+      Type: PDFName.of('Action'),
+      S: PDFName.of('URI'),
+      URI: PDFString.of(uri),
+    }),
+  });
+  const ref = context.register(annot);
+  let annots: PDFArray | undefined;
+  try { annots = page.node.lookup(PDFName.of('Annots'), PDFArray); } catch { annots = undefined; }
+  if (!annots) {
+    annots = context.obj([]);
+    page.node.set(PDFName.of('Annots'), annots);
+  }
+  annots.push(ref);
 }
 
 /** Apply the positioned word edits to a PDF, returning new bytes. Pure — no DOM,
@@ -138,7 +173,9 @@ export async function applyLineEdits(src: ArrayBuffer | Uint8Array, edits: LineE
       const size = d.sizeFrac * H;
       const x = d.xFrac * W;
       page.drawText(d.text, { x, y: baseY, size, font, color });
-      drawDecoration(page, x, baseY, font.widthOfTextAtSize(d.text, size), size, color, d.underline, d.strike);
+      const width = font.widthOfTextAtSize(d.text, size);
+      drawDecoration(page, x, baseY, width, size, color, d.underline || !!d.link, d.strike);
+      addLinkAnnotation(doc, page, x, baseY, width, size, d.link);
     }
   }
 
@@ -179,7 +216,9 @@ export async function applyLineEdits(src: ArrayBuffer | Uint8Array, edits: LineE
           try {
             const lineX = alignX(s);
             page.drawText(s, { x: lineX, y: baseline, size, font, color });
-            drawDecoration(page, lineX, baseline, font.widthOfTextAtSize(s, size), size, color, B.underline, B.strike);
+            const width = font.widthOfTextAtSize(s, size);
+            drawDecoration(page, lineX, baseline, width, size, color, B.underline || !!B.link, B.strike);
+            addLinkAnnotation(doc, page, lineX, baseline, width, size, B.link);
           } catch { /* skip unencodable */ }
         }
         baseline -= lineH;
