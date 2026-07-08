@@ -25,9 +25,15 @@ function hasOwnerCookie(): boolean {
   return typeof document !== 'undefined' && /(?:^|;\s*)ddadmin=[^;]+/.test(document.cookie);
 }
 
+function isLocalDevPreview(): boolean {
+  if (process.env.NODE_ENV === 'production') return false;
+  if (typeof window === 'undefined') return false;
+  return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+}
+
 export function usePlan(): Plan {
   const { user } = useAuth();
-  if (hasOwnerCookie()) return 'pro';
+  if (hasOwnerCookie() || isLocalDevPreview()) return 'pro';
   if (!user) return 'free';
   if (user.plan === 'pro') return 'pro';
   if (user.email && PRO_EMAILS.includes(user.email.trim().toLowerCase())) return 'pro';
@@ -39,7 +45,7 @@ export function usePlan(): Plan {
 // disabled via the admin tool-flags) — build tools privately, launch later.
 export function useIsOwner(): boolean {
   const { user } = useAuth();
-  if (hasOwnerCookie()) return true;
+  if (hasOwnerCookie() || isLocalDevPreview()) return true;
   if (user?.email && PRO_EMAILS.includes(user.email.trim().toLowerCase())) return true;
   return false;
 }

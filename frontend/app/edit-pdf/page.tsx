@@ -37,6 +37,7 @@ export default function EditPdfPage() {
       description="Edit PDF paragraph blocks and use a premium toolbar for text boxes, highlights, drawings, shapes, signatures, and images. Your file never leaves your device."
       steps={steps}
       faqs={faqs}
+      wide
     >
       <EditTool />
     </PdfToolPage>

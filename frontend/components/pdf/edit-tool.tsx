@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react';
-import { Upload, FileText, X, Loader2, Pencil, Undo2, Redo2, Bold, Italic, Trash2, Minus, Plus, Zap, TextCursorInput, Highlighter, Pen, Square, Circle, ArrowUpRight, ChevronDown, Signature as SignatureIcon, ImagePlus, Move, Maximize2, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, Link as LinkIcon } from 'lucide-react';
+import { Upload, FileText, X, Loader2, Pencil, Undo2, Redo2, Bold, Italic, Trash2, Minus, Plus, Zap, TextCursorInput, Highlighter, Pen, Square, Circle, ArrowUpRight, ChevronDown, Signature as SignatureIcon, ImagePlus, Move, Maximize2, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
 import { SignatureMaker } from './signature-maker';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -1126,50 +1126,6 @@ export function EditTool() {
     line: { icon: <Minus className="size-4" />, label: 'Line' },
     arrow: { icon: <ArrowUpRight className="size-4" />, label: 'Arrow' },
   };
-  const inspectorBtn = 'flex size-9 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground disabled:opacity-40';
-  const inspectorOn = 'border-primary bg-primary/10 text-primary';
-  const textInspector = (activeBlock || activeAdded) ? (
-    <aside className="rounded-xl border bg-card p-4 shadow-soft lg:sticky lg:top-24">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold">Text Styles</h3>
-        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">{activeBlock ? 'Paragraph' : 'Text box'}</span>
-      </div>
-      <div className="mt-4 grid grid-cols-[minmax(0,1fr)_88px] gap-2">
-        <FontSelect value={selFamily} onChange={(f) => patchSel({ family: f })} />
-        <input type="number" min={4} max={120} value={Math.max(1, Math.round(selSizePx || 10))} onChange={(e) => patchSel({ size: Math.max(4, Number(e.target.value) || 10) / Math.max(1, disp.h) })}
-          className="h-10 rounded-lg border bg-card px-2 text-sm focus:border-primary focus:outline-none" aria-label="Font size" />
-      </div>
-      <div className="mt-4 grid grid-cols-4 gap-2">
-        <button className={`${inspectorBtn} ${selBold ? inspectorOn : ''}`} title="Bold" disabled={!selFamInfo?.bold} onClick={() => patchSel({ bold: !selBold })}><Bold className="size-5" /></button>
-        <button className={`${inspectorBtn} ${selItalic ? inspectorOn : ''}`} title="Italic" disabled={!selFamInfo?.italic} onClick={() => patchSel({ italic: !selItalic })}><Italic className="size-5" /></button>
-        <button className={`${inspectorBtn} ${selUnderline ? inspectorOn : ''}`} title="Underline" onClick={() => patchSel({ underline: !selUnderline })}><Underline className="size-5" /></button>
-        <button className={`${inspectorBtn} ${selStrike ? inspectorOn : ''}`} title="Strikethrough" onClick={() => patchSel({ strike: !selStrike })}><Strikethrough className="size-5" /></button>
-      </div>
-      <div className="mt-3 grid grid-cols-3 gap-2">
-        <button className={`${inspectorBtn} ${selAlign === 'left' ? inspectorOn : ''}`} title="Align left" onClick={() => patchSel({ align: 'left' })}><AlignLeft className="size-5" /></button>
-        <button className={`${inspectorBtn} ${selAlign === 'center' ? inspectorOn : ''}`} title="Align center" onClick={() => patchSel({ align: 'center' })}><AlignCenter className="size-5" /></button>
-        <button className={`${inspectorBtn} ${selAlign === 'right' ? inspectorOn : ''}`} title="Align right" onClick={() => patchSel({ align: 'right' })}><AlignRight className="size-5" /></button>
-      </div>
-      <div className="mt-4 border-t pt-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Current Color</p>
-        <div className="mt-3 flex items-center gap-3">
-          <span className="inline-flex size-9 items-center justify-center rounded-full border-2 border-primary bg-card"><span className="size-6 rounded-full border" style={{ backgroundColor: selColor || '#111827' }} /></span>
-          <input type="color" value={/^#/.test(selColor) ? selColor : '#111827'} onChange={(e) => patchSel({ color: e.target.value })} className="h-9 w-12 cursor-pointer rounded border bg-card p-1" aria-label="Custom color" />
-        </div>
-        <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Custom Colors</p>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {SWATCHES.map((c) => (
-            <button key={c} type="button" aria-label={`color ${c}`} onClick={() => patchSel({ color: c })}
-              className={`size-7 rounded-full ring-offset-2 ring-offset-card transition-all ${selColor === c ? 'ring-2 ring-primary' : 'ring-1 ring-border hover:ring-primary/50'}`} style={{ backgroundColor: c }} />
-          ))}
-        </div>
-      </div>
-      <button type="button" className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm text-muted-foreground" disabled title="Link editing is not available yet">
-        <LinkIcon className="size-4" /> Link
-      </button>
-    </aside>
-  ) : null;
-
   return (
     <Card>
       <CardContent className="p-5">
@@ -1272,12 +1228,12 @@ export function EditTool() {
               {detecting && <span className="inline-flex items-center gap-1"><Loader2 className="size-3 animate-spin" /> finding text…</span>}
             </p>
 
-            <div className={textInspector ? 'grid gap-3 lg:grid-cols-[minmax(0,1fr)_280px]' : ''}>
-              <div className="flex items-start justify-center rounded-xl border bg-muted/30 p-3">
+            <div>
+              <div className="flex items-start justify-center overflow-auto rounded-xl border bg-muted/30 p-2 sm:p-3">
                 {preview ? (
-                  <div ref={wrapRef} className="relative inline-block leading-[0]">
+                  <div ref={wrapRef} className="relative mx-auto w-full max-w-5xl leading-[0]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img ref={imgRef} src={preview.url} alt={`Page ${sel + 1}`} className="max-h-[34rem] max-w-full rounded border bg-white shadow-md" draggable={false} onLoad={() => { const im = imgRef.current; if (im) setDisp({ w: im.clientWidth, h: im.clientHeight }); }} />
+                  <img ref={imgRef} src={preview.url} alt={`Page ${sel + 1}`} className="w-full rounded border bg-white shadow-md" draggable={false} onLoad={() => { const im = imgRef.current; if (im) setDisp({ w: im.clientWidth, h: im.clientHeight }); }} />
 
                   {/* Edited/active lines: cover + reflowed text drawn in ONE canvas
                       (same coordinate space → can't drift → no doubling). */}
@@ -1419,7 +1375,6 @@ export function EditTool() {
                   <div className="flex h-72 items-center justify-center"><Loader2 className="size-5 animate-spin text-muted-foreground" /></div>
                 )}
               </div>
-              {textInspector}
             </div>
 
             {pageCount > 1 && <PageStrip handle={handle} count={pageCount} selected={sel} onSelect={(i) => { closeWord(); setAddSel(null); setAddMode(false); setEditingBlock(null); setSelImg(null); setSel(i); }} className="mt-2" />}
