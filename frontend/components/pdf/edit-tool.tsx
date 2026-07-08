@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react';
-import { Upload, FileText, X, Loader2, Pencil, Undo2, Redo2, Bold, Italic, Trash2, Minus, Plus, Zap, TextCursorInput, Highlighter, Pen, Square, Circle, ArrowUpRight, ChevronDown, Signature as SignatureIcon, ImagePlus } from 'lucide-react';
+import { Upload, FileText, X, Loader2, Pencil, Undo2, Redo2, Bold, Italic, Trash2, Minus, Plus, Zap, TextCursorInput, Highlighter, Pen, Square, Circle, ArrowUpRight, ChevronDown, Signature as SignatureIcon, ImagePlus, Move, Maximize2, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, Link as LinkIcon } from 'lucide-react';
 import { SignatureMaker } from './signature-maker';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -36,8 +36,9 @@ type Line = {
 type WordBox = { x: number; y: number; w: number; h: number; inkTop?: number; inkH?: number };
 type Edit = { text: string; family: Family; size: number; color: string; bold: boolean; italic: boolean };
 type EditMap = Record<string, Edit>;
+type TextAlign = 'left' | 'center' | 'right';
 // A brand-new text box the user placed (independent of the PDF's own text).
-type Added = { id: string; page: number; x: number; y: number; sizeFrac: number; text: string; family: Family; color: string; bold: boolean; italic: boolean };
+type Added = { id: string; page: number; x: number; y: number; sizeFrac: number; text: string; family: Family; color: string; bold: boolean; italic: boolean; underline: boolean; strike: boolean; align: TextAlign };
 
 type ShapeKind = 'rect' | 'circle' | 'line' | 'arrow';
 type EditorTool = 'paragraph' | 'add-text' | 'highlight' | 'pen' | ShapeKind;
@@ -113,11 +114,13 @@ type Block = {
   lineH: number;                                  // line-to-line spacing (fraction of page height)
   text: string;                                   // full text, original line breaks kept as \n
 };
-type BlockStylePatch = Partial<Pick<Block, 'family' | 'size' | 'color' | 'bold' | 'italic'>>;
+type BlockStylePatch = Partial<Pick<Block, 'family' | 'size' | 'color' | 'bold' | 'italic'> & { underline: boolean; strike: boolean; align: TextAlign }>;
+type BlockLayout = { x: number; y: number; w: number; h: number };
 type EditorSnapshot = {
   edits: EditMap;
   blockEdits: Record<string, string>;
   blockStyle: Record<string, BlockStylePatch>;
+  blockLayout: Record<string, BlockLayout>;
   added: Added[];
   markups: Record<number, Markup[]>;
   images: ImageItem[];
@@ -269,6 +272,7 @@ export function EditTool() {
   const [blocks, setBlocks] = useState<Record<number, Block[]>>({});
   const [blockEdits, setBlockEdits] = useState<Record<string, string>>({}); // blockId -> edited full text
   const [blockStyle, setBlockStyle] = useState<Record<string, BlockStylePatch>>({});
+  const [blockLayout, setBlockLayout] = useState<Record<string, BlockLayout>>({});
   const [editingBlock, setEditingBlock] = useState<string | null>(null);
   const [edits, setEdits] = useState<EditMap>({});
   const [editing, setEditing] = useState<{ lineId: string; i: number } | null>(null);
@@ -298,6 +302,7 @@ export function EditTool() {
   const imgCache = useRef<Map<string, HTMLImageElement>>(new Map());
   const imgFileRef = useRef<HTMLInputElement>(null);
   const imgDrag = useRef<{ id: string; mode: 'move' | 'resize'; ox: number; oy: number; startW: number } | null>(null);
+  const blockDrag = useRef<{ id: string; mode: 'move' | 'resize-e' | 'resize-s' | 'resize-se'; startX: number; startY: number; start: BlockLayout } | null>(null);
   const shapesRef = useRef<HTMLDivElement>(null);
   const drawing = useRef(false);
   const liveMarkup = useRef<Markup | null>(null);
@@ -324,7 +329,7 @@ export function EditTool() {
     setLines({}); setEdits({}); setEditing(null); setPreview(null); setPast([]); setFuture([]);
     setHistoryPast([]); setHistoryFuture([]); blockInputSession.current = false;
     setAdded([]); setAddSel(null); setAddMode(false);
-    setBlocks({}); setBlockEdits({}); setBlockStyle({}); setEditingBlock(null);
+    setBlocks({}); setBlockEdits({}); setBlockStyle({}); setBlockLayout({}); setEditingBlock(null);
     setTool('paragraph'); setMarkups({}); setImages([]); setSelImg(null); setSigOpen(false); imgCache.current.clear();
     try {
       const h = await openPdf(f);
@@ -504,12 +509,13 @@ export function EditTool() {
   const famInfo = activeEdit ? FAMILIES[activeEdit.family] : null;
 
   function snapshotEditor(): EditorSnapshot {
-    return { edits, blockEdits, blockStyle, added, markups, images };
+    return { edits, blockEdits, blockStyle, blockLayout, added, markups, images };
   }
   function restoreEditor(snap: EditorSnapshot) {
     setEdits(snap.edits);
     setBlockEdits(snap.blockEdits);
     setBlockStyle(snap.blockStyle);
+    setBlockLayout(snap.blockLayout);
     setAdded(snap.added);
     setMarkups(snap.markups);
     setImages(snap.images);
@@ -545,29 +551,32 @@ export function EditTool() {
   const activeBlock = editingBlock ? pageBlocks.find((b) => b.id === editingBlock) ?? null : null;
   const blockTextOf = (b: Block) => blockEdits[b.id] ?? b.text;
   // Effective style = detected style with any toolbar overrides applied.
-  const blockStyleOf = (b: Block) => { const o = blockStyle[b.id] || {}; return { family: o.family ?? b.family, size: o.size ?? b.size, color: o.color ?? b.color, bold: o.bold ?? b.bold, italic: o.italic ?? b.italic }; };
-  const blockChanged = (b: Block) => (blockEdits[b.id] !== undefined && blockEdits[b.id] !== b.text) || !!blockStyle[b.id];
+  const blockStyleOf = (b: Block) => { const o = blockStyle[b.id] || {}; return { family: o.family ?? b.family, size: o.size ?? b.size, color: o.color ?? b.color, bold: o.bold ?? b.bold, italic: o.italic ?? b.italic, underline: o.underline ?? false, strike: o.strike ?? false, align: o.align ?? 'left' as TextAlign }; };
+  const blockLayoutOf = (b: Block): BlockLayout => blockLayout[b.id] || { x: b.x, y: b.y, w: b.w, h: b.h };
+  const layoutChanged = (b: Block) => { const l = blockLayout[b.id]; return !!l && (Math.abs(l.x - b.x) > 1e-5 || Math.abs(l.y - b.y) > 1e-5 || Math.abs(l.w - b.w) > 1e-5 || Math.abs(l.h - b.h) > 1e-5); };
+  const blockChanged = (b: Block) => (blockEdits[b.id] !== undefined && blockEdits[b.id] !== b.text) || !!blockStyle[b.id] || layoutChanged(b);
   function openBlock(b: Block) { closeWord(); setAddSel(null); blockInputSession.current = false; setEditingBlock(b.id); }
   function closeBlock() { blockInputSession.current = false; setEditingBlock(null); }
   function patchBlock(patch: BlockStylePatch) { if (editingBlock) { pushHistory(); setBlockStyle((s) => ({ ...s, [editingBlock]: { ...s[editingBlock], ...patch } })); } }
   function hitBlock(p: { x: number; y: number }): Block | null {
-    for (let i = pageBlocks.length - 1; i >= 0; i--) { const b = pageBlocks[i]; if (p.x >= b.x - 0.006 && p.x <= b.x + b.w + 0.006 && p.y >= b.y - 0.006 && p.y <= b.y + b.h + 0.006) return b; }
+    for (let i = pageBlocks.length - 1; i >= 0; i--) { const b = pageBlocks[i]; const l = blockLayoutOf(b); if (p.x >= l.x - 0.006 && p.x <= l.x + l.w + 0.006 && p.y >= l.y - 0.006 && p.y <= l.y + l.h + 0.006) return b; }
     return null;
   }
   // Stable style + input handler for the isolated editor (so it never re-renders
   // mid-typing).
   const activeBlockStyle = useMemo<React.CSSProperties>(() => {
     const b = activeBlock; if (!b || !disp.h) return {};
+    const l = blockLayoutOf(b);
     const st = blockStyleOf(b); const fs = st.size * disp.h;
-    return { left: `${b.x * disp.w}px`, top: `${b.y * disp.h - fs * 0.08}px`, width: `${(b.w + b.w * 0.02) * disp.w}px`, minHeight: `${b.h * disp.h + fs * 0.3}px`, fontFamily: RENDER_CSS[st.family] ?? FAMILIES[st.family].css, fontSize: `${fs}px`, fontWeight: st.bold ? 700 : 400, fontStyle: st.italic ? 'italic' : 'normal', color: st.color, lineHeight: (b.lineH / b.size), whiteSpace: 'pre-wrap', wordBreak: 'break-word', background: /^rgb\(\s*\d/.test(b.bg) ? b.bg : '#ffffff', caretColor: '#4f46e5' };
+    return { left: `${l.x * disp.w}px`, top: `${l.y * disp.h - fs * 0.08}px`, width: `${(l.w + l.w * 0.02) * disp.w}px`, minHeight: `${l.h * disp.h + fs * 0.3}px`, fontFamily: RENDER_CSS[st.family] ?? FAMILIES[st.family].css, fontSize: `${fs}px`, fontWeight: st.bold ? 700 : 400, fontStyle: st.italic ? 'italic' : 'normal', textDecorationLine: [st.underline && 'underline', st.strike && 'line-through'].filter(Boolean).join(' ') || 'none', textAlign: st.align, color: st.color, lineHeight: (b.lineH / b.size), whiteSpace: 'pre-wrap', wordBreak: 'break-word', background: /^rgb\(\s*\d/.test(b.bg) ? b.bg : '#ffffff', caretColor: '#4f46e5' };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeBlock, disp.h, disp.w, blockStyle]);
+  }, [activeBlock, disp.h, disp.w, blockStyle, blockLayout]);
   const onBlockInput = useCallback((t: string) => {
     if (!editingBlock) return;
     if (!blockInputSession.current) { pushHistory(); blockInputSession.current = true; }
     setBlockEdits((s) => ({ ...s, [editingBlock]: t }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editingBlock, edits, blockEdits, blockStyle, added, markups, images]);
+  }, [editingBlock, edits, blockEdits, blockStyle, blockLayout, added, markups, images]);
 
   // ---- Add-text: new boxes placed anywhere on the page -----------------------
   const activeAdded = addSel ? added.find((a) => a.id === addSel) ?? null : null;
@@ -575,7 +584,7 @@ export function EditTool() {
     closeWord();
     pushHistory();
     const id = `A${Math.random().toString(36).slice(2, 8)}`;
-    setAdded((prev) => [...prev, { id, page: sel, x: Math.max(0, Math.min(0.98, fx)), y: Math.max(0, Math.min(0.97, fy)), sizeFrac: 0.022, text: '', family: 'helvetica', color: '#111827', bold: false, italic: false }]);
+    setAdded((prev) => [...prev, { id, page: sel, x: Math.max(0, Math.min(0.98, fx)), y: Math.max(0, Math.min(0.97, fy)), sizeFrac: 0.022, text: '', family: 'helvetica', color: '#111827', bold: false, italic: false, underline: false, strike: false, align: 'left' }]);
     setAddSel(id);
     setAddMode(false);
   }
@@ -655,6 +664,38 @@ export function EditTool() {
   }
   function imgUp() { imgDrag.current = null; }
 
+  function clampBlockLayout(l: BlockLayout): BlockLayout {
+    const w = Math.min(Math.max(l.w, 0.04), 1);
+    const h = Math.min(Math.max(l.h, 0.018), 1);
+    return {
+      x: Math.min(Math.max(l.x, 0), Math.max(0, 1 - w)),
+      y: Math.min(Math.max(l.y, 0), Math.max(0, 1 - h)),
+      w,
+      h,
+    };
+  }
+  function blockDown(e: React.PointerEvent<HTMLElement>, b: Block, mode: 'move' | 'resize-e' | 'resize-s' | 'resize-se') {
+    e.preventDefault();
+    e.stopPropagation();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    pushHistory();
+    closeWord(); setAddSel(null); setSelImg(null); setEditingBlock(b.id);
+    blockDrag.current = { id: b.id, mode, startX: e.clientX, startY: e.clientY, start: blockLayoutOf(b) };
+  }
+  function blockMove(e: React.PointerEvent<HTMLElement>) {
+    const d = blockDrag.current; if (!d || !wrapRef.current) return;
+    const r = wrapRef.current.getBoundingClientRect();
+    const dx = (e.clientX - d.startX) / r.width;
+    const dy = (e.clientY - d.startY) / r.height;
+    let next = d.start;
+    if (d.mode === 'move') next = { ...d.start, x: d.start.x + dx, y: d.start.y + dy };
+    else if (d.mode === 'resize-e') next = { ...d.start, w: d.start.w + dx };
+    else if (d.mode === 'resize-s') next = { ...d.start, h: d.start.h + dy };
+    else next = { ...d.start, w: d.start.w + dx, h: d.start.h + dy };
+    setBlockLayout((prev) => ({ ...prev, [d.id]: clampBlockLayout(next) }));
+  }
+  function blockUp() { blockDrag.current = null; }
+
   const paintMarkupOverlay = useCallback(() => {
     const cv = markupCanvasRef.current; if (!cv || !disp.w || !disp.h) return;
     const dpr = window.devicePixelRatio || 1;
@@ -723,12 +764,18 @@ export function EditTool() {
   const selFamily: Family = activeEdit?.family ?? activeAdded?.family ?? activeBlockStyleEff?.family ?? 'helvetica';
   const selBold = activeEdit?.bold ?? activeAdded?.bold ?? activeBlockStyleEff?.bold ?? false;
   const selItalic = activeEdit?.italic ?? activeAdded?.italic ?? activeBlockStyleEff?.italic ?? false;
+  const selUnderline = activeAdded?.underline ?? activeBlockStyleEff?.underline ?? false;
+  const selStrike = activeAdded?.strike ?? activeBlockStyleEff?.strike ?? false;
+  const selAlign = activeAdded?.align ?? activeBlockStyleEff?.align ?? 'left';
   const selColor = activeEdit?.color ?? activeAdded?.color ?? activeBlockStyleEff?.color ?? '';
   const selSizeFrac = activeEdit?.size ?? activeAdded?.sizeFrac ?? activeBlockStyleEff?.size ?? 0.02;
   const selSizePx = selSizeFrac * disp.h;
   const selFamInfo = FAMILIES[selFamily];
-  function patchSel(p: { family?: Family; color?: string; bold?: boolean; italic?: boolean; size?: number }) {
-    if (activeEdit) patchActive(p);
+  function patchSel(p: { family?: Family; color?: string; bold?: boolean; italic?: boolean; size?: number; underline?: boolean; strike?: boolean; align?: TextAlign }) {
+    if (activeEdit) {
+      const { underline: _u, strike: _s, align: _a, ...wordPatch } = p;
+      patchActive(wordPatch);
+    }
     else if (activeAdded) { const { size, ...rest } = p; patchAdded({ ...rest, ...(size !== undefined ? { sizeFrac: size } : {}) }); }
     else if (activeBlock) patchBlock(p);
   }
@@ -739,6 +786,7 @@ export function EditTool() {
       pushHistory();
       setBlockEdits((s) => { const n = { ...s }; delete n[activeBlock.id]; return n; });
       setBlockStyle((s) => { const n = { ...s }; delete n[activeBlock.id]; return n; });
+      setBlockLayout((s) => { const n = { ...s }; delete n[activeBlock.id]; return n; });
       closeBlock();
     }
   }
@@ -805,7 +853,7 @@ export function EditTool() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [file, done, edits, past, future, historyPast, historyFuture, blockEdits, blockStyle, added, markups, images]);
+  }, [file, done, edits, past, future, historyPast, historyFuture, blockEdits, blockStyle, blockLayout, added, markups, images]);
 
   function frac(e: React.MouseEvent) {
     const r = wrapRef.current!.getBoundingClientRect();
@@ -834,7 +882,7 @@ export function EditTool() {
     ? Object.keys(edits).reduce((n, k) => { const [lineId, iStr] = k.split('#'); const p = Number(lineId.split('-')[0]); const line = (lines[p] || []).find((l) => l.id === lineId); const i = Number(iStr); return line && line.parts[i]?.trim() && partEdited(line, i, edits[k]) ? n + 1 : n; }, 0)
     : 0;
   const addedCount = added.filter((a) => a.text.trim()).length;
-  const blockCount = Object.entries(blocks).reduce((n, [, bs]) => n + bs.filter((b) => (blockEdits[b.id] !== undefined && blockEdits[b.id] !== b.text) || !!blockStyle[b.id]).length, 0);
+  const blockCount = Object.entries(blocks).reduce((n, [, bs]) => n + bs.filter((b) => blockChanged(b)).length, 0);
   const markupCount = Object.values(markups).reduce((n, list) => n + list.length, 0);
   const imageCount = images.length;
   const totalChanges = editCount + addedCount + blockCount + markupCount + imageCount;
@@ -869,7 +917,7 @@ export function EditTool() {
       // Added text boxes: a positioned draw with NO cover (coverL == coverR).
       for (const a of added) {
         if (!a.text.trim()) continue;
-        list.push({ page: a.page, yFrac: a.y, hFrac: a.sizeFrac, bg: 'rgb(255,255,255)', coverLFrac: a.x, coverRFrac: a.x, draws: [{ text: a.text, xFrac: a.x, sizeFrac: a.sizeFrac, family: a.family, color: a.color, bold: a.bold, italic: a.italic }] });
+        list.push({ page: a.page, yFrac: a.y, hFrac: a.sizeFrac, bg: 'rgb(255,255,255)', coverLFrac: a.x, coverRFrac: a.x, draws: [{ text: a.text, xFrac: a.x, sizeFrac: a.sizeFrac, family: a.family, color: a.color, bold: a.bold, italic: a.italic, underline: a.underline, strike: a.strike }] });
       }
       // Edited paragraph blocks: cover the box + re-flow the text in its font.
       const blockList: BlockEdit[] = [];
@@ -878,7 +926,8 @@ export function EditTool() {
         for (const b of bs) {
           if (!blockChanged(b)) continue;
           const st = blockStyleOf(b);
-          blockList.push({ page: p, xFrac: b.x, yFrac: b.y, wFrac: b.w + b.w * 0.02, hFrac: b.h, bg: b.bg, sizeFrac: st.size, lineHFrac: b.lineH, text: blockTextOf(b), family: st.family, color: st.color, bold: st.bold, italic: st.italic });
+          const l = blockLayoutOf(b);
+          blockList.push({ page: p, xFrac: l.x, yFrac: l.y, wFrac: l.w + l.w * 0.02, hFrac: l.h, coverXFrac: b.x, coverYFrac: b.y, coverWFrac: b.w + b.w * 0.02, coverHFrac: b.h, bg: b.bg, sizeFrac: st.size, lineHFrac: b.lineH, text: blockTextOf(b), family: st.family, color: st.color, bold: st.bold, italic: st.italic, underline: st.underline, strike: st.strike, align: st.align });
         }
       }
       let current: File | Blob = file;
@@ -1030,23 +1079,29 @@ export function EditTool() {
     // Cover every edited/active paragraph block so the original text is hidden and
     // the DOM text box (rendered in the real font) shows on a clean background.
     const padY = 0.35; // fraction of a line's height bled above/below the block
-    for (const b of pageBlocks) {
-      if (b.id !== editingBlock && !blockChanged(b)) continue;
+    const coverBlock = (b: Block, l: BlockLayout) => {
       const bgFill = /^rgb\(\s*\d/.test(b.bg) ? b.bg : 'rgb(255,255,255)';
       ctx.fillStyle = bgFill;
-      ctx.fillRect((b.x - b.w * 0.004) * disp.w, (b.y - b.size * padY) * disp.h, (b.w + b.w * 0.02) * disp.w, (b.h + b.size * padY * 2) * disp.h);
+      ctx.fillRect((l.x - l.w * 0.004) * disp.w, (l.y - b.size * padY) * disp.h, (l.w + l.w * 0.02) * disp.w, (l.h + b.size * padY * 2) * disp.h);
+    };
+    for (const b of pageBlocks) {
+      if (b.id !== editingBlock && !blockChanged(b)) continue;
+      coverBlock(b, { x: b.x, y: b.y, w: b.w, h: b.h });
+      const l = blockLayoutOf(b);
+      if (layoutChanged(b)) coverBlock(b, l);
     }
     // Hover outline for the block under the cursor (so it reads as clickable).
     const hb = hover ? pageBlocks.find((b) => b.id === hover) : null;
     if (hb && hb.id !== editingBlock) {
+      const l = blockLayoutOf(hb);
       const pad = hb.size * 0.3;
       ctx.strokeStyle = 'rgba(79,70,229,0.5)'; ctx.fillStyle = 'rgba(79,70,229,0.06)'; ctx.lineWidth = 1;
-      const rx = (hb.x - hb.w * 0.004) * disp.w, ry = (hb.y - pad) * disp.h, rw = (hb.w + hb.w * 0.02) * disp.w, rh = (hb.h + pad * 2) * disp.h;
+      const rx = (l.x - l.w * 0.004) * disp.w, ry = (l.y - pad) * disp.h, rw = (l.w + l.w * 0.02) * disp.w, rh = (l.h + pad * 2) * disp.h;
       if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(rx, ry, rw, rh, 4); ctx.fill(); ctx.stroke(); }
       else { ctx.fillRect(rx, ry, rw, rh); ctx.strokeRect(rx, ry, rw, rh); }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pageLines, edits, hover, editing, disp, pageBlocks, editingBlock, blockEdits, blockStyle]);
+  }, [pageLines, edits, hover, editing, disp, pageBlocks, editingBlock, blockEdits, blockStyle, blockLayout]);
 
   useEffect(() => { paintOverlay(); }, [paintOverlay, preview, fontReady]);
 
@@ -1071,6 +1126,49 @@ export function EditTool() {
     line: { icon: <Minus className="size-4" />, label: 'Line' },
     arrow: { icon: <ArrowUpRight className="size-4" />, label: 'Arrow' },
   };
+  const inspectorBtn = 'flex size-9 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground disabled:opacity-40';
+  const inspectorOn = 'border-primary bg-primary/10 text-primary';
+  const textInspector = (activeBlock || activeAdded) ? (
+    <aside className="rounded-xl border bg-card p-4 shadow-soft lg:sticky lg:top-24">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold">Text Styles</h3>
+        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">{activeBlock ? 'Paragraph' : 'Text box'}</span>
+      </div>
+      <div className="mt-4 grid grid-cols-[minmax(0,1fr)_88px] gap-2">
+        <FontSelect value={selFamily} onChange={(f) => patchSel({ family: f })} />
+        <input type="number" min={4} max={120} value={Math.max(1, Math.round(selSizePx || 10))} onChange={(e) => patchSel({ size: Math.max(4, Number(e.target.value) || 10) / Math.max(1, disp.h) })}
+          className="h-10 rounded-lg border bg-card px-2 text-sm focus:border-primary focus:outline-none" aria-label="Font size" />
+      </div>
+      <div className="mt-4 grid grid-cols-4 gap-2">
+        <button className={`${inspectorBtn} ${selBold ? inspectorOn : ''}`} title="Bold" disabled={!selFamInfo?.bold} onClick={() => patchSel({ bold: !selBold })}><Bold className="size-5" /></button>
+        <button className={`${inspectorBtn} ${selItalic ? inspectorOn : ''}`} title="Italic" disabled={!selFamInfo?.italic} onClick={() => patchSel({ italic: !selItalic })}><Italic className="size-5" /></button>
+        <button className={`${inspectorBtn} ${selUnderline ? inspectorOn : ''}`} title="Underline" onClick={() => patchSel({ underline: !selUnderline })}><Underline className="size-5" /></button>
+        <button className={`${inspectorBtn} ${selStrike ? inspectorOn : ''}`} title="Strikethrough" onClick={() => patchSel({ strike: !selStrike })}><Strikethrough className="size-5" /></button>
+      </div>
+      <div className="mt-3 grid grid-cols-3 gap-2">
+        <button className={`${inspectorBtn} ${selAlign === 'left' ? inspectorOn : ''}`} title="Align left" onClick={() => patchSel({ align: 'left' })}><AlignLeft className="size-5" /></button>
+        <button className={`${inspectorBtn} ${selAlign === 'center' ? inspectorOn : ''}`} title="Align center" onClick={() => patchSel({ align: 'center' })}><AlignCenter className="size-5" /></button>
+        <button className={`${inspectorBtn} ${selAlign === 'right' ? inspectorOn : ''}`} title="Align right" onClick={() => patchSel({ align: 'right' })}><AlignRight className="size-5" /></button>
+      </div>
+      <div className="mt-4 border-t pt-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Current Color</p>
+        <div className="mt-3 flex items-center gap-3">
+          <span className="inline-flex size-9 items-center justify-center rounded-full border-2 border-primary bg-card"><span className="size-6 rounded-full border" style={{ backgroundColor: selColor || '#111827' }} /></span>
+          <input type="color" value={/^#/.test(selColor) ? selColor : '#111827'} onChange={(e) => patchSel({ color: e.target.value })} className="h-9 w-12 cursor-pointer rounded border bg-card p-1" aria-label="Custom color" />
+        </div>
+        <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Custom Colors</p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {SWATCHES.map((c) => (
+            <button key={c} type="button" aria-label={`color ${c}`} onClick={() => patchSel({ color: c })}
+              className={`size-7 rounded-full ring-offset-2 ring-offset-card transition-all ${selColor === c ? 'ring-2 ring-primary' : 'ring-1 ring-border hover:ring-primary/50'}`} style={{ backgroundColor: c }} />
+          ))}
+        </div>
+      </div>
+      <button type="button" className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm text-muted-foreground" disabled title="Link editing is not available yet">
+        <LinkIcon className="size-4" /> Link
+      </button>
+    </aside>
+  ) : null;
 
   return (
     <Card>
@@ -1094,7 +1192,7 @@ export function EditTool() {
           <div className="flex items-center gap-3 rounded-lg border bg-card p-2.5">
             <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-red-100 text-red-600 dark:bg-red-950/40"><FileText className="size-4" /></span>
             <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{file.name}</p><p className="text-xs text-muted-foreground">{fmt(file.size)} · {pageCount} page{pageCount === 1 ? '' : 's'}</p></div>
-            <Button size="icon" variant="ghost" aria-label="Remove" onClick={() => { if (handle) void handle.destroy(); setHandle(null); setFile(null); setDone(null); setError(null); setLines({}); setEdits({}); setPast([]); setFuture([]); setHistoryPast([]); setHistoryFuture([]); blockInputSession.current = false; setAdded([]); setAddSel(null); setAddMode(false); setBlocks({}); setBlockEdits({}); setBlockStyle({}); setEditingBlock(null); setMarkups({}); setImages([]); setSelImg(null); imgCache.current.clear(); }}><X className="size-4" /></Button>
+            <Button size="icon" variant="ghost" aria-label="Remove" onClick={() => { if (handle) void handle.destroy(); setHandle(null); setFile(null); setDone(null); setError(null); setLines({}); setEdits({}); setPast([]); setFuture([]); setHistoryPast([]); setHistoryFuture([]); blockInputSession.current = false; setAdded([]); setAddSel(null); setAddMode(false); setBlocks({}); setBlockEdits({}); setBlockStyle({}); setBlockLayout({}); setEditingBlock(null); setMarkups({}); setImages([]); setSelImg(null); imgCache.current.clear(); }}><X className="size-4" /></Button>
           </div>
         )}
 
@@ -1130,7 +1228,7 @@ export function EditTool() {
               {actionButton(() => setSigOpen(true), <SignatureIcon className="size-4" />, 'Sign')}
               {actionButton(() => imgFileRef.current?.click(), <ImagePlus className="size-4" />, 'Image')}
               <span className="mx-0.5 h-6 w-px bg-border/70" />
-              <FontSelect value={selFamily} onChange={(f) => patchSel({ family: f })} className="w-40" />
+              <FontSelect value={selFamily} onChange={(f) => patchSel({ family: f })} className="w-40" menuPlacement="up" />
               <span className="mx-0.5 h-6 w-px bg-border/70" />
               <button className={`${tbBtn} hover:bg-accent`} title="Smaller" disabled={!hasSel} onClick={() => patchSel({ size: Math.max(0.006, selSizeFrac * 0.92) })}><Minus className="size-4" /></button>
               <span className="w-9 text-center text-xs tabular-nums text-muted-foreground">{hasSel ? Math.round(selSizePx) : '—'}</span>
@@ -1138,6 +1236,11 @@ export function EditTool() {
               <span className="mx-0.5 h-6 w-px bg-border/70" />
               <button className={`${tbBtn} ${selBold && hasSel ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}`} title="Bold" aria-pressed={selBold} disabled={!hasSel || !selFamInfo?.bold} onClick={() => patchSel({ bold: !selBold })}><Bold className="size-4" /></button>
               <button className={`${tbBtn} ${selItalic && hasSel ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}`} title="Italic" aria-pressed={selItalic} disabled={!hasSel || !selFamInfo?.italic} onClick={() => patchSel({ italic: !selItalic })}><Italic className="size-4" /></button>
+              <button className={`${tbBtn} ${selUnderline && hasSel ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}`} title="Underline" aria-pressed={selUnderline} disabled={!activeAdded && !activeBlock} onClick={() => patchSel({ underline: !selUnderline })}><Underline className="size-4" /></button>
+              <button className={`${tbBtn} ${selStrike && hasSel ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}`} title="Strikethrough" aria-pressed={selStrike} disabled={!activeAdded && !activeBlock} onClick={() => patchSel({ strike: !selStrike })}><Strikethrough className="size-4" /></button>
+              <button className={`${tbBtn} ${selAlign === 'left' && (activeAdded || activeBlock) ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}`} title="Align left" disabled={!activeAdded && !activeBlock} onClick={() => patchSel({ align: 'left' })}><AlignLeft className="size-4" /></button>
+              <button className={`${tbBtn} ${selAlign === 'center' && (activeAdded || activeBlock) ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}`} title="Align center" disabled={!activeAdded && !activeBlock} onClick={() => patchSel({ align: 'center' })}><AlignCenter className="size-4" /></button>
+              <button className={`${tbBtn} ${selAlign === 'right' && (activeAdded || activeBlock) ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}`} title="Align right" disabled={!activeAdded && !activeBlock} onClick={() => patchSel({ align: 'right' })}><AlignRight className="size-4" /></button>
               <span className="mx-0.5 h-6 w-px bg-border/70" />
               <div className="flex items-center gap-1 px-0.5">
                 {SWATCHES.map((c) => (
@@ -1169,9 +1272,10 @@ export function EditTool() {
               {detecting && <span className="inline-flex items-center gap-1"><Loader2 className="size-3 animate-spin" /> finding text…</span>}
             </p>
 
-            <div className="flex items-start justify-center rounded-xl border bg-muted/30 p-3">
-              {preview ? (
-                <div ref={wrapRef} className="relative inline-block leading-[0]">
+            <div className={textInspector ? 'grid gap-3 lg:grid-cols-[minmax(0,1fr)_280px]' : ''}>
+              <div className="flex items-start justify-center rounded-xl border bg-muted/30 p-3">
+                {preview ? (
+                  <div ref={wrapRef} className="relative inline-block leading-[0]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img ref={imgRef} src={preview.url} alt={`Page ${sel + 1}`} className="max-h-[34rem] max-w-full rounded border bg-white shadow-md" draggable={false} onLoad={() => { const im = imgRef.current; if (im) setDisp({ w: im.clientWidth, h: im.clientHeight }); }} />
 
@@ -1220,10 +1324,12 @@ export function EditTool() {
                       static text in the PDF's real font. */}
                   {disp.h > 0 && pageBlocks.map((b) => {
                     if (b.id === editingBlock || !blockChanged(b)) return null;
+                    const l = blockLayoutOf(b);
                     const st = blockStyleOf(b); const fs = st.size * disp.h;
                     const style: React.CSSProperties = {
-                      left: `${b.x * disp.w}px`, top: `${b.y * disp.h - fs * 0.08}px`, width: `${(b.w + b.w * 0.02) * disp.w}px`, minHeight: `${b.h * disp.h + fs * 0.3}px`,
+                      left: `${l.x * disp.w}px`, top: `${l.y * disp.h - fs * 0.08}px`, width: `${(l.w + l.w * 0.02) * disp.w}px`, minHeight: `${l.h * disp.h + fs * 0.3}px`,
                       fontFamily: RENDER_CSS[st.family] ?? FAMILIES[st.family].css, fontSize: `${fs}px`, fontWeight: st.bold ? 700 : 400, fontStyle: st.italic ? 'italic' : 'normal',
+                      textDecorationLine: [st.underline && 'underline', st.strike && 'line-through'].filter(Boolean).join(' ') || 'none', textAlign: st.align,
                       color: st.color, lineHeight: b.lineH / b.size, whiteSpace: 'pre-wrap', wordBreak: 'break-word', background: /^rgb\(\s*\d/.test(b.bg) ? b.bg : '#ffffff',
                     };
                     return (
@@ -1235,6 +1341,28 @@ export function EditTool() {
                   {activeBlock && disp.h > 0 && (
                     <BlockEditText key={activeBlock.id} initialText={blockTextOf(activeBlock)} style={activeBlockStyle} onInput={onBlockInput} onDone={closeBlock} />
                   )}
+                  {activeBlock && disp.h > 0 && (() => {
+                    const l = blockLayoutOf(activeBlock);
+                    const left = l.x * disp.w, top = l.y * disp.h, width = (l.w + l.w * 0.02) * disp.w, height = Math.max(l.h * disp.h, activeBlock.size * disp.h * 1.3);
+                    const handle = 'absolute z-50 flex size-5 items-center justify-center rounded-full border-2 border-primary bg-white text-primary shadow-sm';
+                    return (
+                      <div className="pointer-events-none absolute z-40 rounded-sm border-2 border-dashed border-primary/70" style={{ left, top: top - activeBlock.size * disp.h * 0.35, width, height: height + activeBlock.size * disp.h * 0.7 }}>
+                        <button type="button" title="Drag paragraph" aria-label="Drag paragraph"
+                          onPointerDown={(e) => blockDown(e, activeBlock, 'move')} onPointerMove={blockMove} onPointerUp={blockUp}
+                          className="pointer-events-auto absolute -left-8 -top-8 flex h-7 items-center gap-1 rounded-md border bg-card px-2 text-xs font-medium text-primary shadow-lift cursor-move">
+                          <Move className="size-3.5" /> Move
+                        </button>
+                        <button type="button" title="Clear paragraph edit" aria-label="Clear paragraph edit" onClick={(e) => { e.stopPropagation(); deleteSel(); }}
+                          className="pointer-events-auto absolute -right-8 -top-8 flex size-7 items-center justify-center rounded-md border bg-card text-destructive shadow-lift">
+                          <Trash2 className="size-3.5" />
+                        </button>
+                        <span className={`${handle} -left-2.5 -top-2.5 cursor-move pointer-events-auto`} onPointerDown={(e) => blockDown(e, activeBlock, 'move')} onPointerMove={blockMove} onPointerUp={blockUp}><Move className="size-3" /></span>
+                        <span className={`${handle} -right-2.5 top-1/2 -translate-y-1/2 cursor-ew-resize pointer-events-auto`} onPointerDown={(e) => blockDown(e, activeBlock, 'resize-e')} onPointerMove={blockMove} onPointerUp={blockUp}><Maximize2 className="size-3" /></span>
+                        <span className={`${handle} bottom-[-10px] left-1/2 -translate-x-1/2 cursor-ns-resize pointer-events-auto`} onPointerDown={(e) => blockDown(e, activeBlock, 'resize-s')} onPointerMove={blockMove} onPointerUp={blockUp}><Maximize2 className="size-3 rotate-45" /></span>
+                        <span className={`${handle} -bottom-2.5 -right-2.5 cursor-nwse-resize pointer-events-auto`} onPointerDown={(e) => blockDown(e, activeBlock, 'resize-se')} onPointerMove={blockMove} onPointerUp={blockUp}><Maximize2 className="size-3" /></span>
+                      </div>
+                    );
+                  })()}
 
                   {/* Added text boxes (new content the user placed). Selected =
                       editable input; otherwise a draggable label (click to edit,
@@ -1242,7 +1370,7 @@ export function EditTool() {
                   {disp.h > 0 && added.filter((a) => a.page === sel).map((a) => {
                     const left = a.x * disp.w, top = a.y * disp.h, size = a.sizeFrac * disp.h;
                     const fam = RENDER_CSS[a.family] ?? FAMILIES[a.family].css;
-                    const common: React.CSSProperties = { left: `${left}px`, top: `${top}px`, fontFamily: fam, fontSize: `${size}px`, fontWeight: a.bold ? 700 : 400, fontStyle: a.italic ? 'italic' : 'normal', color: a.color, lineHeight: 1.1 };
+                    const common: React.CSSProperties = { left: `${left}px`, top: `${top}px`, fontFamily: fam, fontSize: `${size}px`, fontWeight: a.bold ? 700 : 400, fontStyle: a.italic ? 'italic' : 'normal', textDecorationLine: [a.underline && 'underline', a.strike && 'line-through'].filter(Boolean).join(' ') || 'none', textAlign: a.align, color: a.color, lineHeight: 1.1 };
                     if (a.id === addSel) {
                       return (
                         <input key={a.id} ref={addInputRef} value={a.text} placeholder="Type…"
@@ -1286,10 +1414,12 @@ export function EditTool() {
                       )}
                     </div>
                   ))}
-                </div>
-              ) : (
-                <div className="flex h-72 items-center justify-center"><Loader2 className="size-5 animate-spin text-muted-foreground" /></div>
-              )}
+                  </div>
+                ) : (
+                  <div className="flex h-72 items-center justify-center"><Loader2 className="size-5 animate-spin text-muted-foreground" /></div>
+                )}
+              </div>
+              {textInspector}
             </div>
 
             {pageCount > 1 && <PageStrip handle={handle} count={pageCount} selected={sel} onSelect={(i) => { closeWord(); setAddSel(null); setAddMode(false); setEditingBlock(null); setSelImg(null); setSel(i); }} className="mt-2" />}

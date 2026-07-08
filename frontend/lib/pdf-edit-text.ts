@@ -26,6 +26,8 @@ export type PartDraw = {
   color: string;    // 'rgb(r,g,b)'
   bold: boolean;
   italic: boolean;
+  underline?: boolean;
+  strike?: boolean;
 };
 
 export type LineEdit = {
@@ -42,12 +44,14 @@ export type LineEdit = {
 // the block width) in the matching font — the Smallpdf-style edit.
 export type BlockEdit = {
   page: number;
-  xFrac: number; yFrac: number; wFrac: number; hFrac: number; // block box (y-down)
+  xFrac: number; yFrac: number; wFrac: number; hFrac: number; // draw box (y-down)
+  coverXFrac?: number; coverYFrac?: number; coverWFrac?: number; coverHFrac?: number; // original box to hide
   bg: string;
   sizeFrac: number;   // font size (fraction of page height)
   lineHFrac: number;  // line-to-line spacing (fraction of page height)
   text: string;       // full text; \n = hard line break, otherwise wrapped
   family: Family; color: string; bold: boolean; italic: boolean;
+  underline?: boolean; strike?: boolean; align?: 'left' | 'center' | 'right';
 };
 
 // Cover bleed + baseline factors — MUST match the preview overlay in
@@ -67,6 +71,13 @@ function standardFontName(fam: Family, bold: boolean, italic: boolean): string |
   if (fam === 'courier') return bold && italic ? StandardFonts.CourierBoldOblique : bold ? StandardFonts.CourierBold : italic ? StandardFonts.CourierOblique : StandardFonts.Courier;
   if (fam === 'helvetica') return bold && italic ? StandardFonts.HelveticaBoldOblique : bold ? StandardFonts.HelveticaBold : italic ? StandardFonts.HelveticaOblique : StandardFonts.Helvetica;
   return null; // embeddable family
+}
+
+function drawDecoration(page: ReturnType<PDFDocument['getPages']>[number], x: number, baseline: number, width: number, size: number, color: ReturnType<typeof rgb>, underline?: boolean, strike?: boolean) {
+  if (width <= 0) return;
+  const thickness = Math.max(0.6, size * 0.06);
+  if (underline) page.drawLine({ start: { x, y: baseline - size * 0.14 }, end: { x: x + width, y: baseline - size * 0.14 }, thickness, color });
+  if (strike) page.drawLine({ start: { x, y: baseline + size * 0.32 }, end: { x: x + width, y: baseline + size * 0.32 }, thickness, color });
 }
 
 /** Apply the positioned word edits to a PDF, returning new bytes. Pure — no DOM,
@@ -123,7 +134,11 @@ export async function applyLineEdits(src: ArrayBuffer | Uint8Array, edits: LineE
       if (!d.text.trim()) continue;
       const font = await getFont(d.family, d.bold, d.italic);
       const [cr, cg, cb] = parseRgb(d.color);
-      page.drawText(d.text, { x: d.xFrac * W, y: baseY, size: d.sizeFrac * H, font, color: rgb(cr, cg, cb) });
+      const color = rgb(cr, cg, cb);
+      const size = d.sizeFrac * H;
+      const x = d.xFrac * W;
+      page.drawText(d.text, { x, y: baseY, size, font, color });
+      drawDecoration(page, x, baseY, font.widthOfTextAtSize(d.text, size), size, color, d.underline, d.strike);
     }
   }
 
@@ -139,16 +154,36 @@ export async function applyLineEdits(src: ArrayBuffer | Uint8Array, edits: LineE
     const maxW = B.wFrac * W;
     const padY = size * 0.35;
     // Cover the whole paragraph (bleed a little above/below).
-    page.drawRectangle({ x: B.xFrac * W - size * 0.1, y: H * (1 - B.yFrac - B.hFrac) - padY, width: B.wFrac * W + size * 0.25, height: B.hFrac * H + padY * 2, color: rgb(br, bgc, bb) });
+    const coverX = B.coverXFrac ?? B.xFrac;
+    const coverY = B.coverYFrac ?? B.yFrac;
+    const coverW = B.coverWFrac ?? B.wFrac;
+    const coverH = B.coverHFrac ?? B.hFrac;
+    page.drawRectangle({ x: coverX * W - size * 0.1, y: H * (1 - coverY - coverH) - padY, width: coverW * W + size * 0.25, height: coverH * H + padY * 2, color: rgb(br, bgc, bb) });
     const font = await getFont(B.family, B.bold, B.italic);
     const [cr, cg, cb] = parseRgb(B.color);
+    const color = rgb(cr, cg, cb);
     const safe = (t: string) => t.replace(/[^\S\r\n]+/g, ' '); // collapse odd whitespace
     let baseline = H * (1 - B.yFrac - BASELINE * B.sizeFrac);
     const x = B.xFrac * W;
+    const alignX = (s: string) => {
+      const width = font.widthOfTextAtSize(s, size);
+      if (B.align === 'center') return x + Math.max(0, (maxW - width) / 2);
+      if (B.align === 'right') return x + Math.max(0, maxW - width);
+      return x;
+    };
     for (const para of safe(B.text).split('\n')) {
       const words = para.split(' ');
       let cur = '';
-      const put = (s: string) => { if (s) { try { page.drawText(s, { x, y: baseline, size, font, color: rgb(cr, cg, cb) }); } catch { /* skip unencodable */ } } baseline -= lineH; };
+      const put = (s: string) => {
+        if (s) {
+          try {
+            const lineX = alignX(s);
+            page.drawText(s, { x: lineX, y: baseline, size, font, color });
+            drawDecoration(page, lineX, baseline, font.widthOfTextAtSize(s, size), size, color, B.underline, B.strike);
+          } catch { /* skip unencodable */ }
+        }
+        baseline -= lineH;
+      };
       for (const w of words) {
         const test = cur ? `${cur} ${w}` : w;
         if (cur && font.widthOfTextAtSize(test, size) > maxW) { put(cur); cur = w; }

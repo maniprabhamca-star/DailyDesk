@@ -8,7 +8,7 @@ import { FAMILIES, FAMILY_KEYS, type Family } from '@/lib/fonts';
 // typeface. Used by Watermark, Annotate, and any future text tool so the font
 // list + look stays identical everywhere. The bundled families are declared
 // @font-face in globals.css, so the browser lazy-loads each face when shown.
-export function FontSelect({ value, onChange, className }: { value: Family; onChange: (f: Family) => void; className?: string }) {
+export function FontSelect({ value, onChange, className, menuPlacement = 'down' }: { value: Family; onChange: (f: Family) => void; className?: string; menuPlacement?: 'down' | 'up' }) {
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -27,7 +27,7 @@ export function FontSelect({ value, onChange, className }: { value: Family; onCh
         <ChevronDown className={`size-4 shrink-0 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
-        <ul role="listbox" aria-label="Font families" className="absolute z-30 mt-1 max-h-64 w-full overflow-auto rounded-lg border bg-card py-1 shadow-lg">
+        <ul role="listbox" aria-label="Font families" className={`absolute z-50 max-h-64 w-full overflow-auto rounded-lg border bg-card py-1 shadow-lg ${menuPlacement === 'up' ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
           {FAMILY_KEYS.map((f) => (
             <li key={f} role="option" aria-selected={f === value}>
               <button type="button" onClick={() => { onChange(f); setOpen(false); }}
