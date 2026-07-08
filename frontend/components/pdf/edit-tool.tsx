@@ -47,7 +47,21 @@ type Stroke = { kind: 'pen' | 'highlight'; color: string; w: number; pts: Pt[] }
 type ShapeMarkup = { kind: ShapeKind; color: string; w: number; a: Pt; b: Pt };
 type StampMarkup = { kind: 'stamp'; color: string; text: string; x: number; y: number; w: number; h: number };
 type Markup = Stroke | ShapeMarkup | StampMarkup;
-type ImageItem = { id: string; page: number; x: number; y: number; w: number; aspect: number; src: string; rot: number };
+type ImageItem = {
+  id: string;
+  page: number;
+  x: number;
+  y: number;
+  w: number;
+  aspect: number;
+  src: string;
+  rot: number;
+  source?: 'added' | 'pdf';
+  orig?: { x: number; y: number; w: number; h: number };
+  bg?: string;
+  changed?: boolean;
+  deleted?: boolean;
+};
 
 const SHAPE_KINDS: ShapeKind[] = ['rect', 'circle', 'line', 'arrow'];
 const isShape = (t: EditorTool): t is ShapeKind => (SHAPE_KINDS as string[]).includes(t);
@@ -155,6 +169,43 @@ type EditorSnapshot = {
 function rgbNums(color: string): [number, number, number] | null {
   const m = /rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i.exec(color);
   return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : null;
+}
+
+function cssRgb(r: number, g: number, b: number) {
+  const clamp = (v: number) => Math.max(0, Math.min(255, Math.round(v)));
+  return `rgb(${clamp(r)},${clamp(g)},${clamp(b)})`;
+}
+
+function colorFromPdfArgs(args: unknown[] | undefined, mode: 'rgb' | 'gray' | 'cmyk'): string | null {
+  if (!args?.length) return null;
+  const raw = (Array.isArray(args[0]) ? args[0] : args) as unknown[];
+  const nums = raw.map(Number).filter(Number.isFinite);
+  if (!nums.length) return null;
+  const toByte = (v: number) => (v <= 1 ? v * 255 : v);
+  if (mode === 'gray') {
+    const g = toByte(nums[0] ?? 0);
+    return cssRgb(g, g, g);
+  }
+  if (mode === 'cmyk') {
+    const [c = 0, m = 0, y = 0, k = 0] = nums.map((v) => (v > 1 ? v / 100 : v));
+    return cssRgb(255 * (1 - c) * (1 - k), 255 * (1 - m) * (1 - k), 255 * (1 - y) * (1 - k));
+  }
+  return cssRgb(toByte(nums[0] ?? 0), toByte(nums[1] ?? 0), toByte(nums[2] ?? 0));
+}
+
+function textColorsFromOperatorList(ops: { fnArray: number[]; argsArray: unknown[][] }, OPS: Record<string, number>): string[] {
+  const textOps = new Set([OPS.showText, OPS.showSpacedText, OPS.nextLineShowText, OPS.nextLineSetSpacingShowText].filter((n) => typeof n === 'number'));
+  const colors: string[] = [];
+  let fill = '';
+  for (let i = 0; i < ops.fnArray.length; i++) {
+    const fn = ops.fnArray[i];
+    const args = ops.argsArray[i];
+    if (fn === OPS.setFillRGBColor) fill = colorFromPdfArgs(args, 'rgb') ?? fill;
+    else if (fn === OPS.setFillGray) fill = colorFromPdfArgs(args, 'gray') ?? fill;
+    else if (fn === OPS.setFillCMYKColor) fill = colorFromPdfArgs(args, 'cmyk') ?? fill;
+    else if (textOps.has(fn)) colors.push(fill);
+  }
+  return colors;
 }
 
 function colorDistance(a: string, b: string): number {
@@ -344,6 +395,8 @@ export function EditTool() {
   const [markups, setMarkups] = useState<Record<number, Markup[]>>({});
   const [images, setImages] = useState<ImageItem[]>([]);
   const [selImg, setSelImg] = useState<string | null>(null);
+  const [selStamp, setSelStamp] = useState<number | null>(null);
+  const [hoverStamp, setHoverStamp] = useState<number | null>(null);
   const [linkOpen, setLinkOpen] = useState(false);
   const [linkDraft, setLinkDraft] = useState('');
   const [sigOpen, setSigOpen] = useState(false);
@@ -356,6 +409,7 @@ export function EditTool() {
   const imgCache = useRef<Map<string, HTMLImageElement>>(new Map());
   const imgFileRef = useRef<HTMLInputElement>(null);
   const imgDrag = useRef<{ id: string; mode: 'move' | 'resize' | 'rotate'; ox: number; oy: number; startW: number; startRot: number; cx: number; cy: number; startAngle: number } | null>(null);
+  const stampDrag = useRef<{ index: number; dx: number; dy: number } | null>(null);
   const blockDrag = useRef<{ id: string; mode: 'move' | 'resize-e' | 'resize-s' | 'resize-se'; startX: number; startY: number; start: BlockLayout } | null>(null);
   const shapesRef = useRef<HTMLDivElement>(null);
   const stampsRef = useRef<HTMLDivElement>(null);
@@ -387,7 +441,7 @@ export function EditTool() {
     setHistoryPast([]); setHistoryFuture([]); blockInputSession.current = false; addedInputSession.current = false;
     setAdded([]); setAddSel(null); setAddMode(false);
     setBlocks({}); setBlockEdits({}); setBlockStyle({}); setBlockLayout({}); setEditingBlock(null);
-    setTool('paragraph'); setMarkups({}); setImages([]); setSelImg(null); setSigOpen(false); setStampsOpen(false); setLinkOpen(false); imgCache.current.clear();
+    setTool('paragraph'); setMarkups({}); setImages([]); setSelImg(null); setSelStamp(null); setSigOpen(false); setStampsOpen(false); setLinkOpen(false); imgCache.current.clear();
     try {
       const h = await openPdf(f);
       if (handle) void handle.destroy();
@@ -457,6 +511,9 @@ export function EditTool() {
         const page = await handle.doc.getPage(sel + 1);
         const vp = page.getViewport({ scale: 1 });
         const tc = await page.getTextContent();
+        let opList: { fnArray: number[]; argsArray: unknown[][] } | null = null;
+        try { opList = await page.getOperatorList() as { fnArray: number[]; argsArray: unknown[][] }; } catch { opList = null; }
+        const textColors = opList ? textColorsFromOperatorList(opList, pdfjs.OPS as Record<string, number>) : [];
         const linkAnnots: Array<{ left: number; top: number; right: number; bottom: number; url: string }> = [];
         try {
           const annots = await page.getAnnotations({ intent: 'display' }) as Array<{ subtype?: string; url?: string; unsafeUrl?: string; rect?: number[] }>;
@@ -501,11 +558,119 @@ export function EditTool() {
         // pixel can never paint the whole line black.
         const pageBg = pageBackground(at, rp.w, rp.h);
         const sample = (x0: number, x1: number, topPt: number, hPt: number) => lineColors(at, vp.width, vp.height, rp.w, rp.h, x0, x1, topPt, hPt, pageBg);
+        const bgCss = cssRgb(pageBg[0], pageBg[1], pageBg[2]);
+
+        type PdfImg = { bitmap?: ImageBitmap; data?: Uint8ClampedArray; width?: number; height?: number; kind?: number };
+        const imageToUrl = async (img: PdfImg): Promise<string | null> => {
+          if (!img.width || !img.height) return null;
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return null;
+          if (img.bitmap) ctx.drawImage(img.bitmap, 0, 0);
+          else if (img.data) {
+            const px = new Uint8ClampedArray(img.width * img.height * 4);
+            const srcData = img.data;
+            if (img.kind === 3) px.set(srcData);
+            else if (img.kind === 2) {
+              for (let p = 0, s = 0; p < px.length; p += 4) { px[p] = srcData[s++]; px[p + 1] = srcData[s++]; px[p + 2] = srcData[s++]; px[p + 3] = 255; }
+            } else if (img.kind === 1) {
+              const stride = Math.ceil(img.width / 8);
+              for (let y = 0; y < img.height; y++) {
+                for (let x = 0; x < img.width; x++) {
+                  const bit = (srcData[y * stride + (x >> 3)] >> (7 - (x & 7))) & 1;
+                  const v = bit ? 255 : 0;
+                  const p = (y * img.width + x) * 4;
+                  px[p] = v; px[p + 1] = v; px[p + 2] = v; px[p + 3] = 255;
+                }
+              }
+            } else return null;
+            ctx.putImageData(new ImageData(px, img.width, img.height), 0, 0);
+          } else return null;
+          return canvas.toDataURL('image/png');
+        };
+        const readPdfImage = async (objId: string): Promise<PdfImg | null> => {
+          const store = objId.startsWith('g_') ? page.commonObjs : page.objs;
+          return new Promise((resolve) => {
+            let settled = false;
+            const t = window.setTimeout(() => { if (!settled) { settled = true; resolve(null); } }, 4000);
+            try {
+              store.get(objId, (v: unknown) => { if (!settled) { settled = true; window.clearTimeout(t); resolve(v as PdfImg); } });
+            } catch {
+              window.clearTimeout(t);
+              if (!settled) { settled = true; resolve(null); }
+            }
+          });
+        };
+        const detectEmbeddedImages = async () => {
+          if (!opList) return [] as ImageItem[];
+          const OPS = pdfjs.OPS as Record<string, number>;
+          type M = [number, number, number, number, number, number];
+          const stack: M[] = [];
+          let ctm: M = [1, 0, 0, 1, 0, 0];
+          const transform = (a: M, b: unknown[]): M => pdfjs.Util.transform(a, b as number[]) as M;
+          const apply = (m: M, x: number, y: number) => [m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]] as const;
+          const found: ImageItem[] = [];
+          const seen = new Set<string>();
+          for (let i = 0; i < opList.fnArray.length; i++) {
+            const fn = opList.fnArray[i];
+            const args = opList.argsArray[i] || [];
+            if (fn === OPS.save) { stack.push([...ctm] as M); continue; }
+            if (fn === OPS.restore) { ctm = stack.pop() || [1, 0, 0, 1, 0, 0]; continue; }
+            if (fn === OPS.transform) { ctm = transform(ctm, args); continue; }
+            if (fn !== OPS.paintImageXObject && fn !== OPS.paintJpegXObject && fn !== OPS.paintInlineImageXObject) continue;
+            const objId = typeof args[0] === 'string' ? args[0] as string : '';
+            const img = objId ? await readPdfImage(objId) : (args[0] as PdfImg | undefined) || null;
+            if (!img?.width || !img.height || img.width < 24 || img.height < 24) continue;
+            const m = pdfjs.Util.transform(vp.transform, ctm) as M;
+            const pts = [apply(m, 0, 0), apply(m, 1, 0), apply(m, 0, 1), apply(m, 1, 1)];
+            const left = Math.min(...pts.map((p) => p[0]));
+            const right = Math.max(...pts.map((p) => p[0]));
+            const top = Math.min(...pts.map((p) => p[1]));
+            const bottom = Math.max(...pts.map((p) => p[1]));
+            const wPx = Math.abs(right - left);
+            const hPx = Math.abs(bottom - top);
+            if (wPx < vp.width * 0.035 || hPx < vp.height * 0.018) continue;
+            const sig = `${Math.round(left)}_${Math.round(top)}_${Math.round(wPx)}_${Math.round(hPx)}_${objId || i}`;
+            if (seen.has(sig)) continue;
+            seen.add(sig);
+            const url = await imageToUrl(img);
+            if (!url) continue;
+            const id = `P${sel}-${sig}`;
+            const item: ImageItem = {
+              id,
+              page: sel,
+              x: Math.max(0, left / vp.width),
+              y: Math.max(0, top / vp.height),
+              w: Math.min(1, wPx / vp.width),
+              aspect: hPx / Math.max(1, wPx),
+              src: url,
+              rot: 0,
+              source: 'pdf',
+              bg: bgCss,
+              orig: { x: Math.max(0, left / vp.width), y: Math.max(0, top / vp.height), w: Math.min(1, wPx / vp.width), h: Math.min(1, hPx / vp.height) },
+              changed: false,
+            };
+            const el = new Image();
+            el.src = url;
+            try { await el.decode(); } catch { /* still usable once loaded */ }
+            imgCache.current.set(url, el);
+            found.push(item);
+          }
+          return found;
+        };
+        const detectedPdfImages = await detectEmbeddedImages();
+        if (!cancelled && detectedPdfImages.length) {
+          setImages((prev) => {
+            if (prev.some((im) => im.source === 'pdf' && im.page === sel)) return prev;
+            return [...prev, ...detectedPdfImages];
+          });
+        }
         // Resolve each pdf.js loadedName ("g_d0_f2") to the PDF's REAL font
         // ("Calibri") via commonObjs, so edits redraw in the matching family. The
         // page was already rendered above, so the fonts are loaded (getOperatorList
         // is cached and cheap; it just guarantees they're resolvable here).
-        try { await page.getOperatorList(); } catch { /* fonts fall back to name-guess */ }
         const famCache = new Map<string, { family: Family; bold: boolean; italic: boolean; real?: string }>();
         const resolveFont = (loaded?: string) => {
           const k = loaded || '';
@@ -521,6 +686,7 @@ export function EditTool() {
           return info;
         };
         const list: Line[] = [];
+        let textColorIndex = 0;
         for (const it of tc.items as Array<{ str?: string; transform?: number[]; width?: number; height?: number; fontName?: string }>) {
           const s = it.str;
           if (!s || !s.trim() || !it.transform) continue;
@@ -534,7 +700,9 @@ export function EditTool() {
           const bold = finfo.bold;
           const italic = finfo.italic;
           const link = linkAt(left, top, w, fontH);
-          const { color, bg } = sample(left, left + w, top, fontH);
+          const sampled = sample(left, left + w, top, fontH);
+          const color = textColors[textColorIndex++] || sampled.color;
+          const bg = sampled.bg;
           // Split into words + whitespace; estimate per-word boxes, then REFINE
           // each word's horizontal extent from the actual pixels (scan out to the
           // white gaps that separate words). Accurate boxes are what let us cover
@@ -591,8 +759,8 @@ export function EditTool() {
     setAdded(snap.added);
     setMarkups(snap.markups);
     setImages(snap.images);
-    setEditing(null); setEditingBlock(null); setAddSel(null); setSelImg(null); setLinkOpen(false);
-    sessionRef.current = null; blockInputSession.current = false; addedInputSession.current = false; liveMarkup.current = null; drawing.current = false;
+    setEditing(null); setEditingBlock(null); setAddSel(null); setSelImg(null); setSelStamp(null); setLinkOpen(false);
+    sessionRef.current = null; blockInputSession.current = false; addedInputSession.current = false; liveMarkup.current = null; drawing.current = false; stampDrag.current = null;
   }
   function pushHistory() {
     setHistoryPast((p) => [...p, snapshotEditor()]);
@@ -666,7 +834,45 @@ export function EditTool() {
     if (!addedInputSession.current) { pushHistory(); addedInputSession.current = true; }
     patchAdded({ text }, false);
   }
-  function deleteAdded() { if (addSel) { pushHistory(); setAdded((prev) => prev.filter((a) => a.id !== addSel)); setAddSel(null); } }
+  function deleteAdded(id = addSel) {
+    if (!id) return;
+    pushHistory();
+    setAdded((prev) => prev.filter((a) => a.id !== id));
+    if (addSel === id) setAddSel(null);
+  }
+
+  function startAddedDrag(e: React.PointerEvent<HTMLElement>, a: Added, keepSelected = false) {
+    e.stopPropagation();
+    e.preventDefault();
+    const r = wrapRef.current?.getBoundingClientRect();
+    if (!r) return;
+    pushHistory();
+    if (keepSelected) setAddSel(a.id);
+    else setAddSel(null);
+    setSelImg(null); setSelStamp(null); closeWord(); closeBlock();
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+    dragRef.current = {
+      id: a.id,
+      dx: e.clientX - (r.left + a.x * r.width),
+      dy: e.clientY - (r.top + a.y * r.height),
+      moved: false,
+    };
+  }
+
+  function moveAddedDrag(e: React.PointerEvent<HTMLElement>) {
+    const d = dragRef.current; if (!d || !wrapRef.current) return;
+    const r = wrapRef.current.getBoundingClientRect();
+    if (Math.abs(e.movementX) + Math.abs(e.movementY) > 0) d.moved = true;
+    const nx = (e.clientX - d.dx - r.left) / r.width;
+    const ny = (e.clientY - d.dy - r.top) / r.height;
+    setAdded((prev) => prev.map((a) => (a.id === d.id ? { ...a, x: Math.max(0, Math.min(0.99, nx)), y: Math.max(0, Math.min(0.99, ny)) } : a)));
+  }
+
+  function stopAddedDrag(selectOnClick = false) {
+    const d = dragRef.current;
+    dragRef.current = null;
+    if (selectOnClick && d && !d.moved) { closeWord(); setAddSel(d.id); }
+  }
 
   function chooseTool(next: EditorTool) {
     setTool(next);
@@ -675,15 +881,17 @@ export function EditTool() {
     setStampsOpen(false);
     setLinkOpen(false);
     setSelImg(null);
+    setSelStamp(null);
     closeWord();
     if (next !== 'paragraph') closeBlock();
     if (next !== 'add-text') { setAddSel(null); addedInputSession.current = false; }
   }
 
-  const pageImages = images.filter((i) => i.page === sel);
+  const imageChanged = (im: ImageItem) => im.source !== 'pdf' || !!im.changed || !!im.deleted;
+  const pageImages = images.filter((i) => i.page === sel && !i.deleted);
   const markedPages = Array.from(new Set([
     ...Object.keys(markups).map(Number).filter((i) => (markups[i] || []).length > 0),
-    ...images.map((i) => i.page),
+    ...images.filter(imageChanged).map((i) => i.page),
   ])).sort((a, b) => a - b);
   const normDeg = (deg: number) => ((deg % 360) + 360) % 360;
 
@@ -693,7 +901,7 @@ export function EditTool() {
     el.onload = () => {
       imgCache.current.set(src, el);
       const id = Math.random().toString(36).slice(2);
-      setImages((a) => [...a, { id, page: sel, x: 0.34, y: 0.42, w: 0.32, aspect, src, rot: 0 }]);
+      setImages((a) => [...a, { id, page: sel, x: 0.34, y: 0.42, w: 0.32, aspect, src, rot: 0, source: 'added', changed: true }]);
       setSelImg(id); setAddSel(null); closeBlock(); closeWord();
     };
     el.src = src;
@@ -713,15 +921,22 @@ export function EditTool() {
     reader.readAsDataURL(f);
   }
 
-  function deleteImage(id: string) { pushHistory(); setImages((a) => a.filter((i) => i.id !== id)); if (selImg === id) setSelImg(null); }
-  function rotateImage(id: string, delta: number) { pushHistory(); setImages((a) => a.map((i) => (i.id === id ? { ...i, rot: normDeg((i.rot || 0) + delta) } : i))); }
+  function deleteImage(id: string) {
+    pushHistory();
+    setImages((a) => a.flatMap((i) => {
+      if (i.id !== id) return [i];
+      return i.source === 'pdf' ? [{ ...i, deleted: true, changed: true }] : [];
+    }));
+    if (selImg === id) setSelImg(null);
+  }
+  function rotateImage(id: string, delta: number) { pushHistory(); setImages((a) => a.map((i) => (i.id === id ? { ...i, rot: normDeg((i.rot || 0) + delta), changed: true } : i))); }
   function imgDown(e: React.PointerEvent<HTMLElement>, id: string, mode: 'move' | 'resize' | 'rotate') {
     e.stopPropagation();
     e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId);
     const im = images.find((i) => i.id === id); if (!im) return;
     pushHistory();
-    setSelImg(id); setAddSel(null); closeBlock(); closeWord();
+    setSelImg(id); setSelStamp(null); setAddSel(null); closeBlock(); closeWord();
     const r = wrapRef.current?.getBoundingClientRect();
     const hFrac = r ? im.w * im.aspect * (r.width / r.height) : im.w * im.aspect;
     const cx = r ? r.left + (im.x + im.w / 2) * r.width : e.clientX;
@@ -743,15 +958,15 @@ export function EditTool() {
         const hFrac = im.w * im.aspect * (r.width / r.height);
         const x = Math.min(Math.max((e.clientX - r.left - d.ox) / r.width, 0), Math.max(0, 1 - im.w));
         const y = Math.min(Math.max((e.clientY - r.top - d.oy) / r.height, 0), Math.max(0, 1 - hFrac));
-        return { ...im, x, y };
+        return { ...im, x, y, changed: true };
       }
       if (d.mode === 'rotate') {
         const angle = Math.atan2(e.clientY - d.cy, e.clientX - d.cx);
         const delta = (angle - d.startAngle) * 180 / Math.PI;
-        return { ...im, rot: normDeg(d.startRot + delta) };
+        return { ...im, rot: normDeg(d.startRot + delta), changed: true };
       }
       const w = Math.min(Math.max(d.startW + (e.clientX - d.ox) / r.width, 0.05), 1 - im.x);
-      return { ...im, w };
+      return { ...im, w, changed: true };
     }));
   }
   function imgUp() { imgDrag.current = null; }
@@ -862,7 +1077,16 @@ export function EditTool() {
     setMarkups((a) => ({ ...a, [sel]: [...(a[sel] || []), committed] }));
   }
 
-  function clearPageMarkup() { pushHistory(); setMarkups((a) => ({ ...a, [sel]: [] })); setImages((arr) => arr.filter((i) => i.page !== sel)); setSelImg(null); }
+  function clearPageMarkup() {
+    pushHistory();
+    setMarkups((a) => ({ ...a, [sel]: [] }));
+    setImages((arr) => arr.flatMap((i) => {
+      if (i.page !== sel) return [i];
+      if (i.source === 'pdf' && i.orig) return [{ ...i, x: i.orig.x, y: i.orig.y, w: i.orig.w, aspect: i.orig.h / Math.max(0.0001, i.orig.w), rot: 0, deleted: false, changed: false }];
+      return [];
+    }));
+    setSelImg(null); setSelStamp(null);
+  }
 
   function addStampAt(x: number, y: number, text = stampLabel) {
     const w = Math.min(0.34, Math.max(0.16, text.length * 0.018));
@@ -884,6 +1108,36 @@ export function EditTool() {
       ],
     }));
   }
+  function moveStamp(index: number, x: number, y: number) {
+    setMarkups((a) => {
+      const list = [...(a[sel] || [])];
+      const item = list[index];
+      if (!item || item.kind !== 'stamp') return a;
+      list[index] = { ...item, x: Math.max(0, Math.min(1 - item.w, x)), y: Math.max(0, Math.min(1 - item.h, y)) };
+      return { ...a, [sel]: list };
+    });
+  }
+  function deleteStamp(index: number) {
+    pushHistory();
+    setMarkups((a) => ({ ...a, [sel]: (a[sel] || []).filter((_, i) => i !== index) }));
+    setSelStamp(null); setHoverStamp(null);
+  }
+  function stampDown(e: React.PointerEvent<HTMLElement>, index: number) {
+    e.preventDefault(); e.stopPropagation();
+    const item = (markups[sel] || [])[index];
+    if (!item || item.kind !== 'stamp' || !wrapRef.current) return;
+    pushHistory();
+    setSelStamp(index); setSelImg(null); setAddSel(null); closeBlock(); closeWord();
+    const r = wrapRef.current.getBoundingClientRect();
+    stampDrag.current = { index, dx: e.clientX - (r.left + item.x * r.width), dy: e.clientY - (r.top + item.y * r.height) };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }
+  function stampMove(e: React.PointerEvent<HTMLElement>) {
+    const d = stampDrag.current; if (!d || !wrapRef.current) return;
+    const r = wrapRef.current.getBoundingClientRect();
+    moveStamp(d.index, (e.clientX - d.dx - r.left) / r.width, (e.clientY - d.dy - r.top) / r.height);
+  }
+  function stampUp() { stampDrag.current = null; }
   function selectStamp(text: string) {
     const next = text.trim().toUpperCase();
     if (!next) return;
@@ -1046,8 +1300,8 @@ export function EditTool() {
     if (addMode) { placeAdded(p.x, p.y); return; }        // click-to-place a new text box
     if (tool === 'stamp') { addStampAt(p.x, p.y); return; }
     const b = hitBlock(p);
-    if (b) { setAddSel(null); openBlock(b); }             // click a paragraph = edit the whole block
-    else { closeBlock(); setAddSel(null); }               // click empty space = deselect
+    if (b) { setAddSel(null); setSelStamp(null); setSelImg(null); openBlock(b); }             // click a paragraph = edit the whole block
+    else { closeBlock(); setAddSel(null); setSelStamp(null); setSelImg(null); }               // click empty space = deselect
   }
 
   const editCount = pageLines.length
@@ -1056,7 +1310,7 @@ export function EditTool() {
   const addedCount = added.filter((a) => a.text.trim()).length;
   const blockCount = Object.entries(blocks).reduce((n, [, bs]) => n + bs.filter((b) => blockChanged(b)).length, 0);
   const markupCount = Object.values(markups).reduce((n, list) => n + list.length, 0);
-  const imageCount = images.length;
+  const imageCount = images.filter(imageChanged).length;
   const totalChanges = editCount + addedCount + blockCount + markupCount + imageCount;
 
   async function apply() {
@@ -1114,7 +1368,12 @@ export function EditTool() {
         cvs.width = rp.w; cvs.height = rp.h;
         const ctx = cvs.getContext('2d')!;
         paintMarkups(ctx, rp.w, rp.h, markups[idx] || []);
-        for (const im of images.filter((i) => i.page === idx)) {
+        for (const im of images.filter((i) => i.page === idx && imageChanged(i))) {
+          if (im.source === 'pdf' && im.orig) {
+            ctx.fillStyle = im.bg && /^rgb\(\s*\d/.test(im.bg) ? im.bg : 'rgb(255,255,255)';
+            ctx.fillRect(im.orig.x * rp.w, im.orig.y * rp.h, im.orig.w * rp.w, im.orig.h * rp.h);
+          }
+          if (im.deleted) continue;
           const el = imgCache.current.get(im.src);
           if (el) {
             const w = im.w * rp.w;
@@ -1299,7 +1558,10 @@ export function EditTool() {
 
   const canUndo = historyPast.length > 0 || past.length > 0, canRedo = historyFuture.length > 0 || future.length > 0;
   const tbBtn = 'flex size-9 items-center justify-center rounded-lg text-sm font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed';
-  const pageHasMarkup = (markups[sel] || []).length > 0 || pageImages.length > 0;
+  const pageHasMarkup = (markups[sel] || []).length > 0 || images.some((im) => im.page === sel && imageChanged(im));
+  const pageStamps = (markups[sel] || [])
+    .map((m, index) => ({ m, index }))
+    .filter((x): x is { m: StampMarkup; index: number } => x.m.kind === 'stamp');
   const toolButton = (id: EditorTool, icon: React.ReactNode, label: string) => (
     <button type="button" onClick={() => chooseTool(id)} aria-pressed={tool === id} title={label}
       className={`flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium transition-all ${tool === id ? 'bg-primary text-primary-foreground shadow-sm' : 'hover:bg-accent'}`}>
@@ -1321,7 +1583,7 @@ export function EditTool() {
   const stampChoices = [...STAMP_PRESETS, ...customStamps.filter((s) => !STAMP_PRESETS.includes(s))];
   return (
     <Card>
-      <CardContent className="p-5">
+      <CardContent className="p-3 sm:p-4">
         <input id="edit-pdf-upload" ref={inputRef} type="file" accept="application/pdf,.pdf" className="sr-only" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
         <input ref={imgFileRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="sr-only" onChange={(e) => { pickImageFile(e.target.files); e.currentTarget.value = ''; }} />
         {sigOpen && <SignatureMaker onClose={() => setSigOpen(false)} onCreate={(url, aspect) => addImageSrc(url, aspect)} />}
@@ -1464,9 +1726,9 @@ export function EditTool() {
             </p>
 
             <div>
-              <div className="flex items-start justify-center overflow-auto rounded-xl border bg-muted/30 p-2 sm:p-3">
+              <div className="flex items-start justify-center overflow-auto rounded-xl border bg-muted/30 p-1 sm:p-2">
                 {preview ? (
-                  <div ref={wrapRef} className="relative mx-auto w-full max-w-5xl leading-[0]">
+                  <div ref={wrapRef} className="relative mx-auto w-full max-w-full leading-[0]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img ref={imgRef} src={preview.url} alt={`Page ${sel + 1}`} className="w-full rounded border bg-white shadow-md" draggable={false} onLoad={() => { const im = imgRef.current; if (im) setDisp({ w: im.clientWidth, h: im.clientHeight }); }} />
 
@@ -1484,6 +1746,29 @@ export function EditTool() {
 
                   {/* click/hover surface */}
                   <div className={`absolute inset-0 ${activeMarkupTool ? 'pointer-events-none' : ''}`} style={{ cursor: addMode || tool === 'stamp' ? 'crosshair' : hover ? 'text' : 'default' }} onMouseMove={onMove} onMouseLeave={() => setHover(null)} onClick={onClick} />
+
+                  {/* Existing PDF image edits: hide the original image before drawing the moved/resized/rotated copy. */}
+                  {disp.h > 0 && images.filter((im) => im.page === sel && im.source === 'pdf' && im.changed && im.orig).map((im) => (
+                    <div key={`${im.id}-cover`} className="pointer-events-none absolute z-[25]" style={{ left: `${im.orig!.x * 100}%`, top: `${im.orig!.y * 100}%`, width: `${im.orig!.w * 100}%`, height: `${im.orig!.h * 100}%`, background: im.bg || '#fff' }} />
+                  ))}
+
+                  {/* Stamp object controls. Stamps are painted on the markup canvas; this layer makes them move/delete-able. */}
+                  {disp.h > 0 && pageStamps.map(({ m, index }) => {
+                    const active = selStamp === index || hoverStamp === index;
+                    return (
+                      <div key={`stamp-${index}`} onPointerDown={(e) => { setSelStamp(index); stampDown(e, index); }} onPointerMove={stampMove} onPointerUp={stampUp} onPointerEnter={() => setHoverStamp(index)} onPointerLeave={() => setHoverStamp((h) => (h === index ? null : h))}
+                        className={`absolute z-[45] cursor-move rounded-md ${active ? 'ring-2 ring-primary/80' : 'ring-1 ring-transparent hover:ring-primary/50'}`}
+                        style={{ left: `${m.x * 100}%`, top: `${m.y * 100}%`, width: `${m.w * 100}%`, height: `${m.h * 100}%` }}>
+                        {active && (
+                          <>
+                            <span className="pointer-events-none absolute -left-2 -top-7 flex h-6 items-center gap-1 rounded-md border bg-card px-2 text-[11px] font-medium text-primary shadow-lift"><Move className="size-3" /> Move</span>
+                            <button type="button" onPointerDown={(e) => e.stopPropagation()} onClick={() => deleteStamp(index)} title="Delete stamp" aria-label="Delete stamp"
+                              className="absolute -right-2 -top-2 flex size-5 items-center justify-center rounded-full bg-destructive text-white shadow"><X className="size-3" /></button>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
 
                   {/* the live editor input — positioned exactly over its word */}
                   {activeLine && activeEdit && editing && disp.h > 0 && activeLine.boxes[editing.i] && (() => {
@@ -1559,54 +1844,82 @@ export function EditTool() {
                     const left = a.x * disp.w, top = a.y * disp.h, size = a.sizeFrac * disp.h;
                     const fam = RENDER_CSS[a.family] ?? FAMILIES[a.family].css;
                     const common: React.CSSProperties = { left: `${left}px`, top: `${top}px`, fontFamily: fam, fontSize: `${size}px`, fontWeight: a.bold ? 700 : 400, fontStyle: a.italic ? 'italic' : 'normal', textDecorationLine: [(a.underline || a.link) && 'underline', a.strike && 'line-through'].filter(Boolean).join(' ') || 'none', textAlign: a.align, color: a.color, lineHeight: 1.1 };
+                    const boxW = Math.max(size * 2, measureWidth(a.text || 'Type...', cssFont(a.family, a.bold, a.italic, size)) + 8);
+                    const boxH = size * 1.3;
                     if (a.id === addSel) {
                       return (
-                        <input key={a.id} ref={addInputRef} value={a.text} placeholder="Type…"
-                          onChange={(ev) => patchAddedText(ev.target.value)}
-                          onKeyDown={(ev) => {
-                            const mod = ev.ctrlKey || ev.metaKey;
-                            if (ev.key === 'Escape' || ev.key === 'Enter') { ev.preventDefault(); if (ev.key === 'Escape' && !a.text.trim()) deleteAdded(); else setAddSel(null); }
-                            else if (mod && ev.key.toLowerCase() === 'b') { ev.preventDefault(); if (selFamInfo?.bold) patchAdded({ bold: !a.bold }); }
-                            else if (mod && ev.key.toLowerCase() === 'i') { ev.preventDefault(); if (selFamInfo?.italic) patchAdded({ italic: !a.italic }); }
-                          }}
-                          className="absolute z-30 rounded-[2px] border-0 p-0 outline-none ring-2 ring-primary/70"
-                          style={{ ...common, width: `${Math.max(size * 2, measureWidth(a.text || 'Type…', cssFont(a.family, a.bold, a.italic, size)) + 8)}px`, height: `${size * 1.3}px`, background: 'rgba(255,255,255,0.65)', caretColor: '#4f46e5' }}
-                        />
+                        <React.Fragment key={a.id}>
+                          <input ref={addInputRef} value={a.text} placeholder="Type..."
+                            onChange={(ev) => patchAddedText(ev.target.value)}
+                            onKeyDown={(ev) => {
+                              const mod = ev.ctrlKey || ev.metaKey;
+                              if (ev.key === 'Escape' || ev.key === 'Enter') { ev.preventDefault(); if (ev.key === 'Escape' && !a.text.trim()) deleteAdded(); else setAddSel(null); }
+                              else if (mod && ev.key.toLowerCase() === 'b') { ev.preventDefault(); if (selFamInfo?.bold) patchAdded({ bold: !a.bold }); }
+                              else if (mod && ev.key.toLowerCase() === 'i') { ev.preventDefault(); if (selFamInfo?.italic) patchAdded({ italic: !a.italic }); }
+                            }}
+                            className="absolute z-30 rounded-[2px] border-0 p-0 outline-none ring-2 ring-primary/70"
+                            style={{ ...common, width: `${boxW}px`, height: `${boxH}px`, background: 'rgba(255,255,255,0.65)', caretColor: '#4f46e5' }}
+                          />
+                          <div className="pointer-events-none absolute z-[45] rounded-sm" style={{ left, top, width: boxW, height: boxH }}>
+                            <button type="button" title="Drag text box" aria-label="Drag text box"
+                              onPointerDown={(e) => startAddedDrag(e, a, true)} onPointerMove={moveAddedDrag} onPointerUp={() => stopAddedDrag(false)}
+                              className="pointer-events-auto absolute -left-2 -top-8 flex h-7 touch-none items-center gap-1 rounded-md border bg-card px-2 text-xs font-medium text-primary shadow-lift cursor-move">
+                              <Move className="size-3.5" /> Move
+                            </button>
+                            <button type="button" title="Delete text box" aria-label="Delete text box"
+                              onPointerDown={(e) => e.stopPropagation()} onClick={() => deleteAdded(a.id)}
+                              className="pointer-events-auto absolute -right-2 -top-2 flex size-5 items-center justify-center rounded-full bg-destructive text-white shadow">
+                              <X className="size-3" />
+                            </button>
+                          </div>
+                        </React.Fragment>
                       );
                     }
                     return (
                       <div key={a.id} role="button" tabIndex={0}
-                        onPointerDown={(e) => { e.stopPropagation(); pushHistory(); try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch { /* ignore */ } const r = wrapRef.current!.getBoundingClientRect(); dragRef.current = { id: a.id, dx: e.clientX - (r.left + left), dy: e.clientY - (r.top + top), moved: false }; }}
-                        onPointerMove={(e) => { const d = dragRef.current; if (!d || d.id !== a.id) return; const r = wrapRef.current!.getBoundingClientRect(); const nx = (e.clientX - d.dx - r.left) / r.width, ny = (e.clientY - d.dy - r.top) / r.height; if (Math.abs(e.movementX) + Math.abs(e.movementY) > 0) d.moved = true; setAdded((prev) => prev.map((x) => (x.id === a.id ? { ...x, x: Math.max(0, Math.min(0.99, nx)), y: Math.max(0, Math.min(0.99, ny)) } : x))); }}
-                        onPointerUp={() => { const d = dragRef.current; dragRef.current = null; if (d && !d.moved) { closeWord(); setAddSel(a.id); } }}
-                        className="absolute z-20 cursor-move select-none whitespace-pre rounded-[2px] ring-1 ring-transparent hover:ring-primary/40"
+                        onPointerDown={(e) => startAddedDrag(e, a)}
+                        onPointerMove={moveAddedDrag}
+                        onPointerUp={() => stopAddedDrag(true)}
+                        className="group absolute z-20 cursor-move select-none whitespace-pre rounded-[2px] ring-1 ring-transparent hover:ring-primary/40"
                         style={common}
-                      >{a.text || <span style={{ color: '#9ca3af' }}>Text</span>}</div>
+                      >
+                        {a.text || <span style={{ color: '#9ca3af' }}>Text</span>}
+                        <span className="pointer-events-none absolute -left-2 -top-7 hidden h-6 items-center gap-1 rounded-md border bg-card px-2 text-[11px] font-medium text-primary shadow-lift group-hover:flex"><Move className="size-3" /> Move</span>
+                        <button type="button" title="Delete text box" aria-label="Delete text box"
+                          onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); deleteAdded(a.id); }}
+                          className="absolute -right-2 -top-2 hidden size-5 items-center justify-center rounded-full bg-destructive text-white shadow group-hover:flex"><X className="size-3" /></button>
+                      </div>
                     );
                   })}
-                  {disp.h > 0 && pageImages.map((im) => (
-                    <div key={im.id}
-                      onPointerDown={(e) => imgDown(e, im.id, 'move')} onPointerMove={imgMove} onPointerUp={imgUp}
-                      className={`absolute z-40 cursor-move rounded-sm ${selImg === im.id ? 'ring-2 ring-primary' : 'ring-1 ring-transparent hover:ring-primary/40'}`}
-                      style={{ left: `${im.x * 100}%`, top: `${im.y * 100}%`, width: `${im.w * 100}%` }}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={im.src} alt="" className="pointer-events-none block w-full select-none" draggable={false} style={{ transform: `rotate(${im.rot || 0}deg)`, transformOrigin: 'center' }} />
-                      {selImg === im.id && (
-                        <>
-                          <button onPointerDown={(e) => e.stopPropagation()} onClick={() => deleteImage(im.id)} aria-label="Delete image" title="Delete image"
-                            className="absolute -right-2 -top-2 z-10 flex size-5 items-center justify-center rounded-full bg-destructive text-white shadow"><X className="size-3" /></button>
-                          <button type="button" onPointerDown={(e) => imgDown(e, im.id, 'rotate')} onPointerMove={imgMove} onPointerUp={imgUp} onDoubleClick={(e) => { e.stopPropagation(); rotateImage(im.id, 90); }}
-                            aria-label="Rotate image" title="Drag to rotate; double-click for 90 degrees"
-                            className="absolute -top-9 left-1/2 z-10 flex size-7 -translate-x-1/2 touch-none items-center justify-center rounded-full border bg-card text-primary shadow-lift cursor-grab">
-                            <RotateCw className="size-3.5" />
-                          </button>
-                          <div onPointerDown={(e) => imgDown(e, im.id, 'resize')} onPointerMove={imgMove} onPointerUp={imgUp}
-                            className="absolute -bottom-1.5 -right-1.5 z-10 size-3.5 cursor-nwse-resize rounded-sm border-2 border-primary bg-white" aria-label="Resize" />
-                        </>
-                      )}
-                    </div>
-                  ))}
+                  {disp.h > 0 && pageImages.map((im) => {
+                    const heightPct = im.w * im.aspect * (disp.w / Math.max(1, disp.h)) * 100;
+                    const showImage = im.source !== 'pdf' || im.changed;
+                    return (
+                      <div key={im.id}
+                        onPointerDown={(e) => imgDown(e, im.id, 'move')} onPointerMove={imgMove} onPointerUp={imgUp}
+                        className={`absolute z-40 cursor-move rounded-sm ${selImg === im.id ? 'ring-2 ring-primary' : 'ring-1 ring-transparent hover:ring-primary/40'}`}
+                        style={{ left: `${im.x * 100}%`, top: `${im.y * 100}%`, width: `${im.w * 100}%`, height: `${heightPct}%` }}
+                      >
+                        {showImage && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={im.src} alt="" className="pointer-events-none block h-full w-full select-none object-contain" draggable={false} style={{ transform: `rotate(${im.rot || 0}deg)`, transformOrigin: 'center' }} />
+                        )}
+                        {selImg === im.id && (
+                          <>
+                            <button onPointerDown={(e) => e.stopPropagation()} onClick={() => deleteImage(im.id)} aria-label="Delete image" title="Delete image"
+                              className="absolute -right-2 -top-2 z-10 flex size-5 items-center justify-center rounded-full bg-destructive text-white shadow"><X className="size-3" /></button>
+                            <button type="button" onPointerDown={(e) => imgDown(e, im.id, 'rotate')} onPointerMove={imgMove} onPointerUp={imgUp} onDoubleClick={(e) => { e.stopPropagation(); rotateImage(im.id, 90); }}
+                              aria-label="Rotate image" title="Drag to rotate; double-click for 90 degrees"
+                              className="absolute -top-9 left-1/2 z-10 flex size-7 -translate-x-1/2 touch-none items-center justify-center rounded-full border bg-card text-primary shadow-lift cursor-grab">
+                              <RotateCw className="size-3.5" />
+                            </button>
+                            <div onPointerDown={(e) => imgDown(e, im.id, 'resize')} onPointerMove={imgMove} onPointerUp={imgUp}
+                              className="absolute -bottom-1.5 -right-1.5 z-10 size-3.5 cursor-nwse-resize rounded-sm border-2 border-primary bg-white" aria-label="Resize" />
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
                   </div>
                 ) : (
                   <div className="flex h-72 items-center justify-center"><Loader2 className="size-5 animate-spin text-muted-foreground" /></div>
