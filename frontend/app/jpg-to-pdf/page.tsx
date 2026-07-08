@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 
 const steps = [
   'Drop your JPG or PNG images in, or click to choose them.',
-  'Drag to reorder, and pick a page size if you want.',
+  'Drag to reorder, or turn on Screenshot Story mode for captions and page numbers.',
   'Click Convert and your PDF downloads instantly.',
 ];
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Upload, X, ArrowUp, ArrowDown, Download, Loader2, ImageIcon, Zap } from 'lucide-react';
+import { Upload, X, ArrowUp, ArrowDown, Download, Loader2, ImageIcon, Zap, ClipboardPaste, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { takeHandoff } from '@/lib/handoff';
@@ -58,6 +58,7 @@ export function JpgToPdfTool() {
   const [pageSize, setPageSize] = useState<PageSize>('fit');
   const [orientation, setOrientation] = useState<Orientation>('auto');
   const [margin, setMargin] = useState<Margin>('none');
+  const [storyMode, setStoryMode] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
@@ -88,9 +89,7 @@ export function JpgToPdfTool() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function addFiles(files: FileList | null) {
-    if (!files) return;
-    const imgs = Array.from(files).filter(isImage);
+  function addImages(imgs: File[]) {
     if (imgs.length === 0) {
       setError('Please choose JPG or PNG images.');
       return;
@@ -105,6 +104,24 @@ export function JpgToPdfTool() {
       })),
     ]);
   }
+
+  function addFiles(files: FileList | null) {
+    if (!files) return;
+    addImages(Array.from(files).filter(isImage));
+  }
+
+  useEffect(() => {
+    function onPaste(e: ClipboardEvent) {
+      const files = Array.from(e.clipboardData?.files || []).filter(isImage);
+      if (!files.length) return;
+      e.preventDefault();
+      addImages(files);
+      setStoryMode(true);
+    }
+    document.addEventListener('paste', onPaste);
+    return () => document.removeEventListener('paste', onPaste);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function move(i: number, dir: -1 | 1) {
     setItems((cur) => {
@@ -135,8 +152,10 @@ export function JpgToPdfTool() {
     setDone(null);
     const t0 = performance.now();
     try {
-      const { PDFDocument } = await import('pdf-lib'); // load engine only when needed
+      const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib'); // load engine only when needed
       const pdf = await PDFDocument.create();
+      const captionFont = storyMode ? await pdf.embedFont(StandardFonts.Helvetica) : null;
+      const captionBold = storyMode ? await pdf.embedFont(StandardFonts.HelveticaBold) : null;
       const skipped: string[] = [];
 
       for (const { file } of items) {
@@ -152,20 +171,30 @@ export function JpgToPdfTool() {
             }
           })();
 
-          if (pageSize === 'fit') {
+          const index = items.findIndex((x) => x.file === file);
+          const effectiveSize: PageSize = storyMode && pageSize === 'fit' ? 'letter' : pageSize;
+          if (effectiveSize === 'fit') {
             const page = pdf.addPage([img.width, img.height]);
             page.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
           } else {
-            let [pw, ph] = SIZES[pageSize];
+            let [pw, ph] = SIZES[effectiveSize];
             const landscape =
               orientation === 'landscape' || (orientation === 'auto' && img.width > img.height);
             if (landscape) [pw, ph] = [ph, pw];
-            const m = MARGINS[margin];
-            const scale = Math.min((pw - 2 * m) / img.width, (ph - 2 * m) / img.height);
+            const m = storyMode ? 28 : MARGINS[margin];
+            const footerH = storyMode ? 42 : 0;
+            const scale = Math.min((pw - 2 * m) / img.width, (ph - 2 * m - footerH) / img.height);
             const w = img.width * scale;
             const h = img.height * scale;
             const page = pdf.addPage([pw, ph]);
-            page.drawImage(img, { x: (pw - w) / 2, y: (ph - h) / 2, width: w, height: h });
+            page.drawImage(img, { x: (pw - w) / 2, y: m + footerH + (ph - 2 * m - footerH - h) / 2, width: w, height: h });
+            if (storyMode && captionFont && captionBold) {
+              const caption = file.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ').trim() || `Screenshot ${index + 1}`;
+              page.drawRectangle({ x: m, y: m, width: pw - 2 * m, height: 30, color: rgb(0.96, 0.96, 0.98) });
+              page.drawText(`Screenshot ${index + 1}`, { x: m + 12, y: m + 17, size: 9, font: captionBold, color: rgb(0.08, 0.08, 0.14) });
+              page.drawText(caption.slice(0, 72), { x: m + 12, y: m + 6, size: 8, font: captionFont, color: rgb(0.39, 0.39, 0.46) });
+              page.drawText(`${index + 1} / ${items.length}`, { x: pw - m - 42, y: m + 10, size: 9, font: captionFont, color: rgb(0.39, 0.39, 0.46) });
+            }
           }
         } catch {
           skipped.push(file.name);
@@ -211,6 +240,20 @@ export function JpgToPdfTool() {
           <p className="mt-2 text-sm font-medium">Drop JPG or PNG images here, or click to choose</p>
           <p className="text-xs text-muted-foreground">Add one or more — drag to set the order</p>
           <input ref={inputRef} type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" multiple className="hidden" onChange={(e) => { addFiles(e.target.files); e.currentTarget.value = ''; }} />
+        </div>
+
+        <div className="mt-4 rounded-xl border bg-muted/30 p-3">
+          <button
+            type="button"
+            onClick={() => setStoryMode((v) => !v)}
+            aria-pressed={storyMode}
+            className={`flex w-full flex-wrap items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left transition-colors ${storyMode ? 'border-primary bg-primary/10 text-primary' : 'bg-card hover:bg-accent'}`}
+          >
+            <span className="flex items-center gap-2 text-sm font-medium">
+              {storyMode ? <Sparkles className="size-4" /> : <ClipboardPaste className="size-4" />} Screenshot Story mode
+            </span>
+            <span className="text-xs text-muted-foreground">{storyMode ? 'Captions and page numbers on' : 'Paste screenshots into a clean story PDF'}</span>
+          </button>
         </div>
 
         {items.length > 0 && (

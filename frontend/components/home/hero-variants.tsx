@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useReducedMotion } from 'framer-motion';
 import {
   ShieldCheck, CloudOff, Ban, UserX, ArrowRight, Download, Check,
-  Combine, Shrink, PenTool, Image as ImageIcon,
+  Combine, Shrink, PenTool, Image as ImageIcon, FileText, Lock, ScanSearch,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { liveToolCount } from '@/components/app/catalog';
@@ -22,6 +22,88 @@ function TrustChips() {
         <span key={x.t} className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
           <x.icon className="size-3.5" style={{ color: '#059669' }} strokeWidth={2.25} /> {x.t}
         </span>
+      ))}
+    </div>
+  );
+}
+
+function PrivacyCommandDemo() {
+  return (
+    <Link
+      href="/share-safe-pdf-check"
+      aria-label="Open Share-Safe PDF Check"
+      className="group block overflow-hidden rounded-2xl border bg-card shadow-lift transition-shadow hover:shadow-card"
+    >
+      <div className="flex items-center gap-2 border-b px-3 py-2.5">
+        <span className="size-2 rounded-full bg-red-400" />
+        <span className="size-2 rounded-full bg-amber-400" />
+        <span className="size-2 rounded-full bg-emerald-400" />
+        <span className="ml-2 flex-1 truncate rounded-md border bg-background px-2 py-1 text-center text-[11px] text-muted-foreground">private workspace</span>
+        <ShieldCheck className="size-3.5 text-emerald-600" />
+      </div>
+      <div className="p-4">
+        <div className="rounded-xl border bg-muted/30 p-3">
+          <div className="flex items-center gap-2">
+            <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary"><FileText className="size-4" /></span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold">Client packet</p>
+              <p className="text-[11px] text-muted-foreground">12 pages · on-device</p>
+            </div>
+            <span className="rounded-full bg-emerald-500/10 px-2 py-1 text-[10px] font-semibold text-emerald-700">0 uploads</span>
+          </div>
+          <div className="mt-4 grid gap-2">
+            {[
+              ['Metadata', 'Clean'],
+              ['Links', 'Review'],
+              ['Blank pages', '2 found'],
+            ].map(([label, value]) => (
+              <div key={label} className="flex items-center justify-between rounded-lg bg-background px-3 py-2 text-xs">
+                <span className="text-muted-foreground">{label}</span>
+                <span className="font-semibold text-foreground">{value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          {[
+            { Icon: ScanSearch, label: 'Check' },
+            { Icon: Lock, label: 'Protect' },
+            { Icon: Download, label: 'Export' },
+          ].map((x) => (
+            <div key={x.label} className="rounded-xl border bg-background p-2 text-center">
+              <x.Icon className="mx-auto size-4 text-primary" />
+              <p className="mt-1 text-[10px] font-medium text-muted-foreground">{x.label}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-3 flex items-center justify-between rounded-lg bg-emerald-500/10 px-3 py-2">
+          <span className="flex items-center gap-1.5 text-[12px] font-medium text-emerald-700"><Check className="size-3.5" /> Ready to share</span>
+          <ArrowRight className="size-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+export function HeroVisualOptions() {
+  const options = [
+    { name: 'Private Command Center', note: 'Best default: utility-first, premium, no document content.' },
+    { name: 'Workflow Stack', note: 'Shows merge, clean, check, compress as a polished process.' },
+    { name: 'Share-Safe Proof Panel', note: 'Makes privacy and risk checking the first impression.' },
+  ];
+  return (
+    <div className="grid gap-5 md:grid-cols-3">
+      {options.map((o, i) => (
+        <div key={o.name} className="rounded-2xl border bg-card p-4 shadow-soft">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-sm font-semibold">{o.name}</p>
+            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">Option {i + 1}</span>
+          </div>
+          <div className="scale-[0.92]">
+            <PrivacyCommandDemo />
+          </div>
+          <p className="mt-3 text-xs leading-5 text-muted-foreground">{o.note}</p>
+        </div>
       ))}
     </div>
   );
@@ -117,7 +199,7 @@ function ProductCluster() {
       <div aria-hidden className="pointer-events-none absolute inset-8 rounded-[40px]" style={{ background: 'radial-gradient(closest-side, rgba(124,58,237,0.10), transparent)' }} />
       {/* the sliding browser-framed product shot with tool tiles on its corners */}
       <div className="relative w-[360px] max-w-[86%] md:max-w-[92%]">
-        <FramedSlider />
+        <PrivacyCommandDemo />
         {tiles.map((t, i) => (
           <span key={i} className={`absolute z-10 flex size-10 items-center justify-center rounded-2xl text-white shadow-lift ring-4 ring-background ${t.bg} ${t.cls}`}>
             <t.Icon className="size-[18px]" strokeWidth={2.25} />
@@ -141,7 +223,7 @@ export function HeroHybrid() {
             <span className="text-primary lg:whitespace-nowrap">Your files stay yours.</span>
           </h1>
           <p className="mt-5 max-w-md text-lg leading-relaxed text-muted-foreground">
-            Merge, compress, convert, sign — {liveToolCount}+ PDF and everyday tools. Free, no signup, and private by default.
+            Merge, compress, convert, sign — {liveToolCount}+ PDF and everyday tools. Free, no signup, and private by design.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-4">
             <Button asChild size="lg"><Link href="/register">Start free</Link></Button>

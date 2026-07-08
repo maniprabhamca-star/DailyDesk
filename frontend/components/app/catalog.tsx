@@ -1,7 +1,7 @@
 import {
   Combine, Split, Shrink, RotateCw, FileMinus, ListOrdered,
   FileImage, Image as ImageIcon, FileType, FileType2, Code2, Presentation, FileSpreadsheet, FileCheck,
-  PenLine, Highlighter, Stamp, EyeOff, PenTool, Lock, Unlock, Fingerprint, Layers, ScanLine,
+  PenLine, Highlighter, Stamp, EyeOff, PenTool, Lock, Unlock, Fingerprint, Layers, ScanLine, ShieldCheck,
   ScanText, MessageSquare, AlignLeft, Languages,
   QrCode, KeyRound, NotebookPen, Flame, Wallet, FolderLock, Link2,
   ImageDown, Smartphone, Eraser, Film, Clapperboard, ArrowLeftRight, Images, Scaling, Repeat, Crop,
@@ -61,6 +61,7 @@ export const catalog: CatGroup[] = [
       { name: 'Annotate', href: '/annotate-pdf', icon: Highlighter, badge: 'device', soon: true },
       { name: 'Watermark', href: '/watermark-pdf', icon: Stamp, badge: 'device' },
       { name: 'Remove metadata', href: '/remove-pdf-metadata', icon: Fingerprint, badge: 'device' },
+      { name: 'Share-Safe PDF Check', href: '/share-safe-pdf-check', icon: ShieldCheck, badge: 'device' },
       { name: 'Redact PDF', href: '/redact-pdf', icon: EyeOff, badge: 'device', soon: true },
       { name: 'Sign PDF', href: '/sign-pdf', icon: PenTool, badge: 'device' },
       { name: 'Flatten PDF', href: '/flatten-pdf', icon: Layers, badge: 'device' },
@@ -70,6 +71,7 @@ export const catalog: CatGroup[] = [
   },
   {
     label: 'AI & scan', color: '#db2777', tools: [
+      { name: 'Clean scanned PDF', href: '/clean-scanned-pdf', icon: ScanText, badge: 'device' },
       { name: 'OCR', icon: ScanText, badge: 'server', soon: true },
       { name: 'Chat with PDF', icon: MessageSquare, badge: 'ai', soon: true },
       { name: 'Summarize', icon: AlignLeft, badge: 'ai', soon: true },
@@ -110,6 +112,7 @@ export const catalog: CatGroup[] = [
       { name: 'Smart notes', icon: NotebookPen, badge: 'device', soon: true },
       { name: 'Habit tracker', icon: Flame, badge: 'device', soon: true },
       { name: 'Budget tracker', icon: Wallet, badge: 'device', soon: true },
+      { name: 'Client packet builder', href: '/client-packet-builder', icon: FolderLock, badge: 'device' },
       { name: 'File vault', icon: FolderLock, badge: 'encrypted', soon: true },
       { name: 'Link in bio', icon: Link2, badge: 'server', soon: true },
     ],
