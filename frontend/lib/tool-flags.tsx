@@ -7,15 +7,20 @@ import { api } from './api';
 export type ToolStatus = 'enabled' | 'coming_soon' | 'pro' | 'disabled';
 type FlagMap = Record<string, ToolStatus>;
 
-const Ctx = createContext<FlagMap>({});
+const DEFAULT_TOOL_FLAGS: FlagMap = {
+  '/edit-pdf': 'coming_soon',
+};
 
-// Fetches the (small) flag map once and shares it site-wide. Fail-open: on any
-// error the map stays empty → every tool renders enabled, so this can never take
-// the site down.
+const Ctx = createContext<FlagMap>(DEFAULT_TOOL_FLAGS);
+
+// Fetches the small flag map once and shares it site-wide. Edit PDF stays hidden
+// by default until Pro launch; the admin flag can still enable it when ready.
 export function ToolFlagsProvider({ children }: { children: React.ReactNode }) {
-  const [flags, setFlags] = useState<FlagMap>({});
+  const [flags, setFlags] = useState<FlagMap>(DEFAULT_TOOL_FLAGS);
   useEffect(() => {
-    api.get('/api/tools/flags').then((r) => setFlags((r?.flags as FlagMap) || {})).catch(() => {});
+    api.get('/api/tools/flags')
+      .then((r) => setFlags({ ...DEFAULT_TOOL_FLAGS, ...((r?.flags as FlagMap) || {}) }))
+      .catch(() => {});
   }, []);
   return <Ctx.Provider value={flags}>{children}</Ctx.Provider>;
 }
