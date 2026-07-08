@@ -38,6 +38,18 @@ export type LineEdit = {
   draws: PartDraw[];  // the edited word(s) + everything after it, repositioned
 };
 
+// A whole edited PARAGRAPH: cover its box and re-flow the text (word-wrapped to
+// the block width) in the matching font — the Smallpdf-style edit.
+export type BlockEdit = {
+  page: number;
+  xFrac: number; yFrac: number; wFrac: number; hFrac: number; // block box (y-down)
+  bg: string;
+  sizeFrac: number;   // font size (fraction of page height)
+  lineHFrac: number;  // line-to-line spacing (fraction of page height)
+  text: string;       // full text; \n = hard line break, otherwise wrapped
+  family: Family; color: string; bold: boolean; italic: boolean;
+};
+
 // Cover bleed + baseline factors — MUST match the preview overlay in
 // edit-tool.tsx so the exported result is faithful to what the user saw.
 export const COVER_TOP = 0.18;   // extend cover this·h above the box top
@@ -59,7 +71,7 @@ function standardFontName(fam: Family, bold: boolean, italic: boolean): string |
 
 /** Apply the positioned word edits to a PDF, returning new bytes. Pure — no DOM,
  * so it runs in a Node test the same way it runs in the browser. */
-export async function applyLineEdits(src: ArrayBuffer | Uint8Array, edits: LineEdit[]): Promise<Uint8Array> {
+export async function applyLineEdits(src: ArrayBuffer | Uint8Array, edits: LineEdit[], blocks: BlockEdit[] = []): Promise<Uint8Array> {
   const doc = await PDFDocument.load(src, { ignoreEncryption: true });
   const pages = doc.getPages();
   const cache = new Map<string, PDFFont>();
@@ -109,6 +121,37 @@ export async function applyLineEdits(src: ArrayBuffer | Uint8Array, edits: LineE
       const font = await getFont(d.family, d.bold, d.italic);
       const [cr, cg, cb] = parseRgb(d.color);
       page.drawText(d.text, { x: d.xFrac * W, y: baseY, size: d.sizeFrac * H, font, color: rgb(cr, cg, cb) });
+    }
+  }
+
+  // Paragraph blocks: cover the box, then re-flow the text word-wrapped to the
+  // block width in the matching font.
+  for (const B of blocks) {
+    const page = pages[B.page];
+    if (!page) continue;
+    const { width: W, height: H } = page.getSize();
+    const [br, bgc, bb] = parseRgb(B.bg);
+    const size = B.sizeFrac * H;
+    const lineH = B.lineHFrac * H || size * 1.2;
+    const maxW = B.wFrac * W;
+    const padY = size * 0.35;
+    // Cover the whole paragraph (bleed a little above/below).
+    page.drawRectangle({ x: B.xFrac * W - size * 0.1, y: H * (1 - B.yFrac - B.hFrac) - padY, width: B.wFrac * W + size * 0.25, height: B.hFrac * H + padY * 2, color: rgb(br, bgc, bb) });
+    const font = await getFont(B.family, B.bold, B.italic);
+    const [cr, cg, cb] = parseRgb(B.color);
+    const safe = (t: string) => t.replace(/[^\S\r\n]+/g, ' '); // collapse odd whitespace
+    let baseline = H * (1 - B.yFrac - BASELINE * B.sizeFrac);
+    const x = B.xFrac * W;
+    for (const para of safe(B.text).split('\n')) {
+      const words = para.split(' ');
+      let cur = '';
+      const put = (s: string) => { if (s) { try { page.drawText(s, { x, y: baseline, size, font, color: rgb(cr, cg, cb) }); } catch { /* skip unencodable */ } } baseline -= lineH; };
+      for (const w of words) {
+        const test = cur ? `${cur} ${w}` : w;
+        if (cur && font.widthOfTextAtSize(test, size) > maxW) { put(cur); cur = w; }
+        else cur = test;
+      }
+      put(cur); // last line of the paragraph (or a blank line advances too)
     }
   }
 

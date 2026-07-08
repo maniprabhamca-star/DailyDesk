@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react';
 import { Upload, FileText, X, Loader2, Pencil, Undo2, Redo2, Bold, Italic, Trash2, Minus, Plus, Zap, TextCursorInput } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -13,7 +13,7 @@ import { FontSelect } from '@/components/app/font-select';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
 import { FAMILIES, type Family } from '@/lib/fonts';
-import { applyLineEdits, COVER_TOP, COVER_H, BASELINE, type LineEdit } from '@/lib/pdf-edit-text';
+import { applyLineEdits, COVER_TOP, COVER_H, BASELINE, type LineEdit, type BlockEdit } from '@/lib/pdf-edit-text';
 import { pageBackground, lineColors, type RGB } from '@/lib/pdf-sample';
 
 // Edit PDF — HYBRID in-place text editing (see docs/edit-pdf-approach.md).
@@ -36,6 +36,80 @@ type Edit = { text: string; family: Family; size: number; color: string; bold: b
 type EditMap = Record<string, Edit>;
 // A brand-new text box the user placed (independent of the PDF's own text).
 type Added = { id: string; page: number; x: number; y: number; sizeFrac: number; text: string; family: Family; color: string; bold: boolean; italic: boolean };
+
+// A paragraph BLOCK — the Smallpdf-style unit you edit: one or more detected
+// line-runs grouped into a box you type into freely (browser wraps the text).
+type Block = {
+  id: string; page: number;
+  x: number; y: number; w: number; h: number;   // bounding box (top-left + size, fractions)
+  family: Family; size: number; color: string; bold: boolean; italic: boolean; bg: string;
+  lineH: number;                                  // line-to-line spacing (fraction of page height)
+  text: string;                                   // full text, original line breaks kept as \n
+};
+
+// Group detected line-runs into paragraph blocks: lines that sit directly under
+// one another, share a left edge / overlap horizontally, and are the same size
+// belong to the same block. This is what lets a whole paragraph be edited at once.
+function groupBlocks(lines: Line[], page: number): Block[] {
+  const rows = lines
+    .map((l) => ({ top: l.y, bottom: l.y + l.h, left: l.x, right: l.x + l.w, h: l.h, text: l.parts.join(''), family: l.family, color: l.color, bold: l.bold, italic: l.italic, bg: l.bg }))
+    .filter((r) => r.text.trim())
+    .sort((a, b) => (Math.abs(a.top - b.top) > a.h * 0.4 ? a.top - b.top : a.left - b.left));
+  const blocks: Block[] = [];
+  let cur: typeof rows | null = null;
+  const flush = () => {
+    if (!cur || !cur.length) return;
+    const x = Math.min(...cur.map((r) => r.left)), right = Math.max(...cur.map((r) => r.right));
+    const y = Math.min(...cur.map((r) => r.top)), bottom = Math.max(...cur.map((r) => r.bottom));
+    const first = cur[0];
+    // median line spacing (baseline-to-baseline); fall back to 1.2× height.
+    const gaps: number[] = [];
+    for (let i = 1; i < cur.length; i++) gaps.push(cur[i].top - cur[i - 1].top);
+    gaps.sort((a, b) => a - b);
+    const lineH = gaps.length ? gaps[Math.floor(gaps.length / 2)] : first.h * 1.2;
+    blocks.push({ id: `${page}-B${blocks.length}`, page, x, y, w: right - x, h: bottom - y, family: first.family, size: first.h, color: first.color, bold: first.bold, italic: first.italic, bg: first.bg, lineH, text: cur.map((r) => r.text).join('\n') });
+    cur = null;
+  };
+  for (const r of rows) {
+    if (!cur) { cur = [r]; continue; }
+    const prev = cur[cur.length - 1];
+    const vGap = r.top - prev.bottom;                                  // vertical gap to previous line
+    const sameCol = r.left < prev.right && r.right > prev.left;        // horizontal overlap (same column)
+    const sameSize = Math.abs(r.h - prev.h) <= prev.h * 0.35;          // similar font size
+    const closeEnough = vGap >= -prev.h * 0.5 && vGap <= prev.h * 0.9; // stacked (paragraph spacing)
+    if (sameCol && sameSize && closeEnough) cur.push(r);
+    else { flush(); cur = [r]; }
+  }
+  flush();
+  return blocks;
+}
+
+// Isolated editable paragraph box. It seeds its text ONCE and never re-renders
+// while you type (memoised), so React never fights the browser over the
+// contentEditable content — the crash that happens if React reconciles it.
+const BlockEditText = memo(function BlockEditText({ initialText, style, onInput, onDone }: {
+  initialText: string; style: React.CSSProperties; onInput: (t: string) => void; onDone: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current; if (!el) return;
+    el.innerText = initialText;
+    const id = requestAnimationFrame(() => {
+      try { el.focus(); const r = document.createRange(); r.selectNodeContents(el); r.collapse(false); const s = window.getSelection(); s?.removeAllRanges(); s?.addRange(r); } catch { /* ignore */ }
+    });
+    return () => cancelAnimationFrame(id);
+    // seed once on mount only
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return (
+    <div ref={ref} contentEditable suppressContentEditableWarning
+      onInput={(e) => onInput((e.currentTarget as HTMLElement).innerText)}
+      onKeyDown={(e) => { if (e.key === 'Escape') { e.preventDefault(); (e.currentTarget as HTMLElement).blur(); onDone(); } }}
+      className="absolute z-30 rounded-[2px] px-[1px] outline-none ring-2 ring-primary/60"
+      style={style}
+    />
+  );
+});
 
 const SWATCHES = ['#111827', '#374151', '#dc2626', '#ea580c', '#ca8a04', '#059669', '#2563eb', '#7c3aed', '#ffffff'];
 const key = (lineId: string, i: number) => `${lineId}#${i}`;
@@ -116,6 +190,9 @@ export function EditTool() {
   const [preview, setPreview] = useState<RenderedPage | null>(null);
   const [disp, setDisp] = useState({ w: 0, h: 0 });
   const [lines, setLines] = useState<Record<number, Line[]>>({});
+  const [blocks, setBlocks] = useState<Record<number, Block[]>>({});
+  const [blockEdits, setBlockEdits] = useState<Record<string, string>>({}); // blockId -> edited full text
+  const [editingBlock, setEditingBlock] = useState<string | null>(null);
   const [edits, setEdits] = useState<EditMap>({});
   const [editing, setEditing] = useState<{ lineId: string; i: number } | null>(null);
   const [caret, setCaret] = useState(0);
@@ -150,6 +227,7 @@ export function EditTool() {
     setTooBig(null); setError(null); setDone(null); setBusy(true);
     setLines({}); setEdits({}); setEditing(null); setPreview(null); setPast([]); setFuture([]);
     setAdded([]); setAddSel(null); setAddMode(false);
+    setBlocks({}); setBlockEdits({}); setEditingBlock(null);
     try {
       const h = await openPdf(f);
       if (handle) void handle.destroy();
@@ -314,7 +392,7 @@ export function EditTool() {
           const inkH = (capTop >= 0 && capBot >= capTop) ? (capBot - capTop + 1) / rp.h : (fontH / vp.height) * 0.7;
           list.push({ id: `${sel}-L${list.length}`, page: sel, x: left / vp.width, y: top / vp.height, w: w / vp.width, h: fontH / vp.height, inkH, family, color, bg, bold, italic, parts, boxes });
         }
-        if (!cancelled) setLines((prev) => ({ ...prev, [sel]: list }));
+        if (!cancelled) { setLines((prev) => ({ ...prev, [sel]: list })); setBlocks((prev) => ({ ...prev, [sel]: groupBlocks(list, sel) })); }
       } catch { /* image-only page → no lines */ }
       if (!cancelled) setDetecting(false);
     })();
@@ -345,6 +423,26 @@ export function EditTool() {
   }
   function closeWord() { if (editing) { endSession(edits); setEditing(null); } }
   function deleteActive() { patchActive({ text: '' }); }
+
+  // ---- Block (paragraph) editing — the Smallpdf-style model ------------------
+  const pageBlocks = blocks[sel] || [];
+  const activeBlock = editingBlock ? pageBlocks.find((b) => b.id === editingBlock) ?? null : null;
+  const blockTextOf = (b: Block) => blockEdits[b.id] ?? b.text;
+  const blockChanged = (b: Block) => blockEdits[b.id] !== undefined && blockEdits[b.id] !== b.text;
+  function openBlock(b: Block) { closeWord(); setAddSel(null); setEditingBlock(b.id); }
+  function closeBlock() { setEditingBlock(null); }
+  function hitBlock(p: { x: number; y: number }): Block | null {
+    for (let i = pageBlocks.length - 1; i >= 0; i--) { const b = pageBlocks[i]; if (p.x >= b.x - 0.006 && p.x <= b.x + b.w + 0.006 && p.y >= b.y - 0.006 && p.y <= b.y + b.h + 0.006) return b; }
+    return null;
+  }
+  // Stable style + input handler for the isolated editor (so it never re-renders
+  // mid-typing).
+  const activeBlockStyle = useMemo<React.CSSProperties>(() => {
+    const b = activeBlock; if (!b || !disp.h) return {};
+    const fs = b.size * disp.h;
+    return { left: `${b.x * disp.w}px`, top: `${b.y * disp.h - fs * 0.08}px`, width: `${(b.w + b.w * 0.02) * disp.w}px`, minHeight: `${b.h * disp.h + fs * 0.3}px`, fontFamily: RENDER_CSS[b.family] ?? FAMILIES[b.family].css, fontSize: `${fs}px`, fontWeight: b.bold ? 700 : 400, fontStyle: b.italic ? 'italic' : 'normal', color: b.color, lineHeight: b.lineH / b.size, whiteSpace: 'pre-wrap', wordBreak: 'break-word', background: /^rgb\(\s*\d/.test(b.bg) ? b.bg : '#ffffff', caretColor: '#4f46e5' };
+  }, [activeBlock, disp.h, disp.w]);
+  const onBlockInput = useCallback((t: string) => { setBlockEdits((s) => (editingBlock ? { ...s, [editingBlock]: t } : s)); }, [editingBlock]);
 
   // ---- Add-text: new boxes placed anywhere on the page -----------------------
   const activeAdded = addSel ? added.find((a) => a.id === addSel) ?? null : null;
@@ -422,20 +520,21 @@ export function EditTool() {
     }
     return null;
   }
-  function onMove(e: React.MouseEvent) { const h = hitWord(frac(e)); setHover(h ? key(h.line.id, h.i) : null); }
+  function onMove(e: React.MouseEvent) { const b = hitBlock(frac(e)); setHover(b ? b.id : null); }
   function onClick(e: React.MouseEvent) {
     const p = frac(e);
-    if (addMode) { placeAdded(p.x, p.y); return; }       // click-to-place a new text box
-    const hw = hitWord(p);
-    if (hw) { const b = hw.line.boxes[hw.i]!; setAddSel(null); openWord(hw.line, hw.i, b.w > 0 ? (p.x - b.x) / b.w : 0); }
-    else { closeWord(); setAddSel(null); }                // click empty space = deselect
+    if (addMode) { placeAdded(p.x, p.y); return; }        // click-to-place a new text box
+    const b = hitBlock(p);
+    if (b) { setAddSel(null); openBlock(b); }             // click a paragraph = edit the whole block
+    else { closeBlock(); setAddSel(null); }               // click empty space = deselect
   }
 
   const editCount = pageLines.length
     ? Object.keys(edits).reduce((n, k) => { const [lineId, iStr] = k.split('#'); const p = Number(lineId.split('-')[0]); const line = (lines[p] || []).find((l) => l.id === lineId); const i = Number(iStr); return line && line.parts[i]?.trim() && partEdited(line, i, edits[k]) ? n + 1 : n; }, 0)
     : 0;
   const addedCount = added.filter((a) => a.text.trim()).length;
-  const totalChanges = editCount + addedCount;
+  const blockCount = Object.entries(blocks).reduce((n, [, bs]) => n + bs.filter((b) => blockEdits[b.id] !== undefined && blockEdits[b.id] !== b.text).length, 0);
+  const totalChanges = editCount + addedCount + blockCount;
 
   async function apply() {
     if (!file || totalChanges === 0) return;
@@ -469,7 +568,17 @@ export function EditTool() {
         if (!a.text.trim()) continue;
         list.push({ page: a.page, yFrac: a.y, hFrac: a.sizeFrac, bg: 'rgb(255,255,255)', coverLFrac: a.x, coverRFrac: a.x, draws: [{ text: a.text, xFrac: a.x, sizeFrac: a.sizeFrac, family: a.family, color: a.color, bold: a.bold, italic: a.italic }] });
       }
-      const outBytes = await applyLineEdits(await file.arrayBuffer(), list);
+      // Edited paragraph blocks: cover the box + re-flow the text in its font.
+      const blockList: BlockEdit[] = [];
+      for (const [pStr, bs] of Object.entries(blocks)) {
+        const p = Number(pStr);
+        for (const b of bs) {
+          const t = blockEdits[b.id];
+          if (t === undefined || t === b.text) continue;
+          blockList.push({ page: p, xFrac: b.x, yFrac: b.y, wFrac: b.w + b.w * 0.02, hFrac: b.h, bg: b.bg, sizeFrac: b.size, lineHFrac: b.lineH, text: t, family: b.family, color: b.color, bold: b.bold, italic: b.italic });
+        }
+      }
+      const outBytes = await applyLineEdits(await file.arrayBuffer(), list, blockList);
       const name = `${file.name.replace(/\.pdf$/i, '')}-edited.pdf`;
       const blob = new Blob([outBytes.slice()], { type: 'application/pdf' });
       download(blob, name);
@@ -594,18 +703,26 @@ export function EditTool() {
         ctx.fillText(it.e.text, it.xFrac * disp.w, baseY);
       }
     }
-    // hover highlight (skip the word being edited)
-    if (hover && hover !== (editing ? key(editing.lineId, editing.i) : null)) {
-      const [lid, iStr] = hover.split('#'); const line = pageLines.find((l) => l.id === lid); const b = line?.boxes[Number(iStr)];
-      if (b) {
-        const pad = b.h * 0.12, rx = (b.x - pad) * disp.w, ry = (b.y - pad) * disp.h, rw = (b.w + pad * 2) * disp.w, rh = (b.h + pad * 2) * disp.h;
-        ctx.fillStyle = 'rgba(79,70,229,0.16)'; ctx.strokeStyle = 'rgba(79,70,229,0.55)'; ctx.lineWidth = 1;
-        if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(rx, ry, rw, rh, 3); ctx.fill(); ctx.stroke(); }
-        else { ctx.fillRect(rx, ry, rw, rh); ctx.strokeRect(rx, ry, rw, rh); }
-      }
+    // Cover every edited/active paragraph block so the original text is hidden and
+    // the DOM text box (rendered in the real font) shows on a clean background.
+    const padY = 0.35; // fraction of a line's height bled above/below the block
+    for (const b of pageBlocks) {
+      if (b.id !== editingBlock && !blockChanged(b)) continue;
+      const bgFill = /^rgb\(\s*\d/.test(b.bg) ? b.bg : 'rgb(255,255,255)';
+      ctx.fillStyle = bgFill;
+      ctx.fillRect((b.x - b.w * 0.004) * disp.w, (b.y - b.size * padY) * disp.h, (b.w + b.w * 0.02) * disp.w, (b.h + b.size * padY * 2) * disp.h);
+    }
+    // Hover outline for the block under the cursor (so it reads as clickable).
+    const hb = hover ? pageBlocks.find((b) => b.id === hover) : null;
+    if (hb && hb.id !== editingBlock) {
+      const pad = hb.size * 0.3;
+      ctx.strokeStyle = 'rgba(79,70,229,0.5)'; ctx.fillStyle = 'rgba(79,70,229,0.06)'; ctx.lineWidth = 1;
+      const rx = (hb.x - hb.w * 0.004) * disp.w, ry = (hb.y - pad) * disp.h, rw = (hb.w + hb.w * 0.02) * disp.w, rh = (hb.h + pad * 2) * disp.h;
+      if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(rx, ry, rw, rh, 4); ctx.fill(); ctx.stroke(); }
+      else { ctx.fillRect(rx, ry, rw, rh); ctx.strokeRect(rx, ry, rw, rh); }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pageLines, edits, hover, editing, disp]);
+  }, [pageLines, edits, hover, editing, disp, pageBlocks, editingBlock, blockEdits]);
 
   useEffect(() => { paintOverlay(); }, [paintOverlay, preview, fontReady]);
 
@@ -631,7 +748,7 @@ export function EditTool() {
           <div className="flex items-center gap-3 rounded-lg border bg-card p-2.5">
             <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-red-100 text-red-600 dark:bg-red-950/40"><FileText className="size-4" /></span>
             <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{file.name}</p><p className="text-xs text-muted-foreground">{fmt(file.size)} · {pageCount} page{pageCount === 1 ? '' : 's'}</p></div>
-            <Button size="icon" variant="ghost" aria-label="Remove" onClick={() => { if (handle) void handle.destroy(); setHandle(null); setFile(null); setDone(null); setError(null); setLines({}); setEdits({}); setPast([]); setFuture([]); setAdded([]); setAddSel(null); setAddMode(false); }}><X className="size-4" /></Button>
+            <Button size="icon" variant="ghost" aria-label="Remove" onClick={() => { if (handle) void handle.destroy(); setHandle(null); setFile(null); setDone(null); setError(null); setLines({}); setEdits({}); setPast([]); setFuture([]); setAdded([]); setAddSel(null); setAddMode(false); setBlocks({}); setBlockEdits({}); setEditingBlock(null); }}><X className="size-4" /></Button>
           </div>
         )}
 
@@ -670,7 +787,7 @@ export function EditTool() {
 
             <p className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
               <Pencil className="size-3.5 text-primary" />
-              {addMode ? 'Click anywhere on the page to drop a new text box.' : activeAdded ? 'Editing a text box — type, format, or drag it to move. Delete removes it.' : activeEdit ? 'Editing a word — type, then format with the toolbar. Only this word changes.' : 'Click any word to edit it, or use “Add text”.'}
+              {addMode ? 'Click anywhere on the page to drop a new text box.' : activeAdded ? 'Editing a text box — type, format, or drag it to move. Delete removes it.' : activeBlock ? 'Editing a paragraph — type freely; the text wraps and stays in the PDF’s font. Click outside when done.' : 'Click a paragraph to edit its text, or use “Add text”.'}
               {detecting && <span className="inline-flex items-center gap-1"><Loader2 className="size-3 animate-spin" /> finding text…</span>}
             </p>
 
@@ -713,6 +830,26 @@ export function EditTool() {
                     );
                   })()}
 
+                  {/* Committed edited paragraphs (not the one being typed) show as
+                      static text in the PDF's real font. */}
+                  {disp.h > 0 && pageBlocks.map((b) => {
+                    if (b.id === editingBlock || !blockChanged(b)) return null;
+                    const fs = b.size * disp.h;
+                    const style: React.CSSProperties = {
+                      left: `${b.x * disp.w}px`, top: `${b.y * disp.h - fs * 0.08}px`, width: `${(b.w + b.w * 0.02) * disp.w}px`, minHeight: `${b.h * disp.h + fs * 0.3}px`,
+                      fontFamily: RENDER_CSS[b.family] ?? FAMILIES[b.family].css, fontSize: `${fs}px`, fontWeight: b.bold ? 700 : 400, fontStyle: b.italic ? 'italic' : 'normal',
+                      color: b.color, lineHeight: b.lineH / b.size, whiteSpace: 'pre-wrap', wordBreak: 'break-word', background: /^rgb\(\s*\d/.test(b.bg) ? b.bg : '#ffffff',
+                    };
+                    return (
+                      <div key={b.id} onClick={(e) => { e.stopPropagation(); openBlock(b); }} className="absolute z-20 cursor-text rounded-[2px] px-[1px]" style={style}>{blockTextOf(b)}</div>
+                    );
+                  })}
+                  {/* The paragraph being edited — an ISOLATED editable box (Smallpdf
+                      style): type freely, the browser wraps inside the block width. */}
+                  {activeBlock && disp.h > 0 && (
+                    <BlockEditText key={activeBlock.id} initialText={blockTextOf(activeBlock)} style={activeBlockStyle} onInput={onBlockInput} onDone={closeBlock} />
+                  )}
+
                   {/* Added text boxes (new content the user placed). Selected =
                       editable input; otherwise a draggable label (click to edit,
                       drag to move). Rendered in the SAME font the PDF uses. */}
@@ -751,11 +888,11 @@ export function EditTool() {
               )}
             </div>
 
-            {pageCount > 1 && <PageStrip handle={handle} count={pageCount} selected={sel} onSelect={(i) => { closeWord(); setAddSel(null); setAddMode(false); setSel(i); }} className="mt-2" />}
+            {pageCount > 1 && <PageStrip handle={handle} count={pageCount} selected={sel} onSelect={(i) => { closeWord(); setAddSel(null); setAddMode(false); setEditingBlock(null); setSel(i); }} className="mt-2" />}
             <p className="mt-2 text-center text-xs text-muted-foreground">
               {totalChanges
-                ? `${[editCount && `${editCount} word${editCount === 1 ? '' : 's'} edited`, addedCount && `${addedCount} text box${addedCount === 1 ? '' : 'es'} added`].filter(Boolean).join(' · ')} — edits stay in your browser.`
-                : 'Click a word to edit it, or use “Add text” to drop new text anywhere. Scanned pages have no selectable text.'}
+                ? `${[blockCount && `${blockCount} paragraph${blockCount === 1 ? '' : 's'} edited`, addedCount && `${addedCount} text box${addedCount === 1 ? '' : 'es'} added`].filter(Boolean).join(' · ')} — edits stay in your browser.`
+                : 'Click a paragraph to edit its text, or use “Add text” to drop new text anywhere. Scanned pages have no selectable text.'}
             </p>
           </div>
         )}
