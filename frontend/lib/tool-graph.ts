@@ -1,4 +1,4 @@
-import { Combine, Split, RotateCw, FileMinus, ListOrdered, Shrink, FileImage, Image as ImageIcon, Images, Fingerprint, Lock, Unlock, PenTool, QrCode, KeyRound, Layers, ScanLine, Clapperboard, Film, ShieldCheck, ScanText, FolderLock, type LucideIcon } from 'lucide-react';
+import { Combine, Split, RotateCw, FileMinus, ListOrdered, Shrink, FileImage, Image as ImageIcon, Images, Fingerprint, Lock, Unlock, PenTool, QrCode, KeyRound, Layers, ScanLine, Clapperboard, Film, ShieldCheck, ScanText, FolderLock, ArrowLeftRight, type LucideIcon } from 'lucide-react';
 
 // Single source of truth for the live tool set + how tools relate, so the
 // "Keep moving" (carry the file forward) and "Keep going" (what's next) rails are
@@ -45,6 +45,8 @@ export const TOOLS: Record<string, Tool> = {
     tile: 'from-purple-500/10 to-purple-500/0 hover:border-purple-500/40', chip: 'bg-purple-600' },
   '/client-packet-builder': { href: '/client-packet-builder', name: 'Client packet', icon: FolderLock, blurb: 'Build a polished send-ready packet', moveLabel: 'Build packet', acceptsPdf: false,
     tile: 'from-indigo-500/10 to-indigo-500/0 hover:border-indigo-500/40', chip: 'bg-indigo-600' },
+  '/compare-pdf': { href: '/compare-pdf', name: 'Compare PDF', icon: ArrowLeftRight, blurb: 'Compare two PDF versions', moveLabel: 'Compare versions', acceptsPdf: true,
+    tile: 'from-blue-500/10 to-blue-500/0 hover:border-blue-500/40', chip: 'bg-blue-600' },
   '/sign-pdf': { href: '/sign-pdf', name: 'Sign PDF', icon: PenTool, blurb: 'Draw or type your signature onto it', moveLabel: 'Sign it', acceptsPdf: true,
     tile: 'from-emerald-500/10 to-emerald-500/0 hover:border-emerald-500/40', chip: 'bg-emerald-600' },
   '/protect-pdf': { href: '/protect-pdf', name: 'Protect PDF', icon: Lock, blurb: 'Password-lock it with AES-256', moveLabel: 'Add a password', acceptsPdf: true,
@@ -76,9 +78,10 @@ const NEXT: Record<string, string[]> = {
   '/pdf-to-jpg': ['/extract-images-from-pdf', '/jpg-to-pdf', '/compress-pdf'],
   '/extract-images-from-pdf': ['/jpg-to-pdf', '/compress-pdf', '/pdf-to-jpg'],
   '/remove-pdf-metadata': ['/share-safe-pdf-check', '/compress-pdf', '/watermark-pdf', '/merge-pdf'],
-  '/share-safe-pdf-check': ['/remove-pdf-metadata', '/flatten-pdf', '/protect-pdf', '/compress-pdf'],
+  '/share-safe-pdf-check': ['/remove-pdf-metadata', '/compare-pdf', '/flatten-pdf', '/protect-pdf', '/compress-pdf'],
   '/clean-scanned-pdf': ['/compress-pdf', '/share-safe-pdf-check', '/delete-pages-from-pdf'],
-  '/client-packet-builder': ['/merge-pdf', '/delete-pages-from-pdf', '/share-safe-pdf-check'],
+  '/client-packet-builder': ['/merge-pdf', '/delete-pages-from-pdf', '/share-safe-pdf-check', '/compare-pdf'],
+  '/compare-pdf': ['/share-safe-pdf-check', '/compress-pdf', '/merge-pdf', '/remove-pdf-metadata'],
   '/sign-pdf': ['/flatten-pdf', '/protect-pdf', '/watermark-pdf', '/merge-pdf'],
   '/flatten-pdf': ['/protect-pdf', '/compress-pdf', '/remove-pdf-metadata', '/merge-pdf'],
   '/protect-pdf': ['/unlock-pdf', '/sign-pdf', '/remove-pdf-metadata'],
@@ -93,7 +96,7 @@ const NEXT: Record<string, string[]> = {
 
 // Sensible fallback order for any tool without an explicit list (and to backfill
 // short lists), so a rail is never empty.
-const DEFAULT_ORDER = ['/compress-pdf', '/merge-pdf', '/share-safe-pdf-check', '/split-pdf', '/pdf-to-jpg', '/rotate-pdf', '/add-page-numbers-to-pdf', '/delete-pages-from-pdf', '/jpg-to-pdf', '/qr-code-generator', '/password-generator'];
+const DEFAULT_ORDER = ['/compress-pdf', '/merge-pdf', '/share-safe-pdf-check', '/compare-pdf', '/split-pdf', '/pdf-to-jpg', '/rotate-pdf', '/add-page-numbers-to-pdf', '/delete-pages-from-pdf', '/jpg-to-pdf', '/qr-code-generator', '/password-generator'];
 
 // Ordered, de-duplicated, self-excluded list of relevant next tools. Backfilled
 // from DEFAULT_ORDER so it's never short or empty.

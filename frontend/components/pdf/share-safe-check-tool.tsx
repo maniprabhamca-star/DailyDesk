@@ -1,15 +1,38 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import { Upload, FileText, X, Loader2, ShieldCheck, AlertTriangle, Link as LinkIcon, Fingerprint, EyeOff } from 'lucide-react';
-import Link from 'next/link';
+import { useMemo, useRef, useState } from 'react';
+import { Upload, FileText, X, Loader2, ShieldCheck, AlertTriangle, Link as LinkIcon, Fingerprint, EyeOff, Download, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { openPdf, type PdfHandle } from '@/lib/pdf-render';
-import { scanDocMetadata } from '@/lib/pdf-sanitize';
+import { downloadBlob as download } from '@/lib/download';
+import { PdfDone } from '@/components/app/pdf-done';
+import { openPdf, renderPage, dprTarget, getPdfjs, type PdfHandle } from '@/lib/pdf-render';
+import { scanDocMetadata, stripDocMetadata, type MetadataScan } from '@/lib/pdf-sanitize';
 
 type Severity = 'high' | 'medium' | 'low';
-type Finding = { severity: Severity; title: string; detail: string; action?: { label: string; href: string } };
+type RiskMatch = { title: string; severity: Severity; page: number; value: string; snippet: string };
+type LinkMatch = { page: number; kind: 'visible' | 'clickable'; url: string };
+type RedactionBox = { page: number; x: number; y: number; w: number; h: number };
+
+const RISK_PATTERNS: Array<{ title: string; severity: Severity; re: RegExp; redact: boolean }> = [
+  { title: 'Possible SSNs', severity: 'high', re: /\b\d{3}-\d{2}-\d{4}\b/g, redact: true },
+  { title: 'Payment-card-like numbers', severity: 'high', re: /\b(?:\d[ -]*?){13,19}\b/g, redact: true },
+  { title: 'Email addresses', severity: 'medium', re: /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, redact: true },
+  { title: 'Phone numbers', severity: 'medium', re: /\b(?:\+?1[-.\s]?)?(?:\(?\d{3}\)?[-.\s]?)\d{3}[-.\s]?\d{4}\b/g, redact: true },
+  { title: 'Sensitive words', severity: 'medium', re: /\b(password|secret|confidential|private key|api key|token)\b/gi, redact: true },
+  { title: 'Visible web links', severity: 'low', re: /\bhttps?:\/\/[^\s)]+/gi, redact: false },
+];
+
+const METADATA_LABELS: Record<string, string> = {
+  Author: 'Author',
+  Creator: 'Created by',
+  Producer: 'PDF producer',
+  CreationDate: 'Created date',
+  ModDate: 'Modified date',
+  Title: 'Title',
+  Subject: 'Subject',
+  Keywords: 'Keywords',
+};
 
 function fmt(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -17,29 +40,55 @@ function fmt(bytes: number) {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-const PATTERNS: Array<{ title: string; severity: Severity; re: RegExp }> = [
-  { title: 'Email addresses', severity: 'medium', re: /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi },
-  { title: 'Phone numbers', severity: 'medium', re: /\b(?:\+?1[-.\s]?)?(?:\(?\d{3}\)?[-.\s]?)\d{3}[-.\s]?\d{4}\b/g },
-  { title: 'Possible SSNs', severity: 'high', re: /\b\d{3}-\d{2}-\d{4}\b/g },
-  { title: 'Payment-card-like numbers', severity: 'high', re: /\b(?:\d[ -]*?){13,19}\b/g },
-  { title: 'Sensitive words', severity: 'medium', re: /\b(password|secret|confidential|private key|api key|token)\b/gi },
-  { title: 'Visible web links', severity: 'low', re: /\bhttps?:\/\/[^\s)]+/gi },
-];
+function clipped(value: string, len = 90) {
+  return value.length > len ? `${value.slice(0, len - 1)}...` : value;
+}
 
-function score(findings: Finding[]) {
-  if (findings.some((f) => f.severity === 'high')) return { label: 'High risk', tone: 'text-red-700 bg-red-500/10 border-red-500/30' };
-  if (findings.some((f) => f.severity === 'medium')) return { label: 'Review before sharing', tone: 'text-amber-700 bg-amber-500/10 border-amber-500/30' };
-  if (findings.length) return { label: 'Low risk', tone: 'text-sky-700 bg-sky-500/10 border-sky-500/30' };
+function snippet(text: string, index: number, value: string) {
+  const start = Math.max(0, index - 34);
+  const end = Math.min(text.length, index + value.length + 34);
+  return `${start > 0 ? '...' : ''}${text.slice(start, end)}${end < text.length ? '...' : ''}`;
+}
+
+function resultTone(hasHigh: boolean, hasMedium: boolean, count: number) {
+  if (hasHigh) return { label: 'High risk', tone: 'text-red-700 bg-red-500/10 border-red-500/30' };
+  if (hasMedium) return { label: 'Review before sharing', tone: 'text-amber-700 bg-amber-500/10 border-amber-500/30' };
+  if (count) return { label: 'Low risk', tone: 'text-sky-700 bg-sky-500/10 border-sky-500/30' };
   return { label: 'Looks share-safe', tone: 'text-emerald-700 bg-emerald-500/10 border-emerald-500/30' };
+}
+
+async function blobFromUrl(url: string) {
+  return await (await fetch(url)).blob();
+}
+
+function shouldRedactTextRun(text: string) {
+  return RISK_PATTERNS.some((p) => {
+    if (!p.redact) return false;
+    p.re.lastIndex = 0;
+    return p.re.test(text);
+  });
 }
 
 export function ShareSafeCheckTool() {
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [findings, setFindings] = useState<Finding[] | null>(null);
+  const [metadata, setMetadata] = useState<MetadataScan | null>(null);
+  const [matches, setMatches] = useState<RiskMatch[]>([]);
+  const [links, setLinks] = useState<LinkMatch[]>([]);
+  const [boxes, setBoxes] = useState<RedactionBox[]>([]);
   const [pageCount, setPageCount] = useState(0);
+  const [removeMeta, setRemoveMeta] = useState(true);
+  const [redactText, setRedactText] = useState(true);
+  const [removeLinks, setRemoveLinks] = useState(false);
+  const [done, setDone] = useState<{ blob: Blob; name: string; secs: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const metaCount = metadata ? metadata.fields.length + (metadata.xmpBytes ? 1 : 0) + (metadata.thumbs ? 1 : 0) + (metadata.pieceInfo ? 1 : 0) : 0;
+  const redactionCount = boxes.length;
+  const high = matches.some((m) => m.severity === 'high');
+  const medium = matches.some((m) => m.severity === 'medium') || metaCount > 0;
+  const result = useMemo(() => resultTone(high, medium, metaCount + matches.length + links.length), [high, medium, metaCount, matches.length, links.length]);
 
   async function analyze(f?: File) {
     if (!f) return;
@@ -48,56 +97,78 @@ export function ShareSafeCheckTool() {
       return;
     }
     setFile(f);
-    setFindings(null);
+    setMetadata(null);
+    setMatches([]);
+    setLinks([]);
+    setBoxes([]);
+    setDone(null);
     setError(null);
     setBusy(true);
     let handle: PdfHandle | null = null;
     try {
       const { PDFDocument } = await import('pdf-lib');
+      const pdfjs = await getPdfjs();
       const doc = await PDFDocument.load(await f.arrayBuffer(), { ignoreEncryption: true, updateMetadata: false });
       const meta = await scanDocMetadata(doc);
-      const next: Finding[] = [];
-      if (meta.fields.length || meta.xmpBytes || meta.thumbs || meta.pieceInfo) {
-        next.push({
-          severity: 'medium',
-          title: 'Hidden metadata found',
-          detail: `${meta.fields.length} document field${meta.fields.length === 1 ? '' : 's'}${meta.xmpBytes ? ', XMP packet' : ''}${meta.thumbs ? ', thumbnails' : ''}.`,
-          action: { label: 'Remove metadata', href: '/remove-pdf-metadata' },
-        });
-      }
+      setMetadata(meta);
 
       handle = await openPdf(f);
       setPageCount(handle.numPages);
-      let linkAnnots = 0;
-      const counts = new Map<string, { severity: Severity; n: number }>();
+      const nextMatches: RiskMatch[] = [];
+      const nextLinks: LinkMatch[] = [];
+      const nextBoxes: RedactionBox[] = [];
+
       for (let i = 1; i <= handle.numPages; i++) {
         const page = await handle.doc.getPage(i);
-        const text = (await page.getTextContent()).items.map((it: unknown) => (it as { str?: string }).str || '').join(' ');
-        for (const p of PATTERNS) {
-          const n = (text.match(p.re) || []).length;
-          if (n) {
-            const cur = counts.get(p.title) || { severity: p.severity, n: 0 };
-            cur.n += n;
-            counts.set(p.title, cur);
+        const viewport = page.getViewport({ scale: 1 });
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items.map((it: unknown) => (it as { str?: string }).str || '').join(' ');
+
+        for (const pattern of RISK_PATTERNS) {
+          for (const found of Array.from(pageText.matchAll(pattern.re))) {
+            const value = found[0] || '';
+            if (!value) continue;
+            if (pattern.title === 'Visible web links') nextLinks.push({ page: i, kind: 'visible', url: value });
+            else nextMatches.push({ title: pattern.title, severity: pattern.severity, page: i, value, snippet: snippet(pageText, found.index || 0, value) });
           }
         }
+
+        for (const item of textContent.items as Array<{ str?: string; transform?: number[]; width?: number; height?: number }>) {
+          const str = item.str || '';
+          if (!str.trim() || !item.transform) continue;
+          if (!shouldRedactTextRun(str)) continue;
+          const m = pdfjs.Util.transform(viewport.transform, item.transform);
+          const fontH = Math.hypot(m[2], m[3]) || item.height || 8;
+          const width = Math.max(8, (item.width || str.length * fontH * 0.55) * viewport.scale);
+          const left = m[4];
+          const top = m[5] - fontH;
+          const pad = Math.max(1, fontH * 0.16);
+          nextBoxes.push({
+            page: i - 1,
+            x: Math.max(0, (left - pad) / viewport.width),
+            y: Math.max(0, (top - pad) / viewport.height),
+            w: Math.min(1, (width + pad * 2) / viewport.width),
+            h: Math.min(1, (fontH + pad * 2) / viewport.height),
+          });
+        }
+
         try {
-          const annots = await page.getAnnotations({ intent: 'display' }) as Array<{ subtype?: string }>;
-          linkAnnots += annots.filter((a) => a.subtype === 'Link').length;
-          const other = annots.filter((a) => a.subtype && a.subtype !== 'Link').length;
-          if (other) next.push({ severity: 'low', title: `Page ${i} annotations`, detail: `${other} non-link annotation${other === 1 ? '' : 's'} may be visible or editable in some viewers.` });
-        } catch { /* annotations are optional */ }
+          const annots = await page.getAnnotations({ intent: 'display' }) as Array<{ subtype?: string; url?: string; unsafeUrl?: string; dest?: unknown }>;
+          for (const a of annots) {
+            if (a.subtype !== 'Link') continue;
+            const url = a.url || a.unsafeUrl || (a.dest ? 'Internal PDF destination' : 'Link annotation');
+            nextLinks.push({ page: i, kind: 'clickable', url });
+          }
+        } catch {
+          // Some PDFs do not expose annotations through pdf.js. The rest of the scan remains useful.
+        }
       }
-      counts.forEach((v, title) => {
-        next.push({
-          severity: v.severity,
-          title,
-          detail: `${v.n} match${v.n === 1 ? '' : 'es'} found in visible/selectable text.`,
-          action: v.severity === 'high' || title === 'Sensitive words' ? { label: 'Redact PDF', href: '/redact-pdf' } : undefined,
-        });
-      });
-      if (linkAnnots) next.push({ severity: 'low', title: 'Clickable links', detail: `${linkAnnots} link annotation${linkAnnots === 1 ? '' : 's'} found. Check that URLs are safe to share.`, action: { label: 'Edit PDF', href: '/edit-pdf' } });
-      setFindings(next);
+
+      setMatches(nextMatches.slice(0, 80));
+      setLinks(nextLinks.slice(0, 120));
+      setBoxes(nextBoxes);
+      setRemoveMeta(meta.fields.length > 0 || !!meta.xmpBytes || meta.thumbs > 0 || meta.pieceInfo);
+      setRedactText(nextBoxes.length > 0);
     } catch {
       setError('Could not scan this PDF. It may be corrupted or password-protected.');
       setFile(null);
@@ -109,15 +180,88 @@ export function ShareSafeCheckTool() {
 
   function clear() {
     setFile(null);
-    setFindings(null);
+    setMetadata(null);
+    setMatches([]);
+    setLinks([]);
+    setBoxes([]);
     setPageCount(0);
+    setDone(null);
     setError(null);
   }
 
-  const result = findings ? score(findings) : null;
-  const actions = findings
-    ? Array.from(new Map(findings.flatMap((f) => (f.action ? [[f.action.href, f.action] as const] : []))).values())
-    : [];
+  async function saveCleaned() {
+    if (!file) return;
+    setBusy(true);
+    setError(null);
+    setDone(null);
+    const t0 = performance.now();
+    let handle: PdfHandle | null = null;
+    try {
+      const { PDFDocument, PDFName } = await import('pdf-lib');
+      const srcBytes = await file.arrayBuffer();
+      const src = await PDFDocument.load(srcBytes, { ignoreEncryption: true, updateMetadata: false });
+      const shouldRasterize = redactText && boxes.length > 0;
+      let out = src;
+
+      if (shouldRasterize) {
+        handle = await openPdf(file);
+        out = await PDFDocument.create();
+        const boxesByPage = new Map<number, RedactionBox[]>();
+        for (const b of boxes) boxesByPage.set(b.page, [...(boxesByPage.get(b.page) || []), b]);
+
+        for (let i = 0; i < src.getPageCount(); i++) {
+          const pageBoxes = boxesByPage.get(i);
+          if (!pageBoxes?.length) {
+            const [copied] = await out.copyPages(src, [i]);
+            out.addPage(copied);
+            continue;
+          }
+
+          const rendered = await renderPage(handle, i, dprTarget(1450, 2, 2300));
+          const blob = await blobFromUrl(rendered.url);
+          const img = new Image();
+          img.src = URL.createObjectURL(blob);
+          await img.decode();
+          const canvas = document.createElement('canvas');
+          canvas.width = rendered.w;
+          canvas.height = rendered.h;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) throw new Error('Could not prepare redaction canvas.');
+          ctx.drawImage(img, 0, 0, rendered.w, rendered.h);
+          URL.revokeObjectURL(img.src);
+          ctx.fillStyle = '#000000';
+          for (const b of pageBoxes) ctx.fillRect(b.x * rendered.w, b.y * rendered.h, b.w * rendered.w, b.h * rendered.h);
+          const png = await new Promise<ArrayBuffer>((resolve, reject) =>
+            canvas.toBlob((b) => (b ? b.arrayBuffer().then(resolve) : reject(new Error('Could not export redacted page.'))), 'image/png'),
+          );
+          canvas.width = 0;
+          canvas.height = 0;
+
+          const embedded = await out.embedPng(png);
+          const originalSize = src.getPage(i).getSize();
+          const outPage = out.addPage([originalSize.width, originalSize.height]);
+          outPage.drawImage(embedded, { x: 0, y: 0, width: originalSize.width, height: originalSize.height });
+        }
+      }
+
+      if (removeLinks && links.some((l) => l.kind === 'clickable')) {
+        const linkPages = new Set(links.filter((l) => l.kind === 'clickable').map((l) => l.page - 1));
+        for (const p of Array.from(linkPages)) out.getPage(p)?.node.delete(PDFName.of('Annots'));
+      }
+      if (removeMeta) await stripDocMetadata(out);
+
+      const bytes = await out.save({ useObjectStreams: true });
+      const blob = new Blob([new Uint8Array(bytes)], { type: 'application/pdf' });
+      const name = `${file.name.replace(/\.pdf$/i, '')}-share-safe.pdf`;
+      download(blob, name);
+      setDone({ blob, name, secs: (performance.now() - t0) / 1000 });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not save the cleaned PDF.');
+    } finally {
+      if (handle) void handle.destroy();
+      setBusy(false);
+    }
+  }
 
   return (
     <Card>
@@ -131,7 +275,7 @@ export function ShareSafeCheckTool() {
           >
             <Upload className="size-7 text-muted-foreground" />
             <p className="mt-2 text-sm font-medium">Drop a PDF here, or click to choose</p>
-            <p className="text-xs text-muted-foreground">Find hidden metadata, risky text, links, and annotations before sharing</p>
+            <p className="text-xs text-muted-foreground">Find metadata, sensitive text, and links before sharing</p>
             <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => { void analyze(e.target.files?.[0]); e.currentTarget.value = ''; }} />
           </div>
         ) : (
@@ -139,69 +283,121 @@ export function ShareSafeCheckTool() {
             <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><FileText className="size-4" /></span>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">{file.name}</p>
-              <p className="text-xs text-muted-foreground">{fmt(file.size)}{pageCount ? ` · ${pageCount} page${pageCount === 1 ? '' : 's'}` : ''}</p>
+              <p className="text-xs text-muted-foreground">{fmt(file.size)}{pageCount ? ` - ${pageCount} page${pageCount === 1 ? '' : 's'}` : ''}</p>
             </div>
             <Button size="icon" variant="ghost" aria-label="Remove" onClick={clear}><X className="size-4" /></Button>
           </div>
         )}
 
-        <div className="mt-4 grid gap-3 sm:grid-cols-3">
-          <div className="rounded-xl border bg-muted/30 p-3">
-            <Fingerprint className="size-4 text-primary" />
-            <p className="mt-2 text-sm font-medium">Inspect</p>
-            <p className="text-xs leading-5 text-muted-foreground">Find metadata, risky visible text, links, and annotations.</p>
-          </div>
-          <div className="rounded-xl border bg-muted/30 p-3">
-            <EyeOff className="size-4 text-primary" />
-            <p className="mt-2 text-sm font-medium">Fix path</p>
-            <p className="text-xs leading-5 text-muted-foreground">Open the exact tool for metadata removal, redaction, or link cleanup.</p>
-          </div>
-          <div className="rounded-xl border bg-muted/30 p-3">
-            <ShieldCheck className="size-4 text-primary" />
-            <p className="mt-2 text-sm font-medium">Send cleaner</p>
-            <p className="text-xs leading-5 text-muted-foreground">Use it as the final pre-flight check before sharing.</p>
-          </div>
-        </div>
-
-        {busy && <p className="mt-4 flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" /> Checking your PDF on this device...</p>}
+        {busy && <p className="mt-4 flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" /> Working on this device...</p>}
         {error && <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
 
-        {result && findings && (
-          <div className="mt-4 space-y-3">
+        {file && metadata && !done && (
+          <div className="mt-4 space-y-4">
             <div className={`flex items-center gap-2 rounded-xl border px-3 py-3 ${result.tone}`}>
-              {findings.length ? <AlertTriangle className="size-5 shrink-0" /> : <ShieldCheck className="size-5 shrink-0" />}
+              {metaCount + matches.length + links.length ? <AlertTriangle className="size-5 shrink-0" /> : <ShieldCheck className="size-5 shrink-0" />}
               <div>
                 <p className="text-sm font-semibold">{result.label}</p>
-                <p className="text-xs opacity-80">{findings.length ? `${findings.length} thing${findings.length === 1 ? '' : 's'} to review before sharing.` : 'No obvious metadata, risky text, links, or annotations found.'}</p>
+                <p className="text-xs opacity-80">{metaCount + matches.length + links.length ? `${metaCount + matches.length + links.length} item${metaCount + matches.length + links.length === 1 ? '' : 's'} found for review.` : 'No obvious metadata, sensitive text, or links found.'}</p>
               </div>
             </div>
-            {findings.length > 0 && (
-              <div className="divide-y rounded-xl border bg-card">
-                {findings.map((f, i) => (
-                  <div key={`${f.title}-${i}`} className="flex flex-wrap items-start gap-3 px-3 py-3">
-                    <span className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg ${f.severity === 'high' ? 'bg-red-500/10 text-red-600' : f.severity === 'medium' ? 'bg-amber-500/10 text-amber-600' : 'bg-sky-500/10 text-sky-600'}`}>
-                      {f.title.includes('metadata') ? <Fingerprint className="size-4" /> : f.title.includes('Link') || f.title.includes('link') ? <LinkIcon className="size-4" /> : <EyeOff className="size-4" />}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium">{f.title}</p>
-                      <p className="text-xs leading-5 text-muted-foreground">{f.detail}</p>
-                    </div>
-                    {f.action && <Button asChild size="sm" variant="outline"><Link href={f.action.href}>{f.action.label}</Link></Button>}
-                  </div>
-                ))}
+
+            <section className="rounded-xl border bg-card p-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <Fingerprint className="size-4 text-primary" />
+                <p className="text-sm font-semibold">Hidden metadata</p>
+                <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{metaCount ? `${metaCount} found` : 'clean'}</span>
+                {metaCount > 0 && (
+                  <label className="ml-auto flex items-center gap-2 text-xs font-medium">
+                    <input type="checkbox" checked={removeMeta} onChange={(e) => setRemoveMeta(e.target.checked)} className="accent-primary" />
+                    Remove on save
+                  </label>
+                )}
               </div>
-            )}
-            {actions.length > 0 && (
-              <div className="rounded-xl border bg-muted/30 p-3">
-                <p className="text-sm font-semibold">Recommended fixes</p>
-                <p className="mt-1 text-xs leading-5 text-muted-foreground">The checker does not silently change your file. Choose the fix you want, review it, then download the cleaned copy.</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {actions.map((a) => (
-                    <Button key={a.href} asChild size="sm" variant="outline"><Link href={a.href}>{a.label}</Link></Button>
+              {metaCount > 0 ? (
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  {metadata.fields.map((f) => (
+                    <div key={f.key} className="rounded-lg border bg-muted/30 p-2">
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{METADATA_LABELS[f.key] || f.key}</p>
+                      <p className="mt-1 break-words text-xs">{clipped(f.value)}</p>
+                    </div>
+                  ))}
+                  {metadata.xmpBytes > 0 && <div className="rounded-lg border bg-muted/30 p-2 text-xs"><strong>XMP packet</strong><br />{fmt(metadata.xmpBytes)} of editing/history metadata</div>}
+                  {metadata.thumbs > 0 && <div className="rounded-lg border bg-muted/30 p-2 text-xs"><strong>Embedded thumbnails</strong><br />{metadata.thumbs} page preview image{metadata.thumbs === 1 ? '' : 's'}</div>}
+                  {metadata.pieceInfo && <div className="rounded-lg border bg-muted/30 p-2 text-xs"><strong>Private app data</strong><br />PieceInfo data left by the creating app</div>}
+                </div>
+              ) : <p className="mt-2 text-xs text-muted-foreground">No hidden document metadata found.</p>}
+            </section>
+
+            <section className="rounded-xl border bg-card p-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <EyeOff className="size-4 text-primary" />
+                <p className="text-sm font-semibold">Sensitive visible text</p>
+                <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{matches.length ? `${matches.length} shown` : 'none found'}</span>
+                {redactionCount > 0 && (
+                  <label className="ml-auto flex items-center gap-2 text-xs font-medium">
+                    <input type="checkbox" checked={redactText} onChange={(e) => setRedactText(e.target.checked)} className="accent-primary" />
+                    Redact {redactionCount} text run{redactionCount === 1 ? '' : 's'} on save
+                  </label>
+                )}
+              </div>
+              {matches.length > 0 ? (
+                <div className="mt-3 max-h-60 overflow-auto rounded-lg border">
+                  {matches.map((m, i) => (
+                    <div key={`${m.title}-${m.page}-${i}`} className="border-b px-3 py-2 last:border-b-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${m.severity === 'high' ? 'bg-red-500/10 text-red-700' : 'bg-amber-500/10 text-amber-700'}`}>{m.title}</span>
+                        <span className="text-[11px] text-muted-foreground">Page {m.page}</span>
+                        <span className="ml-auto text-xs font-medium">{clipped(m.value, 48)}</span>
+                      </div>
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">{clipped(m.snippet, 160)}</p>
+                    </div>
                   ))}
                 </div>
+              ) : <p className="mt-2 text-xs text-muted-foreground">No common sensitive patterns found in selectable text.</p>}
+            </section>
+
+            <section className="rounded-xl border bg-card p-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <LinkIcon className="size-4 text-primary" />
+                <p className="text-sm font-semibold">Links</p>
+                <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{links.length ? `${links.length} found` : 'none found'}</span>
+                {links.some((l) => l.kind === 'clickable') && (
+                  <label className="ml-auto flex items-center gap-2 text-xs font-medium">
+                    <input type="checkbox" checked={removeLinks} onChange={(e) => setRemoveLinks(e.target.checked)} className="accent-primary" />
+                    Remove clickable link annotations
+                  </label>
+                )}
               </div>
-            )}
+              {links.length > 0 ? (
+                <div className="mt-3 max-h-52 overflow-auto rounded-lg border">
+                  {links.map((l, i) => (
+                    <div key={`${l.page}-${l.kind}-${i}`} className="flex gap-2 border-b px-3 py-2 text-xs last:border-b-0">
+                      <span className="shrink-0 rounded-full bg-muted px-2 py-0.5">Page {l.page}</span>
+                      <span className="shrink-0 text-muted-foreground">{l.kind === 'clickable' ? 'Clickable' : 'Visible'}</span>
+                      <span className="min-w-0 break-all">{l.url}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : <p className="mt-2 text-xs text-muted-foreground">No visible URLs or clickable link annotations found.</p>}
+            </section>
+
+            <Button className="w-full" size="lg" onClick={saveCleaned} disabled={busy || (!removeMeta && !redactText && !removeLinks)}>
+              {busy ? <><Loader2 className="size-4 animate-spin" /> Saving...</> : <><Download className="size-4" /> Save share-safe PDF</>}
+            </Button>
+          </div>
+        )}
+
+        {done && (
+          <div className="mt-4 space-y-3">
+            <div className="flex items-center gap-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2.5">
+              <CheckCircle2 className="size-5 shrink-0 text-emerald-600" />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold">Cleaned copy ready</p>
+                <p className="text-xs text-muted-foreground">Metadata, selected redactions, and link cleanup were applied based on your choices.</p>
+              </div>
+            </div>
+            <PdfDone blob={done.blob} name={done.name} secs={done.secs} currentHref="/share-safe-pdf-check" fromLabel="Share-Safe Check" />
           </div>
         )}
       </CardContent>

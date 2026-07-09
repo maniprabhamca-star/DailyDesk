@@ -10,6 +10,7 @@ const ROUTES: Array<{ path: string; priority: number; changeFrequency: MetadataR
   { path: '/compress-pdf', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/rotate-pdf', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/delete-pages-from-pdf', priority: 0.9, changeFrequency: 'monthly' },
+  { path: '/compare-pdf', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/add-page-numbers-to-pdf', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/jpg-to-pdf', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/pdf-to-jpg', priority: 0.9, changeFrequency: 'monthly' },

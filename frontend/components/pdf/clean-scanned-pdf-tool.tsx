@@ -115,15 +115,12 @@ export function CleanScannedPdfTool() {
     setAfterPreview(null);
     (async () => {
       handle = await openPdf(file);
-      const rp = await renderPage(handle, 0, dprTarget(950, 1.4, 1200));
-      const cleaned = await cleanRenderedPage(rp, mode, contrast);
+      const rp = await renderPage(handle, 0, dprTarget(720, 1.15, 950));
       if (cancelled) {
         URL.revokeObjectURL(rp.url);
-        URL.revokeObjectURL(cleaned.page.url);
         return;
       }
       setBeforePreview(rp);
-      setAfterPreview(cleaned.page);
     })().catch(() => {
       if (!cancelled) {
         setBeforePreview(null);
@@ -136,7 +133,34 @@ export function CleanScannedPdfTool() {
     return () => {
       cancelled = true;
     };
-  }, [file, mode, contrast]);
+  }, [file]);
+
+  useEffect(() => {
+    if (!beforePreview) {
+      setAfterPreview(null);
+      return;
+    }
+    let cancelled = false;
+    setPreviewBusy(true);
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        const cleaned = await cleanRenderedPage(beforePreview, mode, contrast);
+        if (cancelled) {
+          URL.revokeObjectURL(cleaned.page.url);
+          return;
+        }
+        setAfterPreview(cleaned.page);
+      })().catch(() => {
+        if (!cancelled) setAfterPreview(null);
+      }).finally(() => {
+        if (!cancelled) setPreviewBusy(false);
+      });
+    }, 80);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [beforePreview, mode, contrast]);
 
   async function run() {
     if (!file) return;
