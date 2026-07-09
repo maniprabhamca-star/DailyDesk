@@ -1,24 +1,47 @@
 #!/usr/bin/env node
-// Tool canary — the "auto-detect + auto-protect" half of the self-healing plan
-// (see the self-healing design note). Runs on a cron; exercises DiemDesk's
-// SERVER tools end-to-end over HTTP with tiny fixtures and records health.
+// Tool canary — the "auto-detect + auto-protect + auto-draft" self-healing layer
+// (see the self-healing design note). Runs on a cron.
 //
-// Safe by design:
-//   • auto-PROTECT only: on THRESHOLD consecutive failures it flips the tool's
-//     flag to `disabled` (the existing kill-switch) so users see "temporarily
-//     unavailable" instead of a broken tool — a reversible flag flip, never a
-//     code change. It auto-re-enables a tool ONLY if the canary itself disabled
-//     it (tracked by auto_disabled), so a manual kill is never overridden.
-//   • it sends x-canary so it can still test a disabled tool and detect recovery.
-//   • heartbeat row (__heartbeat__) lets the dashboard spot a dead monitor.
-//   • it NEVER patches code or deploys — drafting/fixing stays human-approved.
+//   • SERVER tools: probed end-to-end over HTTP; auto-DISABLE on THRESHOLD
+//     consecutive failures via the tool_flags kill-switch (reversible); auto-
+//     re-enable on recovery. x-canary lets it probe a disabled tool.
+//   • CLIENT tools: the pure pdf-lib/rewrite/sanitize logic is run against a tiny
+//     fixture via the frontend's own libs (sucrase). REPORT-ONLY for now (records
+//     health + alerts, but does not auto-disable a heavily-used public tool on a
+//     new logic canary).
+//   • On a failure it emails the owner a diagnostic "fix brief" (what broke, the
+//     likely source file, how to reproduce) — the auto-DRAFT step. It NEVER
+//     patches code or deploys; writing/merging a fix stays human-approved.
+//   • Heartbeat row proves the monitor ran; a separate heartbeat-watch cron
+//     alerts if THIS monitor dies (it can't detect its own death).
 require('dotenv').config();
+const path = require('path');
 const db = require('../src/db');
 const { notifyOwner } = require('../src/utils/notify');
 
 const BASE = `http://127.0.0.1:${process.env.PORT || 4000}`;
 const CANARY = process.env.CANARY_TOKEN || '';
-const THRESHOLD = 2; // consecutive failures before auto-disable (avoid flapping)
+const THRESHOLD = 2;
+
+// Where to look when a given tool breaks — goes in the diagnostic email.
+const SOURCE = {
+  '/word-to-pdf': 'backend/src/routes/convert.js (soffice --convert-to pdf) + LibreOffice on the VPS',
+  '/pdf-to-word': 'backend/src/routes/convert.js (writer_pdf_import) + LibreOffice on the VPS',
+  '/rotate-pdf': 'frontend/lib/pdf-rewrite-core.ts (rotate) + pdf-rewrite.ts worker',
+  '/delete-pages-from-pdf': 'frontend/lib/pdf-rewrite-core.ts (delete)',
+  '/crop-pdf': 'frontend/lib/pdf-rewrite-core.ts (crop / setCropBox)',
+  '/remove-pdf-metadata': 'frontend/lib/pdf-sanitize.ts (stripDocMetadata)',
+};
+function brief(slug, detail, disabled) {
+  return [
+    disabled ? `AUTO-DISABLED: ${slug}` : `FAILING (still enabled — report-only): ${slug}`,
+    `Failure: ${detail}`,
+    `Likely source: ${SOURCE[slug] || 'unknown'}`,
+    `Reproduce:  cd /var/www/dailydesk/backend && node scripts/canary.js`,
+    `Recent log: tail -n 40 /var/log/dd-canary.log`,
+    disabled ? 'It will auto-re-enable when the canary sees it pass again.' : 'Not auto-disabled; investigate before it affects users.',
+  ].join('\n');
+}
 
 async function ensureTable() {
   await db.query(`
@@ -41,23 +64,26 @@ async function setFlag(slug, status) {
   );
 }
 
-async function record(slug, ok, detail) {
+// autoDisable=false → report-only (record + alert, but never flip the flag).
+async function record(slug, ok, detail, autoDisable = true) {
   const { rows } = await db.query('SELECT fail_streak, auto_disabled FROM tool_health WHERE slug = $1', [slug]);
   const cur = rows[0] || { fail_streak: 0, auto_disabled: false };
   const failStreak = ok ? 0 : cur.fail_streak + 1;
   let autoDisabled = cur.auto_disabled;
 
-  if (!ok && failStreak >= THRESHOLD && !autoDisabled) {
+  if (!ok && failStreak >= THRESHOLD && autoDisable && !autoDisabled) {
     await setFlag(slug, 'disabled');
     autoDisabled = true;
-    console.log(`[canary] AUTO-DISABLED ${slug} after ${failStreak} failures — ${detail}`);
-    // Alert only on the TRANSITION (not every run while down), so no spam.
-    await notifyOwner(`⚠️ Tool auto-disabled: ${slug}`, `The canary took ${slug} offline after ${failStreak} consecutive failures.\nReason: ${detail}\nUsers now see "temporarily unavailable". It will auto-re-enable when the canary sees it recover.`);
+    console.log(`[canary] AUTO-DISABLED ${slug} — ${detail}`);
+    await notifyOwner(`⚠️ Tool auto-disabled: ${slug}`, brief(slug, detail, true));
+  } else if (!ok && failStreak === THRESHOLD && !autoDisable) {
+    console.log(`[canary] FAILING (report-only) ${slug} — ${detail}`);
+    await notifyOwner(`⚠️ Tool failing: ${slug}`, brief(slug, detail, false));
   } else if (ok && autoDisabled) {
-    await setFlag(slug, 'enabled'); // recover ONLY what we disabled
+    await setFlag(slug, 'enabled');
     autoDisabled = false;
     console.log(`[canary] AUTO-RE-ENABLED ${slug} (recovered)`);
-    await notifyOwner(`✅ Tool recovered: ${slug}`, `${slug} is passing its canary check again and has been automatically re-enabled.`);
+    await notifyOwner(`✅ Tool recovered: ${slug}`, `${slug} passes its canary again and has been auto-re-enabled.`);
   }
 
   await db.query(
@@ -76,10 +102,7 @@ async function convert(endpoint, fileBuf, filename, type) {
   return { status: r.status, buf: Buffer.from(await r.arrayBuffer()) };
 }
 
-(async () => {
-  await ensureTable();
-
-  // 1. Office->PDF (LibreOffice). RTF maps to the /word-to-pdf tool.
+async function serverChecks() {
   let pdf = null;
   try {
     const { status, buf } = await convert('/api/convert/office-to-pdf', Buffer.from('{\\rtf1\\ansi DiemDesk canary check.\\par}'), 'canary.rtf', 'application/rtf');
@@ -87,16 +110,63 @@ async function convert(endpoint, fileBuf, filename, type) {
     await record('/word-to-pdf', ok, ok ? `pdf ${buf.length}B` : `HTTP ${status}`);
     if (ok) pdf = buf;
   } catch (e) { await record('/word-to-pdf', false, e.message); }
-
-  // 2. PDF->Word (LibreOffice import). Reuse the PDF the first step produced.
   try {
     if (!pdf) throw new Error('no canary pdf from step 1');
     const { status, buf } = await convert('/api/convert/pdf-to-word', pdf, 'canary.pdf', 'application/pdf');
-    const ok = status === 200 && buf.length > 500 && buf.slice(0, 2).toString() === 'PK'; // docx = zip
+    const ok = status === 200 && buf.length > 500 && buf.slice(0, 2).toString() === 'PK';
     await record('/pdf-to-word', ok, ok ? `docx ${buf.length}B` : `HTTP ${status}`);
   } catch (e) { await record('/pdf-to-word', false, e.message); }
+}
 
-  // Heartbeat — a fresh timestamp proves the monitor itself is alive.
+// Run the client tools' CORE logic (the same libs the browser runs) against a
+// tiny fixture. Report-only (autoDisable=false). If the harness itself can't
+// load, skip quietly — an infra glitch must not flag the tools as broken.
+async function clientChecks() {
+  let executeRewrite, stripDocMetadata, PDFDocument;
+  try {
+    const FE = path.resolve(__dirname, '../../frontend');
+    require(`${FE}/node_modules/sucrase/register`);
+    ({ executeRewrite } = require(`${FE}/lib/pdf-rewrite-core.ts`));
+    ({ stripDocMetadata } = require(`${FE}/lib/pdf-sanitize.ts`));
+    ({ PDFDocument } = require(`${FE}/node_modules/pdf-lib`));
+  } catch (e) {
+    console.error('[canary] client harness unavailable, skipping client checks:', e.message);
+    return;
+  }
+  // Fixture: a 3-page PDF with metadata to strip.
+  const doc = await PDFDocument.create();
+  for (let i = 0; i < 3; i++) doc.addPage([200, 200]);
+  doc.setTitle('canary'); doc.setAuthor('canary'); doc.setSubject('canary');
+  const bytes = await doc.save();
+  const freshAB = () => Uint8Array.from(bytes).buffer; // fresh copy — executeRewrite transfers it
+
+  const run = async (slug, fn) => {
+    try { await record(slug, !!(await fn()), 'logic ok', false); }
+    catch (e) { await record(slug, false, e.message, false); }
+  };
+  await run('/rotate-pdf', async () => {
+    const [out] = await executeRewrite([freshAB()], { type: 'rotate', deltas: [90, 0, 0] });
+    return (await PDFDocument.load(out)).getPageCount() === 3;
+  });
+  await run('/delete-pages-from-pdf', async () => {
+    const [out] = await executeRewrite([freshAB()], { type: 'delete', indices: [1] });
+    return (await PDFDocument.load(out)).getPageCount() === 2;
+  });
+  await run('/crop-pdf', async () => {
+    const [out] = await executeRewrite([freshAB()], { type: 'crop', opts: { xFrac: 0.1, yFrac: 0.1, wFrac: 0.8, hFrac: 0.8 } });
+    const cb = (await PDFDocument.load(out)).getPage(0).getCropBox();
+    return Math.abs(cb.width - 160) < 1;
+  });
+  await run('/remove-pdf-metadata', async () => {
+    const d = await PDFDocument.load(freshAB());
+    return (await stripDocMetadata(d)) >= 1;
+  });
+}
+
+(async () => {
+  await ensureTable();
+  await serverChecks();
+  await clientChecks();
   await record('__heartbeat__', true, 'monitor ran');
   process.exit(0);
 })().catch((e) => { console.error('[canary] fatal', e); process.exit(1); });

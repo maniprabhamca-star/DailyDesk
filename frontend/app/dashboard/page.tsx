@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { Loader2, RefreshCw, ShieldCheck, BarChart3, Users, UserPlus, MousePointerClick, Repeat, AlertTriangle } from 'lucide-react';
+import { Loader2, RefreshCw, ShieldCheck, BarChart3, Users, UserPlus, MousePointerClick, Repeat, AlertTriangle, Activity } from 'lucide-react';
 import { SiteHeader } from '@/components/app/site-header';
 import { SiteFooter } from '@/components/app/site-footer';
 import { Button } from '@/components/ui/button';
@@ -30,7 +30,8 @@ function Metric({ icon: Icon, label, value, sub }: { icon: typeof Users; label: 
 }
 
 type ErrGroup = { message: string; source: string | null; count: number; last_seen: string; visitors: number; last_path: string | null };
-type ErrData = { groups: ErrGroup[]; last_24h: number };
+type ByTool = { tool: string; count: number; last_seen: string };
+type ErrData = { groups: ErrGroup[]; last_24h: number; by_tool?: ByTool[] };
 
 type ToolHealth = { slug: string; ok: boolean | null; detail: string | null; fail_streak: number; auto_disabled: boolean; checked_at: string };
 type HealthData = { tools: ToolHealth[]; heartbeat: { checked_at: string } | null; now: string };
@@ -124,40 +125,58 @@ export default function DashboardPage() {
               )}
             </section>
 
-            {health && (
-              <section className="mt-8">
-                <h2 className="flex items-center gap-2 text-lg font-semibold">
-                  <AlertTriangle className="size-4 text-primary" /> Tool health (auto-monitor)
-                </h2>
-                <p className="mt-1 text-xs text-muted-foreground">A canary probes the server tools on a schedule. If one fails repeatedly it auto-disables (users see “temporarily unavailable”) and re-enables on recovery. Client tools also surface real errors below.</p>
-                {(() => {
-                  const stale = !health.heartbeat || (Date.now() - new Date(health.heartbeat.checked_at).getTime()) > 25 * 60 * 1000;
-                  return (
-                    <>
-                      <p className={`mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${stale ? 'bg-destructive/10 text-destructive' : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'}`}>
-                        <span className={`size-2 rounded-full ${stale ? 'bg-destructive' : 'bg-emerald-500'}`} />
-                        {health.heartbeat ? (stale ? `Monitor may be down — last ran ${new Date(health.heartbeat.checked_at).toLocaleString()}` : `Monitor healthy — last ran ${new Date(health.heartbeat.checked_at).toLocaleString()}`) : 'Monitor has not run yet'}
-                      </p>
-                      {health.tools.length > 0 && (
-                        <div className="mt-3 space-y-2">
-                          {health.tools.map((t) => {
-                            const state = t.auto_disabled ? 'disabled' : t.ok ? 'ok' : 'failing';
-                            const tone = state === 'ok' ? 'bg-emerald-500' : state === 'failing' ? 'bg-amber-500' : 'bg-destructive';
-                            const label = state === 'ok' ? 'Healthy' : state === 'failing' ? `Failing (${t.fail_streak}×)` : 'Auto-disabled';
-                            return (
-                              <div key={t.slug} className="flex items-center justify-between gap-3 rounded-lg border bg-card p-3 text-sm shadow-soft">
-                                <span className="flex items-center gap-2 font-medium"><span className={`size-2.5 rounded-full ${tone}`} /> {t.slug}</span>
-                                <span className="text-xs text-muted-foreground">{label} · {t.detail || ''} · {new Date(t.checked_at).toLocaleTimeString()}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </>
-                  );
-                })()}
-              </section>
-            )}
+            {health && (() => {
+              const stale = !health.heartbeat || (Date.now() - new Date(health.heartbeat.checked_at).getTime()) > 25 * 60 * 1000;
+              const errByTool = new Map((errs?.by_tool || []).map((t) => [t.tool, t.count]));
+              const healthy = health.tools.filter((t) => t.ok && !t.auto_disabled).length;
+              const failing = health.tools.filter((t) => !t.ok && !t.auto_disabled).length;
+              const disabled = health.tools.filter((t) => t.auto_disabled).length;
+              return (
+                <section className="mt-8">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h2 className="flex items-center gap-2 text-lg font-semibold"><Activity className="size-4 text-primary" /> Tool health (auto-monitor)</h2>
+                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${stale ? 'bg-destructive/10 text-destructive' : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'}`}>
+                      <span className={`size-2 rounded-full ${stale ? 'bg-destructive' : 'bg-emerald-500 animate-pulse'}`} />
+                      {health.heartbeat ? (stale ? `Monitor down — last ran ${new Date(health.heartbeat.checked_at).toLocaleTimeString()}` : `Live · checked ${new Date(health.heartbeat.checked_at).toLocaleTimeString()}`) : 'Monitor not run yet'}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">A canary probes each tool on a schedule. A failing tool auto-disables (users see “temporarily unavailable”) and re-enables on recovery; you’re emailed either way. “Logic” = the client tool’s core engine tested in Node; “live” = the real server endpoint.</p>
+
+                  {/* summary KPI tiles */}
+                  <div className="mt-3 grid grid-cols-3 gap-3">
+                    <div className="rounded-xl border bg-card p-4 shadow-soft"><p className="text-2xl font-bold text-emerald-600">{healthy}</p><p className="text-xs text-muted-foreground">Healthy</p></div>
+                    <div className={`rounded-xl border p-4 shadow-soft ${failing ? 'border-amber-500/40 bg-amber-500/5' : 'bg-card'}`}><p className={`text-2xl font-bold ${failing ? 'text-amber-600' : ''}`}>{failing}</p><p className="text-xs text-muted-foreground">Failing</p></div>
+                    <div className={`rounded-xl border p-4 shadow-soft ${disabled ? 'border-destructive/40 bg-destructive/5' : 'bg-card'}`}><p className={`text-2xl font-bold ${disabled ? 'text-destructive' : ''}`}>{disabled}</p><p className="text-xs text-muted-foreground">Auto-disabled</p></div>
+                  </div>
+
+                  {/* per-tool KPI cards */}
+                  {health.tools.length > 0 && (
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      {health.tools.map((t) => {
+                        const state = t.auto_disabled ? 'disabled' : t.ok ? 'ok' : 'failing';
+                        const tone = state === 'ok' ? { dot: 'bg-emerald-500', text: 'text-emerald-700 dark:text-emerald-400', ring: 'border-emerald-500/30', label: 'Healthy' }
+                          : state === 'failing' ? { dot: 'bg-amber-500', text: 'text-amber-600', ring: 'border-amber-500/40', label: `Failing ${t.fail_streak}×` }
+                          : { dot: 'bg-destructive', text: 'text-destructive', ring: 'border-destructive/40', label: 'Auto-disabled' };
+                        const errs7d = errByTool.get(t.slug) || 0;
+                        return (
+                          <div key={t.slug} className={`rounded-xl border ${tone.ring} bg-card p-4 shadow-soft`}>
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="truncate text-sm font-semibold">{t.slug}</span>
+                              <span className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium ${tone.text}`}><span className={`size-2 rounded-full ${tone.dot}`} />{tone.label}</span>
+                            </div>
+                            <p className="mt-2 truncate text-xs text-muted-foreground">{t.detail || '—'}</p>
+                            <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
+                              <span>checked {new Date(t.checked_at).toLocaleTimeString()}</span>
+                              <span className={errs7d ? 'font-medium text-amber-600' : ''}>{errs7d ? `${errs7d} err/7d` : 'no user errors'}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </section>
+              );
+            })()}
 
             <section className="mt-8">
               <h2 className="flex items-center gap-2 text-lg font-semibold">

@@ -186,7 +186,17 @@ router.get('/errors', async (req, res) => {
       ORDER BY count DESC, last_seen DESC
       LIMIT 50`);
     const total = await db.query(`SELECT count(*)::int AS c FROM client_errors WHERE created_at > now() - interval '24 hours'`);
-    res.json({ groups: rows, last_24h: total.rows[0].c });
+    // Per-tool rollup — which tool (route) is throwing the most, last 7 days.
+    const byTool = await db.query(`
+      SELECT coalesce(nullif(path, ''), '(unknown)') AS tool,
+             count(*)::int AS count,
+             max(created_at) AS last_seen
+      FROM client_errors
+      WHERE created_at > now() - interval '7 days'
+      GROUP BY tool
+      ORDER BY count DESC
+      LIMIT 20`);
+    res.json({ groups: rows, last_24h: total.rows[0].c, by_tool: byTool.rows });
   } catch (err) {
     console.error('client errors list failed:', err.message);
     res.status(500).json({ error: 'Could not load errors' });
