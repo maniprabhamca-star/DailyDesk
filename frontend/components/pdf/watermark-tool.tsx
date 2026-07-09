@@ -12,6 +12,7 @@ import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
 import { openPdf, renderPage, dprTarget, type PdfHandle, type RenderedPage } from '@/lib/pdf-render';
 import { parseRanges } from '@/lib/page-ranges';
 import { rewritePdf } from '@/lib/pdf-rewrite';
+import { useCancelableJob, isCancel } from '@/lib/use-cancelable-job';
 import type { StampCore, StampLayer } from '@/lib/pdf-stamp';
 import { FAMILIES, loadFontBytes, type Family } from '@/lib/fonts';
 import { FontSelect } from '@/components/app/font-select';
@@ -133,6 +134,7 @@ export function WatermarkTool() {
   });
   const [imageName, setImageName] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const jobs = useCancelableJob();
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ blob: Blob; name: string; secs: number } | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
@@ -222,6 +224,7 @@ export function WatermarkTool() {
   async function apply() {
     if (!file) return;
     if (settings.mode === 'image' && !settings.imageBytes) { setError('Add a logo image first.'); return; }
+    const { id, signal } = jobs.begin();
     setBusy(true);
     setError(null);
     setDone(null);
@@ -254,16 +257,22 @@ export function WatermarkTool() {
           imageBytes: s.imageBytes ? s.imageBytes.slice().buffer : undefined,
           imageIsPng: s.imageIsPng,
         },
-      });
+      }, { signal });
+      if (!jobs.isCurrent(id)) return;
       const name = `${file.name.replace(/\.pdf$/i, '')}-watermarked.pdf`;
       const blob = new Blob([new Uint8Array(out)], { type: 'application/pdf' });
       download(blob, name);
       setDone({ blob, name, secs: (performance.now() - t0) / 1000 });
     } catch (e) {
+      if (isCancel(e) || !jobs.isCurrent(id)) return;
       setError(e instanceof Error ? e.message : 'Could not watermark the PDF.');
     } finally {
-      setBusy(false);
+      if (jobs.isCurrent(id)) setBusy(false);
     }
+  }
+  function cancelApply() {
+    jobs.cancel();
+    setBusy(false);
   }
 
   function set<K extends keyof Settings>(k: K, v: Settings[K]) { setDone(null); setSettings((cur) => ({ ...cur, [k]: v })); }
@@ -452,9 +461,16 @@ export function WatermarkTool() {
         {error && <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
 
         {file && (
-          <Button className="mt-5 w-full" size="lg" onClick={apply} disabled={busy || (settings.mode === 'image' && !settings.imageBytes)}>
-            {busy ? <><Loader2 className="size-4 animate-spin" /> Stamping…</> : <><Stamp className="size-4" /> Watermark & download</>}
-          </Button>
+          busy ? (
+            <div className="mt-5 flex gap-2">
+              <Button className="flex-1" size="lg" disabled><Loader2 className="size-4 animate-spin" /> Stamping…</Button>
+              <Button size="lg" variant="outline" onClick={cancelApply}><X className="size-4" /> Cancel</Button>
+            </div>
+          ) : (
+            <Button className="mt-5 w-full" size="lg" onClick={apply} disabled={settings.mode === 'image' && !settings.imageBytes}>
+              <Stamp className="size-4" /> Watermark & download
+            </Button>
+          )
         )}
 
         {done && <PdfDone blob={done.blob} name={done.name} secs={done.secs} currentHref="/watermark-pdf" fromLabel="Watermark PDF" />}

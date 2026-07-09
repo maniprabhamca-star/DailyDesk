@@ -9,6 +9,7 @@ import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
 import { openPdf, renderPage, dprTarget, useLazyPageThumb, prefetchPageThumbs, type PdfHandle } from '@/lib/pdf-render';
 import { rewritePdf } from '@/lib/pdf-rewrite';
+import { useCancelableJob, isCancel } from '@/lib/use-cancelable-job';
 
 // Whether each page is marked for removal. Deletion is lossless (pdf-lib
 // removePage — the kept pages are untouched), so quality is preserved.
@@ -77,6 +78,7 @@ export function DeletePagesTool() {
   const [blankScan, setBlankScan] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ blob: Blob; name: string; secs: number } | null>(null);
+  const jobs = useCancelableJob();
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -214,6 +216,7 @@ export function DeletePagesTool() {
 
   async function apply() {
     if (!file || marked === 0 || remaining < 1) return;
+    const { id, signal } = jobs.begin();
     setBusy(true);
     setError(null);
     setDone(null);
@@ -221,16 +224,22 @@ export function DeletePagesTool() {
     try {
       // Rewrites run in a Web Worker so the page never freezes, even on huge files.
       const indices = markedPages.map((m, i) => (m ? i : -1)).filter((i) => i >= 0);
-      const out = await rewritePdf(file, { type: 'delete', indices });
+      const out = await rewritePdf(file, { type: 'delete', indices }, { signal });
+      if (!jobs.isCurrent(id)) return;
       const name = `${file.name.replace(/\.pdf$/i, '')}-pages-removed.pdf`;
       const blob = new Blob([new Uint8Array(out)], { type: 'application/pdf' });
       download(blob, name);
       setDone({ blob, name, secs: (performance.now() - t0) / 1000 });
     } catch (e) {
+      if (isCancel(e) || !jobs.isCurrent(id)) return;
       setError(e instanceof Error ? e.message : 'Could not delete the pages.');
     } finally {
-      setBusy(false);
+      if (jobs.isCurrent(id)) setBusy(false);
     }
+  }
+  function cancelApply() {
+    jobs.cancel();
+    setBusy(false);
   }
 
   return (
@@ -305,9 +314,16 @@ export function DeletePagesTool() {
         )}
 
         {file && !parsing && (
-          <Button className="mt-5 w-full" size="lg" onClick={apply} disabled={busy || marked === 0 || remaining < 1}>
-            {busy ? <><Loader2 className="size-4 animate-spin" /> Removing…</> : <><Download className="size-4" /> {marked > 0 ? `Remove ${marked} page${marked === 1 ? '' : 's'} & download` : 'Remove pages & download'}</>}
-          </Button>
+          busy ? (
+            <div className="mt-5 flex gap-2">
+              <Button className="flex-1" size="lg" disabled><Loader2 className="size-4 animate-spin" /> Removing…</Button>
+              <Button size="lg" variant="outline" onClick={cancelApply}><X className="size-4" /> Cancel</Button>
+            </div>
+          ) : (
+            <Button className="mt-5 w-full" size="lg" onClick={apply} disabled={marked === 0 || remaining < 1}>
+              <Download className="size-4" /> {marked > 0 ? `Remove ${marked} page${marked === 1 ? '' : 's'} & download` : 'Remove pages & download'}
+            </Button>
+          )
         )}
 
         {done && <PdfDone blob={done.blob} name={done.name} secs={done.secs} currentHref="/delete-pages-from-pdf" fromLabel="Delete Pages" />}

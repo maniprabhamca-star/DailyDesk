@@ -18,8 +18,16 @@ function opExtraTransfers(op: RewriteOp): ArrayBuffer[] {
   return [];
 }
 
-function runInWorker(buffers: ArrayBuffer[], op: RewriteOp): Promise<Uint8Array[]> {
+/** Thrown when a rewrite is cancelled via its AbortSignal. Callers can detect
+ * it with `isCancel(e)` and quietly reset instead of showing an error. */
+export function isCancel(e: unknown): boolean {
+  return e instanceof DOMException ? e.name === 'AbortError' : (e as { name?: string })?.name === 'AbortError';
+}
+function abortError(): DOMException { return new DOMException('Cancelled', 'AbortError'); }
+
+function runInWorker(buffers: ArrayBuffer[], op: RewriteOp, signal?: AbortSignal): Promise<Uint8Array[]> {
   return new Promise((resolve, reject) => {
+    if (signal?.aborted) { reject(abortError()); return; }
     let worker: Worker;
     try {
       worker = new Worker(new URL('./pdf-rewrite.worker.ts', import.meta.url));
@@ -27,20 +35,29 @@ function runInWorker(buffers: ArrayBuffer[], op: RewriteOp): Promise<Uint8Array[
       reject(e);
       return;
     }
+    let onAbort: (() => void) | null = null;
+    const detach = () => { if (onAbort && signal) signal.removeEventListener('abort', onAbort); };
     worker.onmessage = (e: MessageEvent<{ ok: boolean; list?: Uint8Array[]; error?: string }>) => {
+      detach();
       worker.terminate();
       if (e.data.ok && e.data.list) resolve(e.data.list);
       else reject(new Error(e.data.error || 'Could not rewrite the PDF.'));
     };
     worker.onerror = () => {
+      detach();
       worker.terminate();
       reject(new Error('worker-failed'));
     };
+    if (signal) {
+      onAbort = () => { detach(); worker.terminate(); reject(abortError()); }; // kill the crunch immediately
+      signal.addEventListener('abort', onAbort);
+    }
     worker.postMessage({ buffers, op }, [...buffers, ...opExtraTransfers(op)]); // transfer, zero-copy
   });
 }
 
-async function run(srcs: (File | Blob)[], op: RewriteOp): Promise<Uint8Array[]> {
+async function run(srcs: (File | Blob)[], op: RewriteOp, signal?: AbortSignal): Promise<Uint8Array[]> {
+  if (signal?.aborted) throw abortError();
   // Buffers (and any font/image bytes inside the op) are TRANSFERRED to the
   // worker — detached here. Snapshot copies of the op extras up front so the
   // inline fallback still has them; file buffers are simply re-read.
@@ -51,25 +68,28 @@ async function run(srcs: (File | Blob)[], op: RewriteOp): Promise<Uint8Array[]> 
     fallbackOp = { ...op, opts: { ...op.opts, imageBytes: op.opts.imageBytes.slice(0) } };
   }
   try {
-    return await runInWorker(await Promise.all(srcs.map((s) => s.arrayBuffer())), op);
-  } catch {
+    return await runInWorker(await Promise.all(srcs.map((s) => s.arrayBuffer())), op, signal);
+  } catch (e) {
+    if (isCancel(e)) throw e; // a cancel must NOT silently fall back to an uncancellable inline run
     const { executeRewrite } = await import('./pdf-rewrite-core');
     return executeRewrite(await Promise.all(srcs.map((s) => s.arrayBuffer())), fallbackOp);
   }
 }
 
+type RewriteOpts = { signal?: AbortSignal };
+
 /** Single-input, single-output rewrites (rotate/delete/reorder/extract/
- * page-numbers/watermark). */
-export async function rewritePdf(src: File | Blob, op: RewriteOp): Promise<Uint8Array> {
-  return (await run([src], op))[0];
+ * page-numbers/watermark). Pass `{ signal }` to make it cancellable. */
+export async function rewritePdf(src: File | Blob, op: RewriteOp, opts?: RewriteOpts): Promise<Uint8Array> {
+  return (await run([src], op, opts?.signal))[0];
 }
 
 /** Merge several PDFs into one, in the given order. */
-export async function mergePdfs(srcs: (File | Blob)[]): Promise<Uint8Array> {
-  return (await run(srcs, { type: 'merge' }))[0];
+export async function mergePdfs(srcs: (File | Blob)[], opts?: RewriteOpts): Promise<Uint8Array> {
+  return (await run(srcs, { type: 'merge' }, opts?.signal))[0];
 }
 
 /** Split into many PDFs: one per page, or one per chunk of `every` pages. */
-export async function splitPdf(src: File | Blob, op: { type: 'split-each' } | { type: 'split-chunks'; every: number }): Promise<Uint8Array[]> {
-  return run([src], op);
+export async function splitPdf(src: File | Blob, op: { type: 'split-each' } | { type: 'split-chunks'; every: number }, opts?: RewriteOpts): Promise<Uint8Array[]> {
+  return run([src], op, opts?.signal);
 }

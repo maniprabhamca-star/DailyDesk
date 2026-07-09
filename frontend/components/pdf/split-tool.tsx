@@ -9,6 +9,7 @@ import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
 import { parseRanges } from '@/lib/page-ranges';
 import { rewritePdf, splitPdf } from '@/lib/pdf-rewrite';
+import { useCancelableJob, isCancel } from '@/lib/use-cancelable-job';
 
 type Mode = 'extract' | 'each' | 'every';
 
@@ -33,6 +34,7 @@ export function SplitTool() {
   const [every, setEvery] = useState(2); // "fixed ranges": pages per output file
   const [ranges, setRanges] = useState('');
   const [busy, setBusy] = useState(false);
+  const jobs = useCancelableJob();
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ blob: Blob; name: string; secs: number } | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
@@ -90,6 +92,7 @@ export function SplitTool() {
       setError('Add a PDF first.');
       return;
     }
+    const { id, signal } = jobs.begin();
     setBusy(true);
     setError(null);
     setDone(null);
@@ -101,13 +104,15 @@ export function SplitTool() {
 
       if (mode === 'extract') {
         const pages = parseRanges(ranges, pageCount); // 1-based, may throw
-        const bytes = await rewritePdf(file, { type: 'extract', indices: pages.map((n) => n - 1) });
+        const bytes = await rewritePdf(file, { type: 'extract', indices: pages.map((n) => n - 1) }, { signal });
+        if (!jobs.isCurrent(id)) return;
         const name = `${base}-extracted.pdf`;
         const blob = new Blob([new Uint8Array(bytes)], { type: 'application/pdf' });
         download(blob, name);
         setDone({ blob, name, secs: (performance.now() - t0) / 1000 }); // single PDF → chainable via Keep moving
       } else {
-        const parts = await splitPdf(file, mode === 'each' ? { type: 'split-each' } : { type: 'split-chunks', every });
+        const parts = await splitPdf(file, mode === 'each' ? { type: 'split-each' } : { type: 'split-chunks', every }, { signal });
+        if (!jobs.isCurrent(id)) return;
         const JSZip = (await import('jszip')).default;
         const zip = new JSZip();
         const pad = String(parts.length).length;
@@ -116,13 +121,19 @@ export function SplitTool() {
           zip.file(`${base}-${label}-${String(i + 1).padStart(pad, '0')}.pdf`, bytes);
         });
         const blob = await zip.generateAsync({ type: 'blob' });
+        if (!jobs.isCurrent(id)) return;
         download(blob, `${base}-${mode === 'each' ? 'pages' : 'parts'}.zip`);
       }
     } catch (e) {
+      if (isCancel(e) || !jobs.isCurrent(id)) return;
       setError(e instanceof Error ? e.message : 'Could not split the PDF.');
     } finally {
-      setBusy(false);
+      if (jobs.isCurrent(id)) setBusy(false);
     }
+  }
+  function cancelRun() {
+    jobs.cancel();
+    setBusy(false);
   }
 
   return (
@@ -209,9 +220,16 @@ export function SplitTool() {
         {error && <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
 
         {file && (
-          <Button className="mt-5 w-full" size="lg" onClick={run} disabled={busy}>
-            {busy ? <><Loader2 className="size-4 animate-spin" /> Working…</> : <><Download className="size-4" /> {mode === 'extract' ? 'Extract pages' : mode === 'every' ? `Split into ${Math.ceil(pageCount / Math.max(1, every))} files` : `Split into ${pageCount} files`}</>}
-          </Button>
+          busy ? (
+            <div className="mt-5 flex gap-2">
+              <Button className="flex-1" size="lg" disabled><Loader2 className="size-4 animate-spin" /> Working…</Button>
+              <Button size="lg" variant="outline" onClick={cancelRun}><X className="size-4" /> Cancel</Button>
+            </div>
+          ) : (
+            <Button className="mt-5 w-full" size="lg" onClick={run}>
+              <Download className="size-4" /> {mode === 'extract' ? 'Extract pages' : mode === 'every' ? `Split into ${Math.ceil(pageCount / Math.max(1, every))} files` : `Split into ${pageCount} files`}
+            </Button>
+          )
         )}
 
         {done && <PdfDone blob={done.blob} name={done.name} secs={done.secs} currentHref="/split-pdf" fromLabel="Split PDF" />}

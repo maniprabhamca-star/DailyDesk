@@ -11,6 +11,7 @@ import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
 import { openPdf, useLazyPageThumb, prefetchPageThumbs, type PdfHandle } from '@/lib/pdf-render';
 import { rewritePdf } from '@/lib/pdf-rewrite';
+import { useCancelableJob, isCancel } from '@/lib/use-cancelable-job';
 
 // Reorder PDF pages — drag pages into a new order (or use the arrow buttons on
 // touch), with lossless page copying. The rewrite runs in a Web Worker, so even
@@ -79,6 +80,7 @@ export function ReorderTool() {
   const [order, setOrder] = useState<number[]>([]);
   const [parsing, setParsing] = useState(false);
   const [busy, setBusy] = useState(false);
+  const jobs = useCancelableJob();
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ blob: Blob; name: string; secs: number } | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
@@ -161,22 +163,29 @@ export function ReorderTool() {
 
   async function apply() {
     if (!file || !changed) return;
+    const { id, signal } = jobs.begin();
     setBusy(true);
     setError(null);
     setDone(null);
     const t0 = performance.now();
     try {
       // Runs in a Web Worker — the page never freezes, even on huge files.
-      const out = await rewritePdf(file, { type: 'reorder', order });
+      const out = await rewritePdf(file, { type: 'reorder', order }, { signal });
+      if (!jobs.isCurrent(id)) return;
       const name = `${file.name.replace(/\.pdf$/i, '')}-reordered.pdf`;
       const blob = new Blob([new Uint8Array(out)], { type: 'application/pdf' });
       download(blob, name);
       setDone({ blob, name, secs: (performance.now() - t0) / 1000 });
     } catch (e) {
+      if (isCancel(e) || !jobs.isCurrent(id)) return;
       setError(e instanceof Error ? e.message : 'Could not reorder the PDF.');
     } finally {
-      setBusy(false);
+      if (jobs.isCurrent(id)) setBusy(false);
     }
+  }
+  function cancelApply() {
+    jobs.cancel();
+    setBusy(false);
   }
 
   return (
@@ -256,9 +265,16 @@ export function ReorderTool() {
         {error && <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
 
         {file && !parsing && (
-          <Button className="mt-5 w-full" size="lg" onClick={apply} disabled={busy || !changed}>
-            {busy ? <><Loader2 className="size-4 animate-spin" /> Reordering…</> : <><Download className="size-4" /> {changed ? 'Save new order & download' : 'Reorder & download'}</>}
-          </Button>
+          busy ? (
+            <div className="mt-5 flex gap-2">
+              <Button className="flex-1" size="lg" disabled><Loader2 className="size-4 animate-spin" /> Reordering…</Button>
+              <Button size="lg" variant="outline" onClick={cancelApply}><X className="size-4" /> Cancel</Button>
+            </div>
+          ) : (
+            <Button className="mt-5 w-full" size="lg" onClick={apply} disabled={!changed}>
+              <Download className="size-4" /> {changed ? 'Save new order & download' : 'Reorder & download'}
+            </Button>
+          )
         )}
 
         {done && <PdfDone blob={done.blob} name={done.name} secs={done.secs} currentHref="/reorder-pdf" fromLabel="Reorder pages" />}

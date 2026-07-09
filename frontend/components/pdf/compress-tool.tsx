@@ -239,6 +239,7 @@ export function CompressTool() {
   const [level, setLevel] = useState<Level>('recommended');
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const cancelRef = useRef(false); // cooperative cancel — the compress loops check it
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ blob: Blob; name: string; before: number; after: number; optimized: boolean; note: string } | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
@@ -404,9 +405,13 @@ export function CompressTool() {
     setOutHandle((prev) => { if (prev) void prev.destroy(); return null; });
   }, []);
 
+  function cancelRun() {
+    cancelRef.current = true; // the next loop iteration bails; finally clears busy
+  }
   async function run(forceArg = false) {
     if (!file) { setError('Add a PDF first.'); return; }
     const force = forceArg || level === 'maximum';
+    cancelRef.current = false;
     setBusy(true);
     setError(null);
     setDone(null);
@@ -430,6 +435,7 @@ export function CompressTool() {
         const dec = new TextDecoder('latin1');
         const pages = doc.getPages();
         for (let pi = 0; pi < pages.length; pi++) {
+          if (cancelRef.current) throw new DOMException('Cancelled', 'AbortError');
           const page = pages[pi];
           const res = page.node.Resources();
           const xobjs = res ? (res.lookup(PDFName.of('XObject')) as { keys?: () => unknown[]; get?: (k: unknown) => unknown } | undefined) : undefined;
@@ -574,6 +580,7 @@ export function CompressTool() {
 
       let recompressed = 0;
       for (let i = 0; i < images.length; i++) {
+        if (cancelRef.current) throw new DOMException('Cancelled', 'AbortError');
         const [ref, rawObj] = images[i];
         const obj = rawObj as RawStream;
         try {
@@ -805,6 +812,7 @@ export function CompressTool() {
       const blob = new Blob([part(outBytes)], { type: 'application/pdf' });
       setDone({ blob, name, before, after, optimized: false, note });
     } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') return; // cancelled — quiet
       setError(e instanceof Error ? e.message : 'Could not compress the PDF.');
     } finally {
       setBusy(false);
@@ -924,9 +932,16 @@ export function CompressTool() {
         {error && <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
 
         {file && !done && (
-          <Button className="mt-5 w-full" size="lg" onClick={() => run()} disabled={busy}>
-            {busy ? <><Loader2 className="size-4 animate-spin" /> {progress && progress.total > 0 ? `Compressing ${progress.done}/${progress.total}…` : 'Compressing…'}</> : <><Shrink className="size-4" /> Compress PDF</>}
-          </Button>
+          busy ? (
+            <div className="mt-5 flex gap-2">
+              <Button className="flex-1" size="lg" disabled><Loader2 className="size-4 animate-spin" /> {progress && progress.total > 0 ? `Compressing ${progress.done}/${progress.total}…` : 'Compressing…'}</Button>
+              <Button size="lg" variant="outline" onClick={cancelRun}><X className="size-4" /> Cancel</Button>
+            </div>
+          ) : (
+            <Button className="mt-5 w-full" size="lg" onClick={() => run()}>
+              <Shrink className="size-4" /> Compress PDF
+            </Button>
+          )
         )}
 
         {done && (

@@ -9,6 +9,7 @@ import { takeHandoff } from '@/lib/handoff';
 import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
 import { rewritePdf } from '@/lib/pdf-rewrite';
+import { useCancelableJob, isCancel } from '@/lib/use-cancelable-job';
 
 type Pos = 'tl' | 'tc' | 'tr' | 'bl' | 'bc' | 'br';
 type Fmt = 'n' | 'n_slash_N' | 'page_n' | 'page_n_of_N' | 'custom';
@@ -55,6 +56,7 @@ export function PageNumbersTool() {
   const [start, setStart] = useState(1);
   const [ranges, setRanges] = useState('');
   const [busy, setBusy] = useState(false);
+  const jobs = useCancelableJob();
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ blob: Blob; name: string; secs: number } | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
@@ -106,6 +108,7 @@ export function PageNumbersTool() {
 
   async function run() {
     if (!file) { setError('Add a PDF first.'); return; }
+    const { id, signal } = jobs.begin();
     setBusy(true);
     setError(null);
     setDone(null);
@@ -118,16 +121,22 @@ export function PageNumbersTool() {
       const out = await rewritePdf(file, {
         type: 'page-numbers',
         opts: { pageNums: target, start, template, fontSize: SIZE[size], margin: MARGINS[margin], colorRgb: TONES[tone].rgb, pos },
-      });
+      }, { signal });
+      if (!jobs.isCurrent(id)) return;
       const name = `${file.name.replace(/\.pdf$/i, '')}-numbered.pdf`;
       const blob = new Blob([new Uint8Array(out)], { type: 'application/pdf' });
       download(blob, name);
       setDone({ blob, name, secs: (performance.now() - t0) / 1000 });
     } catch (e) {
+      if (isCancel(e) || !jobs.isCurrent(id)) return;
       setError(e instanceof Error ? e.message : 'Could not add page numbers.');
     } finally {
-      setBusy(false);
+      if (jobs.isCurrent(id)) setBusy(false);
     }
+  }
+  function cancelRun() {
+    jobs.cancel();
+    setBusy(false);
   }
 
   const positions: { id: Pos; row: number; col: number }[] = [
@@ -250,9 +259,16 @@ export function PageNumbersTool() {
         {error && <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
 
         {file && (
-          <Button className="mt-5 w-full" size="lg" onClick={run} disabled={busy}>
-            {busy ? <><Loader2 className="size-4 animate-spin" /> Adding numbers…</> : <><Download className="size-4" /> Add page numbers &amp; download</>}
-          </Button>
+          busy ? (
+            <div className="mt-5 flex gap-2">
+              <Button className="flex-1" size="lg" disabled><Loader2 className="size-4 animate-spin" /> Adding numbers…</Button>
+              <Button size="lg" variant="outline" onClick={cancelRun}><X className="size-4" /> Cancel</Button>
+            </div>
+          ) : (
+            <Button className="mt-5 w-full" size="lg" onClick={run}>
+              <Download className="size-4" /> Add page numbers &amp; download
+            </Button>
+          )
         )}
 
         {done && <PdfDone blob={done.blob} name={done.name} secs={done.secs} currentHref="/add-page-numbers-to-pdf" fromLabel="Page Numbers" />}

@@ -8,6 +8,7 @@ import { takeHandoff } from '@/lib/handoff';
 import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
 import { mergePdfs } from '@/lib/pdf-rewrite';
+import { useCancelableJob, isCancel } from '@/lib/use-cancelable-job';
 
 type Item = { id: string; file: File };
 
@@ -20,6 +21,7 @@ function fmt(bytes: number) {
 export function MergeTool() {
   const [items, setItems] = useState<Item[]>([]);
   const [busy, setBusy] = useState(false);
+  const jobs = useCancelableJob();
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ blob: Blob; name: string; secs: number } | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
@@ -72,6 +74,7 @@ export function MergeTool() {
       setError('Add at least two PDFs to merge.');
       return;
     }
+    const { id, signal } = jobs.begin();
     setBusy(true);
     setError(null);
     setDone(null);
@@ -79,16 +82,22 @@ export function MergeTool() {
     try {
       // pdf-lib runs in the rewrite WORKER — merging very large files no longer
       // freezes the tab (buffers are transferred, zero-copy).
-      const merged = await mergePdfs(items.map((it) => it.file));
+      const merged = await mergePdfs(items.map((it) => it.file), { signal });
+      if (!jobs.isCurrent(id)) return;
       const name = 'merged.pdf';
       const blob = new Blob([new Uint8Array(merged)], { type: 'application/pdf' });
       download(blob, name);
       setDone({ blob, name, secs: (performance.now() - t0) / 1000 });
     } catch (e) {
+      if (isCancel(e) || !jobs.isCurrent(id)) return;
       setError(e instanceof Error ? `Could not merge: ${e.message}` : 'Could not merge the files.');
     } finally {
-      setBusy(false);
+      if (jobs.isCurrent(id)) setBusy(false);
     }
+  }
+  function cancelMerge() {
+    jobs.cancel();
+    setBusy(false);
   }
 
   return (
@@ -132,9 +141,16 @@ export function MergeTool() {
 
         {error && <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
 
-        <Button className="mt-5 w-full" size="lg" onClick={merge} disabled={busy || items.length < 2}>
-          {busy ? <><Loader2 className="size-4 animate-spin" /> Merging…</> : <><Download className="size-4" /> Merge {items.length > 0 ? `${items.length} ` : ''}PDFs</>}
-        </Button>
+        {busy ? (
+          <div className="mt-5 flex gap-2">
+            <Button className="flex-1" size="lg" disabled><Loader2 className="size-4 animate-spin" /> Merging…</Button>
+            <Button size="lg" variant="outline" onClick={cancelMerge}><X className="size-4" /> Cancel</Button>
+          </div>
+        ) : (
+          <Button className="mt-5 w-full" size="lg" onClick={merge} disabled={items.length < 2}>
+            <Download className="size-4" /> Merge {items.length > 0 ? `${items.length} ` : ''}PDFs
+          </Button>
+        )}
 
         {done && <PdfDone blob={done.blob} name={done.name} secs={done.secs} currentHref="/merge-pdf" fromLabel="Merge PDF" />}
       </CardContent>

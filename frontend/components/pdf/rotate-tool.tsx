@@ -9,6 +9,7 @@ import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
 import { openPdf, useLazyPageThumb, prefetchPageThumbs, type PdfHandle } from '@/lib/pdf-render';
 import { rewritePdf } from '@/lib/pdf-rewrite';
+import { useCancelableJob, isCancel } from '@/lib/use-cancelable-job';
 
 // Per-page pending rotation (delta added on top of the page's existing rotation)
 // + selection. Rotation is applied LOSSLESSLY with pdf-lib (it just sets the
@@ -79,6 +80,7 @@ export function RotateTool() {
   const [done, setDone] = useState<{ blob: Blob; name: string; secs: number } | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const jobs = useCancelableJob();
 
   // Free the pdf.js document (and its cached thumbnails) on replace/unmount.
   useEffect(() => () => { setHandle((prev) => { if (prev) void prev.destroy(); return null; }); }, []);
@@ -161,22 +163,29 @@ export function RotateTool() {
 
   async function apply() {
     if (!file || changes === 0) return;
+    const { id, signal } = jobs.begin();
     setBusy(true);
     setError(null);
     setDone(null);
     const t0 = performance.now();
     try {
       // Rewrites run in a Web Worker so the page never freezes, even on huge files.
-      const out = await rewritePdf(file, { type: 'rotate', deltas: pages.map((p) => p.delta) });
+      const out = await rewritePdf(file, { type: 'rotate', deltas: pages.map((p) => p.delta) }, { signal });
+      if (!jobs.isCurrent(id)) return; // cancelled or superseded
       const name = `${file.name.replace(/\.pdf$/i, '')}-rotated.pdf`;
       const blob = new Blob([new Uint8Array(out)], { type: 'application/pdf' });
       download(blob, name);
       setDone({ blob, name, secs: (performance.now() - t0) / 1000 });
     } catch (e) {
+      if (isCancel(e) || !jobs.isCurrent(id)) return; // quiet on cancel
       setError(e instanceof Error ? e.message : 'Could not rotate the PDF.');
     } finally {
-      setBusy(false);
+      if (jobs.isCurrent(id)) setBusy(false);
     }
+  }
+  function cancelApply() {
+    jobs.cancel();
+    setBusy(false);
   }
 
   return (
@@ -245,9 +254,16 @@ export function RotateTool() {
         {error && <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
 
         {file && !parsing && (
-          <Button className="mt-5 w-full" size="lg" onClick={apply} disabled={busy || changes === 0}>
-            {busy ? <><Loader2 className="size-4 animate-spin" /> Rotating…</> : <><Download className="size-4" /> {changes > 0 ? `Rotate ${changes} page${changes === 1 ? '' : 's'} & download` : 'Rotate & download'}</>}
-          </Button>
+          busy ? (
+            <div className="mt-5 flex gap-2">
+              <Button className="flex-1" size="lg" disabled><Loader2 className="size-4 animate-spin" /> Rotating…</Button>
+              <Button size="lg" variant="outline" onClick={cancelApply}><X className="size-4" /> Cancel</Button>
+            </div>
+          ) : (
+            <Button className="mt-5 w-full" size="lg" onClick={apply} disabled={changes === 0}>
+              <Download className="size-4" /> {changes > 0 ? `Rotate ${changes} page${changes === 1 ? '' : 's'} & download` : 'Rotate & download'}
+            </Button>
+          )
         )}
 
         {done && <PdfDone blob={done.blob} name={done.name} secs={done.secs} currentHref="/rotate-pdf" fromLabel="Rotate PDF" />}
