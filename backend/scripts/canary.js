@@ -18,6 +18,7 @@ require('dotenv').config();
 const path = require('path');
 const db = require('../src/db');
 const { notifyOwner } = require('../src/utils/notify');
+const { openIncidentIssue } = require('../src/utils/github');
 
 const BASE = `http://127.0.0.1:${process.env.PORT || 4000}`;
 const CANARY = process.env.CANARY_TOKEN || '';
@@ -81,10 +82,16 @@ async function record(slug, ok, detail, autoDisable = true) {
     await setFlag(slug, 'disabled');
     autoDisabled = true;
     console.log(`[canary] AUTO-DISABLED ${slug} — ${detail}`);
-    await notifyOwner(`⚠️ Tool auto-disabled: ${slug}`, brief(slug, detail, true));
+    const b = brief(slug, detail, true);
+    await notifyOwner(`⚠️ Tool auto-disabled: ${slug}`, b);
+    const gh = await openIncidentIssue(slug, `[canary] Tool auto-disabled: ${slug}`, b);
+    if (gh === 'opened') console.log(`[canary] GitHub incident issue opened for ${slug}`);
   } else if (!ok && failStreak === THRESHOLD && !autoDisable) {
     console.log(`[canary] FAILING (report-only) ${slug} — ${detail}`);
-    await notifyOwner(`⚠️ Tool failing: ${slug}`, brief(slug, detail, false));
+    const b = brief(slug, detail, false);
+    await notifyOwner(`⚠️ Tool failing: ${slug}`, b);
+    const gh = await openIncidentIssue(slug, `[canary] Tool failing: ${slug}`, b);
+    if (gh === 'opened') console.log(`[canary] GitHub incident issue opened for ${slug}`);
   } else if (ok && autoDisabled) {
     await setFlag(slug, 'enabled');
     autoDisabled = false;
