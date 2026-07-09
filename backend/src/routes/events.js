@@ -193,4 +193,24 @@ router.get('/errors', async (req, res) => {
   }
 });
 
+// Tool health from the monitoring canary (see backend/scripts/canary.js).
+// Owner-only. Returns each monitored tool's last result + a heartbeat so the
+// dashboard can flag a dead monitor (staleness) — the guard against the monitor
+// itself failing silently.
+router.get('/health', async (req, res) => {
+  if (!(await isOwnerRequest(req))) return res.status(404).json({ error: 'Not found' });
+  try {
+    // Table may not exist until the canary has run once — treat that as "no data".
+    const { rows } = await db.query(
+      `SELECT slug, ok, detail, fail_streak, auto_disabled, checked_at FROM tool_health ORDER BY slug`
+    ).catch(() => ({ rows: [] }));
+    const heartbeat = rows.find((r) => r.slug === '__heartbeat__') || null;
+    const tools = rows.filter((r) => r.slug !== '__heartbeat__');
+    res.json({ tools, heartbeat, now: new Date().toISOString() });
+  } catch (err) {
+    console.error('tool health failed:', err.message);
+    res.status(500).json({ error: 'Could not load health' });
+  }
+});
+
 module.exports = router;

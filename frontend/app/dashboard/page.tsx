@@ -32,10 +32,14 @@ function Metric({ icon: Icon, label, value, sub }: { icon: typeof Users; label: 
 type ErrGroup = { message: string; source: string | null; count: number; last_seen: string; visitors: number; last_path: string | null };
 type ErrData = { groups: ErrGroup[]; last_24h: number };
 
+type ToolHealth = { slug: string; ok: boolean | null; detail: string | null; fail_streak: number; auto_disabled: boolean; checked_at: string };
+type HealthData = { tools: ToolHealth[]; heartbeat: { checked_at: string } | null; now: string };
+
 export default function DashboardPage() {
   const isOwner = useIsOwner();
   const [stats, setStats] = useState<Stats | null>(null);
   const [errs, setErrs] = useState<ErrData | null>(null);
+  const [health, setHealth] = useState<HealthData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,8 +58,9 @@ export default function DashboardPage() {
         throw new Error(`Request failed (${res.status})`);
       }
       setStats(await res.json());
-      // Errors are best-effort — don't fail the whole dashboard if this 500s.
+      // Errors + tool health are best-effort — don't fail the dashboard if they 500.
       try { const er = await fetch(`${API}/api/events/errors`, { headers }); if (er.ok) setErrs(await er.json()); } catch { /* ignore */ }
+      try { const hr = await fetch(`${API}/api/events/health`, { headers }); if (hr.ok) setHealth(await hr.json()); } catch { /* ignore */ }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not load stats.');
     } finally { setLoading(false); }
@@ -118,6 +123,41 @@ export default function DashboardPage() {
                 </div>
               )}
             </section>
+
+            {health && (
+              <section className="mt-8">
+                <h2 className="flex items-center gap-2 text-lg font-semibold">
+                  <AlertTriangle className="size-4 text-primary" /> Tool health (auto-monitor)
+                </h2>
+                <p className="mt-1 text-xs text-muted-foreground">A canary probes the server tools on a schedule. If one fails repeatedly it auto-disables (users see “temporarily unavailable”) and re-enables on recovery. Client tools also surface real errors below.</p>
+                {(() => {
+                  const stale = !health.heartbeat || (Date.now() - new Date(health.heartbeat.checked_at).getTime()) > 25 * 60 * 1000;
+                  return (
+                    <>
+                      <p className={`mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${stale ? 'bg-destructive/10 text-destructive' : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'}`}>
+                        <span className={`size-2 rounded-full ${stale ? 'bg-destructive' : 'bg-emerald-500'}`} />
+                        {health.heartbeat ? (stale ? `Monitor may be down — last ran ${new Date(health.heartbeat.checked_at).toLocaleString()}` : `Monitor healthy — last ran ${new Date(health.heartbeat.checked_at).toLocaleString()}`) : 'Monitor has not run yet'}
+                      </p>
+                      {health.tools.length > 0 && (
+                        <div className="mt-3 space-y-2">
+                          {health.tools.map((t) => {
+                            const state = t.auto_disabled ? 'disabled' : t.ok ? 'ok' : 'failing';
+                            const tone = state === 'ok' ? 'bg-emerald-500' : state === 'failing' ? 'bg-amber-500' : 'bg-destructive';
+                            const label = state === 'ok' ? 'Healthy' : state === 'failing' ? `Failing (${t.fail_streak}×)` : 'Auto-disabled';
+                            return (
+                              <div key={t.slug} className="flex items-center justify-between gap-3 rounded-lg border bg-card p-3 text-sm shadow-soft">
+                                <span className="flex items-center gap-2 font-medium"><span className={`size-2.5 rounded-full ${tone}`} /> {t.slug}</span>
+                                <span className="text-xs text-muted-foreground">{label} · {t.detail || ''} · {new Date(t.checked_at).toLocaleTimeString()}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
+              </section>
+            )}
 
             <section className="mt-8">
               <h2 className="flex items-center gap-2 text-lg font-semibold">

@@ -33,6 +33,10 @@ router.use(rateLimit({
 
 const OFFICE_RE = /\.(docx?|odt|rtf|txt|html?|xlsx?|ods|csv|pptx?|odp)$/i;
 
+// Shared secret so the monitoring canary can probe a disabled tool to detect
+// recovery. Set in the backend .env; empty = no bypass (canary just sees 503s).
+const CANARY_TOKEN = process.env.CANARY_TOKEN || '';
+
 function makeUpload(kind) {
   return multer({
     storage: multer.diskStorage({
@@ -90,8 +94,11 @@ function convertRoute({ upload, sofficeArgs, outExt, failMessage, slugFor }) {
       }
       // Server-side kill switch: if an admin has disabled this tool, refuse here
       // too (so a direct API call can't bypass the hidden front-end button).
+      // The canary sends x-canary so it can still test a disabled tool and learn
+      // when it recovers (then it auto-re-enables it).
       const slug = typeof slugFor === 'function' ? slugFor(req.file) : slugFor;
-      if (slug && (await isDisabled(slug))) {
+      const isCanary = CANARY_TOKEN && req.headers['x-canary'] === CANARY_TOKEN;
+      if (slug && !isCanary && (await isDisabled(slug))) {
         cleanup([req.file.path]);
         res.status(503).json({ error: 'tool-disabled', message: 'This tool is temporarily unavailable. Please try again later.' });
         return;
