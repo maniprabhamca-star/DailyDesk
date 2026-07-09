@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Upload, FileText, X, Download, Loader2, Trash2, Zap, RotateCcw } from 'lucide-react';
+import { Upload, FileText, X, Download, Loader2, Trash2, Zap, RotateCcw, ScanSearch } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { takeHandoff } from '@/lib/handoff';
 import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
-import { openPdf, useLazyPageThumb, prefetchPageThumbs, type PdfHandle } from '@/lib/pdf-render';
+import { openPdf, renderPage, dprTarget, useLazyPageThumb, prefetchPageThumbs, type PdfHandle } from '@/lib/pdf-render';
 import { rewritePdf } from '@/lib/pdf-rewrite';
 
 // Whether each page is marked for removal. Deletion is lossless (pdf-lib
@@ -73,6 +73,8 @@ export function DeletePagesTool() {
   const [markedPages, setMarkedPages] = useState<boolean[]>([]);
   const [parsing, setParsing] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [scanningBlank, setScanningBlank] = useState(false);
+  const [blankScan, setBlankScan] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ blob: Blob; name: string; secs: number } | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
@@ -89,6 +91,7 @@ export function DeletePagesTool() {
     }
     setError(null);
     setDone(null);
+    setBlankScan(null);
     setMarkedPages([]);
     setHandle((prev) => { if (prev) void prev.destroy(); return null; });
     setFile(f);
@@ -129,6 +132,7 @@ export function DeletePagesTool() {
     setDone(null);
     setHandoffNote(null);
     setParsing(false);
+    setBlankScan(null);
   }
 
   function toggleMark(i: number) {
@@ -146,7 +150,66 @@ export function DeletePagesTool() {
   }
   function clearMarks() {
     setDone(null);
+    setBlankScan(null);
     setMarkedPages((cur) => cur.map(() => false));
+  }
+
+  async function detectBlankPages() {
+    if (!handle) return;
+    setScanningBlank(true);
+    setBlankScan(null);
+    setError(null);
+    setDone(null);
+    try {
+      const blanks: boolean[] = [];
+      for (let page = 0; page < handle.numPages; page++) {
+        const rp = await renderPage(handle, page, dprTarget(420, 1.2, 700));
+        try {
+          const blob = await (await fetch(rp.url)).blob();
+          const bitmap = await createImageBitmap(blob);
+          const canvas = document.createElement('canvas');
+          canvas.width = rp.w;
+          canvas.height = rp.h;
+          const ctx = canvas.getContext('2d', { willReadFrequently: true });
+          if (!ctx) {
+            blanks.push(false);
+            continue;
+          }
+          ctx.drawImage(bitmap, 0, 0);
+          bitmap.close();
+          const data = ctx.getImageData(0, 0, rp.w, rp.h).data;
+          const stepX = Math.max(1, Math.floor(rp.w / 90));
+          const stepY = Math.max(1, Math.floor(rp.h / 120));
+          let total = 0;
+          let ink = 0;
+          for (let y = 0; y < rp.h; y += stepY) {
+            for (let x = 0; x < rp.w; x += stepX) {
+              const p = (y * rp.w + x) * 4;
+              const r = data[p], g = data[p + 1], b = data[p + 2], a = data[p + 3];
+              if (a < 12) continue;
+              total++;
+              const lightness = r + g + b;
+              const spread = Math.max(r, g, b) - Math.min(r, g, b);
+              if (lightness < 735 || spread > 22) ink++;
+            }
+          }
+          blanks.push(total > 0 && ink / total < 0.0035);
+        } finally {
+          URL.revokeObjectURL(rp.url);
+        }
+      }
+      const found = blanks.filter(Boolean).length;
+      if (found === 0) {
+        setBlankScan('No likely blank pages found.');
+        return;
+      }
+      setMarkedPages((cur) => cur.map((m, i) => m || blanks[i]));
+      setBlankScan(`Found ${found} likely blank page${found === 1 ? '' : 's'} and selected ${found === 1 ? 'it' : 'them'}.`);
+    } catch {
+      setError('Could not scan for blank pages in this PDF.');
+    } finally {
+      setScanningBlank(false);
+    }
   }
 
   async function apply() {
@@ -216,6 +279,10 @@ export function DeletePagesTool() {
                   </label>
                   <span className="mx-1 h-5 w-px bg-border" />
                   <Button size="sm" variant="ghost" onClick={clearMarks} disabled={marked === 0}><RotateCcw className="size-4" /> Clear</Button>
+                  <Button size="sm" variant="outline" onClick={detectBlankPages} disabled={scanningBlank}>
+                    {scanningBlank ? <Loader2 className="size-4 animate-spin" /> : <ScanSearch className="size-4" />} Detect blank pages
+                  </Button>
+                  {blankScan && <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">{blankScan}</span>}
                   <span className="ml-auto text-xs text-muted-foreground">
                     {marked > 0 ? <><span className="font-semibold text-destructive">{marked} to remove</span> · {remaining} will remain</> : 'Tap pages to remove them'}
                   </span>
