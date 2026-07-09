@@ -14,6 +14,7 @@
 //   • it NEVER patches code or deploys — drafting/fixing stays human-approved.
 require('dotenv').config();
 const db = require('../src/db');
+const { notifyOwner } = require('../src/utils/notify');
 
 const BASE = `http://127.0.0.1:${process.env.PORT || 4000}`;
 const CANARY = process.env.CANARY_TOKEN || '';
@@ -50,10 +51,13 @@ async function record(slug, ok, detail) {
     await setFlag(slug, 'disabled');
     autoDisabled = true;
     console.log(`[canary] AUTO-DISABLED ${slug} after ${failStreak} failures — ${detail}`);
+    // Alert only on the TRANSITION (not every run while down), so no spam.
+    await notifyOwner(`⚠️ Tool auto-disabled: ${slug}`, `The canary took ${slug} offline after ${failStreak} consecutive failures.\nReason: ${detail}\nUsers now see "temporarily unavailable". It will auto-re-enable when the canary sees it recover.`);
   } else if (ok && autoDisabled) {
     await setFlag(slug, 'enabled'); // recover ONLY what we disabled
     autoDisabled = false;
     console.log(`[canary] AUTO-RE-ENABLED ${slug} (recovered)`);
+    await notifyOwner(`✅ Tool recovered: ${slug}`, `${slug} is passing its canary check again and has been automatically re-enabled.`);
   }
 
   await db.query(
