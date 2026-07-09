@@ -457,7 +457,11 @@ export function EditTool() {
   const imgCache = useRef<Map<string, HTMLImageElement>>(new Map());
   const imgFileRef = useRef<HTMLInputElement>(null);
   const imgDrag = useRef<{ id: string; mode: 'move' | 'resize' | 'rotate'; ox: number; oy: number; startW: number; startRot: number; cx: number; cy: number; startAngle: number } | null>(null);
-  const stampDrag = useRef<{ index: number; dx: number; dy: number } | null>(null);
+  const stampDrag = useRef<
+    | { index: number; mode: 'move'; dx: number; dy: number }
+    | { index: number; mode: 'resize'; startX: number; startY: number; startW: number; startH: number }
+    | null
+  >(null);
   const blockDrag = useRef<{ id: string; mode: 'move' | 'resize-e' | 'resize-s' | 'resize-se'; startX: number; startY: number; start: BlockLayout } | null>(null);
   const shapesRef = useRef<HTMLDivElement>(null);
   const stampsRef = useRef<HTMLDivElement>(null);
@@ -1204,25 +1208,42 @@ export function EditTool() {
       return { ...a, [sel]: list };
     });
   }
+  function resizeStamp(index: number, w: number, h: number) {
+    setMarkups((a) => {
+      const list = [...(a[sel] || [])];
+      const item = list[index];
+      if (!item || item.kind !== 'stamp') return a;
+      const nextW = Math.max(0.08, Math.min(1 - item.x, w));
+      const nextH = Math.max(0.028, Math.min(1 - item.y, h));
+      list[index] = { ...item, w: nextW, h: nextH };
+      return { ...a, [sel]: list };
+    });
+  }
   function deleteStamp(index: number) {
     pushHistory();
     setMarkups((a) => ({ ...a, [sel]: (a[sel] || []).filter((_, i) => i !== index) }));
     setSelStamp(null); setHoverStamp(null);
   }
-  function stampDown(e: React.PointerEvent<HTMLElement>, index: number) {
+  function stampDown(e: React.PointerEvent<HTMLElement>, index: number, mode: 'move' | 'resize' = 'move') {
     e.preventDefault(); e.stopPropagation();
     const item = (markups[sel] || [])[index];
     if (!item || item.kind !== 'stamp' || !wrapRef.current) return;
     pushHistory();
     setSelStamp(index); setSelImg(null); setAddSel(null); closeBlock(); closeWord();
     const r = wrapRef.current.getBoundingClientRect();
-    stampDrag.current = { index, dx: e.clientX - (r.left + item.x * r.width), dy: e.clientY - (r.top + item.y * r.height) };
+    stampDrag.current = mode === 'resize'
+      ? { index, mode, startX: e.clientX, startY: e.clientY, startW: item.w, startH: item.h }
+      : { index, mode, dx: e.clientX - (r.left + item.x * r.width), dy: e.clientY - (r.top + item.y * r.height) };
     e.currentTarget.setPointerCapture(e.pointerId);
   }
   function stampMove(e: React.PointerEvent<HTMLElement>) {
     const d = stampDrag.current; if (!d || !wrapRef.current) return;
     const r = wrapRef.current.getBoundingClientRect();
-    moveStamp(d.index, (e.clientX - d.dx - r.left) / r.width, (e.clientY - d.dy - r.top) / r.height);
+    if (d.mode === 'resize') {
+      resizeStamp(d.index, d.startW + (e.clientX - d.startX) / r.width, d.startH + (e.clientY - d.startY) / r.height);
+    } else {
+      moveStamp(d.index, (e.clientX - d.dx - r.left) / r.width, (e.clientY - d.dy - r.top) / r.height);
+    }
   }
   function stampUp() { stampDrag.current = null; }
   function selectStamp(text: string) {
@@ -1733,14 +1754,14 @@ export function EditTool() {
                   <StampIcon className="size-4" /> <span className="hidden md:inline">Stamp</span> <ChevronDown className={`size-3.5 transition-transform ${stampsOpen ? 'rotate-180' : ''}`} />
                 </button>
                 {stampsOpen && (
-                  <div role="menu" className="absolute left-0 top-full z-50 mt-1 w-64 rounded-xl border bg-card p-2 shadow-lift">
-                    <div className="grid gap-2">
+                  <div role="menu" className="absolute left-0 top-full z-50 mt-1 w-72 max-w-[calc(100vw-2rem)] rounded-xl border bg-card p-2 shadow-lift">
+                    <div className="grid max-h-64 grid-cols-2 gap-1.5 overflow-y-auto pr-1">
                       {stampChoices.map((s) => {
                         const theme = stampThemeFor(s, markupColor);
                         return (
                           <button key={s} type="button" role="menuitem" onClick={() => selectStamp(s)}
                             style={{ backgroundColor: theme.bg, borderColor: theme.border, color: theme.color, boxShadow: stampLabel === s ? `0 0 0 2px ${theme.border}` : undefined }}
-                            className="flex h-12 w-full items-center justify-center rounded-xl border px-3 text-sm font-extrabold tracking-wide shadow-soft transition-transform hover:-translate-y-0.5">
+                            className="flex h-9 w-full items-center justify-center rounded-lg border px-2 text-[11px] font-extrabold tracking-wide shadow-sm transition-transform hover:-translate-y-0.5">
                             {s}
                           </button>
                         );
@@ -1857,6 +1878,11 @@ export function EditTool() {
                             <span className="pointer-events-none absolute -left-2 -top-7 flex h-6 items-center gap-1 rounded-md border bg-card px-2 text-[11px] font-medium text-primary shadow-lift"><Move className="size-3" /> Move</span>
                             <button type="button" onPointerDown={(e) => e.stopPropagation()} onClick={() => deleteStamp(index)} title="Delete stamp" aria-label="Delete stamp"
                               className="absolute -right-2 -top-2 flex size-5 items-center justify-center rounded-full bg-destructive text-white shadow"><X className="size-3" /></button>
+                            <span role="button" aria-label="Resize stamp" title="Resize stamp"
+                              onPointerDown={(e) => stampDown(e, index, 'resize')} onPointerMove={stampMove} onPointerUp={stampUp}
+                              className="absolute -bottom-2 -right-2 flex size-5 cursor-nwse-resize items-center justify-center rounded-full border-2 border-primary bg-card text-primary shadow-lift">
+                              <Maximize2 className="size-3" />
+                            </span>
                           </>
                         )}
                       </div>
