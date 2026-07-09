@@ -67,7 +67,28 @@ const SHAPE_KINDS: ShapeKind[] = ['rect', 'circle', 'line', 'arrow'];
 const isShape = (t: EditorTool): t is ShapeKind => (SHAPE_KINDS as string[]).includes(t);
 const isMarkupTool = (t: EditorTool) => t === 'highlight' || t === 'pen' || isShape(t);
 const MARKUP_COLORS = ['#111827', '#ef4444', '#2563eb', '#16a34a', '#7c3aed', '#facc15'];
-const STAMP_PRESETS = ['APPROVED', 'DRAFT', 'CONFIDENTIAL', 'VOID', 'COMPLETED', 'SIGN HERE', 'AS IS'];
+const STAMP_PRESETS = ['APPROVED', 'CONFIDENTIAL', 'DRAFT', 'COMPLETED', 'TOP SECRET', 'VOID', 'SIGN HERE', 'AS IS'];
+const STAMP_THEMES: Record<string, { color: string; border: string; bg: string; shadow: string }> = {
+  APPROVED: { color: '#269248', border: 'rgba(38,146,72,0.32)', bg: 'rgba(38,146,72,0.055)', shadow: 'rgba(38,146,72,0.18)' },
+  CONFIDENTIAL: { color: '#2f63bd', border: 'rgba(47,99,189,0.30)', bg: 'rgba(47,99,189,0.055)', shadow: 'rgba(47,99,189,0.16)' },
+  DRAFT: { color: '#6d3bff', border: 'rgba(109,59,255,0.30)', bg: 'rgba(109,59,255,0.06)', shadow: 'rgba(109,59,255,0.16)' },
+  COMPLETED: { color: '#2e9d49', border: 'rgba(46,157,73,0.28)', bg: 'rgba(46,157,73,0.045)', shadow: 'rgba(46,157,73,0.14)' },
+  'TOP SECRET': { color: '#e12b16', border: 'rgba(225,43,22,0.26)', bg: 'rgba(225,43,22,0.055)', shadow: 'rgba(225,43,22,0.15)' },
+  VOID: { color: '#d92d20', border: 'rgba(217,45,32,0.30)', bg: 'rgba(217,45,32,0.055)', shadow: 'rgba(217,45,32,0.16)' },
+  'SIGN HERE': { color: '#c2410c', border: 'rgba(194,65,12,0.28)', bg: 'rgba(194,65,12,0.055)', shadow: 'rgba(194,65,12,0.15)' },
+  'AS IS': { color: '#475569', border: 'rgba(71,85,105,0.28)', bg: 'rgba(71,85,105,0.05)', shadow: 'rgba(71,85,105,0.14)' },
+};
+
+function stampThemeFor(text: string, fallback: string) {
+  const preset = STAMP_THEMES[text.trim().toUpperCase()];
+  if (preset) return preset;
+  return {
+    color: fallback,
+    border: 'rgba(99,102,241,0.26)',
+    bg: 'rgba(99,102,241,0.055)',
+    shadow: 'rgba(99,102,241,0.14)',
+  };
+}
 
 function strokeWidthFrac(tool: EditorTool, weight: number) {
   if (tool === 'highlight') return weight * 0.006;
@@ -80,22 +101,30 @@ function paintMarkups(ctx: CanvasRenderingContext2D, W: number, H: number, list:
   for (const a of list) {
     if (a.kind === 'stamp') {
       const x = a.x * W, y = a.y * H, w = a.w * W, h = a.h * H;
+      const theme = stampThemeFor(a.text, a.color);
       const fontSize = Math.max(12, Math.min(h * 0.48, w / Math.max(5, a.text.length * 0.72)));
       ctx.globalAlpha = 1;
       ctx.save();
-      ctx.strokeStyle = a.color;
-      ctx.fillStyle = a.color;
+      ctx.shadowColor = theme.shadow;
+      ctx.shadowBlur = Math.max(4, h * 0.12);
+      ctx.shadowOffsetY = Math.max(1, h * 0.02);
+      ctx.fillStyle = theme.bg;
+      ctx.strokeStyle = theme.border;
       ctx.lineWidth = Math.max(2, h * 0.045);
-      ctx.font = `italic 700 ${fontSize}px Arial, sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
       if (ctx.roundRect) {
         ctx.beginPath();
-        ctx.roundRect(x, y, w, h, Math.min(8, h * 0.18));
+        ctx.roundRect(x, y, w, h, Math.min(14, h * 0.22));
+        ctx.fill();
         ctx.stroke();
       } else {
+        ctx.fillRect(x, y, w, h);
         ctx.strokeRect(x, y, w, h);
       }
+      ctx.shadowColor = 'transparent';
+      ctx.fillStyle = theme.color;
+      ctx.font = `800 ${fontSize}px Arial, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
       ctx.fillText(a.text, x + w / 2, y + h / 2);
       ctx.restore();
       continue;
@@ -212,6 +241,25 @@ function colorDistance(a: string, b: string): number {
   const ca = rgbNums(a), cb = rgbNums(b);
   if (!ca || !cb) return 999;
   return Math.hypot(ca[0] - cb[0], ca[1] - cb[1], ca[2] - cb[2]);
+}
+
+function cssSaturation(color: string) {
+  const c = rgbNums(color);
+  return c ? Math.max(...c) - Math.min(...c) : 0;
+}
+
+function cssLuminance(color: string) {
+  const c = rgbNums(color);
+  return c ? c[0] + c[1] + c[2] : 765;
+}
+
+function chooseDetectedTextColor(sampled: string, pdfCommandColor: string) {
+  // For clearly colored PDF text, the PDF fill command is usually the exact author
+  // color. Pixel sampling can catch antialiased edge pixels and shift red/blue text.
+  if (pdfCommandColor && cssSaturation(pdfCommandColor) > 34 && cssLuminance(pdfCommandColor) < 735) {
+    return pdfCommandColor;
+  }
+  return sampled || pdfCommandColor || 'rgb(17,24,39)';
 }
 
 function looksLikeLinkColor(color: string): boolean {
@@ -414,6 +462,7 @@ export function EditTool() {
   const shapesRef = useRef<HTMLDivElement>(null);
   const stampsRef = useRef<HTMLDivElement>(null);
   const linkRef = useRef<HTMLDivElement>(null);
+  const editorTopRef = useRef<HTMLDivElement>(null);
   const drawing = useRef(false);
   const liveMarkup = useRef<Markup | null>(null);
 
@@ -451,6 +500,13 @@ export function EditTool() {
     } finally { setBusy(false); }
   }
   function pick(files: FileList | null) { void loadOne(files?.[0]); }
+  function returnFocusToEditor() {
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        editorTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+  }
   async function deletePage(index: number) {
     if (!file || pageCount <= 1) return;
     if (totalChanges > 0) {
@@ -470,6 +526,7 @@ export function EditTool() {
       const next = new File([out.slice()], file.name, { type: 'application/pdf' });
       await loadOne(next);
       setSel(Math.max(0, Math.min(index, pageCount - 2)));
+      returnFocusToEditor();
     } catch {
       setError('Could not delete that page. Please try again.');
     } finally {
@@ -730,7 +787,7 @@ export function EditTool() {
           // The rendered page is the visual truth. Some PDFs draw through CMYK,
           // ICC profiles, or transparency, so the raw PDF command color can be a
           // noticeably different shade than what the user sees on the page.
-          const color = sampled.color || pdfCommandColor;
+          const color = chooseDetectedTextColor(sampled.color, pdfCommandColor);
           const bg = sampled.bg;
           // Split into words + whitespace; estimate per-word boxes, then REFINE
           // each word's horizontal extent from the actual pixels (scan out to the
@@ -1120,6 +1177,7 @@ export function EditTool() {
   function addStampAt(x: number, y: number, text = stampLabel) {
     const w = Math.min(0.34, Math.max(0.16, text.length * 0.018));
     const h = 0.05;
+    const theme = stampThemeFor(text, markupColor);
     pushHistory();
     setMarkups((a) => ({
       ...a,
@@ -1128,7 +1186,7 @@ export function EditTool() {
         {
           kind: 'stamp',
           text,
-          color: markupColor,
+          color: theme.color,
           x: Math.max(0, Math.min(1 - w, x - w / 2)),
           y: Math.max(0, Math.min(1 - h, y - h / 2)),
           w,
@@ -1611,7 +1669,7 @@ export function EditTool() {
   };
   const stampChoices = [...STAMP_PRESETS, ...customStamps.filter((s) => !STAMP_PRESETS.includes(s))];
   return (
-    <Card>
+    <Card ref={editorTopRef}>
       <CardContent className="p-3 sm:p-4">
         <input id="edit-pdf-upload" ref={inputRef} type="file" accept="application/pdf,.pdf" className="sr-only" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
         <input ref={imgFileRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="sr-only" onChange={(e) => { pickImageFile(e.target.files); e.currentTarget.value = ''; }} />
@@ -1675,13 +1733,19 @@ export function EditTool() {
                   <StampIcon className="size-4" /> <span className="hidden md:inline">Stamp</span> <ChevronDown className={`size-3.5 transition-transform ${stampsOpen ? 'rotate-180' : ''}`} />
                 </button>
                 {stampsOpen && (
-                  <div role="menu" className="absolute left-0 top-full z-50 mt-1 w-56 rounded-xl border bg-card p-1 shadow-lift">
-                    {stampChoices.map((s) => (
-                      <button key={s} type="button" role="menuitem" onClick={() => selectStamp(s)}
-                        className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm transition-colors hover:bg-accent ${stampLabel === s ? 'text-primary' : ''}`}>
-                        <StampIcon className="size-4" /> {s}
-                      </button>
-                    ))}
+                  <div role="menu" className="absolute left-0 top-full z-50 mt-1 w-64 rounded-xl border bg-card p-2 shadow-lift">
+                    <div className="grid gap-2">
+                      {stampChoices.map((s) => {
+                        const theme = stampThemeFor(s, markupColor);
+                        return (
+                          <button key={s} type="button" role="menuitem" onClick={() => selectStamp(s)}
+                            style={{ backgroundColor: theme.bg, borderColor: theme.border, color: theme.color, boxShadow: stampLabel === s ? `0 0 0 2px ${theme.border}` : undefined }}
+                            className="flex h-12 w-full items-center justify-center rounded-xl border px-3 text-sm font-extrabold tracking-wide shadow-soft transition-transform hover:-translate-y-0.5">
+                            {s}
+                          </button>
+                        );
+                      })}
+                    </div>
                     <div className="mt-1 border-t p-2">
                       <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Custom stamp</label>
                       <div className="flex items-center gap-1.5">

@@ -69,16 +69,16 @@ export function PdfToolPage({
           </ol>
         </section>
 
-        <section className="mx-auto mt-8 max-w-3xl">
-          <h2 className="text-lg font-bold tracking-tight">Frequently asked questions</h2>
-          <div className="mt-2 grid gap-1.5">
+        <section className="mx-auto mt-6 max-w-3xl">
+          <h2 className="text-base font-bold tracking-tight">Frequently asked questions</h2>
+          <div className="mt-2 grid gap-1">
             {faqs.map((f, i) => (
-              <details key={i} className="group rounded-lg border bg-card px-3 py-2.5">
+              <details key={i} className="group rounded-lg border bg-card px-3 py-2">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium">
                   {f.q}
                   <ChevronDown className="size-3.5 text-muted-foreground transition-transform group-open:rotate-180" />
                 </summary>
-                <p className="mt-1.5 text-sm leading-5 text-muted-foreground">{f.a}</p>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">{f.a}</p>
               </details>
             ))}
           </div>
