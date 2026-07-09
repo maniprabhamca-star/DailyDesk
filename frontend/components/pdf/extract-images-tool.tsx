@@ -197,6 +197,7 @@ export function ExtractImagesTool() {
   const [tooBig, setTooBig] = useState<{ name: string; size: number } | null>(null);
   const [pageCount, setPageCount] = useState(0);
   const [busy, setBusy] = useState(false);
+  const cancelRef = useRef(false);
   const [phase, setPhase] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [empty, setEmpty] = useState(false);
@@ -274,11 +275,15 @@ export function ExtractImagesTool() {
     router.push('/jpg-to-pdf');
   }
 
+  function cancelRun() {
+    cancelRef.current = true; // the scan/save loops bail on their next check
+  }
   async function run() {
     if (!file) {
       setError('Add a PDF first.');
       return;
     }
+    cancelRef.current = false;
     setBusy(true);
     setError(null);
     setEmpty(false);
@@ -289,6 +294,7 @@ export function ExtractImagesTool() {
       const data = new Uint8Array(await file.arrayBuffer());
       let step = 0;
       const outcome = await extractEmbeddedImages(data, async () => {
+        if (cancelRef.current) throw new DOMException('Cancelled', 'AbortError');
         step++;
         if (step % 3 === 0) await yieldToLoop(); // keep the page responsive
       });
@@ -298,6 +304,7 @@ export function ExtractImagesTool() {
       let origCount = 0;
       setPhase(`Saving ${outcome.images.length} image${outcome.images.length === 1 ? '' : 's'}…`);
       for (const im of outcome.images) {
+        if (cancelRef.current) throw new DOMException('Cancelled', 'AbortError');
         if (im.kind === 'jpeg') {
           const blob = new Blob([new Uint8Array(im.bytes)], { type: 'image/jpeg' });
           out.push({ name: '', blob, url: URL.createObjectURL(blob), width: im.width, height: im.height, ext: 'jpg', original: true, alpha: false });
@@ -311,7 +318,7 @@ export function ExtractImagesTool() {
 
       // Recover what pdf-lib couldn't decode (JPX/CCITT/JBIG2/palette images)
       // through pdf.js — scans and faxes land here.
-      if (outcome.unhandled.length > 0) {
+      if (outcome.unhandled.length > 0 && !cancelRef.current) {
         setPhase(`Decoding ${outcome.unhandled.length} advanced image${outcome.unhandled.length === 1 ? '' : 's'} (0/${outcome.unhandled.length})…`);
         const handledDims = new Set(out.map((r) => `${r.width}x${r.height}`));
         const recovered = await recoverViaPdfjs(data, outcome.unhandled.length, handledDims, (done, total) =>
@@ -334,8 +341,11 @@ export function ExtractImagesTool() {
       setElapsed((performance.now() - t0) / 1000);
       setResults(out);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : '';
-      setError(msg && msg.length < 120 ? `Could not extract images: ${msg}` : 'Could not extract images from this PDF.');
+      if (e instanceof DOMException && e.name === 'AbortError') { /* cancelled — quiet */ }
+      else {
+        const msg = e instanceof Error ? e.message : '';
+        setError(msg && msg.length < 120 ? `Could not extract images: ${msg}` : 'Could not extract images from this PDF.');
+      }
     } finally {
       setBusy(false);
       setPhase(null);
@@ -485,13 +495,16 @@ export function ExtractImagesTool() {
                 placed in the PDF, not a screenshot of the page. Graphics and screenshots come out as lossless PNGs, transparency preserved.
               </span>
             </p>
-            <Button className="mt-4 w-full" size="lg" onClick={run} disabled={busy}>
-              {busy ? (
-                <><Loader2 className="size-4 animate-spin" /> {phase || 'Extracting…'}</>
-              ) : (
-                <><Images className="size-4" /> Extract images</>
-              )}
-            </Button>
+            {busy ? (
+              <div className="mt-4 flex gap-2">
+                <Button className="flex-1" size="lg" disabled><Loader2 className="size-4 animate-spin" /> {phase || 'Extracting…'}</Button>
+                <Button size="lg" variant="outline" onClick={cancelRun}><X className="size-4" /> Cancel</Button>
+              </div>
+            ) : (
+              <Button className="mt-4 w-full" size="lg" onClick={run}>
+                <Images className="size-4" /> Extract images
+              </Button>
+            )}
           </>
         )}
       </CardContent>

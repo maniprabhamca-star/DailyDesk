@@ -113,6 +113,7 @@ export function PdfToJpgTool() {
   const [ranges, setRanges] = useState('');
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const cancelRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<Result[]>([]);
   const [skipped, setSkipped] = useState<number[]>([]);
@@ -275,11 +276,15 @@ export function PdfToJpgTool() {
     clear();
   }
 
+  function cancelRun() {
+    cancelRef.current = true; // the per-page loop bails on its next iteration
+  }
   async function run() {
     if (!file) {
       setError('Add a PDF first.');
       return;
     }
+    cancelRef.current = false;
     setBusy(true);
     setError(null);
     setSkipped([]);
@@ -306,6 +311,7 @@ export function PdfToJpgTool() {
         // copies — minimal footprint on the user's device. Progressive encoding
         // is off, so each page encodes ~2× faster with identical sharpness.
         for (const n of pages) {
+          if (cancelRef.current) throw new DOMException('Cancelled', 'AbortError');
           try {
             const page = await doc.getPage(n);
             let s = dpi / 72; // scale from target DPI
@@ -361,9 +367,12 @@ export function PdfToJpgTool() {
         try { await loadingTask.destroy(); } catch { /* ignore */ }
       }
     } catch (e) {
-      const msg = e instanceof Error ? e.message : '';
-      if (/password/i.test(msg)) setError('This PDF is password-protected. Remove the password first, then convert.');
-      else setError(msg && msg.length < 120 ? `Could not convert: ${msg}` : 'Could not convert the PDF.');
+      if (e instanceof DOMException && e.name === 'AbortError') { /* cancelled — quiet */ }
+      else {
+        const msg = e instanceof Error ? e.message : '';
+        if (/password/i.test(msg)) setError('This PDF is password-protected. Remove the password first, then convert.');
+        else setError(msg && msg.length < 120 ? `Could not convert: ${msg}` : 'Could not convert the PDF.');
+      }
     } finally {
       setBusy(false);
       setProgress(null);
@@ -539,13 +548,16 @@ export function PdfToJpgTool() {
         {error && <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
 
         {file && (
-          <Button className="mt-5 w-full" size="lg" onClick={run} disabled={busy}>
-            {busy ? (
-              <><Loader2 className="size-4 animate-spin" /> {progress ? `Converting ${progress.done}/${progress.total}…` : 'Converting…'}</>
-            ) : (
-              <><Download className="size-4" /> Convert to {format.toUpperCase()}</>
-            )}
-          </Button>
+          busy ? (
+            <div className="mt-5 flex gap-2">
+              <Button className="flex-1" size="lg" disabled><Loader2 className="size-4 animate-spin" /> {progress ? `Converting ${progress.done}/${progress.total}…` : 'Converting…'}</Button>
+              <Button size="lg" variant="outline" onClick={cancelRun}><X className="size-4" /> Cancel</Button>
+            </div>
+          ) : (
+            <Button className="mt-5 w-full" size="lg" onClick={run}>
+              <Download className="size-4" /> Convert to {format.toUpperCase()}
+            </Button>
+          )
         )}
       </CardContent>
     </Card>

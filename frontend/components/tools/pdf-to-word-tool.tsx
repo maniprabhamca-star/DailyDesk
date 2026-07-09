@@ -31,6 +31,8 @@ export function PdfToWordTool() {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ blob: Blob; name: string; secs: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const xhrRef = useRef<XMLHttpRequest | null>(null);
+  function cancelRun() { xhrRef.current?.abort(); xhrRef.current = null; }
 
   function loadOne(f?: File) {
     if (!f) return;
@@ -60,8 +62,10 @@ export function PdfToWordTool() {
     const form = new FormData();
     form.append('file', file);
     const xhr = new XMLHttpRequest();
+    xhrRef.current = xhr;
     xhr.open('POST', '/api/convert/pdf-to-word');
     xhr.responseType = 'blob';
+    xhr.onabort = () => { setBusy(false); setPhase(null); setProgress(null); }; // user Cancel — quiet
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable) {
         const pct = Math.round((e.loaded / e.total) * 100);
@@ -151,9 +155,16 @@ export function PdfToWordTool() {
         {error && <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
 
         {file && !done && (
-          <Button className="mt-5 w-full" size="lg" onClick={run} disabled={busy}>
-            {busy ? <><Loader2 className="size-4 animate-spin" /> Converting…</> : <><FileType className="size-4" /> Convert to Word</>}
-          </Button>
+          busy ? (
+            <div className="mt-5 flex gap-2">
+              <Button className="flex-1" size="lg" disabled><Loader2 className="size-4 animate-spin" /> Converting…</Button>
+              <Button size="lg" variant="outline" onClick={cancelRun}><X className="size-4" /> Cancel</Button>
+            </div>
+          ) : (
+            <Button className="mt-5 w-full" size="lg" onClick={run}>
+              <FileType className="size-4" /> Convert to Word
+            </Button>
+          )
         )}
 
         {done && (

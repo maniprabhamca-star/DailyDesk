@@ -91,6 +91,7 @@ export function CleanScannedPdfTool() {
   const [contrast, setContrast] = useState(18);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState('');
+  const cancelRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ blob: Blob; name: string; secs: number } | null>(null);
   const [previewBusy, setPreviewBusy] = useState(false);
@@ -202,8 +203,12 @@ export function CleanScannedPdfTool() {
     };
   }, [beforePreview, mode, contrast]);
 
+  function cancelRun() {
+    cancelRef.current = true; // the batch loop bails on its next iteration
+  }
   async function run() {
     if (!file) return;
+    cancelRef.current = false;
     setBusy(true);
     setError(null);
     setDone(null);
@@ -224,6 +229,7 @@ export function CleanScannedPdfTool() {
       const conc = Math.max(2, Math.min(4, cores));
       let processed = 0;
       for (let start = 0; start < total; start += conc) {
+        if (cancelRef.current) throw new DOMException('Cancelled', 'AbortError');
         const batch: number[] = [];
         for (let i = start; i < Math.min(start + conc, total); i++) batch.push(i);
         const results = await Promise.all(batch.map((i) => renderCleanToJpeg(handle as PdfHandle, i, mode, contrast, targetLong)));
@@ -241,7 +247,8 @@ export function CleanScannedPdfTool() {
       download(blob, name);
       setDone({ blob, name, secs: (performance.now() - t0) / 1000 });
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not clean this PDF.');
+      if (e instanceof DOMException && e.name === 'AbortError') { /* cancelled — quiet */ }
+      else setError(e instanceof Error ? e.message : 'Could not clean this PDF.');
     } finally {
       if (handle) void handle.destroy();
       setProgress('');
@@ -315,9 +322,16 @@ export function CleanScannedPdfTool() {
         {error && <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
 
         {file && !done && (
-          <Button className="mt-5 w-full" size="lg" onClick={run} disabled={busy}>
-            {busy ? <><Loader2 className="size-4 animate-spin" /> Cleaning...</> : <><WandSparkles className="size-4" /> Clean scanned PDF</>}
-          </Button>
+          busy ? (
+            <div className="mt-5 flex gap-2">
+              <Button className="flex-1" size="lg" disabled><Loader2 className="size-4 animate-spin" /> Cleaning...</Button>
+              <Button size="lg" variant="outline" onClick={cancelRun}><X className="size-4" /> Cancel</Button>
+            </div>
+          ) : (
+            <Button className="mt-5 w-full" size="lg" onClick={run}>
+              <WandSparkles className="size-4" /> Clean scanned PDF
+            </Button>
+          )
         )}
 
         {done && <PdfDone blob={done.blob} name={done.name} secs={done.secs} currentHref="/clean-scanned-pdf" fromLabel="Clean Scanned PDF" />}
