@@ -408,9 +408,11 @@ export function CompressTool() {
   function cancelRun() {
     cancelRef.current = true; // the next loop iteration bails; finally clears busy
   }
-  async function run(forceArg = false) {
+  async function run(forceArg = false, levelArg?: Level) {
     if (!file) { setError('Add a PDF first.'); return; }
-    const force = forceArg || level === 'maximum';
+    const useLevel: Level = levelArg ?? level;
+    const force = forceArg || useLevel === 'maximum';
+    const prevDone = done; // so "Squeeze harder" can never REPLACE a smaller result
     cancelRef.current = false;
     setBusy(true);
     setError(null);
@@ -422,7 +424,7 @@ export function CompressTool() {
       const original = new Uint8Array(await file.arrayBuffer());
       const doc = await PDFDocument.load(original, { ignoreEncryption: true });
       const ctx = doc.context;
-      const { dpi, maxDim, quality, rasterDpi, rasterQ, rasterFrac } = LEVELS[level];
+      const { dpi, maxDim, quality, rasterDpi, rasterQ, rasterFrac } = LEVELS[useLevel];
 
       // DPI awareness (best-effort): read each image's on-page display size by
       // tracking the CTM through every page's content stream. Falls back to the
@@ -809,6 +811,11 @@ export function CompressTool() {
         metaRemoved > 0 ? 'metadata cleaned' : '',
         rasterized === 0 && recompressed === 0 && fontsSlimmed === 0 && metaRemoved === 0 ? 'Repacked smaller — text untouched' : '',
       ].filter(Boolean).join(' · ') + ` · ${took}`;
+      // "Squeeze harder" must never hand back a BIGGER file than the last result.
+      if (prevDone && after >= prevDone.after) {
+        setDone({ ...prevDone, note: `Already at the smallest — that setting couldn’t beat ${fmtBytes(prevDone.after)}.` });
+        return;
+      }
       const blob = new Blob([part(outBytes)], { type: 'application/pdf' });
       setDone({ blob, name, before, after, optimized: false, note });
     } catch (e) {
@@ -952,7 +959,7 @@ export function CompressTool() {
                   <CheckCircle2 className="mx-auto size-6 text-emerald-500" />
                   <p className="mt-1.5 text-sm font-semibold">Already well optimized</p>
                   <p className="text-xs text-muted-foreground">This PDF is about as small as it’ll get without hurting quality — your original ({fmt(done.before)}) is ready below. You can still squeeze out a bit more at lower quality.</p>
-                  <Button variant="outline" size="sm" className="mt-3" onClick={() => run(true)} disabled={busy}>
+                  <Button variant="outline" size="sm" className="mt-3" onClick={() => run(true, 'maximum')} disabled={busy}>
                     {busy ? <><Loader2 className="size-4 animate-spin" /> Squeezing…</> : <><Shrink className="size-4" /> Squeeze harder (slower)</>}
                   </Button>
                 </div>
