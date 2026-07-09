@@ -31,7 +31,7 @@ router.use(rateLimit({
   message: { error: 'Too many conversions — please try again in a few minutes.' },
 }));
 
-const OFFICE_RE = /\.(docx?|odt|rtf|xlsx?|ods|csv|pptx?|odp)$/i;
+const OFFICE_RE = /\.(docx?|odt|rtf|txt|html?|xlsx?|ods|csv|pptx?|odp)$/i;
 
 function makeUpload(kind) {
   return multer({
@@ -139,6 +139,7 @@ function officeSlug(file) {
   const name = (file && file.originalname || '').toLowerCase();
   if (/\.(xlsx?|ods|csv)$/i.test(name)) return '/excel-to-pdf';
   if (/\.(pptx?|odp)$/i.test(name)) return '/powerpoint-to-pdf';
+  if (/\.(html?|txt)$/i.test(name)) return '/html-to-pdf';
   return '/word-to-pdf'; // docx/doc/odt/rtf and default
 }
 

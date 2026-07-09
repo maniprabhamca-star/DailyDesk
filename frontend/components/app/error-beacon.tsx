@@ -14,6 +14,17 @@ function visitorId(): string | null {
   try { return localStorage.getItem('dd_vid'); } catch { return null; }
 }
 
+// Belt-and-suspenders PII scrub: error text is code-level (stack frames, messages)
+// so it rarely holds user data, but redact anything email/URL/token-shaped just in
+// case, before it ever leaves the browser.
+function scrub(s: string): string {
+  return s
+    .replace(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi, '[email]')
+    .replace(/blob:https?:\/\/[^\s"')]+/gi, '[blob]')
+    .replace(/\bfile:\/\/[^\s"')]+/gi, '[file]')
+    .replace(/\b(?:eyJ[\w-]{6,}|sk-[\w-]{6,}|Bearer\s+[\w.-]{6,})/gi, '[token]');
+}
+
 export function ErrorBeacon() {
   useEffect(() => {
     const seen = new Set<string>();
@@ -32,9 +43,9 @@ export function ErrorBeacon() {
           keepalive: true,
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            message: message.slice(0, 500),
-            source: source.slice(0, 300),
-            stack: (stack || '').slice(0, 2000),
+            message: scrub(message).slice(0, 500),
+            source: scrub(source).slice(0, 300),
+            stack: scrub(stack || '').slice(0, 2000),
             path: location.pathname.slice(0, 200),
             visitorId: visitorId(),
           }),

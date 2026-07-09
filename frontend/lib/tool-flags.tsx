@@ -14,6 +14,7 @@ const DEFAULT_TOOL_FLAGS: FlagMap = {
   '/share-safe-pdf-check': 'coming_soon',
   '/compare-pdf': 'coming_soon',
   '/client-packet-builder': 'coming_soon',
+  '/html-to-pdf': 'coming_soon',
 };
 
 const Ctx = createContext<FlagMap>(DEFAULT_TOOL_FLAGS);

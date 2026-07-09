@@ -43,7 +43,7 @@ export const catalog: CatGroup[] = [
       { name: 'Word to PDF', href: '/word-to-pdf', icon: FileType2, badge: 'server' },
       { name: 'PowerPoint to PDF', href: '/powerpoint-to-pdf', icon: Presentation, badge: 'server' },
       { name: 'Excel to PDF', href: '/excel-to-pdf', icon: FileSpreadsheet, badge: 'server' },
-      { name: 'HTML to PDF', icon: Code2, badge: 'server', soon: true },
+      { name: 'HTML to PDF', href: '/html-to-pdf', icon: Code2, badge: 'server', soon: true },
     ],
   },
   {

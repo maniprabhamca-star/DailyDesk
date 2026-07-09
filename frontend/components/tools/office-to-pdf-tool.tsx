@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { Upload, FileText, X, Loader2, Cloud, FileType2, FileSpreadsheet, Presentation, type LucideIcon } from 'lucide-react';
+import { Upload, FileText, X, Loader2, Cloud, FileType2, FileSpreadsheet, Presentation, FileCode2, type LucideIcon } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -19,7 +19,7 @@ const MAX_BYTES = 50 * 1024 * 1024;
 // The registry lives HERE (client side) and pages pass only a string id —
 // RegExps and icon components are not serializable across the App Router
 // server→client boundary (passing them hangs static generation).
-export type OfficeKindId = 'word' | 'excel' | 'powerpoint';
+export type OfficeKindId = 'word' | 'excel' | 'powerpoint' | 'document';
 
 type OfficeKind = {
   label: string;
@@ -58,6 +58,15 @@ const KINDS: Record<OfficeKindId, OfficeKind> = {
     icon: Presentation,
     currentHref: '/powerpoint-to-pdf',
     fromLabel: 'PowerPoint to PDF',
+  },
+  document: {
+    label: 'HTML, text or document file',
+    accept: '.html,.htm,.txt,.rtf,.odt,text/html,text/plain,application/rtf,application/vnd.oasis.opendocument.text',
+    extRe: /\.(html?|txt|rtf|odt)$/i,
+    hint: 'HTML, HTM, TXT, RTF or ODT',
+    icon: FileCode2,
+    currentHref: '/html-to-pdf',
+    fromLabel: 'HTML to PDF',
   },
 };
 
