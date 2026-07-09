@@ -33,10 +33,13 @@ async function isDisabled(slug) {
 // Express guard: replies 503 when the tool is killed, else calls next().
 // `slugFor` is a slug string, or a function(req) => slug for endpoints that
 // serve a single fixed tool.
+const CANARY_TOKEN = process.env.CANARY_TOKEN || '';
 function guard(slugFor) {
   return async (req, res, next) => {
     const slug = typeof slugFor === 'function' ? slugFor(req) : slugFor;
-    if (slug && (await isDisabled(slug))) {
+    // The monitoring canary (x-canary) may probe a disabled tool to detect recovery.
+    const isCanary = CANARY_TOKEN && req.headers['x-canary'] === CANARY_TOKEN;
+    if (slug && !isCanary && (await isDisabled(slug))) {
       return res.status(503).json({
         error: 'tool-disabled',
         message: 'This tool is temporarily unavailable. Please try again later.',

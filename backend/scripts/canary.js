@@ -27,6 +27,7 @@ const THRESHOLD = 2;
 const SOURCE = {
   '/word-to-pdf': 'backend/src/routes/convert.js (soffice --convert-to pdf) + LibreOffice on the VPS',
   '/pdf-to-word': 'backend/src/routes/convert.js (writer_pdf_import) + LibreOffice on the VPS',
+  '/ocr-pdf': 'backend/src/routes/ocr.js (tesseract) + Tesseract + language packs on the VPS',
   '/rotate-pdf': 'frontend/lib/pdf-rewrite-core.ts (rotate) + pdf-rewrite.ts worker',
   '/delete-pages-from-pdf': 'frontend/lib/pdf-rewrite-core.ts (delete)',
   '/crop-pdf': 'frontend/lib/pdf-rewrite-core.ts (crop / setCropBox)',
@@ -188,9 +189,39 @@ async function clientChecks() {
   });
 }
 
+// OCR (server, Tesseract): render "CANARY" to a PNG and assert OCR reads it back.
+async function ocrCheck() {
+  let createCanvas, GlobalFonts, FE;
+  try {
+    FE = path.resolve(__dirname, '../../frontend');
+    ({ createCanvas, GlobalFonts } = require(`${FE}/node_modules/@napi-rs/canvas`));
+    try { GlobalFonts.registerFromPath(`${FE}/public/fonts/roboto-regular.ttf`, 'CanaryFont'); } catch { /* fall back to default */ }
+  } catch (e) {
+    console.error('[canary] napi-canvas unavailable, skipping OCR check:', e.message);
+    return;
+  }
+  try {
+    const c = createCanvas(640, 200);
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 640, 200);
+    ctx.fillStyle = '#000000'; ctx.font = '64px CanaryFont';
+    ctx.fillText('CANARY', 40, 130);
+    const png = c.toBuffer('image/png');
+    const fd = new FormData();
+    fd.append('pages', new Blob([png], { type: 'image/png' }), 'canary.png');
+    fd.append('lang', 'eng');
+    const r = await fetch(`${BASE}/api/ocr`, { method: 'POST', body: fd, headers: CANARY ? { 'x-canary': CANARY } : {} });
+    const j = r.ok ? await r.json() : null;
+    const text = ((j && j.text) || '').toUpperCase().replace(/[^A-Z]/g, '');
+    const ok = r.status === 200 && text.includes('CANARY');
+    await record('/ocr-pdf', ok, ok ? 'recognised text' : `HTTP ${r.status} read "${((j && j.text) || '').slice(0, 20)}"`);
+  } catch (e) { await record('/ocr-pdf', false, e.message); }
+}
+
 (async () => {
   await ensureTable();
   await serverChecks();
+  await ocrCheck();
   await clientChecks();
   await record('__heartbeat__', true, 'monitor ran');
   process.exit(0);
