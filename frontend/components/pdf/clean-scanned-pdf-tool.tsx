@@ -1,12 +1,13 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Upload, FileText, X, Download, Loader2, WandSparkles, SlidersHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
-import { openPdf, renderPage, dprTarget, type PdfHandle } from '@/lib/pdf-render';
+import { BeforeAfter } from '@/components/pdf/before-after';
+import { openPdf, renderPage, dprTarget, type PdfHandle, type RenderedPage } from '@/lib/pdf-render';
 
 type Mode = 'clean' | 'bw';
 
@@ -22,6 +23,31 @@ async function blobFromCanvas(canvas: HTMLCanvasElement, type = 'image/jpeg', qu
   return blob;
 }
 
+async function cleanRenderedPage(rp: RenderedPage, mode: Mode, contrast: number) {
+  const blob = await (await fetch(rp.url)).blob();
+  const bitmap = await createImageBitmap(blob);
+  const canvas = document.createElement('canvas');
+  canvas.width = rp.w;
+  canvas.height = rp.h;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  if (!ctx) throw new Error('No canvas context.');
+  ctx.drawImage(bitmap, 0, 0);
+  bitmap.close();
+  const img = ctx.getImageData(0, 0, rp.w, rp.h);
+  const d = img.data;
+  const boost = 1 + contrast / 60;
+  for (let p = 0; p < d.length; p += 4) {
+    const gray = 0.299 * d[p] + 0.587 * d[p + 1] + 0.114 * d[p + 2];
+    let v = (gray - 128) * boost + 128;
+    if (mode === 'bw') v = v > 178 ? 255 : 0;
+    else v = Math.max(0, Math.min(255, v + 8));
+    d[p] = v; d[p + 1] = v; d[p + 2] = v;
+  }
+  ctx.putImageData(img, 0, 0);
+  const cleaned = await blobFromCanvas(canvas, 'image/jpeg', mode === 'bw' ? 0.86 : 0.9);
+  return { blob: cleaned, page: { url: URL.createObjectURL(cleaned), w: rp.w, h: rp.h } satisfies RenderedPage };
+}
+
 export function CleanScannedPdfTool() {
   const [file, setFile] = useState<File | null>(null);
   const [pageCount, setPageCount] = useState(0);
@@ -31,6 +57,9 @@ export function CleanScannedPdfTool() {
   const [progress, setProgress] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ blob: Blob; name: string; secs: number } | null>(null);
+  const [previewBusy, setPreviewBusy] = useState(false);
+  const [beforePreview, setBeforePreview] = useState<RenderedPage | null>(null);
+  const [afterPreview, setAfterPreview] = useState<RenderedPage | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function pick(f?: File) {
@@ -64,6 +93,51 @@ export function CleanScannedPdfTool() {
     setProgress('');
   }
 
+  useEffect(() => {
+    return () => { if (beforePreview) URL.revokeObjectURL(beforePreview.url); };
+  }, [beforePreview]);
+
+  useEffect(() => {
+    return () => { if (afterPreview) URL.revokeObjectURL(afterPreview.url); };
+  }, [afterPreview]);
+
+  useEffect(() => {
+    if (!file) {
+      setBeforePreview(null);
+      setAfterPreview(null);
+      setPreviewBusy(false);
+      return;
+    }
+    let cancelled = false;
+    let handle: PdfHandle | null = null;
+    setPreviewBusy(true);
+    setBeforePreview(null);
+    setAfterPreview(null);
+    (async () => {
+      handle = await openPdf(file);
+      const rp = await renderPage(handle, 0, dprTarget(950, 1.4, 1200));
+      const cleaned = await cleanRenderedPage(rp, mode, contrast);
+      if (cancelled) {
+        URL.revokeObjectURL(rp.url);
+        URL.revokeObjectURL(cleaned.page.url);
+        return;
+      }
+      setBeforePreview(rp);
+      setAfterPreview(cleaned.page);
+    })().catch(() => {
+      if (!cancelled) {
+        setBeforePreview(null);
+        setAfterPreview(null);
+      }
+    }).finally(() => {
+      if (!cancelled) setPreviewBusy(false);
+      if (handle) void handle.destroy();
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [file, mode, contrast]);
+
   async function run() {
     if (!file) return;
     setBusy(true);
@@ -81,28 +155,9 @@ export function CleanScannedPdfTool() {
         setProgress(`Cleaning page ${i + 1} of ${handle.numPages}`);
         const rp = await renderPage(handle, i, dprTarget(1500, 1.4, 1900));
         try {
-          const blob = await (await fetch(rp.url)).blob();
-          const bitmap = await createImageBitmap(blob);
-          const canvas = document.createElement('canvas');
-          canvas.width = rp.w;
-          canvas.height = rp.h;
-          const ctx = canvas.getContext('2d', { willReadFrequently: true });
-          if (!ctx) throw new Error('No canvas context.');
-          ctx.drawImage(bitmap, 0, 0);
-          bitmap.close();
-          const img = ctx.getImageData(0, 0, rp.w, rp.h);
-          const d = img.data;
-          const boost = 1 + contrast / 60;
-          for (let p = 0; p < d.length; p += 4) {
-            const gray = 0.299 * d[p] + 0.587 * d[p + 1] + 0.114 * d[p + 2];
-            let v = (gray - 128) * boost + 128;
-            if (mode === 'bw') v = v > 178 ? 255 : 0;
-            else v = Math.max(0, Math.min(255, v + 8));
-            d[p] = v; d[p + 1] = v; d[p + 2] = v;
-          }
-          ctx.putImageData(img, 0, 0);
-          const cleaned = await blobFromCanvas(canvas, 'image/jpeg', mode === 'bw' ? 0.86 : 0.9);
-          const jpg = await out.embedJpg(await cleaned.arrayBuffer());
+          const cleaned = await cleanRenderedPage(rp, mode, contrast);
+          const jpg = await out.embedJpg(await cleaned.blob.arrayBuffer());
+          URL.revokeObjectURL(cleaned.page.url);
           const size = sizes[i] || { width: jpg.width, height: jpg.height };
           const page = out.addPage([size.width, size.height]);
           page.drawImage(jpg, { x: 0, y: 0, width: size.width, height: size.height });
@@ -161,6 +216,28 @@ export function CleanScannedPdfTool() {
               <span className="text-muted-foreground">Contrast</span>
               <input type="range" min="0" max="50" value={contrast} onChange={(e) => setContrast(Number(e.target.value))} />
             </label>
+          </div>
+        )}
+
+        {file && (
+          <div className="mt-4 rounded-xl border bg-card p-3">
+            <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+              <div>
+                <p className="text-sm font-semibold">Quality preview</p>
+                <p className="text-xs text-muted-foreground">First page before and after, rendered on this device.</p>
+              </div>
+              <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">{mode === 'bw' ? 'Black & white' : 'Clean grayscale'}</span>
+            </div>
+            <BeforeAfter
+              before={beforePreview}
+              after={afterPreview}
+              beforeCaption="Original"
+              afterCaption="Cleaned"
+              beforeLabel="Current scan"
+              afterLabel={mode === 'bw' ? 'High contrast' : 'Readable grayscale'}
+              loading={previewBusy || !beforePreview || !afterPreview}
+              zoomHint="Hover the preview to inspect edges and small text"
+            />
           </div>
         )}
 

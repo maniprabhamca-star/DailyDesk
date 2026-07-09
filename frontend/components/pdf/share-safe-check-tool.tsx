@@ -115,6 +115,9 @@ export function ShareSafeCheckTool() {
   }
 
   const result = findings ? score(findings) : null;
+  const actions = findings
+    ? Array.from(new Map(findings.flatMap((f) => (f.action ? [[f.action.href, f.action] as const] : []))).values())
+    : [];
 
   return (
     <Card>
@@ -142,6 +145,24 @@ export function ShareSafeCheckTool() {
           </div>
         )}
 
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <div className="rounded-xl border bg-muted/30 p-3">
+            <Fingerprint className="size-4 text-primary" />
+            <p className="mt-2 text-sm font-medium">Inspect</p>
+            <p className="text-xs leading-5 text-muted-foreground">Find metadata, risky visible text, links, and annotations.</p>
+          </div>
+          <div className="rounded-xl border bg-muted/30 p-3">
+            <EyeOff className="size-4 text-primary" />
+            <p className="mt-2 text-sm font-medium">Fix path</p>
+            <p className="text-xs leading-5 text-muted-foreground">Open the exact tool for metadata removal, redaction, or link cleanup.</p>
+          </div>
+          <div className="rounded-xl border bg-muted/30 p-3">
+            <ShieldCheck className="size-4 text-primary" />
+            <p className="mt-2 text-sm font-medium">Send cleaner</p>
+            <p className="text-xs leading-5 text-muted-foreground">Use it as the final pre-flight check before sharing.</p>
+          </div>
+        </div>
+
         {busy && <p className="mt-4 flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" /> Checking your PDF on this device...</p>}
         {error && <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
 
@@ -168,6 +189,17 @@ export function ShareSafeCheckTool() {
                     {f.action && <Button asChild size="sm" variant="outline"><Link href={f.action.href}>{f.action.label}</Link></Button>}
                   </div>
                 ))}
+              </div>
+            )}
+            {actions.length > 0 && (
+              <div className="rounded-xl border bg-muted/30 p-3">
+                <p className="text-sm font-semibold">Recommended fixes</p>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">The checker does not silently change your file. Choose the fix you want, review it, then download the cleaned copy.</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {actions.map((a) => (
+                    <Button key={a.href} asChild size="sm" variant="outline"><Link href={a.href}>{a.label}</Link></Button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
