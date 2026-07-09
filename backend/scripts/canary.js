@@ -31,6 +31,11 @@ const SOURCE = {
   '/delete-pages-from-pdf': 'frontend/lib/pdf-rewrite-core.ts (delete)',
   '/crop-pdf': 'frontend/lib/pdf-rewrite-core.ts (crop / setCropBox)',
   '/remove-pdf-metadata': 'frontend/lib/pdf-sanitize.ts (stripDocMetadata)',
+  '/reorder-pdf': 'frontend/lib/pdf-rewrite-core.ts (reorder)',
+  '/merge-pdf': 'frontend/lib/pdf-rewrite-core.ts (merge)',
+  '/split-pdf': 'frontend/lib/pdf-rewrite-core.ts (split-each)',
+  '/add-page-numbers-to-pdf': 'frontend/lib/pdf-rewrite-core.ts (page-numbers) + pdf-stamp.ts',
+  '/watermark-pdf': 'frontend/lib/pdf-rewrite-core.ts (watermark) + pdf-stamp.ts',
 };
 function brief(slug, detail, disabled) {
   return [
@@ -160,6 +165,26 @@ async function clientChecks() {
   await run('/remove-pdf-metadata', async () => {
     const d = await PDFDocument.load(freshAB());
     return (await stripDocMetadata(d)) >= 1;
+  });
+  await run('/reorder-pdf', async () => {
+    const [out] = await executeRewrite([freshAB()], { type: 'reorder', order: [2, 1, 0] });
+    return (await PDFDocument.load(out)).getPageCount() === 3;
+  });
+  await run('/merge-pdf', async () => {
+    const [out] = await executeRewrite([freshAB(), freshAB()], { type: 'merge' });
+    return (await PDFDocument.load(out)).getPageCount() === 6;
+  });
+  await run('/split-pdf', async () => {
+    const outs = await executeRewrite([freshAB()], { type: 'split-each' });
+    return outs.length === 3; // one PDF per page
+  });
+  await run('/add-page-numbers-to-pdf', async () => {
+    const [out] = await executeRewrite([freshAB()], { type: 'page-numbers', opts: { pageNums: [1, 2, 3], start: 1, template: '{n}', fontSize: 10, margin: 20, colorRgb: [0, 0, 0], pos: 'bc' } });
+    return (await PDFDocument.load(out)).getPageCount() === 3;
+  });
+  await run('/watermark-pdf', async () => {
+    const [out] = await executeRewrite([freshAB()], { type: 'watermark', opts: { mode: 'text', text: 'DRAFT', colorRgb: [0.5, 0.5, 0.5], sizeFrac: 0.1, opacity: 0.3, position: 'mc', rotation: 45, imageScale: 0.3, layer: 'over', range: '', standardFont: 'Helvetica' } });
+    return (await PDFDocument.load(out)).getPageCount() === 3;
   });
 }
 
