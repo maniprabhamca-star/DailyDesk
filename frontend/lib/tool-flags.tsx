@@ -15,6 +15,7 @@ const DEFAULT_TOOL_FLAGS: FlagMap = {
   '/compare-pdf': 'coming_soon',
   '/client-packet-builder': 'coming_soon',
   '/html-to-pdf': 'coming_soon',
+  '/crop-pdf': 'coming_soon',
 };
 
 const Ctx = createContext<FlagMap>(DEFAULT_TOOL_FLAGS);

@@ -34,6 +34,7 @@ export const catalog: CatGroup[] = [
       { name: 'Reorder pages', href: '/reorder-pdf', icon: ArrowLeftRight, badge: 'device' },
       { name: 'Compare PDF', href: '/compare-pdf', icon: ArrowLeftRight, badge: 'device', soon: true },
       { name: 'Delete pages', href: '/delete-pages-from-pdf', icon: FileMinus, badge: 'device' },
+      { name: 'Crop PDF', href: '/crop-pdf', icon: Crop, badge: 'device', soon: true },
       { name: 'Page numbers', href: '/add-page-numbers-to-pdf', icon: ListOrdered, badge: 'device' },
     ],
   },

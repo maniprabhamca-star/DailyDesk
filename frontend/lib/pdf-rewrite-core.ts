@@ -17,6 +17,10 @@ export type PageNumberOpts = {
   margin: number; // pt from the page edge
   colorRgb: [number, number, number];
   pos: 'tl' | 'tc' | 'tr' | 'bl' | 'bc' | 'br';
+  /** Bundled OFL TTF bytes for the chosen family — embedded via fontkit. Omit
+   * to use `standardFont`. */
+  fontBytes?: ArrayBuffer;
+  standardFont?: string; // a StandardFonts value; default Helvetica
 };
 
 export type WatermarkOpts = StampCore & {
@@ -43,6 +47,11 @@ export type PlaceImageOpts = {
   isPng: boolean;
 };
 
+/** Crop box as screen-style fractions of each page (y measured from the TOP).
+ * Applied to every page relative to its own size, so mixed page sizes crop
+ * proportionally. Lossless — it only sets the visible CropBox, content stays. */
+export type CropOpts = { xFrac: number; yFrac: number; wFrac: number; hFrac: number };
+
 export type RewriteOp =
   | { type: 'rotate'; deltas: number[] } // per-page delta in degrees (0 = untouched)
   | { type: 'delete'; indices: number[] } // 0-based page indices to remove
@@ -53,6 +62,7 @@ export type RewriteOp =
   | { type: 'split-chunks'; every: number } // fixed ranges: one output per N pages
   | { type: 'page-numbers'; opts: PageNumberOpts }
   | { type: 'watermark'; opts: WatermarkOpts }
+  | { type: 'crop'; opts: CropOpts }
   | { type: 'place-image'; opts: PlaceImageOpts };
 
 export async function executeRewrite(buffers: ArrayBuffer[], op: RewriteOp): Promise<Uint8Array[]> {
@@ -106,7 +116,16 @@ export async function executeRewrite(buffers: ArrayBuffer[], op: RewriteOp): Pro
     }
     case 'page-numbers': {
       const o = op.opts;
-      const font = await doc.embedFont(StandardFonts.Helvetica);
+      // Font: a bundled OFL family (fontkit) if provided, else a standard face.
+      // Same path Watermark uses, so the family picker is consistent across tools.
+      let font;
+      if (o.fontBytes && o.fontBytes.byteLength > 0) {
+        const fkMod = (await import('@pdf-lib/fontkit')) as { default?: unknown };
+        doc.registerFontkit((fkMod.default ?? fkMod) as Parameters<typeof doc.registerFontkit>[0]);
+        font = await doc.embedFont(new Uint8Array(o.fontBytes), { subset: true });
+      } else {
+        font = await doc.embedFont(o.standardFont || StandardFonts.Helvetica);
+      }
       const pages = doc.getPages();
       const denom = o.start + o.pageNums.length - 1;
       o.pageNums.forEach((pageNo, i) => {
@@ -121,6 +140,18 @@ export async function executeRewrite(buffers: ArrayBuffer[], op: RewriteOp): Pro
         const y = o.pos.startsWith('t') ? height - o.margin - o.fontSize : o.margin;
         page.drawText(text, { x, y, size: o.fontSize, font, color: rgb(o.colorRgb[0], o.colorRgb[1], o.colorRgb[2]) });
       });
+      return [await doc.save()];
+    }
+    case 'crop': {
+      const o = op.opts;
+      for (const page of doc.getPages()) {
+        const mb = page.getMediaBox();
+        const x = mb.x + o.xFrac * mb.width;
+        const w = o.wFrac * mb.width;
+        const h = o.hFrac * mb.height;
+        const y = mb.y + (1 - o.yFrac - o.hFrac) * mb.height; // screen-top → PDF-bottom flip
+        page.setCropBox(x, y, w, h);
+      }
       return [await doc.save()];
     }
     case 'place-image': {

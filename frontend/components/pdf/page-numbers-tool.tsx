@@ -10,6 +10,11 @@ import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
 import { rewritePdf } from '@/lib/pdf-rewrite';
 import { useCancelableJob, isCancel } from '@/lib/use-cancelable-job';
+import { FAMILIES, loadFontBytes, type Family } from '@/lib/fonts';
+import { FontSelect } from '@/components/app/font-select';
+
+// Base-14 families carry no bundled TTF — map them to their StandardFonts name.
+const STANDARD_PN: Partial<Record<Family, string>> = { helvetica: 'Helvetica', times: 'Times-Roman', courier: 'Courier' };
 
 type Pos = 'tl' | 'tc' | 'tr' | 'bl' | 'bc' | 'br';
 type Fmt = 'n' | 'n_slash_N' | 'page_n' | 'page_n_of_N' | 'custom';
@@ -53,6 +58,7 @@ export function PageNumbersTool() {
   const [size, setSize] = useState<Size>('medium');
   const [margin, setMargin] = useState<Margin>('medium');
   const [tone, setTone] = useState<Tone>('gray');
+  const [family, setFamily] = useState<Family>('helvetica');
   const [start, setStart] = useState(1);
   const [ranges, setRanges] = useState('');
   const [busy, setBusy] = useState(false);
@@ -118,9 +124,20 @@ export function PageNumbersTool() {
       // longer freezes the tab. The stamp itself happens in pdf-rewrite-core.
       const target = parseRanges(ranges, pageCount); // 1-based, may throw
       const template = format === 'custom' ? (custom.trim() || '{n}') : TEMPLATES[format];
+      // Resolve the chosen family on the main thread (cached fetch); a bundled
+      // OFL TTF is embedded via fontkit in the worker, base-14 uses a std name.
+      const files = FAMILIES[family]?.files;
+      let fontBytes: ArrayBuffer | undefined;
+      let standardFont: string | undefined;
+      if (files) {
+        try { fontBytes = (await loadFontBytes(files.regular)).slice().buffer; }
+        catch { standardFont = 'Helvetica'; } // fetch failed — never a dead end
+      } else {
+        standardFont = STANDARD_PN[family] || 'Helvetica';
+      }
       const out = await rewritePdf(file, {
         type: 'page-numbers',
-        opts: { pageNums: target, start, template, fontSize: SIZE[size], margin: MARGINS[margin], colorRgb: TONES[tone].rgb, pos },
+        opts: { pageNums: target, start, template, fontSize: SIZE[size], margin: MARGINS[margin], colorRgb: TONES[tone].rgb, pos, fontBytes, standardFont },
       }, { signal });
       if (!jobs.isCurrent(id)) return;
       const name = `${file.name.replace(/\.pdf$/i, '')}-numbered.pdf`;
@@ -216,6 +233,10 @@ export function PageNumbersTool() {
                   <option value="large">Large</option>
                 </select>
               </label>
+              <div className="text-sm sm:col-span-2">
+                <span className="mb-1.5 block font-medium">Font</span>
+                <FontSelect value={family} onChange={(f) => { setDone(null); setFamily(f); }} />
+              </div>
               {format === 'custom' && (
                 <label className="text-sm sm:col-span-2">
                   <span className="mb-1.5 block font-medium">Custom text</span>

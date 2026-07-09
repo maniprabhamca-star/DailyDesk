@@ -15,6 +15,7 @@ function opExtraTransfers(op: RewriteOp): ArrayBuffer[] {
     return t;
   }
   if (op.type === 'place-image') return [op.opts.imageBytes];
+  if (op.type === 'page-numbers') return op.opts.fontBytes ? [op.opts.fontBytes] : [];
   return [];
 }
 
@@ -66,6 +67,8 @@ async function run(srcs: (File | Blob)[], op: RewriteOp, signal?: AbortSignal): 
     fallbackOp = { ...op, opts: { ...op.opts, fontBytes: op.opts.fontBytes?.slice(0), imageBytes: op.opts.imageBytes?.slice(0) } };
   } else if (op.type === 'place-image') {
     fallbackOp = { ...op, opts: { ...op.opts, imageBytes: op.opts.imageBytes.slice(0) } };
+  } else if (op.type === 'page-numbers' && op.opts.fontBytes) {
+    fallbackOp = { ...op, opts: { ...op.opts, fontBytes: op.opts.fontBytes.slice(0) } };
   }
   try {
     return await runInWorker(await Promise.all(srcs.map((s) => s.arrayBuffer())), op, signal);
