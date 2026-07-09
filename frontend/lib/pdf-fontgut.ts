@@ -96,8 +96,15 @@ function allCmaps(b: Uint8Array, tables: Tables): Array<(u: number) => number> {
   return out;
 }
 
+// Tables that don't affect OUTLINE rendering, so dropping them keeps the page
+// pixel-identical while shrinking the font: embedded bitmap strikes (only used at
+// tiny sizes, and PDF viewers render from outlines), the digital signature, and
+// device-metric hints. `post` is compacted to format 3 (drops the glyph-NAME
+// list, which rendering never needs). All verified pixel-identical by the harness.
+const DROP_TABLES = new Set(['EBDT', 'EBLC', 'EBSC', 'bdat', 'bloc', 'DSIG']);
+
 // Empty the outlines of every glyph NOT in keepGids (composites expanded).
-function gutFont(src: Uint8Array, keepGids: Set<number>): { file: Uint8Array; kept: number } | null {
+export function gutFont(src: Uint8Array, keepGids: Set<number>): { file: Uint8Array; kept: number } | null {
   const tables = parseTables(src);
   if (!tables || !tables['glyf'] || !tables['loca'] || !tables['head'] || !tables['maxp']) return null;
   const longLoca = i16(src, tables['head'].off + 50) === 1;
@@ -151,48 +158,49 @@ function gutFont(src: Uint8Array, keepGids: Set<number>): { file: Uint8Array; ke
     else w16(newLocaBuf, i * 2, newLoca[i] >> 1);
   }
 
-  // Reassemble sfnt: same table set, new offsets/checksums.
-  const numT = u16(src, 4);
-  const header = new Uint8Array(src.subarray(0, 12 + numT * 16));
-  const names = Object.keys(tables).sort((a, b2) => tables[a].off - tables[b2].off);
-  let off = header.length;
-  const chunks: Uint8Array[] = [];
-  for (const name of names) {
-    let data: Uint8Array;
-    if (name === 'glyf') data = newGlyf;
-    else if (name === 'loca') data = newLocaBuf;
-    else data = new Uint8Array(src.subarray(tables[name].off, tables[name].off + tables[name].len));
-    if (name === 'head') { data = new Uint8Array(data); w16(data, 50, needLong ? 1 : 0); w32(data, 8, 0); }
-    for (let i = 0; i < numT; i++) {
-      const o = 12 + i * 16;
-      if (tag(header, o) === name) {
-        w32(header, o + 8, off);
-        w32(header, o + 12, data.length);
-        let sum = 0;
-        const full = data.length & ~3;
-        for (let p = 0; p < full; p += 4) sum = (sum + u32(data, p)) >>> 0;
-        if (data.length & 3) {
-          const t4 = new Uint8Array(4);
-          t4.set(data.subarray(full));
-          sum = (sum + u32(t4, 0)) >>> 0;
-        }
-        w32(header, o + 4, sum);
-      }
-    }
-    chunks.push(data);
-    off += data.length;
-    if (off & 3) { const pad = new Uint8Array(4 - (off & 3)); chunks.push(pad); off += pad.length; }
-  }
+  // Reassemble the sfnt: drop DROP_TABLES, compact `post` to format 3, and
+  // rebuild the table directory (fewer tables) with fresh offsets + checksums.
+  const checksum = (b: Uint8Array, o: number, len: number): number => {
+    let s = 0;
+    const full = len & ~3;
+    for (let p = 0; p < full; p += 4) s = (s + u32(b, o + p)) >>> 0;
+    if (len & 3) { const t4 = new Uint8Array(4); t4.set(b.subarray(o + full, o + len)); s = (s + u32(t4, 0)) >>> 0; }
+    return s >>> 0;
+  };
+  const dataOf = (name: string): Uint8Array => {
+    if (name === 'glyf') return newGlyf;
+    if (name === 'loca') return newLocaBuf;
+    const d = new Uint8Array(src.subarray(tables[name].off, tables[name].off + tables[name].len));
+    if (name === 'head') { w16(d, 50, needLong ? 1 : 0); w32(d, 8, 0); return d; }
+    if (name === 'post' && d.length > 32) { const h = d.slice(0, 32); w32(h, 0, 0x00030000); return h; } // fmt 3: no glyph names
+    return d;
+  };
+
+  const keepTables = Object.keys(tables).filter((n) => !DROP_TABLES.has(n)).sort();
+  const numT = keepTables.length;
+  let pow = 1, es = 0;
+  while (pow * 2 <= numT) { pow *= 2; es++; }
+  const laid = keepTables.map((name) => ({ name, data: dataOf(name), off: 0 }));
+  let off = 12 + numT * 16;
+  for (const e of laid) { e.off = off; off += (e.data.length + 3) & ~3; } // 4-byte aligned
+
   const file = new Uint8Array(off);
-  file.set(header, 0);
-  { let p = header.length; for (const c of chunks) { file.set(c, p); p += c.length; } }
-  let total = 0;
-  const full = file.length & ~3;
-  for (let p = 0; p < full; p += 4) total = (total + u32(file, p)) >>> 0;
-  for (let i = 0; i < numT; i++) {
-    const o = 12 + i * 16;
-    if (tag(file, o) === 'head') w32(file, u32(file, o + 8) + 8, (0xb1b0afba - total) >>> 0);
+  w32(file, 0, u32(src, 0));               // scaler type
+  w16(file, 4, numT);
+  w16(file, 6, pow * 16);                  // searchRange
+  w16(file, 8, es);                        // entrySelector
+  w16(file, 10, numT * 16 - pow * 16);     // rangeShift
+  let dir = 12;
+  for (const e of laid) {
+    file.set(e.data, e.off);
+    for (let k = 0; k < 4; k++) file[dir + k] = e.name.charCodeAt(k) || 0x20;
+    w32(file, dir + 4, checksum(e.data, 0, e.data.length));
+    w32(file, dir + 8, e.off);
+    w32(file, dir + 12, e.data.length);
+    dir += 16;
   }
+  const head = laid.find((e) => e.name === 'head');
+  if (head) w32(file, head.off + 8, (0xb1b0afba - checksum(file, 0, file.length)) >>> 0);
   return { file, kept: keep.size };
 }
 
