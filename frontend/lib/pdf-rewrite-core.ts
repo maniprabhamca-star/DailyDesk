@@ -17,6 +17,10 @@ export type PageNumberOpts = {
   margin: number; // pt from the page edge
   colorRgb: [number, number, number];
   pos: 'tl' | 'tc' | 'tr' | 'bl' | 'bc' | 'br';
+  /** Book-style facing pages: the number sits on the chosen side for odd
+   * (recto) pages and mirrors to the opposite side for even (verso) pages.
+   * Ignored for centre positions. */
+  mirror?: boolean;
   /** Bundled OFL TTF bytes for the chosen family — embedded via fontkit. Omit
    * to use `standardFont`. */
   fontBytes?: ArrayBuffer;
@@ -134,8 +138,11 @@ export async function executeRewrite(buffers: ArrayBuffer[], op: RewriteOp): Pro
         const { width, height } = page.getSize();
         const text = o.template.replace(/\{n\}/g, String(o.start + i)).replace(/\{p\}/g, String(denom));
         const tw = font.widthOfTextAtSize(text, o.fontSize);
-        const left = o.pos.endsWith('l');
         const center = o.pos.endsWith('c');
+        let left = o.pos.endsWith('l');
+        // Facing pages: keep the chosen side on odd (recto) pages, mirror it on
+        // even (verso) pages so numbers always sit on the outer edge.
+        if (o.mirror && !center && pageNo % 2 === 0) left = !left;
         const x = left ? o.margin : center ? (width - tw) / 2 : width - o.margin - tw;
         const y = o.pos.startsWith('t') ? height - o.margin - o.fontSize : o.margin;
         page.drawText(text, { x, y, size: o.fontSize, font, color: rgb(o.colorRgb[0], o.colorRgb[1], o.colorRgb[2]) });

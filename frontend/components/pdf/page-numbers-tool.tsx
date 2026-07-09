@@ -59,6 +59,7 @@ export function PageNumbersTool() {
   const [margin, setMargin] = useState<Margin>('medium');
   const [tone, setTone] = useState<Tone>('gray');
   const [family, setFamily] = useState<Family>('helvetica');
+  const [mirror, setMirror] = useState(false);
   const [start, setStart] = useState(1);
   const [ranges, setRanges] = useState('');
   const [busy, setBusy] = useState(false);
@@ -137,7 +138,7 @@ export function PageNumbersTool() {
       }
       const out = await rewritePdf(file, {
         type: 'page-numbers',
-        opts: { pageNums: target, start, template, fontSize: SIZE[size], margin: MARGINS[margin], colorRgb: TONES[tone].rgb, pos, fontBytes, standardFont },
+        opts: { pageNums: target, start, template, fontSize: SIZE[size], margin: MARGINS[margin], colorRgb: TONES[tone].rgb, pos, mirror: mirror && !pos.endsWith('c'), fontBytes, standardFont },
       }, { signal });
       if (!jobs.isCurrent(id)) return;
       const name = `${file.name.replace(/\.pdf$/i, '')}-numbered.pdf`;
@@ -212,6 +213,12 @@ export function PageNumbersTool() {
                   </button>
                 ))}
               </div>
+              {!pos.endsWith('c') && (
+                <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs font-medium">
+                  <input type="checkbox" checked={mirror} onChange={(e) => { setDone(null); setMirror(e.target.checked); }} className="accent-primary" />
+                  Mirror on facing pages — outer edge (odd right, even left), like a book
+                </label>
+              )}
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
