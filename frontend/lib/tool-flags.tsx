@@ -9,6 +9,11 @@ type FlagMap = Record<string, ToolStatus>;
 
 const DEFAULT_TOOL_FLAGS: FlagMap = {
   '/edit-pdf': 'coming_soon',
+  // Document-command-center tools: owner-only until reviewed + launched.
+  '/clean-scanned-pdf': 'coming_soon',
+  '/share-safe-pdf-check': 'coming_soon',
+  '/compare-pdf': 'coming_soon',
+  '/client-packet-builder': 'coming_soon',
 };
 
 const Ctx = createContext<FlagMap>(DEFAULT_TOOL_FLAGS);

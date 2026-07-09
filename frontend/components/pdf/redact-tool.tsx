@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { Upload, FileText, X, Loader2, EyeOff, Undo2, Trash2, Zap, ShieldCheck, Search, Sparkles, Lock } from 'lucide-react';
+import { Upload, FileText, X, Loader2, EyeOff, Undo2, Trash2, Zap, ShieldCheck, Search, Sparkles, Lock, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { downloadBlob as download } from '@/lib/download';
@@ -78,7 +78,7 @@ export function RedactTool() {
   const [boxes, setBoxes] = useState<Record<number, Box[]>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState<{ blob: Blob; name: string; secs: number } | null>(null);
+  const [done, setDone] = useState<{ blob: Blob; name: string; secs: number; verified?: { pages: number; beforeChars: number; afterChars: number } } | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
   const [brandName, setBrandName] = useState(false); // opt-in "-diemdesk" filename suffix
   const [query, setQuery] = useState('');
@@ -264,10 +264,11 @@ export function RedactTool() {
           const cvs = document.createElement('canvas');
           cvs.width = rp.w; cvs.height = rp.h;
           const ctx = cvs.getContext('2d')!;
-          const img = new Image();
-          img.src = rp.url;
-          await img.decode();
-          ctx.drawImage(img, 0, 0, rp.w, rp.h);
+          // createImageBitmap, not img.decode(blobURL) — the latter can hang on
+          // some engines and would freeze the whole redaction export.
+          const bitmap = await createImageBitmap(await (await fetch(rp.url)).blob());
+          ctx.drawImage(bitmap, 0, 0, rp.w, rp.h);
+          bitmap.close();
           drawBoxes(ctx, rp.w, rp.h, boxes[i], style, labelText);
           const png = await new Promise<ArrayBuffer>((res, rej) =>
             cvs.toBlob((b) => (b ? b.arrayBuffer().then(res) : rej(new Error('render failed'))), 'image/png'));
@@ -287,10 +288,35 @@ export function RedactTool() {
       out.setTitle(''); out.setAuthor(''); out.setSubject(''); out.setKeywords([]);
       out.setProducer('DiemDesk'); out.setCreator('DiemDesk');
       const bytes = await out.save();
+      const verifyBytes = new Uint8Array(bytes); // dedicated copy — pdf.js detaches what it parses
       const name = `${file.name.replace(/\.pdf$/i, '')}-redacted${brandName ? '-diemdesk' : ''}.pdf`;
       const blob = new Blob([bytes as unknown as BlobPart], { type: 'application/pdf' });
       download(blob, name);
-      setDone({ blob, name, secs: (performance.now() - t0) / 1000 });
+
+      // Prove the redaction did what it claims: count selectable characters on
+      // the redacted pages BEFORE, then in the OUTPUT. Rasterized pages have no
+      // text layer, so "after" should be 0 — the difference between "looks
+      // redacted" (a box over live text you can still copy) and "is redacted".
+      let verified: { pages: number; beforeChars: number; afterChars: number } | undefined;
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const charsOnPage = async (pageProxy: any) => {
+          const tc = await pageProxy.getTextContent();
+          let t = 0;
+          for (const it of tc.items as Array<{ str?: string }>) t += (it.str || '').length;
+          return t;
+        };
+        let beforeChars = 0;
+        for (const i of redactedPages) beforeChars += await charsOnPage(await handle.doc.getPage(i + 1));
+        const pdfjs = await getPdfjs();
+        const task = pdfjs.getDocument({ data: verifyBytes });
+        const vdoc = await task.promise;
+        let afterChars = 0;
+        for (const i of redactedPages) afterChars += await charsOnPage(await vdoc.getPage(i + 1));
+        await task.destroy();
+        verified = { pages: redactedPages.length, beforeChars, afterChars };
+      } catch { /* verification is best-effort; never block the download */ }
+      setDone({ blob, name, secs: (performance.now() - t0) / 1000, verified });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not redact the PDF.');
     } finally { setBusy(false); }
@@ -454,7 +480,26 @@ export function RedactTool() {
           </>
         )}
 
-        {done && <PdfDone blob={done.blob} name={done.name} secs={done.secs} currentHref="/redact-pdf" fromLabel="Redact PDF" />}
+        {done && (
+          <>
+            {done.verified && (
+              <div className="mt-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2.5">
+                <div className="flex items-center gap-2">
+                  {done.verified.afterChars === 0 ? <ShieldCheck className="size-5 shrink-0 text-emerald-600" /> : <AlertTriangle className="size-5 shrink-0 text-amber-500" />}
+                  <p className="text-sm font-semibold">
+                    {done.verified.afterChars === 0 ? 'Redaction verified — the text is gone, not just covered' : 'Redaction applied'}
+                  </p>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  We re-scanned the {done.verified.pages} redacted page{done.verified.pages === 1 ? '' : 's'}: {done.verified.beforeChars.toLocaleString()} selectable character{done.verified.beforeChars === 1 ? '' : 's'} →{' '}
+                  <span className={done.verified.afterChars === 0 ? 'font-medium text-emerald-700 dark:text-emerald-400' : 'font-medium text-amber-600'}>{done.verified.afterChars.toLocaleString()} left</span>.
+                  {' '}Those pages are now flat images, so the hidden text can’t be selected, copied, searched, or recovered — unlike a plain black box drawn over live text.
+                </p>
+              </div>
+            )}
+            <PdfDone blob={done.blob} name={done.name} secs={done.secs} currentHref="/redact-pdf" fromLabel="Redact PDF" />
+          </>
+        )}
       </CardContent>
     </Card>
   );

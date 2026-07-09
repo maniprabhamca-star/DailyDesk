@@ -48,42 +48,69 @@ export async function scanDocMetadata(doc: PDFDocument): Promise<MetadataScan> {
   return { fields, xmpBytes, thumbs, pieceInfo };
 }
 
+/** Fine-grained control over what stripDocMetadata removes. Omit it entirely
+ * (the common case — Compress, Client Packet, the Metadata tool) to strip
+ * EVERYTHING. Share-Safe passes a selection so the user can keep some fields. */
+export type StripSelection = {
+  /** Info-dictionary keys to remove. Omit/undefined = remove ALL Info keys. */
+  infoKeys?: Set<string>;
+  /** Remove the XMP /Metadata stream. Default true. */
+  xmp?: boolean;
+  /** Remove per-page /Thumb images. Default true. */
+  thumbs?: boolean;
+  /** Remove /PieceInfo private app data. Default true. */
+  pieceInfo?: boolean;
+};
+
 /** Remove Info entries, the XMP stream, page thumbnails and /PieceInfo.
  * Returns the number of items removed. Call right BEFORE save — pdf-lib's
- * load(updateMetadata:true) default re-writes Producer/ModDate at load time. */
-export async function stripDocMetadata(doc: PDFDocument): Promise<number> {
+ * load(updateMetadata:true) default re-writes Producer/ModDate at load time.
+ *
+ * With no `sel`, strips everything (back-compat). Pass `sel` to remove only
+ * chosen Info keys and/or opt out of xmp/thumbs/pieceInfo. */
+export async function stripDocMetadata(doc: PDFDocument, sel?: StripSelection): Promise<number> {
   const { PDFName, PDFDict, PDFRef } = await import('pdf-lib');
   const ctx = doc.context;
   let removed = 0;
+
+  const wantKey = (key: string) => !sel?.infoKeys || sel.infoKeys.has(key);
+  const wantXmp = sel?.xmp ?? true;
+  const wantThumbs = sel?.thumbs ?? true;
+  const wantPieceInfo = sel?.pieceInfo ?? true;
 
   const infoRef = ctx.trailerInfo.Info;
   const info = infoRef ? ctx.lookup(infoRef) : undefined;
   if (info instanceof PDFDict) {
     for (const [k] of info.entries()) {
+      if (!wantKey(k.decodeText())) continue;
       info.delete(k);
       removed++;
     }
   }
 
-  const metaRef = doc.catalog.get(PDFName.of('Metadata'));
-  if (metaRef) {
-    doc.catalog.delete(PDFName.of('Metadata'));
-    if (metaRef instanceof PDFRef) ctx.delete(metaRef);
-    removed++;
+  if (wantXmp) {
+    const metaRef = doc.catalog.get(PDFName.of('Metadata'));
+    if (metaRef) {
+      doc.catalog.delete(PDFName.of('Metadata'));
+      if (metaRef instanceof PDFRef) ctx.delete(metaRef);
+      removed++;
+    }
   }
-  if (doc.catalog.has(PDFName.of('PieceInfo'))) {
+  if (wantPieceInfo && doc.catalog.has(PDFName.of('PieceInfo'))) {
     doc.catalog.delete(PDFName.of('PieceInfo'));
     removed++;
   }
 
   for (const page of doc.getPages()) {
-    const t = page.node.get(PDFName.of('Thumb'));
-    if (t) {
-      page.node.delete(PDFName.of('Thumb'));
-      if (t instanceof PDFRef) ctx.delete(t);
-      removed++;
+    if (wantThumbs) {
+      const t = page.node.get(PDFName.of('Thumb'));
+      if (t) {
+        page.node.delete(PDFName.of('Thumb'));
+        if (t instanceof PDFRef) ctx.delete(t);
+        removed++;
+      }
     }
-    if (page.node.has(PDFName.of('PieceInfo'))) {
+    if (wantPieceInfo && page.node.has(PDFName.of('PieceInfo'))) {
       page.node.delete(PDFName.of('PieceInfo'));
       removed++;
     }

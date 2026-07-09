@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Upload, FileText, X, Loader2, Fingerprint, CheckCircle2, ShieldCheck, Zap, Download } from 'lucide-react';
+import { Upload, FileText, X, Loader2, Fingerprint, CheckCircle2, ShieldCheck, Zap, Download, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { downloadBlob as download } from '@/lib/download';
@@ -39,7 +39,7 @@ export function MetadataTool() {
   const [pageCount, setPageCount] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState<{ blob: Blob; name: string; removed: number; before: number; after: number } | null>(null);
+  const [done, setDone] = useState<{ blob: Blob; name: string; removed: number; before: number; after: number; verifiedRemaining: number } | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -109,7 +109,15 @@ export function MetadataTool() {
       const blob = new Blob([new Uint8Array(out)], { type: 'application/pdf' });
       const name = `${file.name.replace(/\.pdf$/i, '')}-clean.pdf`;
       download(blob, name);
-      setDone({ blob, name, removed, before: file.size, after: out.length });
+      // Re-scan the finished file with the same scanner — metadata is invisible
+      // on the page, so this proves to the user it's actually gone.
+      let verifiedRemaining = 0;
+      try {
+        const verify = await PDFDocument.load(out, { ignoreEncryption: true, updateMetadata: false });
+        const m = await scanDocMetadata(verify);
+        verifiedRemaining = m.fields.length + (m.xmpBytes ? 1 : 0) + (m.thumbs ? 1 : 0) + (m.pieceInfo ? 1 : 0);
+      } catch { /* keep 0 if the re-scan fails */ }
+      setDone({ blob, name, removed, before: file.size, after: out.length, verifiedRemaining });
     } catch {
       setError('Could not clean this PDF.');
     } finally {
@@ -208,13 +216,19 @@ export function MetadataTool() {
 
         {done ? (
           <>
-            <div className="mt-4 flex items-center gap-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2.5">
-              <CheckCircle2 className="size-5 shrink-0 text-emerald-500" />
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold">Cleaned — {done.removed} item{done.removed === 1 ? '' : 's'} removed</p>
-                <p className="text-xs text-muted-foreground">{fmt(done.before)} → {fmt(done.after)} · metadata gone, pages untouched</p>
+            <div className="mt-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2.5">
+              <div className="flex items-center gap-2.5">
+                <CheckCircle2 className="size-5 shrink-0 text-emerald-500" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold">Cleaned — {done.removed} item{done.removed === 1 ? '' : 's'} removed</p>
+                  <p className="text-xs text-muted-foreground">{fmt(done.before)} → {fmt(done.after)} · metadata gone, pages untouched</p>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => download(done.blob, done.name)}><Download className="size-4" /> Again</Button>
               </div>
-              <Button size="sm" variant="outline" onClick={() => download(done.blob, done.name)}><Download className="size-4" /> Again</Button>
+              <div className="mt-2 flex items-center gap-2 rounded-md border bg-card px-2.5 py-1.5 text-xs">
+                {done.verifiedRemaining === 0 ? <CheckCircle2 className="size-4 shrink-0 text-emerald-600" /> : <AlertTriangle className="size-4 shrink-0 text-amber-500" />}
+                <span>We re-scanned your cleaned file: <span className="font-medium">{done.removed} hidden item{done.removed === 1 ? '' : 's'}</span> → <span className={done.verifiedRemaining === 0 ? 'font-medium text-emerald-700 dark:text-emerald-400' : 'font-medium text-amber-600'}>{done.verifiedRemaining === 0 ? 'none remain' : `${done.verifiedRemaining} remain`}</span>. It’s invisible on the page, but anyone can read it with “Document Properties” or exiftool — now they can’t.</span>
+              </div>
             </div>
             <PdfDone blob={done.blob} name={done.name} currentHref="/remove-pdf-metadata" fromLabel="Remove metadata" hideBanner />
           </>
