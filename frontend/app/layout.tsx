@@ -7,6 +7,7 @@ import { ToolFlagsProvider } from '@/lib/tool-flags';
 import { CommandPalette } from '@/components/command-palette';
 import { CookieBanner } from '@/components/cookie-banner';
 import { PwaRegister } from '@/components/pwa-register';
+import { ScrollRestoration } from '@/components/app/scroll-restoration';
 import { CloudflareAnalytics } from '@/components/cloudflare-analytics';
 import { RecordRecent } from '@/components/app/record-recent';
 import { UsageBeacon } from '@/components/app/usage-beacon';
@@ -74,6 +75,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <CommandPalette />
             <CookieBanner />
             <PwaRegister />
+            <ScrollRestoration />
             <RecordRecent />
             <UsageBeacon />
             <ErrorBeacon />
