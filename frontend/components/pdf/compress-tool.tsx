@@ -318,9 +318,18 @@ export function CompressTool() {
     return () => ac.abort();
   }, [srcHandle, outHandle, selPage, done]);
 
-  // Bring the result + Download button into view when compression finishes.
+  // When compression finishes, DON'T yank the page toward the result. Only
+  // nudge it into view if its top actually sits off-screen; if the dock is
+  // already visible (the common case — it lands right where the button was),
+  // leave the scroll position exactly where the user left it.
   useEffect(() => {
-    if (done) doneRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (!done) return;
+    requestAnimationFrame(() => {
+      const el = doneRef.current;
+      if (!el) return;
+      const top = el.getBoundingClientRect().top;
+      if (top < 0 || top > window.innerHeight - 120) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
   }, [done]);
 
   function loadOne(f?: File) {
@@ -693,10 +702,18 @@ export function CompressTool() {
       // (fonts can be >50% of the file). Safe by construction + heavily
       // guarded — see lib/pdf-fontgut.ts. Best-effort.
       let fontsSlimmed = 0;
-      setPrep('Slimming fonts…');
-      try {
-        fontsSlimmed = await subsetFonts(doc, original);
-      } catch { /* best-effort — never blocks the rest of the pipeline */ }
+      // Skip font-slimming when the document is overwhelmingly scans — fonts are
+      // a negligible fraction of a scanned book, so parsing them all is time
+      // spent for almost no size win. Text/office PDFs (where fonts can be >50%)
+      // still get the full pass.
+      const totalPages = doc.getPageCount();
+      const mostlyScans = totalPages > 0 && scanPages.size >= totalPages * 0.6;
+      if (!mostlyScans) {
+        setPrep('Slimming fonts…');
+        try {
+          fontsSlimmed = await subsetFonts(doc, original);
+        } catch { /* best-effort — never blocks the rest of the pipeline */ }
+      }
 
       // METADATA PASS (lossless, every level): drop the Info dictionary, XMP
       // packet, embedded page thumbnails and /PieceInfo — free bytes (XMP alone
