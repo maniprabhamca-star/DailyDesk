@@ -13,6 +13,7 @@ import { rewritePdf } from '@/lib/pdf-rewrite';
 import { openPdf, renderPage, dprTarget, type PdfHandle, type RenderedPage } from '@/lib/pdf-render';
 import { PageStrip } from '@/components/pdf/page-strip';
 import { EditorShell } from '@/components/pdf/editor-shell';
+import { loadLibrary, addLibraryItem, removeLibraryItem, newLibraryId, type LibraryItem } from '@/lib/library';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
 import { FAMILIES, type Family } from '@/lib/fonts';
@@ -198,6 +199,10 @@ export function AnnotateTool() {
   // `marquee` is the live rubber-band rect (page fractions) while dragging empty space.
   const [group, setGroup] = useState<string[]>([]);
   const [marquee, setMarquee] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
+  // My Library (on-device reusable signatures/stamps/text)
+  const [library, setLibrary] = useState<LibraryItem[]>([]);
+  const [libOpen, setLibOpen] = useState(false);
+  const libRef = useRef<HTMLDivElement>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const imgFileRef = useRef<HTMLInputElement>(null);
@@ -754,6 +759,32 @@ export function AnnotateTool() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selBox?.x, selBox?.y, selIdx, selImg, sel, tool, group, annos, images]);
 
+  // ---- My Library: save the selected object for one-click reuse on any file ----
+  useEffect(() => { setLibrary(loadLibrary()); }, []);
+  useEffect(() => {
+    if (!libOpen) return;
+    const onDown = (e: MouseEvent) => { if (libRef.current && !libRef.current.contains(e.target as Node)) setLibOpen(false); };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [libOpen]);
+  function saveToLibrary() {
+    if (selImage) setLibrary(addLibraryItem({ id: newLibraryId(), kind: 'image', name: 'Signature', src: selImage.src, aspect: selImage.aspect, createdAt: Date.now() }));
+    else if (selTextA) setLibrary(addLibraryItem({ id: newLibraryId(), kind: 'text', name: selTextA.text.slice(0, 24) || 'Text', text: selTextA.text, family: selTextA.family, size: selTextA.size, color: selTextA.color, bold: selTextA.bold, italic: selTextA.italic, underline: selTextA.underline, createdAt: Date.now() }));
+    else return;
+    setLibOpen(true); // pop the library so the user sees it landed
+  }
+  function placeFromLibrary(item: LibraryItem) {
+    setLibOpen(false);
+    if (item.kind === 'image') addImageSrc(item.src, item.aspect);
+    else {
+      const t: TextA = { kind: 'text', color: item.color, size: item.size, at: { x: 0.38, y: 0.4 }, text: item.text, family: item.family as Family, bold: item.bold, italic: item.italic, underline: item.underline };
+      const idx = (annos[sel] || []).length;
+      setAnnos((a) => ({ ...a, [sel]: [...(a[sel] || []), t] }));
+      setSelIdx(idx);
+    }
+  }
+  const deleteFromLibrary = (id: string) => setLibrary(removeLibraryItem(id));
+
   // Remove the loaded file and reset the editing state (used by the shell's × and
   // the empty-state after Done). Same teardown the old file chip used.
   const removeFile = () => { if (handle) void handle.destroy(); setHandle(null); setFile(null); setDone(null); setError(null); setAnnos({}); setImages([]); setSelImg(null); imgCache.current.clear(); };
@@ -842,8 +873,8 @@ export function AnnotateTool() {
               <div className={`pointer-events-auto absolute left-0 flex items-center gap-0.5 rounded-xl bg-foreground p-1 shadow-lift ${selBox.y < 0.12 ? 'top-7' : '-top-2 -translate-y-full'}`}>
                 <button onPointerDown={(e) => e.stopPropagation()} onClick={duplicateSelected} title="Duplicate (Ctrl+D)" aria-label="Duplicate"
                   className="flex size-7 items-center justify-center rounded-lg text-background transition-colors hover:bg-background/20"><Copy className="size-3.5" /></button>
-                <button onPointerDown={(e) => e.stopPropagation()} disabled title="Save to My Library — coming soon" aria-label="Save to Library"
-                  className="flex size-7 items-center justify-center rounded-lg text-background/40"><Star className="size-3.5" /></button>
+                <button onPointerDown={(e) => e.stopPropagation()} onClick={saveToLibrary} title="Save to My Library" aria-label="Save to Library"
+                  className="flex size-7 items-center justify-center rounded-lg text-background transition-colors hover:bg-background/20"><Star className="size-3.5" /></button>
                 <span className="mx-0.5 h-4 w-px bg-background/25" />
                 <button onPointerDown={(e) => e.stopPropagation()} onClick={deleteSelected} title="Delete (Del)" aria-label="Delete"
                   className="flex size-7 items-center justify-center rounded-lg text-red-300 transition-colors hover:bg-red-500/25"><Trash2 className="size-3.5" /></button>
@@ -960,6 +991,39 @@ export function AnnotateTool() {
                 <span className="mx-0.5 h-6 w-px bg-border/70" />
                 {actionBtn(() => setSigOpen(true), <SignatureIcon className="size-4" />, 'Sign')}
                 {actionBtn(() => imgFileRef.current?.click(), <ImagePlus className="size-4" />, 'Image')}
+                {/* My Library — one-click reuse of saved signatures, stamps & text */}
+                <div className="relative" ref={libRef}>
+                  <button onClick={() => setLibOpen((o) => !o)} aria-haspopup="menu" aria-expanded={libOpen} title="My Library"
+                    className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-all ${libOpen ? 'bg-accent text-foreground' : 'text-foreground/80 hover:bg-accent'}`}>
+                    <Star className="size-4" /> <span className="hidden md:inline">Library</span>
+                    {library.length > 0 && <span className="rounded-full bg-primary/15 px-1.5 text-[10px] font-semibold tabular-nums text-primary">{library.length}</span>}
+                    <ChevronDown className={`size-3.5 transition-transform ${libOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {libOpen && (
+                    <div role="menu" className="absolute left-0 top-full z-30 mt-1 w-64 rounded-xl border bg-card p-2 shadow-lift">
+                      <p className="px-1 pb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">My Library</p>
+                      {library.length === 0 ? (
+                        <p className="px-2 py-5 text-center text-xs text-muted-foreground">Nothing saved yet. Select a signature, stamp or text and tap the <Star className="mb-0.5 inline size-3" /> to save it here for one-click reuse on any file.</p>
+                      ) : (
+                        <div className="grid max-h-60 grid-cols-3 gap-2 overflow-y-auto">
+                          {library.map((it) => (
+                            <div key={it.id} className="group relative">
+                              <button onClick={() => placeFromLibrary(it)} title={`Place ${it.name}`}
+                                className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-lg border bg-white p-1 transition-colors hover:border-primary">
+                                {it.kind === 'image'
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  ? <img src={it.src} alt={it.name} className="max-h-full max-w-full object-contain" />
+                                  : <span className="line-clamp-3 break-words text-[10px] leading-tight" style={{ fontFamily: FAMILIES[it.family as Family].css, color: it.color, fontWeight: it.bold ? 700 : 400, fontStyle: it.italic ? 'italic' : 'normal' }}>{it.text}</span>}
+                              </button>
+                              <button onClick={() => deleteFromLibrary(it.id)} aria-label={`Remove ${it.name}`}
+                                className="absolute -right-1.5 -top-1.5 hidden size-4 items-center justify-center rounded-full bg-destructive text-white shadow group-hover:flex"><X className="size-2.5" /></button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
                 <span className="mx-0.5 h-6 w-px bg-border/70" />
                 <button title="Clear page" onClick={clearPage} disabled={!(annos[sel] || []).length && !pageImages.length}
                   className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-foreground/80 transition-all hover:bg-destructive/10 hover:text-destructive disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-foreground/80"><Trash2 className="size-4" /> <span className="hidden md:inline">Clear</span></button>
