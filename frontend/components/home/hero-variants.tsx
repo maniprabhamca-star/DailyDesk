@@ -132,12 +132,12 @@ export function HeroHybrid() {
   return (
     <section className="relative overflow-hidden">
       <div className="mx-auto grid max-w-6xl items-start gap-10 px-4 pb-8 pt-7 sm:px-6 sm:pb-12 sm:pt-9 md:grid-cols-2 lg:gap-16">
-        <div className="md:pt-6">
+        <div className="md:pt-11">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
             <ShieldCheck className="size-3.5" /> Private by design
           </span>
           <h1 className="mt-5 text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl">
-            Every daily tool.<br />
+            Every document tool.<br />
             <span className="text-primary lg:whitespace-nowrap">Your files stay yours.</span>
           </h1>
           <p className="mt-7 max-w-sm text-base leading-relaxed text-muted-foreground">
