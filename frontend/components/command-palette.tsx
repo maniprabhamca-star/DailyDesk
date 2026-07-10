@@ -4,10 +4,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import * as Dialog from '@radix-ui/react-dialog';
-import { Search, CornerDownLeft, Sun, Moon, LayoutGrid, Tag, Wand2, ShieldCheck, Sparkles } from 'lucide-react';
+import { Search, CornerDownLeft, Sun, Moon, LayoutGrid, Tag, Wand2, ShieldCheck, Sparkles, Wrench, FileText } from 'lucide-react';
 import { catalog, PRO_TOOLS, type CatTool } from '@/components/app/catalog';
 import { getRecent, pushRecent } from '@/lib/recent';
 import { useIsOwner } from '@/lib/plan';
+import { useEditorContext, type EditorCommand } from '@/lib/command-registry';
 import { cn } from '@/lib/utils';
 
 type Tool = CatTool & { color: string; group: string };
@@ -16,6 +17,8 @@ type Row =
   | { type: 'header'; label: string; note?: string }
   | { type: 'tool'; tool: Tool; disabled: boolean }
   | { type: 'action'; action: Action }
+  | { type: 'cmd'; cmd: EditorCommand }
+  | { type: 'goto'; page: number }
   | { type: 'workflow'; label: string; sub: string };
 
 const WORKFLOWS = [{ label: 'Merge → Compress → Sign', sub: 'Chain tools, no re-upload' }];
@@ -24,6 +27,7 @@ export function CommandPalette() {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const isOwner = useIsOwner();
+  const editorCtx = useEditorContext(); // commands published by the current editor
   const isProTool = useCallback((t: Tool) => PRO_TOOLS.has(t.name), []);
   // Selectable? Pro tools always are (they route to pricing/upgrade or, for the
   // owner, open). Free tools are selectable only when live (have an href, not soon).
@@ -68,6 +72,19 @@ export function CommandPalette() {
     const matchTool = (t: Tool) => !q || t.name.toLowerCase().includes(q) || t.group.toLowerCase().includes(q);
     const matchAction = (a: Action) => !q || a.label.toLowerCase().includes(q);
 
+    // Editor commands first — the "In this tool" section, published by the open
+    // editor. Includes a "Go to page N" row when the query contains a number.
+    if (editorCtx) {
+      const cmds = editorCtx.commands.filter((c) => !q || c.label.toLowerCase().includes(q) || (c.hint || '').toLowerCase().includes(q) || (c.keywords || '').toLowerCase().includes(q));
+      const pageMatch = editorCtx.goToPage ? q.match(/(?:page\s*)?(\d{1,4})/) : null;
+      const gotoPage = pageMatch ? Math.max(1, Math.min(editorCtx.pageCount || 9999, parseInt(pageMatch[1], 10))) : null;
+      if (cmds.length || gotoPage) {
+        rows.push({ type: 'header', label: `In ${editorCtx.toolLabel}` });
+        if (gotoPage) rows.push({ type: 'goto', page: gotoPage });
+        cmds.forEach((c) => rows.push({ type: 'cmd', cmd: c }));
+      }
+    }
+
     if (!q) {
       if (recent.length) { rows.push({ type: 'header', label: 'Recent' }); recent.forEach((t) => rows.push({ type: 'tool', tool: t, disabled: toolDisabled(t)})); }
       rows.push({ type: 'header', label: 'Workflows', note: '· one click, no re-upload' });
@@ -85,14 +102,16 @@ export function CommandPalette() {
 
     const selectable = rows.map((_, i) => i).filter((i) => {
       const r = rows[i];
-      return (r.type === 'tool' && !r.disabled) || r.type === 'action';
+      return (r.type === 'tool' && !r.disabled) || r.type === 'action' || r.type === 'cmd' || r.type === 'goto';
     });
     return { rows, selectable };
-  }, [query, recent, actions, tools, toolDisabled]);
+  }, [query, recent, actions, tools, toolDisabled, editorCtx]);
 
   const activate = useCallback((rowIndex: number) => {
     const r = rows[rowIndex];
     if (!r) return;
+    if (r.type === 'cmd') { setOpen(false); r.cmd.run(); return; }
+    if (r.type === 'goto') { setOpen(false); editorCtx?.goToPage?.(r.page); return; }
     if (r.type === 'tool') {
       const t = r.tool;
       if (isProTool(t)) {
@@ -102,7 +121,7 @@ export function CommandPalette() {
         if (isOwner && t.href) { pushRecent(t.href); router.push(t.href); } else router.push('/pricing');
       } else if (t.href) { pushRecent(t.href); setOpen(false); router.push(t.href); }
     } else if (r.type === 'action') { setOpen(false); r.action.run(); }
-  }, [rows, router, isProTool, isOwner]);
+  }, [rows, router, isProTool, isOwner, editorCtx]);
 
   function onInputKey(e: React.KeyboardEvent) {
     if (e.key === 'ArrowDown') { e.preventDefault(); setActive((a) => Math.min(a + 1, selectable.length - 1)); }
@@ -159,6 +178,28 @@ export function CommandPalette() {
                 );
               }
               const isActive = i === activeRowIndex;
+              if (r.type === 'goto') {
+                return (
+                  <button key={`goto${i}`} data-active={isActive} onMouseEnter={() => setActive(selectable.indexOf(i))} onClick={() => activate(i)}
+                    className={cn('flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors', isActive && 'bg-accent')}>
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/12 text-primary"><FileText className="size-4" /></span>
+                    <span className="min-w-0 flex-1 truncate text-sm font-medium">Go to page {r.page}</span>
+                    {isActive && <CornerDownLeft className="size-4 shrink-0 text-muted-foreground" />}
+                  </button>
+                );
+              }
+              if (r.type === 'cmd') {
+                const Icon = r.cmd.icon ?? Wrench;
+                return (
+                  <button key={r.cmd.id} data-active={isActive} onMouseEnter={() => setActive(selectable.indexOf(i))} onClick={() => activate(i)}
+                    className={cn('flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors', isActive && 'bg-accent')}>
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/12 text-primary"><Icon className="size-4" /></span>
+                    <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{r.cmd.label}</span>{r.cmd.hint && <span className="block truncate text-xs text-muted-foreground">{r.cmd.hint}</span>}</span>
+                    {r.cmd.pro && <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400"><Sparkles className="size-2.5" /> Pro</span>}
+                    {!r.cmd.pro && isActive && <CornerDownLeft className="size-4 shrink-0 text-muted-foreground" />}
+                  </button>
+                );
+              }
               if (r.type === 'action') {
                 const Icon = r.action.icon;
                 return (

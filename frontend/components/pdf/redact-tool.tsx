@@ -3,6 +3,7 @@ import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Upload, Loader2, EyeOff, Trash2, Zap, ShieldCheck, Search, Sparkles, Lock, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,6 +13,8 @@ import { takeHandoff } from '@/lib/handoff';
 import { openPdf, renderPage, dprTarget, getPdfjs, type PdfHandle, type RenderedPage } from '@/lib/pdf-render';
 import { PageStrip } from '@/components/pdf/page-strip';
 import { EditorShell } from '@/components/pdf/editor-shell';
+import { setEditorContext, clearEditorContext } from '@/lib/command-registry';
+import { Mail, Phone, CreditCard, Hash } from 'lucide-react';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
 
@@ -63,6 +66,7 @@ function drawBoxes(ctx: CanvasRenderingContext2D, W: number, H: number, list: Bo
 
 export function RedactTool() {
   const plan = usePlan();
+  const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [tooBig, setTooBig] = useState<{ name: string; size: number } | null>(null);
   const [handle, setHandle] = useState<PdfHandle | null>(null);
@@ -328,6 +332,45 @@ export function RedactTool() {
       <span className="size-3 rounded-sm border border-black/20" style={{ background: swatch }} /> {label}
     </button>
   );
+
+  // ---- ⌘K: publish Redact's deterministic commands to the global palette.
+  // "Redact all emails/…" runs the REGEX presets (no AI). Pro-gated: a free user
+  // is sent to pricing rather than running the scan. ----
+  const cmdApi = useRef<Record<string, () => void>>({});
+  cmdApi.current = {
+    preset: () => {},
+    redact: () => { void apply(); },
+    clear: () => clearPage(),
+    next: () => setSel((s) => Math.min(pageCount - 1, s + 1)),
+    prev: () => setSel((s) => Math.max(0, s - 1)),
+  };
+  const runPreset = (id: string) => {
+    if (!isPro) { router.push('/pricing'); return; }
+    const p = PATTERNS.find((x) => x.id === id);
+    if (p) void scan((s) => p.test.test(s), p.label);
+  };
+  const runPresetRef = useRef(runPreset);
+  runPresetRef.current = runPreset;
+  useEffect(() => {
+    if (!file) { clearEditorContext(); return; }
+    setEditorContext({
+      toolLabel: 'Redact',
+      pageCount,
+      goToPage: (n) => setSel(Math.max(0, Math.min(pageCount - 1, n - 1))),
+      commands: [
+        { id: 'r-email', label: 'Redact all emails', hint: 'finds & boxes every email', keywords: 'email address', icon: Mail, pro: true, run: () => runPresetRef.current('email') },
+        { id: 'r-phone', label: 'Redact all phone numbers', keywords: 'telephone', icon: Phone, pro: true, run: () => runPresetRef.current('phone') },
+        { id: 'r-ssn', label: 'Redact all SSNs', keywords: 'social security', icon: Hash, pro: true, run: () => runPresetRef.current('ssn') },
+        { id: 'r-card', label: 'Redact all card numbers', keywords: 'credit card', icon: CreditCard, pro: true, run: () => runPresetRef.current('card') },
+        { id: 'r-next', label: 'Next page', run: () => cmdApi.current.next() },
+        { id: 'r-prev', label: 'Previous page', run: () => cmdApi.current.prev() },
+        { id: 'r-apply', label: 'Redact & download', icon: EyeOff, run: () => cmdApi.current.redact() },
+        { id: 'r-clear', label: 'Clear this page', icon: Trash2, run: () => cmdApi.current.clear() },
+      ],
+    });
+    return () => clearEditorContext();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [file, pageCount]);
 
   const removeFile = () => { if (handle) void handle.destroy(); setHandle(null); setFile(null); setDone(null); setError(null); setBoxes({}); };
 

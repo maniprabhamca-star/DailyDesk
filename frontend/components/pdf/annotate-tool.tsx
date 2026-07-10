@@ -14,6 +14,7 @@ import { openPdf, renderPage, dprTarget, type PdfHandle, type RenderedPage } fro
 import { PageStrip } from '@/components/pdf/page-strip';
 import { EditorShell } from '@/components/pdf/editor-shell';
 import { loadLibrary, addLibraryItem, removeLibraryItem, newLibraryId, type LibraryItem } from '@/lib/library';
+import { setEditorContext, clearEditorContext } from '@/lib/command-registry';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
 import { FAMILIES, type Family } from '@/lib/fonts';
@@ -784,6 +785,43 @@ export function AnnotateTool() {
     }
   }
   const deleteFromLibrary = (id: string) => setLibrary(removeLibraryItem(id));
+
+  // ---- ⌘K: publish Annotate's deterministic commands to the global palette ----
+  const cmdApi = useRef<Record<string, () => void>>({});
+  cmdApi.current = {
+    select: () => setTool('select'), highlight: () => setTool('highlight'), draw: () => setTool('pen'),
+    text: () => setTool('text'), shapes: () => setTool(shape), sign: () => setSigOpen(true),
+    image: () => imgFileRef.current?.click(),
+    placeSig: () => { const s = library.find((i) => i.kind === 'image'); if (s) placeFromLibrary(s); else setSigOpen(true); },
+    library: () => setLibOpen(true), save: () => { void apply(); }, undo: () => undo(), clear: () => clearPage(),
+    next: () => setSel((s) => Math.min(pageCount - 1, s + 1)), prev: () => setSel((s) => Math.max(0, s - 1)),
+  };
+  useEffect(() => {
+    if (!file) { clearEditorContext(); return; }
+    setEditorContext({
+      toolLabel: 'Annotate',
+      pageCount,
+      goToPage: (n) => setSel(Math.max(0, Math.min(pageCount - 1, n - 1))),
+      commands: [
+        { id: 'a-sig', label: 'Place my signature', hint: 'from My Library', icon: SignatureIcon, run: () => cmdApi.current.placeSig() },
+        { id: 'a-sign', label: 'Draw a signature', icon: SignatureIcon, run: () => cmdApi.current.sign() },
+        { id: 'a-image', label: 'Insert an image', icon: ImagePlus, run: () => cmdApi.current.image() },
+        { id: 'a-library', label: 'Open My Library', icon: Star, run: () => cmdApi.current.library() },
+        { id: 'a-highlight', label: 'Highlight tool', keywords: 'marker', icon: Highlighter, run: () => cmdApi.current.highlight() },
+        { id: 'a-draw', label: 'Draw / pen tool', icon: Pen, run: () => cmdApi.current.draw() },
+        { id: 'a-text', label: 'Add text', icon: Type, run: () => cmdApi.current.text() },
+        { id: 'a-shapes', label: 'Shapes tool', icon: Square, run: () => cmdApi.current.shapes() },
+        { id: 'a-select', label: 'Select / move tool', keywords: 'multi select group', icon: MousePointer2, run: () => cmdApi.current.select() },
+        { id: 'a-next', label: 'Next page', run: () => cmdApi.current.next() },
+        { id: 'a-prev', label: 'Previous page', run: () => cmdApi.current.prev() },
+        { id: 'a-save', label: 'Save PDF', icon: Highlighter, run: () => cmdApi.current.save() },
+        { id: 'a-undo', label: 'Undo', run: () => cmdApi.current.undo() },
+        { id: 'a-clear', label: 'Clear this page', icon: Trash2, run: () => cmdApi.current.clear() },
+      ],
+    });
+    return () => clearEditorContext();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [file, pageCount]);
 
   // Remove the loaded file and reset the editing state (used by the shell's × and
   // the empty-state after Done). Same teardown the old file chip used.
