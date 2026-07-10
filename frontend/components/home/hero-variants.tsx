@@ -132,7 +132,7 @@ export function HeroHybrid() {
   return (
     <section className="relative overflow-hidden">
       <div className="mx-auto grid max-w-6xl items-start gap-10 px-4 pb-8 pt-7 sm:px-6 sm:pb-12 sm:pt-9 md:grid-cols-2 lg:gap-16">
-        <div>
+        <div className="md:pt-6">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
             <ShieldCheck className="size-3.5" /> Private by design
           </span>
@@ -140,7 +140,7 @@ export function HeroHybrid() {
             Every daily tool.<br />
             <span className="text-primary lg:whitespace-nowrap">Your files stay yours.</span>
           </h1>
-          <p className="mt-5 max-w-md text-lg leading-relaxed text-muted-foreground">
+          <p className="mt-7 max-w-sm text-base leading-relaxed text-muted-foreground">
             Merge, compress, convert, sign — {liveToolCount}+ PDF and everyday tools. Free, no signup, and private by default.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-4">
