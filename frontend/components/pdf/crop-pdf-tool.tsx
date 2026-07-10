@@ -141,6 +141,7 @@ export function CropPdfTool() {
             <Upload className="size-7 text-muted-foreground" />
             <p className="mt-2 text-sm font-medium">Drop a PDF here, or click to choose</p>
             <p className="text-xs text-muted-foreground">Trim margins or crop every page — on your device, nothing uploaded</p>
+            <span className="mt-4 inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm">Choose PDF</span>
             <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => { void pick(e.target.files?.[0]); e.currentTarget.value = ''; }} />
           </div>
         ) : (

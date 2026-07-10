@@ -153,6 +153,7 @@ export function MetadataTool() {
             <Upload className="size-7 text-muted-foreground" />
             <p className="mt-2 text-sm font-medium">Drop a PDF here, or click to choose</p>
             <p className="text-xs text-muted-foreground">See the hidden info your PDF carries — then wipe it in one click</p>
+            <span className="mt-4 inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm">Choose PDF</span>
           </div>
         ) : (
           <div className="flex items-center gap-3 rounded-lg border bg-card p-2.5">
