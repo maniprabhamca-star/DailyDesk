@@ -2,7 +2,7 @@
 import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 
 import { useEffect, useRef, useState } from 'react';
-import { Upload, FileText, X, Download, Loader2, Zap } from 'lucide-react';
+import { Upload, FileText, X, Download, Loader2, Zap, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { parseRanges } from '@/lib/page-ranges';
@@ -198,6 +198,9 @@ export function PageNumbersTool() {
 
         {file && (
           <div className="mt-4 space-y-4">
+            <p className="flex items-start gap-1.5 rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+              <Info className="mt-0.5 size-3.5 shrink-0 text-primary" /> Adds page numbers on top — it won&rsquo;t remove or replace any the PDF already shows.
+            </p>
             <div>
               <p className="mb-1.5 text-sm font-medium">Position</p>
               <div className="mx-auto grid aspect-[1.6/1] max-w-[220px] grid-cols-3 grid-rows-2 gap-1.5 rounded-lg border bg-muted/30 p-2">
