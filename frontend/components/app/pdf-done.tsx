@@ -10,6 +10,7 @@ import { formatDuration } from '@/lib/format';
 import { nextFor } from '@/lib/tool-graph';
 import { KeepMoving, type MoveAction } from './keep-moving';
 import { KeepGoing } from './keep-going';
+import { StickyDownloadBar } from './result-dock';
 import { ResultActions } from './result-actions';
 
 // Shared "done" footer for any tool that outputs a single PDF: a success banner,
@@ -58,6 +59,8 @@ export function PdfDone({ blob, name, currentHref, fromLabel, hideBanner = false
       <ResultActions blob={blob} name={name} fromLabel={fromLabel} />
       <KeepMoving actions={actions} />
       <KeepGoing exclude={currentHref} />
+      {/* Persistent Download — stays in view on every screen while reviewing. */}
+      <StickyDownloadBar onDownload={() => download(blob, name)} hint="Your file is ready" />
     </div>
   );
 }
