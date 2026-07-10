@@ -65,9 +65,9 @@ export function ResultActions({ blob, name, fromLabel = 'your file' }: { blob: B
   ];
 
   return (
-    <div className="mt-2 flex flex-wrap items-center gap-2">
+    <div className="mt-2 grid grid-cols-3 gap-2">
       <div ref={ref} className="relative">
-        <Button variant="outline" size="sm" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+        <Button variant="outline" size="sm" className="w-full" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
           <FileOutput className="size-4" /> Export as <ChevronDown className={`size-3.5 transition-transform ${open ? 'rotate-180' : ''}`} />
         </Button>
         {open && (
@@ -89,8 +89,8 @@ export function ResultActions({ blob, name, fromLabel = 'your file' }: { blob: B
           </div>
         )}
       </div>
-      <Button variant="outline" size="sm" onClick={share}><Share2 className="size-4" /> Share</Button>
-      <Button variant="outline" size="sm" onClick={print}><Printer className="size-4" /> Print</Button>
+      <Button variant="outline" size="sm" className="w-full" onClick={share}><Share2 className="size-4" /> Share</Button>
+      <Button variant="outline" size="sm" className="w-full" onClick={print}><Printer className="size-4" /> Print</Button>
     </div>
   );
 }

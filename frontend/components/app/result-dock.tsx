@@ -22,12 +22,18 @@ export function ResultDock({
   children?: ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/[0.07] p-4 shadow-soft">
+    <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 shadow-soft">
       <div className="flex flex-wrap items-center gap-4">
         {typeof savedPct === 'number' && savedPct > 0 && (
-          <div className="flex size-[68px] shrink-0 flex-col items-center justify-center rounded-full border border-emerald-500/30 bg-emerald-500/10">
-            <span className="text-xl font-bold leading-none text-emerald-600">{savedPct}%</span>
-            <span className="text-[11px] text-emerald-600">saved</span>
+          <div className="relative size-[78px] shrink-0">
+            <svg viewBox="0 0 120 120" className="size-full">
+              <circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" strokeWidth="11" className="text-emerald-500/20" />
+              <circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" strokeWidth="11" strokeLinecap="round" className="text-emerald-500" transform="rotate(-90 60 60)" strokeDasharray={2 * Math.PI * 52} strokeDashoffset={2 * Math.PI * 52 * (1 - Math.min(1, Math.max(0, savedPct) / 100))} />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-lg font-bold leading-none text-emerald-600">{savedPct}%</span>
+              <span className="text-[10px] font-medium text-emerald-700/80">saved</span>
+            </div>
           </div>
         )}
         <div className="min-w-0 flex-1">

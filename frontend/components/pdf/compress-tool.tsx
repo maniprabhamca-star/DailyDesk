@@ -861,6 +861,7 @@ export function CompressTool() {
             <Upload className="size-7 text-muted-foreground" />
             <p className="mt-2 text-sm font-medium">Drop a PDF here, or click to choose</p>
             <p className="text-xs text-muted-foreground">Shrinks images, keeps text crisp and selectable</p>
+            <span className="mt-4 inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm">Choose PDF</span>
           </div>
         ) : (
           <div>
@@ -1000,7 +1001,9 @@ export function CompressTool() {
               </>
             )}
             {/* Download + "Try another level" now live in the ResultDock at the top. */}
-            <Button variant="ghost" className="mt-3 w-full" onClick={clear}>Start over with a new file</Button>
+            <Button variant="outline" className="mt-4 w-full border-primary/40 font-medium text-primary shadow-sm hover:bg-primary/5" onClick={clear}>
+              <Upload className="size-4" /> Start over with a new file
+            </Button>
             <PdfDone blob={done.blob} name={done.name} currentHref="/compress-pdf" fromLabel="Compress PDF" hideBanner />
             {/* Phone: keep Download pinned to the thumb. */}
             <MobileDownloadBar onDownload={() => download(done.blob, done.name)} label={done.optimized ? 'Download PDF' : 'Download compressed'} hint={`${fmt(done.after)} ready`} />
