@@ -132,7 +132,7 @@ export function HeroHybrid() {
   return (
     <section className="relative overflow-hidden">
       <div className="mx-auto grid max-w-6xl items-start gap-10 px-4 pb-8 pt-7 sm:px-6 sm:pb-12 sm:pt-9 md:grid-cols-2 lg:gap-16">
-        <div className="md:pt-11">
+        <div className="md:pt-8">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
             <ShieldCheck className="size-3.5" /> Private by design
           </span>
