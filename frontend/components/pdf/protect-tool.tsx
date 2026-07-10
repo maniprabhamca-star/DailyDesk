@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { downloadBlob as download } from '@/lib/download';
 import { KeepGoing } from '@/components/app/keep-going';
+import { UploadError, wrongTypeError, isWrongType } from '@/components/app/upload-error';
 import { takeHandoff } from '@/lib/handoff';
 import { runQpdf } from '@/lib/qpdf';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
@@ -51,7 +52,7 @@ export function ProtectTool() {
   function loadOne(f?: File) {
     if (!f) return;
     if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) {
-      setError('Please choose a PDF file.');
+      setError(wrongTypeError(f.name));
       return;
     }
     if (!canProcessSize(f.size, plan)) { setError(null); setTooBig({ name: f.name, size: f.size }); return; }
@@ -171,11 +172,11 @@ export function ProtectTool() {
           </div>
         )}
 
-        {error && (
+        {error && (isWrongType(error) ? <UploadError error={error} /> : (
           <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
             {error}{/already has a password|Unlock PDF/i.test(error) && <> <Link href="/unlock-pdf" className="font-medium underline">Open Unlock PDF</Link></>}
           </p>
-        )}
+        ))}
 
         {file && !done && (
           <Button className="mt-5 w-full" size="lg" onClick={run} disabled={busy || !pw || !pw2}>

@@ -1,4 +1,5 @@
 'use client';
+import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import Link from 'next/link';
@@ -95,7 +96,7 @@ export function RedactTool() {
 
   async function loadOne(f?: File) {
     if (!f) return;
-    if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) { setError('Please choose a PDF file.'); return; }
+    if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) { setError(wrongTypeError(f.name)); return; }
     if (!canProcessSize(f.size, plan)) { setError(null); setTooBig({ name: f.name, size: f.size }); return; }
     setTooBig(null); setError(null); setDone(null); setBusy(true); setBoxes({}); setPreview(null);
     try {
@@ -466,7 +467,7 @@ export function RedactTool() {
           </div>
         )}
 
-        {error && <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
+        {error && <UploadError error={error} />}
 
         {file && !done && (
           <>

@@ -1,4 +1,5 @@
 'use client';
+import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 
 import { useEffect, useRef, useState } from 'react';
 import { Upload, FileText, X, Download, Loader2, Zap } from 'lucide-react';
@@ -72,7 +73,7 @@ export function PageNumbersTool() {
   async function loadOne(f?: File) {
     if (!f) return;
     if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) {
-      setError('Please choose a PDF file.');
+      setError(wrongTypeError(f.name));
       return;
     }
     setError(null);
@@ -284,7 +285,7 @@ export function PageNumbersTool() {
           </div>
         )}
 
-        {error && <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
+        {error && <UploadError error={error} />}
 
         {file && (
           busy ? (

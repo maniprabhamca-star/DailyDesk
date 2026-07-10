@@ -137,7 +137,7 @@ export function HeroHybrid() {
             <ShieldCheck className="size-3.5" /> Private by design
           </span>
           <h1 className="mt-5 text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl">
-            Every document tool.<br />
+            Every tool. Every day.<br />
             <span className="text-primary lg:whitespace-nowrap">Your files stay yours.</span>
           </h1>
           <p className="mt-7 max-w-sm text-base leading-relaxed text-muted-foreground">

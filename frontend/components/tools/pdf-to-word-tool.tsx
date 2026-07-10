@@ -1,4 +1,5 @@
 'use client';
+import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 
 import { formatDuration } from '@/lib/format';
 import { useRef, useState } from 'react';
@@ -37,7 +38,7 @@ export function PdfToWordTool() {
   function loadOne(f?: File) {
     if (!f) return;
     if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) {
-      setError('Please choose a PDF file.');
+      setError(wrongTypeError(f.name));
       return;
     }
     if (f.size > MAX_BYTES) {
@@ -152,7 +153,7 @@ export function PdfToWordTool() {
           </div>
         )}
 
-        {error && <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
+        {error && <UploadError error={error} />}
 
         {file && !done && (
           busy ? (

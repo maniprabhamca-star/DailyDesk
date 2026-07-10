@@ -1,4 +1,5 @@
 'use client';
+import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 
 import React, { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react';
 import { Upload, FileText, X, Loader2, Pencil, Undo2, Redo2, Bold, Italic, Trash2, Minus, Plus, Zap, TextCursorInput, Highlighter, Pen, Square, Circle, ArrowUpRight, ChevronDown, Signature as SignatureIcon, ImagePlus, Move, Maximize2, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, Stamp as StampIcon, Link as LinkIcon, RotateCw } from 'lucide-react';
@@ -487,7 +488,7 @@ export function EditTool() {
 
   async function loadOne(f?: File) {
     if (!f) return;
-    if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) { setError('Please choose a PDF file.'); return; }
+    if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) { setError(wrongTypeError(f.name)); return; }
     if (!canProcessSize(f.size, plan)) { setError(null); setTooBig({ name: f.name, size: f.size }); return; }
     setTooBig(null); setError(null); setDone(null); setBusy(true);
     setLines({}); setEdits({}); setEditing(null); setPreview(null); setPast([]); setFuture([]);
@@ -2055,7 +2056,7 @@ export function EditTool() {
           </div>
         )}
 
-        {error && <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
+        {error && <UploadError error={error} />}
 
         {file && !done && (
           <Button className="mt-4 w-full" size="lg" onClick={apply} disabled={busy || totalChanges === 0}>

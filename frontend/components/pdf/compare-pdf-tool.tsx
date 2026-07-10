@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from 'react';
 import { AlertTriangle, ArrowLeftRight, CheckCircle2, Download, FileSearch, FileText, Loader2, Plus, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 import { downloadBlob as download } from '@/lib/download';
 import { openPdf, renderPage, dprTarget, type PdfHandle, type RenderedPage } from '@/lib/pdf-render';
 
@@ -135,7 +136,7 @@ export function ComparePdfTool() {
   async function pick(side: Side, file?: File) {
     if (!file) return;
     if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
-      setError('Please choose a PDF file.');
+      setError(wrongTypeError(file.name));
       return;
     }
     setBusy(side);
@@ -224,7 +225,7 @@ export function ComparePdfTool() {
           {drop('right', 'Updated PDF', right, rightInput)}
         </div>
 
-        {error && <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
+        {error && <UploadError error={error} />}
 
         {comparison && left && right && (
           <div className="mt-5 space-y-4">

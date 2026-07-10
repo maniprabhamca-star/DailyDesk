@@ -1,4 +1,5 @@
 'use client';
+import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 
 import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { Upload, FileText, X, Loader2, ShieldCheck, AlertTriangle, Link as LinkIcon, Fingerprint, EyeOff, Download, CheckCircle2, ArrowRight } from 'lucide-react';
@@ -136,7 +137,7 @@ export function ShareSafeCheckTool() {
   async function analyze(f?: File) {
     if (!f) return;
     if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) {
-      setError('Please choose a PDF file.');
+      setError(wrongTypeError(f.name));
       return;
     }
     setFile(f);
@@ -375,7 +376,7 @@ export function ShareSafeCheckTool() {
         )}
 
         {busy && <p className="mt-4 flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" /> Working on this device...</p>}
-        {error && <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
+        {error && <UploadError error={error} />}
 
         {file && metadata && !done && (
           <div className="mt-4 space-y-4">

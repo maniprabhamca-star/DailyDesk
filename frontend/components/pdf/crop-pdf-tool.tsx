@@ -1,4 +1,5 @@
 'use client';
+import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 
 import { useEffect, useRef, useState } from 'react';
 import { Upload, FileText, X, Download, Loader2, Crop, RotateCcw } from 'lucide-react';
@@ -38,7 +39,7 @@ export function CropPdfTool() {
 
   async function pick(f?: File) {
     if (!f) return;
-    if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) { setError('Please choose a PDF file.'); return; }
+    if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) { setError(wrongTypeError(f.name)); return; }
     setError(null);
     setDone(null);
     setFile(f);
@@ -197,7 +198,7 @@ export function CropPdfTool() {
           </div>
         )}
 
-        {error && <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
+        {error && <UploadError error={error} />}
 
         {file && !done && (
           busy ? (

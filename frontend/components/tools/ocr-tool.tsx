@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { downloadBlob as download } from '@/lib/download';
 import { formatDuration } from '@/lib/format';
 import { PdfDone } from '@/components/app/pdf-done';
+import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 import { openPdf, yieldToLoop, type PdfHandle } from '@/lib/pdf-render';
 import { usePlan } from '@/lib/plan';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
@@ -203,7 +204,7 @@ export function OcrTool() {
     if (!f) return;
     const img = /^image\//.test(f.type) || /\.(png|jpe?g|webp|tiff?|bmp)$/i.test(f.name);
     const pdf = f.type === 'application/pdf' || /\.pdf$/i.test(f.name);
-    if (!img && !pdf) { setError('Please choose a PDF or an image (PNG, JPG, TIFF…).'); return; }
+    if (!img && !pdf) { setError(wrongTypeError(f.name)); return; }
     if (f.size > MAX_INPUT_BYTES) { setError(`This file is ${fmt(f.size)} — the limit is ${fmt(MAX_INPUT_BYTES)}.`); return; }
     setTooBig(null);
     if (plan !== 'pro' && f.size > OCR_FREE_MAX) { setError(null); setFile(null); setTooBig({ name: f.name, size: f.size }); return; }
@@ -375,7 +376,7 @@ export function OcrTool() {
           </div>
         )}
 
-        {error && <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
+        {error && <UploadError error={error} fallback="Please choose a PDF or an image (PNG, JPG, TIFF…)." />}
 
         {file && !done && (
           <Button className="mt-5 w-full" size="lg" onClick={run} disabled={busy}>
