@@ -2,7 +2,7 @@
 import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Upload, X, Loader2, Highlighter, Pen, Square, Circle, Minus, ArrowUpRight, ChevronDown, Type, Trash2, Zap, Bold, Italic, Underline, Signature as SignatureIcon, ImagePlus, Plus } from 'lucide-react';
+import { Upload, X, Loader2, Highlighter, Pen, Square, Circle, Minus, ArrowUpRight, ChevronDown, Type, Trash2, Zap, Bold, Italic, Underline, Signature as SignatureIcon, ImagePlus, Plus, Copy, Star, MoveDiagonal } from 'lucide-react';
 import { SignatureMaker } from './signature-maker';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -553,6 +553,57 @@ export function AnnotateTool() {
     arrow: { icon: <ArrowUpRight className="size-4" />, label: 'Arrow' },
   };
 
+  // ---- Phase 1: selection superpowers (floating toolbar + inspector + keys) ----
+  // The two individually-selectable object kinds: a placed text (selIdx) or an
+  // image/signature (selImg). Derived here so the floating toolbar, the inspector
+  // and the keyboard handlers all read one source of truth.
+  const _selText = selIdx !== null ? ((annos[sel] || [])[selIdx] as Anno | undefined) : undefined;
+  const selTextA = _selText && _selText.kind === 'text' ? _selText : undefined;
+  const selImage = selImg ? images.find((i) => i.id === selImg && i.page === sel) : undefined;
+  const selBox = selTextA ? { x: selTextA.at.x, y: selTextA.at.y } : selImage ? { x: selImage.x, y: selImage.y } : null;
+
+  const deleteSelected = () => {
+    if (selTextA && selIdx !== null) { const idx = selIdx; setSelIdx(null); setAnnos((a) => ({ ...a, [sel]: (a[sel] || []).filter((_, i) => i !== idx) })); }
+    else if (selImage) deleteImage(selImage.id);
+  };
+  const duplicateSelected = () => {
+    if (selTextA && selIdx !== null) {
+      const clone: TextA = { ...selTextA, at: { x: Math.min(0.94, selTextA.at.x + 0.03), y: Math.min(0.96, selTextA.at.y + 0.03) } };
+      const nextIdx = (annos[sel] || []).length;
+      setAnnos((a) => ({ ...a, [sel]: [...(a[sel] || []), clone] }));
+      setSelIdx(nextIdx);
+    } else if (selImage) {
+      const id = Math.random().toString(36).slice(2);
+      setImages((arr) => [...arr, { ...selImage, id, x: Math.min(1 - selImage.w, selImage.x + 0.03), y: Math.min(0.96, selImage.y + 0.03) }]);
+      setSelImg(id);
+    }
+  };
+  const nudge = (dx: number, dy: number) => {
+    if (selTextA && selIdx !== null) moveText(selIdx, { x: Math.min(1, Math.max(0, selTextA.at.x + dx)), y: Math.min(1, Math.max(0, selTextA.at.y + dy)) });
+    else if (selImage) setImages((arr) => arr.map((im) => (im.id === selImage.id ? { ...im, x: Math.min(1, Math.max(0, im.x + dx)), y: Math.min(1, Math.max(0, im.y + dy)) } : im)));
+  };
+  const resizeImage = (dw: number) => { if (selImage) setImages((arr) => arr.map((im) => (im.id === selImage.id ? { ...im, w: Math.min(1 - im.x, Math.max(0.05, im.w + dw)) } : im))); };
+
+  // Keyboard: arrow-nudge the selection (Shift = bigger step), Del removes it,
+  // Ctrl/Cmd+D duplicates. Ignored while typing in any field.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      if (!selBox) return;
+      const step = e.shiftKey ? 0.02 : 0.004;
+      if (e.key === 'ArrowLeft') { e.preventDefault(); nudge(-step, 0); }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); nudge(step, 0); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); nudge(0, -step); }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); nudge(0, step); }
+      else if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); deleteSelected(); }
+      else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') { e.preventDefault(); duplicateSelected(); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selBox?.x, selBox?.y, selIdx, selImg, sel]);
+
   // Remove the loaded file and reset the editing state (used by the shell's × and
   // the empty-state after Done). Same teardown the old file chip used.
   const removeFile = () => { if (handle) void handle.destroy(); setHandle(null); setFile(null); setDone(null); setError(null); setAnnos({}); setImages([]); setSelImg(null); imgCache.current.clear(); };
@@ -619,15 +670,27 @@ export function AnnotateTool() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={im.src} alt="" className="pointer-events-none block w-full select-none" draggable={false} />
               {selImg === im.id && (
-                <>
-                  <button onPointerDown={(e) => { e.stopPropagation(); deleteImage(im.id); }} aria-label="Delete"
-                    className="absolute -right-2 -top-2 z-10 flex size-5 items-center justify-center rounded-full bg-destructive text-white shadow"><X className="size-3" /></button>
-                  <div onPointerDown={(e) => imgDown(e, im.id, 'resize')} onPointerMove={imgMove} onPointerUp={imgUp}
-                    className="absolute -bottom-1.5 -right-1.5 z-10 size-3.5 cursor-nwse-resize rounded-sm border-2 border-primary bg-white" aria-label="Resize" />
-                </>
+                <div onPointerDown={(e) => imgDown(e, im.id, 'resize')} onPointerMove={imgMove} onPointerUp={imgUp}
+                  className="absolute -bottom-1.5 -right-1.5 z-10 size-3.5 cursor-nwse-resize rounded-sm border-2 border-primary bg-white" aria-label="Resize" />
               )}
             </div>
           ))}
+          {/* Floating contextual toolbar — appears right at the selected object
+              (Notion/Docs style) so actions live where your cursor is, not in a
+              distant menu. Sits above the object, flips below near the top edge. */}
+          {selBox && (
+            <div className="pointer-events-none absolute z-30" style={{ left: `${selBox.x * 100}%`, top: `${selBox.y * 100}%` }}>
+              <div className={`pointer-events-auto absolute left-0 flex items-center gap-0.5 rounded-xl bg-foreground p-1 shadow-lift ${selBox.y < 0.12 ? 'top-7' : '-top-2 -translate-y-full'}`}>
+                <button onPointerDown={(e) => e.stopPropagation()} onClick={duplicateSelected} title="Duplicate (Ctrl+D)" aria-label="Duplicate"
+                  className="flex size-7 items-center justify-center rounded-lg text-background transition-colors hover:bg-background/20"><Copy className="size-3.5" /></button>
+                <button onPointerDown={(e) => e.stopPropagation()} disabled title="Save to My Library — coming soon" aria-label="Save to Library"
+                  className="flex size-7 items-center justify-center rounded-lg text-background/40"><Star className="size-3.5" /></button>
+                <span className="mx-0.5 h-4 w-px bg-background/25" />
+                <button onPointerDown={(e) => e.stopPropagation()} onClick={deleteSelected} title="Delete (Del)" aria-label="Delete"
+                  className="flex size-7 items-center justify-center rounded-lg text-red-300 transition-colors hover:bg-red-500/25"><Trash2 className="size-3.5" /></button>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <div className="flex h-72 items-center justify-center"><Loader2 className="size-5 animate-spin text-muted-foreground" /></div>
@@ -766,19 +829,78 @@ export function AnnotateTool() {
             ) : undefined}
             properties={
               <div className="space-y-3 text-sm">
-                <div>
-                  <p className="font-semibold text-foreground">{tool === 'text' ? 'Text' : tool === 'highlight' ? 'Highlight' : tool === 'pen' ? 'Draw' : 'Shape'}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {tool === 'text' ? 'Click to select & drag to move · restyle with the bar above · double-click to edit the words.'
-                      : tool === 'highlight' ? 'Drag across the page to highlight. Adjust colour and size above.'
-                      : tool === 'pen' ? 'Draw freehand. Adjust colour and size above.'
-                      : 'Drag to draw the shape. Adjust colour and size above.'}
-                  </p>
-                </div>
-                <div className="rounded-lg border bg-card p-2.5 text-xs text-muted-foreground">
-                  {markedPages.length ? `${markedPages.length} page${markedPages.length === 1 ? '' : 's'} marked up.` : 'Nothing marked up yet — pick a tool and start.'}
-                  <span className="mt-1 block">Everything stays on your device.</span>
-                </div>
+                {selBox ? (
+                  /* Object inspector — precise, design-tool-style controls for the
+                     selected text or image. */
+                  <>
+                    <div className="flex items-center justify-between">
+                      <p className="flex items-center gap-1.5 font-semibold text-foreground">
+                        {selImage ? <ImagePlus className="size-4 text-primary" /> : <Type className="size-4 text-primary" />}
+                        {selImage ? 'Image' : 'Text'}
+                      </p>
+                      <span className="text-[11px] uppercase tracking-wide text-primary">selected</span>
+                    </div>
+                    <div className="rounded-lg border bg-card p-2.5">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">X</div>
+                          <div className="mt-0.5 rounded-md border px-2 py-1 text-xs tabular-nums">{Math.round(selBox.x * 100)}<span className="text-muted-foreground">%</span></div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Y</div>
+                          <div className="mt-0.5 rounded-md border px-2 py-1 text-xs tabular-nums">{Math.round(selBox.y * 100)}<span className="text-muted-foreground">%</span></div>
+                        </div>
+                        {selImage ? (
+                          <div className="col-span-2">
+                            <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Width</div>
+                            <div className="mt-0.5 flex items-center gap-1">
+                              <button onClick={() => resizeImage(-0.03)} aria-label="Narrower" className="flex size-6 items-center justify-center rounded-md border transition-colors hover:bg-accent"><Minus className="size-3" /></button>
+                              <span className="min-w-[3ch] flex-1 text-center text-xs tabular-nums">{Math.round(selImage.w * 100)}%</span>
+                              <button onClick={() => resizeImage(0.03)} aria-label="Wider" className="flex size-6 items-center justify-center rounded-md border transition-colors hover:bg-accent"><Plus className="size-3" /></button>
+                            </div>
+                          </div>
+                        ) : selTextA ? (
+                          <div className="col-span-2">
+                            <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Size</div>
+                            <div className="mt-0.5 rounded-md border px-2 py-1 text-xs tabular-nums">{Math.round(selTextA.size * 792)}pt</div>
+                          </div>
+                        ) : null}
+                      </div>
+                      <p className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground"><MoveDiagonal className="size-3" /> Arrow keys nudge · Shift for bigger steps</p>
+                    </div>
+                    {selTextA && (
+                      <div className="rounded-lg border bg-card p-2.5">
+                        <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Colour</div>
+                        <div className="mt-1.5 flex gap-1.5">
+                          {COLORS.map((c) => (
+                            <button key={c} onClick={() => { setColor(c); patchSelected({ color: c }); }} aria-label={`colour ${c}`}
+                              className={`size-6 rounded-full ring-offset-1 ring-offset-card transition-all ${selTextA.color === c ? 'ring-2 ring-primary' : 'ring-1 ring-border hover:ring-primary/50'}`} style={{ backgroundColor: c }} />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <button onClick={duplicateSelected} className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border py-1.5 text-xs font-medium transition-colors hover:bg-accent"><Copy className="size-3.5" /> Duplicate</button>
+                      <button onClick={deleteSelected} className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border py-1.5 text-xs font-medium text-destructive transition-colors hover:bg-destructive/10"><Trash2 className="size-3.5" /> Delete</button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <p className="font-semibold text-foreground">{tool === 'text' ? 'Text' : tool === 'highlight' ? 'Highlight' : tool === 'pen' ? 'Draw' : 'Shape'}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {tool === 'text' ? 'Click to select & drag to move · restyle with the bar above · double-click to edit the words.'
+                          : tool === 'highlight' ? 'Drag across the page to highlight. Adjust colour and size above.'
+                          : tool === 'pen' ? 'Draw freehand. Adjust colour and size above.'
+                          : 'Drag to draw the shape. Adjust colour and size above.'}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border bg-card p-2.5 text-xs text-muted-foreground">
+                      {markedPages.length ? `${markedPages.length} page${markedPages.length === 1 ? '' : 's'} marked up.` : 'Nothing marked up yet — pick a tool and start.'}
+                      <span className="mt-1 block">Everything stays on your device.</span>
+                    </div>
+                  </>
+                )}
                 <div className="border-t pt-3">{brandToggle}</div>
               </div>
             }
