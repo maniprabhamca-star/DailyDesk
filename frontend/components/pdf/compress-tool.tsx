@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Upload, FileText, X, Download, Loader2, Zap, Shrink, CheckCircle2, Coffee, Sparkles, Type, Eye, Lock, RefreshCw } from 'lucide-react';
+import { Upload, FileText, X, Download, Loader2, Zap, Shrink, CheckCircle2, Coffee, Sparkles, Type, Eye, Lock, RefreshCw, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { suggestToolForFile, type ToolSuggestion } from '@/lib/suggest-tool';
 import { Card, CardContent } from '@/components/ui/card';
 import type { PDFRawStream as RawStream } from 'pdf-lib';
 import { encodeJpeg } from '@/lib/mozjpeg';
@@ -242,6 +244,7 @@ export function CompressTool() {
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const cancelRef = useRef(false); // cooperative cancel — the compress loops check it
   const [error, setError] = useState<string | null>(null);
+  const [suggestion, setSuggestion] = useState<ToolSuggestion | null>(null);
   const [done, setDone] = useState<{ blob: Blob; name: string; before: number; after: number; optimized: boolean; note: string } | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
   const [kind, setKind] = useState<Kind | null>(null);
@@ -310,9 +313,13 @@ export function CompressTool() {
   function loadOne(f?: File) {
     if (!f) return;
     if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) {
-      setError('Please choose a PDF file.');
+      // Wrong format? Don't dead-end — point to the right DiemDesk tool.
+      const s = suggestToolForFile(f.name);
+      if (s) { setSuggestion(s); setError(null); }
+      else { setError('Please choose a PDF file.'); setSuggestion(null); }
       return;
     }
+    setSuggestion(null);
     // Free plan: cap single-file size (soft gate, works offline via cached plan).
     // Compression QUALITY stays free for everyone — only scale (size) is gated.
     if (!canProcessSize(f.size, plan)) {
@@ -939,6 +946,18 @@ export function CompressTool() {
         )}
 
         {error && <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
+
+        {suggestion && (
+          <div className="mt-4 flex flex-col gap-3 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm">
+              That looks like {suggestion.note}. Compress PDF only takes PDFs — but{' '}
+              <span className="font-medium text-foreground">{suggestion.label}</span> can handle this one.
+            </p>
+            <Button asChild size="sm" className="shrink-0">
+              <Link href={suggestion.href}>{suggestion.label} <ArrowRight className="size-4" /></Link>
+            </Button>
+          </div>
+        )}
 
         {file && !done && (
           busy ? (
