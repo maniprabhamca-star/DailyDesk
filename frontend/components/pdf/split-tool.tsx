@@ -2,9 +2,26 @@
 import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 
 import { useEffect, useRef, useState } from 'react';
-import { Upload, FileText, X, Download, Loader2, Zap } from 'lucide-react';
+import { Upload, FileText, X, Download, Loader2, Zap, FileOutput, Layers, Copy, SplitSquareHorizontal, Gauge, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+
+// Premium mode selector card — icon chip + title + hint, with a clear active state.
+function ModeCard({ active, onClick, icon: Icon, title, desc }: { active: boolean; onClick: () => void; icon: LucideIcon; title: string; desc: string }) {
+  return (
+    <button
+      onClick={onClick}
+      aria-pressed={active}
+      className={`flex items-start gap-2.5 rounded-xl border p-3 text-left transition-all ${active ? 'border-primary bg-primary/5 shadow-sm ring-1 ring-primary' : 'border-border hover:border-primary/40 hover:bg-accent/40 hover:shadow-sm'}`}
+    >
+      <span className={`flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors ${active ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary'}`}><Icon className="size-4" /></span>
+      <span className="min-w-0">
+        <span className="block text-sm font-semibold leading-tight">{title}</span>
+        <span className="mt-0.5 block text-xs leading-tight text-muted-foreground">{desc}</span>
+      </span>
+    </button>
+  );
+}
 import { takeHandoff } from '@/lib/handoff';
 import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
@@ -180,42 +197,12 @@ export function SplitTool() {
 
         {file && (
           <div className="mt-4 space-y-4">
-            <div className="grid gap-2 sm:grid-cols-3">
-              <button
-                onClick={() => setMode('extract')}
-                className={`rounded-lg border p-3 text-left text-sm transition-colors ${mode === 'extract' ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-accent/40'}`}
-              >
-                <p className="font-semibold">Extract pages</p>
-                <p className="text-xs text-muted-foreground">Pick pages into one new PDF</p>
-              </button>
-              <button
-                onClick={() => setMode('every')}
-                className={`rounded-lg border p-3 text-left text-sm transition-colors ${mode === 'every' ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-accent/40'}`}
-              >
-                <p className="font-semibold">Every N pages</p>
-                <p className="text-xs text-muted-foreground">Fixed ranges — one PDF per chunk</p>
-              </button>
-              <button
-                onClick={() => setMode('each')}
-                className={`rounded-lg border p-3 text-left text-sm transition-colors ${mode === 'each' ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-accent/40'}`}
-              >
-                <p className="font-semibold">Each page as a file</p>
-                <p className="text-xs text-muted-foreground">Split into {pageCount} PDFs (ZIP)</p>
-              </button>
-              <button
-                onClick={() => setMode('ranges')}
-                className={`rounded-lg border p-3 text-left text-sm transition-colors ${mode === 'ranges' ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-accent/40'}`}
-              >
-                <p className="font-semibold">Per-range files</p>
-                <p className="text-xs text-muted-foreground">Each range → its own PDF (ZIP)</p>
-              </button>
-              <button
-                onClick={() => setMode('size')}
-                className={`rounded-lg border p-3 text-left text-sm transition-colors ${mode === 'size' ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-accent/40'}`}
-              >
-                <p className="font-semibold">By max file size</p>
-                <p className="text-xs text-muted-foreground">Chunks each under a size cap (ZIP)</p>
-              </button>
+            <div className="grid gap-2.5 sm:grid-cols-3">
+              <ModeCard active={mode === 'extract'} onClick={() => setMode('extract')} icon={FileOutput} title="Extract pages" desc="Pick pages into one new PDF" />
+              <ModeCard active={mode === 'every'} onClick={() => setMode('every')} icon={Layers} title="Every N pages" desc="Fixed ranges — one PDF per chunk" />
+              <ModeCard active={mode === 'each'} onClick={() => setMode('each')} icon={Copy} title="Each page as a file" desc={`Split into ${pageCount} PDFs (ZIP)`} />
+              <ModeCard active={mode === 'ranges'} onClick={() => setMode('ranges')} icon={SplitSquareHorizontal} title="Per-range files" desc="Each range → its own PDF (ZIP)" />
+              <ModeCard active={mode === 'size'} onClick={() => setMode('size')} icon={Gauge} title="By max file size" desc="Chunks each under a size cap (ZIP)" />
             </div>
 
             {mode === 'extract' && (

@@ -499,78 +499,83 @@ export function PdfToJpgTool() {
         )}
 
         {file && (
-          <div className="mt-5 space-y-5">
-            <div>
-              <p className="mb-2 text-sm font-medium">Image format</p>
-              <div className="grid grid-cols-2 gap-3">
-                <OptionCard active={format === 'jpg'} onClick={() => setFormat('jpg')} icon={ImageIcon} title="JPG" desc="Studio-grade mozjpeg — sharp & small" />
-                <OptionCard active={format === 'png'} onClick={() => setFormat('png')} icon={FileImage} title="PNG" desc="Lossless — absolute sharpest, zero artifacts" />
-              </div>
-            </div>
-
-            <div>
-              <p className="mb-2 text-sm font-medium">Quality</p>
-              <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                <ResCard active={preset === 'standard'} onClick={() => setPreset('standard')} title={`${PRESET.standard.title} · ${PRESET.standard.dpi} DPI`} sub={PRESET.standard.sub} />
-                <ResCard active={preset === 'high'} onClick={() => setPreset('high')} title={`${PRESET.high.title} · ${PRESET.high.dpi} DPI`} sub={PRESET.high.sub} />
-                <ResCard active={preset === 'max'} onClick={() => setPreset('max')} title={`${PRESET.max.title} · ${PRESET.max.dpi} DPI`} sub={PRESET.max.sub} />
-              </div>
-            </div>
-
-            <div>
-              <label className="mb-1.5 block text-sm font-medium">Pages to convert</label>
-              <input className={inputCls} value={ranges} onChange={(e) => setRanges(e.target.value)} placeholder="e.g. 1-3, 5, 8-10" inputMode="numeric" />
-              <p className="mt-1.5 text-xs text-muted-foreground">This PDF has {pageCount} page{pageCount === 1 ? '' : 's'}. One image per page; download each one or all of them as a ZIP.</p>
-            </div>
-
-            {/* Page-render vs embedded-image extraction — hand off to the dedicated
-                Extract Images tool (JPX/CCITT recovery, alpha, originals) rather than
-                ship a weaker inline copy. */}
-            <div className="flex flex-col gap-2 rounded-lg border border-primary/20 bg-primary/[0.04] px-3.5 py-2.5 text-sm sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-muted-foreground">This renders each <span className="font-medium text-foreground">page</span> to an image. Want the original <span className="font-medium text-foreground">images embedded inside</span> the PDF instead?</p>
-              <Button variant="outline" size="sm" className="shrink-0" onClick={() => { if (file) { setHandoff({ files: [file], from: 'PDF to JPG' }); router.push('/extract-images-from-pdf'); } }}>
-                <FileImage className="size-4" /> Extract images
-              </Button>
-            </div>
-
-            {/* Live quality preview — the first selected page at this exact DPI +
-                quality, lossless vs. JPG, so you can zoom in before converting
-                the whole document. PNG output is lossless, so no preview there. */}
-            {format === 'jpg' && (beforePrev || afterPrev || previewBusy) && (
+          <div className="mt-5 grid gap-6 lg:grid-cols-2 lg:items-start">
+            {/* LEFT — controls + convert, all visible together (no scrolling) */}
+            <div className="space-y-5">
               <div>
-                <p className="mb-2 flex items-center gap-1.5 text-sm font-medium">
-                  Quality preview — {PRESET[preset].title} · {PRESET[preset].dpi} DPI
-                  {previewBusy && <Loader2 className="size-3.5 animate-spin text-muted-foreground" />}
-                </p>
-                <BeforeAfter
-                  before={beforePrev}
-                  after={afterPrev}
-                  beforeCaption="Lossless"
-                  afterCaption={`JPG · ${PRESET[preset].dpi} DPI`}
-                  beforeLabel="PNG render"
-                  afterLabel={`Quality ${PRESET[preset].q}`}
-                  loading={!afterPrev}
-                  zoomHint="Hover to zoom into the fine print before you convert"
-                />
+                <p className="mb-2 text-sm font-medium">Image format</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <OptionCard active={format === 'jpg'} onClick={() => setFormat('jpg')} icon={ImageIcon} title="JPG" desc="Studio-grade mozjpeg — sharp & small" />
+                  <OptionCard active={format === 'png'} onClick={() => setFormat('png')} icon={FileImage} title="PNG" desc="Lossless — absolute sharpest, zero artifacts" />
+                </div>
               </div>
-            )}
+
+              <div>
+                <p className="mb-2 text-sm font-medium">Quality</p>
+                <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                  <ResCard active={preset === 'standard'} onClick={() => setPreset('standard')} title={`${PRESET.standard.title} · ${PRESET.standard.dpi} DPI`} sub={PRESET.standard.sub} />
+                  <ResCard active={preset === 'high'} onClick={() => setPreset('high')} title={`${PRESET.high.title} · ${PRESET.high.dpi} DPI`} sub={PRESET.high.sub} />
+                  <ResCard active={preset === 'max'} onClick={() => setPreset('max')} title={`${PRESET.max.title} · ${PRESET.max.dpi} DPI`} sub={PRESET.max.sub} />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium">Pages to convert</label>
+                <input className={inputCls} value={ranges} onChange={(e) => setRanges(e.target.value)} placeholder="e.g. 1-3, 5, 8-10" inputMode="numeric" />
+                <p className="mt-1.5 text-xs text-muted-foreground">This PDF has {pageCount} page{pageCount === 1 ? '' : 's'}. One image per page; download each one or all as a ZIP.</p>
+              </div>
+
+              <div className="flex flex-col gap-2 rounded-lg border border-primary/20 bg-primary/[0.04] px-3.5 py-2.5 text-sm sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-muted-foreground">This renders each <span className="font-medium text-foreground">page</span> to an image. Want the <span className="font-medium text-foreground">images embedded inside</span> the PDF instead?</p>
+                <Button variant="outline" size="sm" className="shrink-0" onClick={() => { if (file) { setHandoff({ files: [file], from: 'PDF to JPG' }); router.push('/extract-images-from-pdf'); } }}>
+                  <FileImage className="size-4" /> Extract images
+                </Button>
+              </div>
+
+              {error && <UploadError error={error} />}
+
+              {busy ? (
+                <div className="flex gap-2">
+                  <Button className="flex-1" size="lg" disabled><Loader2 className="size-4 animate-spin" /> {progress ? `Converting ${progress.done}/${progress.total}…` : 'Converting…'}</Button>
+                  <Button size="lg" variant="outline" onClick={cancelRun}><X className="size-4" /> Cancel</Button>
+                </div>
+              ) : (
+                <Button className="w-full" size="lg" onClick={run}>
+                  <Download className="size-4" /> Convert to {format.toUpperCase()}
+                </Button>
+              )}
+            </div>
+
+            {/* RIGHT — sticky live preview (stays in view while you tweak) */}
+            <div className="lg:sticky lg:top-24">
+              {format === 'jpg' && (beforePrev || afterPrev || previewBusy) ? (
+                <div>
+                  <p className="mb-2 flex items-center gap-1.5 text-sm font-medium">
+                    Quality preview — {PRESET[preset].title} · {PRESET[preset].dpi} DPI
+                    {previewBusy && <Loader2 className="size-3.5 animate-spin text-muted-foreground" />}
+                  </p>
+                  <BeforeAfter
+                    before={beforePrev}
+                    after={afterPrev}
+                    beforeCaption="Lossless"
+                    afterCaption={`JPG · ${PRESET[preset].dpi} DPI`}
+                    beforeLabel="PNG render"
+                    afterLabel={`Quality ${PRESET[preset].q}`}
+                    loading={!afterPrev}
+                    zoomHint="Hover to zoom into the fine print before you convert"
+                  />
+                </div>
+              ) : (
+                <div className="flex min-h-[260px] flex-col items-center justify-center rounded-xl border border-dashed bg-muted/20 p-6 text-center">
+                  <FileImage className="size-8 text-muted-foreground/40" />
+                  <p className="mt-2 text-sm text-muted-foreground">{format === 'png' ? 'PNG is lossless — pages export pixel-perfect, so there’s nothing to preview.' : 'A preview of page 1 at your chosen quality appears here.'}</p>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
-        {error && <UploadError error={error} />}
-
-        {file && (
-          busy ? (
-            <div className="mt-5 flex gap-2">
-              <Button className="flex-1" size="lg" disabled><Loader2 className="size-4 animate-spin" /> {progress ? `Converting ${progress.done}/${progress.total}…` : 'Converting…'}</Button>
-              <Button size="lg" variant="outline" onClick={cancelRun}><X className="size-4" /> Cancel</Button>
-            </div>
-          ) : (
-            <Button className="mt-5 w-full" size="lg" onClick={run}>
-              <Download className="size-4" /> Convert to {format.toUpperCase()}
-            </Button>
-          )
-        )}
+        {!file && error && <UploadError error={error} />}
       </CardContent>
     </Card>
   );
