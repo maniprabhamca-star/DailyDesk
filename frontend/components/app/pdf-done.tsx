@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { FileText, Download, CheckCircle2 } from 'lucide-react';
+import { FileText, Download, CheckCircle2, ArrowLeft, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { setHandoff } from '@/lib/handoff';
 import { downloadBlob as download } from '@/lib/download';
@@ -19,7 +19,7 @@ import { ResultActions } from './result-actions';
 // One line to add to a tool: <PdfDone blob name currentHref fromLabel />.
 // Suggestions come from lib/tool-graph so they're contextual to the current tool.
 
-export function PdfDone({ blob, name, currentHref, fromLabel, hideBanner = false, secs }: { blob: Blob; name: string; currentHref: string; fromLabel: string; hideBanner?: boolean; secs?: number }) {
+export function PdfDone({ blob, name, currentHref, fromLabel, hideBanner = false, secs, onEditAgain, onStartOver, editAgainLabel = 'Back to editing' }: { blob: Blob; name: string; currentHref: string; fromLabel: string; hideBanner?: boolean; secs?: number; onEditAgain?: () => void; onStartOver?: () => void; editAgainLabel?: string }) {
   const router = useRouter();
   const ref = useRef<HTMLDivElement>(null);
 
@@ -54,6 +54,14 @@ export function PdfDone({ blob, name, currentHref, fromLabel, hideBanner = false
         <div className="flex flex-col gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
           <span className="flex items-center gap-2 text-sm font-medium"><CheckCircle2 className="size-4 text-emerald-500" /> Done — {name} saved to your device{typeof secs === 'number' ? ` · ${formatDuration(secs)}` : ''}</span>
           <Button size="sm" variant="outline" onClick={() => download(blob, name)}><Download className="size-4" /> Download again</Button>
+        </div>
+      )}
+      {/* Stay in this tool: keep editing the same file, or start a fresh one —
+          so users don't have to navigate away and re-open the tool. */}
+      {(onEditAgain || onStartOver) && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {onEditAgain && <Button size="sm" variant="outline" onClick={onEditAgain}><ArrowLeft className="size-4" /> {editAgainLabel}</Button>}
+          {onStartOver && <Button size="sm" variant="outline" onClick={onStartOver}><RotateCcw className="size-4" /> New file</Button>}
         </div>
       )}
       <ResultActions blob={blob} name={name} fromLabel={fromLabel} />

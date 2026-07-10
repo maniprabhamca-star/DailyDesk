@@ -942,7 +942,7 @@ export function AnnotateTool() {
         </CardContent></Card>
       ) : done ? (
         <Card><CardContent className="p-5">
-          <PdfDone blob={done.blob} name={done.name} secs={done.secs} currentHref="/annotate-pdf" fromLabel="Annotate PDF" />
+          <PdfDone blob={done.blob} name={done.name} secs={done.secs} currentHref="/annotate-pdf" fromLabel="Annotate PDF" editAgainLabel="Annotate more" onEditAgain={() => setDone(null)} onStartOver={removeFile} />
         </CardContent></Card>
       ) : (
         <div>

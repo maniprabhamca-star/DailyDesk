@@ -1708,7 +1708,7 @@ export function EditTool() {
         </CardContent></Card>
       ) : done ? (
         <Card><CardContent className="p-5">
-          <PdfDone blob={done.blob} name={done.name} secs={done.secs} currentHref="/edit-pdf" fromLabel="Edit PDF" />
+          <PdfDone blob={done.blob} name={done.name} secs={done.secs} currentHref="/edit-pdf" fromLabel="Edit PDF" editAgainLabel="Keep editing" onEditAgain={() => setDone(null)} onStartOver={() => { if (handle) void handle.destroy(); setHandle(null); setFile(null); setDone(null); setError(null); setLines({}); setEdits({}); setPast([]); setFuture([]); setHistoryPast([]); setHistoryFuture([]); blockInputSession.current = false; addedInputSession.current = false; setAdded([]); setAddSel(null); setAddMode(false); setBlocks({}); setBlockEdits({}); setBlockStyle({}); setBlockLayout({}); setEditingBlock(null); setMarkups({}); setImages([]); setSelImg(null); setStampsOpen(false); setLinkOpen(false); imgCache.current.clear(); }} />
         </CardContent></Card>
       ) : (
         <div>

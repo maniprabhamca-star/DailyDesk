@@ -455,7 +455,7 @@ export function RedactTool() {
               </p>
             </div>
           )}
-          <PdfDone blob={done.blob} name={done.name} secs={done.secs} currentHref="/redact-pdf" fromLabel="Redact PDF" />
+          <PdfDone blob={done.blob} name={done.name} secs={done.secs} currentHref="/redact-pdf" fromLabel="Redact PDF" editAgainLabel="Redact more" onEditAgain={() => setDone(null)} onStartOver={removeFile} />
         </CardContent></Card>
       ) : (
         <div>
