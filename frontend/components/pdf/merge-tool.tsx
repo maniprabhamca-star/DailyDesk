@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Upload, FileText, X, ArrowUp, ArrowDown, Download, Loader2, Zap, Sparkles, ArrowLeft, RefreshCw } from 'lucide-react';
+import { Upload, FileText, X, ArrowUp, ArrowDown, Download, Loader2, Zap, ArrowLeft, ArrowRight, RefreshCw, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { takeHandoff } from '@/lib/handoff';
@@ -300,11 +300,31 @@ export function MergeTool() {
           </ul>
         )}
 
-        {/* Owner-only entry into page-level organize */}
+        {/* Owner-only entry into page-level organize — a premium feature card so
+            it clearly reads as an extra capability, not just another button. */}
         {isOwner && !pageMode && items.length > 0 && (
-          <Button variant="outline" className="mt-3 w-full" onClick={enterPageMode} disabled={opening}>
-            {opening ? <><Loader2 className="size-4 animate-spin" /> Opening pages…</> : <><Sparkles className="size-4 text-primary" /> Organize pages — pick &amp; reorder across files</>}
-          </Button>
+          <button
+            onClick={enterPageMode}
+            disabled={opening}
+            className="group mt-3 flex w-full items-center gap-3 rounded-xl border border-primary/30 bg-gradient-to-r from-primary/[0.09] to-violet-500/[0.06] p-3.5 text-left transition-all hover:border-primary/55 hover:shadow-sm disabled:opacity-70"
+          >
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary shadow-inner">
+              {opening ? <Loader2 className="size-5 animate-spin" /> : <Layers className="size-5" />}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-foreground">Organize pages</span>
+                <span className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary">New</span>
+              </span>
+              <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
+                {opening ? 'Opening your pages…' : 'See every page as a thumbnail — pick, drop and reorder pages across all your files before merging.'}
+              </span>
+            </span>
+            <span className="flex items-center gap-1 text-xs font-medium text-primary">
+              <span className="hidden sm:inline">Open</span>
+              <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+            </span>
+          </button>
         )}
 
         {/* PAGE-LEVEL organize grid */}
