@@ -12,6 +12,7 @@ import { formatDuration } from '@/lib/format';
 import { PdfDone } from '@/components/app/pdf-done';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
+import { ResultDock, MobileDownloadBar } from '@/components/app/result-dock';
 import { openPdf, renderPage, dprTarget, getPdfjs, pdfDocOptions, yieldToLoop, type PdfHandle, type RenderedPage } from '@/lib/pdf-render';
 import { subsetFonts } from '@/lib/pdf-fontgut';
 import { stripDocMetadata } from '@/lib/pdf-sanitize';
@@ -953,17 +954,26 @@ export function CompressTool() {
 
         {done && (
           <div ref={doneRef} className="mt-2 scroll-mt-20">
+            {/* Action-first dock — result + Download at the TOP, details fold below. */}
+            <ResultDock
+              savedPct={done.optimized ? undefined : saved}
+              before={fmt(done.before)}
+              after={fmt(done.after)}
+              title={done.optimized ? 'Already well optimized' : 'Compressed — quality preserved'}
+              note={done.note}
+              onDownload={() => download(done.blob, done.name)}
+              downloadLabel={done.optimized ? 'Download PDF' : 'Download compressed'}
+              secondary={<Button variant="outline" size="sm" onClick={() => { setDone(null); setSelPage(0); }}><RefreshCw className="size-4" /> Try another level</Button>}
+            />
+            <div className="mt-3" />
             {done.optimized ? (
               <>
-                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-center">
-                  <CheckCircle2 className="mx-auto size-6 text-emerald-500" />
-                  <p className="mt-1.5 text-sm font-semibold">Already well optimized</p>
-                  <p className="text-xs text-muted-foreground">This PDF is about as small as it’ll get without hurting quality — your original ({fmt(done.before)}) is ready below. You can still squeeze out a bit more at lower quality.</p>
-                  <Button variant="outline" size="sm" className="mt-3" onClick={() => run(true, 'maximum')} disabled={busy}>
+                <div className="flex flex-col items-center gap-1.5 text-center">
+                  <p className="text-xs text-muted-foreground">About as small as it gets without hurting quality — you can still squeeze a bit more at lower quality.</p>
+                  <Button variant="outline" size="sm" onClick={() => run(true, 'maximum')} disabled={busy}>
                     {busy ? <><Loader2 className="size-4 animate-spin" /> Squeezing…</> : <><Shrink className="size-4" /> Squeeze harder (slower)</>}
                   </Button>
                 </div>
-                <p className="mt-1.5 text-center text-[11px] text-muted-foreground">{done.note}</p>
                 <div className="mt-3 rounded-xl border bg-muted/30 p-4">
                   <div className="flex items-center justify-center">
                     {previewPage ? (
@@ -978,8 +988,7 @@ export function CompressTool() {
               </>
             ) : (
               <>
-                <SavingsRing savedPct={saved} beforeLabel={fmt(done.before)} afterLabel={fmt(done.after)} note={done.note} />
-                <div className="mt-4">
+                <div>
                   <BeforeAfter before={beforePage} after={afterPage} beforeLabel={fmt(done.before)} afterLabel={fmt(done.after)} loading={!beforePage || !afterPage} />
                 </div>
                 <PageStrip handle={srcHandle} count={pageCount} selected={selPage} onSelect={setSelPage} className="mt-3" />
@@ -990,14 +999,11 @@ export function CompressTool() {
                 </div>
               </>
             )}
-            <Button className="mt-3 w-full" size="lg" onClick={() => download(done.blob, done.name)}><Download className="size-4" /> Download {done.optimized ? 'PDF' : 'compressed PDF'}</Button>
-            {/* Not happy with the result? Same file, no re-upload — back to the
-                level cards (source handle + previews stay cached, so it's instant). */}
-            <Button variant="outline" className="mt-2 w-full" onClick={() => { setDone(null); setSelPage(0); }}>
-              <RefreshCw className="size-4" /> Try a different level — same file
-            </Button>
-            <Button variant="ghost" className="mt-2 w-full" onClick={clear}>Start over with a new file</Button>
+            {/* Download + "Try another level" now live in the ResultDock at the top. */}
+            <Button variant="ghost" className="mt-3 w-full" onClick={clear}>Start over with a new file</Button>
             <PdfDone blob={done.blob} name={done.name} currentHref="/compress-pdf" fromLabel="Compress PDF" hideBanner />
+            {/* Phone: keep Download pinned to the thumb. */}
+            <MobileDownloadBar onDownload={() => download(done.blob, done.name)} label={done.optimized ? 'Download PDF' : 'Download compressed'} hint={`${fmt(done.after)} ready`} />
           </div>
         )}
       </CardContent>
