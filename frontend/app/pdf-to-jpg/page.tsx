@@ -33,7 +33,6 @@ const faqs = [
 export default function PdfToJpgPage() {
   return (
     <PdfToolPage
-      wide
       title="PDF to JPG"
       description="Convert PDF pages into JPG or PNG images — free, instantly, and privately. Your PDF never leaves your browser."
       steps={steps}
