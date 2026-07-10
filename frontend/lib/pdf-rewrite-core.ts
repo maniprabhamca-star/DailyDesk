@@ -65,6 +65,8 @@ export type RewriteOp =
   | { type: 'extract'; indices: number[] } // 0-based pages into one new PDF
   | { type: 'split-each' } // one output PDF per page
   | { type: 'split-chunks'; every: number } // fixed ranges: one output per N pages
+  | { type: 'split-size'; maxBytes: number } // chunk into files each ≤ maxBytes (a single oversized page gets its own file)
+  | { type: 'split-groups'; groups: number[][] } // one output per group of 0-based page indices
   | { type: 'page-numbers'; opts: PageNumberOpts }
   | { type: 'watermark'; opts: WatermarkOpts }
   | { type: 'crop'; opts: CropOpts }
@@ -130,6 +132,40 @@ export async function executeRewrite(buffers: ArrayBuffer[], op: RewriteOp): Pro
         const dest = await PDFDocument.create();
         const indices = Array.from({ length: Math.min(every, total - from) }, (_, i) => from + i);
         (await dest.copyPages(doc, indices)).forEach((p) => dest.addPage(p));
+        outs.push(await dest.save());
+      }
+      return outs;
+    }
+    case 'split-size': {
+      // Greedy chunking: keep adding pages until the saved chunk would exceed
+      // maxBytes, then finalise the chunk WITHOUT the page that tipped it over
+      // and start the next chunk with that page. A single page bigger than the
+      // limit ends up alone (a page can't be split).
+      const total = doc.getPageCount();
+      const outs: Uint8Array[] = [];
+      let chunk = await PDFDocument.create();
+      let n = 0;
+      for (let i = 0; i < total; i++) {
+        (await chunk.copyPages(doc, [i])).forEach((p) => chunk.addPage(p));
+        n++;
+        const saved = await chunk.save({ useObjectStreams: true });
+        if (saved.length > op.maxBytes && n > 1) {
+          chunk.removePage(n - 1);
+          outs.push(await chunk.save({ useObjectStreams: true }));
+          chunk = await PDFDocument.create();
+          (await chunk.copyPages(doc, [i])).forEach((p) => chunk.addPage(p));
+          n = 1;
+        }
+      }
+      if (n > 0) outs.push(await chunk.save({ useObjectStreams: true }));
+      return outs;
+    }
+    case 'split-groups': {
+      const outs: Uint8Array[] = [];
+      for (const group of op.groups) {
+        if (!group.length) continue;
+        const dest = await PDFDocument.create();
+        (await dest.copyPages(doc, group)).forEach((p) => dest.addPage(p));
         outs.push(await dest.save());
       }
       return outs;

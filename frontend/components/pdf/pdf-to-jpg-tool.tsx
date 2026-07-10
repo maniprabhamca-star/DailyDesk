@@ -523,6 +523,16 @@ export function PdfToJpgTool() {
               <p className="mt-1.5 text-xs text-muted-foreground">This PDF has {pageCount} page{pageCount === 1 ? '' : 's'}. One image per page; download each one or all of them as a ZIP.</p>
             </div>
 
+            {/* Page-render vs embedded-image extraction — hand off to the dedicated
+                Extract Images tool (JPX/CCITT recovery, alpha, originals) rather than
+                ship a weaker inline copy. */}
+            <div className="flex flex-col gap-2 rounded-lg border border-primary/20 bg-primary/[0.04] px-3.5 py-2.5 text-sm sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-muted-foreground">This renders each <span className="font-medium text-foreground">page</span> to an image. Want the original <span className="font-medium text-foreground">images embedded inside</span> the PDF instead?</p>
+              <Button variant="outline" size="sm" className="shrink-0" onClick={() => { if (file) { setHandoff({ files: [file], from: 'PDF to JPG' }); router.push('/extract-images-from-pdf'); } }}>
+                <FileImage className="size-4" /> Extract images
+              </Button>
+            </div>
+
             {/* Live quality preview — the first selected page at this exact DPI +
                 quality, lossless vs. JPG, so you can zoom in before converting
                 the whole document. PNG output is lossless, so no preview there. */}

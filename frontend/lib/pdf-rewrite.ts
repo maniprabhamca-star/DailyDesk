@@ -99,6 +99,6 @@ export async function mergePdfPages(srcs: (File | Blob)[], plan: { src: number; 
 }
 
 /** Split into many PDFs: one per page, or one per chunk of `every` pages. */
-export async function splitPdf(src: File | Blob, op: { type: 'split-each' } | { type: 'split-chunks'; every: number }, opts?: RewriteOpts): Promise<Uint8Array[]> {
+export async function splitPdf(src: File | Blob, op: { type: 'split-each' } | { type: 'split-chunks'; every: number } | { type: 'split-size'; maxBytes: number } | { type: 'split-groups'; groups: number[][] }, opts?: RewriteOpts): Promise<Uint8Array[]> {
   return run([src], op, opts?.signal);
 }

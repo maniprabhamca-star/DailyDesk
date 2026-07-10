@@ -12,7 +12,7 @@ import { parseRanges } from '@/lib/page-ranges';
 import { rewritePdf, splitPdf } from '@/lib/pdf-rewrite';
 import { useCancelableJob, isCancel } from '@/lib/use-cancelable-job';
 
-type Mode = 'extract' | 'each' | 'every';
+type Mode = 'extract' | 'ranges' | 'each' | 'every' | 'size';
 
 function fmt(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -34,6 +34,7 @@ export function SplitTool() {
   const [mode, setMode] = useState<Mode>('extract');
   const [every, setEvery] = useState(2); // "fixed ranges": pages per output file
   const [ranges, setRanges] = useState('');
+  const [maxSizeMb, setMaxSizeMb] = useState(5); // "by max size": target ceiling per output file
   const [busy, setBusy] = useState(false);
   const jobs = useCancelableJob();
   const [error, setError] = useState<string | null>(null);
@@ -112,18 +113,26 @@ export function SplitTool() {
         download(blob, name);
         setDone({ blob, name, secs: (performance.now() - t0) / 1000 }); // single PDF → chainable via Keep moving
       } else {
-        const parts = await splitPdf(file, mode === 'each' ? { type: 'split-each' } : { type: 'split-chunks', every }, { signal });
+        // Multi-output modes → a ZIP of PDFs.
+        let op: Parameters<typeof splitPdf>[1];
+        let label: string;
+        if (mode === 'each') { op = { type: 'split-each' }; label = 'page'; }
+        else if (mode === 'every') { op = { type: 'split-chunks', every }; label = 'part'; }
+        else if (mode === 'size') { op = { type: 'split-size', maxBytes: Math.max(0.1, maxSizeMb) * 1024 * 1024 }; label = 'part'; }
+        else { // 'ranges' — one file PER comma-separated range
+          const groups = ranges.split(',').map((s) => s.trim()).filter(Boolean).map((seg) => parseRanges(seg, pageCount).map((n) => n - 1));
+          if (!groups.length) throw new Error('Enter at least one range, e.g. 1-3, 5-8');
+          op = { type: 'split-groups', groups }; label = 'range';
+        }
+        const parts = await splitPdf(file, op, { signal });
         if (!jobs.isCurrent(id)) return;
         const JSZip = (await import('jszip')).default;
         const zip = new JSZip();
         const pad = String(parts.length).length;
-        parts.forEach((bytes, i) => {
-          const label = mode === 'each' ? 'page' : 'part';
-          zip.file(`${base}-${label}-${String(i + 1).padStart(pad, '0')}.pdf`, bytes);
-        });
+        parts.forEach((bytes, i) => { zip.file(`${base}-${label}-${String(i + 1).padStart(pad, '0')}.pdf`, bytes); });
         const blob = await zip.generateAsync({ type: 'blob' });
         if (!jobs.isCurrent(id)) return;
-        download(blob, `${base}-${mode === 'each' ? 'pages' : 'parts'}.zip`);
+        download(blob, `${base}-${mode === 'each' ? 'pages' : mode === 'ranges' ? 'ranges' : 'parts'}.zip`);
       }
     } catch (e) {
       if (isCancel(e) || !jobs.isCurrent(id)) return;
@@ -193,6 +202,20 @@ export function SplitTool() {
                 <p className="font-semibold">Each page as a file</p>
                 <p className="text-xs text-muted-foreground">Split into {pageCount} PDFs (ZIP)</p>
               </button>
+              <button
+                onClick={() => setMode('ranges')}
+                className={`rounded-lg border p-3 text-left text-sm transition-colors ${mode === 'ranges' ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-accent/40'}`}
+              >
+                <p className="font-semibold">Per-range files</p>
+                <p className="text-xs text-muted-foreground">Each range → its own PDF (ZIP)</p>
+              </button>
+              <button
+                onClick={() => setMode('size')}
+                className={`rounded-lg border p-3 text-left text-sm transition-colors ${mode === 'size' ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-accent/40'}`}
+              >
+                <p className="font-semibold">By max file size</p>
+                <p className="text-xs text-muted-foreground">Chunks each under a size cap (ZIP)</p>
+              </button>
             </div>
 
             {mode === 'extract' && (
@@ -216,6 +239,26 @@ export function SplitTool() {
                 </p>
               </div>
             )}
+
+            {mode === 'ranges' && (
+              <div>
+                <label className="mb-1.5 block text-sm font-medium">Ranges — one file each</label>
+                <input className={inputCls} value={ranges} onChange={(e) => setRanges(e.target.value)} placeholder="e.g. 1-3, 4-8, 9-12" inputMode="numeric" />
+                <p className="mt-1 text-xs text-muted-foreground">This PDF has {pageCount} pages. Each comma-separated range becomes its own PDF — e.g. <span className="font-medium">1-3, 4-8</span> → two files.</p>
+              </div>
+            )}
+
+            {mode === 'size' && (
+              <div>
+                <label className="mb-1.5 block text-sm font-medium">Max size per file (MB)</label>
+                <input
+                  className={inputCls} type="number" min={0.1} step={0.1} value={maxSizeMb}
+                  onChange={(e) => setMaxSizeMb(Math.max(0.1, parseFloat(e.target.value || '1')))}
+                  inputMode="decimal"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">Fills each PDF with as many pages as fit under {maxSizeMb} MB, then starts a new one. A single page bigger than the cap gets its own file. Bundled as a ZIP.</p>
+              </div>
+            )}
           </div>
         )}
 
@@ -229,7 +272,7 @@ export function SplitTool() {
             </div>
           ) : (
             <Button className="mt-5 w-full" size="lg" onClick={run}>
-              <Download className="size-4" /> {mode === 'extract' ? 'Extract pages' : mode === 'every' ? `Split into ${Math.ceil(pageCount / Math.max(1, every))} files` : `Split into ${pageCount} files`}
+              <Download className="size-4" /> {mode === 'extract' ? 'Extract pages' : mode === 'every' ? `Split into ${Math.ceil(pageCount / Math.max(1, every))} files` : mode === 'each' ? `Split into ${pageCount} files` : mode === 'size' ? `Split under ${maxSizeMb} MB each` : 'Split by range'}
             </Button>
           )
         )}
