@@ -117,6 +117,7 @@ export function MergeTool() {
           <Upload className="size-7 text-muted-foreground" />
           <p className="mt-2 text-sm font-medium">Drop PDFs here, or click to choose</p>
           <p className="text-xs text-muted-foreground">Select two or more files</p>
+          <span className="mt-4 inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm">Choose PDFs</span>
           <input ref={inputRef} type="file" accept="application/pdf" multiple className="hidden" onChange={(e) => { addFiles(e.target.files); e.currentTarget.value = ''; }} />
         </div>
 

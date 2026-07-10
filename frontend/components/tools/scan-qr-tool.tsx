@@ -125,6 +125,7 @@ export function ScanQrTool() {
           <Upload className="size-7 text-muted-foreground" />
           <p className="mt-2 text-sm font-medium">Drop a photo or screenshot of a QR code, or click to choose</p>
           <p className="text-xs text-muted-foreground">Tip: you can also just press Ctrl+V (⌘+V) to paste a screenshot</p>
+          <span className="mt-4 inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm">Choose image</span>
         </div>
         <input ref={inputRef} type="file" accept="image/*,.png,.jpg,.jpeg,.webp,.gif,.bmp" className="hidden"
           onChange={(e) => { void scan(e.target.files?.[0]); e.currentTarget.value = ''; }} />

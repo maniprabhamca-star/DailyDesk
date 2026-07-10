@@ -356,6 +356,7 @@ export function HeicTool() {
           <Upload className="size-7 text-muted-foreground" />
           <p className="mt-2 text-sm font-medium">Drop iPhone photos here, or click to choose</p>
           <p className="text-xs text-muted-foreground">HEIC / HEIF in — JPG or PNG out, right on your device</p>
+          <span className="mt-4 inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm">Choose photos</span>
           <input ref={inputRef} type="file" accept=".heic,.heif,image/heic,image/heif" multiple className="hidden" onChange={(e) => { addFiles(e.target.files); e.currentTarget.value = ''; }} />
         </div>
 
