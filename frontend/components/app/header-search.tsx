@@ -2,10 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, CornerDownLeft, History, ArrowRight } from 'lucide-react';
-import { catalog, type CatTool } from '@/components/app/catalog';
+import { Search, CornerDownLeft, History, ArrowRight, Sparkles } from 'lucide-react';
+import { catalog, PRO_TOOLS, type CatTool } from '@/components/app/catalog';
 import { getRecent, pushRecent } from '@/lib/recent';
+import { useIsOwner } from '@/lib/plan';
 import { cn } from '@/lib/utils';
+
+const isProTool = (t: { name: string }) => PRO_TOOLS.has(t.name);
 
 // Premium inline search: type in the header pill and results drop down right
 // underneath (no dialog hop). ↑↓ + Enter to open a tool, Esc to close; ⌘K still
@@ -23,12 +26,19 @@ function openCommand() {
 
 export function HeaderSearch({ visible }: { visible: boolean }) {
   const router = useRouter();
+  const isOwner = useIsOwner();
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [recent, setRecent] = useState<Tool[]>([]);
+  // Show the right modifier glyph for the OS (⌘ on Mac, Ctrl elsewhere).
+  const [modKey, setModKey] = useState('⌘K');
+  useEffect(() => {
+    const mac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/i.test(navigator.platform || navigator.userAgent);
+    if (!mac) setModKey('Ctrl K');
+  }, []);
 
   // Recent tools (local-only) — shown when the box is focused with no query yet.
   useEffect(() => {
@@ -50,7 +60,7 @@ export function HeaderSearch({ visible }: { visible: boolean }) {
     return { label: 'Tools', items: [...live, ...soon].slice(0, MAX_RESULTS) };
   }, [query, recent]);
 
-  const navigable = results.items.filter((t) => !!t.href);
+  const navigable = results.items.filter((t) => !!t.href || isProTool(t));
 
   // Close on outside click.
   useEffect(() => {
@@ -61,6 +71,12 @@ export function HeaderSearch({ visible }: { visible: boolean }) {
   }, [open]);
 
   function go(tool: Tool) {
+    // Pro tools: the owner opens them; everyone else lands on pricing, not a dead end.
+    if (isProTool(tool)) {
+      setOpen(false); setQuery(''); inputRef.current?.blur();
+      if (isOwner && tool.href) { pushRecent(tool.href); router.push(tool.href); } else router.push('/pricing');
+      return;
+    }
     if (!tool.href) return;
     pushRecent(tool.href);
     setOpen(false);
@@ -96,7 +112,7 @@ export function HeaderSearch({ visible }: { visible: boolean }) {
           aria-expanded={open}
           className="w-full bg-transparent outline-none placeholder:text-foreground/60"
         />
-        <button onClick={openCommand} aria-label="Open command palette" className="ml-auto shrink-0 rounded border px-1.5 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-accent">⌘K</button>
+        <button onClick={openCommand} aria-label="Open command palette" className="ml-auto shrink-0 whitespace-nowrap rounded border px-1.5 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-accent">{modKey}</button>
       </div>
 
       {/* Results dropdown — animate-fade-in (plain rise), NOT dialog-in: that
@@ -116,7 +132,8 @@ export function HeaderSearch({ visible }: { visible: boolean }) {
               const Icon = t.icon;
               const idx = navigable.indexOf(t);
               const isActive = idx >= 0 && idx === active;
-              const soon = !t.href;
+              const pro = isProTool(t);
+              const soon = !t.href && !pro;
               return (
                 <button
                   key={`${t.group}-${t.name}`}
@@ -136,7 +153,8 @@ export function HeaderSearch({ visible }: { visible: boolean }) {
                     <span className="block truncate text-sm font-medium">{t.name}</span>
                     <span className="block truncate text-[11px] text-muted-foreground">{t.group}</span>
                   </span>
-                  {soon ? <span className="shrink-0 text-[10px] font-medium text-muted-foreground">soon</span>
+                  {pro ? <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400"><Sparkles className="size-2.5" /> Pro</span>
+                    : soon ? <span className="shrink-0 text-[10px] font-medium text-muted-foreground">soon</span>
                     : isActive && <CornerDownLeft className="size-3.5 shrink-0 text-muted-foreground" />}
                 </button>
               );
@@ -148,7 +166,7 @@ export function HeaderSearch({ visible }: { visible: boolean }) {
             onClick={() => { setOpen(false); openCommand(); }}
             className="group flex w-full items-center gap-2.5 border-t bg-muted/40 px-4 py-2.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/[0.07]"
           >
-            <kbd className="rounded border bg-background px-1.5 py-0.5 text-[10px] font-normal text-muted-foreground">⌘K</kbd>
+            <kbd className="whitespace-nowrap rounded border bg-background px-1.5 py-0.5 text-[10px] font-normal text-muted-foreground">{modKey}</kbd>
             Open the full palette
             <span className="font-normal text-muted-foreground">· actions &amp; workflows</span>
             <ArrowRight className="ml-auto size-3.5 transition-transform group-hover:translate-x-0.5" />

@@ -5,17 +5,10 @@ import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import * as Dialog from '@radix-ui/react-dialog';
 import { Search, CornerDownLeft, Sun, Moon, LayoutGrid, Tag, Wand2, ShieldCheck, Sparkles } from 'lucide-react';
-import { catalog, type CatTool } from '@/components/app/catalog';
+import { catalog, PRO_TOOLS, type CatTool } from '@/components/app/catalog';
 import { getRecent, pushRecent } from '@/lib/recent';
 import { useIsOwner } from '@/lib/plan';
 import { cn } from '@/lib/utils';
-
-// The premium tier (owner-only until Pro launches): the deep editors, OCR and the
-// AI tools. In the palette these wear a "Pro" badge; a free user who picks one is
-// taken to pricing rather than a dead end, while the owner can open them to build.
-// Everything else in the catalog is free at launch. Keep in sync with the
-// pro-launch checklist.
-const PRO_TOOLS = new Set(['Edit PDF', 'Annotate', 'Redact PDF', 'OCR', 'Chat with PDF', 'Summarize', 'Translate']);
 
 type Tool = CatTool & { color: string; group: string };
 type Action = { id: string; label: string; icon: typeof Sun; run: () => void };

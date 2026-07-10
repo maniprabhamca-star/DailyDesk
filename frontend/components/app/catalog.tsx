@@ -24,6 +24,12 @@ export const BADGE: Record<Badge, { icon: LucideIcon; color: string; label: stri
   encrypted: { icon: KeyRound, color: '#2563eb', label: 'End-to-end encrypted' },
 };
 
+// The premium tier — owner-only until Pro launches: the deep editors, OCR and the
+// AI tools. Search surfaces (⌘K palette, header search) badge these "Pro" and send
+// free users to pricing instead of a dead end. Keep in sync with the pro-launch
+// checklist. Matched by tool name.
+export const PRO_TOOLS = new Set(['Edit PDF', 'Annotate', 'Redact PDF', 'OCR', 'Chat with PDF', 'Summarize', 'Translate']);
+
 export const catalog: CatGroup[] = [
   {
     label: 'Organize PDF', color: '#dc2626', tools: [
