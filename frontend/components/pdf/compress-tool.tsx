@@ -457,6 +457,8 @@ export function CompressTool() {
         const pages = doc.getPages();
         for (let pi = 0; pi < pages.length; pi++) {
           if (cancelRef.current) throw new DOMException('Cancelled', 'AbortError');
+          setPrep(`Analyzing page ${pi + 1} of ${pages.length}…`);
+          if (pi % 2 === 1) await yieldToLoop(); // let the message tick + keep Cancel responsive
           const page = pages[pi];
           const res = page.node.Resources();
           const xobjs = res ? (res.lookup(PDFName.of('XObject')) as { keys?: () => unknown[]; get?: (k: unknown) => unknown } | undefined) : undefined;
@@ -691,6 +693,7 @@ export function CompressTool() {
       // (fonts can be >50% of the file). Safe by construction + heavily
       // guarded — see lib/pdf-fontgut.ts. Best-effort.
       let fontsSlimmed = 0;
+      setPrep('Slimming fonts…');
       try {
         fontsSlimmed = await subsetFonts(doc, original);
       } catch { /* best-effort — never blocks the rest of the pipeline */ }
