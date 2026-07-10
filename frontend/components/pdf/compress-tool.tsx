@@ -12,7 +12,7 @@ import { formatDuration } from '@/lib/format';
 import { PdfDone } from '@/components/app/pdf-done';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
-import { ResultDock, MobileDownloadBar } from '@/components/app/result-dock';
+import { ResultDock, StickyDownloadBar } from '@/components/app/result-dock';
 import { openPdf, renderPage, dprTarget, getPdfjs, pdfDocOptions, yieldToLoop, type PdfHandle, type RenderedPage } from '@/lib/pdf-render';
 import { subsetFonts } from '@/lib/pdf-fontgut';
 import { stripDocMetadata } from '@/lib/pdf-sanitize';
@@ -1005,8 +1005,8 @@ export function CompressTool() {
               <Upload className="size-4" /> Start over with a new file
             </Button>
             <PdfDone blob={done.blob} name={done.name} currentHref="/compress-pdf" fromLabel="Compress PDF" hideBanner />
-            {/* Phone: keep Download pinned to the thumb. */}
-            <MobileDownloadBar onDownload={() => download(done.blob, done.name)} label={done.optimized ? 'Download PDF' : 'Download compressed'} hint={`${fmt(done.after)} ready`} />
+            {/* Keep Download pinned in view on every screen size as you scroll. */}
+            <StickyDownloadBar onDownload={() => download(done.blob, done.name)} label={done.optimized ? 'Download PDF' : 'Download compressed'} hint={`${fmt(done.after)} ready`} />
           </div>
         )}
       </CardContent>

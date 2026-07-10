@@ -1,6 +1,6 @@
 'use client';
 import type { ReactNode } from 'react';
-import { Download, ShieldCheck } from 'lucide-react';
+import { Download, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 // Shared "result dock" — the action-first result pattern. Puts the outcome +
@@ -58,13 +58,17 @@ export function ResultDock({
   );
 }
 
-// Mobile-only sticky action bar so Download is always thumb-reachable without
-// scrolling. Render it near the END of the result block so it pins to the bottom.
-export function MobileDownloadBar({ onDownload, label = 'Download', hint }: { onDownload: () => void; label?: string; hint?: string }) {
+// Persistent sticky Download bar (all screen sizes) so Download is ALWAYS in view
+// as the user scrolls the result — never "scroll back up to download". A slim
+// centered pill on desktop, thumb-reachable at the bottom on mobile. Render it
+// near the END of the result block so it pins to the viewport bottom.
+export function StickyDownloadBar({ onDownload, label = 'Download', hint }: { onDownload: () => void; label?: string; hint?: string }) {
   return (
-    <div className="sticky bottom-2 z-20 mt-3 flex items-center gap-2 rounded-xl border bg-card/95 p-2 shadow-lg backdrop-blur sm:hidden">
-      {hint && <span className="flex-1 pl-1 text-xs font-medium text-emerald-600">{hint}</span>}
-      <Button className={hint ? '' : 'flex-1'} onClick={onDownload}><Download className="size-4" /> {label}</Button>
+    <div className="pointer-events-none sticky bottom-3 z-20 mt-3 flex justify-center">
+      <div className="pointer-events-auto flex w-full max-w-md items-center gap-2 rounded-full border bg-card/95 p-1.5 pl-4 shadow-lift backdrop-blur">
+        {hint && <span className="flex items-center gap-1.5 text-sm font-medium text-emerald-600"><CheckCircle2 className="size-4" /> {hint}</span>}
+        <Button className={`ml-auto rounded-full ${hint ? '' : 'w-full'}`} onClick={onDownload}><Download className="size-4" /> {label}</Button>
+      </div>
     </div>
   );
 }
