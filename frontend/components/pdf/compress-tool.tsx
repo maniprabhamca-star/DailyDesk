@@ -12,7 +12,10 @@ import { downloadBlob as download } from '@/lib/download';
 import { formatDuration } from '@/lib/format';
 import { PdfDone } from '@/components/app/pdf-done';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
-import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
+import { usePlan, useIsOwner, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
+
+// Owner-only performance breakdown attached to a result (also console.debug'd).
+type CompressTiming = { analysisMs: number; prepMs: number; renderMs: number; totalMs: number; pages: number; scanPages: number; rasterized: number; level: string; slowestPageMs: number };
 import { ResultDock } from '@/components/app/result-dock';
 import { openPdf, renderPage, dprTarget, getPdfjs, pdfDocOptions, yieldToLoop, type PdfHandle, type RenderedPage } from '@/lib/pdf-render';
 import { subsetFonts } from '@/lib/pdf-fontgut';
@@ -263,7 +266,8 @@ export function CompressTool() {
   const prepTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cancelRef = useRef(false); // cooperative cancel — the compress loops check it
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState<{ blob: Blob; name: string; before: number; after: number; optimized: boolean; note: string } | null>(null);
+  const [done, setDone] = useState<{ blob: Blob; name: string; before: number; after: number; optimized: boolean; note: string; timing?: CompressTiming } | null>(null);
+  const isOwner = useIsOwner();
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
   const [kind, setKind] = useState<Kind | null>(null);
   const [p1StoredPx, setP1StoredPx] = useState(0);
@@ -438,6 +442,7 @@ export function CompressTool() {
     const useLevel: Level = levelArg ?? level;
     const force = forceArg || useLevel === 'maximum';
     const prevDone = done; // so "Squeeze harder" can never REPLACE a smaller result
+    let slowestPageMs = 0; // perf breakdown (owner-only + console)
     cancelRef.current = false;
     setBusy(true);
     setPrep('Preparing your PDF…');
@@ -534,6 +539,7 @@ export function CompressTool() {
           }
         }
       } catch { /* best-effort; surgical + safe fallbacks below still work */ }
+      const tAnalysis = performance.now();
 
       // Collect embedded images we can safely recompress. Two kinds:
       //  - 'jpeg' (DCTDecode): decode + downsample + re-encode (photo path).
@@ -730,6 +736,7 @@ export function CompressTool() {
       // scanned books), while real TEXT pages are kept as-is so their text stays
       // crisp and selectable. Best-effort: if pdf.js can't load the file we fall
       // back to the surgical-only result.
+      const tPrep = performance.now();
       let outBytes: Uint8Array;
       let rasterized = 0;
       let copied = 0;
@@ -795,7 +802,9 @@ export function CompressTool() {
                   // Per-page watchdog: one stuck page can't hang the whole job —
                   // cancel it after 45s and let phase 2 copy it untouched.
                   const rt = jp.render({ canvas, viewport: vp, background: 'rgba(255,255,255,1)', intent: 'print' });
+                  const _pt0 = performance.now();
                   await withTimeout(rt.promise, 45000).catch((e) => { try { rt.cancel(); } catch { /* ignore */ } throw e; });
+                  const _pdt = performance.now() - _pt0; if (_pdt > slowestPageMs) slowestPageMs = _pdt;
                   // Native JPEG (not mozjpeg): scan pages are already downsampled,
                   // and native is ~15x faster — 100+ page books finish fast.
                   const jpgBlob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/jpeg', q01));
@@ -845,6 +854,19 @@ export function CompressTool() {
       }
 
       const after = outBytes.length;
+      const tRaster = performance.now();
+      const timing: CompressTiming = {
+        analysisMs: Math.round(tAnalysis - startedAt),
+        prepMs: Math.round(tPrep - tAnalysis),
+        renderMs: Math.round(tRaster - tPrep),
+        totalMs: Math.round(tRaster - startedAt),
+        pages: doc.getPageCount(),
+        scanPages: scanPages.size,
+        rasterized,
+        level: useLevel,
+        slowestPageMs: Math.round(slowestPageMs),
+      };
+      if (isOwner) console.log('[compress] timing', timing); // owner-only, visible at default console level
       const name = `${file.name.replace(/\.pdf$/i, '')}-compressed.pdf`;
       const secs = (performance.now() - startedAt) / 1000;
       const took = formatDuration(secs);
@@ -856,7 +878,7 @@ export function CompressTool() {
       if (savedFrac < 0.01) {
         const blob = new Blob([part(original)], { type: 'application/pdf' });
         const note = (rasterized === 0 && recompressed === 0 && fontsSlimmed === 0 ? 'Nothing left to shrink' : 'Already near-optimal') + ` · ${took}`;
-        setDone({ blob, name: `${file.name.replace(/\.pdf$/i, '')}.pdf`, before, after: before, optimized: true, note });
+        setDone({ blob, name: `${file.name.replace(/\.pdf$/i, '')}.pdf`, before, after: before, optimized: true, note, timing });
         return;
       }
 
@@ -873,7 +895,7 @@ export function CompressTool() {
         return;
       }
       const blob = new Blob([part(outBytes)], { type: 'application/pdf' });
-      setDone({ blob, name, before, after, optimized: false, note });
+      setDone({ blob, name, before, after, optimized: false, note, timing });
     } catch (e) {
       if (e instanceof DOMException && e.name === 'AbortError') return; // cancelled — quiet
       setError(e instanceof Error ? e.message : 'Could not compress the PDF.');
@@ -1024,6 +1046,12 @@ export function CompressTool() {
               downloadLabel={done.optimized ? 'Download PDF' : 'Download compressed'}
               secondary={<Button variant="outline" size="sm" onClick={() => { setDone(null); setSelPage(0); }}><RefreshCw className="size-4" /> Try another level</Button>}
             />
+            {isOwner && done.timing && (
+              <p className="mt-2 rounded-md bg-muted/60 px-3 py-1.5 font-mono text-[11px] leading-relaxed text-muted-foreground">
+                ⏱ analysis {done.timing.analysisMs}ms · prep {done.timing.prepMs}ms · render {done.timing.renderMs}ms · total {(done.timing.totalMs / 1000).toFixed(1)}s
+                <br />{done.timing.pages}p ({done.timing.scanPages} scan · {done.timing.rasterized} rebuilt) · {done.timing.level} · slowest page {done.timing.slowestPageMs}ms
+              </p>
+            )}
             <div className="mt-3" />
             {done.optimized ? (
               <>
