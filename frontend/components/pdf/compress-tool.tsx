@@ -323,18 +323,26 @@ export function CompressTool() {
     return () => ac.abort();
   }, [srcHandle, outHandle, selPage, done]);
 
-  // When compression finishes, DON'T yank the page toward the result. Only
-  // nudge it into view if its top actually sits off-screen; if the dock is
-  // already visible (the common case — it lands right where the button was),
-  // leave the scroll position exactly where the user left it.
+  // When compression finishes, keep the view where the user left it — UNLESS the
+  // result ends up off-screen. The taller pre-compress UI (preview + level cards)
+  // unmounts on done, so the page suddenly shrinks; if the user was scrolled down,
+  // their position can now land on the footer with the result above the fold.
+  // Double-rAF so we measure AFTER that reflow, then only step in if the dock
+  // isn't visible at all (bring it to the top; otherwise never move).
   useEffect(() => {
     if (!done) return;
-    requestAnimationFrame(() => {
+    const t = setTimeout(() => {
       const el = doneRef.current;
       if (!el) return;
       const top = el.getBoundingClientRect().top;
-      if (top < 0 || top > window.innerHeight - 120) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
+      // Already sitting near the top of the viewport → leave it. Otherwise (it
+      // drifted above the fold when the taller UI unmounted, or sits below) bring
+      // it up to the top so the result — not the footer — is what you land on.
+      // Instant (not smooth): a smooth scroll gets fought by the before/after
+      // images loading in mid-animation and nets to nothing.
+      if (top < 8 || top > 140) el.scrollIntoView({ block: 'start' });
+    }, 150);
+    return () => clearTimeout(t);
   }, [done]);
 
   function loadOne(f?: File) {
