@@ -4,10 +4,18 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import * as Dialog from '@radix-ui/react-dialog';
-import { Search, CornerDownLeft, Sun, Moon, LayoutGrid, Tag, Wand2, ShieldCheck } from 'lucide-react';
+import { Search, CornerDownLeft, Sun, Moon, LayoutGrid, Tag, Wand2, ShieldCheck, Sparkles } from 'lucide-react';
 import { catalog, type CatTool } from '@/components/app/catalog';
 import { getRecent, pushRecent } from '@/lib/recent';
+import { useIsOwner } from '@/lib/plan';
 import { cn } from '@/lib/utils';
+
+// The premium tier (owner-only until Pro launches): the deep editors, OCR and the
+// AI tools. In the palette these wear a "Pro" badge; a free user who picks one is
+// taken to pricing rather than a dead end, while the owner can open them to build.
+// Everything else in the catalog is free at launch. Keep in sync with the
+// pro-launch checklist.
+const PRO_TOOLS = new Set(['Edit PDF', 'Annotate', 'Redact PDF', 'OCR', 'Chat with PDF', 'Summarize', 'Translate']);
 
 type Tool = CatTool & { color: string; group: string };
 type Action = { id: string; label: string; icon: typeof Sun; run: () => void };
@@ -22,6 +30,11 @@ const WORKFLOWS = [{ label: 'Merge → Compress → Sign', sub: 'Chain tools, no
 export function CommandPalette() {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
+  const isOwner = useIsOwner();
+  const isProTool = useCallback((t: Tool) => PRO_TOOLS.has(t.name), []);
+  // Selectable? Pro tools always are (they route to pricing/upgrade or, for the
+  // owner, open). Free tools are selectable only when live (have an href, not soon).
+  const toolDisabled = useCallback((t: Tool) => (isProTool(t) ? false : (!t.href || !!t.soon)), [isProTool]);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
@@ -63,17 +76,17 @@ export function CommandPalette() {
     const matchAction = (a: Action) => !q || a.label.toLowerCase().includes(q);
 
     if (!q) {
-      if (recent.length) { rows.push({ type: 'header', label: 'Recent' }); recent.forEach((t) => rows.push({ type: 'tool', tool: t, disabled: !t.href })); }
+      if (recent.length) { rows.push({ type: 'header', label: 'Recent' }); recent.forEach((t) => rows.push({ type: 'tool', tool: t, disabled: toolDisabled(t)})); }
       rows.push({ type: 'header', label: 'Workflows', note: '· one click, no re-upload' });
       WORKFLOWS.forEach((w) => rows.push({ type: 'workflow', label: w.label, sub: w.sub }));
       rows.push({ type: 'header', label: 'Actions' });
       actions.forEach((a) => rows.push({ type: 'action', action: a }));
       rows.push({ type: 'header', label: 'All tools' });
-      tools.forEach((t) => rows.push({ type: 'tool', tool: t, disabled: !t.href }));
+      tools.forEach((t) => rows.push({ type: 'tool', tool: t, disabled: toolDisabled(t)}));
     } else {
       const mt = tools.filter(matchTool);
       const ma = actions.filter(matchAction);
-      if (mt.length) { rows.push({ type: 'header', label: 'Tools' }); mt.forEach((t) => rows.push({ type: 'tool', tool: t, disabled: !t.href })); }
+      if (mt.length) { rows.push({ type: 'header', label: 'Tools' }); mt.forEach((t) => rows.push({ type: 'tool', tool: t, disabled: toolDisabled(t)})); }
       if (ma.length) { rows.push({ type: 'header', label: 'Actions' }); ma.forEach((a) => rows.push({ type: 'action', action: a })); }
     }
 
@@ -82,14 +95,21 @@ export function CommandPalette() {
       return (r.type === 'tool' && !r.disabled) || r.type === 'action';
     });
     return { rows, selectable };
-  }, [query, recent, actions, tools]);
+  }, [query, recent, actions, tools, toolDisabled]);
 
   const activate = useCallback((rowIndex: number) => {
     const r = rows[rowIndex];
     if (!r) return;
-    if (r.type === 'tool' && r.tool.href) { pushRecent(r.tool.href); setOpen(false); router.push(r.tool.href); }
-    else if (r.type === 'action') { setOpen(false); r.action.run(); }
-  }, [rows, router]);
+    if (r.type === 'tool') {
+      const t = r.tool;
+      if (isProTool(t)) {
+        // Pro tool: the owner opens it (to build/test); everyone else lands on
+        // pricing rather than a dead end.
+        setOpen(false);
+        if (isOwner && t.href) { pushRecent(t.href); router.push(t.href); } else router.push('/pricing');
+      } else if (t.href) { pushRecent(t.href); setOpen(false); router.push(t.href); }
+    } else if (r.type === 'action') { setOpen(false); r.action.run(); }
+  }, [rows, router, isProTool, isOwner]);
 
   function onInputKey(e: React.KeyboardEvent) {
     if (e.key === 'ArrowDown') { e.preventDefault(); setActive((a) => Math.min(a + 1, selectable.length - 1)); }
@@ -165,7 +185,10 @@ export function CommandPalette() {
                   className={cn('flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors', isActive && 'bg-accent', r.disabled && 'cursor-not-allowed opacity-55')}>
                   <span className="flex size-8 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: `${t.color}1A`, color: t.color }}><Icon className="size-4" /></span>
                   <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{t.name}</span><span className="block truncate text-xs text-muted-foreground">{t.group}</span></span>
-                  {r.disabled ? <span className="shrink-0 text-[10px] font-medium text-muted-foreground">soon</span> : isActive && <CornerDownLeft className="size-4 shrink-0 text-muted-foreground" />}
+                  {isProTool(t)
+                    ? <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400"><Sparkles className="size-2.5" /> Pro</span>
+                    : r.disabled ? <span className="shrink-0 text-[10px] font-medium text-muted-foreground">soon</span>
+                    : isActive && <CornerDownLeft className="size-4 shrink-0 text-muted-foreground" />}
                 </button>
               );
             })}
