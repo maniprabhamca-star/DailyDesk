@@ -2,9 +2,8 @@
 import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 
 import React, { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react';
-import { Upload, FileText, X, Loader2, Pencil, Undo2, Redo2, Bold, Italic, Trash2, Minus, Plus, Zap, TextCursorInput, Highlighter, Pen, Square, Circle, ArrowUpRight, ChevronDown, Signature as SignatureIcon, ImagePlus, Move, Maximize2, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, Stamp as StampIcon, Link as LinkIcon, RotateCw } from 'lucide-react';
+import { Upload, X, Loader2, Pencil, Undo2, Redo2, Bold, Italic, Trash2, Minus, Plus, Zap, TextCursorInput, Highlighter, Pen, Square, Circle, ArrowUpRight, ChevronDown, Signature as SignatureIcon, ImagePlus, Move, Maximize2, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, Stamp as StampIcon, Link as LinkIcon, RotateCw } from 'lucide-react';
 import { SignatureMaker } from './signature-maker';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
@@ -12,6 +11,7 @@ import { takeHandoff } from '@/lib/handoff';
 import { rewritePdf } from '@/lib/pdf-rewrite';
 import { openPdf, renderPage, dprTarget, getPdfjs, type PdfHandle, type RenderedPage } from '@/lib/pdf-render';
 import { PageStrip } from '@/components/pdf/page-strip';
+import { EditorShell } from '@/components/pdf/editor-shell';
 import { FontSelect } from '@/components/app/font-select';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
@@ -369,12 +369,6 @@ function inkHeight(text: string, cssFontStr: string): number {
   measureCtx.font = cssFontStr;
   const m = measureCtx.measureText(text || 'Hg');
   return (m.actualBoundingBoxAscent || 0) + (m.actualBoundingBoxDescent || 0);
-}
-
-function fmt(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 // Map the PDF's REAL font (e.g. "BCDFEE+Calibri", "ArialMT") to the closest
 // bundled family so the redraw matches the document. Calibri → Carlito (its open
@@ -1691,16 +1685,18 @@ export function EditTool() {
   };
   const stampChoices = [...STAMP_PRESETS, ...customStamps.filter((s) => !STAMP_PRESETS.includes(s))];
   return (
-    <Card ref={editorTopRef}>
-      <CardContent className="p-3 sm:p-4">
-        <input id="edit-pdf-upload" ref={inputRef} type="file" accept="application/pdf,.pdf" className="sr-only" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
-        <input ref={imgFileRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="sr-only" onChange={(e) => { pickImageFile(e.target.files); e.currentTarget.value = ''; }} />
-        {sigOpen && <SignatureMaker onClose={() => setSigOpen(false)} onCreate={(url, aspect) => addImageSrc(url, aspect)} />}
-        {handoffNote && <p className="mb-3 flex items-center gap-2 rounded-lg border border-primary/25 bg-primary/[0.06] px-3 py-2 text-sm text-foreground"><Zap className="size-4 shrink-0 text-primary" /> {handoffNote}</p>}
+    <div ref={editorTopRef}>
+      <input id="edit-pdf-upload" ref={inputRef} type="file" accept="application/pdf,.pdf" className="sr-only" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
+      <input ref={imgFileRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="sr-only" onChange={(e) => { pickImageFile(e.target.files); e.currentTarget.value = ''; }} />
+      {sigOpen && <SignatureMaker onClose={() => setSigOpen(false)} onCreate={(url, aspect) => addImageSrc(url, aspect)} />}
 
-        {tooBig ? (
+      {tooBig ? (
+        <Card><CardContent className="p-5">
           <UpgradeNotice fileName={tooBig.name} sizeText={fmtBytes(tooBig.size)} limitText={fmtBytes(FREE_MAX_BYTES)} onReset={() => { setTooBig(null); inputRef.current?.click(); }} />
-        ) : !file ? (
+        </CardContent></Card>
+      ) : !file ? (
+        <Card><CardContent className="p-5">
+          {handoffNote && <p className="mb-3 flex items-center gap-2 rounded-lg border border-primary/25 bg-primary/[0.06] px-3 py-2 text-sm text-foreground"><Zap className="size-4 shrink-0 text-primary" /> {handoffNote}</p>}
           <label htmlFor="edit-pdf-upload" onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); pick(e.dataTransfer.files); }}
             className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border p-8 text-center transition-colors hover:border-primary/50 hover:bg-accent/40">
             <Upload className="size-7 text-muted-foreground" />
@@ -1708,26 +1704,35 @@ export function EditTool() {
             <p className="text-xs text-muted-foreground">Click a paragraph to edit, or use the premium toolbar - never uploaded</p>
             <span className="mt-4 inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm">Choose PDF</span>
           </label>
-        ) : (
-          <div className="flex items-center gap-3 rounded-lg border bg-card p-2.5">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-red-100 text-red-600 dark:bg-red-950/40"><FileText className="size-4" /></span>
-            <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{file.name}</p><p className="text-xs text-muted-foreground">{fmt(file.size)} · {pageCount} page{pageCount === 1 ? '' : 's'}</p></div>
-            <Button size="icon" variant="ghost" aria-label="Remove" onClick={() => { if (handle) void handle.destroy(); setHandle(null); setFile(null); setDone(null); setError(null); setLines({}); setEdits({}); setPast([]); setFuture([]); setHistoryPast([]); setHistoryFuture([]); blockInputSession.current = false; addedInputSession.current = false; setAdded([]); setAddSel(null); setAddMode(false); setBlocks({}); setBlockEdits({}); setBlockStyle({}); setBlockLayout({}); setEditingBlock(null); setMarkups({}); setImages([]); setSelImg(null); setStampsOpen(false); setLinkOpen(false); imgCache.current.clear(); }}><X className="size-4" /></Button>
-          </div>
-        )}
-
-        {file && !done && (
-          <div className="mt-4">
-            {/* Premium formatting toolbar — acts on the selected word. While a word
-                is being edited, DON'T let toolbar clicks steal focus from the input
-                (that blur used to commit + exit edit mode before the style applied),
-                so font/size/bold/italic/colour change live as you type. */}
-            <div className="mb-3 flex flex-wrap items-center gap-1.5 rounded-2xl border bg-card p-1.5 shadow-soft"
-              onMouseDown={(e) => {
-                const target = e.target as HTMLElement;
-                if (target.closest('input, textarea, select, [contenteditable="true"]')) return;
-                if (editing || activeAdded || activeBlock) e.preventDefault();
-              }}>
+          {error && <UploadError error={error} />}
+        </CardContent></Card>
+      ) : done ? (
+        <Card><CardContent className="p-5">
+          <PdfDone blob={done.blob} name={done.name} secs={done.secs} currentHref="/edit-pdf" fromLabel="Edit PDF" />
+        </CardContent></Card>
+      ) : (
+        <div>
+          {handoffNote && <p className="mb-3 flex items-center gap-2 rounded-lg border border-primary/25 bg-primary/[0.06] px-3 py-2 text-sm text-foreground"><Zap className="size-4 shrink-0 text-primary" /> {handoffNote}</p>}
+          <EditorShell
+            toolName="Edit"
+            toolIcon={<Pencil className="size-4 text-primary" />}
+            fileName={file.name}
+            pageInfo={`${pageCount} page${pageCount === 1 ? '' : 's'}`}
+            onClose={() => { if (handle) void handle.destroy(); setHandle(null); setFile(null); setDone(null); setError(null); setLines({}); setEdits({}); setPast([]); setFuture([]); setHistoryPast([]); setHistoryFuture([]); blockInputSession.current = false; addedInputSession.current = false; setAdded([]); setAddSel(null); setAddMode(false); setBlocks({}); setBlockEdits({}); setBlockStyle({}); setBlockLayout({}); setEditingBlock(null); setMarkups({}); setImages([]); setSelImg(null); setStampsOpen(false); setLinkOpen(false); imgCache.current.clear(); }}
+            onExport={apply}
+            exportLabel="Save"
+            exporting={busy}
+            exportDisabled={totalChanges === 0}
+            thumbnails={pageCount > 1 ? (
+              <PageStrip orientation="vertical" handle={handle} count={pageCount} selected={sel} onSelect={(i) => { closeWord(); setAddSel(null); setAddMode(false); setEditingBlock(null); setSelImg(null); setSel(i); }} onDelete={deletePage} />
+            ) : undefined}
+            toolbar={
+              <div className="flex flex-wrap items-center gap-1.5"
+                onMouseDown={(e) => {
+                  const target = e.target as HTMLElement;
+                  if (target.closest('input, textarea, select, [contenteditable="true"]')) return;
+                  if (editing || activeAdded || activeBlock) e.preventDefault();
+                }}>
               {toolButton('paragraph', <Pencil className="size-4" />, 'Edit paragraphs')}
               <button className={`${tbBtn} gap-1.5 w-auto px-2.5 ${addMode ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}`} title="Add a new text box — then click where you want it" aria-pressed={addMode} onClick={() => { if (addMode) chooseTool('paragraph'); else chooseTool('add-text'); }}><TextCursorInput className="size-4" /> <span className="text-xs font-medium">Add text</span></button>
               <span className="mx-0.5 h-6 w-px bg-border/70" />
@@ -1782,7 +1787,7 @@ export function EditTool() {
               {actionButton(() => setSigOpen(true), <SignatureIcon className="size-4" />, 'Sign')}
               {actionButton(() => imgFileRef.current?.click(), <ImagePlus className="size-4" />, 'Image')}
               <span className="mx-0.5 h-6 w-px bg-border/70" />
-              <FontSelect value={selFamily} onChange={(f) => patchSel({ family: f })} className="w-40" menuPlacement="up" />
+              <FontSelect value={selFamily} onChange={(f) => patchSel({ family: f })} className="w-40" menuPlacement="down" />
               <span className="mx-0.5 h-6 w-px bg-border/70" />
               <button className={`${tbBtn} hover:bg-accent`} title="Smaller" disabled={!hasSel} onClick={() => patchSel({ size: Math.max(0.006, selSizeFrac * 0.92) })}><Minus className="size-4" /></button>
               <span className="w-9 text-center text-xs tabular-nums text-muted-foreground">{hasSel ? Math.round(selSizePx) : '—'}</span>
@@ -1832,8 +1837,9 @@ export function EditTool() {
                 <button className={`${tbBtn} hover:bg-accent`} title="Redo (Ctrl+Y)" disabled={!canRedo} onClick={redoEditor}><Redo2 className="size-4" /></button>
                 <button className={`${tbBtn} text-destructive hover:bg-destructive/10`} title="Clear page markup" disabled={!pageHasMarkup} onClick={clearPageMarkup}><Trash2 className="size-4" /></button>
               </div>
-            </div>
-
+              </div>
+            }
+          >
             <p className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
               <Pencil className="size-3.5 text-primary" />
               {tool === 'stamp' ? `Click the page to place a ${stampLabel} stamp.` : activeMarkupTool ? 'Drag on the page to mark it up. Use Sign or Image to place files, then drag to move them.' : addMode ? 'Click anywhere on the page to drop a new text box.' : activeAdded ? 'Editing a text box — type, format, or drag it to move. Delete removes it.' : activeBlock ? 'Editing a paragraph — type freely; the text wraps and stays in the PDF’s font. Click outside when done.' : 'Click a paragraph to edit its text, or use “Add text”.'}
@@ -2047,25 +2053,16 @@ export function EditTool() {
               </div>
             </div>
 
-            {pageCount > 1 && <PageStrip handle={handle} count={pageCount} selected={sel} onSelect={(i) => { closeWord(); setAddSel(null); setAddMode(false); setEditingBlock(null); setSelImg(null); setSel(i); }} onDelete={deletePage} className="mt-2" />}
+            {pageCount > 1 && <PageStrip handle={handle} count={pageCount} selected={sel} onSelect={(i) => { closeWord(); setAddSel(null); setAddMode(false); setEditingBlock(null); setSelImg(null); setSel(i); }} onDelete={deletePage} className="mt-3 sm:hidden" />}
             <p className="mt-2 text-center text-xs text-muted-foreground">
               {totalChanges
                 ? `${[blockCount && `${blockCount} paragraph${blockCount === 1 ? '' : 's'} edited`, addedCount && `${addedCount} text box${addedCount === 1 ? '' : 'es'} added`, markupCount && `${markupCount} markup item${markupCount === 1 ? '' : 's'}`, imageCount && `${imageCount} image/signature${imageCount === 1 ? '' : 's'}`].filter(Boolean).join(' · ')} — edits stay in your browser.`
                 : 'Click a paragraph to edit its text, use Add text, or mark up the page. Scanned pages have no selectable text.'}
             </p>
-          </div>
-        )}
-
-        {error && <UploadError error={error} />}
-
-        {file && !done && (
-          <Button className="mt-4 w-full" size="lg" onClick={apply} disabled={busy || totalChanges === 0}>
-            {busy ? <><Loader2 className="size-4 animate-spin" /> Saving…</> : <><Pencil className="size-4" /> Save edited PDF</>}
-          </Button>
-        )}
-
-        {done && <PdfDone blob={done.blob} name={done.name} secs={done.secs} currentHref="/edit-pdf" fromLabel="Edit PDF" />}
-      </CardContent>
-    </Card>
+          </EditorShell>
+          {error && <UploadError error={error} />}
+        </div>
+      )}
+    </div>
   );
 }
