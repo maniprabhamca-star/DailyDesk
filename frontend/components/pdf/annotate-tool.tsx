@@ -55,6 +55,25 @@ function widthFrac(tool: Tool, weight: number) {
 }
 function fontFrac(weight: number) { return 0.016 + weight * 0.006; }
 
+// Smart snap: given an object's top-left (x,y) and its size (all page fractions),
+// nudge it so its centre lines up with the page centre, or an edge with a margin,
+// when it's within a small threshold — and report which guide line to draw. This
+// is the Keynote/Figma "clicks into place" feel; returns v (vertical guide x) and
+// h (horizontal guide y) fractions when a snap fired.
+const SNAP_MARGIN = 0.06;
+const SNAP_T = 0.012;
+function applySnap(x: number, y: number, wFrac: number, hFrac: number): { x: number; y: number; v?: number; h?: number } {
+  let sx = x, sy = y; let v: number | undefined, h: number | undefined;
+  const cx = x + wFrac / 2, cy = y + hFrac / 2;
+  if (Math.abs(cx - 0.5) < SNAP_T) { sx = 0.5 - wFrac / 2; v = 0.5; }
+  else if (Math.abs(x - SNAP_MARGIN) < SNAP_T) { sx = SNAP_MARGIN; v = SNAP_MARGIN; }
+  else if (Math.abs((x + wFrac) - (1 - SNAP_MARGIN)) < SNAP_T) { sx = (1 - SNAP_MARGIN) - wFrac; v = 1 - SNAP_MARGIN; }
+  if (Math.abs(cy - 0.5) < SNAP_T) { sy = 0.5 - hFrac / 2; h = 0.5; }
+  else if (Math.abs(y - SNAP_MARGIN) < SNAP_T) { sy = SNAP_MARGIN; h = SNAP_MARGIN; }
+  else if (Math.abs((y + hFrac) - (1 - SNAP_MARGIN)) < SNAP_T) { sy = (1 - SNAP_MARGIN) - hFrac; h = 1 - SNAP_MARGIN; }
+  return { x: sx, y: sy, v, h };
+}
+
 // Draw a list of annotations onto ctx sized W×H (used for both the live preview
 // and the high-res export — same code, different canvas).
 function paint(ctx: CanvasRenderingContext2D, W: number, H: number, list: Anno[]) {
@@ -174,6 +193,7 @@ export function AnnotateTool() {
   const [images, setImages] = useState<ImageItem[]>([]);
   const [selImg, setSelImg] = useState<string | null>(null); // selected image/signature id
   const [sigOpen, setSigOpen] = useState(false);
+  const [snapGuides, setSnapGuides] = useState<{ v?: number; h?: number } | null>(null); // live alignment guides while dragging
 
   const inputRef = useRef<HTMLInputElement>(null);
   const imgFileRef = useRef<HTMLInputElement>(null);
@@ -373,7 +393,16 @@ export function AnnotateTool() {
     }
     if (textDrag.current) {
       const d = textDrag.current; const q = frac(e);
-      moveText(d.idx, { x: Math.min(1, Math.max(0, q.x - d.ox)), y: Math.min(1, Math.max(0, q.y - d.oy)) });
+      let nx = Math.min(1, Math.max(0, q.x - d.ox));
+      let ny = Math.min(1, Math.max(0, q.y - d.oy));
+      const ta = (annos[sel] || [])[d.idx];
+      if (ta && ta.kind === 'text' && preview) {
+        const wFrac = Math.max(0.03, ta.text.length * ta.size * 0.55 * (preview.h / preview.w));
+        const s = applySnap(nx, ny, wFrac, ta.size * 1.25);
+        nx = s.x; ny = s.y;
+        setSnapGuides(s.v != null || s.h != null ? { v: s.v, h: s.h } : null);
+      }
+      moveText(d.idx, { x: nx, y: ny });
       return;
     }
     if (!drawing.current || !live.current) return;
@@ -385,7 +414,7 @@ export function AnnotateTool() {
   }
   function onLeave() { if (hintRef.current) hintRef.current.style.opacity = '0'; onUp(); }
   function onUp() {
-    if (textDrag.current) { textDrag.current = null; return; }
+    if (textDrag.current) { textDrag.current = null; setSnapGuides(null); return; }
     if (!drawing.current || !live.current) { drawing.current = false; return; }
     const committed = live.current;
     live.current = null; drawing.current = false;
@@ -476,19 +505,19 @@ export function AnnotateTool() {
   function imgMove(e: React.PointerEvent<HTMLElement>) {
     const d = imgDrag.current; if (!d || !wrapRef.current) return;
     const r = wrapRef.current.getBoundingClientRect();
-    setImages((arr) => arr.map((im) => {
-      if (im.id !== d.id) return im;
-      if (d.mode === 'move') {
-        const hFrac = im.w * im.aspect * (r.width / r.height);
-        const x = Math.min(Math.max((e.clientX - r.left - d.ox) / r.width, 0), Math.max(0, 1 - im.w));
-        const y = Math.min(Math.max((e.clientY - r.top - d.oy) / r.height, 0), Math.max(0, 1 - hFrac));
-        return { ...im, x, y };
-      }
-      const w = Math.min(Math.max(d.startW + (e.clientX - d.ox) / r.width, 0.05), 1 - im.x);
-      return { ...im, w };
-    }));
+    const im = images.find((i) => i.id === d.id); if (!im) return;
+    if (d.mode === 'move') {
+      const hFrac = im.w * im.aspect * (r.width / r.height);
+      const x = Math.min(Math.max((e.clientX - r.left - d.ox) / r.width, 0), Math.max(0, 1 - im.w));
+      const y = Math.min(Math.max((e.clientY - r.top - d.oy) / r.height, 0), Math.max(0, 1 - hFrac));
+      const s = applySnap(x, y, im.w, hFrac);
+      setImages((arr) => arr.map((it) => (it.id === d.id ? { ...it, x: s.x, y: s.y } : it)));
+      setSnapGuides(s.v != null || s.h != null ? { v: s.v, h: s.h } : null);
+    } else {
+      setImages((arr) => arr.map((it) => (it.id === d.id ? { ...it, w: Math.min(Math.max(d.startW + (e.clientX - d.ox) / r.width, 0.05), 1 - it.x) } : it)));
+    }
   }
-  function imgUp() { imgDrag.current = null; }
+  function imgUp() { imgDrag.current = null; setSnapGuides(null); }
   const pageImages = images.filter((i) => i.page === sel);
 
   const annotatedPages = Object.keys(annos).map(Number).filter((i) => (annos[i] || []).length > 0).sort((x, y) => x - y);
@@ -629,6 +658,13 @@ export function AnnotateTool() {
             className={`absolute inset-0 h-full w-full touch-none ${tool === 'text' ? 'cursor-text' : 'cursor-crosshair'}`}
             onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerLeave={onLeave} onDoubleClick={onDblClick}
           />
+          {/* Live snap / alignment guides (dashed rose lines) while dragging */}
+          {snapGuides?.v != null && (
+            <div className="pointer-events-none absolute bottom-0 top-0 z-20 w-px" style={{ left: `${snapGuides.v * 100}%`, background: 'repeating-linear-gradient(#f43f5e 0 5px, transparent 5px 10px)' }} />
+          )}
+          {snapGuides?.h != null && (
+            <div className="pointer-events-none absolute left-0 right-0 z-20 h-px" style={{ top: `${snapGuides.h * 100}%`, background: 'repeating-linear-gradient(90deg, #f43f5e 0 5px, transparent 5px 10px)' }} />
+          )}
           {textDraft && (
             <div className="absolute z-10 flex items-start gap-1" style={{ left: `${textDraft.x * 100}%`, top: `${textDraft.y * 100}%` }}>
               <input

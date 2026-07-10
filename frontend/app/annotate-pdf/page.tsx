@@ -36,6 +36,7 @@ export default function AnnotatePdfPage() {
       description="Highlight, draw, box and add text on any PDF — right in your browser. Your file never leaves your device."
       steps={steps}
       faqs={faqs}
+      wide
     >
       <AnnotateTool />
     </PdfToolPage>
