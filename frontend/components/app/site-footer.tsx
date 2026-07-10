@@ -48,7 +48,7 @@ export function SiteFooter() {
               <span className="text-lg font-semibold tracking-tight text-white">DiemDesk</span>
             </Link>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-slate-400">
-              Every daily tool — private, fast, and free. Your files never leave your device.
+              Every tool you reach for — private, fast, and free. Your files never leave your device.
             </p>
             <span className="mt-5 inline-flex items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-300">
               <ShieldCheck className="size-3.5" /> Private by design

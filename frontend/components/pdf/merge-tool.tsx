@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { takeHandoff } from '@/lib/handoff';
 import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
+import { UploadError } from '@/components/app/upload-error';
 import { mergePdfs } from '@/lib/pdf-rewrite';
 import { useCancelableJob, isCancel } from '@/lib/use-cancelable-job';
 
@@ -37,7 +38,7 @@ export function MergeTool() {
     if (!files) return;
     const pdfs = Array.from(files).filter((f) => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'));
     if (pdfs.length === 0) {
-      setError('Please choose PDF files.');
+      setError('Those files aren’t PDFs — Merge combines PDF files.');
       return;
     }
     setError(null);
@@ -140,7 +141,7 @@ export function MergeTool() {
           </ul>
         )}
 
-        {error && <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
+        {error && <UploadError error={error} />}
 
         {busy ? (
           <div className="mt-5 flex gap-2">

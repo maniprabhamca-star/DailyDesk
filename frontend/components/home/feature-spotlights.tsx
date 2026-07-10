@@ -39,7 +39,7 @@ export function FeatureSpotlights() {
     <section className="mx-auto max-w-6xl space-y-14 px-4 pb-14 pt-8 sm:px-6 md:space-y-20">
 
       {/* 1 · Breadth of tools — live launcher grid */}
-      <Row eyebrow="All-in-one toolkit" eyebrowColor="#7c3aed" title="One workspace. Every daily tool." body="PDFs, QR codes, passwords and more — a whole toolkit that runs free, right in your browser. One tab, everything you reach for." cta="Browse all tools" href="/#tools">
+      <Row eyebrow="All-in-one toolkit" eyebrowColor="#7c3aed" title="One workspace. Every tool, every day." body="PDFs, QR codes, passwords and more — a whole toolkit that runs free, right in your browser. One tab, everything you reach for." cta="Browse all tools" href="/#tools">
         <div className="rounded-2xl border bg-gradient-to-br from-violet-50 to-background p-6 dark:from-violet-950/20">
           <div className="mx-auto max-w-xs">
             <div className="mb-3 flex items-center justify-between">

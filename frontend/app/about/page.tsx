@@ -21,7 +21,7 @@ export default function AboutPage() {
   return (
     <LegalPage
       eyebrow="About"
-      title="Every daily tool, and your files stay yours"
+      title="Every tool. Every day. Your files stay yours."
       intro="DiemDesk is a growing toolkit for the small document jobs everyone runs into — merging, compressing, converting, signing and more. The difference: most of it runs entirely inside your browser, so your files never leave your device."
       updated="July 2026"
     >
