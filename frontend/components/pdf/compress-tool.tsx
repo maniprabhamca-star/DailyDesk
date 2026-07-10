@@ -387,8 +387,12 @@ export function CompressTool() {
   // real raster target + JPEG quality — the same math the compressor uses, so
   // what you see is what you get. Debounced on level switches.
   useEffect(() => {
+    // Keep the current preview MOUNTED during compression. Clearing it the moment
+    // `busy` flipped made the tall scan preview unmount, the card collapse, and the
+    // page below slide up into view — the "it jumps as soon as I click" bug.
+    if (busy) return;
     setLevelPreview((p) => { if (p) URL.revokeObjectURL(p.url); return null; });
-    if (!srcHandle || kind !== 'scan' || done || busy) return;
+    if (!srcHandle || kind !== 'scan' || done) return;
     let cancelled = false;
     setLevelPreviewBusy(true);
     const t = setTimeout(async () => {
