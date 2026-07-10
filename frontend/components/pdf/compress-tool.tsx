@@ -241,6 +241,10 @@ export function CompressTool() {
   const [level, setLevel] = useState<Level>('recommended');
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  // A "Preparing…" label for the window BEFORE per-page progress can start —
+  // loading a big file and (for scans) opening the pdf.js render pool takes a
+  // few seconds with no page count yet, so the button never sits on a bare spinner.
+  const [prep, setPrep] = useState<string | null>(null);
   const cancelRef = useRef(false); // cooperative cancel — the compress loops check it
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ blob: Blob; name: string; before: number; after: number; optimized: boolean; note: string } | null>(null);
@@ -418,6 +422,7 @@ export function CompressTool() {
     const prevDone = done; // so "Squeeze harder" can never REPLACE a smaller result
     cancelRef.current = false;
     setBusy(true);
+    setPrep('Preparing your PDF…');
     setError(null);
     setDone(null);
     const before = file.size;
@@ -582,6 +587,7 @@ export function CompressTool() {
       // recompressing their images first is wasted (slow) work.
       const images = ctx.enumerateIndirectObjects().filter(([ref, obj]) => imageKind(obj) !== null && !scanImageTags.has((ref as unknown as { tag: string }).tag));
       setProgress({ done: 0, total: images.length });
+      if (images.length > 0) setPrep(null); // real per-image progress takes over
 
       let recompressed = 0;
       for (let i = 0; i < images.length; i++) {
@@ -700,6 +706,10 @@ export function CompressTool() {
         // finish near-instantly (just the surgical result + structural save).
         outBytes = await doc.save({ useObjectStreams: true });
       } else try {
+        // Scanned doc: opening the render pool (copies of a big file, parsed in
+        // parallel workers) runs before the first page renders — show the page
+        // count so the wait reads as "Preparing 116 pages…", not a dead spinner.
+        setPrep(`Preparing ${doc.getPageCount()} page${doc.getPageCount() === 1 ? '' : 's'}…`);
         const pdfjs = await getPdfjs();
         // PARALLEL RASTER POOL: image decode (the dominant cost on scanned
         // books, e.g. JPEG-2000 pages) happens inside each pdf.js document's
@@ -715,6 +725,7 @@ export function CompressTool() {
           const pageCount = doc.getPageCount();
           const outDoc = await PDFDocument.create();
           setProgress({ done: 0, total: pageCount });
+          setPrep(null); // pool is open — per-page progress takes over now
           const q01 = Math.max(0.32, Math.min(0.9, rasterQ));
 
           // Phase 1 — render every flagged scan page through the pool (out of
@@ -827,6 +838,7 @@ export function CompressTool() {
     } finally {
       setBusy(false);
       setProgress(null);
+      setPrep(null);
     }
   }
 
@@ -945,7 +957,7 @@ export function CompressTool() {
         {file && !done && (
           busy ? (
             <div className="mt-5 flex gap-2">
-              <Button className="flex-1" size="lg" disabled><Loader2 className="size-4 animate-spin" /> {progress && progress.total > 0 ? `Compressing ${progress.done}/${progress.total}…` : 'Compressing…'}</Button>
+              <Button className="flex-1" size="lg" disabled><Loader2 className="size-4 animate-spin" /> {prep ? prep : progress && progress.total > 0 ? `Compressing ${progress.done}/${progress.total}…` : 'Compressing…'}</Button>
               <Button size="lg" variant="outline" onClick={cancelRun}><X className="size-4" /> Cancel</Button>
             </div>
           ) : (
