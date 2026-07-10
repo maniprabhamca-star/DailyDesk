@@ -256,6 +256,11 @@ export function CompressTool() {
   // loading a big file and (for scans) opening the pdf.js render pool takes a
   // few seconds with no page count yet, so the button never sits on a bare spinner.
   const [prep, setPrep] = useState<string | null>(null);
+  // The staged prep labels only surface once processing has run past a short
+  // delay — quick/small files finish before it and never flash the messages;
+  // only files slow enough to actually make you wait ever show them.
+  const [prepReady, setPrepReady] = useState(false);
+  const prepTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cancelRef = useRef(false); // cooperative cancel — the compress loops check it
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ blob: Blob; name: string; before: number; after: number; optimized: boolean; note: string } | null>(null);
@@ -443,6 +448,9 @@ export function CompressTool() {
     cancelRef.current = false;
     setBusy(true);
     setPrep('Preparing your PDF…');
+    setPrepReady(false);
+    if (prepTimerRef.current) clearTimeout(prepTimerRef.current);
+    prepTimerRef.current = setTimeout(() => setPrepReady(true), 700); // only show staged labels if it's actually slow
     setError(null);
     setDone(null);
     const before = file.size;
@@ -877,6 +885,8 @@ export function CompressTool() {
       setBusy(false);
       setProgress(null);
       setPrep(null);
+      if (prepTimerRef.current) { clearTimeout(prepTimerRef.current); prepTimerRef.current = null; }
+      setPrepReady(false);
     }
   }
 
@@ -995,7 +1005,7 @@ export function CompressTool() {
         {file && !done && (
           busy ? (
             <div className="mt-5 flex gap-2">
-              <Button className="flex-1" size="lg" disabled><Loader2 className="size-4 animate-spin" /> {prep ? prep : progress && progress.total > 0 ? `Compressing ${progress.done}/${progress.total}…` : 'Compressing…'}</Button>
+              <Button className="flex-1" size="lg" disabled><Loader2 className="size-4 animate-spin" /> {prepReady && prep ? prep : progress && progress.total > 0 ? `Compressing ${progress.done}/${progress.total}…` : 'Compressing…'}</Button>
               <Button size="lg" variant="outline" onClick={cancelRun}><X className="size-4" /> Cancel</Button>
             </div>
           ) : (
