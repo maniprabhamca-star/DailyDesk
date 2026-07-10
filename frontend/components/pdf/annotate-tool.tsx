@@ -2,7 +2,7 @@
 import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Upload, X, Loader2, Highlighter, Pen, Square, Circle, Minus, ArrowUpRight, ChevronDown, Type, Trash2, Zap, Bold, Italic, Underline, Signature as SignatureIcon, ImagePlus, Plus, Copy, Star, MoveDiagonal } from 'lucide-react';
+import { Upload, X, Loader2, Highlighter, Pen, Square, Circle, Minus, ArrowUpRight, ChevronDown, Type, Trash2, Zap, Bold, Italic, Underline, Signature as SignatureIcon, ImagePlus, Plus, Copy, Star, MoveDiagonal, MousePointer2, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal } from 'lucide-react';
 import { SignatureMaker } from './signature-maker';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -25,7 +25,7 @@ import { FontSelect } from '@/components/app/font-select';
 // on-screen canvas and the high-res export stay pixel-perfect at any size.
 
 type ShapeKind = 'rect' | 'circle' | 'line' | 'arrow';
-type Tool = 'highlight' | 'pen' | ShapeKind | 'text';
+type Tool = 'select' | 'highlight' | 'pen' | ShapeKind | 'text';
 type Pt = { x: number; y: number };
 type Stroke = { kind: 'pen' | 'highlight'; color: string; w: number; pts: Pt[] };
 type ShapeA = { kind: ShapeKind; color: string; w: number; a: Pt; b: Pt };
@@ -194,6 +194,10 @@ export function AnnotateTool() {
   const [selImg, setSelImg] = useState<string | null>(null); // selected image/signature id
   const [sigOpen, setSigOpen] = useState(false);
   const [snapGuides, setSnapGuides] = useState<{ v?: number; h?: number } | null>(null); // live alignment guides while dragging
+  // 1c multi-select (Select tool): `group` holds selected object keys (t<idx> / i<id>),
+  // `marquee` is the live rubber-band rect (page fractions) while dragging empty space.
+  const [group, setGroup] = useState<string[]>([]);
+  const [marquee, setMarquee] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const imgFileRef = useRef<HTMLInputElement>(null);
@@ -207,6 +211,8 @@ export function AnnotateTool() {
   const drawing = useRef(false);
   const live = useRef<Stroke | ShapeA | null>(null);
   const textDrag = useRef<{ idx: number; ox: number; oy: number } | null>(null); // dragging a placed text
+  const groupDrag = useRef<{ sx: number; sy: number; items: { key: string; x: number; y: number }[] } | null>(null); // dragging a multi-selection
+  const marqueeStart = useRef<Pt | null>(null);
 
   async function loadOne(f?: File) {
     if (!f) return;
@@ -280,7 +286,7 @@ export function AnnotateTool() {
     return () => document.fonts.removeEventListener('loadingdone', onDone);
   }, [repaint]);
   // Deselect when switching tool or page; clear any inline cursor override.
-  useEffect(() => { setSelIdx(null); if (canvasRef.current) canvasRef.current.style.cursor = ''; }, [tool, sel]);
+  useEffect(() => { setSelIdx(null); setGroup([]); setMarquee(null); if (canvasRef.current) canvasRef.current.style.cursor = ''; }, [tool, sel]);
   // Close the Shapes menu on an outside click.
   useEffect(() => {
     if (!shapesOpen) return;
@@ -337,8 +343,25 @@ export function AnnotateTool() {
 
   function onDown(e: React.PointerEvent<HTMLCanvasElement>) {
     if (!preview) return;
-    setSelImg(null); // clicking the page deselects any image/signature
     const p = frac(e);
+    // Select tool: click an object to select (Shift toggles into the group), or
+    // drag empty space to marquee-select. Dragging a selected object moves the group.
+    if (tool === 'select') {
+      const key = hitObject(p);
+      if (key) {
+        if (e.shiftKey) { setGroup((g) => (g.includes(key) ? g.filter((k) => k !== key) : [...g, key])); }
+        else {
+          const keys = group.includes(key) ? group : [key];
+          if (!group.includes(key)) setGroup([key]);
+          groupDrag.current = { sx: p.x, sy: p.y, items: keys.map((k) => ({ key: k, ...(posOf(k) || { x: 0, y: 0 }) })) };
+        }
+      } else {
+        if (!e.shiftKey) setGroup([]);
+        marqueeStart.current = p; setMarquee({ x0: p.x, y0: p.y, x1: p.x, y1: p.y });
+      }
+      return;
+    }
+    setSelImg(null); // clicking the page deselects any image/signature
     if (tool === 'text') {
       const hit = findTextAt(p);
       if (hit >= 0) {
@@ -375,7 +398,86 @@ export function AnnotateTool() {
       return { ...a, [sel]: next };
     });
   }
+
+  // ---- 1c Select tool: unified objects (text + images) on the current page ----
+  const pageWH = preview ? preview.w / preview.h : 0.77; // page width / height
+  const pageHW = preview ? preview.h / preview.w : 1.3;  // page height / width
+  type OBox = { key: string; x: number; y: number; w: number; h: number };
+  function pageObjects(): OBox[] {
+    const out: OBox[] = [];
+    (annos[sel] || []).forEach((a, i) => {
+      if (a.kind === 'text') out.push({ key: `t${i}`, x: a.at.x, y: a.at.y, w: Math.max(0.03, a.text.length * a.size * 0.55 * pageHW), h: a.size * 1.25 });
+    });
+    images.filter((im) => im.page === sel).forEach((im) => out.push({ key: `i${im.id}`, x: im.x, y: im.y, w: im.w, h: im.w * im.aspect * pageWH }));
+    return out;
+  }
+  function hitObject(p: Pt): string | null {
+    const objs = pageObjects();
+    for (let i = objs.length - 1; i >= 0; i--) { const o = objs[i]; if (p.x >= o.x && p.x <= o.x + o.w && p.y >= o.y && p.y <= o.y + o.h) return o.key; }
+    return null;
+  }
+  const groupObjs = () => pageObjects().filter((o) => group.includes(o.key));
+  const groupBox = () => {
+    const objs = groupObjs(); if (!objs.length) return null;
+    const minX = Math.min(...objs.map((o) => o.x)), minY = Math.min(...objs.map((o) => o.y));
+    const maxX = Math.max(...objs.map((o) => o.x + o.w)), maxY = Math.max(...objs.map((o) => o.y + o.h));
+    return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+  };
+  function posOf(key: string): Pt | null {
+    if (key[0] === 't') { const a = (annos[sel] || [])[+key.slice(1)]; return a && a.kind === 'text' ? { x: a.at.x, y: a.at.y } : null; }
+    const im = images.find((i) => `i${i.id}` === key); return im ? { x: im.x, y: im.y } : null;
+  }
+  // Move each listed item to (its stored x/y) + (dx,dy). Used for group drag and,
+  // with dx=dy=0, for align (pass the target x/y as the stored value).
+  function moveGroupTo(items: { key: string; x: number; y: number }[], dx: number, dy: number) {
+    const cl = (n: number) => Math.min(1, Math.max(0, n));
+    setAnnos((prev) => {
+      const list = (prev[sel] || []).slice();
+      items.forEach((it) => { if (it.key[0] === 't') { const idx = +it.key.slice(1); const a = list[idx]; if (a && a.kind === 'text') list[idx] = { ...a, at: { x: cl(it.x + dx), y: cl(it.y + dy) } }; } });
+      return { ...prev, [sel]: list };
+    });
+    setImages((prev) => prev.map((im) => { const it = items.find((i) => i.key === `i${im.id}`); return it ? { ...im, x: cl(it.x + dx), y: cl(it.y + dy) } : im; }));
+  }
+  const nudgeGroup = (dx: number, dy: number) => moveGroupTo(groupObjs().map((o) => ({ key: o.key, x: o.x, y: o.y })), dx, dy);
+  function deleteGroup() {
+    const textIdx = group.filter((k) => k[0] === 't').map((k) => +k.slice(1));
+    const imgIds = group.filter((k) => k[0] === 'i').map((k) => k.slice(1));
+    setAnnos((prev) => ({ ...prev, [sel]: (prev[sel] || []).filter((_, i) => !textIdx.includes(i)) }));
+    setImages((prev) => prev.filter((im) => !imgIds.includes(im.id)));
+    setGroup([]);
+  }
+  function duplicateGroup() {
+    const newKeys: string[] = [];
+    setAnnos((prev) => {
+      const list = (prev[sel] || []).slice();
+      group.filter((k) => k[0] === 't').forEach((k) => { const a = list[+k.slice(1)]; if (a && a.kind === 'text') { list.push({ ...a, at: { x: Math.min(0.94, a.at.x + 0.03), y: Math.min(0.96, a.at.y + 0.03) } }); newKeys.push(`t${list.length - 1}`); } });
+      return { ...prev, [sel]: list };
+    });
+    setImages((prev) => {
+      const add: ImageItem[] = [];
+      group.filter((k) => k[0] === 'i').forEach((k) => { const im = prev.find((i) => i.id === k.slice(1)); if (im) { const id = Math.random().toString(36).slice(2); add.push({ ...im, id, x: Math.min(1 - im.w, im.x + 0.03), y: Math.min(0.96, im.y + 0.03) }); newKeys.push(`i${id}`); } });
+      return [...prev, ...add];
+    });
+    setGroup(newKeys);
+  }
+  type AlignEdge = 'left' | 'hcenter' | 'right' | 'top' | 'vcenter' | 'bottom';
+  function alignGroup(edge: AlignEdge) {
+    const box = groupBox(); if (!box) return;
+    const move = groupObjs().map((o) => {
+      let nx = o.x, ny = o.y;
+      if (edge === 'left') nx = box.x; else if (edge === 'hcenter') nx = box.x + box.w / 2 - o.w / 2; else if (edge === 'right') nx = box.x + box.w - o.w;
+      else if (edge === 'top') ny = box.y; else if (edge === 'vcenter') ny = box.y + box.h / 2 - o.h / 2; else if (edge === 'bottom') ny = box.y + box.h - o.h;
+      return { key: o.key, x: nx, y: ny };
+    });
+    moveGroupTo(move, 0, 0);
+  }
   function onMove(e: React.PointerEvent<HTMLCanvasElement>) {
+    if (tool === 'select') {
+      const p = frac(e);
+      if (groupDrag.current) { const g = groupDrag.current; moveGroupTo(g.items, p.x - g.sx, p.y - g.sy); }
+      else if (marqueeStart.current) { setMarquee({ x0: marqueeStart.current.x, y0: marqueeStart.current.y, x1: p.x, y1: p.y }); }
+      return;
+    }
     // Text tool hover: over an existing text show a MOVE cursor and hide the
     // add-text hint (you'd drag it there); over empty space show the "＋ click
     // to add text" hint following the cursor.
@@ -414,6 +516,20 @@ export function AnnotateTool() {
   }
   function onLeave() { if (hintRef.current) hintRef.current.style.opacity = '0'; onUp(); }
   function onUp() {
+    if (tool === 'select') {
+      if (groupDrag.current) { groupDrag.current = null; return; }
+      if (marqueeStart.current) {
+        marqueeStart.current = null;
+        if (marquee) {
+          const x0 = Math.min(marquee.x0, marquee.x1), y0 = Math.min(marquee.y0, marquee.y1), x1 = Math.max(marquee.x0, marquee.x1), y1 = Math.max(marquee.y0, marquee.y1);
+          if (Math.abs(x1 - x0) > 0.01 || Math.abs(y1 - y0) > 0.01) {
+            setGroup(pageObjects().filter((o) => !(o.x > x1 || o.x + o.w < x0 || o.y > y1 || o.y + o.h < y0)).map((o) => o.key));
+          }
+        }
+        setMarquee(null);
+      }
+      return;
+    }
     if (textDrag.current) { textDrag.current = null; setSnapGuides(null); return; }
     if (!drawing.current || !live.current) { drawing.current = false; return; }
     const committed = live.current;
@@ -619,19 +735,24 @@ export function AnnotateTool() {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
-      if (!selBox) return;
+      const groupMode = tool === 'select' && group.length > 0;
+      if (!selBox && !groupMode) return;
       const step = e.shiftKey ? 0.02 : 0.004;
-      if (e.key === 'ArrowLeft') { e.preventDefault(); nudge(-step, 0); }
-      else if (e.key === 'ArrowRight') { e.preventDefault(); nudge(step, 0); }
-      else if (e.key === 'ArrowUp') { e.preventDefault(); nudge(0, -step); }
-      else if (e.key === 'ArrowDown') { e.preventDefault(); nudge(0, step); }
-      else if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); deleteSelected(); }
-      else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') { e.preventDefault(); duplicateSelected(); }
+      const mv = groupMode ? nudgeGroup : nudge;
+      const del = groupMode ? deleteGroup : deleteSelected;
+      const dup = groupMode ? duplicateGroup : duplicateSelected;
+      if (e.key === 'ArrowLeft') { e.preventDefault(); mv(-step, 0); }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); mv(step, 0); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); mv(0, -step); }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); mv(0, step); }
+      else if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); del(); }
+      else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') { e.preventDefault(); dup(); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
+    // annos/images in deps so nudge reads FRESH positions after each move/align
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selBox?.x, selBox?.y, selIdx, selImg, sel]);
+  }, [selBox?.x, selBox?.y, selIdx, selImg, sel, tool, group, annos, images]);
 
   // Remove the loaded file and reset the editing state (used by the shell's × and
   // the empty-state after Done). Same teardown the old file chip used.
@@ -655,7 +776,7 @@ export function AnnotateTool() {
           <img src={preview.url} alt={`Page ${sel + 1}`} className="max-h-[42rem] max-w-full rounded border bg-white shadow-md" draggable={false} />
           <canvas
             ref={canvasRef}
-            className={`absolute inset-0 h-full w-full touch-none ${tool === 'text' ? 'cursor-text' : 'cursor-crosshair'}`}
+            className={`absolute inset-0 h-full w-full touch-none ${tool === 'select' ? 'cursor-default' : tool === 'text' ? 'cursor-text' : 'cursor-crosshair'}`}
             onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerLeave={onLeave} onDoubleClick={onDblClick}
           />
           {/* Live snap / alignment guides (dashed rose lines) while dragging */}
@@ -700,7 +821,9 @@ export function AnnotateTool() {
           {pageImages.map((im) => (
             <div key={im.id}
               onPointerDown={(e) => imgDown(e, im.id, 'move')} onPointerMove={imgMove} onPointerUp={imgUp}
-              className={`absolute cursor-move rounded-sm ${selImg === im.id ? 'ring-2 ring-primary' : 'ring-1 ring-transparent hover:ring-primary/40'}`}
+              className={`absolute rounded-sm ${tool === 'select'
+                ? `pointer-events-none ${group.includes(`i${im.id}`) ? 'ring-2 ring-primary' : ''}`
+                : `cursor-move ${selImg === im.id ? 'ring-2 ring-primary' : 'ring-1 ring-transparent hover:ring-primary/40'}`}`}
               style={{ left: `${im.x * 100}%`, top: `${im.y * 100}%`, width: `${im.w * 100}%` }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -727,6 +850,28 @@ export function AnnotateTool() {
               </div>
             </div>
           )}
+          {/* Select tool: marquee rubber-band while dragging empty space */}
+          {tool === 'select' && marquee && (
+            <div className="pointer-events-none absolute z-20 rounded-sm border border-primary bg-primary/10"
+              style={{ left: `${Math.min(marquee.x0, marquee.x1) * 100}%`, top: `${Math.min(marquee.y0, marquee.y1) * 100}%`, width: `${Math.abs(marquee.x1 - marquee.x0) * 100}%`, height: `${Math.abs(marquee.y1 - marquee.y0) * 100}%` }} />
+          )}
+          {/* Select tool: group bounding box + group action toolbar */}
+          {tool === 'select' && group.length > 0 && (() => {
+            const b = groupBox(); if (!b) return null;
+            return (
+              <div className="pointer-events-none absolute z-30" style={{ left: `${b.x * 100}%`, top: `${b.y * 100}%`, width: `${b.w * 100}%`, height: `${b.h * 100}%` }}>
+                <div className="absolute inset-0 rounded-sm border-2 border-dashed border-primary" />
+                <div className={`pointer-events-auto absolute left-0 flex items-center gap-0.5 rounded-xl bg-foreground p-1 shadow-lift ${b.y < 0.12 ? 'top-7' : '-top-2 -translate-y-full'}`}>
+                  <span className="px-1.5 text-[11px] font-semibold text-background">{group.length} selected</span>
+                  <span className="mx-0.5 h-4 w-px bg-background/25" />
+                  <button onPointerDown={(e) => e.stopPropagation()} onClick={duplicateGroup} title="Duplicate (Ctrl+D)" aria-label="Duplicate group"
+                    className="flex size-7 items-center justify-center rounded-lg text-background transition-colors hover:bg-background/20"><Copy className="size-3.5" /></button>
+                  <button onPointerDown={(e) => e.stopPropagation()} onClick={deleteGroup} title="Delete (Del)" aria-label="Delete group"
+                    className="flex size-7 items-center justify-center rounded-lg text-red-300 transition-colors hover:bg-red-500/25"><Trash2 className="size-3.5" /></button>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       ) : (
         <div className="flex h-72 items-center justify-center"><Loader2 className="size-5 animate-spin text-muted-foreground" /></div>
@@ -789,6 +934,8 @@ export function AnnotateTool() {
             exportDisabled={markedPages.length === 0}
             toolbar={
               <>
+                {toolBtn('select', <MousePointer2 className="size-4" />, 'Select')}
+                <span className="mx-0.5 h-6 w-px bg-border/70" />
                 {toolBtn('highlight', <Highlighter className="size-4" />, 'Highlight')}
                 {toolBtn('pen', <Pen className="size-4" />, 'Draw')}
                 <div className="relative" ref={shapesRef}>
@@ -865,7 +1012,35 @@ export function AnnotateTool() {
             ) : undefined}
             properties={
               <div className="space-y-3 text-sm">
-                {selBox ? (
+                {tool === 'select' ? (
+                  group.length > 0 ? (
+                    /* Group inspector — align, distribute-lite, duplicate, delete. */
+                    <>
+                      <p className="flex items-center gap-1.5 font-semibold text-foreground"><MousePointer2 className="size-4 text-primary" /> {group.length} selected</p>
+                      {group.length >= 2 && (
+                        <div className="rounded-lg border bg-card p-2.5">
+                          <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Align</div>
+                          <div className="mt-1.5 grid grid-cols-6 gap-1">
+                            {([['left', AlignStartVertical], ['hcenter', AlignCenterVertical], ['right', AlignEndVertical], ['top', AlignStartHorizontal], ['vcenter', AlignCenterHorizontal], ['bottom', AlignEndHorizontal]] as const).map(([edge, Icon]) => (
+                              <button key={edge} onClick={() => alignGroup(edge)} title={`Align ${edge}`} aria-label={`Align ${edge}`}
+                                className="flex aspect-square items-center justify-center rounded-md border text-muted-foreground transition-colors hover:border-primary/50 hover:bg-accent hover:text-foreground"><Icon className="size-4" /></button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      <div className="flex gap-2">
+                        <button onClick={duplicateGroup} className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border py-1.5 text-xs font-medium transition-colors hover:bg-accent"><Copy className="size-3.5" /> Duplicate</button>
+                        <button onClick={deleteGroup} className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border py-1.5 text-xs font-medium text-destructive transition-colors hover:bg-destructive/10"><Trash2 className="size-3.5" /> Delete</button>
+                      </div>
+                      <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground"><MoveDiagonal className="size-3" /> Arrow keys move the group · Shift-click to add/remove</p>
+                    </>
+                  ) : (
+                    <div>
+                      <p className="flex items-center gap-1.5 font-semibold text-foreground"><MousePointer2 className="size-4 text-primary" /> Select</p>
+                      <p className="mt-1 text-xs text-muted-foreground">Drag a box around objects to select them, or click one. Shift-click to add more — then align, move, duplicate or delete them together.</p>
+                    </div>
+                  )
+                ) : selBox ? (
                   /* Object inspector — precise, design-tool-style controls for the
                      selected text or image. */
                   <>
