@@ -49,14 +49,17 @@ export function PdfToolPage({
 
       <SiteHeader />
 
-      <main className={`mx-auto w-full flex-1 px-4 py-10 sm:px-6 ${wide ? 'max-w-6xl' : 'max-w-3xl'}`}>
-        <div className="text-center">
+      {/* `wide` editors (Annotate/Edit/Redact) get a roomy, app-like canvas that
+          uses the screen; the reading sections below stay at a comfortable width. */}
+      <main className={`mx-auto w-full flex-1 px-4 py-10 sm:px-6 ${wide ? 'max-w-[92rem]' : 'max-w-3xl'}`}>
+        <div className="mx-auto max-w-2xl text-center">
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{title}</h1>
           <p className="mx-auto mt-3 max-w-xl text-muted-foreground">{description}</p>
         </div>
 
         <div className="mt-8"><ToolGate>{children}</ToolGate></div>
 
+        <div className={wide ? 'mx-auto w-full max-w-4xl' : ''}>
         <section className="mt-14">
           <h2 className="text-xl font-bold tracking-tight">How it works</h2>
           <ol className="mt-4 grid gap-3 sm:grid-cols-3">
@@ -83,6 +86,7 @@ export function PdfToolPage({
             ))}
           </div>
         </section>
+        </div>
       </main>
 
       <SiteFooter />
