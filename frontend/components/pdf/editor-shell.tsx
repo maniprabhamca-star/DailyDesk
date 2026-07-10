@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { Undo2, Redo2, Minus, Plus, Download, Loader2 } from 'lucide-react';
+import { Undo2, Redo2, Minus, Plus, Download, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 // Shared, PRESENTATION-ONLY editor shell for Edit / Annotate / Redact — the
@@ -14,6 +14,7 @@ export function EditorShell({
   toolIcon,
   fileName,
   pageInfo,
+  onClose,        // optional "remove file / start over" — renders an × by the name
   // top-bar actions (all optional — pass what the tool supports)
   onUndo, onRedo, canUndo, canRedo,
   zoomLabel, onZoomIn, onZoomOut,
@@ -29,6 +30,7 @@ export function EditorShell({
   toolIcon: ReactNode;
   fileName?: string;
   pageInfo?: string;
+  onClose?: () => void;
   onUndo?: () => void; onRedo?: () => void; canUndo?: boolean; canRedo?: boolean;
   zoomLabel?: string; onZoomIn?: () => void; onZoomOut?: () => void;
   onExport?: () => void; exportLabel?: string; exporting?: boolean; exportDisabled?: boolean;
@@ -42,14 +44,15 @@ export function EditorShell({
     <div className="overflow-hidden rounded-2xl border bg-card shadow-lift">
       {/* Top action bar */}
       <div className="flex items-center gap-2 border-b bg-muted/30 px-3 py-2">
-        <span className="flex items-center gap-1.5 text-sm font-semibold text-foreground">{toolIcon} {toolName}</span>
+        <span className="flex shrink-0 items-center gap-1.5 text-sm font-semibold text-foreground">{toolIcon} {toolName}</span>
         {fileName && <span className="hidden min-w-0 truncate text-xs text-muted-foreground sm:block">{fileName}{pageInfo ? ` · ${pageInfo}` : ''}</span>}
+        {onClose && <button onClick={onClose} aria-label="Remove file" className="hidden size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground sm:flex"><X className="size-3.5" /></button>}
         <div className="ml-auto flex items-center gap-1.5">
           {(onUndo || onRedo) && (
-            <div className="flex items-center rounded-lg border">
-              <button onClick={onUndo} disabled={!canUndo} aria-label="Undo" className="flex size-8 items-center justify-center rounded-l-lg text-muted-foreground transition-colors hover:bg-accent disabled:opacity-40"><Undo2 className="size-4" /></button>
-              <span className="h-5 w-px bg-border" />
-              <button onClick={onRedo} disabled={!canRedo} aria-label="Redo" className="flex size-8 items-center justify-center rounded-r-lg text-muted-foreground transition-colors hover:bg-accent disabled:opacity-40"><Redo2 className="size-4" /></button>
+            <div className="flex items-center overflow-hidden rounded-lg border">
+              {onUndo && <button onClick={onUndo} disabled={!canUndo} aria-label="Undo" title="Undo" className="flex size-8 items-center justify-center text-muted-foreground transition-colors hover:bg-accent disabled:opacity-40"><Undo2 className="size-4" /></button>}
+              {onUndo && onRedo && <span className="h-5 w-px bg-border" />}
+              {onRedo && <button onClick={onRedo} disabled={!canRedo} aria-label="Redo" title="Redo" className="flex size-8 items-center justify-center text-muted-foreground transition-colors hover:bg-accent disabled:opacity-40"><Redo2 className="size-4" /></button>}
             </div>
           )}
           {zoomLabel && (
@@ -67,22 +70,17 @@ export function EditorShell({
         </div>
       </div>
 
-      {/* Tool toolbar + contextual sub-bar */}
-      <div className="flex flex-wrap items-center gap-1.5 border-b bg-card px-2 py-1.5">
-        {toolbar}
-        {contextBar && (
-          <>
-            <span className="mx-1 hidden h-5 w-px bg-border sm:block" />
-            <div className="flex flex-wrap items-center gap-1.5">{contextBar}</div>
-          </>
-        )}
-      </div>
+      {/* Tool toolbar */}
+      <div className="flex flex-wrap items-center gap-1 border-b bg-card px-2 py-1.5">{toolbar}</div>
+      {/* Contextual sub-bar (colour / size / font …) — its own row so rich
+          controls have room and never crowd the tool buttons */}
+      {contextBar && <div className="flex flex-wrap items-center gap-1.5 border-b bg-muted/20 px-2.5 py-1.5">{contextBar}</div>}
 
       {/* Body: thumbnail rail | canvas | properties panel.
           Flex (not grid) so a hidden rail/panel reserves NO width on small
           screens — the canvas gets it all. */}
       <div className="flex">
-        {thumbnails && <aside className="hidden w-[58px] shrink-0 overflow-y-auto border-r bg-muted/20 p-2 sm:block">{thumbnails}</aside>}
+        {thumbnails && <aside className="hidden w-20 shrink-0 overflow-y-auto border-r bg-muted/20 p-2 sm:block">{thumbnails}</aside>}
         <div className="min-w-0 flex-1 overflow-auto bg-muted/10 p-3 sm:p-4">{children}</div>
         {properties && <aside className="hidden w-[220px] shrink-0 overflow-y-auto border-l bg-muted/20 p-3 lg:block">{properties}</aside>}
       </div>

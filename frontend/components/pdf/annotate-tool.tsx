@@ -2,7 +2,7 @@
 import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Upload, FileText, X, Loader2, Highlighter, Pen, Square, Circle, Minus, ArrowUpRight, ChevronDown, Type, Undo2, Trash2, Zap, Bold, Italic, Underline, Signature as SignatureIcon, ImagePlus, Plus } from 'lucide-react';
+import { Upload, X, Loader2, Highlighter, Pen, Square, Circle, Minus, ArrowUpRight, ChevronDown, Type, Trash2, Zap, Bold, Italic, Underline, Signature as SignatureIcon, ImagePlus, Plus } from 'lucide-react';
 import { SignatureMaker } from './signature-maker';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,6 +12,7 @@ import { takeHandoff } from '@/lib/handoff';
 import { rewritePdf } from '@/lib/pdf-rewrite';
 import { openPdf, renderPage, dprTarget, type PdfHandle, type RenderedPage } from '@/lib/pdf-render';
 import { PageStrip } from '@/components/pdf/page-strip';
+import { EditorShell } from '@/components/pdf/editor-shell';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
 import { FAMILIES, type Family } from '@/lib/fonts';
@@ -45,12 +46,6 @@ const COLORS = ['#111827', '#ef4444', '#2563eb', '#16a34a', '#7c3aed', '#facc15'
 // document.fonts.load before rasterising.
 function fontSpec(fs: number, a: { family: Family; bold: boolean; italic: boolean }) {
   return `${a.italic ? 'italic ' : ''}${a.bold ? '700' : '400'} ${fs}px ${FAMILIES[a.family].css}`;
-}
-
-function fmt(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
 // Weight (1–10 UI) → width as a fraction of the page width, per tool.
@@ -558,21 +553,105 @@ export function AnnotateTool() {
     arrow: { icon: <ArrowUpRight className="size-4" />, label: 'Arrow' },
   };
 
-  return (
-    <Card>
-      <CardContent className="p-5">
-        <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
-        <input ref={imgFileRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="hidden" onChange={(e) => { pickImageFile(e.target.files); e.currentTarget.value = ''; }} />
-        {sigOpen && <SignatureMaker onClose={() => setSigOpen(false)} onCreate={(url, aspect) => addImageSrc(url, aspect)} />}
-        {handoffNote && (
-          <p className="mb-3 flex items-center gap-2 rounded-lg border border-primary/25 bg-primary/[0.06] px-3 py-2 text-sm text-foreground">
-            <Zap className="size-4 shrink-0 text-primary" /> {handoffNote}
-          </p>
-        )}
+  // Remove the loaded file and reset the editing state (used by the shell's × and
+  // the empty-state after Done). Same teardown the old file chip used.
+  const removeFile = () => { if (handle) void handle.destroy(); setHandle(null); setFile(null); setDone(null); setError(null); setAnnos({}); setImages([]); setSelImg(null); imgCache.current.clear(); };
 
-        {tooBig ? (
+  const brandToggle = (
+    <label className="flex cursor-pointer items-center justify-center gap-2 text-xs text-muted-foreground">
+      <input type="checkbox" checked={brandName} onChange={(e) => setBrandName(e.target.checked)} className="size-3.5 accent-primary" />
+      Add &ldquo;-diemdesk&rdquo; to the file name
+    </label>
+  );
+
+  // The live annotation surface — the exact page image + overlay canvas + text
+  // draft + image/signature overlays. This is the tool's core editing surface;
+  // its refs and pointer handlers are unchanged.
+  const surface = (
+    <div className="flex items-start justify-center">
+      {preview ? (
+        <div ref={wrapRef} className="relative inline-block leading-[0]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={preview.url} alt={`Page ${sel + 1}`} className="max-h-[34rem] max-w-full rounded border bg-white shadow-md" draggable={false} />
+          <canvas
+            ref={canvasRef}
+            className={`absolute inset-0 h-full w-full touch-none ${tool === 'text' ? 'cursor-text' : 'cursor-crosshair'}`}
+            onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerLeave={onLeave} onDoubleClick={onDblClick}
+          />
+          {textDraft && (
+            <div className="absolute z-10 flex items-start gap-1" style={{ left: `${textDraft.x * 100}%`, top: `${textDraft.y * 100}%` }}>
+              <input
+                ref={textInputRef}
+                value={textDraft.value}
+                onChange={(e) => setTextDraft((d) => (d ? { ...d, value: e.target.value } : d))}
+                // Enter/Tab place the text and keep you on the page — preventDefault
+                // stops focus jumping to the Save button below.
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); commitText(); }
+                  else if (e.key === 'Escape') { e.preventDefault(); setTextDraft(null); }
+                }}
+                onBlur={commitText}
+                onPointerDown={(e) => e.stopPropagation()}
+                placeholder="Type, then Enter"
+                className="rounded border-2 border-primary bg-white/95 px-1.5 py-0.5 text-sm shadow-lg outline-none"
+                style={{ color, fontFamily: FAMILIES[family].css, fontWeight: bold ? 700 : 400, fontStyle: italic ? 'italic' : 'normal', textDecoration: underline ? 'underline' : 'none' }}
+              />
+              {/* Cancel/delete the text being typed. onMouseDown preventDefault keeps
+                  the input focused so onBlur doesn't commit it before we cancel. */}
+              <button onMouseDown={(e) => e.preventDefault()} onPointerDown={(e) => e.stopPropagation()} onClick={() => setTextDraft(null)}
+                aria-label="Delete text" title="Delete"
+                className="flex size-5 shrink-0 items-center justify-center rounded-full bg-destructive text-white shadow"><X className="size-3" /></button>
+            </div>
+          )}
+          {/* "＋ click to add text" hint — follows the cursor when Text is armed */}
+          {tool === 'text' && !textDraft && (
+            <div ref={hintRef} className="pointer-events-none absolute left-0 top-0 z-20 flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[11px] font-medium text-primary-foreground opacity-0 shadow transition-opacity">
+              <Plus className="size-3" /> Click to add text
+            </div>
+          )}
+          {/* Draggable image / signature overlays (composited into the page at export) */}
+          {pageImages.map((im) => (
+            <div key={im.id}
+              onPointerDown={(e) => imgDown(e, im.id, 'move')} onPointerMove={imgMove} onPointerUp={imgUp}
+              className={`absolute cursor-move rounded-sm ${selImg === im.id ? 'ring-2 ring-primary' : 'ring-1 ring-transparent hover:ring-primary/40'}`}
+              style={{ left: `${im.x * 100}%`, top: `${im.y * 100}%`, width: `${im.w * 100}%` }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={im.src} alt="" className="pointer-events-none block w-full select-none" draggable={false} />
+              {selImg === im.id && (
+                <>
+                  <button onPointerDown={(e) => { e.stopPropagation(); deleteImage(im.id); }} aria-label="Delete"
+                    className="absolute -right-2 -top-2 z-10 flex size-5 items-center justify-center rounded-full bg-destructive text-white shadow"><X className="size-3" /></button>
+                  <div onPointerDown={(e) => imgDown(e, im.id, 'resize')} onPointerMove={imgMove} onPointerUp={imgUp}
+                    className="absolute -bottom-1.5 -right-1.5 z-10 size-3.5 cursor-nwse-resize rounded-sm border-2 border-primary bg-white" aria-label="Resize" />
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="flex h-72 items-center justify-center"><Loader2 className="size-5 animate-spin text-muted-foreground" /></div>
+      )}
+    </div>
+  );
+
+  return (
+    <>
+      <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
+      <input ref={imgFileRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="hidden" onChange={(e) => { pickImageFile(e.target.files); e.currentTarget.value = ''; }} />
+      {sigOpen && <SignatureMaker onClose={() => setSigOpen(false)} onCreate={(url, aspect) => addImageSrc(url, aspect)} />}
+
+      {tooBig ? (
+        <Card><CardContent className="p-5">
           <UpgradeNotice fileName={tooBig.name} sizeText={fmtBytes(tooBig.size)} limitText={fmtBytes(FREE_MAX_BYTES)} onReset={() => { setTooBig(null); inputRef.current?.click(); }} />
-        ) : !file ? (
+        </CardContent></Card>
+      ) : !file ? (
+        <Card><CardContent className="p-5">
+          {handoffNote && (
+            <p className="mb-3 flex items-center gap-2 rounded-lg border border-primary/25 bg-primary/[0.06] px-3 py-2 text-sm text-foreground">
+              <Zap className="size-4 shrink-0 text-primary" /> {handoffNote}
+            </p>
+          )}
           <div
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => { e.preventDefault(); pick(e.dataTransfer.files); }}
@@ -584,185 +663,140 @@ export function AnnotateTool() {
             <p className="text-xs text-muted-foreground">Highlight, draw and comment — the document never leaves your device</p>
             <span className="mt-4 inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm">Choose PDF</span>
           </div>
-        ) : (
-          <div className="flex items-center gap-3 rounded-lg border bg-card p-2.5">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-red-100 text-red-600 dark:bg-red-950/40"><FileText className="size-4" /></span>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">{file.name}</p>
-              <p className="text-xs text-muted-foreground">{fmt(file.size)} · {pageCount} page{pageCount === 1 ? '' : 's'}</p>
-            </div>
-            <Button size="icon" variant="ghost" aria-label="Remove" onClick={() => { if (handle) void handle.destroy(); setHandle(null); setFile(null); setDone(null); setError(null); setAnnos({}); setImages([]); setSelImg(null); imgCache.current.clear(); }}><X className="size-4" /></Button>
-          </div>
-        )}
-
-        {file && !done && (
-          <div className="mt-4">
-            {/* Premium toolbar — one cohesive bar, grouped by dividers */}
-            <div className="flex flex-wrap items-center gap-1.5 rounded-2xl border bg-card p-1.5 shadow-soft">
-              {toolBtn('highlight', <Highlighter className="size-4" />, 'Highlight')}
-              {toolBtn('pen', <Pen className="size-4" />, 'Draw')}
-              <div className="relative" ref={shapesRef}>
-                <button
-                  onClick={() => { setTool(shape); setTextDraft(null); setShapesOpen((o) => !o); }}
-                  aria-pressed={isShape(tool)} aria-haspopup="menu" aria-expanded={shapesOpen} title="Shapes"
-                  className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-all ${isShape(tool) ? 'bg-primary text-primary-foreground shadow-sm' : 'text-foreground/80 hover:bg-accent'}`}>
-                  {SHAPE_META[shape].icon} <span className="hidden md:inline">Shapes</span> <ChevronDown className={`size-3.5 transition-transform ${shapesOpen ? 'rotate-180' : ''}`} />
-                </button>
-                {shapesOpen && (
-                  <div role="menu" className="absolute left-0 top-full z-20 mt-1 w-40 rounded-xl border bg-card p-1 shadow-lift">
-                    {SHAPE_KINDS.map((s) => (
-                      <button key={s} role="menuitem" onClick={() => { setShape(s); setTool(s); setTextDraft(null); setShapesOpen(false); }}
-                        className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm transition-colors hover:bg-accent ${tool === s ? 'text-primary' : ''}`}>
-                        {SHAPE_META[s].icon} {SHAPE_META[s].label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              {toolBtn('text', <Type className="size-4" />, 'Text')}
-              <span className="mx-0.5 h-6 w-px bg-border/70" />
-              {actionBtn(() => setSigOpen(true), <SignatureIcon className="size-4" />, 'Sign')}
-              {actionBtn(() => imgFileRef.current?.click(), <ImagePlus className="size-4" />, 'Image')}
-              <span className="mx-0.5 h-6 w-px bg-border/70" />
-              <div className="flex items-center gap-1.5 px-0.5">
-                {COLORS.map((c) => (
-                  <button key={c} onClick={() => { setColor(c); patchSelected({ color: c }); }} aria-label={`colour ${c}`} aria-pressed={color === c}
-                    className={`size-6 rounded-full ring-offset-1 ring-offset-card transition-all ${color === c ? 'ring-2 ring-primary' : 'ring-1 ring-border hover:ring-primary/50'}`} style={{ backgroundColor: c }} />
-                ))}
-              </div>
-              {tool !== 'text' && (
-                <>
-                  <span className="mx-0.5 h-6 w-px bg-border/70" />
-                  <label className="flex items-center gap-2 px-1 text-xs font-medium text-muted-foreground">
-                    Size
-                    <input type="range" min={1} max={10} value={weight} onChange={(e) => setWeight(Number(e.target.value))} className="dd-range w-20" />
-                  </label>
-                </>
-              )}
-              <div className="ml-auto flex items-center gap-0.5">
-                <button title="Undo (Ctrl+Z)" onClick={undo} disabled={!(annos[sel] || []).length}
-                  className="flex size-8 items-center justify-center rounded-lg text-foreground/70 transition-colors hover:bg-accent disabled:opacity-30 disabled:hover:bg-transparent"><Undo2 className="size-4" /></button>
-                <button title="Clear page" onClick={clearPage} disabled={!(annos[sel] || []).length && !pageImages.length}
-                  className="flex size-8 items-center justify-center rounded-lg text-foreground/70 transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-foreground/70"><Trash2 className="size-4" /></button>
-              </div>
-            </div>
-
-            {/* Text options — font + bold/italic/underline (Text tool only) */}
-            {tool === 'text' && (
-              <div className="mt-2 flex flex-wrap items-center gap-2 rounded-2xl border bg-card p-2 shadow-soft">
-                <span className="pl-1 text-xs font-medium text-muted-foreground">Font</span>
-                <FontSelect value={family} onChange={pickFamily} className="w-44" />
-                <div className="flex items-center gap-1">
-                  <button onClick={() => { const v = !bold; setBold(v); patchSelected({ bold: v }); }} aria-pressed={bold} aria-label="Bold"
-                    disabled={!FAMILIES[family].bold}
-                    title={!FAMILIES[family].bold ? `${FAMILIES[family].label} has no bold style` : undefined}
-                    className={`flex size-9 items-center justify-center rounded-lg border transition-all disabled:cursor-not-allowed disabled:opacity-40 ${bold ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-primary/40'}`}><Bold className="size-4" /></button>
-                  <button onClick={() => { const v = !italic; setItalic(v); patchSelected({ italic: v }); }} aria-pressed={italic} aria-label="Italic"
-                    disabled={!FAMILIES[family].italic}
-                    title={!FAMILIES[family].italic ? `${FAMILIES[family].label} has no italic style` : undefined}
-                    className={`flex size-9 items-center justify-center rounded-lg border transition-all disabled:cursor-not-allowed disabled:opacity-40 ${italic ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-primary/40'}`}><Italic className="size-4" /></button>
-                  <button onClick={() => { const v = !underline; setUnderline(v); patchSelected({ underline: v }); }} aria-pressed={underline} aria-label="Underline"
-                    className={`flex size-9 items-center justify-center rounded-lg border transition-all ${underline ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-primary/40'}`}><Underline className="size-4" /></button>
+          {error && <UploadError error={error} />}
+        </CardContent></Card>
+      ) : done ? (
+        <Card><CardContent className="p-5">
+          <PdfDone blob={done.blob} name={done.name} secs={done.secs} currentHref="/annotate-pdf" fromLabel="Annotate PDF" />
+        </CardContent></Card>
+      ) : (
+        <div>
+          {handoffNote && (
+            <p className="mb-3 flex items-center gap-2 rounded-lg border border-primary/25 bg-primary/[0.06] px-3 py-2 text-sm text-foreground">
+              <Zap className="size-4 shrink-0 text-primary" /> {handoffNote}
+            </p>
+          )}
+          <EditorShell
+            toolName="Annotate"
+            toolIcon={<Highlighter className="size-4 text-primary" />}
+            fileName={file.name}
+            pageInfo={`${pageCount} page${pageCount === 1 ? '' : 's'}`}
+            onClose={removeFile}
+            onUndo={undo}
+            canUndo={(annos[sel] || []).length > 0}
+            onExport={apply}
+            exportLabel="Save PDF"
+            exporting={busy}
+            exportDisabled={markedPages.length === 0}
+            toolbar={
+              <>
+                {toolBtn('highlight', <Highlighter className="size-4" />, 'Highlight')}
+                {toolBtn('pen', <Pen className="size-4" />, 'Draw')}
+                <div className="relative" ref={shapesRef}>
+                  <button
+                    onClick={() => { setTool(shape); setTextDraft(null); setShapesOpen((o) => !o); }}
+                    aria-pressed={isShape(tool)} aria-haspopup="menu" aria-expanded={shapesOpen} title="Shapes"
+                    className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-all ${isShape(tool) ? 'bg-primary text-primary-foreground shadow-sm' : 'text-foreground/80 hover:bg-accent'}`}>
+                    {SHAPE_META[shape].icon} <span className="hidden md:inline">Shapes</span> <ChevronDown className={`size-3.5 transition-transform ${shapesOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {shapesOpen && (
+                    <div role="menu" className="absolute left-0 top-full z-20 mt-1 w-40 rounded-xl border bg-card p-1 shadow-lift">
+                      {SHAPE_KINDS.map((s) => (
+                        <button key={s} role="menuitem" onClick={() => { setShape(s); setTool(s); setTextDraft(null); setShapesOpen(false); }}
+                          className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm transition-colors hover:bg-accent ${tool === s ? 'text-primary' : ''}`}>
+                          {SHAPE_META[s].icon} {SHAPE_META[s].label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                  Size
-                  <input type="range" min={1} max={16} value={weight} onChange={(e) => { const n = Number(e.target.value); setWeight(n); patchSelected({ size: fontFrac(n) }); }} className="dd-range w-24" />
-                  <span className="w-8 tabular-nums text-foreground">{Math.round(fontFrac(weight) * 792)}pt</span>
-                </label>
-                <span className="ml-auto text-[11px] text-muted-foreground">Click to select &amp; drag to move · restyle with the toolbar · double-click to edit words</span>
-              </div>
-            )}
-
-            {/* Annotation surface */}
-            <div className="mt-3 flex items-start justify-center rounded-xl border bg-muted/30 p-3">
-              {preview ? (
-                <div ref={wrapRef} className="relative inline-block leading-[0]">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={preview.url} alt={`Page ${sel + 1}`} className="max-h-[34rem] max-w-full rounded border bg-white shadow-md" draggable={false} />
-                  <canvas
-                    ref={canvasRef}
-                    className={`absolute inset-0 h-full w-full touch-none ${tool === 'text' ? 'cursor-text' : 'cursor-crosshair'}`}
-                    onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerLeave={onLeave} onDoubleClick={onDblClick}
-                  />
-                  {textDraft && (
-                    <div className="absolute z-10 flex items-start gap-1" style={{ left: `${textDraft.x * 100}%`, top: `${textDraft.y * 100}%` }}>
-                      <input
-                        ref={textInputRef}
-                        value={textDraft.value}
-                        onChange={(e) => setTextDraft((d) => (d ? { ...d, value: e.target.value } : d))}
-                        // Enter/Tab place the text and keep you on the page — preventDefault
-                        // stops focus jumping to the Save button below.
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); commitText(); }
-                          else if (e.key === 'Escape') { e.preventDefault(); setTextDraft(null); }
-                        }}
-                        onBlur={commitText}
-                        onPointerDown={(e) => e.stopPropagation()}
-                        placeholder="Type, then Enter"
-                        className="rounded border-2 border-primary bg-white/95 px-1.5 py-0.5 text-sm shadow-lg outline-none"
-                        style={{ color, fontFamily: FAMILIES[family].css, fontWeight: bold ? 700 : 400, fontStyle: italic ? 'italic' : 'normal', textDecoration: underline ? 'underline' : 'none' }}
-                      />
-                      {/* Cancel/delete the text being typed. onMouseDown preventDefault keeps
-                          the input focused so onBlur doesn't commit it before we cancel. */}
-                      <button onMouseDown={(e) => e.preventDefault()} onPointerDown={(e) => e.stopPropagation()} onClick={() => setTextDraft(null)}
-                        aria-label="Delete text" title="Delete"
-                        className="flex size-5 shrink-0 items-center justify-center rounded-full bg-destructive text-white shadow"><X className="size-3" /></button>
-                    </div>
-                  )}
-                  {/* "＋ click to add text" hint — follows the cursor when Text is armed */}
-                  {tool === 'text' && !textDraft && (
-                    <div ref={hintRef} className="pointer-events-none absolute left-0 top-0 z-20 flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[11px] font-medium text-primary-foreground opacity-0 shadow transition-opacity">
-                      <Plus className="size-3" /> Click to add text
-                    </div>
-                  )}
-                  {/* Draggable image / signature overlays (composited into the page at export) */}
-                  {pageImages.map((im) => (
-                    <div key={im.id}
-                      onPointerDown={(e) => imgDown(e, im.id, 'move')} onPointerMove={imgMove} onPointerUp={imgUp}
-                      className={`absolute cursor-move rounded-sm ${selImg === im.id ? 'ring-2 ring-primary' : 'ring-1 ring-transparent hover:ring-primary/40'}`}
-                      style={{ left: `${im.x * 100}%`, top: `${im.y * 100}%`, width: `${im.w * 100}%` }}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={im.src} alt="" className="pointer-events-none block w-full select-none" draggable={false} />
-                      {selImg === im.id && (
-                        <>
-                          <button onPointerDown={(e) => { e.stopPropagation(); deleteImage(im.id); }} aria-label="Delete"
-                            className="absolute -right-2 -top-2 z-10 flex size-5 items-center justify-center rounded-full bg-destructive text-white shadow"><X className="size-3" /></button>
-                          <div onPointerDown={(e) => imgDown(e, im.id, 'resize')} onPointerMove={imgMove} onPointerUp={imgUp}
-                            className="absolute -bottom-1.5 -right-1.5 z-10 size-3.5 cursor-nwse-resize rounded-sm border-2 border-primary bg-white" aria-label="Resize" />
-                        </>
-                      )}
-                    </div>
+                {toolBtn('text', <Type className="size-4" />, 'Text')}
+                <span className="mx-0.5 h-6 w-px bg-border/70" />
+                {actionBtn(() => setSigOpen(true), <SignatureIcon className="size-4" />, 'Sign')}
+                {actionBtn(() => imgFileRef.current?.click(), <ImagePlus className="size-4" />, 'Image')}
+                <span className="mx-0.5 h-6 w-px bg-border/70" />
+                <button title="Clear page" onClick={clearPage} disabled={!(annos[sel] || []).length && !pageImages.length}
+                  className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-foreground/80 transition-all hover:bg-destructive/10 hover:text-destructive disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-foreground/80"><Trash2 className="size-4" /> <span className="hidden md:inline">Clear</span></button>
+              </>
+            }
+            contextBar={
+              <>
+                <div className="flex items-center gap-1.5 px-0.5">
+                  {COLORS.map((c) => (
+                    <button key={c} onClick={() => { setColor(c); patchSelected({ color: c }); }} aria-label={`colour ${c}`} aria-pressed={color === c}
+                      className={`size-6 rounded-full ring-offset-1 ring-offset-card transition-all ${color === c ? 'ring-2 ring-primary' : 'ring-1 ring-border hover:ring-primary/50'}`} style={{ backgroundColor: c }} />
                   ))}
                 </div>
-              ) : (
-                <div className="flex h-72 items-center justify-center"><Loader2 className="size-5 animate-spin text-muted-foreground" /></div>
-              )}
-            </div>
-
-            {pageCount > 1 && <PageStrip handle={handle} count={pageCount} selected={sel} onSelect={(i) => { setTextDraft(null); setSel(i); }} className="mt-2" />}
+                {tool !== 'text' ? (
+                  <>
+                    <span className="mx-0.5 h-6 w-px bg-border/70" />
+                    <label className="flex items-center gap-2 px-1 text-xs font-medium text-muted-foreground">
+                      Size
+                      <input type="range" min={1} max={10} value={weight} onChange={(e) => setWeight(Number(e.target.value))} className="dd-range w-20" />
+                    </label>
+                  </>
+                ) : (
+                  <>
+                    <span className="mx-0.5 h-6 w-px bg-border/70" />
+                    <span className="pl-0.5 text-xs font-medium text-muted-foreground">Font</span>
+                    <FontSelect value={family} onChange={pickFamily} className="w-40" />
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => { const v = !bold; setBold(v); patchSelected({ bold: v }); }} aria-pressed={bold} aria-label="Bold"
+                        disabled={!FAMILIES[family].bold}
+                        title={!FAMILIES[family].bold ? `${FAMILIES[family].label} has no bold style` : undefined}
+                        className={`flex size-9 items-center justify-center rounded-lg border transition-all disabled:cursor-not-allowed disabled:opacity-40 ${bold ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-primary/40'}`}><Bold className="size-4" /></button>
+                      <button onClick={() => { const v = !italic; setItalic(v); patchSelected({ italic: v }); }} aria-pressed={italic} aria-label="Italic"
+                        disabled={!FAMILIES[family].italic}
+                        title={!FAMILIES[family].italic ? `${FAMILIES[family].label} has no italic style` : undefined}
+                        className={`flex size-9 items-center justify-center rounded-lg border transition-all disabled:cursor-not-allowed disabled:opacity-40 ${italic ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-primary/40'}`}><Italic className="size-4" /></button>
+                      <button onClick={() => { const v = !underline; setUnderline(v); patchSelected({ underline: v }); }} aria-pressed={underline} aria-label="Underline"
+                        className={`flex size-9 items-center justify-center rounded-lg border transition-all ${underline ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-primary/40'}`}><Underline className="size-4" /></button>
+                    </div>
+                    <label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                      Size
+                      <input type="range" min={1} max={16} value={weight} onChange={(e) => { const n = Number(e.target.value); setWeight(n); patchSelected({ size: fontFrac(n) }); }} className="dd-range w-24" />
+                      <span className="w-8 tabular-nums text-foreground">{Math.round(fontFrac(weight) * 792)}pt</span>
+                    </label>
+                  </>
+                )}
+              </>
+            }
+            thumbnails={pageCount > 1 ? (
+              <PageStrip orientation="vertical" handle={handle} count={pageCount} selected={sel} onSelect={(i) => { setTextDraft(null); setSel(i); }} />
+            ) : undefined}
+            properties={
+              <div className="space-y-3 text-sm">
+                <div>
+                  <p className="font-semibold text-foreground">{tool === 'text' ? 'Text' : tool === 'highlight' ? 'Highlight' : tool === 'pen' ? 'Draw' : 'Shape'}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {tool === 'text' ? 'Click to select & drag to move · restyle with the bar above · double-click to edit the words.'
+                      : tool === 'highlight' ? 'Drag across the page to highlight. Adjust colour and size above.'
+                      : tool === 'pen' ? 'Draw freehand. Adjust colour and size above.'
+                      : 'Drag to draw the shape. Adjust colour and size above.'}
+                  </p>
+                </div>
+                <div className="rounded-lg border bg-card p-2.5 text-xs text-muted-foreground">
+                  {markedPages.length ? `${markedPages.length} page${markedPages.length === 1 ? '' : 's'} marked up.` : 'Nothing marked up yet — pick a tool and start.'}
+                  <span className="mt-1 block">Everything stays on your device.</span>
+                </div>
+                <div className="border-t pt-3">{brandToggle}</div>
+              </div>
+            }
+          >
+            {surface}
+            {/* Mobile page nav (the vertical rail is hidden below sm) */}
+            {pageCount > 1 && (
+              <PageStrip handle={handle} count={pageCount} selected={sel} onSelect={(i) => { setTextDraft(null); setSel(i); }} className="mt-3 sm:hidden" />
+            )}
             <p className="mt-2 text-center text-xs text-muted-foreground">
               {markedPages.length ? `${markedPages.length} page${markedPages.length === 1 ? '' : 's'} marked up` : 'Pick a tool and mark up the page — everything stays on your device.'}
             </p>
-          </div>
-        )}
-
-        {error && <UploadError error={error} />}
-
-        {file && !done && (
-          <>
-            <label className="mt-4 flex cursor-pointer items-center justify-center gap-2 text-xs text-muted-foreground">
-              <input type="checkbox" checked={brandName} onChange={(e) => setBrandName(e.target.checked)} className="size-3.5 accent-primary" />
-              Add &ldquo;-diemdesk&rdquo; to the file name
-            </label>
-            <Button className="mt-2 w-full" size="lg" onClick={apply} disabled={busy || markedPages.length === 0}>
-              {busy ? <><Loader2 className="size-4 animate-spin" /> Saving…</> : <><Highlighter className="size-4" /> Save annotated PDF</>}
-            </Button>
-          </>
-        )}
-
-        {done && <PdfDone blob={done.blob} name={done.name} secs={done.secs} currentHref="/annotate-pdf" fromLabel="Annotate PDF" />}
-      </CardContent>
-    </Card>
+            {/* Brand-name option for small screens (the properties panel is hidden below lg) */}
+            <div className="mt-2 lg:hidden">{brandToggle}</div>
+          </EditorShell>
+          {error && <UploadError error={error} />}
+        </div>
+      )}
+    </>
   );
 }

@@ -56,7 +56,7 @@ function Thumb({ handle, index, active, onSelect, onDelete }: { handle: PdfHandl
   );
 }
 
-export function PageStrip({ handle, count, selected, onSelect, onDelete, className = '' }: { handle: PdfHandle | null; count: number; selected: number; onSelect: (i: number) => void; onDelete?: (i: number) => void; className?: string }) {
+export function PageStrip({ handle, count, selected, onSelect, onDelete, className = '', orientation = 'horizontal' }: { handle: PdfHandle | null; count: number; selected: number; onSelect: (i: number) => void; onDelete?: (i: number) => void; className?: string; orientation?: 'horizontal' | 'vertical' }) {
   const stripRef = useRef<HTMLDivElement>(null);
 
   // Keep the selected thumb in view when navigating via the stepper / page input.
@@ -68,6 +68,21 @@ export function PageStrip({ handle, count, selected, onSelect, onDelete, classNa
   const pages = [];
   for (let i = 0; i < count; i++) pages.push(i);
   const clamp = (n: number) => Math.max(0, Math.min(count - 1, n));
+
+  // Vertical variant: a tidy column of thumbnails for the editor-shell page rail.
+  // Same lazy-thumb logic — no prev/next header (the rail is narrow; the shell's
+  // top bar already shows the current page), just click a thumb to switch page.
+  if (orientation === 'vertical') {
+    return (
+      <div ref={stripRef} className={`flex flex-col items-center gap-2 ${className}`}>
+        {pages.map((i) => (
+          <span key={i} data-page={i} className="shrink-0">
+            <Thumb handle={handle} index={i} active={i === selected} onSelect={() => onSelect(i)} onDelete={onDelete ? () => onDelete(i) : undefined} />
+          </span>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className={className}>
