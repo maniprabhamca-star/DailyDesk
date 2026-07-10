@@ -92,6 +92,12 @@ export async function mergePdfs(srcs: (File | Blob)[], opts?: RewriteOpts): Prom
   return (await run(srcs, { type: 'merge' }, opts?.signal))[0];
 }
 
+/** Visual page-level merge: `plan[i] = { src, page }` — the i-th output page is
+ * page `page` (0-based) of `srcs[src]`. Pages can come from any file in any order. */
+export async function mergePdfPages(srcs: (File | Blob)[], plan: { src: number; page: number }[], opts?: RewriteOpts): Promise<Uint8Array> {
+  return (await run(srcs, { type: 'merge-pages', plan }, opts?.signal))[0];
+}
+
 /** Split into many PDFs: one per page, or one per chunk of `every` pages. */
 export async function splitPdf(src: File | Blob, op: { type: 'split-each' } | { type: 'split-chunks'; every: number }, opts?: RewriteOpts): Promise<Uint8Array[]> {
   return run([src], op, opts?.signal);

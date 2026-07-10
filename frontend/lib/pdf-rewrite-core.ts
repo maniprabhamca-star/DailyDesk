@@ -61,6 +61,7 @@ export type RewriteOp =
   | { type: 'delete'; indices: number[] } // 0-based page indices to remove
   | { type: 'reorder'; order: number[] } // new page order (original 0-based indices)
   | { type: 'merge' } // all input buffers merged in order
+  | { type: 'merge-pages'; plan: { src: number; page: number }[] } // per output page: source buffer index + 0-based page
   | { type: 'extract'; indices: number[] } // 0-based pages into one new PDF
   | { type: 'split-each' } // one output PDF per page
   | { type: 'split-chunks'; every: number } // fixed ranges: one output per N pages
@@ -75,6 +76,21 @@ export async function executeRewrite(buffers: ArrayBuffer[], op: RewriteOp): Pro
     for (const b of buffers) {
       const src = await PDFDocument.load(new Uint8Array(b), { ignoreEncryption: true });
       (await out.copyPages(src, src.getPageIndices())).forEach((p) => out.addPage(p));
+    }
+    return [await out.save()];
+  }
+
+  if (op.type === 'merge-pages') {
+    // Visual page-level merge: build the output one page at a time from any of
+    // the input PDFs, in the exact order the user arranged. Each source doc is
+    // loaded once (cache by buffer index), pages copied losslessly.
+    const out = await PDFDocument.create();
+    const cache: (PDFDocument | undefined)[] = [];
+    for (const item of op.plan) {
+      let d = cache[item.src];
+      if (!d) { d = await PDFDocument.load(new Uint8Array(buffers[item.src]), { ignoreEncryption: true }); cache[item.src] = d; }
+      const copied = await out.copyPages(d, [item.page]);
+      out.addPage(copied[0]);
     }
     return [await out.save()];
   }
