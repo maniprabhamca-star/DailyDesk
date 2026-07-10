@@ -323,27 +323,8 @@ export function CompressTool() {
     return () => ac.abort();
   }, [srcHandle, outHandle, selPage, done]);
 
-  // When compression finishes, keep the view where the user left it — UNLESS the
-  // result ends up off-screen. The taller pre-compress UI (preview + level cards)
-  // unmounts on done, so the page suddenly shrinks; if the user was scrolled down,
-  // their position can now land on the footer with the result above the fold.
-  // Double-rAF so we measure AFTER that reflow, then only step in if the dock
-  // isn't visible at all (bring it to the top; otherwise never move).
-  useEffect(() => {
-    if (!done) return;
-    const t = setTimeout(() => {
-      const el = doneRef.current;
-      if (!el) return;
-      const top = el.getBoundingClientRect().top;
-      // Already sitting near the top of the viewport → leave it. Otherwise (it
-      // drifted above the fold when the taller UI unmounted, or sits below) bring
-      // it up to the top so the result — not the footer — is what you land on.
-      // Instant (not smooth): a smooth scroll gets fought by the before/after
-      // images loading in mid-animation and nets to nothing.
-      if (top < 8 || top > 140) el.scrollIntoView({ block: 'start' });
-    }, 150);
-    return () => clearTimeout(t);
-  }, [done]);
+  // No auto-scroll on done — the browser's native scroll anchoring keeps the
+  // view stable, and the result renders in place with a persistent Download bar.
 
   function loadOne(f?: File) {
     if (!f) return;
@@ -790,6 +771,7 @@ export function CompressTool() {
           const drain = async (jsDoc: (typeof jsDocs)[number]): Promise<void> => {
             for (;;) {
               if (cursor >= scanList.length) return;
+              if (cancelRef.current) throw new DOMException('Cancelled', 'AbortError'); // Cancel stops the render immediately
               const idx = scanList[cursor++];
               try {
                 const jp = await jsDoc.getPage(idx + 1);
@@ -828,6 +810,7 @@ export function CompressTool() {
           // Phase 2 — assemble in page order: rasterized pages get their JPEG,
           // everything else (incl. any render failure) is copied untouched.
           for (let i = 0; i < pageCount; i++) {
+            if (cancelRef.current) throw new DOMException('Cancelled', 'AbortError'); // Cancel stops assembly too
             const r = renderedPages.get(i);
             let placed = false;
             if (r) {
@@ -852,8 +835,9 @@ export function CompressTool() {
         } finally {
           for (const t of tasks) { try { void t.destroy(); } catch { /* ignore */ } }
         }
-      } catch {
-        outBytes = await doc.save({ useObjectStreams: true }); // surgical-only fallback
+      } catch (e) {
+        if (e instanceof DOMException && e.name === 'AbortError') throw e; // Cancel → bail out, don't produce a result
+        outBytes = await doc.save({ useObjectStreams: true }); // surgical-only fallback (e.g. pool watchdog timeout)
       }
 
       const after = outBytes.length;
