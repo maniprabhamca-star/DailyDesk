@@ -3,7 +3,7 @@ import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { Upload, FileText, X, Loader2, EyeOff, Undo2, Trash2, Zap, ShieldCheck, Search, Sparkles, Lock, AlertTriangle } from 'lucide-react';
+import { Upload, Loader2, EyeOff, Trash2, Zap, ShieldCheck, Search, Sparkles, Lock, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { downloadBlob as download } from '@/lib/download';
@@ -11,6 +11,7 @@ import { PdfDone } from '@/components/app/pdf-done';
 import { takeHandoff } from '@/lib/handoff';
 import { openPdf, renderPage, dprTarget, getPdfjs, type PdfHandle, type RenderedPage } from '@/lib/pdf-render';
 import { PageStrip } from '@/components/pdf/page-strip';
+import { EditorShell } from '@/components/pdf/editor-shell';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
 
@@ -35,12 +36,6 @@ const PATTERNS: { id: string; label: string; test: RegExp }[] = [
   { id: 'ssn', label: 'SSNs', test: /\b\d{3}-\d{2}-\d{4}\b/ },
   { id: 'card', label: 'Card numbers', test: /\b(?:\d[ -]?){13,16}\b/ },
 ];
-
-function fmt(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-}
 
 // Draw the redaction boxes onto ctx (W×H). Used for both the on-screen overlay
 // (boxes only, over the page <img>) and the export (composited over the raster).
@@ -331,19 +326,102 @@ export function RedactTool() {
     </button>
   );
 
-  return (
-    <Card>
-      <CardContent className="p-5">
-        <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
-        {handoffNote && (
-          <p className="mb-3 flex items-center gap-2 rounded-lg border border-primary/25 bg-primary/[0.06] px-3 py-2 text-sm text-foreground">
-            <Zap className="size-4 shrink-0 text-primary" /> {handoffNote}
-          </p>
-        )}
+  const removeFile = () => { if (handle) void handle.destroy(); setHandle(null); setFile(null); setDone(null); setError(null); setBoxes({}); };
 
-        {tooBig ? (
+  const brandToggle = (
+    <label className="flex cursor-pointer items-center justify-center gap-2 text-xs text-muted-foreground">
+      <input type="checkbox" checked={brandName} onChange={(e) => setBrandName(e.target.checked)} className="size-3.5 accent-primary" />
+      Add &ldquo;-diemdesk&rdquo; to the file name
+    </label>
+  );
+
+  // Pro "Find & redact" — search + pattern presets. Manual box-drawing is always
+  // free; free users see the locked upsell. Rendered full-width above the canvas.
+  const findPanel = (
+    <div className="rounded-xl border border-amber-300/50 bg-amber-50/40 p-3 dark:border-amber-500/25 dark:bg-amber-950/10">
+      <div className="mb-2 flex items-center gap-2">
+        <Sparkles className="size-4 text-amber-500" />
+        <span className="text-sm font-semibold">Find &amp; redact</span>
+        <span className="rounded-full bg-amber-400 px-1.5 py-px text-[10px] font-bold uppercase tracking-wide text-amber-950">Pro</span>
+        <span className="ml-auto text-[11px] text-muted-foreground">Searches the document&apos;s selectable text</span>
+      </div>
+      {isPro ? (
+        <>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border bg-card px-2.5 focus-within:ring-1 focus-within:ring-primary">
+              <Search className="size-4 shrink-0 text-muted-foreground" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') runSearch(); }}
+                placeholder="Find a word, name or number to redact everywhere…"
+                className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none"
+              />
+            </div>
+            <Button size="sm" onClick={runSearch} disabled={!!scanning || !query.trim()}>
+              {scanning && scanning.startsWith('“') ? <Loader2 className="size-4 animate-spin" /> : <Search className="size-4" />} Find all
+            </Button>
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            <span className="text-[11px] font-medium text-muted-foreground">Presets:</span>
+            {PATTERNS.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => void scan((s) => p.test.test(s), p.label)}
+                disabled={!!scanning}
+                className="rounded-full border border-border bg-card px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-amber-400 hover:bg-amber-100/50 disabled:opacity-50 dark:hover:bg-amber-950/30"
+              >
+                {scanning === p.label ? <Loader2 className="inline size-3 animate-spin" /> : null} {p.label}
+              </button>
+            ))}
+          </div>
+          {scanNote && <p className="mt-2 text-xs text-muted-foreground">{scanNote}</p>}
+        </>
+      ) : (
+        <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
+          <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+            <Lock className="mt-px size-3.5 shrink-0" /> <span>Drawing redaction boxes by hand is <strong className="font-semibold text-foreground">always free</strong>. Pro adds automatic search &amp; presets — find a word, or every email, phone, SSN &amp; card number, and box them all at once.</span>
+          </p>
+          <Button asChild size="sm" variant="outline" className="shrink-0 sm:ml-auto"><Link href="/pricing">Upgrade to Pro</Link></Button>
+        </div>
+      )}
+    </div>
+  );
+
+  // The redaction surface — page image + box-drawing overlay canvas. Unchanged engine.
+  const surface = (
+    <div className="flex items-start justify-center">
+      {preview ? (
+        <div ref={wrapRef} className="relative inline-block leading-[0]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={preview.url} alt={`Page ${sel + 1}`} className="max-h-[42rem] max-w-full rounded border bg-white shadow-md" draggable={false} />
+          <canvas
+            ref={canvasRef}
+            className="absolute inset-0 h-full w-full cursor-crosshair touch-none"
+            onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerLeave={onUp}
+          />
+        </div>
+      ) : (
+        <div className="flex h-72 items-center justify-center"><Loader2 className="size-5 animate-spin text-muted-foreground" /></div>
+      )}
+    </div>
+  );
+
+  return (
+    <>
+      <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
+
+      {tooBig ? (
+        <Card><CardContent className="p-5">
           <UpgradeNotice fileName={tooBig.name} sizeText={fmtBytes(tooBig.size)} limitText={fmtBytes(FREE_MAX_BYTES)} onReset={() => { setTooBig(null); inputRef.current?.click(); }} />
-        ) : !file ? (
+        </CardContent></Card>
+      ) : !file ? (
+        <Card><CardContent className="p-5">
+          {handoffNote && (
+            <p className="mb-3 flex items-center gap-2 rounded-lg border border-primary/25 bg-primary/[0.06] px-3 py-2 text-sm text-foreground">
+              <Zap className="size-4 shrink-0 text-primary" /> {handoffNote}
+            </p>
+          )}
           <div
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => { e.preventDefault(); pick(e.dataTransfer.files); }}
@@ -355,154 +433,98 @@ export function RedactTool() {
             <p className="text-xs text-muted-foreground">Black out sensitive content — permanently, on your device</p>
             <span className="mt-4 inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm">Choose PDF</span>
           </div>
-        ) : (
-          <div className="flex items-center gap-3 rounded-lg border bg-card p-2.5">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-red-100 text-red-600 dark:bg-red-950/40"><FileText className="size-4" /></span>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">{file.name}</p>
-              <p className="text-xs text-muted-foreground">{fmt(file.size)} · {pageCount} page{pageCount === 1 ? '' : 's'}</p>
-            </div>
-            <Button size="icon" variant="ghost" aria-label="Remove" onClick={() => { if (handle) void handle.destroy(); setHandle(null); setFile(null); setDone(null); setError(null); setBoxes({}); }}><X className="size-4" /></Button>
-          </div>
-        )}
-
-        {file && !done && (
-          <div className="mt-4">
-            {/* Premium toolbar — cohesive bar, matches the Annotate tool */}
-            <div className="flex flex-wrap items-center gap-1.5 rounded-2xl border bg-card p-1.5 shadow-soft">
-              <span className="pl-1 text-xs font-medium text-muted-foreground">Style</span>
-              {styleBtn('black', 'Black', '#111827')}
-              {styleBtn('white', 'White', '#ffffff')}
-              {styleBtn('label', 'Labelled', '#111827')}
-              {style === 'label' && (
-                <input
-                  value={labelText}
-                  onChange={(e) => setLabelText(e.target.value)}
-                  maxLength={24}
-                  placeholder="REDACTED"
-                  aria-label="Label text"
-                  className="w-32 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                />
-              )}
-              <div className="ml-auto flex items-center gap-0.5">
-                <button title="Undo (Ctrl+Z)" onClick={undo} disabled={!(boxes[sel] || []).length}
-                  className="flex size-8 items-center justify-center rounded-lg text-foreground/70 transition-colors hover:bg-accent disabled:opacity-30 disabled:hover:bg-transparent"><Undo2 className="size-4" /></button>
-                <button title="Clear page" onClick={clearPage} disabled={!(boxes[sel] || []).length}
-                  className="flex size-8 items-center justify-center rounded-lg text-foreground/70 transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-foreground/70"><Trash2 className="size-4" /></button>
+          {error && <UploadError error={error} />}
+        </CardContent></Card>
+      ) : done ? (
+        <Card><CardContent className="p-5">
+          {done.verified && (
+            <div className="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2.5">
+              <div className="flex items-center gap-2">
+                {done.verified.afterChars === 0 ? <ShieldCheck className="size-5 shrink-0 text-emerald-600" /> : <AlertTriangle className="size-5 shrink-0 text-amber-500" />}
+                <p className="text-sm font-semibold">
+                  {done.verified.afterChars === 0 ? 'Redaction verified — the text is gone, not just covered' : 'Redaction applied'}
+                </p>
               </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                We re-scanned the {done.verified.pages} redacted page{done.verified.pages === 1 ? '' : 's'}: {done.verified.beforeChars.toLocaleString()} selectable character{done.verified.beforeChars === 1 ? '' : 's'} →{' '}
+                <span className={done.verified.afterChars === 0 ? 'font-medium text-emerald-700 dark:text-emerald-400' : 'font-medium text-amber-600'}>{done.verified.afterChars.toLocaleString()} left</span>.
+                {' '}Those pages are now flat images, so the hidden text can’t be selected, copied, searched, or recovered — unlike a plain black box drawn over live text.
+              </p>
             </div>
-
-            {/* Pro v2 — Search & Redact + pattern presets. Finds matches in the
-                text layer and boxes them for review; the export still truly
-                removes them. Gated: free users see the locked panel + upgrade. */}
-            <div className="mt-3 rounded-xl border border-amber-300/50 bg-amber-50/40 p-3 dark:border-amber-500/25 dark:bg-amber-950/10">
-              <div className="mb-2 flex items-center gap-2">
-                <Sparkles className="size-4 text-amber-500" />
-                <span className="text-sm font-semibold">Find &amp; redact</span>
-                <span className="rounded-full bg-amber-400 px-1.5 py-px text-[10px] font-bold uppercase tracking-wide text-amber-950">Pro</span>
-                <span className="ml-auto text-[11px] text-muted-foreground">Searches this page&apos;s selectable text</span>
-              </div>
-              {isPro ? (
-                <>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border bg-card px-2.5 focus-within:ring-1 focus-within:ring-primary">
-                      <Search className="size-4 shrink-0 text-muted-foreground" />
-                      <input
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === 'Enter') runSearch(); }}
-                        placeholder="Find a word, name or number to redact everywhere…"
-                        className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none"
-                      />
-                    </div>
-                    <Button size="sm" onClick={runSearch} disabled={!!scanning || !query.trim()}>
-                      {scanning && scanning.startsWith('“') ? <Loader2 className="size-4 animate-spin" /> : <Search className="size-4" />} Find all
-                    </Button>
-                  </div>
-                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                    <span className="text-[11px] font-medium text-muted-foreground">Presets:</span>
-                    {PATTERNS.map((p) => (
-                      <button
-                        key={p.id}
-                        onClick={() => void scan((s) => p.test.test(s), p.label)}
-                        disabled={!!scanning}
-                        className="rounded-full border border-border bg-card px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-amber-400 hover:bg-amber-100/50 disabled:opacity-50 dark:hover:bg-amber-950/30"
-                      >
-                        {scanning === p.label ? <Loader2 className="inline size-3 animate-spin" /> : null} {p.label}
-                      </button>
-                    ))}
-                  </div>
-                  {scanNote && <p className="mt-2 text-xs text-muted-foreground">{scanNote}</p>}
-                </>
-              ) : (
-                <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
-                  <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
-                    <Lock className="mt-px size-3.5 shrink-0" /> <span>Drawing redaction boxes by hand is <strong className="font-semibold text-foreground">always free</strong>. Pro adds automatic search &amp; presets — find a word, or every email, phone, SSN &amp; card number, and box them all at once.</span>
-                  </p>
-                  <Button asChild size="sm" variant="outline" className="shrink-0 sm:ml-auto"><Link href="/pricing">Upgrade to Pro</Link></Button>
-                </div>
-              )}
-            </div>
-
-            <div className="mt-3 flex items-start justify-center rounded-xl border bg-muted/30 p-3">
-              {preview ? (
-                <div ref={wrapRef} className="relative inline-block leading-[0]">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={preview.url} alt={`Page ${sel + 1}`} className="max-h-[34rem] max-w-full rounded border bg-white shadow-md" draggable={false} />
-                  <canvas
-                    ref={canvasRef}
-                    className="absolute inset-0 h-full w-full cursor-crosshair touch-none"
-                    onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerLeave={onUp}
+          )}
+          <PdfDone blob={done.blob} name={done.name} secs={done.secs} currentHref="/redact-pdf" fromLabel="Redact PDF" />
+        </CardContent></Card>
+      ) : (
+        <div>
+          {handoffNote && (
+            <p className="mb-3 flex items-center gap-2 rounded-lg border border-primary/25 bg-primary/[0.06] px-3 py-2 text-sm text-foreground">
+              <Zap className="size-4 shrink-0 text-primary" /> {handoffNote}
+            </p>
+          )}
+          <EditorShell
+            toolName="Redact"
+            toolIcon={<EyeOff className="size-4 text-primary" />}
+            fileName={file.name}
+            pageInfo={`${pageCount} page${pageCount === 1 ? '' : 's'}`}
+            onClose={removeFile}
+            onUndo={undo}
+            canUndo={(boxes[sel] || []).length > 0}
+            onExport={apply}
+            exportLabel="Redact"
+            exporting={busy}
+            exportDisabled={redactedPages.length === 0}
+            toolbar={
+              <>
+                <span className="pl-1 text-xs font-medium text-muted-foreground">Box style</span>
+                {styleBtn('black', 'Black', '#111827')}
+                {styleBtn('white', 'White', '#ffffff')}
+                {styleBtn('label', 'Labelled', '#111827')}
+                {style === 'label' && (
+                  <input
+                    value={labelText}
+                    onChange={(e) => setLabelText(e.target.value)}
+                    maxLength={24}
+                    placeholder="REDACTED"
+                    aria-label="Label text"
+                    className="w-32 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                   />
+                )}
+                <span className="mx-0.5 h-6 w-px bg-border/70" />
+                <button title="Clear page" onClick={clearPage} disabled={!(boxes[sel] || []).length}
+                  className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-foreground/80 transition-all hover:bg-destructive/10 hover:text-destructive disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-foreground/80"><Trash2 className="size-4" /> <span className="hidden md:inline">Clear</span></button>
+              </>
+            }
+            thumbnails={pageCount > 1 ? (
+              <PageStrip orientation="vertical" handle={handle} count={pageCount} selected={sel} onSelect={setSel} />
+            ) : undefined}
+            properties={
+              <div className="space-y-3 text-sm">
+                <div>
+                  <p className="flex items-center gap-1.5 font-semibold text-foreground"><ShieldCheck className="size-4 text-emerald-600" /> True redaction</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Drag a box over anything sensitive. On export the content underneath is permanently removed — never just covered.</p>
                 </div>
-              ) : (
-                <div className="flex h-72 items-center justify-center"><Loader2 className="size-5 animate-spin text-muted-foreground" /></div>
-              )}
-            </div>
-
-            {pageCount > 1 && <PageStrip handle={handle} count={pageCount} selected={sel} onSelect={setSel} className="mt-2" />}
+                <div className="rounded-lg border bg-card p-2.5 text-xs text-muted-foreground">
+                  {totalBoxes ? `${totalBoxes} area${totalBoxes === 1 ? '' : 's'} on ${redactedPages.length} page${redactedPages.length === 1 ? '' : 's'} marked.` : 'Nothing marked yet — drag a box over sensitive content.'}
+                  <span className="mt-1 block">Everything stays on your device.</span>
+                </div>
+                <div className="border-t pt-3">{brandToggle}</div>
+              </div>
+            }
+          >
+            {findPanel}
+            <div className="mt-3">{surface}</div>
+            {pageCount > 1 && (
+              <PageStrip handle={handle} count={pageCount} selected={sel} onSelect={setSel} className="mt-3 sm:hidden" />
+            )}
             <p className="mt-2 flex items-center justify-center gap-1.5 text-center text-xs text-muted-foreground">
               <ShieldCheck className="size-3.5 text-emerald-600" />
               {totalBoxes ? `${totalBoxes} area${totalBoxes === 1 ? '' : 's'} on ${redactedPages.length} page${redactedPages.length === 1 ? '' : 's'} — content is permanently removed on export.` : 'Drag a box over anything sensitive. The content underneath is permanently removed — never just covered.'}
             </p>
-          </div>
-        )}
-
-        {error && <UploadError error={error} />}
-
-        {file && !done && (
-          <>
-            <label className="mt-4 flex cursor-pointer items-center justify-center gap-2 text-xs text-muted-foreground">
-              <input type="checkbox" checked={brandName} onChange={(e) => setBrandName(e.target.checked)} className="size-3.5 accent-primary" />
-              Add &ldquo;-diemdesk&rdquo; to the file name
-            </label>
-            <Button className="mt-2 w-full" size="lg" onClick={apply} disabled={busy || redactedPages.length === 0}>
-              {busy ? <><Loader2 className="size-4 animate-spin" /> Redacting…</> : <><EyeOff className="size-4" /> Redact &amp; download</>}
-            </Button>
-          </>
-        )}
-
-        {done && (
-          <>
-            {done.verified && (
-              <div className="mt-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2.5">
-                <div className="flex items-center gap-2">
-                  {done.verified.afterChars === 0 ? <ShieldCheck className="size-5 shrink-0 text-emerald-600" /> : <AlertTriangle className="size-5 shrink-0 text-amber-500" />}
-                  <p className="text-sm font-semibold">
-                    {done.verified.afterChars === 0 ? 'Redaction verified — the text is gone, not just covered' : 'Redaction applied'}
-                  </p>
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  We re-scanned the {done.verified.pages} redacted page{done.verified.pages === 1 ? '' : 's'}: {done.verified.beforeChars.toLocaleString()} selectable character{done.verified.beforeChars === 1 ? '' : 's'} →{' '}
-                  <span className={done.verified.afterChars === 0 ? 'font-medium text-emerald-700 dark:text-emerald-400' : 'font-medium text-amber-600'}>{done.verified.afterChars.toLocaleString()} left</span>.
-                  {' '}Those pages are now flat images, so the hidden text can’t be selected, copied, searched, or recovered — unlike a plain black box drawn over live text.
-                </p>
-              </div>
-            )}
-            <PdfDone blob={done.blob} name={done.name} secs={done.secs} currentHref="/redact-pdf" fromLabel="Redact PDF" />
-          </>
-        )}
-      </CardContent>
-    </Card>
+            <div className="mt-2 lg:hidden">{brandToggle}</div>
+          </EditorShell>
+          {error && <UploadError error={error} />}
+        </div>
+      )}
+    </>
   );
 }

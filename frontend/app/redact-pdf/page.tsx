@@ -37,6 +37,7 @@ export default function RedactPdfPage() {
       description="Permanently black out sensitive text — the content underneath is removed, not just covered. Runs in your browser; your file never leaves your device."
       steps={steps}
       faqs={faqs}
+      wide
     >
       <RedactTool />
     </PdfToolPage>
