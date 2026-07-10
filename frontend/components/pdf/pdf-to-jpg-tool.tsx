@@ -499,7 +499,7 @@ export function PdfToJpgTool() {
         )}
 
         {file && (
-          <div className="mt-5 grid gap-6 lg:grid-cols-2 lg:items-start">
+          <div className="mt-5 grid gap-6 lg:grid-cols-[minmax(340px,380px)_minmax(0,1fr)] lg:items-start">
             {/* LEFT — controls + convert, all visible together (no scrolling) */}
             <div className="space-y-5">
               <div>
