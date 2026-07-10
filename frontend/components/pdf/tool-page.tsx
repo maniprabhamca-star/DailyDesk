@@ -51,7 +51,7 @@ export function PdfToolPage({
 
       {/* `wide` editors (Annotate/Edit/Redact) get a roomy, app-like canvas that
           uses the screen; the reading sections below stay at a comfortable width. */}
-      <main className={`mx-auto w-full flex-1 px-4 py-10 sm:px-6 ${wide ? 'max-w-[92rem]' : 'max-w-3xl'}`}>
+      <main className={`mx-auto w-full flex-1 px-4 py-10 sm:px-6 ${wide ? 'max-w-6xl' : 'max-w-3xl'}`}>
         <div className="mx-auto max-w-2xl text-center">
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{title}</h1>
           <p className="mx-auto mt-3 max-w-xl text-muted-foreground">{description}</p>
