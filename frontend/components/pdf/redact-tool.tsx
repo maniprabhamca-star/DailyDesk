@@ -202,13 +202,14 @@ export function RedactTool() {
       const pdfjs = await getPdfjs();
       const next: Record<number, Box[]> = {};
       for (const k of Object.keys(boxes)) next[Number(k)] = [...boxes[Number(k)]];
-      let hits = 0; let firstHit = -1;
+      let hits = 0; let firstHit = -1; let textRuns = 0;
       for (let i = 0; i < handle.numPages; i++) {
         const page = await handle.doc.getPage(i + 1);
         const vp = page.getViewport({ scale: 1 });
         const tc = await page.getTextContent();
         for (const it of tc.items as Array<{ str?: string; transform?: number[]; width?: number; height?: number }>) {
           const s = it.str;
+          if (s && s.trim()) textRuns++;
           if (!s || !s.trim() || !it.transform || !test(s)) continue;
           const m = pdfjs.Util.transform(vp.transform, it.transform);
           const fontH = Math.hypot(m[2], m[3]) || (it.height || 8);
@@ -227,7 +228,9 @@ export function RedactTool() {
       if (firstHit >= 0) setSel(firstHit);
       setScanNote(hits
         ? `Found ${hits} match${hits === 1 ? '' : 'es'} for ${label} — review the boxes on each page, then Redact & download.`
-        : `No matches for ${label} in this document's text. (Scanned pages that have selectable text.)`);
+        : textRuns === 0
+          ? `This looks like a scanned PDF — it has no selectable text, so search can't read it. Draw redaction boxes by hand (that always works), or run OCR to add a text layer first (coming to Pro).`
+          : `No matches for ${label} in this document's text.`);
     } catch {
       setError('Could not scan this PDF’s text. It may be a scanned/image-only PDF — draw the boxes by hand instead.');
     } finally { setScanning(null); }
