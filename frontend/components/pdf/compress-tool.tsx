@@ -145,6 +145,17 @@ function fmt(bytes: number) {
 // expectation BEFORE compressing — instead of a misleading numeric estimate.
 type Kind = 'scan' | 'image' | 'text';
 type Classified = { kind: Kind; p1StoredPx: number };
+// Reject a promise if it hasn't settled within `ms` — a watchdog so a stuck
+// pdf.js worker (corrupt page, out-of-memory) can never hang the whole job
+// forever. Timeouts are deliberately generous: normal parsing/rendering finishes
+// far sooner, so legitimate (even very large, slow) files never trip them.
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const id = setTimeout(() => reject(new DOMException('Timed out', 'TimeoutError')), ms);
+    p.then((v) => { clearTimeout(id); resolve(v); }, (e) => { clearTimeout(id); reject(e as Error); });
+  });
+}
+
 async function classifyPdf(file: File): Promise<Classified | null> {
   try {
     const { PDFDocument, PDFName, PDFRawStream, PDFArray } = await import('pdf-lib');
@@ -720,7 +731,11 @@ export function CompressTool() {
         const POOL_MAX_BYTES = 96 * 1024 * 1024;
         const poolSize = Math.max(1, Math.min(4, cores - 1, original.length <= POOL_MAX_BYTES ? 4 : 1, scanPages.size));
         const tasks = Array.from({ length: poolSize }, () => pdfjs.getDocument(pdfDocOptions(original.slice())));
-        const jsDocs = await Promise.all(tasks.map((t) => t.promise));
+        // Watchdog: if opening the pool ever stalls on a bad file, tear the
+        // workers down and fall through to the surgical-only result instead of
+        // hanging. 90s is far beyond any normal parse.
+        const jsDocs = await withTimeout(Promise.all(tasks.map((t) => t.promise)), 90000)
+          .catch((e) => { for (const t of tasks) { try { void t.destroy(); } catch { /* ignore */ } } throw e; });
         try {
           const pageCount = doc.getPageCount();
           const outDoc = await PDFDocument.create();
@@ -755,7 +770,10 @@ export function CompressTool() {
                   cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, canvas.width, canvas.height);
                   // intent:'print' = no rAF pacing, so compression keeps running
                   // even if the user switches to another tab mid-job.
-                  await jp.render({ canvas, viewport: vp, background: 'rgba(255,255,255,1)', intent: 'print' }).promise;
+                  // Per-page watchdog: one stuck page can't hang the whole job —
+                  // cancel it after 45s and let phase 2 copy it untouched.
+                  const rt = jp.render({ canvas, viewport: vp, background: 'rgba(255,255,255,1)', intent: 'print' });
+                  await withTimeout(rt.promise, 45000).catch((e) => { try { rt.cancel(); } catch { /* ignore */ } throw e; });
                   // Native JPEG (not mozjpeg): scan pages are already downsampled,
                   // and native is ~15x faster — 100+ page books finish fast.
                   const jpgBlob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/jpeg', q01));
