@@ -78,14 +78,14 @@ export function EditorShell({
 
       {/* Body: thumbnail rail | canvas | properties panel.
           Flex (not grid) so a hidden rail/panel reserves NO width on small
-          screens — the canvas gets it all. On sm+ the body is a fixed-height
-          workspace pane (sm:max-h-[78vh]) so a long document's rail and canvas
-          scroll INDEPENDENTLY inside their columns instead of pushing the page
-          down forever — the toolbar always stays in view (Acrobat/Figma feel). */}
-      <div className="flex sm:max-h-[78vh] sm:min-h-[26rem]">
-        {thumbnails && <aside className="hidden w-20 shrink-0 overflow-y-auto border-r bg-muted/20 p-2 [scrollbar-width:thin] sm:block">{thumbnails}</aside>}
-        <div className="min-w-0 flex-1 overflow-auto bg-muted/10 p-3 sm:p-4">{children}</div>
-        {properties && <aside className="hidden w-[220px] shrink-0 overflow-y-auto border-l bg-muted/20 p-3 [scrollbar-width:thin] lg:block">{properties}</aside>}
+          screens — the canvas gets it all. The body GROWS with content so the
+          whole thing scrolls as one page (no nested panel scroll). Only the page
+          RAIL is bounded + self-start so a long document doesn't push the page
+          down forever — it scrolls inside its own column. */}
+      <div className="flex">
+        {thumbnails && <aside className="hidden w-20 shrink-0 self-start overflow-y-auto border-r bg-muted/20 p-2 [scrollbar-width:thin] sm:block sm:max-h-[42rem]">{thumbnails}</aside>}
+        <div className="min-w-0 flex-1 bg-muted/10 p-3 sm:p-4">{children}</div>
+        {properties && <aside className="hidden w-[236px] shrink-0 self-start border-l bg-gradient-to-b from-muted/50 via-muted/25 to-transparent p-3 lg:block">{properties}</aside>}
       </div>
     </div>
   );
