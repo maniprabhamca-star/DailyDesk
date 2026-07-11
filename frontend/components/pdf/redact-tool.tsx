@@ -14,7 +14,7 @@ import { openPdf, renderPage, dprTarget, getPdfjs, type PdfHandle, type Rendered
 import { PageStrip } from '@/components/pdf/page-strip';
 import { EditorShell } from '@/components/pdf/editor-shell';
 import { setEditorContext, clearEditorContext } from '@/lib/command-registry';
-import { Mail, Phone, CreditCard, Hash } from 'lucide-react';
+import { Mail, Phone, CreditCard, Hash, Info } from 'lucide-react';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
 
@@ -383,52 +383,55 @@ export function RedactTool() {
 
   // Pro "Find & redact" — search + pattern presets. Manual box-drawing is always
   // free; free users see the locked upsell. Rendered full-width above the canvas.
+  const presetIcon: Record<string, typeof Mail> = { email: Mail, phone: Phone, ssn: Hash, card: CreditCard };
   const findPanel = (
-    <div className="rounded-xl border border-amber-300/50 bg-amber-50/40 p-3 dark:border-amber-500/25 dark:bg-amber-950/10">
-      <div className="mb-2 flex items-center gap-2">
-        <Sparkles className="size-4 text-amber-500" />
-        <span className="text-sm font-semibold">Find &amp; redact</span>
-        <span className="rounded-full bg-amber-400 px-1.5 py-px text-[10px] font-bold uppercase tracking-wide text-amber-950">Pro</span>
-        <span className="ml-auto text-[11px] text-muted-foreground">Searches the document&apos;s selectable text</span>
+    <div className="rounded-2xl border bg-card p-4 shadow-soft">
+      <div className="flex items-start gap-3">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-amber-500 text-white shadow-sm"><Sparkles className="size-5" /></span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold">Find &amp; redact</h3>
+            <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400"><Sparkles className="size-2.5" /> Pro</span>
+          </div>
+          <p className="mt-0.5 text-xs text-muted-foreground">Find &amp; box every match across the document&rsquo;s text — then truly remove them.</p>
+        </div>
       </div>
       {isPro ? (
-        <>
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border bg-card px-2.5 focus-within:ring-1 focus-within:ring-primary">
-              <Search className="size-4 shrink-0 text-muted-foreground" />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') runSearch(); }}
-                placeholder="Find a word, name or number to redact everywhere…"
-                className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none"
-              />
-            </div>
-            <Button size="sm" onClick={runSearch} disabled={!!scanning || !query.trim()}>
+        <div className="mt-3">
+          <div className="flex items-center gap-1 rounded-xl border bg-background pl-3 transition-all focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/15">
+            <Search className="size-4 shrink-0 text-muted-foreground" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') runSearch(); }}
+              placeholder="Find a word, name or number to redact everywhere…"
+              className="min-w-0 flex-1 bg-transparent py-2.5 text-sm outline-none"
+            />
+            <Button size="sm" onClick={runSearch} disabled={!!scanning || !query.trim()} className="my-1 mr-1 shrink-0">
               {scanning && scanning.startsWith('“') ? <Loader2 className="size-4 animate-spin" /> : <Search className="size-4" />} Find all
             </Button>
           </div>
-          <div className="mt-2 flex flex-wrap items-center gap-1.5">
-            <span className="text-[11px] font-medium text-muted-foreground">Presets:</span>
-            {PATTERNS.map((p) => (
+          <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+            <span className="text-[11px] font-medium text-muted-foreground">Quick presets</span>
+            {PATTERNS.map((p) => { const Icon = presetIcon[p.id] ?? Hash; return (
               <button
                 key={p.id}
                 onClick={() => void scan((s) => p.test.test(s), p.label)}
                 disabled={!!scanning}
-                className="rounded-full border border-border bg-card px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-amber-400 hover:bg-amber-100/50 disabled:opacity-50 dark:hover:bg-amber-950/30"
+                className="inline-flex items-center gap-1.5 rounded-full border bg-card px-2.5 py-1 text-[11px] font-medium transition-all hover:-translate-y-px hover:border-amber-400/60 hover:bg-amber-500/10 hover:text-amber-700 disabled:opacity-50 dark:hover:text-amber-300"
               >
-                {scanning === p.label ? <Loader2 className="inline size-3 animate-spin" /> : null} {p.label}
+                {scanning === p.label ? <Loader2 className="size-3 animate-spin" /> : <Icon className="size-3" />} {p.label}
               </button>
-            ))}
+            ); })}
           </div>
-          {scanNote && <p className="mt-2 text-xs text-muted-foreground">{scanNote}</p>}
-        </>
+          {scanNote && <p className="mt-2.5 flex items-start gap-1.5 rounded-lg bg-muted/60 px-2.5 py-2 text-xs text-muted-foreground"><Info className="mt-0.5 size-3.5 shrink-0 text-amber-500" /> {scanNote}</p>}
+        </div>
       ) : (
-        <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
-          <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
-            <Lock className="mt-px size-3.5 shrink-0" /> <span>Drawing redaction boxes by hand is <strong className="font-semibold text-foreground">always free</strong>. Pro adds automatic search &amp; presets — find a word, or every email, phone, SSN &amp; card number, and box them all at once.</span>
+        <div className="mt-3 flex flex-col items-start gap-3 rounded-xl border border-amber-500/25 bg-amber-500/[0.06] p-3 sm:flex-row sm:items-center">
+          <p className="flex items-start gap-2 text-xs text-muted-foreground">
+            <Lock className="mt-0.5 size-4 shrink-0 text-amber-500" /> <span>Drawing redaction boxes by hand is <strong className="font-semibold text-foreground">always free</strong>. Pro finds &amp; boxes every email, phone, SSN &amp; card number — or any word you type — in one click.</span>
           </p>
-          <Button asChild size="sm" variant="outline" className="shrink-0 sm:ml-auto"><Link href="/pricing">Upgrade to Pro</Link></Button>
+          <Button asChild size="sm" className="shrink-0 bg-amber-500 text-white hover:bg-amber-600 sm:ml-auto"><Link href="/pricing"><Sparkles className="size-3.5" /> Upgrade to Pro</Link></Button>
         </div>
       )}
     </div>

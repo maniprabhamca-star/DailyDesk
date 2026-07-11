@@ -2,13 +2,14 @@
 import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Upload, X, Loader2, Highlighter, Pen, Square, Circle, Minus, ArrowUpRight, ChevronDown, ChevronUp, Type, Trash2, Zap, Bold, Italic, Underline, Signature as SignatureIcon, ImagePlus, Plus, Copy, Star, MoveDiagonal, MousePointer2, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, Eye, EyeOff, Layers as LayersIcon } from 'lucide-react';
+import { Upload, X, Loader2, Highlighter, Pen, Square, Circle, Minus, ArrowUpRight, ChevronDown, ChevronUp, Type, Trash2, Zap, Bold, Italic, Underline, Signature as SignatureIcon, ImagePlus, Plus, Copy, Star, MoveDiagonal, MousePointer2, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, Eye, EyeOff, Layers as LayersIcon, RotateCw, FileMinus, ArrowLeftRight } from 'lucide-react';
 import { SignatureMaker } from './signature-maker';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
-import { takeHandoff } from '@/lib/handoff';
+import { takeHandoff, setHandoff } from '@/lib/handoff';
+import { useRouter } from 'next/navigation';
 import { rewritePdf } from '@/lib/pdf-rewrite';
 import { openPdf, renderPage, dprTarget, type PdfHandle, type RenderedPage } from '@/lib/pdf-render';
 import { PageStrip } from '@/components/pdf/page-strip';
@@ -163,6 +164,7 @@ function paint(ctx: CanvasRenderingContext2D, W: number, H: number, list: Anno[]
 
 export function AnnotateTool() {
   const plan = usePlan();
+  const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [tooBig, setTooBig] = useState<{ name: string; size: number } | null>(null);
   const [handle, setHandle] = useState<PdfHandle | null>(null);
@@ -877,6 +879,9 @@ export function AnnotateTool() {
   const applyPreset = (p: Preset) => { setTool(p.tool); setColor(p.color); setWeight(p.weight); setFamily(p.family); setBold(p.bold); setItalic(p.italic); setUnderline(p.underline); };
   const deletePreset = (id: string) => persistPresets(presets.filter((p) => p.id !== id));
 
+  // Page tools — hand this file straight into a dedicated page tool (no re-upload).
+  const handoffTo = (href: string) => { if (!file) return; setHandoff({ files: [file], from: 'Annotate PDF' }); router.push(href); };
+
   // ---- ⌘K: publish Annotate's deterministic commands to the global palette ----
   const cmdApi = useRef<Record<string, () => void>>({});
   cmdApi.current = {
@@ -1214,13 +1219,39 @@ export function AnnotateTool() {
             ) : undefined}
             properties={
               <div className="space-y-3 text-sm">
+                {(() => {
+                  const layers = pageLayers();
+                  return layers.length > 0 ? (
+                    <div className="rounded-xl border bg-card p-2 shadow-soft">
+                      <div className="mb-1 flex items-center gap-1.5 px-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground"><LayersIcon className="size-3.5 text-primary" /> Layers <span className="text-foreground/45">· {layers.length}</span></div>
+                      <div className="max-h-44 space-y-0.5 overflow-y-auto">
+                        {layers.map((L) => (
+                          <div key={L.key} className={`group flex items-center gap-1 rounded-md px-1.5 py-1 ${L.selected ? 'bg-primary/10 ring-1 ring-primary/25' : 'hover:bg-accent'}`}>
+                            <button onClick={() => selectLayer(L.key)} className={`flex min-w-0 flex-1 items-center gap-1.5 text-left ${L.hidden ? 'opacity-45' : ''}`}>
+                              <L.Icon className="size-3.5 shrink-0 text-muted-foreground" />
+                              <span className="truncate text-xs">{L.label}</span>
+                            </button>
+                            {L.canMove && (
+                              <>
+                                <button onClick={() => moveLayer(L.key, -1)} title="Bring forward" aria-label="Bring forward" className="hidden size-5 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground group-hover:flex"><ChevronUp className="size-3.5" /></button>
+                                <button onClick={() => moveLayer(L.key, 1)} title="Send back" aria-label="Send back" className="hidden size-5 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground group-hover:flex"><ChevronDown className="size-3.5" /></button>
+                              </>
+                            )}
+                            <button onClick={() => toggleLayerHidden(L.key)} title={L.hidden ? 'Show' : 'Hide'} aria-label={L.hidden ? 'Show layer' : 'Hide layer'} className="flex size-5 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">{L.hidden ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}</button>
+                            <button onClick={() => deleteLayer(L.key)} title="Delete" aria-label="Delete layer" className="hidden size-5 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive group-hover:flex"><Trash2 className="size-3" /></button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null;
+                })()}
                 {tool === 'select' ? (
                   group.length > 0 ? (
                     /* Group inspector — align, distribute-lite, duplicate, delete. */
                     <>
                       <p className="flex items-center gap-1.5 font-semibold text-foreground"><MousePointer2 className="size-4 text-primary" /> {group.length} selected</p>
                       {group.length >= 2 && (
-                        <div className="rounded-lg border bg-card p-2.5">
+                        <div className="rounded-xl border bg-card p-2.5 shadow-soft">
                           <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Align</div>
                           <div className="mt-1.5 grid grid-cols-6 gap-1">
                             {([['left', AlignStartVertical], ['hcenter', AlignCenterVertical], ['right', AlignEndVertical], ['top', AlignStartHorizontal], ['vcenter', AlignCenterHorizontal], ['bottom', AlignEndHorizontal]] as const).map(([edge, Icon]) => (
@@ -1253,7 +1284,7 @@ export function AnnotateTool() {
                       </p>
                       <span className="text-[11px] uppercase tracking-wide text-primary">selected</span>
                     </div>
-                    <div className="rounded-lg border bg-card p-2.5">
+                    <div className="rounded-xl border bg-card p-2.5 shadow-soft">
                       <div className="grid grid-cols-2 gap-2">
                         <div>
                           <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">X</div>
@@ -1281,7 +1312,7 @@ export function AnnotateTool() {
                       </div>
                       <p className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground"><MoveDiagonal className="size-3" /> Arrow keys nudge · Shift for bigger steps</p>
                     </div>
-                    <div className="rounded-lg border bg-card p-2.5">
+                    <div className="rounded-xl border bg-card p-2.5 shadow-soft">
                       <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Align to page</div>
                       <div className="mt-1.5 grid grid-cols-6 gap-1">
                         {([['left', AlignStartVertical], ['hcenter', AlignCenterVertical], ['right', AlignEndVertical], ['top', AlignStartHorizontal], ['vcenter', AlignCenterHorizontal], ['bottom', AlignEndHorizontal]] as const).map(([edge, Icon]) => (
@@ -1290,14 +1321,14 @@ export function AnnotateTool() {
                         ))}
                       </div>
                     </div>
-                    <div className="rounded-lg border bg-card p-2.5">
+                    <div className="rounded-xl border bg-card p-2.5 shadow-soft">
                       <div className="flex items-center justify-between text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                         <span>Opacity</span><span className="tabular-nums text-foreground">{Math.round(selOpacity * 100)}%</span>
                       </div>
                       <input type="range" min={10} max={100} value={Math.round(selOpacity * 100)} onChange={(e) => setSelOpacity(Number(e.target.value) / 100)} className="dd-range mt-1.5 w-full" aria-label="Opacity" />
                     </div>
                     {selTextA && (
-                      <div className="rounded-lg border bg-card p-2.5">
+                      <div className="rounded-xl border bg-card p-2.5 shadow-soft">
                         <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Colour</div>
                         <div className="mt-1.5 flex gap-1.5">
                           {COLORS.map((c) => (
@@ -1323,13 +1354,13 @@ export function AnnotateTool() {
                           : 'Drag to draw the shape. Adjust colour and size above.'}
                       </p>
                     </div>
-                    <div className="rounded-lg border bg-card p-2.5 text-xs text-muted-foreground">
+                    <div className="rounded-xl border bg-card p-2.5 shadow-soft text-xs text-muted-foreground">
                       {markedPages.length ? `${markedPages.length} page${markedPages.length === 1 ? '' : 's'} marked up.` : 'Nothing marked up yet — pick a tool and start.'}
                       <span className="mt-1 block">Everything stays on your device.</span>
                     </div>
                   </>
                 )}
-                <div className="rounded-lg border bg-card p-2.5">
+                <div className="rounded-xl border bg-card p-2.5 shadow-soft">
                   <div className="mb-1.5 flex items-center justify-between">
                     <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Style presets</span>
                     <button onClick={saveCurrentPreset} disabled={tool === 'select'} title="Save the current tool, colour & size" className="flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-medium transition-colors hover:bg-accent disabled:opacity-40"><Plus className="size-3" /> Save</button>
@@ -1349,32 +1380,17 @@ export function AnnotateTool() {
                     </div>
                   )}
                 </div>
-                {(() => {
-                  const layers = pageLayers();
-                  return layers.length > 0 ? (
-                    <div>
-                      <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"><LayersIcon className="size-3.5" /> Layers <span className="text-foreground/50">· {layers.length}</span></div>
-                      <div className="max-h-52 space-y-0.5 overflow-y-auto rounded-lg border bg-card p-1">
-                        {layers.map((L) => (
-                          <div key={L.key} className={`group flex items-center gap-1 rounded-md px-1.5 py-1 ${L.selected ? 'bg-primary/10' : 'hover:bg-accent'}`}>
-                            <button onClick={() => selectLayer(L.key)} className={`flex min-w-0 flex-1 items-center gap-1.5 text-left ${L.hidden ? 'opacity-45' : ''}`}>
-                              <L.Icon className="size-3.5 shrink-0 text-muted-foreground" />
-                              <span className="truncate text-xs">{L.label}</span>
-                            </button>
-                            {L.canMove && (
-                              <>
-                                <button onClick={() => moveLayer(L.key, -1)} title="Bring forward" aria-label="Bring forward" className="hidden size-5 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground group-hover:flex"><ChevronUp className="size-3.5" /></button>
-                                <button onClick={() => moveLayer(L.key, 1)} title="Send back" aria-label="Send back" className="hidden size-5 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground group-hover:flex"><ChevronDown className="size-3.5" /></button>
-                              </>
-                            )}
-                            <button onClick={() => toggleLayerHidden(L.key)} title={L.hidden ? 'Show' : 'Hide'} aria-label={L.hidden ? 'Show layer' : 'Hide layer'} className="flex size-5 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">{L.hidden ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}</button>
-                            <button onClick={() => deleteLayer(L.key)} title="Delete" aria-label="Delete layer" className="hidden size-5 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive group-hover:flex"><Trash2 className="size-3" /></button>
-                          </div>
-                        ))}
-                      </div>
+                {file && (
+                  <div className="rounded-xl border bg-card p-2.5 shadow-soft">
+                    <div className="mb-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Page tools</div>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      <button onClick={() => handoffTo('/rotate-pdf')} title="Rotate pages — opens Rotate PDF with this file" className="flex flex-col items-center gap-1 rounded-lg border py-2 text-[10px] font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:bg-accent hover:text-foreground"><RotateCw className="size-4" /> Rotate</button>
+                      <button onClick={() => handoffTo('/delete-pages-from-pdf')} title="Delete pages — opens Delete Pages with this file" className="flex flex-col items-center gap-1 rounded-lg border py-2 text-[10px] font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:bg-accent hover:text-foreground"><FileMinus className="size-4" /> Delete</button>
+                      <button onClick={() => handoffTo('/reorder-pdf')} title="Reorder pages — opens Organise/Reorder with this file" className="flex flex-col items-center gap-1 rounded-lg border py-2 text-[10px] font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:bg-accent hover:text-foreground"><ArrowLeftRight className="size-4" /> Organise</button>
                     </div>
-                  ) : null;
-                })()}
+                    <p className="mt-1.5 text-[10px] text-muted-foreground">Opens the page tool with this file — no re-upload. Save your markup first.</p>
+                  </div>
+                )}
                 <div className="border-t pt-3">{brandToggle}</div>
               </div>
             }
