@@ -214,8 +214,9 @@ export default function OverviewPage() {
               {DIFFS.map((d) => (
                 <div key={d.name} className={`rounded-xl border bg-card p-4 shadow-soft ${d.flag ? 'border-amber-500/50' : ''}`}>
                   <div className="flex items-center gap-1.5">
-                    {d.flag && <Sparkles className="size-3.5 text-orange-500" />}
+                    {d.flag && <Sparkles className="size-3.5 shrink-0 text-orange-500" />}
                     <span className="text-sm font-semibold">{d.name}</span>
+                    {d.flag && <span className="ml-auto shrink-0 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">★ flagship</span>}
                   </div>
                   <p className="mt-1.5 text-[12px] leading-relaxed text-muted-foreground">{d.desc}</p>
                   <p className="mt-2 text-[9.5px] font-bold uppercase tracking-wide text-muted-foreground/70">{d.moat}</p>

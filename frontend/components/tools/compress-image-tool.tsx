@@ -15,6 +15,8 @@ import { BeforeAfter } from '@/components/pdf/before-after';
 import { SavingsRing } from '@/components/app/savings-ring';
 import { buildPreviewCanvas, canvasToPngBlob, encodeCanvas } from '@/lib/image-convert';
 import { useQualityPreview } from '@/lib/use-quality-preview';
+import { BatchRunner } from '@/components/app/batch-runner';
+import { compressImageFile } from '@/lib/image-compress-core';
 
 // Compress Image — 100% on-device. Decode → optional downscale → re-encode with
 // mozjpeg (same WASM encoder as PDF→JPG; graceful native-canvas fallback). Never
@@ -68,6 +70,7 @@ async function decode(f: File): Promise<ImageBitmap | HTMLImageElement> {
 export function CompressImageTool() {
   const plan = usePlan();
   const [file, setFile] = useState<File | null>(null);
+  const [batchFiles, setBatchFiles] = useState<File[]>([]); // multiple images dropped → Pro on-device batch
   const [tooBig, setTooBig] = useState<{ name: string; size: number } | null>(null);
   const [level, setLevel] = useState<Level>('recommended');
   const [resize, setResize] = useState<Resize>('original');
@@ -138,10 +141,15 @@ export function CompressImageTool() {
       return { blob, w, h };
     },
   });
-  function pick(files: FileList | null) { loadOne(files?.[0] ?? undefined); }
+  function pick(files: FileList | null) {
+    const list = files ? Array.from(files) : [];
+    if (list.length > 1) { clear(); setBatchFiles(list); return; } // multiple images → on-device batch
+    loadOne(list[0]);
+  }
 
   function clear() {
     setFile(null);
+    setBatchFiles([]);
     setTooBig(null);
     setError(null);
     setSrcDims(null);
@@ -200,12 +208,42 @@ export function CompressImageTool() {
   const saved = done && done.before > done.after ? Math.round(100 * (1 - done.after / done.before)) : 0;
   const isPng = !!file && (/image\/png/.test(file.type) || /\.png$/i.test(file.name));
 
+  // Quality + dimensions controls — shared by the single-file view and the batch runner.
+  const settingsUI = (
+    <>
+      <div className="mt-4">
+        <p className="mb-2 text-sm font-medium">Quality</p>
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
+          {(Object.keys(LEVELS) as Level[]).map((k) => (
+            <button key={k} onClick={() => setLevel(k)} aria-pressed={level === k}
+              className={`rounded-xl border px-2 py-2.5 text-center transition-all ${level === k ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-border bg-card hover:border-primary/40 hover:bg-accent/40'}`}>
+              <span className="block text-sm font-semibold">{LEVELS[k].title}</span>
+              <span className="block text-[11px] leading-tight text-muted-foreground">{LEVELS[k].sub}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="mt-4">
+        <p className="mb-2 text-sm font-medium">Dimensions</p>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
+          {RESIZES.map((r) => (
+            <button key={r.id} onClick={() => setResize(r.id)} aria-pressed={resize === r.id}
+              className={`rounded-xl border px-2 py-2.5 text-center transition-all ${resize === r.id ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-border bg-card hover:border-primary/40 hover:bg-accent/40'}`}>
+              <span className="block text-sm font-semibold">{r.label}</span>
+              <span className="block text-[11px] leading-tight text-muted-foreground">{r.sub}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+
   return (
     <>
       <Card>
         <CardContent className="p-5">
           {/* value reset: browsers only fire change when the selection differs */}
-          <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" className="hidden" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
+          <input ref={inputRef} type="file" multiple accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" className="hidden" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
           {file && <BigFileHint bytes={file.size} threshold={500 * 1024 * 1024} />}
 
           {tooBig ? (
@@ -214,6 +252,15 @@ export function CompressImageTool() {
               sizeText={fmtBytes(tooBig.size)}
               limitText={fmtBytes(FREE_MAX_BYTES)}
               onReset={() => { setTooBig(null); inputRef.current?.click(); }}
+            />
+          ) : batchFiles.length > 0 ? (
+            <BatchRunner
+              files={batchFiles}
+              controls={settingsUI}
+              actionLabel="Compress all"
+              zipName="compressed-images.zip"
+              process={async (f) => { const r = await compressImageFile(f, { level, resize }); return { blob: r.blob, name: r.name, before: r.before, after: r.after }; }}
+              onReset={clear}
             />
           ) : !file ? (
             <div
@@ -254,38 +301,7 @@ export function CompressImageTool() {
 
           {file && !done && (
             <>
-              <div className="mt-4">
-                <p className="mb-2 text-sm font-medium">Quality</p>
-                <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                  {(Object.keys(LEVELS) as Level[]).map((k) => (
-                    <button
-                      key={k}
-                      onClick={() => setLevel(k)}
-                      aria-pressed={level === k}
-                      className={`rounded-xl border px-2 py-2.5 text-center transition-all ${level === k ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-border bg-card hover:border-primary/40 hover:bg-accent/40'}`}
-                    >
-                      <span className="block text-sm font-semibold">{LEVELS[k].title}</span>
-                      <span className="block text-[11px] leading-tight text-muted-foreground">{LEVELS[k].sub}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="mt-4">
-                <p className="mb-2 text-sm font-medium">Dimensions</p>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
-                  {RESIZES.map((r) => (
-                    <button
-                      key={r.id}
-                      onClick={() => setResize(r.id)}
-                      aria-pressed={resize === r.id}
-                      className={`rounded-xl border px-2 py-2.5 text-center transition-all ${resize === r.id ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-border bg-card hover:border-primary/40 hover:bg-accent/40'}`}
-                    >
-                      <span className="block text-sm font-semibold">{r.label}</span>
-                      <span className="block text-[11px] leading-tight text-muted-foreground">{r.sub}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
+              {settingsUI}
 
               {/* Live quality preview — original vs. this exact setting, before
                   you commit. Judge sharpness with the zoom, not a number. */}
