@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import {
   ArrowRight, FileText, Scissors, Combine, Search, QrCode,
   Shrink, RotateCw, ListOrdered, Image as ImageIcon, KeyRound,
+  MousePointer2, Sparkles, Download,
 } from 'lucide-react';
 import { liveToolCount } from '@/components/app/catalog';
 
@@ -82,6 +83,66 @@ export function FeatureSpotlights() {
             <span className="absolute -right-2 top-24 flex size-10 items-center justify-center rounded-xl bg-amber-500 text-white shadow-lift"><span className="text-[10px] font-bold">JPG</span></span>
             <span className="absolute bottom-2 left-2 flex size-10 items-center justify-center rounded-xl bg-violet-500 text-white shadow-lift"><Scissors className="size-5" /></span>
             <span className="absolute bottom-3 right-10 flex size-10 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-lift"><Combine className="size-5" /></span>
+          </div>
+        </div>
+      </Row>
+
+      {/* On-device editor — Annotate / Sign / Redact / Edit */}
+      <Row eyebrow="On-device editor" eyebrowColor="#d97706" title="Edit, sign & redact — with design-tool precision." body="A premium editor for your PDFs: annotate, sign, redact and edit — with ⌘K commands, snap-to guides, a properties inspector and reusable signatures. Design-tool control, word-processor ease, 100% on your device." cta="Open the editor" href="/annotate-pdf">
+        <div className="rounded-2xl border bg-gradient-to-br from-amber-50 to-background p-5 dark:from-amber-950/20">
+          <div className="mx-auto max-w-sm overflow-hidden rounded-xl border bg-card shadow-lift">
+            {/* top bar */}
+            <div className="flex items-center gap-2 border-b bg-muted/30 px-3 py-2">
+              <span className="flex size-5 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-indigo-500 to-violet-500 text-[9px] font-bold text-white">D</span>
+              <span className="text-[11px] font-semibold">Editor</span>
+              <span className="ml-auto flex items-center gap-1 rounded-md border bg-background px-1.5 py-0.5 text-[9px] text-muted-foreground"><Sparkles className="size-2.5 text-amber-500" /> Do anything <span className="rounded border px-1 text-[8px]">⌘K</span></span>
+              <span className="flex items-center gap-0.5 rounded-md bg-primary px-1.5 py-0.5 text-[9px] font-semibold text-primary-foreground"><Download className="size-2.5" /> Export</span>
+            </div>
+            {/* toolbar */}
+            <div className="flex items-center gap-1 border-b px-2 py-1.5">
+              <span className="flex items-center gap-1 rounded bg-primary px-1.5 py-0.5 text-[9px] font-semibold text-primary-foreground"><MousePointer2 className="size-2.5" /> Select</span>
+              {['Text', 'Sign', 'Shape', 'Highlight'].map((t) => (
+                <span key={t} className="rounded px-1.5 py-0.5 text-[9px] text-muted-foreground">{t}</span>
+              ))}
+            </div>
+            {/* body: rail | canvas | inspector */}
+            <div className="flex">
+              <div className="hidden w-8 shrink-0 flex-col gap-1 border-r bg-muted/20 p-1 sm:flex">
+                <div className="h-9 rounded border-2 border-primary bg-background" />
+                <div className="h-9 rounded border bg-background" />
+                <div className="h-9 rounded border bg-background" />
+              </div>
+              <div className="min-w-0 flex-1 bg-muted/10 p-3">
+                <div className="mx-auto max-w-[8rem] rounded border bg-white p-2.5 shadow-sm">
+                  <div className="h-1.5 w-3/4 rounded bg-slate-300" />
+                  <div className="mt-1 h-1 w-1/2 rounded bg-slate-200" />
+                  <div className="mt-2 space-y-1"><div className="h-1 w-full rounded bg-slate-100" /><div className="h-1 w-[85%] rounded bg-slate-100" /><div className="h-1 w-[92%] rounded bg-slate-100" /></div>
+                  {/* selected signature with floating toolbar + handles */}
+                  <div className="relative mt-3">
+                    <div className="absolute -top-3 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded bg-slate-900 px-1 py-0.5 shadow">
+                      <span className="size-1.5 rounded-[1px] bg-slate-400" /><span className="size-1.5 rounded-[1px] bg-slate-400" /><span className="size-1.5 rounded-[1px] bg-slate-400" />
+                    </div>
+                    <div className="relative rounded border-2 border-primary p-1">
+                      <svg viewBox="0 0 80 20" className="h-4 w-full text-indigo-600" aria-hidden="true"><path d="M2 14 Q10 2 18 12 T34 10 T50 12 T66 8 T78 11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+                      <span className="absolute -left-0.5 -top-0.5 size-1.5 rounded-full border border-primary bg-white" /><span className="absolute -right-0.5 -top-0.5 size-1.5 rounded-full border border-primary bg-white" /><span className="absolute -bottom-0.5 -left-0.5 size-1.5 rounded-full border border-primary bg-white" /><span className="absolute -bottom-0.5 -right-0.5 size-1.5 rounded-full border border-primary bg-white" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="hidden w-[4.5rem] shrink-0 border-l bg-muted/20 p-1.5 lg:block">
+                <p className="text-[8px] font-semibold uppercase tracking-wide text-muted-foreground">Signature</p>
+                <div className="mt-1 grid grid-cols-2 gap-1">
+                  <div className="rounded border bg-background px-1 py-0.5 text-[8px] tabular-nums">X 150</div>
+                  <div className="rounded border bg-background px-1 py-0.5 text-[8px] tabular-nums">Y 250</div>
+                </div>
+                <p className="mt-1.5 text-[8px] font-semibold uppercase tracking-wide text-muted-foreground">Opacity 72%</p>
+                <div className="mt-0.5 h-1 rounded-full bg-primary/25"><div className="h-1 w-3/4 rounded-full bg-primary" /></div>
+                <p className="mt-1.5 text-[8px] font-semibold uppercase tracking-wide text-muted-foreground">Ink</p>
+                <div className="mt-0.5 flex gap-0.5">
+                  <span className="size-2.5 rounded-full bg-slate-900" /><span className="size-2.5 rounded-full bg-red-500" /><span className="size-2.5 rounded-full bg-emerald-500" /><span className="size-2.5 rounded-full ring-1 ring-primary bg-indigo-500" />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </Row>
