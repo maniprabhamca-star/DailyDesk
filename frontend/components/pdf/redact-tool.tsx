@@ -15,7 +15,7 @@ import { PageStrip } from '@/components/pdf/page-strip';
 import { EditorShell } from '@/components/pdf/editor-shell';
 import { setEditorContext, clearEditorContext } from '@/lib/command-registry';
 import { saveSession, loadSessionAsync, clearSession } from '@/lib/editor-session';
-import { Mail, Phone, CreditCard, Hash, Info } from 'lucide-react';
+import { Mail, Phone, CreditCard, Hash, Info, History } from 'lucide-react';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
 
@@ -85,6 +85,7 @@ export function RedactTool() {
   const [query, setQuery] = useState('');
   const [scanning, setScanning] = useState<string | null>(null); // label of the scan in flight
   const [scanNote, setScanNote] = useState<string | null>(null);
+  const [restorable, setRestorable] = useState<{ name: string; run: () => void } | null>(null); // saved session offered on the dropzone
 
   const isPro = plan === 'pro'; // owner cookie / Pro email resolve to 'pro' via usePlan()
 
@@ -113,14 +114,17 @@ export function RedactTool() {
     const h = takeHandoff();
     const pdf = h?.files.find((f) => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
     if (h && pdf) { setHandoffNote(`PDF brought straight over from ${h.from} — no re-upload needed.`); void loadOne(pdf); return; }
-    // No handoff — restore the last session (memory first, then IndexedDB so it
-    // survives a full reload) so leaving & returning keeps your work.
+    // No handoff — OFFER the last session as a "pick up where you left off" prompt
+    // on the dropzone, instead of silently reloading the old file.
     let alive = true;
     void loadSessionAsync<{ boxes: Record<number, Box[]> }>('redact').then((sess) => {
       if (!alive || !sess) return;
-      setBoxes(sess.data.boxes || {});
-      setBusy(true);
-      void openPdf(sess.file).then((hh) => { if (!alive) { void hh.destroy(); return; } setHandle(hh); setPageCount(hh.numPages); setSel(0); setFile(sess.file); }).catch(() => clearSession('redact')).finally(() => { if (alive) setBusy(false); });
+      setRestorable({ name: sess.file.name, run: () => {
+        setRestorable(null);
+        setBoxes(sess.data.boxes || {});
+        setBusy(true);
+        void openPdf(sess.file).then((hh) => { setHandle(hh); setPageCount(hh.numPages); setSel(0); setFile(sess.file); }).catch(() => clearSession('redact')).finally(() => setBusy(false));
+      } });
     });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -490,6 +494,14 @@ export function RedactTool() {
               <Zap className="size-4 shrink-0 text-primary" /> {handoffNote}
             </p>
           )}
+          {restorable && (
+            <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-primary/30 bg-primary/[0.06] px-3 py-2 text-sm">
+              <History className="size-4 shrink-0 text-primary" />
+              <span className="min-w-0 flex-1 truncate">Pick up where you left off — <b className="font-medium">{restorable.name}</b></span>
+              <button onClick={restorable.run} className="shrink-0 rounded-md bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90">Restore</button>
+              <button onClick={() => { clearSession('redact'); setRestorable(null); }} className="shrink-0 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors hover:bg-accent">Start fresh</button>
+            </div>
+          )}
           <div
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => { e.preventDefault(); pick(e.dataTransfer.files); }}
@@ -579,7 +591,7 @@ export function RedactTool() {
               </div>
             }
           >
-            {findPanel}
+            <div className="mx-auto max-w-3xl">{findPanel}</div>
             <div className="mt-3">{surface}</div>
             {pageCount > 1 && (
               <PageStrip handle={handle} count={pageCount} selected={sel} onSelect={setSel} className="mt-3 sm:hidden" />

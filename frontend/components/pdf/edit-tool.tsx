@@ -2,7 +2,7 @@
 import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 
 import React, { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react';
-import { Upload, X, Loader2, Pencil, Undo2, Redo2, Bold, Italic, Trash2, Minus, Plus, Zap, TextCursorInput, Highlighter, Pen, Square, Circle, ArrowUpRight, ChevronDown, Signature as SignatureIcon, ImagePlus, Move, Maximize2, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, Stamp as StampIcon, Link as LinkIcon, RotateCw } from 'lucide-react';
+import { Upload, X, Loader2, Pencil, Undo2, Redo2, Bold, Italic, Trash2, Minus, Plus, Zap, TextCursorInput, Highlighter, Pen, Square, Circle, ArrowUpRight, ChevronDown, Signature as SignatureIcon, ImagePlus, Move, Maximize2, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, Stamp as StampIcon, Link as LinkIcon, RotateCw, History } from 'lucide-react';
 import { SignatureMaker } from './signature-maker';
 import { Card, CardContent } from '@/components/ui/card';
 import { downloadBlob as download } from '@/lib/download';
@@ -427,6 +427,7 @@ export function EditTool() {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ blob: Blob; name: string; secs: number } | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
+  const [restorable, setRestorable] = useState<{ name: string; run: () => void } | null>(null); // saved session offered on the dropzone
   const [fontReady, setFontReady] = useState(0);
   const [tool, setTool] = useState<EditorTool>('paragraph');
   const [markupColor, setMarkupColor] = useState(MARKUP_COLORS[0]);
@@ -539,16 +540,19 @@ export function EditTool() {
     const h = takeHandoff();
     const pdf = h?.files.find((f) => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
     if (h && pdf) { setHandoffNote(`PDF brought straight over from ${h.from} — no re-upload needed.`); void loadOne(pdf); return; }
-    // No handoff — restore the last session (memory first, then IndexedDB so it
-    // survives a full reload) so leaving & returning keeps your work.
+    // No handoff — OFFER the last session as a "pick up where you left off" prompt
+    // on the dropzone, instead of silently reloading the old file.
     let alive = true;
     void loadSessionAsync<{ lines: typeof lines; edits: typeof edits; blocks: typeof blocks; blockEdits: typeof blockEdits; blockStyle: typeof blockStyle; blockLayout: typeof blockLayout; markups: typeof markups; images: typeof images; added: typeof added }>('edit').then((sess) => {
       if (!alive || !sess) return;
-      const d = sess.data;
-      setLines(d.lines || {}); setEdits(d.edits || {}); setBlocks(d.blocks || {}); setBlockEdits(d.blockEdits || {}); setBlockStyle(d.blockStyle || {}); setBlockLayout(d.blockLayout || {}); setMarkups(d.markups || {}); setImages(d.images || []); setAdded(d.added || []);
-      (d.images || []).forEach((im) => { const el = new Image(); el.onload = () => { imgCache.current.set(im.src, el); }; el.src = im.src; });
-      setBusy(true);
-      void openPdf(sess.file).then((hh) => { if (!alive) { void hh.destroy(); return; } setHandle(hh); setPageCount(hh.numPages); setSel(0); setFile(sess.file); }).catch(() => clearSession('edit')).finally(() => { if (alive) setBusy(false); });
+      setRestorable({ name: sess.file.name, run: () => {
+        setRestorable(null);
+        const d = sess.data;
+        setLines(d.lines || {}); setEdits(d.edits || {}); setBlocks(d.blocks || {}); setBlockEdits(d.blockEdits || {}); setBlockStyle(d.blockStyle || {}); setBlockLayout(d.blockLayout || {}); setMarkups(d.markups || {}); setImages(d.images || []); setAdded(d.added || []);
+        (d.images || []).forEach((im) => { const el = new Image(); el.onload = () => { imgCache.current.set(im.src, el); }; el.src = im.src; });
+        setBusy(true);
+        void openPdf(sess.file).then((hh) => { setHandle(hh); setPageCount(hh.numPages); setSel(0); setFile(sess.file); }).catch(() => clearSession('edit')).finally(() => setBusy(false));
+      } });
     });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1747,6 +1751,14 @@ export function EditTool() {
       ) : !file ? (
         <Card><CardContent className="p-5">
           {handoffNote && <p className="mb-3 flex items-center gap-2 rounded-lg border border-primary/25 bg-primary/[0.06] px-3 py-2 text-sm text-foreground"><Zap className="size-4 shrink-0 text-primary" /> {handoffNote}</p>}
+          {restorable && (
+            <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-primary/30 bg-primary/[0.06] px-3 py-2 text-sm">
+              <History className="size-4 shrink-0 text-primary" />
+              <span className="min-w-0 flex-1 truncate">Pick up where you left off — <b className="font-medium">{restorable.name}</b></span>
+              <button onClick={restorable.run} className="shrink-0 rounded-md bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90">Restore</button>
+              <button onClick={() => { clearSession('edit'); setRestorable(null); }} className="shrink-0 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors hover:bg-accent">Start fresh</button>
+            </div>
+          )}
           <label htmlFor="edit-pdf-upload" onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); pick(e.dataTransfer.files); }}
             className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border p-8 text-center transition-colors hover:border-primary/50 hover:bg-accent/40">
             <Upload className="size-7 text-muted-foreground" />
@@ -1899,9 +1911,9 @@ export function EditTool() {
             <div>
               <div className="flex items-start justify-center overflow-auto rounded-xl border bg-muted/30 p-1 sm:p-2">
                 {preview ? (
-                  <div ref={wrapRef} className="relative mx-auto w-full max-w-full leading-[0]">
+                  <div ref={wrapRef} className="relative inline-block max-w-full leading-[0]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img ref={imgRef} src={preview.url} alt={`Page ${sel + 1}`} className="w-full rounded border bg-white shadow-md" draggable={false} onLoad={() => { const im = imgRef.current; if (im) setDisp({ w: im.clientWidth, h: im.clientHeight }); }} />
+                  <img ref={imgRef} src={preview.url} alt={`Page ${sel + 1}`} className="block max-h-[42rem] max-w-full rounded border bg-white shadow-md" draggable={false} onLoad={() => { const im = imgRef.current; if (im) setDisp({ w: im.clientWidth, h: im.clientHeight }); }} />
 
                   {/* Edited/active lines: cover + reflowed text drawn in ONE canvas
                       (same coordinate space → can't drift → no doubling). */}

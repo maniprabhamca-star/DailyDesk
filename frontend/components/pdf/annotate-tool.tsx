@@ -2,7 +2,7 @@
 import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Upload, X, Loader2, Highlighter, Pen, Square, Circle, Minus, ArrowUpRight, ChevronDown, ChevronUp, Type, Trash2, Zap, Bold, Italic, Underline, Signature as SignatureIcon, ImagePlus, Plus, Copy, Star, MoveDiagonal, MousePointer2, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, Eye, EyeOff, Layers as LayersIcon, RotateCw, FileMinus, ArrowLeftRight } from 'lucide-react';
+import { Upload, X, Loader2, Highlighter, Pen, Square, Circle, Minus, ArrowUpRight, ChevronDown, ChevronUp, Type, Trash2, Zap, Bold, Italic, Underline, Signature as SignatureIcon, ImagePlus, Plus, Copy, Star, MoveDiagonal, MousePointer2, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, Eye, EyeOff, Layers as LayersIcon, RotateCw, FileMinus, ArrowLeftRight, History } from 'lucide-react';
 import { SignatureMaker } from './signature-maker';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -217,6 +217,7 @@ export function AnnotateTool() {
   const [selImg, setSelImg] = useState<string | null>(null); // selected image/signature id
   const [sigOpen, setSigOpen] = useState(false);
   const [snapGuides, setSnapGuides] = useState<{ v?: number; h?: number } | null>(null); // live alignment guides while dragging
+  const [restorable, setRestorable] = useState<{ name: string; run: () => void } | null>(null); // saved session offered on the dropzone, not auto-loaded
   // 1c multi-select (Select tool): `group` holds selected object keys (t<idx> / i<id>),
   // `marquee` is the live rubber-band rect (page fractions) while dragging empty space.
   const [group, setGroup] = useState<string[]>([]);
@@ -260,16 +261,20 @@ export function AnnotateTool() {
     const h = takeHandoff();
     const pdf = h?.files.find((f) => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
     if (h && pdf) { setHandoffNote(`PDF brought straight over from ${h.from} — no re-upload needed.`); void loadOne(pdf); return; }
-    // No handoff — restore the last session (memory first, then IndexedDB so it
-    // survives a full reload) so leaving & returning keeps your work.
+    // No handoff — OFFER the last session (memory first, then IndexedDB) as a
+    // "pick up where you left off" prompt on the dropzone, instead of silently
+    // reloading the old file when the user opened the tool to start fresh.
     let alive = true;
     void loadSessionAsync<{ annos: Record<number, Anno[]>; images: ImageItem[] }>('annotate').then((sess) => {
       if (!alive || !sess) return;
-      setAnnos(sess.data.annos || {});
-      setImages(sess.data.images || []);
-      (sess.data.images || []).forEach((im) => { const el = new Image(); el.onload = () => { imgCache.current.set(im.src, el); }; el.src = im.src; });
-      setBusy(true);
-      void openPdf(sess.file).then((hh) => { if (!alive) { void hh.destroy(); return; } setHandle(hh); setPageCount(hh.numPages); setSel(0); setFile(sess.file); }).catch(() => clearSession('annotate')).finally(() => { if (alive) setBusy(false); });
+      setRestorable({ name: sess.file.name, run: () => {
+        setRestorable(null);
+        setAnnos(sess.data.annos || {});
+        setImages(sess.data.images || []);
+        (sess.data.images || []).forEach((im) => { const el = new Image(); el.onload = () => { imgCache.current.set(im.src, el); }; el.src = im.src; });
+        setBusy(true);
+        void openPdf(sess.file).then((hh) => { setHandle(hh); setPageCount(hh.numPages); setSel(0); setFile(sess.file); }).catch(() => clearSession('annotate')).finally(() => setBusy(false));
+      } });
     });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1082,6 +1087,14 @@ export function AnnotateTool() {
             <p className="mb-3 flex items-center gap-2 rounded-lg border border-primary/25 bg-primary/[0.06] px-3 py-2 text-sm text-foreground">
               <Zap className="size-4 shrink-0 text-primary" /> {handoffNote}
             </p>
+          )}
+          {restorable && (
+            <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-primary/30 bg-primary/[0.06] px-3 py-2 text-sm">
+              <History className="size-4 shrink-0 text-primary" />
+              <span className="min-w-0 flex-1 truncate">Pick up where you left off — <b className="font-medium">{restorable.name}</b></span>
+              <button onClick={restorable.run} className="shrink-0 rounded-md bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90">Restore</button>
+              <button onClick={() => { clearSession('annotate'); setRestorable(null); }} className="shrink-0 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors hover:bg-accent">Start fresh</button>
+            </div>
           )}
           <div
             onDragOver={(e) => e.preventDefault()}
