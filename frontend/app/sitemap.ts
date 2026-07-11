@@ -43,6 +43,7 @@ const ROUTES: Array<{ path: string; priority: number; changeFrequency: MetadataR
   { path: '/vcard-qr-code', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/password-generator', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/pricing', priority: 0.8, changeFrequency: 'monthly' },
+  { path: '/overview', priority: 0.7, changeFrequency: 'monthly' },
   { path: '/compare', priority: 0.7, changeFrequency: 'monthly' },
   { path: '/smallpdf-alternative', priority: 0.7, changeFrequency: 'monthly' },
   { path: '/ilovepdf-alternative', priority: 0.7, changeFrequency: 'monthly' },

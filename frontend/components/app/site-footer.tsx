@@ -14,6 +14,7 @@ const COLUMNS = [
     { label: 'All tools', href: '/#tools' },
   ] },
   { title: 'Product', color: '#2dd4bf', links: [
+    { label: 'Overview', href: '/overview' },
     { label: 'Free during launch', href: '/free' },
     { label: 'Pricing', href: '/pricing' },
     { label: 'Compare', href: '/compare' },
