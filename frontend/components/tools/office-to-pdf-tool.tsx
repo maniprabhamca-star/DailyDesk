@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
+import { ConversionLimitUpsell } from './conversion-limit';
 
 // Shared engine for Word/Excel/PowerPoint -> PDF (DiemDesk's server tier —
 // LibreOffice is its STRONG direction, so output fidelity is excellent).
@@ -83,6 +84,7 @@ export function OfficeToPdfTool({ kindId }: { kindId: OfficeKindId }) {
   const [progress, setProgress] = useState<number | null>(null);
   const [phase, setPhase] = useState<'upload' | 'convert' | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [limitHit, setLimitHit] = useState<string | null>(null); // daily free-conversion cap → upsell
   const [done, setDone] = useState<{ blob: Blob; name: string; secs: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const xhrRef = useRef<XMLHttpRequest | null>(null);
@@ -113,6 +115,7 @@ export function OfficeToPdfTool({ kindId }: { kindId: OfficeKindId }) {
     if (!file) return;
     setBusy(true);
     setError(null);
+    setLimitHit(null);
     setDone(null);
     setPhase('upload');
     setProgress(0);
@@ -154,7 +157,8 @@ export function OfficeToPdfTool({ kindId }: { kindId: OfficeKindId }) {
       }
       void (xhr.response as Blob).text().then((t) => {
         try {
-          const j = JSON.parse(t) as { message?: string };
+          const j = JSON.parse(t) as { message?: string; error?: string };
+          if (j.error === 'daily-limit') { setLimitHit(j.message || 'You’ve used your free conversions for today.'); return; }
           setError(j.message || 'Could not convert this document.');
         } catch {
           setError(xhr.status === 429 ? 'Too many conversions — please try again in a few minutes.' : 'Could not convert this document.');
@@ -197,7 +201,7 @@ export function OfficeToPdfTool({ kindId }: { kindId: OfficeKindId }) {
               <p className="truncate text-sm font-medium">{file.name}</p>
               <p className="text-xs text-muted-foreground">{fmt(file.size)}</p>
             </div>
-            <Button size="icon" variant="ghost" aria-label="Remove" onClick={() => { setFile(null); setDone(null); setError(null); }}><X className="size-4" /></Button>
+            <Button size="icon" variant="ghost" aria-label="Remove" onClick={() => { setFile(null); setDone(null); setError(null); setLimitHit(null); }}><X className="size-4" /></Button>
           </div>
         )}
 
@@ -216,8 +220,9 @@ export function OfficeToPdfTool({ kindId }: { kindId: OfficeKindId }) {
         )}
 
         {error && <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
+        {limitHit && <ConversionLimitUpsell message={limitHit} />}
 
-        {file && !done && (
+        {file && !done && !limitHit && (
           busy ? (
             <div className="mt-5 flex gap-2">
               <Button className="flex-1" size="lg" disabled><Loader2 className="size-4 animate-spin" /> Converting…</Button>

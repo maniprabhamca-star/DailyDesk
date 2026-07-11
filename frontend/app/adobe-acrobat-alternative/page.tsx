@@ -27,7 +27,7 @@ const data: AltData = {
   ],
   rows: [
     { label: 'Price (paid plan)', us: 'Free now · Pro ~$5.98/mo planned', them: '$19.99–29.99/mo' },
-    { label: 'Free plan', us: 'Every tool, no daily cap', them: '7-day trial only' },
+    { label: 'Free plan', us: 'Every in-browser tool, no daily cap', them: '7-day trial only' },
     { label: 'Runs in any browser, no install', us: true, them: 'App / account' },
     { label: 'Use without an account', us: true, them: 'Account required' },
     { label: 'In-browser tools upload your file', us: false, them: true },

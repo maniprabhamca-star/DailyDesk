@@ -8,8 +8,8 @@ import { PRICING } from '@/lib/pricing';
 
 const freeNow = [
   'Every tool — PDF, image, video, QR & utilities',
-  'Unlimited use — no daily task limits (competitors cap you)',
-  'Single-file Office conversions — PDF ↔ Word, Excel, PowerPoint',
+  'Unlimited in-browser tools — no daily limits (competitors cap you)',
+  '3 free Office conversions a day — PDF ↔ Word, Excel, PowerPoint',
   'Video compress & Video → GIF — private, right in your browser',
   'Full-strength compression & editing — nothing crippled',
   'No signup, no watermarks, no ads — files never leave your device',

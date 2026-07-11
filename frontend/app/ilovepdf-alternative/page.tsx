@@ -26,7 +26,7 @@ const data: AltData = {
     { title: 'Combine files without caps', body: 'Merge and images→PDF are unlimited and free. iLovePDF’s free merge stops at 25 files and Compress at two.' },
   ],
   rows: [
-    { label: 'Free plan', us: 'Every tool, no daily cap', them: 'Limited tasks + ads' },
+    { label: 'Free plan', us: 'Every in-browser tool, no daily cap', them: 'Limited tasks + ads' },
     { label: 'Files stay on your device', us: true, them: false },
     { label: 'Ad-free on free plan', us: true, them: false },
     { label: 'Use without an account', us: true, them: 'For most' },
@@ -35,7 +35,7 @@ const data: AltData = {
     { label: 'Beyond PDF (image, QR, video)', us: true, them: 'PDF-focused' },
   ],
   faqs: [
-    { q: 'Is DiemDesk free without ads, unlike iLovePDF?', a: 'Yes — DiemDesk is free during launch with no ads and no trackers, where iLovePDF shows ads on its free plan. There’s also no daily task limit; a later Pro plan adds scale features rather than removing ads.' },
+    { q: 'Is DiemDesk free without ads, unlike iLovePDF?', a: 'Yes — DiemDesk is free with no ads and no trackers, where iLovePDF shows ads on its free plan. The in-browser tools have no daily limit; the few server-side Office conversions give you 3 free a day, and Pro adds scale features rather than removing ads.' },
     { q: 'Does DiemDesk upload my files like iLovePDF?', a: 'No. The in-browser tools process your file locally, so it never leaves your browser. iLovePDF uploads files for server-side (regional) processing. A few DiemDesk tools genuinely need a server (Office conversions, and later OCR) — those are clearly labelled and your file is deleted right after.' },
     { q: 'Can DiemDesk merge and compress like iLovePDF?', a: 'Yes — and without iLovePDF’s free caps (its free Merge stops at 25 files, Compress at two). DiemDesk’s merge and images→PDF are unlimited and free, and compression handles files up to 100 MB in the browser.' },
   ],

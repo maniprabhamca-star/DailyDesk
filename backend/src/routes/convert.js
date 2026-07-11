@@ -15,11 +15,52 @@ const path = require('path');
 const os = require('os');
 const crypto = require('crypto');
 const { isDisabled } = require('../utils/toolFlag');
+const jwt = require('jsonwebtoken');
+const db = require('../db');
+const redis = require('../utils/redis');
 
 const router = express.Router();
 
 const MAX_BYTES = 50 * 1024 * 1024; // conversion cap (LibreOffice memory)
 const TIMEOUT_MS = 120 * 1000;
+
+// Free tier gets a small DAILY allowance of server conversions (they cost real
+// CPU); Pro is unlimited. Keyed by client IP so it works for anonymous free users
+// too (the free tier needs no signup). Pro is read from an optional Bearer token.
+const FREE_DAILY = Number(process.env.FREE_DAILY_CONVERSIONS || 3);
+
+async function planOf(req) {
+  const h = req.headers.authorization;
+  if (!h || !h.startsWith('Bearer ')) return null; // anonymous → free path
+  try {
+    const decoded = jwt.verify(h.split(' ')[1], process.env.JWT_SECRET);
+    const { rows } = await db.query('SELECT plan FROM users WHERE id = $1', [decoded.userId]);
+    return rows[0] ? rows[0].plan : null;
+  } catch { return null; }
+}
+
+// Enforce the free daily cap (Pro bypasses). Runs after the burst limiter and
+// FAILS OPEN on any Redis/DB hiccup so infra trouble never blocks conversions.
+async function dailyQuota(req, res, next) {
+  let plan = null;
+  try { plan = await planOf(req); } catch { plan = null; }
+  if (plan === 'pro') { req.isPro = true; return next(); }
+  if (redisDown()) return next();
+  const day = new Date().toISOString().slice(0, 10); // UTC calendar day
+  const key = `conv:day:${clientKey(req)}:${day}`;
+  try {
+    const used = Number(await redis.get(key)) || 0;
+    if (used >= FREE_DAILY) {
+      return res.status(429).json({
+        error: 'daily-limit',
+        limit: FREE_DAILY,
+        message: `You've used your ${FREE_DAILY} free document conversions for today.`,
+      });
+    }
+    req._convKey = key; // counted only once the conversion actually succeeds
+  } catch { /* fail open */ }
+  return next();
+}
 
 // Stricter than the global limiter: conversions cost real CPU.
 router.use(rateLimit({
@@ -30,6 +71,8 @@ router.use(rateLimit({
   skip: () => redisDown(),
   message: { error: 'Too many conversions — please try again in a few minutes.' },
 }));
+// Free daily quota (Pro unlimited) — after the burst limiter, before the routes.
+router.use(dailyQuota);
 
 const OFFICE_RE = /\.(docx?|odt|rtf|txt|html?|xlsx?|ods|csv|pptx?|odp)$/i;
 
@@ -126,6 +169,9 @@ function convertRoute({ upload, sofficeArgs, outExt, failMessage, slugFor }) {
             res.status(422).json({ error: 'convert-failed', message: failMessage });
             return;
           }
+          // Count this SUCCESSFUL conversion against the free daily quota (Pro
+          // requests have no _convKey). TTL 26h cleans up the per-day key.
+          if (req._convKey) redis.pipeline().incr(req._convKey).expire(req._convKey, 93600).exec().catch(() => {});
           const outPath = path.join(outDir, produced);
           const base = (req.file.originalname || `document.${outExt}`).replace(/\.[^.]+$/, '');
           res.setHeader('Content-Type', MIME[outExt] || 'application/octet-stream');

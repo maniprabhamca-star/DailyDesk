@@ -5,12 +5,12 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'Pricing — Free Forever or Pro | DiemDesk',
   description:
-    'DiemDesk pricing: core PDF, QR and password tools are free forever — no signup, no watermark, no daily limits. Pro adds batch processing, large files, and more.',
+    'DiemDesk pricing: in-browser PDF, QR and password tools are free forever — no signup, no watermark, no daily limits. Pro adds batch processing, large files, unlimited Office conversions, and more.',
   alternates: { canonical: '/pricing' },
   openGraph: {
     images: ['/og.png'],
     title: 'Pricing — Free Forever or Pro | DiemDesk',
-    description: 'Core tools free forever — no signup, no watermark, no daily limits. Pro adds batch processing and large files.',
+    description: 'In-browser tools free forever — no signup, no watermark, no daily limits. Pro adds batch, large files & unlimited Office conversions.',
     type: 'website',
   },
 };

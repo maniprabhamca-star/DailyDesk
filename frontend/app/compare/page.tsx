@@ -33,7 +33,7 @@ const ROWS: { label: string; cells: [Cell, Cell, Cell, Cell]; note?: string }[] 
   },
   {
     label: 'Free plan',
-    cells: ['Every tool, no daily cap', '2 tasks / day', 'Limited tasks + ads', '7-day trial only'],
+    cells: ['Every in-browser tool, no daily cap', '2 tasks / day', 'Limited tasks + ads', '7-day trial only'],
   },
   {
     label: 'Files stay on your device (no upload)',
@@ -64,7 +64,7 @@ const SOURCES = [
 const faqs = [
   {
     q: 'Is DiemDesk a good Smallpdf or iLovePDF alternative?',
-    a: 'Yes — DiemDesk covers the same everyday PDF jobs (merge, split, compress, convert, sign and more) plus image, QR and video tools, with two big differences: the in-browser tools never upload your files, and there are no daily task limits on the free plan.',
+    a: 'Yes — DiemDesk covers the same everyday PDF jobs (merge, split, compress, sign and more) plus image, QR and video tools, with two big differences: the in-browser tools never upload your files, and they have no daily limits (only the server-side Office conversions have a small free daily allowance — 3 a day).',
   },
   {
     q: 'Do my files get uploaded like they do on other sites?',

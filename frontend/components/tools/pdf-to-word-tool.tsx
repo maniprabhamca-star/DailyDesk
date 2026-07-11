@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { downloadBlob as download } from '@/lib/download';
 import { KeepGoing } from '@/components/app/keep-going';
+import { ConversionLimitUpsell } from './conversion-limit';
 
 // PDF -> Word is DiemDesk's FIRST server-processed tool: real PDF-to-editable
 // conversion needs an office engine that can't run in a browser. The honesty
@@ -30,6 +31,7 @@ export function PdfToWordTool() {
   const [progress, setProgress] = useState<number | null>(null); // upload %
   const [phase, setPhase] = useState<'upload' | 'convert' | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [limitHit, setLimitHit] = useState<string | null>(null); // daily free-conversion cap → upsell
   const [done, setDone] = useState<{ blob: Blob; name: string; secs: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const xhrRef = useRef<XMLHttpRequest | null>(null);
@@ -55,6 +57,7 @@ export function PdfToWordTool() {
     if (!file) return;
     setBusy(true);
     setError(null);
+    setLimitHit(null);
     setDone(null);
     setPhase('upload');
     setProgress(0);
@@ -93,7 +96,8 @@ export function PdfToWordTool() {
       // Map the API's honest error messages.
       void (xhr.response as Blob).text().then((t) => {
         try {
-          const j = JSON.parse(t) as { message?: string };
+          const j = JSON.parse(t) as { message?: string; error?: string };
+          if (j.error === 'daily-limit') { setLimitHit(j.message || 'You’ve used your free conversions for today.'); return; }
           setError(j.message || 'Could not convert this PDF.');
         } catch {
           setError(xhr.status === 429 ? 'Too many conversions — please try again in a few minutes.' : 'Could not convert this PDF.');
@@ -136,7 +140,7 @@ export function PdfToWordTool() {
               <p className="truncate text-sm font-medium">{file.name}</p>
               <p className="text-xs text-muted-foreground">{fmt(file.size)}</p>
             </div>
-            <Button size="icon" variant="ghost" aria-label="Remove" onClick={() => { setFile(null); setDone(null); setError(null); }}><X className="size-4" /></Button>
+            <Button size="icon" variant="ghost" aria-label="Remove" onClick={() => { setFile(null); setDone(null); setError(null); setLimitHit(null); }}><X className="size-4" /></Button>
           </div>
         )}
 
@@ -155,8 +159,9 @@ export function PdfToWordTool() {
         )}
 
         {error && <UploadError error={error} />}
+        {limitHit && <ConversionLimitUpsell message={limitHit} />}
 
-        {file && !done && (
+        {file && !done && !limitHit && (
           busy ? (
             <div className="mt-5 flex gap-2">
               <Button className="flex-1" size="lg" disabled><Loader2 className="size-4 animate-spin" /> Converting…</Button>

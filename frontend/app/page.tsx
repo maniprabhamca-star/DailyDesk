@@ -33,7 +33,7 @@ const why = [
   { icon: ShieldCheck, color: '#059669', title: 'Files never leave your browser', body: 'Core tools run 100% on your device — nothing is uploaded to any server.' },
   { icon: BadgeCheck, color: '#4f46e5', title: 'Free, no signup', body: 'Use the core tools free — no account, no watermark, no catch.' },
   { icon: Smartphone, color: '#0891b2', title: 'Every device', body: 'A premium experience on desktop and mobile. Native apps on the way.' },
-  { icon: InfinityIcon, color: '#d97706', title: 'No daily limits', body: 'Use every tool as often as you like — no 2-tasks-a-day caps like other sites.' },
+  { icon: InfinityIcon, color: '#d97706', title: 'No daily limits', body: 'Use every in-browser tool as often as you like — no 2-tasks-a-day caps like other sites. (Office conversions: 3 free a day.)' },
 ];
 
 const stats: { v: string; l: string; note?: string }[] = [
@@ -58,7 +58,7 @@ const compareRows = [
 ];
 
 const homeFaqs = [
-  { q: 'Is it really free?', a: 'Yes — every tool is free right now, worldwide, with no signup, no watermarks and no daily task limits. In-browser tools handle files up to 100 MB; the few server tools (like OCR) up to 20 MB — still more generous than most free tools. Because they run in your browser, the core tools cost us nothing and stay free.' },
+  { q: 'Is it really free?', a: 'Yes — the in-browser tools are free forever, with no signup, no watermarks and no daily limits, on files up to 100 MB. The few tools that run on our servers (Office conversions) give you 3 free a day; unlimited is a Pro feature. Because the in-browser tools cost us nothing to run, they stay free — we only meter what actually uses our servers.' },
   { q: 'Are my files private?', a: 'The core tools run entirely in your browser, so your files are never uploaded. A few tools (OCR, Office conversions) use our servers and are processed then deleted — and we say which, up front.' },
   { q: 'Do I need an account?', a: 'No. Use any tool without signing up. An account only matters later, for Pro.' },
   { q: 'Which browsers work?', a: 'Any modern browser — Chrome, Edge, Firefox or Safari — on desktop or mobile.' },
