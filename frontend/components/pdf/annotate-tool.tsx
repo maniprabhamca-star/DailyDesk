@@ -2,7 +2,7 @@
 import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Upload, X, Loader2, Highlighter, Pen, Square, Circle, Minus, ArrowUpRight, ChevronDown, Type, Trash2, Zap, Bold, Italic, Underline, Signature as SignatureIcon, ImagePlus, Plus, Copy, Star, MoveDiagonal, MousePointer2, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal } from 'lucide-react';
+import { Upload, X, Loader2, Highlighter, Pen, Square, Circle, Minus, ArrowUpRight, ChevronDown, ChevronUp, Type, Trash2, Zap, Bold, Italic, Underline, Signature as SignatureIcon, ImagePlus, Plus, Copy, Star, MoveDiagonal, MousePointer2, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, Eye, EyeOff, Layers as LayersIcon } from 'lucide-react';
 import { SignatureMaker } from './signature-maker';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -29,14 +29,14 @@ import { FontSelect } from '@/components/app/font-select';
 type ShapeKind = 'rect' | 'circle' | 'line' | 'arrow';
 type Tool = 'select' | 'highlight' | 'pen' | ShapeKind | 'text';
 type Pt = { x: number; y: number };
-type Stroke = { kind: 'pen' | 'highlight'; color: string; w: number; pts: Pt[]; opacity?: number };
-type ShapeA = { kind: ShapeKind; color: string; w: number; a: Pt; b: Pt; opacity?: number };
-type TextA = { kind: 'text'; color: string; size: number; at: Pt; text: string; family: Family; bold: boolean; italic: boolean; underline: boolean; opacity?: number };
+type Stroke = { kind: 'pen' | 'highlight'; color: string; w: number; pts: Pt[]; opacity?: number; hidden?: boolean };
+type ShapeA = { kind: ShapeKind; color: string; w: number; a: Pt; b: Pt; opacity?: number; hidden?: boolean };
+type TextA = { kind: 'text'; color: string; size: number; at: Pt; text: string; family: Family; bold: boolean; italic: boolean; underline: boolean; opacity?: number; hidden?: boolean };
 type Anno = Stroke | ShapeA | TextA;
 // Images + signatures live as draggable overlays (not on the stroke canvas) and
 // are composited into the page at export. x/y = top-left fraction, w = width
 // fraction of the page, aspect = image height/width (in px). opacity 0–1.
-type ImageItem = { id: string; page: number; x: number; y: number; w: number; aspect: number; src: string; opacity?: number };
+type ImageItem = { id: string; page: number; x: number; y: number; w: number; aspect: number; src: string; opacity?: number; hidden?: boolean };
 const SHAPE_KINDS: ShapeKind[] = ['rect', 'circle', 'line', 'arrow'];
 const isShape = (t: Tool): t is ShapeKind => (SHAPE_KINDS as string[]).includes(t);
 
@@ -76,12 +76,26 @@ function applySnap(x: number, y: number, wFrac: number, hFrac: number): { x: num
   return { x: sx, y: sy, v, h };
 }
 
+// Layers panel: a friendly label + icon for each object kind.
+function layerMeta(a: Anno): { label: string; Icon: typeof Type } {
+  switch (a.kind) {
+    case 'text': return { label: a.text.slice(0, 22) || 'Text', Icon: Type };
+    case 'rect': return { label: 'Rectangle', Icon: Square };
+    case 'circle': return { label: 'Ellipse', Icon: Circle };
+    case 'line': return { label: 'Line', Icon: Minus };
+    case 'arrow': return { label: 'Arrow', Icon: ArrowUpRight };
+    case 'highlight': return { label: 'Highlight', Icon: Highlighter };
+    default: return { label: 'Drawing', Icon: Pen };
+  }
+}
+
 // Draw a list of annotations onto ctx sized W×H (used for both the live preview
 // and the high-res export — same code, different canvas).
 function paint(ctx: CanvasRenderingContext2D, W: number, H: number, list: Anno[]) {
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   for (const a of list) {
+    if (a.hidden) continue;
     if (a.kind === 'rect' || a.kind === 'circle' || a.kind === 'line' || a.kind === 'arrow') {
       ctx.globalAlpha = a.opacity ?? 1;
       ctx.strokeStyle = a.color;
@@ -664,7 +678,7 @@ export function AnnotateTool() {
         const ctx = cvs.getContext('2d')!;
         paint(ctx, rp.w, rp.h, annos[idx] || []);
         // Composite images/signatures on this page (aspect preserved in px).
-        for (const im of images.filter((i) => i.page === idx)) {
+        for (const im of images.filter((i) => i.page === idx && !i.hidden)) {
           const el = imgCache.current.get(im.src);
           if (el) { ctx.globalAlpha = im.opacity ?? 1; const w = im.w * rp.w; ctx.drawImage(el, im.x * rp.w, im.y * rp.h, w, w * im.aspect); ctx.globalAlpha = 1; }
         }
@@ -756,6 +770,37 @@ export function AnnotateTool() {
   const setSelOpacity = (v: number) => {
     if (selTextA && selIdx !== null) patchSelected({ opacity: v });
     else if (selImage) setImages((arr) => arr.map((im) => (im.id === selImage.id ? { ...im, opacity: v } : im)));
+  };
+
+  // ---- Layers panel: every object on the current page, topmost first --------
+  type Layer = { key: string; label: string; Icon: typeof Type; hidden: boolean; selected: boolean; canMove: boolean };
+  const pageLayers = (): Layer[] => {
+    const out: Layer[] = [];
+    // Images render above the canvas, so they're the top layers (newest first).
+    images.filter((im) => im.page === sel).slice().reverse().forEach((im) => out.push({ key: `i${im.id}`, label: 'Image / signature', Icon: ImagePlus, hidden: !!im.hidden, selected: selImg === im.id, canMove: false }));
+    // Then the canvas annotations (last painted = on top → list reversed).
+    (annos[sel] || []).map((a, i) => ({ a, i })).reverse().forEach(({ a, i }) => { const m = layerMeta(a); out.push({ key: `t${i}`, label: m.label, Icon: m.Icon, hidden: !!a.hidden, selected: selIdx === i, canMove: true }); });
+    return out;
+  };
+  const toggleLayerHidden = (key: string) => {
+    if (key[0] === 't') { const idx = +key.slice(1); setAnnos((a) => { const l = (a[sel] || []).slice(); if (l[idx]) l[idx] = { ...l[idx], hidden: !l[idx].hidden }; return { ...a, [sel]: l }; }); }
+    else { const id = key.slice(1); setImages((arr) => arr.map((im) => (im.id === id ? { ...im, hidden: !im.hidden } : im))); }
+  };
+  const deleteLayer = (key: string) => {
+    if (key[0] === 't') { const idx = +key.slice(1); setSelIdx((s) => (s === idx ? null : s)); setAnnos((a) => ({ ...a, [sel]: (a[sel] || []).filter((_, i) => i !== idx) })); }
+    else deleteImage(key.slice(1));
+  };
+  const selectLayer = (key: string) => {
+    if (key[0] === 't') { const idx = +key.slice(1); const a = (annos[sel] || [])[idx]; if (a && a.kind === 'text') { setTool('text'); setSelImg(null); setSelIdx(idx); } }
+    else { setSelIdx(null); setSelImg(key.slice(1)); }
+  };
+  // Reorder a canvas annotation's paint order (front/back). dir -1 = up the list
+  // = toward the front (later in the array). Selection is index-based, so clear it.
+  const moveLayer = (key: string, dir: -1 | 1) => {
+    if (key[0] !== 't') return;
+    const idx = +key.slice(1), j = idx + (dir === -1 ? 1 : -1);
+    setAnnos((a) => { const l = (a[sel] || []).slice(); if (j < 0 || j >= l.length) return a; [l[idx], l[j]] = [l[j], l[idx]]; return { ...a, [sel]: l }; });
+    setSelIdx(null);
   };
 
   // Keyboard: arrow-nudge the selection (Shift = bigger step), Del removes it,
@@ -910,7 +955,7 @@ export function AnnotateTool() {
             </div>
           )}
           {/* Draggable image / signature overlays (composited into the page at export) */}
-          {pageImages.map((im) => (
+          {pageImages.filter((im) => !im.hidden).map((im) => (
             <div key={im.id}
               onPointerDown={(e) => imgDown(e, im.id, 'move')} onPointerMove={imgMove} onPointerUp={imgUp}
               className={`absolute rounded-sm ${tool === 'select'
@@ -1252,6 +1297,32 @@ export function AnnotateTool() {
                     </div>
                   </>
                 )}
+                {(() => {
+                  const layers = pageLayers();
+                  return layers.length > 0 ? (
+                    <div>
+                      <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"><LayersIcon className="size-3.5" /> Layers <span className="text-foreground/50">· {layers.length}</span></div>
+                      <div className="max-h-52 space-y-0.5 overflow-y-auto rounded-lg border bg-card p-1">
+                        {layers.map((L) => (
+                          <div key={L.key} className={`group flex items-center gap-1 rounded-md px-1.5 py-1 ${L.selected ? 'bg-primary/10' : 'hover:bg-accent'}`}>
+                            <button onClick={() => selectLayer(L.key)} className={`flex min-w-0 flex-1 items-center gap-1.5 text-left ${L.hidden ? 'opacity-45' : ''}`}>
+                              <L.Icon className="size-3.5 shrink-0 text-muted-foreground" />
+                              <span className="truncate text-xs">{L.label}</span>
+                            </button>
+                            {L.canMove && (
+                              <>
+                                <button onClick={() => moveLayer(L.key, -1)} title="Bring forward" aria-label="Bring forward" className="hidden size-5 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground group-hover:flex"><ChevronUp className="size-3.5" /></button>
+                                <button onClick={() => moveLayer(L.key, 1)} title="Send back" aria-label="Send back" className="hidden size-5 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground group-hover:flex"><ChevronDown className="size-3.5" /></button>
+                              </>
+                            )}
+                            <button onClick={() => toggleLayerHidden(L.key)} title={L.hidden ? 'Show' : 'Hide'} aria-label={L.hidden ? 'Show layer' : 'Hide layer'} className="flex size-5 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">{L.hidden ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}</button>
+                            <button onClick={() => deleteLayer(L.key)} title="Delete" aria-label="Delete layer" className="hidden size-5 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive group-hover:flex"><Trash2 className="size-3" /></button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null;
+                })()}
                 <div className="border-t pt-3">{brandToggle}</div>
               </div>
             }
