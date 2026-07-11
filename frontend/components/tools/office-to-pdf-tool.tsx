@@ -177,7 +177,7 @@ export function OfficeToPdfTool({ kindId }: { kindId: OfficeKindId }) {
           <span>
             Unlike our in-browser tools, Office conversion needs our server: your file is sent over an encrypted connection,
             converted, and <span className="font-semibold">deleted immediately</span> — never stored, never read.{' '}
-            <Link href="/security#where-data-goes" className="underline">How we handle data</Link>
+            <Link href="/security#where-data-goes" target="_blank" rel="noopener noreferrer" className="underline">How we handle data</Link>
           </span>
         </p>
 

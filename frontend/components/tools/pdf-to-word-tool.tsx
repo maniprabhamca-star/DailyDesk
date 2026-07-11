@@ -116,7 +116,7 @@ export function PdfToWordTool() {
           <span>
             Unlike our in-browser tools, converting to an editable Word file needs our server: your PDF is sent over an encrypted
             connection, converted, and <span className="font-semibold">deleted immediately</span> — never stored, never read.{' '}
-            <Link href="/security#where-data-goes" className="underline">How we handle data</Link>
+            <Link href="/security#where-data-goes" target="_blank" rel="noopener noreferrer" className="underline">How we handle data</Link>
           </span>
         </p>
 

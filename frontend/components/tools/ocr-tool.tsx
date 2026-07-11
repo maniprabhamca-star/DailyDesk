@@ -303,7 +303,7 @@ export function OcrTool() {
           <span>
             Text recognition runs on our server: pages are prepared in your browser, streamed over an encrypted
             connection, read, and <span className="font-semibold">deleted immediately</span> — never stored.{' '}
-            <Link href="/security#where-data-goes" className="underline">How we handle data</Link>
+            <Link href="/security#where-data-goes" target="_blank" rel="noopener noreferrer" className="underline">How we handle data</Link>
           </span>
         </p>
 
