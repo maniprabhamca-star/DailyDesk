@@ -24,6 +24,7 @@ import { PageStrip } from '@/components/pdf/page-strip';
 import { BeforeAfter } from '@/components/pdf/before-after';
 import { SavingsRing } from '@/components/app/savings-ring';
 import { BigFileHint } from '@/components/app/big-file-hint';
+import { BatchRunner } from '@/components/app/batch-runner';
 
 // Uint8Array from pdf-lib/file APIs can be typed as ArrayBufferLike-backed; wrap
 // to a fresh ArrayBuffer-backed copy so it satisfies the strict BlobPart type.
@@ -251,6 +252,7 @@ async function decodeJpeg(bytes: Uint8Array): Promise<CanvasImageSource & { widt
 export function CompressTool() {
   const plan = usePlan();
   const [file, setFile] = useState<File | null>(null);
+  const [batchFiles, setBatchFiles] = useState<File[]>([]); // multiple PDFs dropped → Pro on-device batch
   const [tooBig, setTooBig] = useState<{ name: string; size: number } | null>(null);
   const [level, setLevel] = useState<Level>('recommended');
   const [busy, setBusy] = useState(false);
@@ -356,7 +358,11 @@ export function CompressTool() {
     openSource(f);
     void classifyPdf(f).then((m) => { setKind(m?.kind ?? null); setP1StoredPx(m?.p1StoredPx ?? 0); });
   }
-  function pick(files: FileList | null) { loadOne(files?.[0]); }
+  function pick(files: FileList | null) {
+    const list = files ? Array.from(files) : [];
+    if (list.length > 1) { clear(); setBatchFiles(list); return; } // multiple PDFs → on-device batch
+    loadOne(list[0]);
+  }
 
   useEffect(() => {
     const h = takeHandoff();
@@ -370,6 +376,7 @@ export function CompressTool() {
 
   function clear() {
     setFile(null);
+    setBatchFiles([]);
     setTooBig(null);
     setError(null);
     setDone(null);
@@ -437,25 +444,29 @@ export function CompressTool() {
   function cancelRun() {
     cancelRef.current = true; // the next loop iteration bails; finally clears busy
   }
-  async function run(forceArg = false, levelArg?: Level) {
-    if (!file) { setError('Add a PDF first.'); return; }
+  async function run(forceArg = false, levelArg?: Level, opts?: { fileArg?: File; headless?: boolean }): Promise<{ blob: Blob; name: string; before: number; after: number; optimized: boolean } | void> {
+    const srcFile = opts?.fileArg ?? file;
+    if (!srcFile) { setError('Add a PDF first.'); return; }
+    const ui = !opts?.headless; // batch calls run() headlessly — skip the single-file UI side-effects (algorithm below is identical)
     const useLevel: Level = levelArg ?? level;
     const force = forceArg || useLevel === 'maximum';
-    const prevDone = done; // so "Squeeze harder" can never REPLACE a smaller result
+    const prevDone = ui ? done : null; // so "Squeeze harder" can never REPLACE a smaller result
     let slowestPageMs = 0; // perf breakdown (owner-only + console)
     cancelRef.current = false;
-    setBusy(true);
-    setPrep('Preparing your PDF…');
-    setPrepReady(false);
-    if (prepTimerRef.current) clearTimeout(prepTimerRef.current);
-    prepTimerRef.current = setTimeout(() => setPrepReady(true), 700); // only show staged labels if it's actually slow
-    setError(null);
-    setDone(null);
-    const before = file.size;
+    if (ui) {
+      setBusy(true);
+      setPrep('Preparing your PDF…');
+      setPrepReady(false);
+      if (prepTimerRef.current) clearTimeout(prepTimerRef.current);
+      prepTimerRef.current = setTimeout(() => setPrepReady(true), 700); // only show staged labels if it's actually slow
+      setError(null);
+      setDone(null);
+    }
+    const before = srcFile.size;
     const startedAt = performance.now();
     try {
       const { PDFDocument, PDFName, PDFNumber, PDFRawStream, PDFArray } = await import('pdf-lib');
-      const original = new Uint8Array(await file.arrayBuffer());
+      const original = new Uint8Array(await srcFile.arrayBuffer());
       const doc = await PDFDocument.load(original, { ignoreEncryption: true });
       const ctx = doc.context;
       const { dpi, maxDim, quality, rasterDpi, rasterQ, rasterFrac } = LEVELS[useLevel];
@@ -867,7 +878,7 @@ export function CompressTool() {
         slowestPageMs: Math.round(slowestPageMs),
       };
       if (isOwner) console.log('[compress] timing', timing); // owner-only, visible at default console level
-      const name = `${file.name.replace(/\.pdf$/i, '')}-compressed.pdf`;
+      const name = `${srcFile.name.replace(/\.pdf$/i, '')}-compressed.pdf`;
       const secs = (performance.now() - startedAt) / 1000;
       const took = formatDuration(secs);
       const savedFrac = before > 0 ? 1 - after / before : 0;
@@ -877,8 +888,10 @@ export function CompressTool() {
       // alone (object streams) is a real win we should NOT hide.
       if (savedFrac < 0.01) {
         const blob = new Blob([part(original)], { type: 'application/pdf' });
+        const optName = `${srcFile.name.replace(/\.pdf$/i, '')}.pdf`;
+        if (opts?.headless) return { blob, name: optName, before, after: before, optimized: true };
         const note = (rasterized === 0 && recompressed === 0 && fontsSlimmed === 0 ? 'Nothing left to shrink' : 'Already near-optimal') + ` · ${took}`;
-        setDone({ blob, name: `${file.name.replace(/\.pdf$/i, '')}.pdf`, before, after: before, optimized: true, note, timing });
+        setDone({ blob, name: optName, before, after: before, optimized: true, note, timing });
         return;
       }
 
@@ -895,16 +908,20 @@ export function CompressTool() {
         return;
       }
       const blob = new Blob([part(outBytes)], { type: 'application/pdf' });
+      if (opts?.headless) return { blob, name, before, after, optimized: false };
       setDone({ blob, name, before, after, optimized: false, note, timing });
     } catch (e) {
+      if (opts?.headless) throw e; // batch: let BatchRunner mark this file failed
       if (e instanceof DOMException && e.name === 'AbortError') return; // cancelled — quiet
       setError(e instanceof Error ? e.message : 'Could not compress the PDF.');
     } finally {
-      setBusy(false);
-      setProgress(null);
-      setPrep(null);
-      if (prepTimerRef.current) { clearTimeout(prepTimerRef.current); prepTimerRef.current = null; }
-      setPrepReady(false);
+      if (ui) {
+        setBusy(false);
+        setProgress(null);
+        setPrep(null);
+        if (prepTimerRef.current) { clearTimeout(prepTimerRef.current); prepTimerRef.current = null; }
+        setPrepReady(false);
+      }
     }
   }
 
@@ -916,7 +933,7 @@ export function CompressTool() {
         {/* Always mounted so the file picker works from the dropzone AND the size-limit notice. */}
         {/* value reset: browsers only fire change when the selection differs, so
             re-picking the same file after "Compress another" would do nothing */}
-        <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
+        <input ref={inputRef} type="file" multiple accept="application/pdf,.pdf" className="hidden" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
         {file && <BigFileHint bytes={file.size} threshold={400 * 1024 * 1024} />}
         {handoffNote && (
           <p className="mb-3 flex items-center gap-2 rounded-lg border border-primary/25 bg-primary/[0.06] px-3 py-2 text-sm text-foreground">
@@ -931,6 +948,27 @@ export function CompressTool() {
             limitText={fmtBytes(FREE_MAX_BYTES)}
             onReset={() => { setTooBig(null); inputRef.current?.click(); }}
           />
+        ) : batchFiles.length > 0 ? (
+          <BatchRunner
+            files={batchFiles}
+            actionLabel="Compress all"
+            zipName="compressed-pdfs.zip"
+            controls={
+              <div>
+                <p className="mb-2 text-sm font-medium">Quality</p>
+                <div className="grid grid-cols-4 gap-2">
+                  {(Object.keys(LEVELS) as Level[]).map((k) => (
+                    <button key={k} onClick={() => setLevel(k)} aria-pressed={level === k}
+                      className={`rounded-lg border px-2 py-2 text-center text-xs transition-all ${level === k ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-border bg-card hover:border-primary/40 hover:bg-accent/40'}`}>
+                      <span className="block font-semibold">{LEVELS[k].title}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            }
+            process={async (f) => { const r = await run(false, level, { fileArg: f, headless: true }); if (!r) throw new Error('Compression failed'); return { blob: r.blob, name: r.name, before: r.before, after: r.after }; }}
+            onReset={clear}
+          />
         ) : !file ? (
           <div
             onDragOver={(e) => e.preventDefault()}
@@ -942,6 +980,7 @@ export function CompressTool() {
             <p className="mt-2 text-sm font-medium">Drop a PDF here, or click to choose</p>
             <p className="text-xs text-muted-foreground">Shrinks images, keeps text crisp and selectable</p>
             <span className="mt-4 inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm">Choose PDF</span>
+            <p className="mt-3 flex items-center gap-1.5 text-[11px] text-muted-foreground"><Sparkles className="size-3 text-amber-500" /> Drop <b className="font-semibold text-foreground">several at once</b> to batch them — on your device <span className="rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-1.5 py-px text-[9px] font-bold uppercase text-white">Pro</span></p>
           </div>
         ) : (
           <div>
