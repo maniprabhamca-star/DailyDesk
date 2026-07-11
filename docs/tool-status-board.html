@@ -46,7 +46,8 @@
 
   /* Header */
   .head{display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px 20px;margin-bottom:22px}
-  .badge-logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--brand),#7c74ff);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:17px;box-shadow:var(--shadow)}
+  .badge-logo{width:34px;height:34px;border-radius:8px;overflow:hidden;box-shadow:var(--shadow);flex:none}
+  .badge-logo svg{display:block;width:100%;height:100%}
   h1{font-size:26px;letter-spacing:-.02em;margin:0;font-weight:800;text-wrap:balance}
   .sub{color:var(--ink-2);font-size:13.5px;margin:2px 0 0}
   .asof{margin-left:auto;color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
@@ -116,7 +117,7 @@
 <div class="wrap"><div class="inner">
 
   <div class="head">
-    <div class="badge-logo">D</div>
+    <div class="badge-logo"><svg viewBox="0 0 48 48" aria-hidden="true"><rect width="48" height="48" rx="13.5" fill="#4F46E5"/><rect x="10" y="10" width="12" height="12" rx="3.5" fill="#FBBF24"/><rect x="10" y="26" width="12" height="12" rx="3.5" fill="#22C55E"/><rect x="26" y="26" width="12" height="12" rx="3.5" fill="#F87171"/><g transform="rotate(9 32 15)"><rect x="24" y="7" width="16" height="16" rx="4.5" fill="#fff"/><path fill-rule="evenodd" fill="#4F46E5" d="M28 9.5 H32.5 C35.7 9.5 37.8 12 37.8 15 C37.8 18 35.7 20.5 32.5 20.5 H28 Z M30.4 11.8 V18.2 H32.5 C34.3 18.2 35.4 16.9 35.4 15 C35.4 13.1 34.3 11.8 32.5 11.8 Z"/></g></svg></div>
     <div>
       <h1>DiemDesk — Tool Status Board</h1>
       <p class="sub">What's live, what's built &amp; gated, and what's still to build — with free vs Pro.</p>

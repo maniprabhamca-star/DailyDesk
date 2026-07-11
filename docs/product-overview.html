@@ -23,7 +23,8 @@
   /* HERO — committed dark brand band (stays dark in both themes) */
   .hero{background:radial-gradient(120% 140% at 15% 0%,#241f5e 0%,#14132e 45%,#0a0a18 100%);color:#eef;padding:54px 0 46px;border-bottom:1px solid #ffffff12}
   .brandrow{display:flex;align-items:center;gap:11px;margin-bottom:26px}
-  .logo{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#6c63ff,#4f46e5);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:19px;box-shadow:0 4px 14px rgba(108,99,255,.5)}
+  .logo{width:38px;height:38px;border-radius:10px;overflow:hidden;box-shadow:0 4px 14px rgba(108,99,255,.5);flex:none}
+  .logo svg{display:block;width:100%;height:100%}
   .brandrow b{font-size:17px;font-weight:750;letter-spacing:-.01em;color:#fff}
   .hero h1{font-size:40px;font-weight:800;color:#fff;max-width:16ch;line-height:1.08}
   .hero .lede{margin-top:16px;font-size:16.5px;color:#c7c8e8;max-width:58ch;line-height:1.55}
@@ -106,7 +107,7 @@
 
   <!-- HERO -->
   <div class="hero"><div class="in">
-    <div class="brandrow"><span class="logo">D</span><b>DiemDesk</b></div>
+    <div class="brandrow"><span class="logo"><svg viewBox="0 0 48 48" aria-hidden="true"><rect width="48" height="48" rx="13.5" fill="#4F46E5"/><rect x="10" y="10" width="12" height="12" rx="3.5" fill="#FBBF24"/><rect x="10" y="26" width="12" height="12" rx="3.5" fill="#22C55E"/><rect x="26" y="26" width="12" height="12" rx="3.5" fill="#F87171"/><g transform="rotate(9 32 15)"><rect x="24" y="7" width="16" height="16" rx="4.5" fill="#fff"/><path fill-rule="evenodd" fill="#4F46E5" d="M28 9.5 H32.5 C35.7 9.5 37.8 12 37.8 15 C37.8 18 35.7 20.5 32.5 20.5 H28 Z M30.4 11.8 V18.2 H32.5 C34.3 18.2 35.4 16.9 35.4 15 C35.4 13.1 34.3 11.8 32.5 11.8 Z"/></g></svg></span><b>DiemDesk</b></div>
     <h1>Every document job — right on your device.</h1>
     <p class="lede">A complete document toolkit — PDF, image, video &amp; utilities — where the everyday tools run <span class="accent">100% in your browser</span>. Private by architecture, not by promise: your files never touch a server. Free where it costs us nothing; Pro where it earns its keep.</p>
     <div class="stats">
