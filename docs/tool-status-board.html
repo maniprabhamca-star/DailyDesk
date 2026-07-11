@@ -1,0 +1,288 @@
+<title>DiemDesk — Tool Status Board</title>
+<style>
+  :root{
+    --bg:#f5f5fa; --panel:#ffffff; --panel-2:#fbfbfe; --ink:#181820; --ink-2:#585868;
+    --muted:#8a8a9a; --line:#e8e8f0; --line-2:#f0f0f6;
+    --brand:#5048E5;
+    --live:#10b981; --live-bg:#10b98118;
+    --gated:#f59e0b; --gated-bg:#f59e0b18;
+    --plan:#94a3b8; --plan-bg:#94a3b81f;
+    --pro-a:#f59e0b; --pro-b:#f97316;
+    --shadow:0 1px 2px rgba(20,20,45,.04),0 4px 16px rgba(20,20,45,.05);
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#0e0e15; --panel:#16161f; --panel-2:#1b1b26; --ink:#ececf4; --ink-2:#b7b7c6;
+      --muted:#83839a; --line:#26262f; --line-2:#20202a;
+      --live:#34d399; --live-bg:#10b98122;
+      --gated:#fbbf24; --gated-bg:#f59e0b22;
+      --plan:#8b95a7; --plan-bg:#94a3b81f;
+      --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 22px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0e0e15; --panel:#16161f; --panel-2:#1b1b26; --ink:#ececf4; --ink-2:#b7b7c6;
+    --muted:#83839a; --line:#26262f; --line-2:#20202a;
+    --live:#34d399; --live-bg:#10b98122; --gated:#fbbf24; --gated-bg:#f59e0b22;
+    --plan:#8b95a7; --plan-bg:#94a3b81f;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 22px rgba(0,0,0,.35);
+  }
+  :root[data-theme="light"]{
+    --bg:#f5f5fa; --panel:#ffffff; --panel-2:#fbfbfe; --ink:#181820; --ink-2:#585868;
+    --muted:#8a8a9a; --line:#e8e8f0; --line-2:#f0f0f6;
+    --live:#10b981; --live-bg:#10b98118; --gated:#f59e0b; --gated-bg:#f59e0b18;
+    --plan:#94a3b8; --plan-bg:#94a3b81f;
+    --shadow:0 1px 2px rgba(20,20,45,.04),0 4px 16px rgba(20,20,45,.05);
+  }
+
+  *{box-sizing:border-box}
+  .wrap{
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    background:var(--bg); color:var(--ink);
+    min-height:100vh; padding:34px 22px 56px; line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .inner{max-width:1120px;margin:0 auto}
+
+  /* Header */
+  .head{display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px 20px;margin-bottom:22px}
+  .badge-logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--brand),#7c74ff);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:17px;box-shadow:var(--shadow)}
+  h1{font-size:26px;letter-spacing:-.02em;margin:0;font-weight:800;text-wrap:balance}
+  .sub{color:var(--ink-2);font-size:13.5px;margin:2px 0 0}
+  .asof{margin-left:auto;color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+
+  /* Summary stats */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:8px 0 20px}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow)}
+  .stat .n{font-size:30px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1}
+  .stat .l{font-size:11.5px;color:var(--ink-2);margin-top:5px;font-weight:500}
+  .stat.live .n{color:var(--live)} .stat.gated .n{color:var(--gated)} .stat.plan .n{color:var(--plan)}
+  .stat.pro .n{background:linear-gradient(90deg,var(--pro-a),var(--pro-b));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+
+  /* Legend */
+  .legend{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin-bottom:22px;font-size:12px;color:var(--ink-2)}
+  .lg{display:inline-flex;align-items:center;gap:6px}
+  .dot{width:9px;height:9px;border-radius:50%;flex:none}
+  .dot.live{background:var(--live)} .dot.gated{background:var(--gated)} .dot.plan{background:var(--plan)}
+  .pro-chip{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:999px;font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#fff;background:linear-gradient(90deg,var(--pro-a),var(--pro-b));box-shadow:0 1px 2px rgba(0,0,0,.15)}
+  .tag{display:inline-flex;align-items:center;padding:1px 6px;border-radius:6px;font-size:9.5px;font-weight:600;letter-spacing:.02em;color:var(--ink-2);background:var(--line-2);border:1px solid var(--line);text-transform:uppercase}
+  .cap-chip{display:inline-flex;align-items:center;padding:1px 6px;border-radius:999px;font-size:9px;font-weight:800;letter-spacing:.02em;color:#fff;background:linear-gradient(90deg,var(--pro-a),var(--pro-b));box-shadow:0 1px 2px rgba(0,0,0,.15)}
+  .dev-badge{display:inline-flex;align-items:center;gap:3px;padding:1px 7px;border-radius:999px;font-size:9.5px;font-weight:700;color:#16a34a;background:#16a34a1a;border:1px solid #16a34a40}
+  @media (prefers-color-scheme:dark){ .dev-badge{color:#4ade80;background:#16a34a26;border-color:#16a34a55} }
+  :root[data-theme="dark"] .dev-badge{color:#4ade80;background:#16a34a26;border-color:#16a34a55}
+
+  /* Category grid */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column}
+  .card-h{display:flex;align-items:center;gap:9px;padding:13px 15px 11px;border-bottom:1px solid var(--line-2)}
+  .cat-dot{width:11px;height:11px;border-radius:4px;flex:none}
+  .card-h .cn{font-weight:700;font-size:14px;letter-spacing:-.01em}
+  .card-h .cc{margin-left:auto;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;font-weight:600}
+  ul{list-style:none;margin:0;padding:6px 8px 10px}
+  li{display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:9px}
+  li+li{margin-top:1px}
+  li:hover{background:var(--panel-2)}
+  .st{width:9px;height:9px;border-radius:50%;flex:none}
+  .st.live{background:var(--live);box-shadow:0 0 0 3px var(--live-bg)}
+  .st.gated{background:var(--gated);box-shadow:0 0 0 3px var(--gated-bg)}
+  .st.plan{background:var(--plan);box-shadow:0 0 0 3px var(--plan-bg)}
+  .tn{font-size:13px;font-weight:500;color:var(--ink)}
+  li.plan .tn{color:var(--ink-2)}
+  .right{margin-left:auto;display:inline-flex;align-items:center;gap:6px;flex:none}
+
+  .note{margin-top:22px;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--brand);border-radius:12px;padding:13px 16px;font-size:12.5px;color:var(--ink-2);box-shadow:var(--shadow)}
+  .note b{color:var(--ink);font-weight:650}
+
+  /* Pro differentiators */
+  .pro-section{margin-top:26px;border-radius:16px;border:1px solid var(--gated);background:linear-gradient(180deg,var(--gated-bg),transparent);padding:18px 18px 20px;box-shadow:var(--shadow)}
+  .pro-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .pro-badge-lg{display:inline-flex;align-items:center;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:.05em;color:#fff;background:linear-gradient(90deg,var(--pro-a),var(--pro-b));box-shadow:0 1px 3px rgba(0,0,0,.2)}
+  .pro-head h2{margin:0;font-size:16px;font-weight:750;letter-spacing:-.01em}
+  .pro-sub{margin:7px 0 14px;font-size:12.5px;color:var(--ink-2);line-height:1.5}
+  .pro-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(245px,1fr));gap:10px}
+  .pro-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 12px;box-shadow:var(--shadow)}
+  .pro-card .pt{font-size:13px;font-weight:700;letter-spacing:-.01em;display:flex;align-items:center;gap:6px}
+  .pro-card.flag .pt::after{content:"★ flagship";margin-left:auto;font-size:8.5px;font-weight:800;letter-spacing:.03em;color:#fff;background:linear-gradient(90deg,var(--pro-a),var(--pro-b));padding:1.5px 6px;border-radius:999px;white-space:nowrap}
+  .pro-card .pw{margin-top:5px;font-size:11.5px;line-height:1.45;color:var(--ink-2)}
+
+  @media (max-width:640px){
+    .stats{grid-template-columns:repeat(2,1fr)}
+    h1{font-size:22px}
+    .asof{width:100%;margin-left:0}
+    .grid{grid-template-columns:1fr}
+  }
+</style>
+
+<div class="wrap"><div class="inner">
+
+  <div class="head">
+    <div class="badge-logo">D</div>
+    <div>
+      <h1>DiemDesk — Tool Status Board</h1>
+      <p class="sub">What's live, what's built &amp; gated, and what's still to build — with free vs Pro.</p>
+    </div>
+    <div class="asof">as of 2026-07-11</div>
+  </div>
+
+  <div class="stats">
+    <div class="stat live"><div class="n">35</div><div class="l">Live &amp; public</div></div>
+    <div class="stat gated"><div class="n">9</div><div class="l">Built · owner-gated</div></div>
+    <div class="stat plan"><div class="n">12</div><div class="l">Planned · to build</div></div>
+    <div class="stat pro"><div class="n">6</div><div class="l">Pro tools (4 not built)</div></div>
+  </div>
+
+  <div class="legend">
+    <span class="lg"><span class="dot live"></span> Live</span>
+    <span class="lg"><span class="dot gated"></span> Built, owner-gated</span>
+    <span class="lg"><span class="dot plan"></span> Planned</span>
+    <span class="lg"><span class="pro-chip">Pro</span> paid plan</span>
+    <span class="lg"><span class="cap-chip">3/day</span> 3 free/day → Pro unlimited</span>
+    <span class="lg"><span class="tag">server</span> processed on our servers</span>
+    <span class="lg"><span class="dev-badge">🔒 on your device</span> free &amp; unlimited (no chip)</span>
+  </div>
+
+  <div class="grid">
+
+    <!-- Organize -->
+    <div class="card">
+      <div class="card-h"><span class="cat-dot" style="background:#dc2626"></span><span class="cn">Organize PDF</span><span class="cc">7 / 9 live</span></div>
+      <ul>
+        <li><span class="st live"></span><span class="tn">Merge PDF</span></li>
+        <li><span class="st live"></span><span class="tn">Split PDF</span></li>
+        <li><span class="st live"></span><span class="tn">Compress PDF</span></li>
+        <li><span class="st live"></span><span class="tn">Rotate PDF</span></li>
+        <li><span class="st live"></span><span class="tn">Reorder pages</span></li>
+        <li><span class="st live"></span><span class="tn">Delete pages</span></li>
+        <li><span class="st live"></span><span class="tn">Page numbers</span></li>
+        <li class="gated"><span class="st gated"></span><span class="tn">Compare PDF</span></li>
+        <li class="gated"><span class="st gated"></span><span class="tn">Crop PDF</span></li>
+      </ul>
+    </div>
+
+    <!-- Convert to PDF -->
+    <div class="card">
+      <div class="card-h"><span class="cat-dot" style="background:#0284c7"></span><span class="cn">Convert to PDF</span><span class="cc">4 / 5 live</span></div>
+      <ul>
+        <li><span class="st live"></span><span class="tn">JPG to PDF</span></li>
+        <li><span class="st live"></span><span class="tn">Word to PDF</span><span class="right"><span class="tag">server</span><span class="cap-chip">3/day</span></span></li>
+        <li><span class="st live"></span><span class="tn">PowerPoint to PDF</span><span class="right"><span class="tag">server</span><span class="cap-chip">3/day</span></span></li>
+        <li><span class="st live"></span><span class="tn">Excel to PDF</span><span class="right"><span class="tag">server</span><span class="cap-chip">3/day</span></span></li>
+        <li class="gated"><span class="st gated"></span><span class="tn">HTML to PDF</span><span class="right"><span class="tag">server</span><span class="cap-chip">3/day</span></span></li>
+      </ul>
+    </div>
+
+    <!-- Convert from PDF -->
+    <div class="card">
+      <div class="card-h"><span class="cat-dot" style="background:#0ea5e9"></span><span class="cn">Convert from PDF</span><span class="cc">3 / 6 live</span></div>
+      <ul>
+        <li><span class="st live"></span><span class="tn">PDF to JPG</span></li>
+        <li><span class="st live"></span><span class="tn">Extract images</span></li>
+        <li><span class="st live"></span><span class="tn">PDF to Word</span><span class="right"><span class="tag">server</span><span class="cap-chip">3/day</span></span></li>
+        <li class="plan"><span class="st plan"></span><span class="tn">PDF to PowerPoint</span><span class="right"><span class="tag">server</span><span class="cap-chip">3/day</span></span></li>
+        <li class="plan"><span class="st plan"></span><span class="tn">PDF to Excel</span><span class="right"><span class="tag">server</span><span class="cap-chip">3/day</span></span></li>
+        <li class="plan"><span class="st plan"></span><span class="tn">PDF to PDF/A</span><span class="right"><span class="tag">server</span><span class="cap-chip">3/day</span></span></li>
+      </ul>
+    </div>
+
+    <!-- Edit & sign -->
+    <div class="card">
+      <div class="card-h"><span class="cat-dot" style="background:#d97706"></span><span class="cn">Edit &amp; sign</span><span class="cc">6 / 10 live</span></div>
+      <ul>
+        <li><span class="st live"></span><span class="tn">Watermark</span></li>
+        <li><span class="st live"></span><span class="tn">Remove metadata</span></li>
+        <li><span class="st live"></span><span class="tn">Sign PDF</span></li>
+        <li><span class="st live"></span><span class="tn">Flatten PDF</span></li>
+        <li><span class="st live"></span><span class="tn">Protect PDF</span></li>
+        <li><span class="st live"></span><span class="tn">Unlock PDF</span></li>
+        <li class="gated"><span class="st gated"></span><span class="tn">Annotate</span></li>
+        <li class="gated"><span class="st gated"></span><span class="tn">Edit PDF</span><span class="right"><span class="pro-chip">Pro</span></span></li>
+        <li class="gated"><span class="st gated"></span><span class="tn">Redact PDF</span><span class="right"><span class="pro-chip">Pro</span></span></li>
+        <li class="gated"><span class="st gated"></span><span class="tn">Share-Safe Check</span></li>
+      </ul>
+    </div>
+
+    <!-- AI & scan -->
+    <div class="card">
+      <div class="card-h"><span class="cat-dot" style="background:#db2777"></span><span class="cn">AI &amp; scan</span><span class="cc">0 / 5 live</span></div>
+      <ul>
+        <li class="gated"><span class="st gated"></span><span class="tn">Clean scanned PDF</span></li>
+        <li class="plan"><span class="st plan"></span><span class="tn">OCR</span><span class="right"><span class="tag">server</span><span class="pro-chip">Pro</span></span></li>
+        <li class="plan"><span class="st plan"></span><span class="tn">Chat with PDF</span><span class="right"><span class="tag">AI</span><span class="pro-chip">Pro</span></span></li>
+        <li class="plan"><span class="st plan"></span><span class="tn">Summarize</span><span class="right"><span class="tag">AI</span><span class="pro-chip">Pro</span></span></li>
+        <li class="plan"><span class="st plan"></span><span class="tn">Translate</span><span class="right"><span class="tag">AI</span><span class="pro-chip">Pro</span></span></li>
+      </ul>
+    </div>
+
+    <!-- Generators -->
+    <div class="card">
+      <div class="card-h"><span class="cat-dot" style="background:#4f46e5"></span><span class="cn">Generators</span><span class="cc">3 / 3 live</span></div>
+      <ul>
+        <li><span class="st live"></span><span class="tn">QR generator</span></li>
+        <li><span class="st live"></span><span class="tn">QR scanner</span></li>
+        <li><span class="st live"></span><span class="tn">Password generator</span></li>
+      </ul>
+    </div>
+
+    <!-- Images & media -->
+    <div class="card">
+      <div class="card-h"><span class="cat-dot" style="background:#ea580c"></span><span class="cn">Images &amp; media</span><span class="cc">8 / 8 live</span></div>
+      <ul>
+        <li><span class="st live"></span><span class="tn">Compress image</span></li>
+        <li><span class="st live"></span><span class="tn">Resize image</span></li>
+        <li><span class="st live"></span><span class="tn">Crop image</span></li>
+        <li><span class="st live"></span><span class="tn">Convert image</span></li>
+        <li><span class="st live"></span><span class="tn">HEIC to JPG</span></li>
+        <li><span class="st live"></span><span class="tn">Background remover</span></li>
+        <li><span class="st live"></span><span class="tn">Compress video</span></li>
+        <li><span class="st live"></span><span class="tn">Video to GIF</span></li>
+      </ul>
+    </div>
+
+    <!-- Everyday utilities -->
+    <div class="card">
+      <div class="card-h"><span class="cat-dot" style="background:#0d9488"></span><span class="cn">Everyday utilities</span><span class="cc">4 / 4 live</span></div>
+      <ul>
+        <li><span class="st live"></span><span class="tn">Word counter</span></li>
+        <li><span class="st live"></span><span class="tn">Unit converter</span></li>
+        <li><span class="st live"></span><span class="tn">JSON formatter</span></li>
+        <li><span class="st live"></span><span class="tn">Color picker</span></li>
+      </ul>
+    </div>
+
+    <!-- Workspace -->
+    <div class="card">
+      <div class="card-h"><span class="cat-dot" style="background:#16a34a"></span><span class="cn">Workspace</span><span class="cc">0 / 6 live</span></div>
+      <ul>
+        <li class="gated"><span class="st gated"></span><span class="tn">Client packet builder</span></li>
+        <li class="plan"><span class="st plan"></span><span class="tn">Smart notes</span></li>
+        <li class="plan"><span class="st plan"></span><span class="tn">Habit tracker</span></li>
+        <li class="plan"><span class="st plan"></span><span class="tn">Budget tracker</span></li>
+        <li class="plan"><span class="st plan"></span><span class="tn">File vault</span><span class="right"><span class="tag">encrypted</span></span></li>
+        <li class="plan"><span class="st plan"></span><span class="tn">Link in bio</span><span class="right"><span class="tag">server</span></span></li>
+      </ul>
+    </div>
+
+  </div>
+
+  <div class="pro-section">
+    <div class="pro-head"><span class="pro-badge-lg">PRO</span><h2>Pro differentiators — the moat rivals can't copy</h2></div>
+    <p class="pro-sub">Genuinely unique to DiemDesk's on-device architecture — planned as the flagship Pro hooks. Server-first competitors (Smallpdf/iLovePDF/Adobe) would have to rebuild their whole stack to match these.</p>
+    <div class="pro-grid">
+      <div class="pro-card flag"><div class="pt">On-device batch</div><div class="pw">Process 100 files at once — <b>zero uploads</b>. Their batch = 100 files on their servers; they physically can't match it.</div></div>
+      <div class="pro-card flag"><div class="pt">Redaction certificate</div><div class="pw">Signed, exportable proof a doc was truly scrubbed (0 recoverable chars, metadata stripped) — a legal/compliance wedge.</div></div>
+      <div class="pro-card flag"><div class="pt">Saved workflows</div><div class="pw">One-click document assembly line — merge · clean · sign · share-safe · compress — run on a whole batch.</div></div>
+      <div class="pro-card flag"><div class="pt">Encrypted File Vault</div><div class="pw">Zero-knowledge E2E storage (Argon2 + AES-256) — even we can't read it. Rivals' storage is server-readable.</div></div>
+      <div class="pro-card"><div class="pt">Self-destruct shares</div><div class="pw">Expiring, password-locked share links that DiemDesk itself can't decrypt.</div></div>
+      <div class="pro-card"><div class="pt">Certificate of completion</div><div class="pw">DocuSign-style signed audit trail + verification hash for e-signatures.</div></div>
+      <div class="pro-card"><div class="pt">Bates numbering</div><div class="pw">Legal page-stamping — a standard paid feature that pulls in the legal vertical.</div></div>
+      <div class="pro-card"><div class="pt">Brand kit</div><div class="pw">Save logo / header-footer / watermark once, apply across a whole batch.</div></div>
+      <div class="pro-card"><div class="pt">Offline PWA</div><div class="pw">Install it; works fully offline. Server-first rivals go dark without a connection.</div></div>
+      <div class="pro-card"><div class="pt">True re-encode Edit</div><div class="pw">Higher-fidelity in-place text-editing tier for Pro.</div></div>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>How to read "gated":</b> those 9 tools are fully built and working — they're flagged <code>soon</code> so only the owner can reach them (public sees "coming soon"). Launching them = flipping a flag, not building. <b>Pro tools:</b> Edit PDF &amp; Redact PDF are built and gated; OCR, Chat, Summarize &amp; Translate still need building. Everything not marked Pro is free.
+  </div>
+
+</div></div>
