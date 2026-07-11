@@ -85,7 +85,7 @@ export function BatchRunner({ files, process, controls, actionLabel = 'Process a
     return (
       <div className="rounded-xl border border-amber-400/30 bg-gradient-to-br from-amber-400/[0.10] to-orange-500/[0.06] p-5 text-center">
         <span className="mx-auto flex size-11 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-sm"><Sparkles className="size-5" /></span>
-        <p className="mt-3 text-sm font-semibold text-foreground">Batch is a Pro feature</p>
+        <p className="mt-3 text-sm font-semibold text-foreground">On-device batch is a Pro feature</p>
         <p className="mt-1 text-xs leading-relaxed text-muted-foreground">You dropped <b className="text-foreground">{files.length} files</b>. Pro processes them all at once — <b className="text-foreground">privately, on your device</b>, nothing uploaded. On Free, add one file at a time.</p>
         <div className="mt-3.5 flex flex-wrap justify-center gap-2">
           <Button asChild size="sm" className="border-0 bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm transition-all hover:from-amber-600 hover:to-orange-600 hover:shadow-md"><Link href="/pricing"><Sparkles className="size-3.5" /> Go Pro — batch all {files.length}</Link></Button>
@@ -104,7 +104,8 @@ export function BatchRunner({ files, process, controls, actionLabel = 'Process a
       {controls}
       <div className="mt-4 flex items-center gap-2">
         <span className="flex items-center gap-1.5 text-sm font-medium">{files.length} files
-          <span className="rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-1.5 py-px text-[9px] font-bold uppercase tracking-wide text-white">Pro batch</span>
+          <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-1.5 py-px text-[9px] font-bold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">On-device</span>
+          <span className="rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-1.5 py-px text-[9px] font-bold uppercase tracking-wide text-white">Pro</span>
         </span>
         <span className="ml-auto text-xs tabular-nums text-muted-foreground">{doneCount}/{files.length} done</span>
       </div>
