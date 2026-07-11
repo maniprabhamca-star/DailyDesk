@@ -1706,7 +1706,13 @@ export function EditTool() {
   const stampChoices = [...STAMP_PRESETS, ...customStamps.filter((s) => !STAMP_PRESETS.includes(s))];
 
   // ---- ⌘K: publish Edit's deterministic commands to the global palette ----
-  const cmdApi = useRef<Record<string, () => void>>({});
+  const cmdApi = useRef<{
+    para: () => void; addText: () => void; highlight: () => void; draw: () => void; shapes: () => void; stamp: () => void;
+    sign: () => void; image: () => void; save: () => void; undo: () => void; redo: () => void; goPage: (i: number) => void;
+  }>({
+    para: () => {}, addText: () => {}, highlight: () => {}, draw: () => {}, shapes: () => {}, stamp: () => {},
+    sign: () => {}, image: () => {}, save: () => {}, undo: () => {}, redo: () => {}, goPage: () => {},
+  });
   cmdApi.current = {
     para: () => chooseTool('paragraph'), addText: () => chooseTool('add-text'),
     highlight: () => chooseTool('highlight'), draw: () => chooseTool('pen'), shapes: () => chooseTool(shape), stamp: () => chooseTool('stamp'),

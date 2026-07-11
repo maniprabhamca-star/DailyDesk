@@ -15,7 +15,7 @@ import { PageStrip } from '@/components/pdf/page-strip';
 import { EditorShell } from '@/components/pdf/editor-shell';
 import { setEditorContext, clearEditorContext } from '@/lib/command-registry';
 import { saveSession, loadSessionAsync, clearSession } from '@/lib/editor-session';
-import { Mail, Phone, CreditCard, Hash, Info, History } from 'lucide-react';
+import { Mail, Phone, CreditCard, Hash, Info, History, ChevronDown } from 'lucide-react';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
 
@@ -86,6 +86,7 @@ export function RedactTool() {
   const [scanning, setScanning] = useState<string | null>(null); // label of the scan in flight
   const [scanNote, setScanNote] = useState<string | null>(null);
   const [restorable, setRestorable] = useState<{ name: string; run: () => void } | null>(null); // saved session offered on the dropzone
+  const [findOpen, setFindOpen] = useState(false); // is the Find & redact toolbar row expanded
 
   const isPro = plan === 'pro'; // owner cookie / Pro email resolve to 'pro' via usePlan()
 
@@ -132,6 +133,8 @@ export function RedactTool() {
   useEffect(() => () => { if (handle) void handle.destroy(); }, [handle]);
   // Persist the redaction session (in-memory) across in-app navigation.
   useEffect(() => { if (file) saveSession('redact', file, { boxes }); }, [file, boxes]);
+  // Surface scan results by auto-opening the Find row.
+  useEffect(() => { if (scanNote) setFindOpen(true); }, [scanNote]);
 
   // Keep the previous page visible until the next render is ready (no
   // collapse-to-spinner flicker on page change). A fresh file clears preview in
@@ -405,60 +408,64 @@ export function RedactTool() {
   );
 
   // Pro "Find & redact" — search + pattern presets. Manual box-drawing is always
-  // free; free users see the locked upsell. Rendered full-width above the canvas.
+  // free; free users see the locked upsell. Two placements shown for A/B preview:
+  // a collapsible TOOLBAR BAR (the contextBar row) or a SIDE-PANEL card. The inner
+  // controls are shared so both stay in sync.
   const presetIcon: Record<string, typeof Mail> = { email: Mail, phone: Phone, ssn: Hash, card: CreditCard };
-  const findPanel = (
-    <div className="rounded-2xl border bg-card p-4 shadow-soft">
-      <div className="flex items-start gap-3">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-amber-500 text-white shadow-sm"><Sparkles className="size-5" /></span>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <h3 className="text-sm font-semibold">Find &amp; redact</h3>
-            <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400"><Sparkles className="size-2.5" /> Pro</span>
-          </div>
-          <p className="mt-0.5 text-xs text-muted-foreground">Find &amp; box every match across the document&rsquo;s text — then truly remove them.</p>
-        </div>
-      </div>
-      {isPro ? (
-        <div className="mt-3">
-          <div className="flex items-center gap-1 rounded-xl border bg-background pl-3 transition-all focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/15">
-            <Search className="size-4 shrink-0 text-muted-foreground" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') runSearch(); }}
-              placeholder="Find a word, name or number to redact everywhere…"
-              className="min-w-0 flex-1 bg-transparent py-2.5 text-sm outline-none"
-            />
-            <Button size="sm" onClick={runSearch} disabled={!!scanning || !query.trim()} className="my-1 mr-1 shrink-0">
-              {scanning && scanning.startsWith('“') ? <Loader2 className="size-4 animate-spin" /> : <Search className="size-4" />} Find all
-            </Button>
-          </div>
-          <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-            <span className="text-[11px] font-medium text-muted-foreground">Quick presets</span>
-            {PATTERNS.map((p) => { const Icon = presetIcon[p.id] ?? Hash; return (
-              <button
-                key={p.id}
-                onClick={() => void scan((s) => p.test.test(s), p.label)}
-                disabled={!!scanning}
-                className="inline-flex items-center gap-1.5 rounded-full border bg-card px-2.5 py-1 text-[11px] font-medium transition-all hover:-translate-y-px hover:border-amber-400/60 hover:bg-amber-500/10 hover:text-amber-700 disabled:opacity-50 dark:hover:text-amber-300"
-              >
-                {scanning === p.label ? <Loader2 className="size-3 animate-spin" /> : <Icon className="size-3" />} {p.label}
-              </button>
-            ); })}
-          </div>
-          {scanNote && <p className="mt-2.5 flex items-start gap-1.5 rounded-lg bg-muted/60 px-2.5 py-2 text-xs text-muted-foreground"><Info className="mt-0.5 size-3.5 shrink-0 text-amber-500" /> {scanNote}</p>}
-        </div>
-      ) : (
-        <div className="mt-3 flex flex-col items-start gap-3 rounded-xl border border-amber-500/25 bg-amber-500/[0.06] p-3 sm:flex-row sm:items-center">
-          <p className="flex items-start gap-2 text-xs text-muted-foreground">
-            <Lock className="mt-0.5 size-4 shrink-0 text-amber-500" /> <span>Drawing redaction boxes by hand is <strong className="font-semibold text-foreground">always free</strong>. Pro finds &amp; boxes every email, phone, SSN &amp; card number — or any word you type — in one click.</span>
-          </p>
-          <Button asChild size="sm" className="shrink-0 bg-amber-500 text-white hover:bg-amber-600 sm:ml-auto"><Link href="/pricing"><Sparkles className="size-3.5" /> Upgrade to Pro</Link></Button>
-        </div>
-      )}
+  const findSearchBox = (
+    <div className="flex min-w-[200px] flex-1 items-center gap-1 rounded-lg border bg-background pl-2.5 transition-all focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/15">
+      <Search className="size-4 shrink-0 text-muted-foreground" />
+      <input
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        onKeyDown={(e) => { if (e.key === 'Enter') runSearch(); }}
+        placeholder="Find a word, name or number…"
+        className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none"
+      />
+      <Button size="sm" onClick={runSearch} disabled={!!scanning || !query.trim()} className="my-1 mr-1 shrink-0">
+        {scanning && scanning.startsWith('“') ? <Loader2 className="size-4 animate-spin" /> : <Search className="size-4" />} Find all
+      </Button>
     </div>
   );
+  const findPresets = (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className="text-[11px] font-medium text-muted-foreground">Quick</span>
+      {PATTERNS.map((p) => { const Icon = presetIcon[p.id] ?? Hash; return (
+        <button
+          key={p.id}
+          onClick={() => void scan((s) => p.test.test(s), p.label)}
+          disabled={!!scanning}
+          className="inline-flex items-center gap-1.5 rounded-full border bg-card px-2.5 py-1 text-[11px] font-medium transition-all hover:-translate-y-px hover:border-orange-400/70 hover:bg-orange-500/10 hover:text-orange-600 disabled:opacity-50 dark:hover:text-orange-300"
+        >
+          {scanning === p.label ? <Loader2 className="size-3 animate-spin" /> : <Icon className="size-3" />} {p.label}
+        </button>
+      ); })}
+    </div>
+  );
+  const findUpsell = (
+    <div className="flex flex-col items-start gap-2.5 rounded-xl border border-amber-400/30 bg-gradient-to-br from-amber-400/[0.10] to-orange-500/[0.06] p-3">
+      <p className="flex items-start gap-2 text-xs text-muted-foreground">
+        <Lock className="mt-0.5 size-4 shrink-0 text-orange-500" /> <span>Drawing redaction boxes by hand is <strong className="font-semibold text-foreground">always free</strong>. Pro finds &amp; boxes every email, phone, SSN &amp; card number — or any word you type — in one click.</span>
+      </p>
+      <Button asChild size="sm" className="shrink-0 border-0 bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm transition-all hover:from-amber-600 hover:to-orange-600 hover:shadow-md"><Link href="/pricing"><Sparkles className="size-3.5" /> Upgrade to Pro</Link></Button>
+    </div>
+  );
+  // Collapsible Find & redact bar, rendered in the shell's contextBar row.
+  const findBar = (
+    <>
+      <span className="flex shrink-0 items-center gap-1.5 text-xs font-semibold"><span className="flex size-5 items-center justify-center rounded-md bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-sm"><Sparkles className="size-3" /></span> Find &amp; redact <span className="rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-1.5 py-px text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">Pro</span></span>
+      {isPro ? (
+        <>
+          {findSearchBox}
+          {findPresets}
+          {scanNote && <span className="flex w-full items-start gap-1.5 text-[11px] text-muted-foreground"><Info className="mt-0.5 size-3 shrink-0 text-amber-500" /> {scanNote}</span>}
+        </>
+      ) : (
+        <div className="min-w-[220px] flex-1">{findUpsell}</div>
+      )}
+    </>
+  );
+
 
   // The redaction surface — page image + box-drawing overlay canvas. Unchanged engine.
   const surface = (
@@ -572,27 +579,51 @@ export function RedactTool() {
                 <span className="mx-0.5 h-6 w-px bg-border/70" />
                 <button title="Clear page" onClick={clearPage} disabled={!(boxes[sel] || []).length}
                   className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-foreground/80 transition-all hover:bg-destructive/10 hover:text-destructive disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-foreground/80"><Trash2 className="size-4" /> <span className="hidden md:inline">Clear</span></button>
+                <span className="ml-auto" />
+                <button onClick={() => setFindOpen((v) => !v)} aria-pressed={findOpen}
+                  className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-semibold transition-all ${findOpen ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-orange-700 ring-1 ring-inset ring-amber-400/50 dark:text-orange-300' : 'text-foreground/80 hover:bg-accent'}`}>
+                  <Sparkles className="size-4 text-orange-500" /> Find &amp; redact
+                  <ChevronDown className={`size-3.5 transition-transform ${findOpen ? 'rotate-180' : ''}`} />
+                </button>
               </>
             }
+            contextBar={findOpen ? findBar : undefined}
             thumbnails={pageCount > 1 ? (
               <PageStrip orientation="vertical" handle={handle} count={pageCount} selected={sel} onSelect={setSel} />
             ) : undefined}
             properties={
-              <div className="space-y-3 text-sm">
-                <div className="rounded-xl border bg-card p-2.5 shadow-soft">
-                  <p className="flex items-center gap-1.5 font-semibold text-foreground"><ShieldCheck className="size-4 text-emerald-600" /> True redaction</p>
-                  <p className="mt-1 text-xs text-muted-foreground">Drag a box over anything sensitive. On export the content underneath is permanently removed — never just covered.</p>
+              <div className="space-y-2.5 text-sm">
+                {/* Rich header — a gradient chip so the panel reads as a real, premium tool. */}
+                <div className="rounded-xl border border-emerald-500/25 bg-gradient-to-br from-emerald-500/[0.09] via-card to-card p-3 shadow-sm">
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-sm ring-1 ring-inset ring-white/15"><ShieldCheck className="size-[18px]" /></span>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-foreground">True redaction</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-600/80 dark:text-emerald-400/80">Permanent · on-device</p>
+                    </div>
+                  </div>
+                  <p className="mt-2 text-[11.5px] leading-relaxed text-muted-foreground">Drag a box over anything sensitive. On export the content underneath is permanently removed — never just covered.</p>
                 </div>
-                <div className="rounded-xl border bg-card p-2.5 text-xs text-muted-foreground shadow-soft">
-                  {totalBoxes ? `${totalBoxes} area${totalBoxes === 1 ? '' : 's'} on ${redactedPages.length} page${redactedPages.length === 1 ? '' : 's'} marked.` : 'Nothing marked yet — drag a box over sensitive content.'}
-                  <span className="mt-1 block">Everything stays on your device.</span>
-                </div>
-                <div className="rounded-xl border bg-card p-2.5 shadow-soft">{brandToggle}</div>
+                {/* Status — a stat when marked, an inviting empty state otherwise. */}
+                {totalBoxes ? (
+                  <div className="flex items-center gap-2 rounded-xl border border-emerald-500/25 bg-emerald-500/[0.06] px-3 py-2">
+                    <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"><EyeOff className="size-3.5" /></span>
+                    <div className="min-w-0"><p className="text-xs font-semibold text-foreground">{totalBoxes} area{totalBoxes === 1 ? '' : 's'} on {redactedPages.length} page{redactedPages.length === 1 ? '' : 's'}</p><p className="text-[11px] text-muted-foreground">Redact &amp; download to remove it.</p></div>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed bg-muted/20 p-3.5 text-center">
+                    <span className="mx-auto flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary"><EyeOff className="size-4" /></span>
+                    <p className="mt-2 text-xs font-semibold text-foreground">Nothing marked yet</p>
+                    <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">Drag a box over sensitive content on the page.</p>
+                  </div>
+                )}
+                {/* Privacy badge */}
+                <div className="flex items-center gap-1.5 rounded-lg border border-emerald-500/25 bg-emerald-500/[0.05] px-2.5 py-2 text-[11px] font-medium text-emerald-700 dark:text-emerald-400"><ShieldCheck className="size-3.5 shrink-0" /> Everything stays on your device.</div>
+                <div className="rounded-xl border bg-card p-2.5 shadow-sm">{brandToggle}</div>
               </div>
             }
           >
-            <div className="mx-auto max-w-3xl">{findPanel}</div>
-            <div className="mt-3">{surface}</div>
+            {surface}
             {pageCount > 1 && (
               <PageStrip handle={handle} count={pageCount} selected={sel} onSelect={setSel} className="mt-3 sm:hidden" />
             )}

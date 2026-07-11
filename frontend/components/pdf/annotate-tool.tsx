@@ -2,7 +2,7 @@
 import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Upload, X, Loader2, Highlighter, Pen, Square, Circle, Minus, ArrowUpRight, ChevronDown, ChevronUp, Type, Trash2, Zap, Bold, Italic, Underline, Signature as SignatureIcon, ImagePlus, Plus, Copy, Star, MoveDiagonal, MousePointer2, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, Eye, EyeOff, Layers as LayersIcon, RotateCw, FileMinus, ArrowLeftRight, History } from 'lucide-react';
+import { Upload, X, Loader2, Highlighter, Pen, Square, Circle, Minus, ArrowUpRight, ChevronDown, ChevronUp, Type, Trash2, Zap, Bold, Italic, Underline, Signature as SignatureIcon, ImagePlus, Plus, Copy, Star, MoveDiagonal, MousePointer2, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, Eye, EyeOff, Layers as LayersIcon, RotateCw, FileMinus, ArrowLeftRight, History, ShieldCheck, Sparkles } from 'lucide-react';
 import { SignatureMaker } from './signature-maker';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -1253,12 +1253,34 @@ export function AnnotateTool() {
               <PageStrip orientation="vertical" handle={handle} count={pageCount} selected={sel} onSelect={(i) => { setTextDraft(null); setSel(i); }} />
             ) : undefined}
             properties={
-              <div className="space-y-3 text-sm">
+              <div className="space-y-2.5 text-sm">
+                {/* Active-tool header — a rich, gradient chip so the panel reads as a real, premium tool. */}
+                {(() => {
+                  const M = ({ select: MousePointer2, text: Type, highlight: Highlighter, pen: Pen } as Record<string, typeof Square>)[tool] || Square;
+                  const name = ({ select: 'Select', text: 'Text', highlight: 'Highlight', pen: 'Draw' } as Record<string, string>)[tool] || 'Shape';
+                  const hint = tool === 'select' ? 'Drag a box around objects or click one. Shift-click to add more, then align, move or delete them together.'
+                    : tool === 'text' ? 'Click to place, drag to move, double-click to edit. Restyle with the bar above.'
+                    : tool === 'highlight' ? 'Drag across the page to highlight. Set the colour & size in the bar above.'
+                    : tool === 'pen' ? 'Draw freehand anywhere. Set the colour & size in the bar above.'
+                    : 'Drag on the page to draw the shape. Set the colour & size in the bar above.';
+                  return (
+                    <div className="rounded-xl border border-primary/25 bg-gradient-to-br from-primary/[0.09] via-card to-card p-3 shadow-sm">
+                      <div className="flex items-center gap-2.5">
+                        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-sm ring-1 ring-inset ring-white/15"><M className="size-[18px]" /></span>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-foreground">{name}</p>
+                          <p className="text-[10px] font-semibold uppercase tracking-wider text-primary/70">Active tool</p>
+                        </div>
+                      </div>
+                      <p className="mt-2 text-[11.5px] leading-relaxed text-muted-foreground">{hint}</p>
+                    </div>
+                  );
+                })()}
                 {(() => {
                   const layers = pageLayers();
                   return layers.length > 0 ? (
-                    <div className="rounded-xl border bg-card p-2 shadow-soft">
-                      <div className="mb-1 flex items-center gap-1.5 px-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground"><LayersIcon className="size-3.5 text-primary" /> Layers <span className="text-foreground/45">· {layers.length}</span></div>
+                    <div className="rounded-xl border bg-card p-2 shadow-sm">
+                      <div className="mb-1.5 flex items-center gap-1.5 px-1"><LayersIcon className="size-3.5 text-primary" /><span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Layers</span><span className="ml-auto rounded-full bg-muted px-1.5 text-[10px] font-semibold tabular-nums text-muted-foreground">{layers.length}</span></div>
                       <div className="max-h-44 space-y-0.5 overflow-y-auto">
                         {layers.map((L) => (
                           <div key={L.key} className={`group flex items-center gap-1 rounded-md px-1.5 py-1 ${L.selected ? 'bg-primary/10 ring-1 ring-primary/25' : 'hover:bg-accent'}`}>
@@ -1280,54 +1302,45 @@ export function AnnotateTool() {
                     </div>
                   ) : null;
                 })()}
-                {tool === 'select' ? (
-                  group.length > 0 ? (
-                    /* Group inspector — align, distribute-lite, duplicate, delete. */
-                    <>
-                      <p className="flex items-center gap-1.5 font-semibold text-foreground"><MousePointer2 className="size-4 text-primary" /> {group.length} selected</p>
-                      {group.length >= 2 && (
-                        <div className="rounded-xl border bg-card p-2.5 shadow-soft">
-                          <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Align</div>
-                          <div className="mt-1.5 grid grid-cols-6 gap-1">
-                            {([['left', AlignStartVertical], ['hcenter', AlignCenterVertical], ['right', AlignEndVertical], ['top', AlignStartHorizontal], ['vcenter', AlignCenterHorizontal], ['bottom', AlignEndHorizontal]] as const).map(([edge, Icon]) => (
-                              <button key={edge} onClick={() => alignGroup(edge)} title={`Align ${edge}`} aria-label={`Align ${edge}`}
-                                className="flex aspect-square items-center justify-center rounded-md border text-muted-foreground transition-colors hover:border-primary/50 hover:bg-accent hover:text-foreground"><Icon className="size-4" /></button>
-                            ))}
-                          </div>
+                {/* Group inspector — align, duplicate, delete (multi-select). */}
+                {tool === 'select' && group.length > 0 && (
+                  <div className="rounded-xl border bg-card p-3 shadow-sm">
+                    <div className="mb-2 flex items-center gap-1.5"><MousePointer2 className="size-3.5 text-primary" /><span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{group.length} selected</span></div>
+                    {group.length >= 2 && (
+                      <>
+                        <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Align</div>
+                        <div className="mt-1.5 grid grid-cols-6 gap-1">
+                          {([['left', AlignStartVertical], ['hcenter', AlignCenterVertical], ['right', AlignEndVertical], ['top', AlignStartHorizontal], ['vcenter', AlignCenterHorizontal], ['bottom', AlignEndHorizontal]] as const).map(([edge, Icon]) => (
+                            <button key={edge} onClick={() => alignGroup(edge)} title={`Align ${edge}`} aria-label={`Align ${edge}`}
+                              className="flex aspect-square items-center justify-center rounded-md border text-muted-foreground transition-colors hover:border-primary/50 hover:bg-accent hover:text-foreground"><Icon className="size-4" /></button>
+                          ))}
                         </div>
-                      )}
-                      <div className="flex gap-2">
-                        <button onClick={duplicateGroup} className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border py-1.5 text-xs font-medium transition-colors hover:bg-accent"><Copy className="size-3.5" /> Duplicate</button>
-                        <button onClick={deleteGroup} className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border py-1.5 text-xs font-medium text-destructive transition-colors hover:bg-destructive/10"><Trash2 className="size-3.5" /> Delete</button>
+                      </>
+                    )}
+                    <div className="mt-2 flex gap-2">
+                      <button onClick={duplicateGroup} className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border py-1.5 text-xs font-medium transition-colors hover:bg-accent"><Copy className="size-3.5" /> Duplicate</button>
+                      <button onClick={deleteGroup} className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border py-1.5 text-xs font-medium text-destructive transition-colors hover:bg-destructive/10"><Trash2 className="size-3.5" /> Delete</button>
+                    </div>
+                    <p className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground"><MoveDiagonal className="size-3" /> Arrow keys move the group · Shift-click to add/remove</p>
+                  </div>
+                )}
+                {/* Object inspector — precise, design-tool-style controls for the selected text/image. */}
+                {selBox && (
+                  <div className="space-y-2.5">
+                    <div className="rounded-xl border bg-card p-3 shadow-sm">
+                      <div className="mb-2 flex items-center gap-1.5">
+                        {selImage ? <ImagePlus className="size-3.5 text-primary" /> : <Type className="size-3.5 text-primary" />}
+                        <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{selImage ? 'Image' : 'Text'}</span>
+                        <span className="ml-auto rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-primary">selected</span>
                       </div>
-                      <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground"><MoveDiagonal className="size-3" /> Arrow keys move the group · Shift-click to add/remove</p>
-                    </>
-                  ) : (
-                    <div>
-                      <p className="flex items-center gap-1.5 font-semibold text-foreground"><MousePointer2 className="size-4 text-primary" /> Select</p>
-                      <p className="mt-1 text-xs text-muted-foreground">Drag a box around objects to select them, or click one. Shift-click to add more — then align, move, duplicate or delete them together.</p>
-                    </div>
-                  )
-                ) : selBox ? (
-                  /* Object inspector — precise, design-tool-style controls for the
-                     selected text or image. */
-                  <>
-                    <div className="flex items-center justify-between">
-                      <p className="flex items-center gap-1.5 font-semibold text-foreground">
-                        {selImage ? <ImagePlus className="size-4 text-primary" /> : <Type className="size-4 text-primary" />}
-                        {selImage ? 'Image' : 'Text'}
-                      </p>
-                      <span className="text-[11px] uppercase tracking-wide text-primary">selected</span>
-                    </div>
-                    <div className="rounded-xl border bg-card p-2.5 shadow-soft">
                       <div className="grid grid-cols-2 gap-2">
                         <div>
                           <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">X</div>
-                          <div className="mt-0.5 rounded-md border px-2 py-1 text-xs tabular-nums">{Math.round(selBox.x * 100)}<span className="text-muted-foreground">%</span></div>
+                          <div className="mt-0.5 rounded-md border bg-muted/30 px-2 py-1 text-xs tabular-nums">{Math.round(selBox.x * 100)}<span className="text-muted-foreground">%</span></div>
                         </div>
                         <div>
                           <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Y</div>
-                          <div className="mt-0.5 rounded-md border px-2 py-1 text-xs tabular-nums">{Math.round(selBox.y * 100)}<span className="text-muted-foreground">%</span></div>
+                          <div className="mt-0.5 rounded-md border bg-muted/30 px-2 py-1 text-xs tabular-nums">{Math.round(selBox.y * 100)}<span className="text-muted-foreground">%</span></div>
                         </div>
                         {selImage ? (
                           <div className="col-span-2">
@@ -1341,13 +1354,13 @@ export function AnnotateTool() {
                         ) : selTextA ? (
                           <div className="col-span-2">
                             <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Size</div>
-                            <div className="mt-0.5 rounded-md border px-2 py-1 text-xs tabular-nums">{Math.round(selTextA.size * 792)}pt</div>
+                            <div className="mt-0.5 rounded-md border bg-muted/30 px-2 py-1 text-xs tabular-nums">{Math.round(selTextA.size * 792)}pt</div>
                           </div>
                         ) : null}
                       </div>
-                      <p className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground"><MoveDiagonal className="size-3" /> Arrow keys nudge · Shift for bigger steps</p>
+                      <p className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground"><MoveDiagonal className="size-3" /> Arrow keys nudge · Shift = bigger steps</p>
                     </div>
-                    <div className="rounded-xl border bg-card p-2.5 shadow-soft">
+                    <div className="rounded-xl border bg-card p-3 shadow-sm">
                       <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Align to page</div>
                       <div className="mt-1.5 grid grid-cols-6 gap-1">
                         {([['left', AlignStartVertical], ['hcenter', AlignCenterVertical], ['right', AlignEndVertical], ['top', AlignStartHorizontal], ['vcenter', AlignCenterHorizontal], ['bottom', AlignEndHorizontal]] as const).map(([edge, Icon]) => (
@@ -1356,14 +1369,14 @@ export function AnnotateTool() {
                         ))}
                       </div>
                     </div>
-                    <div className="rounded-xl border bg-card p-2.5 shadow-soft">
+                    <div className="rounded-xl border bg-card p-3 shadow-sm">
                       <div className="flex items-center justify-between text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                         <span>Opacity</span><span className="tabular-nums text-foreground">{Math.round(selOpacity * 100)}%</span>
                       </div>
                       <input type="range" min={10} max={100} value={Math.round(selOpacity * 100)} onChange={(e) => setSelOpacity(Number(e.target.value) / 100)} className="dd-range mt-1.5 w-full" aria-label="Opacity" />
                     </div>
                     {selTextA && (
-                      <div className="rounded-xl border bg-card p-2.5 shadow-soft">
+                      <div className="rounded-xl border bg-card p-3 shadow-sm">
                         <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Colour</div>
                         <div className="mt-1.5 flex gap-1.5">
                           {COLORS.map((c) => (
@@ -1377,31 +1390,31 @@ export function AnnotateTool() {
                       <button onClick={duplicateSelected} className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border py-1.5 text-xs font-medium transition-colors hover:bg-accent"><Copy className="size-3.5" /> Duplicate</button>
                       <button onClick={deleteSelected} className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border py-1.5 text-xs font-medium text-destructive transition-colors hover:bg-destructive/10"><Trash2 className="size-3.5" /> Delete</button>
                     </div>
-                  </>
-                ) : (
-                  <>
-                    <div>
-                      <p className="font-semibold text-foreground">{tool === 'text' ? 'Text' : tool === 'highlight' ? 'Highlight' : tool === 'pen' ? 'Draw' : 'Shape'}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {tool === 'text' ? 'Click to select & drag to move · restyle with the bar above · double-click to edit the words.'
-                          : tool === 'highlight' ? 'Drag across the page to highlight. Adjust colour and size above.'
-                          : tool === 'pen' ? 'Draw freehand. Adjust colour and size above.'
-                          : 'Drag to draw the shape. Adjust colour and size above.'}
-                      </p>
-                    </div>
-                    <div className="rounded-xl border bg-card p-2.5 shadow-soft text-xs text-muted-foreground">
-                      {markedPages.length ? `${markedPages.length} page${markedPages.length === 1 ? '' : 's'} marked up.` : 'Nothing marked up yet — pick a tool and start.'}
-                      <span className="mt-1 block">Everything stays on your device.</span>
-                    </div>
-                  </>
+                  </div>
                 )}
-                <div className="rounded-xl border bg-card p-2.5 shadow-soft">
-                  <div className="mb-1.5 flex items-center justify-between">
-                    <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Style presets</span>
-                    <button onClick={saveCurrentPreset} disabled={tool === 'select'} title="Save the current tool, colour & size" className="flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-medium transition-colors hover:bg-accent disabled:opacity-40"><Plus className="size-3" /> Save</button>
+                {/* Overview state — an inviting empty state or a "marked up" stat. */}
+                {!selBox && !(tool === 'select' && group.length > 0) && (
+                  markedPages.length ? (
+                    <div className="flex items-center gap-2 rounded-xl border border-emerald-500/25 bg-emerald-500/[0.06] px-3 py-2">
+                      <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"><Star className="size-3.5" /></span>
+                      <div className="min-w-0"><p className="text-xs font-semibold text-foreground">{markedPages.length} page{markedPages.length === 1 ? '' : 's'} marked up</p><p className="text-[11px] text-muted-foreground">Export flattens it into the PDF.</p></div>
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-dashed bg-muted/20 p-3.5 text-center">
+                      <span className="mx-auto flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary"><Sparkles className="size-4" /></span>
+                      <p className="mt-2 text-xs font-semibold text-foreground">Nothing marked up yet</p>
+                      <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">Pick a colour above and start drawing on the page.</p>
+                    </div>
+                  )
+                )}
+                <div className="rounded-xl border bg-card p-3 shadow-sm">
+                  <div className="mb-2 flex items-center gap-1.5">
+                    <Star className="size-3.5 text-primary" />
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Style presets</span>
+                    <button onClick={saveCurrentPreset} disabled={tool === 'select'} title="Save the current tool, colour & size" className="ml-auto flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-medium transition-colors hover:border-primary/50 hover:bg-accent disabled:opacity-40"><Plus className="size-3" /> Save</button>
                   </div>
                   {presets.length === 0 ? (
-                    <p className="text-[11px] text-muted-foreground">Pick a tool, colour &amp; size, then Save to reuse the whole look in one click.</p>
+                    <p className="text-[11px] leading-relaxed text-muted-foreground">Set a tool, colour &amp; size, then <span className="font-medium text-foreground">Save</span> to reuse the whole look in one click.</p>
                   ) : (
                     <div className="flex flex-wrap gap-1.5">
                       {presets.map((p) => (
@@ -1416,17 +1429,18 @@ export function AnnotateTool() {
                   )}
                 </div>
                 {file && (
-                  <div className="rounded-xl border bg-card p-2.5 shadow-soft">
-                    <div className="mb-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Page tools</div>
+                  <div className="rounded-xl border bg-card p-3 shadow-sm">
+                    <div className="mb-2 flex items-center gap-1.5"><ArrowUpRight className="size-3.5 text-primary" /><span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Page tools</span></div>
                     <div className="grid grid-cols-3 gap-1.5">
-                      <button onClick={() => handoffTo('/rotate-pdf')} title="Rotate pages — opens Rotate PDF with this file" className="flex flex-col items-center gap-1 rounded-lg border py-2 text-[10px] font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:bg-accent hover:text-foreground"><RotateCw className="size-4" /> Rotate</button>
-                      <button onClick={() => handoffTo('/delete-pages-from-pdf')} title="Delete pages — opens Delete Pages with this file" className="flex flex-col items-center gap-1 rounded-lg border py-2 text-[10px] font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:bg-accent hover:text-foreground"><FileMinus className="size-4" /> Delete</button>
-                      <button onClick={() => handoffTo('/reorder-pdf')} title="Reorder pages — opens Organise/Reorder with this file" className="flex flex-col items-center gap-1 rounded-lg border py-2 text-[10px] font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:bg-accent hover:text-foreground"><ArrowLeftRight className="size-4" /> Organise</button>
+                      <button onClick={() => handoffTo('/rotate-pdf')} title="Opens Rotate PDF with this file" className="relative flex flex-col items-center gap-1 rounded-lg border py-2.5 text-[10px] font-medium text-muted-foreground transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:bg-accent hover:text-foreground hover:shadow-sm"><ArrowUpRight className="absolute right-1 top-1 size-2.5 text-muted-foreground/45" /><RotateCw className="size-4" /> Rotate</button>
+                      <button onClick={() => handoffTo('/delete-pages-from-pdf')} title="Opens Delete Pages with this file" className="relative flex flex-col items-center gap-1 rounded-lg border py-2.5 text-[10px] font-medium text-muted-foreground transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:bg-accent hover:text-foreground hover:shadow-sm"><ArrowUpRight className="absolute right-1 top-1 size-2.5 text-muted-foreground/45" /><FileMinus className="size-4" /> Delete</button>
+                      <button onClick={() => handoffTo('/reorder-pdf')} title="Opens Organise/Reorder with this file" className="relative flex flex-col items-center gap-1 rounded-lg border py-2.5 text-[10px] font-medium text-muted-foreground transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:bg-accent hover:text-foreground hover:shadow-sm"><ArrowUpRight className="absolute right-1 top-1 size-2.5 text-muted-foreground/45" /><ArrowLeftRight className="size-4" /> Organise</button>
                     </div>
-                    <p className="mt-1.5 text-[10px] text-muted-foreground">Opens the page tool with this file — no re-upload. Save your markup first.</p>
+                    <p className="mt-2 flex items-start gap-1.5 text-[10.5px] leading-relaxed text-muted-foreground"><ArrowUpRight className="mt-px size-3 shrink-0 text-primary/70" /> Jumps to that tool with this file carried over — no re-upload. Save your markup first.</p>
                   </div>
                 )}
-                <div className="rounded-xl border bg-card p-2.5 shadow-soft">{brandToggle}</div>
+                <div className="flex items-center gap-1.5 rounded-lg border border-emerald-500/25 bg-emerald-500/[0.05] px-2.5 py-2 text-[11px] font-medium text-emerald-700 dark:text-emerald-400"><ShieldCheck className="size-3.5 shrink-0" /> Everything stays on your device.</div>
+                <div className="rounded-xl border bg-card p-2.5 shadow-sm">{brandToggle}</div>
               </div>
             }
           >

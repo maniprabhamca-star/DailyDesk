@@ -41,7 +41,7 @@ export function EditorShell({
   children: ReactNode;
 }) {
   return (
-    <div className="overflow-hidden rounded-2xl border bg-card shadow-lift">
+    <div className="isolate overflow-hidden rounded-2xl border bg-card shadow-lift">
       {/* Top action bar */}
       <div className="flex items-center gap-2 border-b bg-muted/30 px-3 py-2">
         <span className="flex shrink-0 items-center gap-1.5 text-sm font-semibold text-foreground">{toolIcon} {toolName}</span>
@@ -79,13 +79,14 @@ export function EditorShell({
       {/* Body: thumbnail rail | canvas | properties panel.
           Flex (not grid) so a hidden rail/panel reserves NO width on small
           screens — the canvas gets it all. The body GROWS with content so the
-          whole thing scrolls as one page (no nested panel scroll). Only the page
-          RAIL is bounded + self-start so a long document doesn't push the page
-          down forever — it scrolls inside its own column. */}
+          whole thing scrolls as one page (no nested panel scroll). The rail is
+          bounded + self-start so a long document doesn't grow the page.
+          The column dividers live on the CANVAS (which is full-height), not on the
+          short rail/panel — so the lines run top-to-bottom instead of hanging. */}
       <div className="flex">
-        {thumbnails && <aside className="hidden w-20 shrink-0 self-start overflow-y-auto border-r bg-muted/20 p-2 [scrollbar-width:thin] sm:block sm:max-h-[42rem]">{thumbnails}</aside>}
-        <div className="min-w-0 flex-1 bg-muted/10 p-3 sm:p-4">{children}</div>
-        {properties && <aside className="hidden w-[236px] shrink-0 self-start border-l bg-gradient-to-b from-muted/50 via-muted/25 to-transparent p-3 lg:block">{properties}</aside>}
+        {thumbnails && <aside className="hidden w-20 shrink-0 self-start overflow-y-auto bg-muted/20 p-2 [scrollbar-width:thin] sm:block sm:max-h-[42rem]">{thumbnails}</aside>}
+        <div className="min-w-0 flex-1 bg-muted/10 p-3 sm:border-l sm:p-4 lg:border-r">{children}</div>
+        {properties && <aside className="hidden w-[236px] shrink-0 self-start bg-gradient-to-b from-muted/50 via-muted/25 to-transparent p-3 lg:block">{properties}</aside>}
       </div>
     </div>
   );
