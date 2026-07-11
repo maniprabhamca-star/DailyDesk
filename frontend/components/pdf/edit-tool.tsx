@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
 import { takeHandoff } from '@/lib/handoff';
+import { saveSession, loadSession, clearSession } from '@/lib/editor-session';
 import { rewritePdf } from '@/lib/pdf-rewrite';
 import { openPdf, renderPage, dprTarget, getPdfjs, type PdfHandle, type RenderedPage } from '@/lib/pdf-render';
 import { PageStrip } from '@/components/pdf/page-strip';
@@ -536,10 +537,21 @@ export function EditTool() {
   useEffect(() => {
     const h = takeHandoff();
     const pdf = h?.files.find((f) => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
-    if (h && pdf) { setHandoffNote(`PDF brought straight over from ${h.from} — no re-upload needed.`); void loadOne(pdf); }
+    if (h && pdf) { setHandoffNote(`PDF brought straight over from ${h.from} — no re-upload needed.`); void loadOne(pdf); return; }
+    // No handoff — restore the last session so leaving & returning keeps your work.
+    const sess = loadSession<{ lines: typeof lines; edits: typeof edits; blocks: typeof blocks; blockEdits: typeof blockEdits; blockStyle: typeof blockStyle; blockLayout: typeof blockLayout; markups: typeof markups; images: typeof images; added: typeof added }>('edit');
+    if (sess) {
+      const d = sess.data;
+      setLines(d.lines || {}); setEdits(d.edits || {}); setBlocks(d.blocks || {}); setBlockEdits(d.blockEdits || {}); setBlockStyle(d.blockStyle || {}); setBlockLayout(d.blockLayout || {}); setMarkups(d.markups || {}); setImages(d.images || []); setAdded(d.added || []);
+      (d.images || []).forEach((im) => { const el = new Image(); el.onload = () => { imgCache.current.set(im.src, el); }; el.src = im.src; });
+      setBusy(true);
+      void openPdf(sess.file).then((hh) => { setHandle(hh); setPageCount(hh.numPages); setSel(0); setFile(sess.file); }).catch(() => clearSession('edit')).finally(() => setBusy(false));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => () => { if (handle) void handle.destroy(); }, [handle]);
+  // Persist the edit session (in-memory) across in-app navigation.
+  useEffect(() => { if (file) saveSession('edit', file, { lines, edits, blocks, blockEdits, blockStyle, blockLayout, markups, images, added }); }, [file, lines, edits, blocks, blockEdits, blockStyle, blockLayout, markups, images, added]);
 
   // Load LiberationSans (the font pdf.js renders standard Helvetica with) so our
   // canvas redraw matches the page exactly instead of using the browser's Arial.
@@ -1708,7 +1720,7 @@ export function EditTool() {
         </CardContent></Card>
       ) : done ? (
         <Card><CardContent className="p-5">
-          <PdfDone blob={done.blob} name={done.name} secs={done.secs} currentHref="/edit-pdf" fromLabel="Edit PDF" editAgainLabel="Keep editing" onEditAgain={() => setDone(null)} onStartOver={() => { if (handle) void handle.destroy(); setHandle(null); setFile(null); setDone(null); setError(null); setLines({}); setEdits({}); setPast([]); setFuture([]); setHistoryPast([]); setHistoryFuture([]); blockInputSession.current = false; addedInputSession.current = false; setAdded([]); setAddSel(null); setAddMode(false); setBlocks({}); setBlockEdits({}); setBlockStyle({}); setBlockLayout({}); setEditingBlock(null); setMarkups({}); setImages([]); setSelImg(null); setStampsOpen(false); setLinkOpen(false); imgCache.current.clear(); }} />
+          <PdfDone blob={done.blob} name={done.name} secs={done.secs} currentHref="/edit-pdf" fromLabel="Edit PDF" editAgainLabel="Keep editing" onEditAgain={() => setDone(null)} onStartOver={() => { clearSession('edit'); if (handle) void handle.destroy(); setHandle(null); setFile(null); setDone(null); setError(null); setLines({}); setEdits({}); setPast([]); setFuture([]); setHistoryPast([]); setHistoryFuture([]); blockInputSession.current = false; addedInputSession.current = false; setAdded([]); setAddSel(null); setAddMode(false); setBlocks({}); setBlockEdits({}); setBlockStyle({}); setBlockLayout({}); setEditingBlock(null); setMarkups({}); setImages([]); setSelImg(null); setStampsOpen(false); setLinkOpen(false); imgCache.current.clear(); }} />
         </CardContent></Card>
       ) : (
         <div>
@@ -1718,7 +1730,7 @@ export function EditTool() {
             toolIcon={<Pencil className="size-4 text-primary" />}
             fileName={file.name}
             pageInfo={`${pageCount} page${pageCount === 1 ? '' : 's'}`}
-            onClose={() => { if (handle) void handle.destroy(); setHandle(null); setFile(null); setDone(null); setError(null); setLines({}); setEdits({}); setPast([]); setFuture([]); setHistoryPast([]); setHistoryFuture([]); blockInputSession.current = false; addedInputSession.current = false; setAdded([]); setAddSel(null); setAddMode(false); setBlocks({}); setBlockEdits({}); setBlockStyle({}); setBlockLayout({}); setEditingBlock(null); setMarkups({}); setImages([]); setSelImg(null); setStampsOpen(false); setLinkOpen(false); imgCache.current.clear(); }}
+            onClose={() => { clearSession('edit'); if (handle) void handle.destroy(); setHandle(null); setFile(null); setDone(null); setError(null); setLines({}); setEdits({}); setPast([]); setFuture([]); setHistoryPast([]); setHistoryFuture([]); blockInputSession.current = false; addedInputSession.current = false; setAdded([]); setAddSel(null); setAddMode(false); setBlocks({}); setBlockEdits({}); setBlockStyle({}); setBlockLayout({}); setEditingBlock(null); setMarkups({}); setImages([]); setSelImg(null); setStampsOpen(false); setLinkOpen(false); imgCache.current.clear(); }}
             onExport={apply}
             exportLabel="Save"
             exporting={busy}

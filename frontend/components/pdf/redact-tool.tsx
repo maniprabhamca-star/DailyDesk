@@ -14,6 +14,7 @@ import { openPdf, renderPage, dprTarget, getPdfjs, type PdfHandle, type Rendered
 import { PageStrip } from '@/components/pdf/page-strip';
 import { EditorShell } from '@/components/pdf/editor-shell';
 import { setEditorContext, clearEditorContext } from '@/lib/command-registry';
+import { saveSession, loadSession, clearSession } from '@/lib/editor-session';
 import { Mail, Phone, CreditCard, Hash, Info } from 'lucide-react';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
@@ -111,10 +112,19 @@ export function RedactTool() {
   useEffect(() => {
     const h = takeHandoff();
     const pdf = h?.files.find((f) => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
-    if (h && pdf) { setHandoffNote(`PDF brought straight over from ${h.from} — no re-upload needed.`); void loadOne(pdf); }
+    if (h && pdf) { setHandoffNote(`PDF brought straight over from ${h.from} — no re-upload needed.`); void loadOne(pdf); return; }
+    // No handoff — restore the last session so leaving & returning keeps your work.
+    const sess = loadSession<{ boxes: Record<number, Box[]> }>('redact');
+    if (sess) {
+      setBoxes(sess.data.boxes || {});
+      setBusy(true);
+      void openPdf(sess.file).then((hh) => { setHandle(hh); setPageCount(hh.numPages); setSel(0); setFile(sess.file); }).catch(() => clearSession('redact')).finally(() => setBusy(false));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => () => { if (handle) void handle.destroy(); }, [handle]);
+  // Persist the redaction session (in-memory) across in-app navigation.
+  useEffect(() => { if (file) saveSession('redact', file, { boxes }); }, [file, boxes]);
 
   // Keep the previous page visible until the next render is ready (no
   // collapse-to-spinner flicker on page change). A fresh file clears preview in
@@ -378,7 +388,7 @@ export function RedactTool() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [file, pageCount]);
 
-  const removeFile = () => { if (handle) void handle.destroy(); setHandle(null); setFile(null); setDone(null); setError(null); setBoxes({}); };
+  const removeFile = () => { clearSession('redact'); if (handle) void handle.destroy(); setHandle(null); setFile(null); setDone(null); setError(null); setBoxes({}); };
 
   const brandToggle = (
     <label className="flex cursor-pointer items-center justify-center gap-2 text-xs text-muted-foreground">
