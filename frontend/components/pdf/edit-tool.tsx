@@ -9,6 +9,7 @@ import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
 import { takeHandoff } from '@/lib/handoff';
 import { saveSession, loadSessionAsync, clearSession } from '@/lib/editor-session';
+import { setEditorContext, clearEditorContext } from '@/lib/command-registry';
 import { rewritePdf } from '@/lib/pdf-rewrite';
 import { openPdf, renderPage, dprTarget, getPdfjs, type PdfHandle, type RenderedPage } from '@/lib/pdf-render';
 import { PageStrip } from '@/components/pdf/page-strip';
@@ -1699,6 +1700,40 @@ export function EditTool() {
     arrow: { icon: <ArrowUpRight className="size-4" />, label: 'Arrow' },
   };
   const stampChoices = [...STAMP_PRESETS, ...customStamps.filter((s) => !STAMP_PRESETS.includes(s))];
+
+  // ---- ⌘K: publish Edit's deterministic commands to the global palette ----
+  const cmdApi = useRef<Record<string, () => void>>({});
+  cmdApi.current = {
+    para: () => chooseTool('paragraph'), addText: () => chooseTool('add-text'),
+    highlight: () => chooseTool('highlight'), draw: () => chooseTool('pen'), shapes: () => chooseTool(shape), stamp: () => chooseTool('stamp'),
+    sign: () => setSigOpen(true), image: () => imgFileRef.current?.click(),
+    save: () => { void apply(); }, undo: () => undoEditor(), redo: () => redoEditor(),
+    goPage: (i: number) => { closeWord(); setAddSel(null); setAddMode(false); setEditingBlock(null); setSelImg(null); setSel(i); },
+  };
+  useEffect(() => {
+    if (!file) { clearEditorContext(); return; }
+    setEditorContext({
+      toolLabel: 'Edit',
+      pageCount,
+      goToPage: (n) => cmdApi.current.goPage(Math.max(0, Math.min(pageCount - 1, n - 1))),
+      commands: [
+        { id: 'e-para', label: 'Edit paragraphs', keywords: 'text edit existing', icon: Pencil, run: () => cmdApi.current.para() },
+        { id: 'e-add', label: 'Add text box', icon: TextCursorInput, run: () => cmdApi.current.addText() },
+        { id: 'e-highlight', label: 'Highlight tool', keywords: 'marker', icon: Highlighter, run: () => cmdApi.current.highlight() },
+        { id: 'e-draw', label: 'Draw / pen tool', icon: Pen, run: () => cmdApi.current.draw() },
+        { id: 'e-shapes', label: 'Shapes tool', icon: Square, run: () => cmdApi.current.shapes() },
+        { id: 'e-stamp', label: 'Stamp tool', icon: StampIcon, run: () => cmdApi.current.stamp() },
+        { id: 'e-sign', label: 'Draw a signature', icon: SignatureIcon, run: () => cmdApi.current.sign() },
+        { id: 'e-image', label: 'Insert an image', icon: ImagePlus, run: () => cmdApi.current.image() },
+        { id: 'e-save', label: 'Save PDF', icon: Pencil, run: () => cmdApi.current.save() },
+        { id: 'e-undo', label: 'Undo', icon: Undo2, run: () => cmdApi.current.undo() },
+        { id: 'e-redo', label: 'Redo', icon: Redo2, run: () => cmdApi.current.redo() },
+      ],
+    });
+    return () => clearEditorContext();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [file, pageCount]);
+
   return (
     <div ref={editorTopRef}>
       <input id="edit-pdf-upload" ref={inputRef} type="file" accept="application/pdf,.pdf" className="sr-only" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
