@@ -2,7 +2,7 @@
 
 import { formatDuration } from '@/lib/format';
 import { useEffect, useRef, useState } from 'react';
-import { Upload, FileImage, X, Download, Loader2, Shrink, CheckCircle2, Type, Eye, Lock } from 'lucide-react';
+import { Upload, FileImage, X, Download, Loader2, Shrink, CheckCircle2, Type, Eye, Lock, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { encodeJpeg } from '@/lib/mozjpeg';
@@ -273,6 +273,7 @@ export function CompressImageTool() {
               <p className="mt-2 text-sm font-medium">Drop a JPG, PNG, or WebP here, or click to choose</p>
               <p className="text-xs text-muted-foreground">Shrinks the file — your photo never leaves your browser</p>
               <span className="mt-4 inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm">Choose image</span>
+              <p className="mt-3 flex items-center gap-1.5 text-[11px] text-muted-foreground"><Sparkles className="size-3 text-amber-500" /> Drop <b className="font-semibold text-foreground">several at once</b> to batch them — on your device <span className="rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-1.5 py-px text-[9px] font-bold uppercase text-white">Pro</span></p>
             </div>
           ) : (
             <div>
