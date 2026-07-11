@@ -14,7 +14,7 @@ import { openPdf, renderPage, dprTarget, getPdfjs, type PdfHandle, type Rendered
 import { PageStrip } from '@/components/pdf/page-strip';
 import { EditorShell } from '@/components/pdf/editor-shell';
 import { setEditorContext, clearEditorContext } from '@/lib/command-registry';
-import { saveSession, loadSession, clearSession } from '@/lib/editor-session';
+import { saveSession, loadSessionAsync, clearSession } from '@/lib/editor-session';
 import { Mail, Phone, CreditCard, Hash, Info } from 'lucide-react';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
@@ -113,13 +113,16 @@ export function RedactTool() {
     const h = takeHandoff();
     const pdf = h?.files.find((f) => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
     if (h && pdf) { setHandoffNote(`PDF brought straight over from ${h.from} — no re-upload needed.`); void loadOne(pdf); return; }
-    // No handoff — restore the last session so leaving & returning keeps your work.
-    const sess = loadSession<{ boxes: Record<number, Box[]> }>('redact');
-    if (sess) {
+    // No handoff — restore the last session (memory first, then IndexedDB so it
+    // survives a full reload) so leaving & returning keeps your work.
+    let alive = true;
+    void loadSessionAsync<{ boxes: Record<number, Box[]> }>('redact').then((sess) => {
+      if (!alive || !sess) return;
       setBoxes(sess.data.boxes || {});
       setBusy(true);
-      void openPdf(sess.file).then((hh) => { setHandle(hh); setPageCount(hh.numPages); setSel(0); setFile(sess.file); }).catch(() => clearSession('redact')).finally(() => setBusy(false));
-    }
+      void openPdf(sess.file).then((hh) => { if (!alive) { void hh.destroy(); return; } setHandle(hh); setPageCount(hh.numPages); setSel(0); setFile(sess.file); }).catch(() => clearSession('redact')).finally(() => { if (alive) setBusy(false); });
+    });
+    return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => () => { if (handle) void handle.destroy(); }, [handle]);
@@ -391,7 +394,7 @@ export function RedactTool() {
   const removeFile = () => { clearSession('redact'); if (handle) void handle.destroy(); setHandle(null); setFile(null); setDone(null); setError(null); setBoxes({}); };
 
   const brandToggle = (
-    <label className="flex cursor-pointer items-center justify-center gap-2 text-xs text-muted-foreground">
+    <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
       <input type="checkbox" checked={brandName} onChange={(e) => setBrandName(e.target.checked)} className="size-3.5 accent-primary" />
       Add &ldquo;-diemdesk&rdquo; to the file name
     </label>
@@ -564,15 +567,15 @@ export function RedactTool() {
             ) : undefined}
             properties={
               <div className="space-y-3 text-sm">
-                <div>
+                <div className="rounded-xl border bg-card p-2.5 shadow-soft">
                   <p className="flex items-center gap-1.5 font-semibold text-foreground"><ShieldCheck className="size-4 text-emerald-600" /> True redaction</p>
                   <p className="mt-1 text-xs text-muted-foreground">Drag a box over anything sensitive. On export the content underneath is permanently removed — never just covered.</p>
                 </div>
-                <div className="rounded-lg border bg-card p-2.5 text-xs text-muted-foreground">
+                <div className="rounded-xl border bg-card p-2.5 text-xs text-muted-foreground shadow-soft">
                   {totalBoxes ? `${totalBoxes} area${totalBoxes === 1 ? '' : 's'} on ${redactedPages.length} page${redactedPages.length === 1 ? '' : 's'} marked.` : 'Nothing marked yet — drag a box over sensitive content.'}
                   <span className="mt-1 block">Everything stays on your device.</span>
                 </div>
-                <div className="border-t pt-3">{brandToggle}</div>
+                <div className="rounded-xl border bg-card p-2.5 shadow-soft">{brandToggle}</div>
               </div>
             }
           >

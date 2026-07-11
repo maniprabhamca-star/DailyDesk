@@ -16,7 +16,7 @@ import { PageStrip } from '@/components/pdf/page-strip';
 import { EditorShell } from '@/components/pdf/editor-shell';
 import { loadLibrary, addLibraryItem, removeLibraryItem, newLibraryId, type LibraryItem } from '@/lib/library';
 import { setEditorContext, clearEditorContext } from '@/lib/command-registry';
-import { saveSession, loadSession, clearSession } from '@/lib/editor-session';
+import { saveSession, loadSessionAsync, clearSession } from '@/lib/editor-session';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
 import { FAMILIES, type Family } from '@/lib/fonts';
@@ -260,15 +260,18 @@ export function AnnotateTool() {
     const h = takeHandoff();
     const pdf = h?.files.find((f) => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
     if (h && pdf) { setHandoffNote(`PDF brought straight over from ${h.from} — no re-upload needed.`); void loadOne(pdf); return; }
-    // No handoff — restore the last session so leaving & returning keeps your work.
-    const sess = loadSession<{ annos: Record<number, Anno[]>; images: ImageItem[] }>('annotate');
-    if (sess) {
+    // No handoff — restore the last session (memory first, then IndexedDB so it
+    // survives a full reload) so leaving & returning keeps your work.
+    let alive = true;
+    void loadSessionAsync<{ annos: Record<number, Anno[]>; images: ImageItem[] }>('annotate').then((sess) => {
+      if (!alive || !sess) return;
       setAnnos(sess.data.annos || {});
       setImages(sess.data.images || []);
       (sess.data.images || []).forEach((im) => { const el = new Image(); el.onload = () => { imgCache.current.set(im.src, el); }; el.src = im.src; });
       setBusy(true);
-      void openPdf(sess.file).then((hh) => { setHandle(hh); setPageCount(hh.numPages); setSel(0); setFile(sess.file); }).catch(() => clearSession('annotate')).finally(() => setBusy(false));
-    }
+      void openPdf(sess.file).then((hh) => { if (!alive) { void hh.destroy(); return; } setHandle(hh); setPageCount(hh.numPages); setSel(0); setFile(sess.file); }).catch(() => clearSession('annotate')).finally(() => { if (alive) setBusy(false); });
+    });
+    return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   // Persist the session (in-memory) whenever the file or edits change.
@@ -943,7 +946,7 @@ export function AnnotateTool() {
   const removeFile = () => { clearSession('annotate'); if (handle) void handle.destroy(); setHandle(null); setFile(null); setDone(null); setError(null); setAnnos({}); setImages([]); setSelImg(null); imgCache.current.clear(); };
 
   const brandToggle = (
-    <label className="flex cursor-pointer items-center justify-center gap-2 text-xs text-muted-foreground">
+    <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
       <input type="checkbox" checked={brandName} onChange={(e) => setBrandName(e.target.checked)} className="size-3.5 accent-primary" />
       Add &ldquo;-diemdesk&rdquo; to the file name
     </label>
@@ -1410,7 +1413,7 @@ export function AnnotateTool() {
                     <p className="mt-1.5 text-[10px] text-muted-foreground">Opens the page tool with this file — no re-upload. Save your markup first.</p>
                   </div>
                 )}
-                <div className="border-t pt-3">{brandToggle}</div>
+                <div className="rounded-xl border bg-card p-2.5 shadow-soft">{brandToggle}</div>
               </div>
             }
           >
