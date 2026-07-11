@@ -37,6 +37,8 @@ type Anno = Stroke | ShapeA | TextA;
 // are composited into the page at export. x/y = top-left fraction, w = width
 // fraction of the page, aspect = image height/width (in px). opacity 0–1.
 type ImageItem = { id: string; page: number; x: number; y: number; w: number; aspect: number; src: string; opacity?: number; hidden?: boolean };
+// A saved "look" — tool + colour + size (+ text styling), reusable in one click.
+type Preset = { id: string; name: string; tool: Tool; color: string; weight: number; family: Family; bold: boolean; italic: boolean; underline: boolean };
 const SHAPE_KINDS: ShapeKind[] = ['rect', 'circle', 'line', 'arrow'];
 const isShape = (t: Tool): t is ShapeKind => (SHAPE_KINDS as string[]).includes(t);
 
@@ -169,6 +171,8 @@ export function AnnotateTool() {
   const [preview, setPreview] = useState<RenderedPage | null>(null);
   const [tool, setTool] = useState<Tool>('highlight');
   const [color, setColor] = useState(COLORS[0]);
+  const [recentColors, setRecentColors] = useState<string[]>([]); // custom colours picked beyond the 6 swatches
+  const [presets, setPresets] = useState<Preset[]>([]); // saved style presets (localStorage)
   const [weight, setWeight] = useState(4);
   const [shape, setShape] = useState<ShapeKind>('rect'); // last-picked shape for the Shapes button
   const [shapesOpen, setShapesOpen] = useState(false);
@@ -854,6 +858,25 @@ export function AnnotateTool() {
   }
   const deleteFromLibrary = (id: string) => setLibrary(removeLibraryItem(id));
 
+  // Full colour: apply a custom hex (from the wheel) to the active colour + any
+  // selected object, and remember it as a recent swatch.
+  const applyCustomColor = (hex: string) => {
+    setColor(hex); patchSelected({ color: hex });
+    setRecentColors((prev) => [hex, ...prev.filter((c) => c.toLowerCase() !== hex.toLowerCase())].slice(0, 5));
+  };
+
+  // Style presets — save the current tool + colour + size (+ text styling) and
+  // re-apply the whole look in one click. Stored on-device (localStorage).
+  useEffect(() => { try { const r = localStorage.getItem('dd-annotate-presets'); if (r) setPresets(JSON.parse(r)); } catch { /* ignore */ } }, []);
+  const persistPresets = (list: Preset[]) => { setPresets(list); try { localStorage.setItem('dd-annotate-presets', JSON.stringify(list)); } catch { /* quota */ } };
+  const saveCurrentPreset = () => {
+    if (tool === 'select') return;
+    const label = tool === 'text' ? 'Text' : tool === 'highlight' ? 'Highlight' : tool === 'pen' ? 'Pen' : 'Shape';
+    persistPresets([{ id: Math.random().toString(36).slice(2), name: `${label} · ${weight}`, tool, color, weight, family, bold, italic, underline }, ...presets].slice(0, 12));
+  };
+  const applyPreset = (p: Preset) => { setTool(p.tool); setColor(p.color); setWeight(p.weight); setFamily(p.family); setBold(p.bold); setItalic(p.italic); setUnderline(p.underline); };
+  const deletePreset = (id: string) => persistPresets(presets.filter((p) => p.id !== id));
+
   // ---- ⌘K: publish Annotate's deterministic commands to the global palette ----
   const cmdApi = useRef<Record<string, () => void>>({});
   cmdApi.current = {
@@ -1142,6 +1165,15 @@ export function AnnotateTool() {
                     <button key={c} onClick={() => { setColor(c); patchSelected({ color: c }); }} aria-label={`colour ${c}`} aria-pressed={color === c}
                       className={`size-6 rounded-full ring-offset-1 ring-offset-card transition-all ${color === c ? 'ring-2 ring-primary' : 'ring-1 ring-border hover:ring-primary/50'}`} style={{ backgroundColor: c }} />
                   ))}
+                  {recentColors.filter((c) => !COLORS.includes(c)).slice(0, 4).map((c) => (
+                    <button key={c} onClick={() => { setColor(c); patchSelected({ color: c }); }} aria-label={`recent colour ${c}`} aria-pressed={color === c}
+                      className={`size-6 rounded-full ring-offset-1 ring-offset-card transition-all ${color === c ? 'ring-2 ring-primary' : 'ring-1 ring-border hover:ring-primary/50'}`} style={{ backgroundColor: c }} />
+                  ))}
+                  {/* Custom colour — the OS colour wheel + hex, beyond the presets */}
+                  <label className="relative flex size-6 cursor-pointer items-center justify-center overflow-hidden rounded-full ring-1 ring-border transition-all hover:ring-primary/60" title="Custom colour" style={{ background: 'conic-gradient(from 0deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)' }}>
+                    <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(color) ? color : '#111827'} onChange={(e) => applyCustomColor(e.target.value)} className="absolute inset-0 cursor-pointer opacity-0" aria-label="Custom colour picker" />
+                    <Plus className="size-3 text-white drop-shadow" />
+                  </label>
                 </div>
                 {tool !== 'text' ? (
                   <>
@@ -1297,6 +1329,26 @@ export function AnnotateTool() {
                     </div>
                   </>
                 )}
+                <div className="rounded-lg border bg-card p-2.5">
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Style presets</span>
+                    <button onClick={saveCurrentPreset} disabled={tool === 'select'} title="Save the current tool, colour & size" className="flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-medium transition-colors hover:bg-accent disabled:opacity-40"><Plus className="size-3" /> Save</button>
+                  </div>
+                  {presets.length === 0 ? (
+                    <p className="text-[11px] text-muted-foreground">Pick a tool, colour &amp; size, then Save to reuse the whole look in one click.</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-1.5">
+                      {presets.map((p) => (
+                        <div key={p.id} className="group relative">
+                          <button onClick={() => applyPreset(p)} title={`Apply ${p.name}`} className="flex items-center gap-1.5 rounded-full border py-1 pl-1.5 pr-2 text-[11px] transition-colors hover:border-primary/50 hover:bg-accent">
+                            <span className="size-3 rounded-full ring-1 ring-border" style={{ backgroundColor: p.color }} /> {p.name}
+                          </button>
+                          <button onClick={() => deletePreset(p.id)} aria-label={`Delete preset ${p.name}`} className="absolute -right-1 -top-1 hidden size-3.5 items-center justify-center rounded-full bg-destructive text-white group-hover:flex"><X className="size-2" /></button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 {(() => {
                   const layers = pageLayers();
                   return layers.length > 0 ? (
