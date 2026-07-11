@@ -197,7 +197,7 @@ export function CommandPalette() {
                     className={cn('flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors', isActive && 'bg-accent')}>
                     <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/12 text-primary"><Icon className="size-4" /></span>
                     <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{r.cmd.label}</span>{r.cmd.hint && <span className="block truncate text-xs text-muted-foreground">{r.cmd.hint}</span>}</span>
-                    {r.cmd.pro && <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400"><Sparkles className="size-2.5" /> Pro</span>}
+                    {r.cmd.pro && <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm"><Sparkles className="size-2.5" /> Pro</span>}
                     {!r.cmd.pro && isActive && <CornerDownLeft className="size-4 shrink-0 text-muted-foreground" />}
                   </button>
                 );
@@ -222,7 +222,7 @@ export function CommandPalette() {
                   <span className="flex size-8 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: `${t.color}1A`, color: t.color }}><Icon className="size-4" /></span>
                   <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{t.name}</span><span className="block truncate text-xs text-muted-foreground">{t.group}</span></span>
                   {isProTool(t)
-                    ? <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400"><Sparkles className="size-2.5" /> Pro</span>
+                    ? <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm"><Sparkles className="size-2.5" /> Pro</span>
                     : r.disabled ? <span className="shrink-0 text-[10px] font-medium text-muted-foreground">soon</span>
                     : isActive && <CornerDownLeft className="size-4 shrink-0 text-muted-foreground" />}
                 </button>

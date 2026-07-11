@@ -165,7 +165,7 @@ export function SiteHeader({ heroSearchRef }: { heroSearchRef?: React.RefObject<
                 <div className="mt-1 flex items-center gap-2 rounded-lg px-3 py-2 text-sm">
                   <span className="flex size-8 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground">{user.name?.trim()?.[0]?.toUpperCase() || 'U'}</span>
                   <span className="truncate font-medium">{user.name}</span>
-                  {user.plan === 'pro' && <span className="rounded-full bg-amber-400 px-1.5 text-[10px] font-bold uppercase text-amber-950">Pro</span>}
+                  {user.plan === 'pro' && <span className="rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-1.5 text-[10px] font-bold uppercase text-white shadow-sm">Pro</span>}
                 </div>
                 <Button size="sm" variant="outline" className="mt-1 w-full" onClick={() => { logout(); setMobileOpen(false); }}>Log out</Button>
               </>

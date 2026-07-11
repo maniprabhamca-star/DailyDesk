@@ -153,7 +153,7 @@ export function HeaderSearch({ visible }: { visible: boolean }) {
                     <span className="block truncate text-sm font-medium">{t.name}</span>
                     <span className="block truncate text-[11px] text-muted-foreground">{t.group}</span>
                   </span>
-                  {pro ? <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400"><Sparkles className="size-2.5" /> Pro</span>
+                  {pro ? <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm"><Sparkles className="size-2.5" /> Pro</span>
                     : soon ? <span className="shrink-0 text-[10px] font-medium text-muted-foreground">soon</span>
                     : isActive && <CornerDownLeft className="size-3.5 shrink-0 text-muted-foreground" />}
                 </button>

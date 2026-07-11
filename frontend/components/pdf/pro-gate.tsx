@@ -13,7 +13,7 @@ import { usePlan } from '@/lib/plan';
 // Small amber "PRO" pill to sit on a locked tool button.
 export function ProBadge({ className = '' }: { className?: string }) {
   return (
-    <span className={`inline-flex items-center gap-0.5 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase leading-none tracking-wide text-amber-600 dark:text-amber-400 ${className}`}>
+    <span className={`inline-flex items-center gap-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-1.5 py-0.5 text-[10px] font-bold uppercase leading-none tracking-wide text-white shadow-sm ${className}`}>
       <Sparkles className="size-2.5" /> Pro
     </span>
   );
@@ -23,12 +23,12 @@ export function ProBadge({ className = '' }: { className?: string }) {
 export function ProUpsell({ feature, blurb }: { feature: string; blurb: string }) {
   return (
     <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 text-center">
-      <span className="mx-auto flex size-9 items-center justify-center rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400">
+      <span className="mx-auto flex size-9 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-sm">
         <Lock className="size-4" />
       </span>
       <p className="mt-2 text-sm font-semibold text-foreground">{feature} is a Pro feature</p>
       <p className="mt-1 text-xs text-muted-foreground">{blurb}</p>
-      <a href="/pricing" className="mt-3 inline-flex items-center gap-1 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-amber-600">
+      <a href="/pricing" className="mt-3 inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:from-amber-600 hover:to-orange-600 hover:shadow-md">
         <Sparkles className="size-3.5" /> Unlock with Pro
       </a>
     </div>
