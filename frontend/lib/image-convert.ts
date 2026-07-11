@@ -113,3 +113,49 @@ export function detectFormat(f: File): OutFormat | 'other' {
   if (/webp$/i.test(f.type) || /\.webp$/i.test(f.name)) return 'webp';
   return 'other';
 }
+
+// ── Headless batch cores ──────────────────────────────────────────────────
+// The SAME on-device pipelines the Convert/Resize tools run for a single file,
+// extracted so the BatchRunner (Pro on-device batch) can loop them over many
+// files. Kept equivalent to each tool's single-file run() so batch output is
+// byte-for-byte what a user would get one at a time.
+
+export type BatchImageResult = { blob: Blob; name: string; before: number; after: number };
+
+/** Convert one image to `format` at `quality` — mirrors ConvertImageTool.run(). */
+export async function convertImageFile(file: File, opts: { format: OutFormat; quality: number }): Promise<BatchImageResult> {
+  const bm = await decodeImage(file);
+  const canvas = document.createElement('canvas');
+  canvas.width = bm.width;
+  canvas.height = bm.height;
+  canvas.getContext('2d')!.drawImage(bm, 0, 0);
+  bm.close();
+  const blob = await encodeCanvas(canvas, opts.format, opts.quality);
+  canvas.width = 0; canvas.height = 0;
+  const name = `${file.name.replace(/\.[^.]+$/, '')}.${opts.format}`;
+  return { blob, name, before: file.size, after: blob.size };
+}
+
+export type BatchResizeMode = 'percent' | 'fit';
+
+/** Resize one image keeping aspect — mirrors ResizeImageTool.run(), but sized
+ * for a mixed batch: absolute pixels can't apply across differently-sized
+ * images, so batch offers a percentage or a "fit within a max long edge" cap
+ * (fit only ever downscales). */
+export async function resizeImageFile(
+  file: File,
+  opts: { mode: BatchResizeMode; percent: number; maxEdge: number; format: OutFormat; quality: number },
+): Promise<BatchImageResult> {
+  const bm = await decodeImage(file);
+  const scale = opts.mode === 'percent'
+    ? Math.max(1, opts.percent) / 100
+    : Math.min(1, opts.maxEdge / Math.max(bm.width, bm.height)); // fit: downscale only
+  const w = Math.max(1, Math.round(bm.width * scale));
+  const h = Math.max(1, Math.round(bm.height * scale));
+  const canvas = resample(bm, w, h);
+  bm.close();
+  const blob = await encodeCanvas(canvas, opts.format, opts.quality);
+  canvas.width = 0; canvas.height = 0;
+  const name = `${file.name.replace(/\.[^.]+$/, '')}-${w}x${h}.${opts.format}`;
+  return { blob, name, before: file.size, after: blob.size };
+}

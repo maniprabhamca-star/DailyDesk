@@ -2,12 +2,13 @@
 
 import { formatDuration } from '@/lib/format';
 import { useEffect, useRef, useState } from 'react';
-import { Upload, X, Download, Loader2, ImageIcon, CheckCircle2, RotateCcw, Link2, Unlink2 } from 'lucide-react';
+import { Upload, X, Download, Loader2, ImageIcon, CheckCircle2, RotateCcw, Link2, Unlink2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { downloadBlob as download } from '@/lib/download';
 import { KeepGoing } from '@/components/app/keep-going';
-import { decodeImage, resample, encodeCanvas, canEncodeWebp, detectFormat, type OutFormat } from '@/lib/image-convert';
+import { decodeImage, resample, encodeCanvas, canEncodeWebp, detectFormat, resizeImageFile, type OutFormat, type BatchResizeMode } from '@/lib/image-convert';
+import { BatchRunner } from '@/components/app/batch-runner';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
 
@@ -25,6 +26,10 @@ const PRESETS = [1920, 1280, 800, 640];
 export function ResizeImageTool() {
   const plan = usePlan();
   const [file, setFile] = useState<File | null>(null);
+  const [batchFiles, setBatchFiles] = useState<File[]>([]); // several images dropped → Pro on-device batch
+  const [bMode, setBMode] = useState<BatchResizeMode>('percent'); // batch resize: scale % or fit-within
+  const [bPercent, setBPercent] = useState(50);
+  const [bMaxEdge, setBMaxEdge] = useState(1920);
   const [tooBig, setTooBig] = useState<{ name: string; size: number } | null>(null);
   const [bitmap, setBitmap] = useState<ImageBitmap | null>(null);
   const [srcUrl, setSrcUrl] = useState<string | null>(null);
@@ -69,7 +74,21 @@ export function ResizeImageTool() {
       setBusy(false);
     }
   }
-  function pick(files: FileList | null) { void loadOne(files?.[0]); }
+  function pick(files: FileList | null) {
+    const list = files ? Array.from(files) : [];
+    if (list.length > 1) { reset(); setBatchFiles(list); return; } // several images → on-device batch
+    void loadOne(list[0]);
+  }
+
+  function reset() {
+    if (bitmap) bitmap.close();
+    setBitmap(null);
+    setFile(null);
+    setBatchFiles([]);
+    setDone(null);
+    setError(null);
+    setSrcUrl(null);
+  }
 
   function setWidth(v: number) {
     const nw = Math.min(Math.max(1, Math.round(v) || 1), MAX_DIM);
@@ -109,12 +128,76 @@ export function ResizeImageTool() {
 
   const upscaling = bitmap ? w > bitmap.width || h > bitmap.height : false;
 
+  const btnCls = (active: boolean) => `rounded-xl border px-2 py-2.5 text-center transition-all ${active ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-border bg-card hover:border-primary/40 hover:bg-accent/40'}`;
+  // Batch resize controls — absolute pixels can't apply across a mixed batch, so
+  // offer a scale % or a "fit within a long edge" cap. Plus format + quality.
+  const batchControls = (
+    <div className="space-y-4">
+      <div>
+        <p className="mb-2 text-sm font-medium">Resize by</p>
+        <div className="grid grid-cols-2 gap-2 sm:gap-3">
+          <button onClick={() => setBMode('percent')} aria-pressed={bMode === 'percent'} className={btnCls(bMode === 'percent')}>
+            <span className="block text-sm font-semibold">Percentage</span>
+            <span className="block text-[11px] leading-tight text-muted-foreground">Scale every image</span>
+          </button>
+          <button onClick={() => setBMode('fit')} aria-pressed={bMode === 'fit'} className={btnCls(bMode === 'fit')}>
+            <span className="block text-sm font-semibold">Fit within</span>
+            <span className="block text-[11px] leading-tight text-muted-foreground">Cap the long edge</span>
+          </button>
+        </div>
+      </div>
+      {bMode === 'percent' ? (
+        <label className="block text-sm">
+          <span className="mb-1.5 block font-medium">Scale · {bPercent}%</span>
+          <input type="range" min={10} max={100} step={5} value={bPercent} onChange={(e) => setBPercent(Number(e.target.value))} className="dd-range mt-2 w-full" />
+        </label>
+      ) : (
+        <div>
+          <label className="block text-sm">
+            <span className="mb-1.5 block font-medium">Max long edge (px)</span>
+            <input className={inputCls} type="number" min={16} max={MAX_DIM} value={bMaxEdge} onChange={(e) => setBMaxEdge(Math.min(MAX_DIM, Math.max(16, Math.round(Number(e.target.value)) || 16)))} inputMode="numeric" />
+          </label>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {[2560, 1920, 1280, 800].map((p) => (
+              <button key={p} onClick={() => setBMaxEdge(p)} className="rounded-full border px-3 py-1 text-xs font-medium hover:border-primary/40">{p}px</button>
+            ))}
+          </div>
+        </div>
+      )}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="text-sm">
+          <span className="mb-1.5 block font-medium">Output format</span>
+          <select className="h-10 w-full rounded-lg border bg-card px-2 text-sm font-medium outline-none focus:border-primary" value={format} onChange={(e) => setFormat(e.target.value as OutFormat)}>
+            <option value="jpg">JPG — small, opens everywhere</option>
+            <option value="png">PNG — lossless, keeps transparency</option>
+            {webpOk && <option value="webp">WebP — smallest, modern</option>}
+          </select>
+        </label>
+        {format !== 'png' && (
+          <label className="text-sm">
+            <span className="mb-1.5 block font-medium">Quality · {quality}</span>
+            <input type="range" min={50} max={100} value={quality} onChange={(e) => setQuality(Number(e.target.value))} className="dd-range mt-3 w-full" />
+          </label>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <Card>
       <CardContent className="p-5">
-        <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/bmp,.jpg,.jpeg,.png,.webp,.gif,.bmp" className="hidden" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
+        <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/bmp,.jpg,.jpeg,.png,.webp,.gif,.bmp" multiple className="hidden" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
         {tooBig ? (
           <UpgradeNotice fileName={tooBig.name} sizeText={fmtBytes(tooBig.size)} limitText={fmtBytes(FREE_MAX_BYTES)} onReset={() => { setTooBig(null); inputRef.current?.click(); }} />
+        ) : batchFiles.length > 0 ? (
+          <BatchRunner
+            files={batchFiles}
+            controls={batchControls}
+            actionLabel="Resize all"
+            zipName="diemdesk-resized.zip"
+            process={async (f) => resizeImageFile(f, { mode: bMode, percent: bPercent, maxEdge: bMaxEdge, format, quality })}
+            onReset={reset}
+          />
         ) : !file ? (
           <div
             onDragOver={(e) => e.preventDefault()}
@@ -126,6 +209,7 @@ export function ResizeImageTool() {
             <p className="mt-2 text-sm font-medium">Drop an image here, or click to choose</p>
             <p className="text-xs text-muted-foreground">Exact pixels, percentages, or presets — resized on your device</p>
             <span className="mt-4 inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm">Choose image</span>
+            <p className="mt-3 flex items-center gap-1.5 text-[11px] text-muted-foreground"><Sparkles className="size-3 text-amber-500" /> Drop <b className="font-semibold text-foreground">several at once</b> to resize them together — on your device <span className="rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-1.5 py-px text-[9px] font-bold uppercase text-white">Pro</span></p>
           </div>
         ) : (
           <div className="flex items-center gap-3 rounded-lg border bg-card p-2.5">

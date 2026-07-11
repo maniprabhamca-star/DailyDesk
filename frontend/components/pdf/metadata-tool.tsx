@@ -12,6 +12,7 @@ import { takeHandoff } from '@/lib/handoff';
 import { scanDocMetadata, stripDocMetadata, type MetadataScan } from '@/lib/pdf-sanitize';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
+import { BatchRunner } from '@/components/app/batch-runner';
 
 function fmt(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -32,9 +33,21 @@ function prettyValue(key: string, value: string): string {
   return value.length > 80 ? `${value.slice(0, 77)}…` : value;
 }
 
+// Headless strip core — the SAME clean the single-file run() does, so the
+// BatchRunner (Pro on-device batch) can loop it over many PDFs at once.
+async function stripMetadataOne(f: File): Promise<{ blob: Blob; name: string; before: number; after: number }> {
+  const { PDFDocument } = await import('pdf-lib');
+  const doc = await PDFDocument.load(await f.arrayBuffer(), { ignoreEncryption: true, updateMetadata: false });
+  await stripDocMetadata(doc);
+  const out = await doc.save({ useObjectStreams: true });
+  const blob = new Blob([new Uint8Array(out)], { type: 'application/pdf' });
+  return { blob, name: `${f.name.replace(/\.pdf$/i, '')}-clean.pdf`, before: f.size, after: out.length };
+}
+
 export function MetadataTool() {
   const plan = usePlan();
   const [file, setFile] = useState<File | null>(null);
+  const [batchFiles, setBatchFiles] = useState<File[]>([]); // several PDFs dropped → Pro on-device batch
   const [tooBig, setTooBig] = useState<{ name: string; size: number } | null>(null);
   const [scan, setScan] = useState<MetadataScan | null>(null);
   const [pageCount, setPageCount] = useState(0);
@@ -56,7 +69,9 @@ export function MetadataTool() {
   }, []);
 
   async function pick(files: FileList | null) {
-    await pick2(files?.[0]);
+    const list = files ? Array.from(files) : [];
+    if (list.length > 1) { clear(); setBatchFiles(list); return; } // several PDFs → on-device batch
+    await pick2(list[0]);
   }
 
   async function pick2(f?: File) {
@@ -92,6 +107,7 @@ export function MetadataTool() {
 
   function clear() {
     setFile(null);
+    setBatchFiles([]);
     setScan(null);
     setPageCount(0);
     setDone(null);
@@ -143,6 +159,15 @@ export function MetadataTool() {
             limitText={fmtBytes(FREE_MAX_BYTES)}
             onReset={() => { setTooBig(null); inputRef.current?.click(); }}
           />
+        ) : batchFiles.length > 0 ? (
+          <BatchRunner
+            files={batchFiles}
+            actionLabel="Clean all"
+            zipName="diemdesk-clean.zip"
+            fileIcon={FileText}
+            process={stripMetadataOne}
+            onReset={clear}
+          />
         ) : !file ? (
           <div
             onDragOver={(e) => e.preventDefault()}
@@ -154,6 +179,7 @@ export function MetadataTool() {
             <p className="mt-2 text-sm font-medium">Drop a PDF here, or click to choose</p>
             <p className="text-xs text-muted-foreground">See the hidden info your PDF carries — then wipe it in one click</p>
             <span className="mt-4 inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm">Choose PDF</span>
+            <p className="mt-3 flex items-center gap-1.5 text-[11px] text-muted-foreground"><Zap className="size-3 text-amber-500" /> Drop <b className="font-semibold text-foreground">several at once</b> to clean them all — on your device <span className="rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-1.5 py-px text-[9px] font-bold uppercase text-white">Pro</span></p>
           </div>
         ) : (
           <div className="flex items-center gap-3 rounded-lg border bg-card p-2.5">
@@ -165,7 +191,7 @@ export function MetadataTool() {
             <Button size="icon" variant="ghost" aria-label="Remove" onClick={clear}><X className="size-4" /></Button>
           </div>
         )}
-        <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
+        <input ref={inputRef} type="file" accept="application/pdf,.pdf" multiple className="hidden" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
 
         {/* Scan result — what this PDF quietly says about you */}
         {scan && !done && (

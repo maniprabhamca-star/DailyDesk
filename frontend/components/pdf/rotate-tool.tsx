@@ -2,7 +2,7 @@
 import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 
 import { useEffect, useRef, useState } from 'react';
-import { Upload, FileText, X, Download, Loader2, RotateCw, RotateCcw, Zap, RefreshCw } from 'lucide-react';
+import { Upload, FileText, X, Download, Loader2, RotateCw, RotateCcw, Zap, RefreshCw, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { takeHandoff } from '@/lib/handoff';
@@ -11,6 +11,7 @@ import { PdfDone } from '@/components/app/pdf-done';
 import { openPdf, useLazyPageThumb, prefetchPageThumbs, type PdfHandle } from '@/lib/pdf-render';
 import { rewritePdf } from '@/lib/pdf-rewrite';
 import { useCancelableJob, isCancel } from '@/lib/use-cancelable-job';
+import { BatchRunner } from '@/components/app/batch-runner';
 
 // Per-page pending rotation (delta added on top of the page's existing rotation)
 // + selection. Rotation is applied LOSSLESSLY with pdf-lib (it just sets the
@@ -26,6 +27,17 @@ function fmt(bytes: number) {
 }
 
 const norm = (d: number) => ((d % 360) + 360) % 360;
+
+// Headless "rotate every page by `deg`" — the SAME lossless pdf-lib rotate the
+// single-file flow uses, applied to all pages so the BatchRunner (Pro on-device
+// batch) can turn a whole folder of PDFs at once.
+async function rotateAllPages(f: File, deg: number): Promise<{ blob: Blob; name: string; before: number; after: number }> {
+  const { PDFDocument } = await import('pdf-lib');
+  const doc = await PDFDocument.load(await f.arrayBuffer(), { ignoreEncryption: true, updateMetadata: false });
+  const out = await rewritePdf(f, { type: 'rotate', deltas: Array(doc.getPageCount()).fill(deg) });
+  const blob = new Blob([new Uint8Array(out)], { type: 'application/pdf' });
+  return { blob, name: `${f.name.replace(/\.pdf$/i, '')}-rotated.pdf`, before: f.size, after: blob.size };
+}
 
 function RotateTile({
   handle, index, state, onRotate, onToggle,
@@ -73,6 +85,8 @@ function RotateTile({
 
 export function RotateTool() {
   const [file, setFile] = useState<File | null>(null);
+  const [batchFiles, setBatchFiles] = useState<File[]>([]); // several PDFs dropped → Pro on-device batch
+  const [bDeg, setBDeg] = useState(90); // batch: angle applied to every page (90 / 180 / 270)
   const [handle, setHandle] = useState<PdfHandle | null>(null);
   const [pages, setPages] = useState<PageState[]>([]);
   const [parsing, setParsing] = useState(false);
@@ -113,7 +127,11 @@ export function RotateTool() {
     }
   }
 
-  function pick(files: FileList | null) { void loadOne(files?.[0]); }
+  function pick(files: FileList | null) {
+    const list = files ? Array.from(files) : [];
+    if (list.length > 1) { clear(); setBatchFiles(list); return; } // several PDFs → on-device batch
+    void loadOne(list[0]);
+  }
 
   // "Keep moving": pick up a PDF handed over from another tool, no re-upload.
   useEffect(() => {
@@ -130,6 +148,7 @@ export function RotateTool() {
     setHandle((prev) => { if (prev) void prev.destroy(); return null; });
     setPages([]);
     setFile(null);
+    setBatchFiles([]);
     setError(null);
     setDone(null);
     setHandoffNote(null);
@@ -189,6 +208,20 @@ export function RotateTool() {
     setBusy(false);
   }
 
+  const btnCls = (active: boolean) => `flex flex-col items-center gap-1 rounded-xl border px-2 py-3 text-center transition-all ${active ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-border bg-card hover:border-primary/40 hover:bg-accent/40'}`;
+  // Batch: one rotation applied to every page of every PDF (per-page picking
+  // can't generalise across many files).
+  const batchControls = (
+    <div>
+      <p className="mb-2 text-sm font-medium">Rotate every page</p>
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+        <button onClick={() => setBDeg(90)} aria-pressed={bDeg === 90} className={btnCls(bDeg === 90)}><RotateCw className="size-4" /><span className="text-xs font-semibold">Right 90°</span></button>
+        <button onClick={() => setBDeg(180)} aria-pressed={bDeg === 180} className={btnCls(bDeg === 180)}><RefreshCw className="size-4" /><span className="text-xs font-semibold">180°</span></button>
+        <button onClick={() => setBDeg(270)} aria-pressed={bDeg === 270} className={btnCls(bDeg === 270)}><RotateCcw className="size-4" /><span className="text-xs font-semibold">Left 90°</span></button>
+      </div>
+    </div>
+  );
+
   return (
     <Card>
       <CardContent className="p-5">
@@ -198,7 +231,17 @@ export function RotateTool() {
           </p>
         )}
 
-        {!file ? (
+        {batchFiles.length > 0 ? (
+          <BatchRunner
+            files={batchFiles}
+            controls={batchControls}
+            actionLabel="Rotate all"
+            zipName="diemdesk-rotated.zip"
+            fileIcon={FileText}
+            process={async (f) => rotateAllPages(f, bDeg)}
+            onReset={clear}
+          />
+        ) : !file ? (
           <div
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => { e.preventDefault(); pick(e.dataTransfer.files); }}
@@ -209,7 +252,8 @@ export function RotateTool() {
             <p className="mt-2 text-sm font-medium">Drop a PDF here, or click to choose</p>
             <p className="text-xs text-muted-foreground">See every page and rotate them visually</p>
             <span className="mt-4 inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm">Choose PDF</span>
-            <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
+            <p className="mt-3 flex items-center gap-1.5 text-[11px] text-muted-foreground"><Sparkles className="size-3 text-amber-500" /> Drop <b className="font-semibold text-foreground">several at once</b> to rotate them together — on your device <span className="rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-1.5 py-px text-[9px] font-bold uppercase text-white">Pro</span></p>
+            <input ref={inputRef} type="file" accept="application/pdf,.pdf" multiple className="hidden" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
           </div>
         ) : (
           <>

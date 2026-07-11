@@ -9,6 +9,9 @@ Reference docs and shareable overviews for DiemDesk (privacy-first, on-device do
 ## Model in one line
 Every in-browser tool is **free & unlimited forever** (they run on your device and cost us nothing). Only the few server-processed tools are metered: **Office conversions = 3 free/day → Pro unlimited**; OCR + AI = Pro. The Pro tier's moat is a set of features rivals structurally can't copy — **on-device batch, redaction certificate, saved workflows, encrypted File Vault** (flagships), plus self-destruct shares, certificate of completion, Bates numbering, brand kit, and an offline PWA.
 
+## Design specs
+- **[designs/on-device-batch.md](designs/on-device-batch.md)** — the on-device Batch (Pro) design: gate + runner states, per-tool controls, engineering shape. New designs we discuss get committed under `designs/`.
+
 ## Other docs here
 - `TECHNOLOGY.md` — tech stack & architecture
 - `SCALING-AND-OPS.md` — scaling playbook & ops

@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { X, Loader2, Download, Check, Sparkles, Package, Image as ImageIcon } from 'lucide-react';
+import { X, Loader2, Download, Check, Sparkles, Package, Image as ImageIcon, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePlan, FREE_MAX_BATCH } from '@/lib/plan';
 import { downloadBlob } from '@/lib/download';
@@ -22,15 +22,18 @@ function fmt(b: number) {
   return `${(b / 1024 / 1024).toFixed(2)} MB`;
 }
 
-export function BatchRunner({ files, process, controls, actionLabel = 'Process all', zipName = 'diemdesk-batch.zip', onReset }: {
+export function BatchRunner({ files, process, controls, actionLabel = 'Process all', zipName = 'diemdesk-batch.zip', fileIcon, onReset }: {
   files: File[];
   process: (file: File) => Promise<{ blob: Blob; name: string; before?: number; after?: number }>;
   controls?: ReactNode;
   actionLabel?: string;
   zipName?: string;
+  /** Row icon (defaults to an image icon — PDF tools pass FileText). */
+  fileIcon?: LucideIcon;
   onReset: () => void;
 }) {
   const plan = usePlan();
+  const RowIcon = fileIcon ?? ImageIcon;
   const isPro = plan === 'pro'; // owner cookie / localhost / Pro email resolve to 'pro'
   const gated = !isPro && files.length > FREE_MAX_BATCH;
   const [results, setResults] = useState<Res[]>(() => files.map((f) => ({ name: f.name, status: 'queued' as const })));
@@ -118,7 +121,7 @@ export function BatchRunner({ files, process, controls, actionLabel = 'Process a
                 : r.status === 'error' ? <X className="size-4 text-destructive" />
                 : <span className="size-2 rounded-full bg-muted-foreground/40" />}
             </span>
-            <ImageIcon className="size-3.5 shrink-0 text-muted-foreground" />
+            <RowIcon className="size-3.5 shrink-0 text-muted-foreground" />
             <span className="min-w-0 flex-1 truncate text-[13px]">{r.name}</span>
             {r.status === 'done' && r.before != null && r.after != null && (
               <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">{fmt(r.before)} → <b className="text-emerald-600 dark:text-emerald-400">{fmt(r.after)}</b></span>

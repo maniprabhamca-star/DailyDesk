@@ -2,12 +2,13 @@
 
 import { formatDuration } from '@/lib/format';
 import { useEffect, useRef, useState } from 'react';
-import { Upload, X, Download, Loader2, Repeat, CheckCircle2, RotateCcw } from 'lucide-react';
+import { Upload, X, Download, Loader2, Repeat, CheckCircle2, RotateCcw, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { downloadBlob as download } from '@/lib/download';
 import { KeepGoing } from '@/components/app/keep-going';
-import { decodeImage, encodeCanvas, canEncodeWebp, detectFormat, buildPreviewCanvas, canvasToPngBlob, type OutFormat } from '@/lib/image-convert';
+import { decodeImage, encodeCanvas, canEncodeWebp, detectFormat, buildPreviewCanvas, canvasToPngBlob, convertImageFile, type OutFormat } from '@/lib/image-convert';
+import { BatchRunner } from '@/components/app/batch-runner';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
 import { BeforeAfter } from '@/components/pdf/before-after';
@@ -22,6 +23,7 @@ function fmt(bytes: number) {
 export function ConvertImageTool() {
   const plan = usePlan();
   const [file, setFile] = useState<File | null>(null);
+  const [batchFiles, setBatchFiles] = useState<File[]>([]); // several images dropped → Pro on-device batch
   const [tooBig, setTooBig] = useState<{ name: string; size: number } | null>(null);
   const [srcFormat, setSrcFormat] = useState<string>('');
   const [dims, setDims] = useState('');
@@ -70,7 +72,20 @@ export function ConvertImageTool() {
       setError(e instanceof Error ? e.message : 'Could not read that image.');
     }
   }
-  function pick(files: FileList | null) { void loadOne(files?.[0]); }
+  function pick(files: FileList | null) {
+    const list = files ? Array.from(files) : [];
+    if (list.length > 1) { reset(); setBatchFiles(list); return; } // several images → on-device batch
+    void loadOne(list[0]);
+  }
+
+  function reset() {
+    setFile(null);
+    setBatchFiles([]);
+    setDone(null);
+    setError(null);
+    setBeforePrev((p) => { if (p) URL.revokeObjectURL(p.url); return null; });
+    prevCanvasRef.current = null;
+  }
 
   // Debounced preview render — only meaningful for lossy targets (PNG is exact).
   const showPreview = !!file && !done && format !== 'png';
@@ -110,12 +125,41 @@ export function ConvertImageTool() {
     }
   }
 
+  // Format + quality controls — shared by the single-file view and the batch runner.
+  const formatControls = (
+    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+      <label className="text-sm">
+        <span className="mb-1.5 block font-medium">Convert to</span>
+        <select className="h-10 w-full rounded-lg border bg-card px-2 text-sm font-medium outline-none focus:border-primary" value={format} onChange={(e) => setFormat(e.target.value as OutFormat)}>
+          <option value="jpg">JPG — small, opens everywhere</option>
+          <option value="png">PNG — lossless, keeps transparency</option>
+          {webpOk && <option value="webp">WebP — smallest, modern</option>}
+        </select>
+      </label>
+      {format !== 'png' && (
+        <label className="text-sm">
+          <span className="mb-1.5 block font-medium">Quality · {quality}</span>
+          <input type="range" min={50} max={100} value={quality} onChange={(e) => setQuality(Number(e.target.value))} className="dd-range mt-3 w-full" />
+        </label>
+      )}
+    </div>
+  );
+
   return (
     <Card>
       <CardContent className="p-5">
-        <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/bmp,.jpg,.jpeg,.png,.webp,.gif,.bmp" className="hidden" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
+        <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/bmp,.jpg,.jpeg,.png,.webp,.gif,.bmp" multiple className="hidden" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
         {tooBig ? (
           <UpgradeNotice fileName={tooBig.name} sizeText={fmtBytes(tooBig.size)} limitText={fmtBytes(FREE_MAX_BYTES)} onReset={() => { setTooBig(null); inputRef.current?.click(); }} />
+        ) : batchFiles.length > 0 ? (
+          <BatchRunner
+            files={batchFiles}
+            controls={formatControls}
+            actionLabel="Convert all"
+            zipName="diemdesk-converted.zip"
+            process={async (f) => convertImageFile(f, { format, quality })}
+            onReset={reset}
+          />
         ) : !file ? (
           <div
             onDragOver={(e) => e.preventDefault()}
@@ -127,6 +171,7 @@ export function ConvertImageTool() {
             <p className="mt-2 text-sm font-medium">Drop an image here, or click to choose</p>
             <p className="text-xs text-muted-foreground">JPG, PNG, WebP, GIF, BMP in — JPG, PNG, or WebP out</p>
             <span className="mt-4 inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm">Choose image</span>
+            <p className="mt-3 flex items-center gap-1.5 text-[11px] text-muted-foreground"><Sparkles className="size-3 text-amber-500" /> Drop <b className="font-semibold text-foreground">several at once</b> to convert them together — on your device <span className="rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-1.5 py-px text-[9px] font-bold uppercase text-white">Pro</span></p>
           </div>
         ) : (
           <div className="flex items-center gap-3 rounded-lg border bg-card p-2.5">
@@ -139,24 +184,7 @@ export function ConvertImageTool() {
           </div>
         )}
 
-        {file && !done && (
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <label className="text-sm">
-              <span className="mb-1.5 block font-medium">Convert to</span>
-              <select className="h-10 w-full rounded-lg border bg-card px-2 text-sm font-medium outline-none focus:border-primary" value={format} onChange={(e) => setFormat(e.target.value as OutFormat)}>
-                <option value="jpg">JPG — small, opens everywhere</option>
-                <option value="png">PNG — lossless, keeps transparency</option>
-                {webpOk && <option value="webp">WebP — smallest, modern</option>}
-              </select>
-            </label>
-            {format !== 'png' && (
-              <label className="text-sm">
-                <span className="mb-1.5 block font-medium">Quality · {quality}</span>
-                <input type="range" min={50} max={100} value={quality} onChange={(e) => setQuality(Number(e.target.value))} className="dd-range mt-3 w-full" />
-              </label>
-            )}
-          </div>
-        )}
+        {file && !done && formatControls}
 
         {/* PNG is lossless — the output is a pixel-exact copy, so there's no
             quality tradeoff to preview. Say so instead of showing nothing. */}
