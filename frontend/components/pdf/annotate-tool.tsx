@@ -16,6 +16,7 @@ import { PageStrip } from '@/components/pdf/page-strip';
 import { EditorShell } from '@/components/pdf/editor-shell';
 import { loadLibrary, addLibraryItem, removeLibraryItem, newLibraryId, type LibraryItem } from '@/lib/library';
 import { setEditorContext, clearEditorContext } from '@/lib/command-registry';
+import { saveSession, loadSession, clearSession } from '@/lib/editor-session';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
 import { FAMILIES, type Family } from '@/lib/fonts';
@@ -258,9 +259,20 @@ export function AnnotateTool() {
   useEffect(() => {
     const h = takeHandoff();
     const pdf = h?.files.find((f) => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
-    if (h && pdf) { setHandoffNote(`PDF brought straight over from ${h.from} — no re-upload needed.`); void loadOne(pdf); }
+    if (h && pdf) { setHandoffNote(`PDF brought straight over from ${h.from} — no re-upload needed.`); void loadOne(pdf); return; }
+    // No handoff — restore the last session so leaving & returning keeps your work.
+    const sess = loadSession<{ annos: Record<number, Anno[]>; images: ImageItem[] }>('annotate');
+    if (sess) {
+      setAnnos(sess.data.annos || {});
+      setImages(sess.data.images || []);
+      (sess.data.images || []).forEach((im) => { const el = new Image(); el.onload = () => { imgCache.current.set(im.src, el); }; el.src = im.src; });
+      setBusy(true);
+      void openPdf(sess.file).then((hh) => { setHandle(hh); setPageCount(hh.numPages); setSel(0); setFile(sess.file); }).catch(() => clearSession('annotate')).finally(() => setBusy(false));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  // Persist the session (in-memory) whenever the file or edits change.
+  useEffect(() => { if (file) saveSession('annotate', file, { annos, images }); }, [file, annos, images]);
   useEffect(() => () => { if (handle) void handle.destroy(); }, [handle]);
 
   // Render the current page for the annotation surface. We intentionally DON'T
@@ -271,9 +283,16 @@ export function AnnotateTool() {
   useEffect(() => {
     if (!handle) return;
     let cancelled = false;
-    void renderPage(handle, sel, dprTarget(560, 2.2, 1700)).then((p) => { if (!cancelled) setPreview(p); }).catch(() => {});
+    const dpr = dprTarget(560, 2.2, 1700);
+    void renderPage(handle, sel, dpr).then((p) => {
+      if (cancelled) return;
+      setPreview(p);
+      // Warm the neighbours so next/prev is instant (LRU-cached per handle).
+      if (sel + 1 < pageCount) void renderPage(handle, sel + 1, dpr).catch(() => {});
+      if (sel - 1 >= 0) void renderPage(handle, sel - 1, dpr).catch(() => {});
+    }).catch(() => {});
     return () => { cancelled = true; };
-  }, [handle, sel]);
+  }, [handle, sel, pageCount]);
 
   // Size the overlay canvas to match the displayed page and repaint.
   const repaint = useCallback(() => {
@@ -921,7 +940,7 @@ export function AnnotateTool() {
 
   // Remove the loaded file and reset the editing state (used by the shell's × and
   // the empty-state after Done). Same teardown the old file chip used.
-  const removeFile = () => { if (handle) void handle.destroy(); setHandle(null); setFile(null); setDone(null); setError(null); setAnnos({}); setImages([]); setSelImg(null); imgCache.current.clear(); };
+  const removeFile = () => { clearSession('annotate'); if (handle) void handle.destroy(); setHandle(null); setFile(null); setDone(null); setError(null); setAnnos({}); setImages([]); setSelImg(null); imgCache.current.clear(); };
 
   const brandToggle = (
     <label className="flex cursor-pointer items-center justify-center gap-2 text-xs text-muted-foreground">

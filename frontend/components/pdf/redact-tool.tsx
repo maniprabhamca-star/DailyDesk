@@ -122,9 +122,15 @@ export function RedactTool() {
   useEffect(() => {
     if (!handle) return;
     let cancelled = false;
-    void renderPage(handle, sel, dprTarget(560, 2.2, 1700)).then((p) => { if (!cancelled) setPreview(p); }).catch(() => {});
+    const dpr = dprTarget(560, 2.2, 1700);
+    void renderPage(handle, sel, dpr).then((p) => {
+      if (cancelled) return;
+      setPreview(p);
+      if (sel + 1 < pageCount) void renderPage(handle, sel + 1, dpr).catch(() => {});
+      if (sel - 1 >= 0) void renderPage(handle, sel - 1, dpr).catch(() => {});
+    }).catch(() => {});
     return () => { cancelled = true; };
-  }, [handle, sel]);
+  }, [handle, sel, pageCount]);
 
   const repaint = useCallback(() => {
     const c = canvasRef.current, wrap = wrapRef.current;

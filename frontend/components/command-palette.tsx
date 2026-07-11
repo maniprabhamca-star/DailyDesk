@@ -140,7 +140,9 @@ export function CommandPalette() {
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm data-[state=open]:animate-fade-in" />
+        {/* No backdrop-blur: blurring a full-page rendered PDF behind the overlay
+            is GPU-heavy and made the palette feel slow to open. A plain dim is instant. */}
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 data-[state=open]:animate-fade-in" />
         <Dialog.Content className="fixed left-1/2 top-[16%] z-50 w-[92vw] max-w-lg -translate-x-1/2 overflow-hidden rounded-xl border bg-popover shadow-lift focus:outline-none data-[state=open]:animate-dialog-in" aria-label="Search tools and actions">
           <Dialog.Title className="sr-only">Search tools and actions</Dialog.Title>
           <div className="flex items-center gap-2.5 border-b px-4">
