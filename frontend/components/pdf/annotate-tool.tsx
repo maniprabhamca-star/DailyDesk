@@ -29,14 +29,14 @@ import { FontSelect } from '@/components/app/font-select';
 type ShapeKind = 'rect' | 'circle' | 'line' | 'arrow';
 type Tool = 'select' | 'highlight' | 'pen' | ShapeKind | 'text';
 type Pt = { x: number; y: number };
-type Stroke = { kind: 'pen' | 'highlight'; color: string; w: number; pts: Pt[] };
-type ShapeA = { kind: ShapeKind; color: string; w: number; a: Pt; b: Pt };
-type TextA = { kind: 'text'; color: string; size: number; at: Pt; text: string; family: Family; bold: boolean; italic: boolean; underline: boolean };
+type Stroke = { kind: 'pen' | 'highlight'; color: string; w: number; pts: Pt[]; opacity?: number };
+type ShapeA = { kind: ShapeKind; color: string; w: number; a: Pt; b: Pt; opacity?: number };
+type TextA = { kind: 'text'; color: string; size: number; at: Pt; text: string; family: Family; bold: boolean; italic: boolean; underline: boolean; opacity?: number };
 type Anno = Stroke | ShapeA | TextA;
 // Images + signatures live as draggable overlays (not on the stroke canvas) and
 // are composited into the page at export. x/y = top-left fraction, w = width
-// fraction of the page, aspect = image height/width (in px).
-type ImageItem = { id: string; page: number; x: number; y: number; w: number; aspect: number; src: string };
+// fraction of the page, aspect = image height/width (in px). opacity 0–1.
+type ImageItem = { id: string; page: number; x: number; y: number; w: number; aspect: number; src: string; opacity?: number };
 const SHAPE_KINDS: ShapeKind[] = ['rect', 'circle', 'line', 'arrow'];
 const isShape = (t: Tool): t is ShapeKind => (SHAPE_KINDS as string[]).includes(t);
 
@@ -83,7 +83,7 @@ function paint(ctx: CanvasRenderingContext2D, W: number, H: number, list: Anno[]
   ctx.lineJoin = 'round';
   for (const a of list) {
     if (a.kind === 'rect' || a.kind === 'circle' || a.kind === 'line' || a.kind === 'arrow') {
-      ctx.globalAlpha = 1;
+      ctx.globalAlpha = a.opacity ?? 1;
       ctx.strokeStyle = a.color;
       ctx.lineWidth = Math.max(2, a.w * W);
       ctx.lineCap = 'round';
@@ -118,7 +118,7 @@ function paint(ctx: CanvasRenderingContext2D, W: number, H: number, list: Anno[]
     } else if (a.kind === 'text') {
       // Clean text — just the glyphs in the chosen colour/font (no outline/halo),
       // so the typeface and weight read exactly as picked (like Smallpdf).
-      ctx.globalAlpha = 1;
+      ctx.globalAlpha = a.opacity ?? 1;
       ctx.textBaseline = 'top';
       const fs = Math.max(10, a.size * H);
       const x = a.at.x * W, y = a.at.y * H;
@@ -133,7 +133,7 @@ function paint(ctx: CanvasRenderingContext2D, W: number, H: number, list: Anno[]
         ctx.beginPath(); ctx.moveTo(x, uy); ctx.lineTo(x + tw, uy); ctx.stroke();
       }
     } else if (a.kind === 'pen' || a.kind === 'highlight') {
-      ctx.globalAlpha = a.kind === 'highlight' ? 0.38 : 1;
+      ctx.globalAlpha = (a.kind === 'highlight' ? 0.38 : 1) * (a.opacity ?? 1);
       ctx.strokeStyle = a.color;
       ctx.lineWidth = Math.max(1, a.w * W);
       ctx.beginPath();
@@ -666,7 +666,7 @@ export function AnnotateTool() {
         // Composite images/signatures on this page (aspect preserved in px).
         for (const im of images.filter((i) => i.page === idx)) {
           const el = imgCache.current.get(im.src);
-          if (el) { const w = im.w * rp.w; ctx.drawImage(el, im.x * rp.w, im.y * rp.h, w, w * im.aspect); }
+          if (el) { ctx.globalAlpha = im.opacity ?? 1; const w = im.w * rp.w; ctx.drawImage(el, im.x * rp.w, im.y * rp.h, w, w * im.aspect); ctx.globalAlpha = 1; }
         }
         const buf = await new Promise<ArrayBuffer>((res, rej) =>
           cvs.toBlob((b) => (b ? b.arrayBuffer().then(res) : rej(new Error('render failed'))), 'image/png'));
@@ -734,6 +734,29 @@ export function AnnotateTool() {
     else if (selImage) setImages((arr) => arr.map((im) => (im.id === selImage.id ? { ...im, x: Math.min(1, Math.max(0, im.x + dx)), y: Math.min(1, Math.max(0, im.y + dy)) } : im)));
   };
   const resizeImage = (dw: number) => { if (selImage) setImages((arr) => arr.map((im) => (im.id === selImage.id ? { ...im, w: Math.min(1 - im.x, Math.max(0.05, im.w + dw)) } : im))); };
+
+  // Align the selected object to the PAGE (not the group) — centre H/V or snap to
+  // a margin, in one click. Reuses the same box math as snap/multi-select.
+  const alignSelected = (edge: AlignEdge) => {
+    const M = SNAP_MARGIN, cl = (n: number) => Math.max(0, Math.min(1, n));
+    const put = (w: number, h: number, cur: Pt, set: (x: number, y: number) => void) => {
+      let x = cur.x, y = cur.y;
+      if (edge === 'left') x = M; else if (edge === 'hcenter') x = 0.5 - w / 2; else if (edge === 'right') x = 1 - M - w;
+      else if (edge === 'top') y = M; else if (edge === 'vcenter') y = 0.5 - h / 2; else if (edge === 'bottom') y = 1 - M - h;
+      set(cl(x), cl(y));
+    };
+    if (selTextA && selIdx !== null) {
+      put(Math.max(0.03, selTextA.text.length * selTextA.size * 0.55 * pageHW), selTextA.size * 1.25, selTextA.at, (x, y) => moveText(selIdx, { x, y }));
+    } else if (selImage) {
+      put(selImage.w, selImage.w * selImage.aspect * pageWH, { x: selImage.x, y: selImage.y }, (x, y) => setImages((arr) => arr.map((im) => (im.id === selImage.id ? { ...im, x, y } : im))));
+    }
+  };
+  // Per-object opacity (selected text or image).
+  const selOpacity = selTextA?.opacity ?? selImage?.opacity ?? 1;
+  const setSelOpacity = (v: number) => {
+    if (selTextA && selIdx !== null) patchSelected({ opacity: v });
+    else if (selImage) setImages((arr) => arr.map((im) => (im.id === selImage.id ? { ...im, opacity: v } : im)));
+  };
 
   // Keyboard: arrow-nudge the selection (Shift = bigger step), Del removes it,
   // Ctrl/Cmd+D duplicates. Ignored while typing in any field.
@@ -893,7 +916,7 @@ export function AnnotateTool() {
               className={`absolute rounded-sm ${tool === 'select'
                 ? `pointer-events-none ${group.includes(`i${im.id}`) ? 'ring-2 ring-primary' : ''}`
                 : `cursor-move ${selImg === im.id ? 'ring-2 ring-primary' : 'ring-1 ring-transparent hover:ring-primary/40'}`}`}
-              style={{ left: `${im.x * 100}%`, top: `${im.y * 100}%`, width: `${im.w * 100}%` }}
+              style={{ left: `${im.x * 100}%`, top: `${im.y * 100}%`, width: `${im.w * 100}%`, opacity: im.opacity ?? 1 }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={im.src} alt="" className="pointer-events-none block w-full select-none" draggable={false} />
@@ -1180,6 +1203,21 @@ export function AnnotateTool() {
                         ) : null}
                       </div>
                       <p className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground"><MoveDiagonal className="size-3" /> Arrow keys nudge · Shift for bigger steps</p>
+                    </div>
+                    <div className="rounded-lg border bg-card p-2.5">
+                      <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Align to page</div>
+                      <div className="mt-1.5 grid grid-cols-6 gap-1">
+                        {([['left', AlignStartVertical], ['hcenter', AlignCenterVertical], ['right', AlignEndVertical], ['top', AlignStartHorizontal], ['vcenter', AlignCenterHorizontal], ['bottom', AlignEndHorizontal]] as const).map(([edge, Icon]) => (
+                          <button key={edge} onClick={() => alignSelected(edge)} title={`Align ${edge} on page`} aria-label={`Align ${edge} on page`}
+                            className="flex aspect-square items-center justify-center rounded-md border text-muted-foreground transition-colors hover:border-primary/50 hover:bg-accent hover:text-foreground"><Icon className="size-4" /></button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="rounded-lg border bg-card p-2.5">
+                      <div className="flex items-center justify-between text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                        <span>Opacity</span><span className="tabular-nums text-foreground">{Math.round(selOpacity * 100)}%</span>
+                      </div>
+                      <input type="range" min={10} max={100} value={Math.round(selOpacity * 100)} onChange={(e) => setSelOpacity(Number(e.target.value) / 100)} className="dd-range mt-1.5 w-full" aria-label="Opacity" />
                     </div>
                     {selTextA && (
                       <div className="rounded-lg border bg-card p-2.5">
