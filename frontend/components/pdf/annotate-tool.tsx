@@ -1054,11 +1054,15 @@ export function AnnotateTool() {
             const wFrac = Math.max(0.03, selTextA.text.length * selTextA.size * 0.55 * (preview.h / preview.w));
             const hFrac = selTextA.size * 1.25;
             return (
-              <div className="pointer-events-none absolute z-20" style={{ left: `${selTextA.at.x * 100}%`, top: `${selTextA.at.y * 100}%`, width: `${wFrac * 100}%`, height: `${hFrac * 100}%` }}>
+              <div className="pointer-events-none absolute z-40" style={{ left: `${selTextA.at.x * 100}%`, top: `${selTextA.at.y * 100}%`, width: `${wFrac * 100}%`, height: `${hFrac * 100}%` }}>
                 <div className="absolute inset-0 rounded-[2px] ring-1 ring-primary/50" />
+                {/* Grip sits on the OPPOSITE corner from the floating toolbar
+                    (which flips below the box when the text is near the top,
+                    y < 0.12) so the two never overlap/hide each other. z-40 keeps
+                    it above the z-30 toolbar as a safety. */}
                 <div onPointerDown={textResizeDown} onPointerMove={textResizeMove} onPointerUp={textResizeUp}
                   title="Drag to resize" aria-label="Resize text"
-                  className="pointer-events-auto absolute -bottom-1.5 -right-1.5 size-3.5 cursor-nwse-resize rounded-sm border-2 border-primary bg-white shadow" />
+                  className={`pointer-events-auto absolute -right-1.5 size-3.5 rounded-sm border-2 border-primary bg-white shadow ${selTextA.at.y < 0.12 ? '-top-1.5 cursor-nesw-resize' : '-bottom-1.5 cursor-nwse-resize'}`} />
               </div>
             );
           })()}
