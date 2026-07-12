@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const db = require('../db');
 const { trackEvent } = require('../utils/trackEvent');
 const { sendMail } = require('../utils/mailer');
+const { passwordResetEmail } = require('../utils/email-template');
 
 const FRONTEND = process.env.FRONTEND_URL || 'https://diemdesk.com';
 
@@ -93,16 +94,8 @@ exports.forgotPassword = async (req, res) => {
       const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
       await db.query('UPDATE users SET reset_token_hash = $1, reset_token_expires = $2 WHERE id = $3', [hash, expires, user.id]);
       const link = `${FRONTEND}/reset-password?token=${raw}`;
-      const text = `Hi ${user.name || 'there'},\n\nWe got a request to reset your DiemDesk password. Open this link to choose a new one (it works for 1 hour):\n\n${link}\n\nIf you didn't ask for this, just ignore this email — your password stays the same.\n\n— DiemDesk`;
-      const html = `<div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:480px;margin:0 auto;color:#0f172a">
-  <p>Hi ${user.name || 'there'},</p>
-  <p>We got a request to reset your DiemDesk password. Choose a new one with the button below — it works for <strong>1 hour</strong>.</p>
-  <p style="margin:24px 0"><a href="${link}" style="background:#4F46E5;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:600;display:inline-block">Reset my password</a></p>
-  <p style="font-size:13px;color:#64748b">Or paste this link into your browser:<br><a href="${link}" style="color:#4F46E5">${link}</a></p>
-  <p style="font-size:13px;color:#64748b">If you didn't ask for this, just ignore this email — your password stays the same.</p>
-  <p style="font-size:13px;color:#64748b">— DiemDesk</p>
-</div>`;
-      try { await sendMail({ to: user.email, subject: 'Reset your DiemDesk password', text, html }); }
+      const { subject, html, text } = passwordResetEmail({ name: user.name, link });
+      try { await sendMail({ to: user.email, subject, text, html }); }
       catch (e) { console.error('Password reset email failed:', e.message); }
     }
     res.json(generic);
