@@ -138,6 +138,54 @@ exports.resetPassword = async (req, res) => {
   }
 };
 
+// ── Google Sign-In ─────────────────────────────────────────────────────────
+// Verify the Google ID token (the credential the GIS button returns) via
+// Google's tokeninfo endpoint, then find-or-create the user by email and issue
+// our own JWT. No client secret needed — the token is signed by Google and we
+// confirm it was minted for OUR client id. Disabled unless GOOGLE_CLIENT_ID is set.
+async function verifyGoogleIdToken(idToken) {
+  const r = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`);
+  if (!r.ok) throw new Error('Google token rejected');
+  const p = await r.json();
+  if (p.aud !== process.env.GOOGLE_CLIENT_ID) throw new Error('Token audience mismatch');
+  if (!['accounts.google.com', 'https://accounts.google.com'].includes(p.iss)) throw new Error('Token issuer mismatch');
+  if (p.email_verified !== 'true' && p.email_verified !== true) throw new Error('Email not verified with Google');
+  if (!p.email) throw new Error('No email in Google token');
+  return { email: String(p.email).trim().toLowerCase(), name: p.name || String(p.email).split('@')[0] };
+}
+
+exports.googleLogin = async (req, res) => {
+  const credential = req.body && (req.body.credential || req.body.idToken);
+  if (!credential) return res.status(400).json({ error: 'Missing Google credential' });
+  if (!process.env.GOOGLE_CLIENT_ID) return res.status(503).json({ error: 'Google sign-in isn’t set up yet.' });
+  try {
+    const g = await verifyGoogleIdToken(credential);
+    const { rows } = await db.query('SELECT id, name, email, plan, status FROM users WHERE email = $1', [g.email]);
+    let user = rows[0];
+    if (!user) {
+      // OAuth account: no usable password → a random hash satisfies the NOT NULL
+      // column, and they can set a real password later via Forgot password.
+      const randomHash = await bcrypt.hash(crypto.randomBytes(24).toString('hex'), 12);
+      const ins = await db.query(
+        'INSERT INTO users (name, email, password_hash, plan) VALUES ($1, $2, $3, $4) RETURNING id, name, email, plan, status',
+        [g.name, g.email, randomHash, 'free']
+      );
+      user = ins.rows[0];
+      trackEvent(req, 'signup', { userId: user.id, method: 'google' });
+    }
+    if (user.status === 'suspended' || user.status === 'deleted') {
+      return res.status(403).json({ error: 'Your account has been suspended. Please contact support.' });
+    }
+    const token = signToken(user.id, user.email, user.plan);
+    db.query('UPDATE users SET last_login_at = NOW() WHERE id = $1', [user.id]).catch(() => {});
+    trackEvent(req, 'login', { userId: user.id, method: 'google' });
+    res.json({ token, user: { id: user.id, name: user.name, email: user.email, plan: user.plan } });
+  } catch (err) {
+    console.error('googleLogin error:', err.message);
+    res.status(401).json({ error: 'Google sign-in failed. Please try again.' });
+  }
+};
+
 exports.refresh = async (req, res) => {
   const { token } = req.body;
   if (!token) return res.status(400).json({ error: 'Token required' });

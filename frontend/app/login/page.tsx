@@ -7,6 +7,7 @@ import { AuthShell } from '@/components/auth/auth-shell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { GoogleSignIn } from '@/components/auth/google-signin';
 import { useAuth } from '@/lib/auth';
 
 export default function LoginPage() {
@@ -55,6 +56,8 @@ export default function LoginPage() {
           {busy ? 'Logging in…' : 'Log in'}
         </Button>
       </form>
+
+      <GoogleSignIn redirectTo="/" />
 
       <p className="mt-5 text-center text-sm text-muted-foreground">
         New here?{' '}
