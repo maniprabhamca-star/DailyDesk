@@ -1060,22 +1060,26 @@ export function AnnotateTool() {
             return (
               <div className="pointer-events-none absolute z-40" style={{ left: `${selTextA.at.x * 100}%`, top: `${selTextA.at.y * 100}%`, width: `${wFrac * 100}%`, height: `${hFrac * 100}%` }}>
                 <div className="absolute inset-0 rounded-[2px] ring-1 ring-primary/50" />
-                {/* Grip sits on the OPPOSITE corner from the floating toolbar
-                    (which flips below the box when the text is near the top,
-                    y < 0.12) so the two never overlap/hide each other. z-40 keeps
-                    it above the z-30 toolbar as a safety. */}
+                {/* Grip stays at the conventional bottom-right (where users look
+                    for a resize handle). z-40 keeps it above the z-30 toolbar; the
+                    toolbar is positioned to clear it (see the selBox block). */}
                 <div onPointerDown={textResizeDown} onPointerMove={textResizeMove} onPointerUp={textResizeUp}
                   title="Drag to resize" aria-label="Resize text"
-                  className={`pointer-events-auto absolute -right-1.5 size-3.5 rounded-sm border-2 border-primary bg-white shadow ${selTextA.at.y < 0.12 ? '-top-1.5 cursor-nesw-resize' : '-bottom-1.5 cursor-nwse-resize'}`} />
+                  className="pointer-events-auto absolute -bottom-1.5 -right-1.5 size-3.5 cursor-nwse-resize rounded-sm border-2 border-primary bg-white shadow" />
               </div>
             );
           })()}
           {/* Floating contextual toolbar — appears right at the selected object
               (Notion/Docs style) so actions live where your cursor is, not in a
               distant menu. Sits above the object, flips below near the top edge. */}
-          {selBox && (
-            <div className="pointer-events-none absolute z-30" style={{ left: `${selBox.x * 100}%`, top: `${selBox.y * 100}%` }}>
-              <div className={`pointer-events-auto absolute left-0 flex items-center gap-0.5 rounded-xl bg-foreground p-1 shadow-lift ${selBox.y < 0.12 ? 'top-7' : '-top-2 -translate-y-full'}`}>
+          {selBox && (() => {
+            // Give the container the selected box's HEIGHT so the toolbar can sit
+            // BELOW the whole box (top-full) — clearing the bottom-right resize
+            // grip — when it flips below near the top edge.
+            const boxH = selTextA ? selTextA.size * 1.25 : selImage ? selImage.w * selImage.aspect * pageWH : 0;
+            return (
+            <div className="pointer-events-none absolute z-30" style={{ left: `${selBox.x * 100}%`, top: `${selBox.y * 100}%`, height: `${boxH * 100}%` }}>
+              <div className={`pointer-events-auto absolute left-0 flex items-center gap-0.5 rounded-xl bg-foreground p-1 shadow-lift ${selBox.y < 0.12 ? 'top-full mt-3' : '-top-2 -translate-y-full'}`}>
                 <button onPointerDown={(e) => e.stopPropagation()} onClick={duplicateSelected} title="Duplicate (Ctrl+D)" aria-label="Duplicate"
                   className="flex size-7 items-center justify-center rounded-lg text-background transition-colors hover:bg-background/20"><Copy className="size-3.5" /></button>
                 <button onPointerDown={(e) => e.stopPropagation()} onClick={saveToLibrary} title="Save to My Library" aria-label="Save to Library"
@@ -1085,7 +1089,8 @@ export function AnnotateTool() {
                   className="flex size-7 items-center justify-center rounded-lg text-red-300 transition-colors hover:bg-red-500/25"><Trash2 className="size-3.5" /></button>
               </div>
             </div>
-          )}
+            );
+          })()}
           {/* Select tool: marquee rubber-band while dragging empty space */}
           {tool === 'select' && marquee && (
             <div className="pointer-events-none absolute z-20 rounded-sm border border-primary bg-primary/10"
