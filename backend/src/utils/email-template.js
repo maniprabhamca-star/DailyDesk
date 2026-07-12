@@ -4,6 +4,10 @@
 // when images are blocked and while the site is behind basic-auth. Swap in the
 // real logo PNG once the site is public if desired.
 const BRAND = '#4F46E5';
+// Real logo, served from an nginx path that bypasses basic-auth so mail clients
+// can fetch it while the site is gated. Images blocked by the client → the
+// "DiemDesk" wordmark text still shows (alt="").
+const LOGO_URL = process.env.EMAIL_LOGO_URL || 'https://diemdesk.com/brand/logo.png';
 
 /** Bulletproof-ish CTA button (table wrapper so it renders in Outlook too). */
 function button(url, label) {
@@ -22,7 +26,7 @@ function brandedEmail({ preheader = '', heading, bodyHtml, footerLine = '' }) {
     <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="width:100%;max-width:480px;background:#ffffff;border:1px solid #e2e8f0;border-radius:14px">
       <tr><td style="padding:26px 30px 4px">
         <table role="presentation" cellpadding="0" cellspacing="0"><tr>
-          <td style="width:36px"><div style="width:36px;height:36px;background:${BRAND};border-radius:10px;color:#ffffff;font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:20px;line-height:36px;text-align:center">D</div></td>
+          <td style="width:38px"><img src="${LOGO_URL}" width="38" height="38" alt="" style="display:block;width:38px;height:38px;border-radius:10px" /></td>
           <td style="padding-left:11px;font-size:19px;font-weight:700;color:#0f172a;letter-spacing:-0.02em">DiemDesk</td>
         </tr></table>
       </td></tr>
