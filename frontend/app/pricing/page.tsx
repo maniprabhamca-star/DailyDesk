@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProCheckout } from '@/components/app/pro-checkout';
+import { ProWaitlist } from '@/components/app/pro-waitlist';
+import { WAITLIST_MODE } from '@/lib/flags';
 import { SiteHeader } from '@/components/app/site-header';
 import { SiteFooter } from '@/components/app/site-footer';
 import { PRICING } from '@/lib/pricing';
@@ -145,10 +147,16 @@ export default function PricingPage() {
             <p className="mt-1 text-sm text-muted-foreground">For power users & businesses.</p>
             <p className="mt-5"><span className="text-4xl font-bold">${proPerMonth}</span><span className="text-muted-foreground"> /month</span></p>
             <p className="mt-1 text-xs text-muted-foreground">{proSub}</p>
-            <ProCheckout className="mt-6" interval={annual ? 'year' : 'month'} />
-            <p className="mt-3 rounded-lg bg-amber-400/10 px-3 py-2 text-center text-xs font-medium text-amber-700 dark:text-amber-400">
-              Founding offer — first 1,000 members lock in $4.99/mo for life
-            </p>
+            {WAITLIST_MODE ? (
+              <ProWaitlist className="mt-6" />
+            ) : (
+              <>
+                <ProCheckout className="mt-6" interval={annual ? 'year' : 'month'} />
+                <p className="mt-3 rounded-lg bg-amber-400/10 px-3 py-2 text-center text-xs font-medium text-amber-700 dark:text-amber-400">
+                  Founding offer — first 1,000 members lock in $4.99/mo for life
+                </p>
+              </>
+            )}
             <ul className="mt-6 space-y-2.5 text-sm">
               {PRICING.proFeatures.map((f) => (
                 <li key={f} className="flex items-start gap-2.5"><Check className="mt-0.5 size-[18px] shrink-0 text-emerald-600" strokeWidth={2.75} /> {f}</li>

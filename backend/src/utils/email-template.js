@@ -84,4 +84,20 @@ function welcomeEmail({ name }) {
   };
 }
 
-module.exports = { brandedEmail, button, passwordResetEmail, welcomeEmail };
+/** Pro waitlist confirmation → { subject, html, text }. */
+function waitlistEmail() {
+  const site = 'https://diemdesk.com';
+  const bodyHtml =
+    `<p style="margin:0 0 12px;font-size:15px;line-height:1.6;color:#334155">Thanks for raising your hand.</p>` +
+    `<p style="margin:0 0 4px;font-size:15px;line-height:1.6;color:#334155">We'll email you the day DiemDesk Pro opens — and your <strong>founding-member rate of $4.99/mo for life</strong> is saved.</p>` +
+    button(site, 'Explore DiemDesk') +
+    `<p style="margin:4px 0 0;font-size:14px;line-height:1.7;color:#475569">Until then, every in-browser tool is free and unlimited — no daily limits, nothing uploaded. Enjoy.</p>`;
+  const text = `Thanks for raising your hand.\n\nWe'll email you the day DiemDesk Pro opens — and your founding-member rate of $4.99/mo for life is saved.\n\nExplore DiemDesk: ${site}\n\nUntil then, every in-browser tool is free and unlimited. Enjoy.\n\n— DiemDesk · support@diemdesk.com`;
+  return {
+    subject: "You're on the DiemDesk Pro list",
+    html: brandedEmail({ preheader: 'Your founding-member rate is saved — $4.99/mo for life.', heading: "You're on the list", bodyHtml }),
+    text,
+  };
+}
+
+module.exports = { brandedEmail, button, passwordResetEmail, welcomeEmail, waitlistEmail };

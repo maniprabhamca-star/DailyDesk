@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Loader2, Check, Clock } from 'lucide-react';
+import { Loader2, Check, Clock, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth';
 import { usePlan } from '@/lib/plan';
 import { api } from '@/lib/api';
-import { BILLING_ENABLED } from '@/lib/flags';
+import { BILLING_ENABLED, WAITLIST_MODE } from '@/lib/flags';
 
 // The "Go Pro" CTA. Adapts to state: logged-out → register; free + logged-in →
 // start Stripe Checkout; already Pro → confirm. On returning from Checkout
@@ -35,6 +35,16 @@ export function ProCheckout({ className = '', size, interval = 'month' }: { clas
       setMsg(e instanceof Error ? e.message : 'Could not start checkout.');
     }
     setBusy(false);
+  }
+
+  // Free-first launch: collect a launch waitlist instead of charging. The full
+  // form lives on the pricing Pro card; everywhere else links to it.
+  if (WAITLIST_MODE) {
+    return (
+      <Button asChild size={size} className={className}>
+        <Link href="/pricing#pro-waitlist"><Bell className="size-4" /> Notify me at launch</Link>
+      </Button>
+    );
   }
 
   // Free-launch period: billing is off — show Pro as "coming soon" everywhere.

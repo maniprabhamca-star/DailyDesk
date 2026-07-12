@@ -6,6 +6,11 @@
 // redeploying the frontend) opens paid subscriptions instantly, no other change.
 export const BILLING_ENABLED = true;
 
+// WAITLIST_MODE: during the free-first launch (Pro a few months out), the Pro
+// CTA collects a launch waitlist + founding-member interest instead of charging.
+// Flip to false at Pro launch so ProCheckout shows the real "Go Pro" again.
+export const WAITLIST_MODE = true;
+
 // PRO_UPSELL_ENABLED: gates all "upgrade to Pro" size-cap selling (the polished
 // over-limit notice CTA + the dismissible corner card). OFF during the free
 // launch — since Pro isn't purchasable yet, we never dangle a price. When a file
