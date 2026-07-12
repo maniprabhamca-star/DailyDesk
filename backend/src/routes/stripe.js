@@ -35,18 +35,32 @@ router.post('/create-checkout-session', requireAuth, async (req, res) => {
     if (!user) return res.status(404).json({ error: 'User not found' });
     if (user.plan === 'pro') return res.status(400).json({ error: 'You’re already on Pro.' });
 
-    const session = await s.checkout.sessions.create({
+    const base = {
       mode: 'subscription',
       line_items: [{ price: priceId, quantity: 1 }],
       client_reference_id: String(req.user.userId),
-      // Reuse an existing customer if we have one, else let Stripe create one
-      // pre-filled with their email.
-      ...(user.stripe_customer_id ? { customer: user.stripe_customer_id } : { customer_email: user.email }),
       success_url: `${FRONTEND}/pricing?upgraded=1`,
       cancel_url: `${FRONTEND}/pricing?canceled=1`,
       allow_promotion_codes: true,
       metadata: { userId: String(req.user.userId) },
-    });
+    };
+    let session;
+    try {
+      // Reuse an existing customer if we have one, else let Stripe create one
+      // pre-filled with their email.
+      session = await s.checkout.sessions.create(
+        user.stripe_customer_id ? { ...base, customer: user.stripe_customer_id } : { ...base, customer_email: user.email }
+      );
+    } catch (e) {
+      // A stored customer Stripe can't find (deleted, or from a different Stripe
+      // mode — e.g. a leftover live id while testing) must not dead-end checkout:
+      // retry with just the email so a fresh customer is created.
+      if (user.stripe_customer_id && /No such customer/i.test(e.message || '')) {
+        session = await s.checkout.sessions.create({ ...base, customer_email: user.email });
+      } else {
+        throw e;
+      }
+    }
     res.json({ url: session.url });
   } catch (err) {
     console.error('Stripe checkout error:', err.message);
