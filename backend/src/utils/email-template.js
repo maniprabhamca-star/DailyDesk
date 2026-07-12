@@ -33,7 +33,7 @@ function brandedEmail({ preheader = '', heading, bodyHtml, footerLine = '' }) {
       <tr><td style="padding:18px 30px 26px;border-top:1px solid #f1f5f9">
         <p style="margin:0;font-size:12px;line-height:1.7;color:#94a3b8">
           ${footerLine ? footerLine + '<br>' : ''}Questions? <a href="mailto:support@diemdesk.com" style="color:${BRAND};text-decoration:none">support@diemdesk.com</a><br>
-          © ${year} JPNM Rapid Universe LLC · DiemDesk — private, on-device document tools
+          © ${year} DiemDesk — private, on-device document tools
         </p>
       </td></tr>
     </table>
@@ -58,4 +58,26 @@ function passwordResetEmail({ name, link }) {
   };
 }
 
-module.exports = { brandedEmail, button, passwordResetEmail };
+/** Welcome email on signup → { subject, html, text }. */
+function welcomeEmail({ name }) {
+  const hi = name ? `Hi ${name},` : 'Hi there,';
+  const site = 'https://diemdesk.com';
+  const bodyHtml =
+    `<p style="margin:0 0 12px;font-size:15px;line-height:1.6;color:#334155">${hi}</p>` +
+    `<p style="margin:0 0 4px;font-size:15px;line-height:1.6;color:#334155">Thanks for signing up. DiemDesk is a full document toolkit — compress, convert, merge, split, edit, sign and more — and almost everything runs right in your browser, so your files never leave your device.</p>` +
+    button(site, 'Open DiemDesk') +
+    `<p style="margin:4px 0 6px;font-size:14px;line-height:1.7;color:#475569">A few things worth knowing:</p>` +
+    `<ul style="margin:0;padding-left:18px;font-size:14px;line-height:1.7;color:#475569">` +
+    `<li>The in-browser tools have <strong>no daily limits</strong>.</li>` +
+    `<li>No ads, no watermarks, and nothing is uploaded.</li>` +
+    `<li>Need something or hit a snag? Just reply to this email.</li>` +
+    `</ul>`;
+  const text = `${hi}\n\nThanks for signing up. DiemDesk is a full document toolkit — compress, convert, merge, split, edit, sign and more — and almost everything runs right in your browser, so your files never leave your device.\n\nOpen DiemDesk: ${site}\n\n- The in-browser tools have no daily limits.\n- No ads, no watermarks, nothing uploaded.\n- Need something? Just reply to this email.\n\n— DiemDesk · support@diemdesk.com`;
+  return {
+    subject: 'Welcome to DiemDesk',
+    html: brandedEmail({ preheader: 'Your document toolkit — private, on-device, no limits.', heading: 'Welcome to DiemDesk', bodyHtml }),
+    text,
+  };
+}
+
+module.exports = { brandedEmail, button, passwordResetEmail, welcomeEmail };

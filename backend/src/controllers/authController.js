@@ -4,7 +4,7 @@ const crypto = require('crypto');
 const db = require('../db');
 const { trackEvent } = require('../utils/trackEvent');
 const { sendMail } = require('../utils/mailer');
-const { passwordResetEmail } = require('../utils/email-template');
+const { passwordResetEmail, welcomeEmail } = require('../utils/email-template');
 
 const FRONTEND = process.env.FRONTEND_URL || 'https://diemdesk.com';
 
@@ -37,6 +37,8 @@ exports.register = async (req, res) => {
     const user = result.rows[0];
     const token = signToken(user.id, user.email, user.plan);
     trackEvent(req, 'signup', { userId: user.id });
+    // Welcome email — fire-and-forget so signup never waits on (or fails from) mail.
+    void sendMail({ to: user.email, ...welcomeEmail({ name: user.name }) }).catch((e) => console.error('Welcome email failed:', e.message));
     res.status(201).json({ token, user: { id: user.id, name: user.name, email: user.email, plan: user.plan } });
   } catch (err) {
     console.error('Register error:', err);
@@ -165,6 +167,7 @@ exports.googleLogin = async (req, res) => {
       );
       user = ins.rows[0];
       trackEvent(req, 'signup', { userId: user.id, method: 'google' });
+      void sendMail({ to: user.email, ...welcomeEmail({ name: user.name }) }).catch((e) => console.error('Welcome email failed:', e.message));
     }
     if (user.status === 'suspended' || user.status === 'deleted') {
       return res.status(403).json({ error: 'Your account has been suspended. Please contact support.' });
