@@ -13,7 +13,9 @@ Every in-browser tool is **free & unlimited forever** (they run on your device a
 - **[designs/on-device-batch.md](designs/on-device-batch.md)** — the on-device Batch (Pro) design: gate + runner states, per-tool controls, engineering shape. New designs we discuss get committed under `designs/`.
 
 ## Launch
-- **[launch-checklist.md](launch-checklist.md)** — the go-live runbook: what's done + the ordered steps to launch (QA, SEO, Stripe live, Google OAuth publish, reset test data, remove basic-auth, DMARC reject, hardening).
+- **[wednesday-launch-runbook.md](wednesday-launch-runbook.md)** — the tight ordered go-public runbook for launch day (flip basic-auth, reset data, tool gating, verify, submit sitemap) — Claude-vs-you steps + exact commands.
+- **[pr/press-release.md](pr/press-release.md)** — two press-release versions for EIN Presswire (privacy angle + free-alternative angle).
+- **[launch-checklist.md](launch-checklist.md)** — the fuller go-live runbook: what's done + the ordered steps to launch (QA, SEO, Stripe live, Google OAuth publish, reset test data, remove basic-auth, DMARC reject, hardening).
 - **[stripe-setup-sheet.md](stripe-setup-sheet.md)** — Stripe fields + env wiring reference.
 
 ## Other docs here
