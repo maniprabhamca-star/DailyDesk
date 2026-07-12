@@ -4,7 +4,7 @@
 // everywhere as "coming soon" and nobody can subscribe yet. The Stripe
 // integration is fully built and live-verified; flipping this to `true` (and
 // redeploying the frontend) opens paid subscriptions instantly, no other change.
-export const BILLING_ENABLED = false;
+export const BILLING_ENABLED = true;
 
 // PRO_UPSELL_ENABLED: gates all "upgrade to Pro" size-cap selling (the polished
 // over-limit notice CTA + the dismissible corner card). OFF during the free
