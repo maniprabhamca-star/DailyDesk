@@ -231,6 +231,7 @@ export function AnnotateTool() {
   const imgFileRef = useRef<HTMLInputElement>(null);
   const imgCache = useRef<Map<string, HTMLImageElement>>(new Map());
   const imgDrag = useRef<{ id: string; mode: 'move' | 'resize'; ox: number; oy: number; startW: number } | null>(null);
+  const textResize = useRef<{ oy: number; startSize: number } | null>(null); // drag the corner grip to resize a placed text
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const textInputRef = useRef<HTMLInputElement>(null);
@@ -687,6 +688,25 @@ export function AnnotateTool() {
     }
   }
   function imgUp() { imgDrag.current = null; setSnapGuides(null); }
+
+  // Drag the corner grip on a selected text to resize it (size is a fraction of
+  // page height; dragging down grows it, up shrinks it). Additive — the toolbar
+  // size control still works too.
+  function textResizeDown(e: React.PointerEvent<HTMLElement>) {
+    if (!selTextA) return;
+    e.stopPropagation();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    textResize.current = { oy: e.clientY, startSize: selTextA.size };
+  }
+  function textResizeMove(e: React.PointerEvent<HTMLElement>) {
+    const d = textResize.current;
+    if (!d || !wrapRef.current || selIdx === null) return;
+    const r = wrapRef.current.getBoundingClientRect();
+    const dyFrac = (e.clientY - d.oy) / r.height; // page-height fraction dragged
+    patchSelected({ size: Math.min(0.22, Math.max(0.008, d.startSize + dyFrac)) });
+  }
+  function textResizeUp(e: React.PointerEvent<HTMLElement>) { e.currentTarget.releasePointerCapture(e.pointerId); textResize.current = null; }
+
   const pageImages = images.filter((i) => i.page === sel);
 
   const annotatedPages = Object.keys(annos).map(Number).filter((i) => (annos[i] || []).length > 0).sort((x, y) => x - y);
@@ -992,7 +1012,7 @@ export function AnnotateTool() {
                 }}
                 onBlur={commitText}
                 onPointerDown={(e) => e.stopPropagation()}
-                placeholder="Type, then Enter"
+                placeholder="Type here — Enter or click away"
                 className="rounded border-2 border-primary bg-white/95 px-1.5 py-0.5 text-sm shadow-lg outline-none"
                 style={{ color, fontFamily: FAMILIES[family].css, fontWeight: bold ? 700 : 400, fontStyle: italic ? 'italic' : 'normal', textDecoration: underline ? 'underline' : 'none' }}
               />
@@ -1026,6 +1046,22 @@ export function AnnotateTool() {
               )}
             </div>
           ))}
+          {/* Selected-text bounding box + corner grip — text is painted to the
+              canvas, so this DOM overlay gives it the same drag-to-resize handle
+              images have. Box is click-through (drag the text itself to move);
+              only the grip is interactive. */}
+          {selTextA && selIdx !== null && preview && (() => {
+            const wFrac = Math.max(0.03, selTextA.text.length * selTextA.size * 0.55 * (preview.h / preview.w));
+            const hFrac = selTextA.size * 1.25;
+            return (
+              <div className="pointer-events-none absolute z-20" style={{ left: `${selTextA.at.x * 100}%`, top: `${selTextA.at.y * 100}%`, width: `${wFrac * 100}%`, height: `${hFrac * 100}%` }}>
+                <div className="absolute inset-0 rounded-[2px] ring-1 ring-primary/50" />
+                <div onPointerDown={textResizeDown} onPointerMove={textResizeMove} onPointerUp={textResizeUp}
+                  title="Drag to resize" aria-label="Resize text"
+                  className="pointer-events-auto absolute -bottom-1.5 -right-1.5 size-3.5 cursor-nwse-resize rounded-sm border-2 border-primary bg-white shadow" />
+              </div>
+            );
+          })()}
           {/* Floating contextual toolbar — appears right at the selected object
               (Notion/Docs style) so actions live where your cursor is, not in a
               distant menu. Sits above the object, flips below near the top edge. */}
