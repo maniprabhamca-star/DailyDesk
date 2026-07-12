@@ -12,6 +12,10 @@ Every in-browser tool is **free & unlimited forever** (they run on your device a
 ## Design specs
 - **[designs/on-device-batch.md](designs/on-device-batch.md)** — the on-device Batch (Pro) design: gate + runner states, per-tool controls, engineering shape. New designs we discuss get committed under `designs/`.
 
+## Launch
+- **[launch-checklist.md](launch-checklist.md)** — the go-live runbook: what's done + the ordered steps to launch (QA, SEO, Stripe live, Google OAuth publish, reset test data, remove basic-auth, DMARC reject, hardening).
+- **[stripe-setup-sheet.md](stripe-setup-sheet.md)** — Stripe fields + env wiring reference.
+
 ## Other docs here
 - `TECHNOLOGY.md` — tech stack & architecture
 - `SCALING-AND-OPS.md` — scaling playbook & ops
