@@ -1,6 +1,6 @@
-// WhatsApp-shareable portrait brochure (1080×1350) for DiemDesk.
-// Same brand-mark geometry as components/app/brand-mark.tsx.
-// Run from frontend/:  node scripts/gen-brochure.mjs
+// WhatsApp-shareable portrait brochure (1080×1350, true 4:5 — displays without
+// cropping in a WhatsApp image message). Same brand-mark geometry as
+// components/app/brand-mark.tsx. Run from frontend/:  node scripts/gen-brochure.mjs
 import { createCanvas, Path2D, GlobalFonts } from '@napi-rs/canvas';
 import { writeFileSync } from 'node:fs';
 
@@ -35,80 +35,87 @@ const fam = GlobalFonts.families || [];
 const F = fam.length ? fam[fam.length - 1].family : 'Arial';
 
 // ground
-ctx.fillStyle = '#F7F8FE'; ctx.fillRect(0, 0, W, H);
+ctx.fillStyle = '#EEF0FB'; ctx.fillRect(0, 0, W, H);
 
 // ---- hero card ----
-const hx = 48, hy = 48, hw = W - 96, hh = 486;
-const grad = ctx.createLinearGradient(hx, hy, hx, hy + hh);
+const hx = 40, hy = 40, hw = W - 80, hh = 500;
+const grad = ctx.createLinearGradient(hx, hy, hx + hw, hy + hh);
 grad.addColorStop(0, INDIGO); grad.addColorStop(1, INDIGO_D);
 rr(ctx, hx, hy, hw, hh, 40); ctx.fillStyle = grad; ctx.fill();
 
-// white badge + mark + wordmark
-rr(ctx, 104, 104, 104, 104, 26); ctx.fillStyle = '#fff'; ctx.fill();
-drawMark(ctx, 118, 118, 76);
-ctx.fillStyle = '#fff'; ctx.font = `bold 50px ${F}`; ctx.fillText('DiemDesk', 232, 176);
+rr(ctx, 96, 96, 104, 104, 26); ctx.fillStyle = '#fff'; ctx.fill();
+drawMark(ctx, 110, 110, 76);
+ctx.fillStyle = '#fff'; ctx.font = `bold 50px ${F}`; ctx.fillText('DiemDesk', 224, 168);
 
-// headline
-ctx.fillStyle = '#fff'; ctx.font = `bold 66px ${F}`;
-ctx.fillText('40+ free tools', 104, 306);
-ctx.fillText('for every document.', 104, 378);
+ctx.fillStyle = '#fff'; ctx.font = `bold 68px ${F}`;
+ctx.fillText('40+ free tools', 96, 302);
+ctx.fillText('for every document.', 96, 378);
 
-// subline
-ctx.fillStyle = 'rgba(255,255,255,0.88)'; ctx.font = `30px ${F}`;
-ctx.fillText('PDF · images · e-sign · QR — right in your browser.', 104, 434);
+ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.font = `31px ${F}`;
+ctx.fillText('PDF · images · e-sign · QR — right in your browser.', 96, 436);
 
-// privacy pill
-ctx.font = `bold 27px ${F}`;
+ctx.font = `bold 28px ${F}`;
 const pillTxt = 'Private by design — nothing is uploaded';
-const pw = ctx.measureText(pillTxt).width + 52;
-rr(ctx, 104, 462, pw, 52, 26); ctx.fillStyle = 'rgba(255,255,255,0.16)'; ctx.fill();
-ctx.fillStyle = '#fff'; ctx.fillText(pillTxt, 130, 496);
+const pw = ctx.measureText(pillTxt).width + 54;
+rr(ctx, 96, 472, pw, 54, 27); ctx.fillStyle = 'rgba(255,255,255,0.17)'; ctx.fill();
+ctx.fillStyle = '#fff'; ctx.fillText(pillTxt, 123, 507);
 
-// ---- value props ----
+// ---- body card ----
+const bx = 40, by = 572, bw = W - 80, bh = 548;
+rr(ctx, bx, by, bw, bh, 36); ctx.fillStyle = '#fff'; ctx.fill();
+ctx.strokeStyle = '#E4E7F4'; ctx.lineWidth = 2; rr(ctx, bx, by, bw, bh, 36); ctx.stroke();
+
+ctx.fillStyle = GRAY; ctx.font = `bold 23px ${F}`;
+ctx.fillText('W H A T   Y O U   G E T', 84, by + 52);
+
 const props = [
   '100% private — nothing is uploaded or stored',
   'No account, no ads, no watermarks',
   'Free & unlimited — even works offline',
   '56 tools across 9 categories',
 ];
-let vy = 606;
+let vy = by + 116;
 ctx.font = `31px ${F}`;
 for (const p of props) {
-  check(ctx, 92, vy - 10, 20);
-  ctx.fillStyle = DARK; ctx.fillText(p, 132, vy);
-  vy += 62;
+  check(ctx, 104, vy - 10, 20);
+  ctx.fillStyle = DARK; ctx.fillText(p, 146, vy);
+  vy += 60;
 }
 
-// ---- category chips ----
-ctx.fillStyle = GRAY; ctx.font = `bold 24px ${F}`;
-ctx.fillText('W H A T ’ S   I N S I D E', 72, 884);
+// divider
+ctx.strokeStyle = '#EDEFF7'; ctx.lineWidth = 2;
+ctx.beginPath(); ctx.moveTo(84, by + 372); ctx.lineTo(bx + bw - 44, by + 372); ctx.stroke();
+
+// chips
+ctx.fillStyle = GRAY; ctx.font = `bold 23px ${F}`;
+ctx.fillText('W H A T ’ S   I N S I D E', 84, by + 420);
 const chips = [
   ['Organize PDF', '#dc2626'], ['Convert', '#0284c7'], ['Edit & sign', '#d97706'],
   ['Images & media', '#ea580c'], ['Generators', '#4f46e5'], ['AI & scan', '#db2777'],
   ['Utilities', '#0d9488'], ['Workspace', '#16a34a'],
 ];
-ctx.font = `bold 27px ${F}`;
-let cx = 60, cyy = 916; const maxX = W - 60, chH = 52, gap = 16;
+ctx.font = `bold 26px ${F}`;
+let cx = 84, cyy = by + 448; const maxX = bx + bw - 44, chH = 50, gap = 14;
 for (const [label, col] of chips) {
-  const cw = ctx.measureText(label).width + 48;
-  if (cx + cw > maxX) { cx = 60; cyy += chH + gap; }
-  rr(ctx, cx, cyy, cw, chH, 26); ctx.fillStyle = col + '1f'; ctx.fill();
-  ctx.fillStyle = col; ctx.fillText(label, cx + 24, cyy + 35);
+  const cw = ctx.measureText(label).width + 44;
+  if (cx + cw > maxX) { cx = 84; cyy += chH + gap; }
+  rr(ctx, cx, cyy, cw, chH, 25); ctx.fillStyle = col + '1f'; ctx.fill();
+  ctx.fillStyle = col; ctx.fillText(label, cx + 22, cyy + 33);
   cx += cw + gap;
 }
 
 // ---- CTA band ----
-const by = 1150;
-const cg = ctx.createLinearGradient(0, by, W, H);
+const cby = 1152;
+const cg = ctx.createLinearGradient(0, cby, W, H);
 cg.addColorStop(0, INDIGO); cg.addColorStop(1, INDIGO_D);
-ctx.fillStyle = cg; ctx.fillRect(0, by, W, H - by);
+ctx.fillStyle = cg; ctx.fillRect(0, cby, W, H - cby);
 ctx.textAlign = 'center';
 ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.font = `28px ${F}`;
-ctx.fillText('Free  ·  private  ·  no signup', W / 2, by + 60);
+ctx.fillText('Free  ·  private  ·  no signup', W / 2, cby + 58);
 ctx.fillStyle = '#fff'; ctx.font = `bold 58px ${F}`;
-ctx.fillText('diemdesk.com', W / 2, by + 124);
-ctx.fillStyle = 'rgba(255,255,255,0.92)'; ctx.font = `27px ${F}`;
-ctx.fillText('See the full toolkit  →  diemdesk.com/overview', W / 2, by + 172);
+ctx.fillText('diemdesk.com', W / 2, cby + 122);
+ctx.fillStyle = 'rgba(255,255,255,0.92)'; ctx.font = `26px ${F}`;
+ctx.fillText('See the full toolkit  →  diemdesk.com/overview', W / 2, cby + 170);
 ctx.textAlign = 'left';
 
 writeFileSync('C:/Mani Documents/MyBiz/DailyDesk/diemdesk-brochure/diemdesk-brochure.png', c.toBuffer('image/png'));
