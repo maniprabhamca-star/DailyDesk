@@ -10,7 +10,12 @@ import { writeFileSync } from 'node:fs';
 const INDIGO = '#4F46E5', INDIGO_D = '#4338CA', DARK = '#0f172a', GRAY = '#64748b', GREEN = '#22C55E';
 const D_PATH = 'M28 9.5 H32.5 C35.7 9.5 37.8 12 37.8 15 C37.8 18 35.7 20.5 32.5 20.5 H28 Z M30.4 11.8 V18.2 H32.5 C34.3 18.2 35.4 16.9 35.4 15 C35.4 13.1 34.3 11.8 32.5 11.8 Z';
 const OUT = 'C:/Mani Documents/MyBiz/DailyDesk/diemdesk-brochure/';
-const F = (() => { const fam = GlobalFonts.families || []; return fam.length ? fam[fam.length - 1].family : 'Arial'; })();
+// Register real, high-quality faces (Poppins regular + bold) so the type renders
+// crisp and correctly weighted — NOT an arbitrary system fallback.
+const FONTS = 'C:/Mani Documents/MyBiz/DailyDesk/frontend/public/fonts/';
+GlobalFonts.registerFromPath(FONTS + 'poppins-regular.ttf', 'Poppins');
+GlobalFonts.registerFromPath(FONTS + 'poppins-bold.ttf', 'Poppins');
+const F = 'Poppins';
 
 const PROPS = [
   '100% private — nothing is uploaded or stored',
@@ -66,7 +71,7 @@ function ctaBand(ctx, y, W, H, big) {
   ctx.fillStyle = g; ctx.fillRect(0, y, W, H - y); const m = H - y; ctx.textAlign = 'center';
   ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.font = `${Math.round(big * 0.46)}px ${F}`; ctx.fillText('Free  ·  private  ·  no signup', W / 2, y + m * 0.34);
   ctx.fillStyle = '#fff'; ctx.font = `bold ${big}px ${F}`; ctx.fillText('diemdesk.com', W / 2, y + m * 0.63);
-  ctx.fillStyle = 'rgba(255,255,255,0.92)'; ctx.font = `${Math.round(big * 0.44)}px ${F}`; ctx.fillText('See the full toolkit  →  diemdesk.com/overview', W / 2, y + m * 0.86);
+  ctx.fillStyle = 'rgba(255,255,255,0.92)'; ctx.font = `${Math.round(big * 0.44)}px ${F}`; ctx.fillText('See the full toolkit at diemdesk.com/overview', W / 2, y + m * 0.86);
   ctx.textAlign = 'left';
 }
 function bodyCard(ctx, x, y, w, h) { rr(ctx, x, y, w, h, 36); ctx.fillStyle = '#fff'; ctx.fill(); ctx.strokeStyle = '#E4E7F4'; ctx.lineWidth = 2; rr(ctx, x, y, w, h, 36); ctx.stroke(); }
@@ -136,7 +141,7 @@ function renderLandscape() {
   ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.font = `27px ${F}`; ctx.fillText('PDF · images · e-sign · QR — in your browser.', 72, 372);
   pill(ctx, 72, 402, 'Private — nothing is uploaded', 24);
   ctx.fillStyle = '#fff'; ctx.font = `bold 40px ${F}`; ctx.fillText('diemdesk.com', 72, 526);
-  ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.font = `24px ${F}`; ctx.fillText('Full toolkit → diemdesk.com/overview', 72, 566);
+  ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.font = `24px ${F}`; ctx.fillText('Full toolkit at diemdesk.com/overview', 72, 566);
   // right card (airy 4 props — shortened to fit the narrower column)
   const SHORT = ['100% private — no uploads', 'No account, no ads', 'Free & unlimited', '56 tools · 9 categories'];
   bodyCard(ctx, 690, 64, 456, 502);
