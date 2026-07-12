@@ -1,9 +1,8 @@
 # DiemDesk — launch press release (for EIN Presswire)
 
 Two versions. Fill the `[brackets]` before sending: **[Founder name]**, the
-**launch date** (Wednesday), and the **media contact name**. Keep claims factual
-(everything below is defensible). Suggested category on EIN Presswire: Technology /
-Software / Internet.
+**launch date** (Wednesday), and the **media contact name**. Claims are factual and
+defensible. Suggested EIN Presswire category: Technology / Software / Internet.
 
 ---
 
@@ -26,11 +25,11 @@ Because files are processed locally, DiemDesk suits sensitive material where upl
 DiemDesk is free to use today. A paid Pro plan is on the way — adding on-device batch processing, an encrypted file vault, OCR, and AI document assistants — and early users can join the waitlist at diemdesk.com/pricing to lock in founding-member pricing.
 
 **About DiemDesk**
-DiemDesk is a privacy-first document toolkit from JPNM Rapid Universe LLC, based in Marietta, Georgia. Its tools run on the user's own device so files stay private. Learn more at diemdesk.com.
+DiemDesk is a privacy-first document toolkit built in Marietta, Georgia. Its tools run entirely in your browser, so your files stay on your own device. Learn more at diemdesk.com.
 
 **Media contact**
 [Name]
-DiemDesk (JPNM Rapid Universe LLC)
+DiemDesk
 support@diemdesk.com
 https://diemdesk.com
 
@@ -53,7 +52,7 @@ Most popular online PDF tools send your file to their servers to do the work. Di
 A Pro plan is coming for power users — with batch processing, an encrypted file vault, OCR, and AI features — and early supporters can join the waitlist for founding-member pricing at diemdesk.com.
 
 **About DiemDesk**
-DiemDesk, from JPNM Rapid Universe LLC of Marietta, Georgia, is a privacy-first document toolkit whose tools run on the user's own device. Visit diemdesk.com.
+DiemDesk is a privacy-first document toolkit built in Marietta, Georgia, whose tools run on your own device. Visit diemdesk.com.
 
 **Media contact:** support@diemdesk.com · https://diemdesk.com
 
@@ -61,5 +60,4 @@ DiemDesk, from JPNM Rapid Universe LLC of Marietta, Georgia, is a privacy-first 
 
 ### Notes
 - **Fact-check before sending:** the "more than 40 tools" and "on-device / never uploaded" claims are accurate for the in-browser tools. The few server tools (Office conversions, OCR) DO upload and are deleted immediately — the release only claims on-device for the in-browser tools, which is correct. Don't add hard competitor comparisons or unverified benchmark numbers in the wire release.
-- **Boilerplate/entity:** JPNM Rapid Universe LLC, Marietta, GA.
-- Consider a press@diemdesk.com alias for the contact line (or keep support@).
+- **No legal entity name** is used per owner's request (2026-07-12). Consider a `press@diemdesk.com` alias for the contact line, or keep `support@`.
