@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
+const { notifyOwner } = require('../utils/notify');
 
 // Stripe subscription billing for DiemDesk Pro. Everything here is ENV-GATED:
 // if STRIPE_SECRET_KEY isn't set, the endpoints report "not configured" and the
@@ -63,7 +64,10 @@ router.post('/create-checkout-session', requireAuth, async (req, res) => {
     }
     res.json({ url: session.url });
   } catch (err) {
+    // A failed checkout = a lost sale. Log AND page the owner so it's caught and
+    // fixed fast, never discovered later. notifyOwner never throws.
     console.error('Stripe checkout error:', err.message);
+    void notifyOwner('Checkout failed', `A Pro checkout failed to start.\nUser: ${req.user && req.user.userId}\nError: ${err.message}`);
     res.status(500).json({ error: 'Could not start checkout — please try again.' });
   }
 });
@@ -96,8 +100,10 @@ async function webhookHandler(req, res) {
       console.log(`Stripe: customer ${sub.customer} → free`);
     }
   } catch (err) {
-    // Log and still 200 so Stripe won't retry-storm on a transient DB error.
+    // A webhook failure can mean a PAID user didn't get upgraded — critical.
+    // Log, page the owner, and still 200 so Stripe won't retry-storm.
     console.error('Stripe webhook handling error:', err.message);
+    void notifyOwner('Stripe webhook failed', `A Stripe webhook (${event && event.type}) failed to process — a paid user may not be upgraded.\nError: ${err.message}`);
   }
   res.json({ received: true });
 }
