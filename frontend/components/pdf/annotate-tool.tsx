@@ -417,6 +417,10 @@ export function AnnotateTool() {
     }
     setSelImg(null); // clicking the page deselects any image/signature
     if (tool === 'text') {
+      // A text draft is already open → clicking elsewhere COMMITS it (the input's
+      // onBlur fires). Do NOT clobber it with a new empty draft — that dropped the
+      // word the user just typed when they clicked away instead of pressing Enter.
+      if (textDraft) return;
       const hit = findTextAt(p);
       if (hit >= 0) {
         // Single click SELECTS a placed text + starts a drag so it can be moved
