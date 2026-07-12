@@ -16,7 +16,7 @@ defensible. Suggested EIN Presswire category: Technology / Software / Internet.
 
 MARIETTA, Ga. — [Launch date] — DiemDesk today opened to the public at diemdesk.com, offering more than 40 document tools that do their work entirely inside your web browser. Unlike most online PDF and image services, which upload your files to a company's servers, DiemDesk processes files on your own device — so your documents never leave your computer.
 
-The toolkit covers everyday needs: compress, convert, merge, split, rotate, edit, e-sign, and redact PDFs, plus image resizing and conversion, QR codes, and other utilities. Every in-browser tool is free and unlimited, with no ads, no watermarks, and no account required.
+The toolkit covers everyday needs — from tools to [compress PDF](https://diemdesk.com/compress-pdf) files and [merge PDF](https://diemdesk.com/merge-pdf) documents to convert, split, rotate, edit, e-sign, and redact — plus image resizing and conversion, QR codes, and other utilities. Every in-browser tool is free and unlimited, with no ads, no watermarks, and no account required.
 
 "People shouldn't have to hand their contracts, IDs, and personal documents to a stranger's server just to compress a PDF," said [Founder name], founder of DiemDesk. "We built DiemDesk so the work happens on your device. Nothing is uploaded — you can open your browser's network tab and see for yourself."
 
@@ -45,7 +45,7 @@ https://diemdesk.com
 
 MARIETTA, Ga. — [Launch date] — A new set of free document tools launched today at diemdesk.com with a simple promise: your files never leave your device. DiemDesk runs more than 40 PDF, image, and everyday tools directly in the browser, so there is nothing to upload and no account to create.
 
-Most popular online PDF tools send your file to their servers to do the work. DiemDesk does it locally, on your own computer — which keeps private documents private and lets the tools run quickly on large files. You can compress, convert, merge, split, edit, sign, and redact PDFs, resize and convert images, generate QR codes, and more — all free, with no ads or watermarks.
+Most popular online PDF tools send your file to their servers to do the work. DiemDesk does it locally, on your own computer — which keeps private documents private and lets the tools run quickly on large files. You can [compress PDF](https://diemdesk.com/compress-pdf) files, [merge PDF](https://diemdesk.com/merge-pdf) documents, convert, split, edit, sign, and redact PDFs, resize and convert images, generate QR codes, and more — all free, with no ads or watermarks.
 
 "We wanted the easiest tools on the internet to also be the most private," said [Founder name] of DiemDesk. "No uploads, no sign-up, no catch."
 
@@ -58,6 +58,24 @@ DiemDesk is a privacy-first document toolkit built in Marietta, Georgia, whose t
 
 ---
 
-### Notes
-- **Fact-check before sending:** the "more than 40 tools" and "on-device / never uploaded" claims are accurate for the in-browser tools. The few server tools (Office conversions, OCR) DO upload and are deleted immediately — the release only claims on-device for the in-browser tools, which is correct. Don't add hard competitor comparisons or unverified benchmark numbers in the wire release.
-- **No legal entity name** is used per owner's request (2026-07-12). Consider a `press@diemdesk.com` alias for the contact line, or keep `support@`.
+## EIN Presswire submission details (fill these fields)
+
+**Title (headline):** DiemDesk launches a privacy-first document toolkit that never uploads your files
+
+**Summary / subtitle (≈1 sentence):** DiemDesk opens to the public with 40+ free PDF, image, and everyday tools that run entirely in your browser — no uploads, no accounts, no ads.
+
+**SEO backlinks (2 keyword-anchored deep links to live tools):**
+- anchor text **compress PDF** → https://diemdesk.com/compress-pdf
+- anchor text **merge PDF** → https://diemdesk.com/merge-pdf
+- (plus the brand mentions of diemdesk.com — link the homepage once too if the plan allows). When pasting into EIN's editor, select the words "compress PDF" and "merge PDF" and add the hyperlink; in the .docx they're already clickable. These are your highest-volume, launch-ready tools — best SEO value.
+
+**Keywords / tags:** PDF tools, compress PDF, merge PDF, edit PDF, PDF converter, privacy, on-device, no upload, free PDF tools, document tools, browser-based, private PDF editor
+
+**Industry / category:** Technology · Software · Internet (secondary: Computers/Electronics, Privacy/Security). Consumer + small-business audience.
+
+**Distribution:** choose EIN's **U.S. + Technology/Software vertical** channels; enable **Google News** and the **online-media / syndication network** (standard with the paid package). Add **Worldwide** if your plan includes it — the product is global. EIN's U.S. Tech distribution + Google News indexing is the sweet spot for a consumer-software launch on a budget.
+
+## Notes
+- **Fact-check before sending:** the "more than 40 tools" and "on-device / never uploaded" claims are accurate for the in-browser tools. The few server tools (Office conversions, OCR) DO upload and are deleted immediately — the release only claims on-device for the in-browser tools, which is correct. Don't add hard competitor comparisons or unverified benchmark numbers.
+- **Links dofollow?** EIN's own copy may mark links nofollow, but the **syndicated copies + Google News indexing + referral traffic** still deliver real SEO and visitor value — that's the point of the keyword deep links.
+- **No legal entity name** per owner's request (2026-07-12). Consider a `press@diemdesk.com` alias for the contact line, or keep `support@`.
