@@ -104,17 +104,16 @@ function FramedSlider() {
 // our own take on the "product cluster" hero visual (brand colours, our tools).
 // A floating tool tile — elevated (soft coloured glow + shadow, no sticker ring)
 // with a gentle staggered bob, so it reads as hovering over the product.
-function FloatTile({ Icon, bg, glow, pos, delay }: { Icon: LucideIcon; bg: string; glow: string; pos: string; delay: number }) {
+function FloatTile({ Icon, bg, pos, delay }: { Icon: LucideIcon; bg: string; pos: string; delay: number }) {
   const reduce = useReducedMotion();
   return (
     <motion.span
       aria-hidden
       className={`absolute z-10 ${pos}`}
-      animate={reduce ? undefined : { y: [0, -7, 0] }}
-      transition={reduce ? undefined : { duration: 3.8, repeat: Infinity, ease: 'easeInOut', delay }}
+      animate={reduce ? undefined : { y: [0, -5, 0] }}
+      transition={reduce ? undefined : { duration: 5, repeat: Infinity, ease: 'easeInOut', delay }}
     >
-      <span className="absolute -inset-2 rounded-[1.4rem] opacity-50 blur-lg" style={{ background: glow }} />
-      <span className={`relative flex size-11 items-center justify-center rounded-2xl text-white shadow-xl ring-1 ring-white/25 ${bg}`}>
+      <span className={`relative flex size-11 items-center justify-center rounded-2xl text-white shadow-xl ring-1 ring-white/20 ${bg}`}>
         <Icon className="size-[18px]" strokeWidth={2.25} />
       </span>
     </motion.span>
@@ -125,10 +124,10 @@ function ProductCluster() {
   // Four tool tiles floating just off the product's corners — elevated + gently
   // bobbing for a premium, hovering look (was: flat badges pinned to each corner).
   const tiles = [
-    { bg: 'bg-violet-500', glow: 'rgba(139,92,246,0.55)', Icon: PenTool, pos: '-left-6 -top-6', delay: 0 },
-    { bg: 'bg-amber-500', glow: 'rgba(245,158,11,0.55)', Icon: ImageIcon, pos: '-right-7 -top-3', delay: 0.7 },
-    { bg: 'bg-teal-500', glow: 'rgba(20,184,166,0.55)', Icon: Shrink, pos: '-left-7 -bottom-3', delay: 1.3 },
-    { bg: 'bg-rose-600', glow: 'rgba(225,29,72,0.55)', Icon: Combine, pos: '-right-6 -bottom-6', delay: 0.4 },
+    { bg: 'bg-violet-500', Icon: PenTool, pos: '-left-6 -top-6', delay: 0 },
+    { bg: 'bg-amber-500', Icon: ImageIcon, pos: '-right-7 -top-3', delay: 0.7 },
+    { bg: 'bg-teal-500', Icon: Shrink, pos: '-left-7 -bottom-3', delay: 1.3 },
+    { bg: 'bg-rose-600', Icon: Combine, pos: '-right-6 -bottom-6', delay: 0.4 },
   ];
   return (
     <div className="relative mx-auto flex h-[320px] w-full max-w-[520px] items-center justify-center md:h-[368px] md:translate-y-6">
