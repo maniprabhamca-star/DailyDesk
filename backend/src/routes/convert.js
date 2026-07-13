@@ -15,6 +15,7 @@ const path = require('path');
 const os = require('os');
 const crypto = require('crypto');
 const { isDisabled } = require('../utils/toolFlag');
+const { isCanaryReq } = require('../utils/canary');
 const jwt = require('jsonwebtoken');
 const db = require('../db');
 const redis = require('../utils/redis');
@@ -29,12 +30,9 @@ const TIMEOUT_MS = 120 * 1000;
 // too (the free tier needs no signup). Pro is read from an optional Bearer token.
 const FREE_DAILY = Number(process.env.FREE_DAILY_CONVERSIONS || 3);
 
-// The monitoring canary sends this shared secret in x-canary. A request bearing it
-// is the health probe — NOT a user — so it bypasses the kill-switch AND the rate
-// limits. Without this the canary (running every 10 min from localhost) exhausts
-// the free daily quota itself, gets 429, and false-alarms the tool as broken.
-const CANARY_TOKEN = process.env.CANARY_TOKEN || '';
-const isCanaryReq = (req) => !!CANARY_TOKEN && req.headers['x-canary'] === CANARY_TOKEN;
+// The canary (x-canary token, see utils/canary.js) is a health probe, not a user,
+// so it bypasses BOTH rate limiters below AND the daily quota — otherwise it meters
+// itself, hits 429, and false-alarms the tool. See docs/canary-and-rate-limits.md.
 
 async function planOf(req) {
   const h = req.headers.authorization;

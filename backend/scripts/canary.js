@@ -229,7 +229,8 @@ async function ocrCheck() {
     const j = r.ok ? await r.json() : null;
     const text = ((j && j.text) || '').toUpperCase().replace(/[^A-Z]/g, '');
     const ok = r.status === 200 && text.includes('CANARY');
-    await record('/ocr-pdf', ok, ok ? 'recognised text' : `HTTP ${r.status} read "${((j && j.text) || '').slice(0, 20)}"`);
+    // 429 (rate-limited) / 503 (busy) are transient — report-only, never disable.
+    await record('/ocr-pdf', ok, ok ? 'recognised text' : `HTTP ${r.status} read "${((j && j.text) || '').slice(0, 20)}"`, !transientHttp(r.status));
   } catch (e) { await record('/ocr-pdf', false, e.message); }
 }
 

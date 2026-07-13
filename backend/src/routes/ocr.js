@@ -14,6 +14,7 @@ const os = require('os');
 const { clientKey } = require('../utils/rateLimitKey');
 const { makeStore, redisDown } = require('../utils/rateLimitStore');
 const { guard } = require('../utils/toolFlag');
+const { isCanaryReq } = require('../utils/canary');
 
 const router = express.Router();
 
@@ -46,7 +47,8 @@ router.use(rateLimit({
   max: 200, // batched: a large doc = many small requests
   keyGenerator: clientKey,
   store: makeStore('rl:ocr:'),
-  skip: () => redisDown(),
+  // Canary is a health probe, not a user — never metered (utils/canary.js).
+  skip: (req) => redisDown() || isCanaryReq(req),
   message: { error: 'Too many OCR requests — please try again in a few minutes.' },
 }));
 

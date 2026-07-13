@@ -10,6 +10,7 @@
 // here), so they stay allowed at this layer. Fail-open: any DB error => allowed,
 // so a database hiccup can never take a working tool offline.
 const db = require('../db');
+const { isCanaryReq } = require('./canary');
 
 const TTL_MS = 30 * 1000; // match the public /api/tools/flags cache
 let cache = { at: 0, blocked: new Set() };
@@ -33,12 +34,11 @@ async function isDisabled(slug) {
 // Express guard: replies 503 when the tool is killed, else calls next().
 // `slugFor` is a slug string, or a function(req) => slug for endpoints that
 // serve a single fixed tool.
-const CANARY_TOKEN = process.env.CANARY_TOKEN || '';
 function guard(slugFor) {
   return async (req, res, next) => {
     const slug = typeof slugFor === 'function' ? slugFor(req) : slugFor;
     // The monitoring canary (x-canary) may probe a disabled tool to detect recovery.
-    const isCanary = CANARY_TOKEN && req.headers['x-canary'] === CANARY_TOKEN;
+    const isCanary = isCanaryReq(req);
     if (slug && !isCanary && (await isDisabled(slug))) {
       return res.status(503).json({
         error: 'tool-disabled',

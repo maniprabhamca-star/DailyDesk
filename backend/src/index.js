@@ -7,6 +7,7 @@ const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const { clientKey } = require('./utils/rateLimitKey');
 const { makeStore, redisDown } = require('./utils/rateLimitStore');
+const { isCanaryReq } = require('./utils/canary');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -42,7 +43,9 @@ const limiter = rateLimit({
   keyGenerator: clientKey,
   store: makeStore('rl:global:'),
   message: { error: 'Too many requests, please try again later.' },
-  skip: (req) => redisDown() || req.originalUrl.startsWith('/api/events'),
+  // Skip analytics beacons (own limiter) and the monitoring canary (health probe,
+  // not a user — see utils/canary.js + docs/canary-and-rate-limits.md).
+  skip: (req) => redisDown() || req.originalUrl.startsWith('/api/events') || isCanaryReq(req),
 });
 app.use('/api/', limiter);
 

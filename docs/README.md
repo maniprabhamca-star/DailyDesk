@@ -19,6 +19,9 @@ Every in-browser tool is **free & unlimited forever** (they run on your device a
 - **[launch-checklist.md](launch-checklist.md)** — the fuller go-live runbook: what's done + the ordered steps to launch (QA, SEO, Stripe live, Google OAuth publish, reset test data, remove basic-auth, DMARC reject, hardening).
 - **[stripe-setup-sheet.md](stripe-setup-sheet.md)** — Stripe fields + env wiring reference.
 
+## Ops & monitoring
+- **[canary-and-rate-limits.md](canary-and-rate-limits.md)** — the contract between the self-healing canary and the rate limiters/quotas: every canary-probed endpoint must exempt the canary (`isCanaryReq`), why token-not-IP, the endpoint×limiter matrix, and the checklist for adding a new server tool. Written after the 2026-07-13 `/word-to-pdf` false-disable incident.
+
 ## Other docs here
 - `TECHNOLOGY.md` — tech stack & architecture
 - `SCALING-AND-OPS.md` — scaling playbook & ops
