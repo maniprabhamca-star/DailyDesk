@@ -72,6 +72,26 @@ router.post('/create-checkout-session', requireAuth, async (req, res) => {
   }
 });
 
+// Self-service billing: open the Stripe-hosted Customer Portal where the user can
+// cancel, update their card, and see invoices. Stripe handles cancel-at-period-end,
+// proration and dunning; the subscription.deleted webhook flips plan→free when the
+// paid period actually ends. Requires the Portal to be enabled once in the Stripe
+// dashboard (Settings → Billing → Customer portal), in both test and live modes.
+router.post('/portal', requireAuth, async (req, res) => {
+  const s = getStripe();
+  if (!s) return res.status(503).json({ error: 'Billing isn’t set up yet.' });
+  try {
+    const { rows } = await db.query('SELECT stripe_customer_id FROM users WHERE id = $1', [req.user.userId]);
+    const customer = rows[0] && rows[0].stripe_customer_id;
+    if (!customer) return res.status(400).json({ error: 'No subscription to manage yet.' });
+    const session = await s.billingPortal.sessions.create({ customer, return_url: `${FRONTEND}/account` });
+    res.json({ url: session.url });
+  } catch (err) {
+    console.error('Stripe portal error:', err.message);
+    res.status(500).json({ error: 'Could not open the billing portal — please try again.' });
+  }
+});
+
 // Webhook: registered with express.raw in index.js (Stripe needs the exact raw
 // body to verify the signature). Flips the user's plan on subscribe/cancel.
 async function webhookHandler(req, res) {

@@ -1,8 +1,10 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Crown, ShieldCheck, LogOut, Mail } from 'lucide-react';
+import { Crown, ShieldCheck, LogOut, Mail, CreditCard } from 'lucide-react';
+
+const API = process.env.NEXT_PUBLIC_API_URL || '';
 import { SiteHeader } from '@/components/app/site-header';
 import { SiteFooter } from '@/components/app/site-footer';
 import { Button } from '@/components/ui/button';
@@ -14,6 +16,8 @@ export default function AccountPage() {
   const { user, loading, logout, refreshUser } = useAuth();
   const plan = usePlan();
   const router = useRouter();
+  const [portalBusy, setPortalBusy] = useState(false);
+  const [portalErr, setPortalErr] = useState<string | null>(null);
 
   // Re-check the plan with the server on load, so an upgrade that happened
   // elsewhere (or a webhook that just landed) is reflected here without re-login.
@@ -35,6 +39,19 @@ export default function AccountPage() {
 
   const isPro = plan === 'pro';
   const initial = user.name?.trim()?.[0]?.toUpperCase() || 'U';
+
+  async function openPortal() {
+    setPortalBusy(true); setPortalErr(null);
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('dd_token') : null;
+      const res = await fetch(`${API}/api/stripe/portal`, { method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.url) { window.location.href = data.url; return; }
+      setPortalErr(data.error || 'Could not open billing — please try again, or email support@diemdesk.com.');
+    } catch {
+      setPortalErr('Could not open billing — please try again, or email support@diemdesk.com.');
+    } finally { setPortalBusy(false); }
+  }
 
   return (
     <>
@@ -82,10 +99,14 @@ export default function AccountPage() {
           </div>
 
           {isPro ? (
-            <p className="mt-4 text-sm text-muted-foreground">
-              You have unlimited file sizes, batch processing, and every Pro tool. To change or cancel your
-              subscription, email <a className="text-primary hover:underline" href="mailto:support@diemdesk.com">support@diemdesk.com</a>.
-            </p>
+            <div className="mt-4 space-y-3">
+              <p className="text-sm text-muted-foreground">You have unlimited file sizes, batch processing, and every Pro tool.</p>
+              <Button variant="outline" onClick={openPortal} disabled={portalBusy}>
+                <CreditCard className="size-4" /> {portalBusy ? 'Opening…' : 'Manage subscription'}
+              </Button>
+              <p className="text-xs text-muted-foreground">Update your card, view invoices, or cancel — handled securely by Stripe. Cancelling keeps Pro until your paid period ends.</p>
+              {portalErr && <p className="text-xs text-destructive">{portalErr}</p>}
+            </div>
           ) : (
             <>
               <p className="mt-4 text-sm text-muted-foreground">Upgrade to unlock:</p>
