@@ -115,19 +115,27 @@ async function convert(endpoint, fileBuf, filename, type) {
   return { status: r.status, buf: Buffer.from(await r.arrayBuffer()) };
 }
 
+// 429 (rate-limited) / 503 (busy) mean "not right now", NOT "broken" — they must
+// never auto-disable a healthy tool. Treat them as report-only (autoDisable=false).
+const transientHttp = (s) => s === 429 || s === 503;
+
 async function serverChecks() {
-  let pdf = null;
+  let pdf = null, step1Transient = false;
   try {
     const { status, buf } = await convert('/api/convert/office-to-pdf', Buffer.from('{\\rtf1\\ansi DiemDesk canary check.\\par}'), 'canary.rtf', 'application/rtf');
     const ok = status === 200 && buf.slice(0, 5).toString() === '%PDF-';
-    await record('/word-to-pdf', ok, ok ? `pdf ${buf.length}B` : `HTTP ${status}`);
+    step1Transient = transientHttp(status);
+    await record('/word-to-pdf', ok, ok ? `pdf ${buf.length}B` : `HTTP ${status}`, !step1Transient);
     if (ok) pdf = buf;
   } catch (e) { await record('/word-to-pdf', false, e.message); }
   try {
-    if (!pdf) throw new Error('no canary pdf from step 1');
+    if (!pdf) {
+      if (step1Transient) { console.log('[canary] SKIP /pdf-to-word — upstream rate-limited/busy, not a failure'); return; }
+      throw new Error('no canary pdf from step 1');
+    }
     const { status, buf } = await convert('/api/convert/pdf-to-word', pdf, 'canary.pdf', 'application/pdf');
     const ok = status === 200 && buf.length > 500 && buf.slice(0, 2).toString() === 'PK';
-    await record('/pdf-to-word', ok, ok ? `docx ${buf.length}B` : `HTTP ${status}`);
+    await record('/pdf-to-word', ok, ok ? `docx ${buf.length}B` : `HTTP ${status}`, !transientHttp(status));
   } catch (e) { await record('/pdf-to-word', false, e.message); }
 }
 

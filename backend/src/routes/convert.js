@@ -29,6 +29,13 @@ const TIMEOUT_MS = 120 * 1000;
 // too (the free tier needs no signup). Pro is read from an optional Bearer token.
 const FREE_DAILY = Number(process.env.FREE_DAILY_CONVERSIONS || 3);
 
+// The monitoring canary sends this shared secret in x-canary. A request bearing it
+// is the health probe — NOT a user — so it bypasses the kill-switch AND the rate
+// limits. Without this the canary (running every 10 min from localhost) exhausts
+// the free daily quota itself, gets 429, and false-alarms the tool as broken.
+const CANARY_TOKEN = process.env.CANARY_TOKEN || '';
+const isCanaryReq = (req) => !!CANARY_TOKEN && req.headers['x-canary'] === CANARY_TOKEN;
+
 async function planOf(req) {
   const h = req.headers.authorization;
   if (!h || !h.startsWith('Bearer ')) return null; // anonymous → free path
@@ -42,6 +49,7 @@ async function planOf(req) {
 // Enforce the free daily cap (Pro bypasses). Runs after the burst limiter and
 // FAILS OPEN on any Redis/DB hiccup so infra trouble never blocks conversions.
 async function dailyQuota(req, res, next) {
+  if (isCanaryReq(req)) return next(); // health probe, not a user — never metered
   let plan = null;
   try { plan = await planOf(req); } catch { plan = null; }
   if (plan === 'pro') { req.isPro = true; return next(); }
@@ -68,7 +76,7 @@ router.use(rateLimit({
   max: 20,
   keyGenerator: clientKey,
   store: makeStore('rl:convert:'),
-  skip: () => redisDown(),
+  skip: (req) => redisDown() || isCanaryReq(req),
   message: { error: 'Too many conversions — please try again in a few minutes.' },
 }));
 // Free daily quota (Pro unlimited) — after the burst limiter, before the routes.
@@ -76,9 +84,8 @@ router.use(dailyQuota);
 
 const OFFICE_RE = /\.(docx?|odt|rtf|txt|html?|xlsx?|ods|csv|pptx?|odp)$/i;
 
-// Shared secret so the monitoring canary can probe a disabled tool to detect
-// recovery. Set in the backend .env; empty = no bypass (canary just sees 503s).
-const CANARY_TOKEN = process.env.CANARY_TOKEN || '';
+// (CANARY_TOKEN / isCanaryReq are defined at the top — the canary bypasses the
+// kill-switch as well as the rate limits so it never meters itself.)
 
 function makeUpload(kind) {
   return multer({
@@ -140,7 +147,7 @@ function convertRoute({ upload, sofficeArgs, outExt, failMessage, slugFor }) {
       // The canary sends x-canary so it can still test a disabled tool and learn
       // when it recovers (then it auto-re-enables it).
       const slug = typeof slugFor === 'function' ? slugFor(req.file) : slugFor;
-      const isCanary = CANARY_TOKEN && req.headers['x-canary'] === CANARY_TOKEN;
+      const isCanary = isCanaryReq(req);
       if (slug && !isCanary && (await isDisabled(slug))) {
         cleanup([req.file.path]);
         res.status(503).json({ error: 'tool-disabled', message: 'This tool is temporarily unavailable. Please try again later.' });
