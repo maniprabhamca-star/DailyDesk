@@ -81,7 +81,7 @@ router.post('/error', errorLimiter, async (req, res) => {
 });
 
 router.post('/track', trackLimiter, (req, res) => {
-  const { module, action, visitorId } = req.body || {};
+  const { module, action, visitorId, pro } = req.body || {};
   // Ignore malformed input silently — this endpoint must never disrupt the app.
   if (!module || !MODULE_RE.test(module)) return res.status(204).end();
 
@@ -92,7 +92,11 @@ router.post('/track', trackLimiter, (req, res) => {
     catch { /* anonymous usage — leave userId null */ }
   }
 
-  trackEvent(req, 'module_used', {
+  // `pro:true` from a signed-in user marks that a Pro-only feature actually RAN
+  // (e.g. on-device batch) — distinct from just opening a tool page. Used for
+  // refund decisions ("did this Pro user use Pro since they paid?").
+  const eventType = pro === true && userId ? 'pro_used' : 'module_used';
+  trackEvent(req, eventType, {
     module,
     metadata: action ? { action: String(action).slice(0, 50) } : {},
     userId,

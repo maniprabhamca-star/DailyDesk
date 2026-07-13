@@ -16,6 +16,7 @@ const os = require('os');
 const crypto = require('crypto');
 const { isDisabled } = require('../utils/toolFlag');
 const { isCanaryReq } = require('../utils/canary');
+const { trackEvent } = require('../utils/trackEvent');
 const jwt = require('jsonwebtoken');
 const db = require('../db');
 const redis = require('../utils/redis');
@@ -39,6 +40,7 @@ async function planOf(req) {
   if (!h || !h.startsWith('Bearer ')) return null; // anonymous → free path
   try {
     const decoded = jwt.verify(h.split(' ')[1], process.env.JWT_SECRET);
+    req._userId = decoded.userId; // captured for pro_used logging on success
     const { rows } = await db.query('SELECT plan FROM users WHERE id = $1', [decoded.userId]);
     return rows[0] ? rows[0].plan : null;
   } catch { return null; }
@@ -177,6 +179,9 @@ function convertRoute({ upload, sofficeArgs, outExt, failMessage, slugFor }) {
           // Count this SUCCESSFUL conversion against the free daily quota (Pro
           // requests have no _convKey). TTL 26h cleans up the per-day key.
           if (req._convKey) redis.pipeline().incr(req._convKey).expire(req._convKey, 93600).exec().catch(() => {});
+          // A Pro subscriber running a server conversion = a Pro feature actually
+          // used (they'd be capped at 3/day otherwise) — mark it for refund checks.
+          if (req.isPro) trackEvent(req, 'pro_used', { module: slug, userId: req._userId });
           const outPath = path.join(outDir, produced);
           const base = (req.file.originalname || `document.${outExt}`).replace(/\.[^.]+$/, '');
           res.setHeader('Content-Type', MIME[outExt] || 'application/octet-stream');

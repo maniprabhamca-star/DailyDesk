@@ -6,6 +6,7 @@ import { X, Loader2, Download, Check, Sparkles, Package, Image as ImageIcon, typ
 import { Button } from '@/components/ui/button';
 import { usePlan, FREE_MAX_BATCH } from '@/lib/plan';
 import { downloadBlob } from '@/lib/download';
+import { trackProUse } from '@/lib/track-pro';
 
 // Reusable ON-DEVICE BATCH runner — the flagship Pro differentiator. Give it a
 // list of files and a per-file `process(file) -> {blob,name}` (a headless tool
@@ -45,6 +46,8 @@ export function BatchRunner({ files, process, controls, actionLabel = 'Process a
   const allSettled = doneCount + results.filter((r) => r.status === 'error').length === files.length && (running === false) && doneCount > 0;
 
   async function runAll() {
+    // A real on-device batch by a Pro subscriber = a Pro feature actually used.
+    if (isPro && files.length > 1) trackProUse('batch');
     setRunning(true);
     for (let i = 0; i < files.length; i++) {
       setResults((rs) => rs.map((r, j) => (j === i ? { ...r, status: 'running' } : r)));

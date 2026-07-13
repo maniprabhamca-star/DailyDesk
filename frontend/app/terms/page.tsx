@@ -100,7 +100,7 @@ export default function TermsPage() {
               <li>You can cancel anytime; your Pro access continues until the end of the period you&rsquo;ve paid for.</li>
               <li>Prices and plan features may change; we&rsquo;ll give notice of material changes before they affect you.</li>
               <li>If a payment fails, we may downgrade your account to the free plan until it&rsquo;s resolved.</li>
-              <li>Refunds follow our <a href="/refund-policy" className="font-semibold text-primary hover:underline">Refund Policy</a> (money-back guarantee: 14 days monthly, 30 days annual) and applicable law.</li>
+              <li>Refunds follow our <a href="/refund-policy" className="font-semibold text-primary hover:underline">Refund Policy</a> (14-day money-back guarantee, monthly or annual) and applicable law.</li>
             </ul>
           </div>
         </div>

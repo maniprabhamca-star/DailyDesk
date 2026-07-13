@@ -25,7 +25,7 @@ const groups: { title: string; rows: Row[] }[] = [
       { label: 'Tools available', comp: '~21', free: `${liveToolCount}+`, pro: `${liveToolCount}+` },
       { label: 'Works offline in your browser', comp: 'Paid apps only', free: 'Coming soon', pro: 'Coming soon', link: { href: '/security#offline', text: 'See how it works' } },
       { label: 'No signup required to use tools', comp: false, free: true, pro: true },
-      { label: 'Money-back guarantee', comp: 'Conditional / none', free: 'Always free', pro: '14–30 days, no questions' },
+      { label: 'Money-back guarantee', comp: 'Conditional / none', free: 'Always free', pro: '14 days, no questions' },
     ],
   },
   {
@@ -78,7 +78,7 @@ const faqs = [
   { q: 'Is the free plan really free?', a: 'Yes — unlimited use of all our core tools, no ads, no watermarks, no credit card. Our everyday tools run in your browser, so they cost us nothing to give away.' },
   { q: 'Can I edit a PDF for free?', a: 'Yes. Annotating, highlighting, drawing, filling forms, and signing are free and unlimited. Only full in-place text editing — rewriting the existing text inside a PDF — is a Pro feature, the same as Adobe, Foxit, and Smallpdf.' },
   { q: 'What do I actually get with Pro?', a: 'Scale and power features: batch processing (many files at once), unlimited file size (Free already handles up to 100 MB in your browser), unlimited Office conversions and OCR, full in-place text editing, saved workflows, and priority speed. On-device batch, an encrypted File Vault, a defensible redaction certificate, and more AI come a little later. To be clear: the in-browser tools stay free and unlimited — Free also includes 3 Office conversions a day, and Pro removes that cap.' },
-  { q: 'Can I cancel anytime?', a: 'Yes — cancel in one click; you keep Pro until the end of your paid period. New subscribers are also covered by our money-back guarantee (14 days monthly / 30 days annual).' },
+  { q: 'Can I cancel anytime?', a: 'Yes — cancel in one click; you keep Pro until the end of your paid period. New subscribers are also covered by our 14-day money-back guarantee.' },
   { q: 'Do you store my files?', a: 'No — by default nothing is saved on our servers. Our everyday tools process your files right in your browser. A few tools do use our servers — Office conversions and OCR (processed, then deleted), and later AI (sent for that one request) — but nothing is stored. The only feature that stores files is the optional File Vault, and it’s encrypted on your device before upload, so even we can’t read it. The 1 GB / unlimited figures apply only to that opt-in Vault.' },
   { q: 'Are my files safe?', a: 'Our everyday tools never upload your files — everything happens on your device. The few tools that need a server (Office conversions, OCR, and later AI) are minimal and we’re upfront about them, and the optional File Vault is end-to-end encrypted so even we can’t read it. See our Security page for details.' },
 ];
@@ -166,7 +166,7 @@ export default function PricingPage() {
         </div>
 
         <p className="mt-4 text-center text-xs text-muted-foreground">
-          New subscribers protected by our <Link href="/refund-policy" className="font-medium text-primary hover:underline">money-back guarantee</Link> — 14 days monthly, 30 days annual.
+          New subscribers protected by our <Link href="/refund-policy" className="font-medium text-primary hover:underline">14-day money-back guarantee</Link>, monthly or annual.
         </p>
 
         {/* Comparison table */}

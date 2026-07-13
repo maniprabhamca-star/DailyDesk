@@ -8,12 +8,12 @@ import { LegalPage, Section, Callout, FlowStep } from '@/components/legal/legal-
 export const metadata: Metadata = {
   title: 'Refund Policy — Money-Back Guarantee | DiemDesk',
   description:
-    'DiemDesk Pro comes with a money-back guarantee: 14 days for monthly plans, 30 days for annual plans. Not happy? Email us for a full refund — no hoops, no fine print.',
+    'DiemDesk Pro comes with a 14-day money-back guarantee on any plan. Not happy? Email us for a full refund — no hoops, no fine print.',
   alternates: { canonical: '/refund-policy' },
   openGraph: {
     images: ['/og.png'],
     title: 'Refund Policy — DiemDesk',
-    description: 'A clear money-back guarantee on DiemDesk Pro: 14 days monthly, 30 days annual.',
+    description: 'A clear 14-day money-back guarantee on DiemDesk Pro — monthly or annual.',
     type: 'website',
   },
 };
@@ -33,7 +33,7 @@ export default function RefundPolicyPage() {
         </p>
         <ul className="ml-4 mt-1 list-disc space-y-1">
           <li><strong>Monthly plan</strong> — full refund if you ask within <strong>14 days</strong> of your first payment.</li>
-          <li><strong>Annual plan</strong> — full refund if you ask within <strong>30 days</strong> of your first payment.</li>
+          <li><strong>Annual plan</strong> — full refund if you ask within <strong>14 days</strong> of your first payment.</li>
         </ul>
         <p className="mt-1">
           You don&rsquo;t need to explain why. &ldquo;It&rsquo;s not for me&rdquo; is a perfectly good reason.
@@ -55,7 +55,7 @@ export default function RefundPolicyPage() {
       {/* What's covered */}
       <Section id="covered" title="What&rsquo;s covered">
         <ul className="space-y-3">
-          <li className="flex gap-3"><BadgeCheck className="mt-0.5 size-5 shrink-0 text-emerald-600" /><span><strong className="text-foreground">Your first Pro payment.</strong> Refunded in full if you ask within your guarantee window (14 days monthly / 30 days annual).</span></li>
+          <li className="flex gap-3"><BadgeCheck className="mt-0.5 size-5 shrink-0 text-emerald-600" /><span><strong className="text-foreground">Your first Pro payment.</strong> Refunded in full if you ask within your 14-day guarantee window.</span></li>
           <li className="flex gap-3"><RotateCcw className="mt-0.5 size-5 shrink-0 text-emerald-600" /><span><strong className="text-foreground">Accidental renewals — only if Pro is unused.</strong> If your plan renewed because you forgot to cancel <strong>and you haven&rsquo;t used any Pro feature since that renewal</strong>, email us within a few days and we&rsquo;ll refund it. If Pro has already been used during the new period, that period isn&rsquo;t eligible for a refund.</span></li>
           <li className="flex gap-3"><ShieldCheck className="mt-0.5 size-5 shrink-0 text-emerald-600" /><span><strong className="text-foreground">Billing errors.</strong> Duplicate charges, wrong amounts, or charges you didn&rsquo;t authorise are always refunded — no time limit.</span></li>
         </ul>
@@ -65,7 +65,7 @@ export default function RefundPolicyPage() {
       <Section id="not-covered" title="What&rsquo;s not covered">
         <p>So the guarantee stays sustainable, a few things fall outside it:</p>
         <ul className="space-y-3">
-          <li className="flex gap-3"><XCircle className="mt-0.5 size-5 shrink-0 text-red-500" /><span><strong className="text-foreground">Requests after your window.</strong> Once your 14-day (monthly) or 30-day (annual) window has passed, that payment isn&rsquo;t refundable. You can still <strong>cancel anytime</strong> to stop all future charges.</span></li>
+          <li className="flex gap-3"><XCircle className="mt-0.5 size-5 shrink-0 text-red-500" /><span><strong className="text-foreground">Requests after your window.</strong> Once your 14-day window has passed, that payment isn&rsquo;t refundable. You can still <strong>cancel anytime</strong> to stop all future charges.</span></li>
           <li className="flex gap-3"><XCircle className="mt-0.5 size-5 shrink-0 text-red-500" /><span><strong className="text-foreground">No partial / prorated refunds.</strong> We don&rsquo;t refund the unused part of a billing period. For example, cancelling partway through a month or partway through an annual plan doesn&rsquo;t refund the remaining days or months — instead, you keep full Pro access until the end of the period you&rsquo;ve already paid for.</span></li>
           <li className="flex gap-3"><XCircle className="mt-0.5 size-5 shrink-0 text-red-500" /><span><strong className="text-foreground">Repeat guarantees.</strong> As above, the money-back guarantee applies once, to your first subscription.</span></li>
         </ul>
