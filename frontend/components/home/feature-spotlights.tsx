@@ -135,6 +135,7 @@ export function FeatureSpotlights() {
             height={980}
             className="block h-auto w-full"
             sizes="(min-width: 768px) 48rem, 100vw"
+            unoptimized
           />
         </div>
 
