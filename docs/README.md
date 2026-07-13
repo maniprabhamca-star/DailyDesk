@@ -16,6 +16,7 @@ Every in-browser tool is **free & unlimited forever** (they run on your device a
 - **[wednesday-launch-runbook.md](wednesday-launch-runbook.md)** — the tight ordered go-public runbook for launch day (flip basic-auth, reset data, tool gating, verify, submit sitemap) — Claude-vs-you steps + exact commands.
 - **[../diemdesk-EIN-newswire/press-release.md](../diemdesk-EIN-newswire/press-release.md)** — two press-release versions for EIN Presswire (privacy angle + free-alternative angle; no legal-entity name).
 - **[../diemdesk-EIN-newswire/ein-submission-record.md](../diemdesk-EIN-newswire/ein-submission-record.md)** — canonical record of PR #1: every field submitted (title, subtitle, location, keyword backlinks, images, quote, industries = Tech/IT/Business/Companies/Law, countries = US/UK, contact, schedule). Standing rule: every PR gets a record like this in the repo.
+- **[../diemdesk-EIN-newswire/pr2/](../diemdesk-EIN-newswire/pr2/)** — PR #2 (planned ~1 week after launch): privacy/on-device angle, 2 versions + Word doc + submission-record; backlinks PDF-to-Word + Sign-PDF (different from PR #1).
 - **[launch-checklist.md](launch-checklist.md)** — the fuller go-live runbook: what's done + the ordered steps to launch (QA, SEO, Stripe live, Google OAuth publish, reset test data, remove basic-auth, DMARC reject, hardening).
 - **[stripe-setup-sheet.md](stripe-setup-sheet.md)** — Stripe fields + env wiring reference.
 
