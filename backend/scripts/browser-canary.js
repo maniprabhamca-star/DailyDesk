@@ -139,6 +139,23 @@ async function driveText(page, t) {
   return { ok, detail: ok ? 'rendered output' : 'no rendered output' };
 }
 
+// Pure-client text utilities: optionally fill an input + click, then assert the
+// expected text output appears in <main> (e.g. "5 Words", "Valid JSON", a #hex).
+async function driveUtil(page, t) {
+  await page.goto(t.url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+  await page.waitForTimeout(1000);
+  if (t.fill) {
+    const inp = page.locator(t.fillSel || 'textarea, input[type="text"]').first();
+    await inp.waitFor({ state: 'visible', timeout: 15000 });
+    await inp.fill(t.fill);
+  }
+  if (t.click) await clickAll(page, t.click, ['button']);
+  await page.waitForTimeout(1800);
+  const txt = await page.locator('main').first().innerText().catch(() => '');
+  const ok = t.expectRe.test(txt);
+  return { ok, detail: ok ? 'produced output' : 'no expected output' };
+}
+
 (async () => {
   // Single-run lock: the cron (every 30 min) and the dashboard "Run tests now" must
   // not launch two runs on the shared Chromium profile at once (they'd deadlock).
@@ -163,6 +180,11 @@ async function driveText(page, t) {
     // ingest via file-input injection — no error, just not drivable yet. RE-ADD as a
     // 'render' probe when it launches (and verify the drop/input wiring then).
     { slug: '/qr-code-generator', kind: 'text' },
+    // Pure-client text utilities — no upload/download; assert the computed output text.
+    { slug: '/word-counter', kind: 'util', fill: 'alpha beta gamma delta echo', fillSel: 'textarea', expectRe: /5\s*words?/i },
+    { slug: '/json-formatter', kind: 'util', fill: '{"a":1,"b":[2,3]}', fillSel: 'textarea', click: /^format$/i, expectRe: /valid json/i },
+    { slug: '/color-picker', kind: 'util', expectRe: /#[0-9a-fA-F]{6}/ },
+    { slug: '/password-generator', kind: 'util', click: /regenerate/i, expectRe: /copy password/i },
   ];
   if (fx.heic) TOOLS.push({ slug: '/heic-to-jpg', kind: 'upload', fixture: fx.heic });
 
@@ -179,7 +201,7 @@ async function driveText(page, t) {
     t.url = `${BASE}${t.slug}`;
     const page = await ctx.newPage();
     try {
-      const r = t.kind === 'text' ? await driveText(page, t) : t.kind === 'render' ? await driveRender(page, t) : await driveUpload(page, t);
+      const r = t.kind === 'text' ? await driveText(page, t) : t.kind === 'util' ? await driveUtil(page, t) : t.kind === 'render' ? await driveRender(page, t) : await driveUpload(page, t);
       await record(t.slug, r.ok, r.detail);
     } catch (e) { await record(t.slug, false, String(e.message || e).slice(0, 140)); }
     await page.close().catch(() => {});
