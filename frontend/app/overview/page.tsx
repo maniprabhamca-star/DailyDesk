@@ -111,7 +111,7 @@ export default function OverviewPage() {
         <section className="mx-auto max-w-6xl px-5 py-14">
           <p className="text-[11.5px] font-bold uppercase tracking-[0.14em] text-primary">Why DiemDesk wins</p>
           <h2 className="mt-2 text-2xl font-extrabold tracking-tight sm:text-[26px]">Three moats competitors can’t cross</h2>
-          <p className="mt-2 max-w-[62ch] text-sm text-muted-foreground">iLovePDF, Smallpdf and Adobe are <span className="font-medium text-foreground">server-first</span> — every file uploads to them. DiemDesk is <span className="font-medium text-foreground">device-first</span>. That one choice creates advantages they’d have to rebuild their stack to match.</p>
+          <p className="mt-2 max-w-[62ch] text-sm text-muted-foreground">The online tools from iLovePDF, Smallpdf and Adobe are <span className="font-medium text-foreground">server-first</span> — every file uploads to them. DiemDesk is <span className="font-medium text-foreground">device-first</span>. That one choice creates advantages they’d have to rebuild their stack to match.</p>
           <div className="mt-7 grid gap-4 md:grid-cols-3">
             {MOATS.map((m) => (
               <div key={m.name} className="rounded-2xl border bg-card p-5 shadow-soft">

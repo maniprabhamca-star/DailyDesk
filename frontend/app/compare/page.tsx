@@ -38,7 +38,7 @@ const ROWS: { label: string; cells: [Cell, Cell, Cell, Cell]; note?: string }[] 
   {
     label: 'Files stay on your device (no upload)',
     cells: [true, false, false, false],
-    note: 'DiemDesk’s in-browser tools process files locally — they’re never uploaded. The others are cloud services.',
+    note: 'DiemDesk’s in-browser tools process files locally — they’re never uploaded. The others’ online tools run in the cloud (Adobe also sells a desktop app).',
   },
   { label: 'Use a tool without an account', cells: [true, 'For most', 'For most', 'Account required'] },
   { label: 'No ads, no watermarks on free', cells: [true, 'Some limits', 'Ads on free', '—'] },
