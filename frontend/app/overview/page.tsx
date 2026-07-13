@@ -5,13 +5,13 @@ import { SiteHeader } from '@/components/app/site-header';
 import { SiteFooter } from '@/components/app/site-footer';
 import { BrandMark } from '@/components/app/brand-mark';
 import { Button } from '@/components/ui/button';
-import { catalog, PRO_TOOLS } from '@/components/app/catalog';
+import { catalog, PRO_TOOLS, liveToolCount } from '@/components/app/catalog';
 import { PRICING } from '@/lib/pricing';
 
 export const metadata: Metadata = {
   title: 'The DiemDesk toolkit — private, on-device document tools',
   description:
-    'See everything DiemDesk does at a glance: 56 tools across 9 categories, most running 100% on your device. What runs where, what’s free vs Pro, and the Pro features rivals can’t copy.',
+    'See everything DiemDesk does at a glance: 35 tools live today (56 on the roadmap) across 9 categories, most running 100% on your device. What runs where, what’s free vs Pro, and the Pro features rivals can’t copy.',
   alternates: { canonical: '/overview' },
   openGraph: {
     images: ['/og.png'],
@@ -24,6 +24,7 @@ export const metadata: Metadata = {
 // Live counts, derived from the single catalog source so this page never drifts.
 const ALL = catalog.flatMap((g) => g.tools);
 const TOTAL = ALL.length;
+const LIVE = liveToolCount; // tools actually available now (home shows this too)
 const ON_DEVICE = ALL.filter((t) => t.badge === 'device').length;
 const SERVER_AI = TOTAL - ON_DEVICE;
 
@@ -89,10 +90,10 @@ export default function OverviewPage() {
             </p>
             <div className="mt-8 flex flex-wrap gap-x-9 gap-y-5">
               {[
-                { n: TOTAL, l: 'tools · 9 categories' },
+                { n: LIVE, l: `live today · ${TOTAL} on the roadmap` },
                 { n: ON_DEVICE, l: 'run on your device' },
                 { n: SERVER_AI, l: 'use our server or AI' },
-                { n: '$5', l: 'Pro · $4.99 founding' },
+                { n: '$5', l: 'Pro/mo billed yearly · founding $4.99' },
               ].map((s) => (
                 <div key={s.l}>
                   <div className="text-2xl font-extrabold tabular-nums text-white sm:text-3xl">{s.n}</div>
@@ -130,7 +131,7 @@ export default function OverviewPage() {
           <div className="mx-auto max-w-6xl px-5 py-14">
             <p className="text-[11.5px] font-bold uppercase tracking-[0.14em] text-primary">What runs where</p>
             <h2 className="mt-2 text-2xl font-extrabold tracking-tight sm:text-[26px]">{TOTAL} tools · {ON_DEVICE} on your device</h2>
-            <p className="mt-2 max-w-[62ch] text-sm text-muted-foreground">The green <span className="font-medium text-foreground">on device</span> badge means it runs in your browser — free &amp; unlimited, forever. Server-side Office conversions are 3 free a day, then Pro.</p>
+            <p className="mt-2 max-w-[62ch] text-sm text-muted-foreground">The green <span className="font-medium text-foreground">on device</span> badge means it runs in your browser — free &amp; unlimited, forever. Server-side Office conversions are 3 free a day, then Pro. Tools tagged <span className="font-medium text-foreground">coming soon</span> aren’t live yet — {LIVE} of the {TOTAL} are available today.</p>
             {/* legend */}
             <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-muted-foreground">
               <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full bg-emerald-500" /> live</span>
@@ -189,8 +190,8 @@ export default function OverviewPage() {
             <div className="relative rounded-2xl border-2 border-primary bg-gradient-to-b from-primary/[0.06] to-transparent p-6 shadow-soft">
               <span className="absolute -top-3 right-5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">Pro</span>
               <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Pro · power users &amp; business</div>
-              <div className="mt-1 text-3xl font-extrabold tracking-tight">${PRICING.pro.annualPerMonth}<span className="text-sm font-semibold text-muted-foreground">/mo</span></div>
-              <div className="text-xs text-muted-foreground">${'60'}/yr · first 1,000 founding members lock ${PRICING.pro.monthly === '5.98' ? '4.99' : PRICING.pro.annualPerMonth}/mo for life.</div>
+              <div className="mt-1 text-3xl font-extrabold tracking-tight">${PRICING.pro.monthly}<span className="text-sm font-semibold text-muted-foreground">/mo</span></div>
+              <div className="text-xs text-muted-foreground">or ${PRICING.pro.annualPerMonth}/mo billed yearly (${'60'}/yr). First 1,000 founding members lock $4.99/mo for life.</div>
               <ul className="mt-4 space-y-2">
                 {PRICING.proFeatures.map((f) => (
                   <li key={f} className="flex gap-2.5 text-[13px]"><Check className="mt-0.5 size-4 shrink-0 text-primary" /><span>{f}</span></li>
