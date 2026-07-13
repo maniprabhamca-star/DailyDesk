@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { Loader2, RefreshCw, ShieldCheck, BarChart3, Users, UserPlus, MousePointerClick, Repeat, AlertTriangle, Activity, Crown } from 'lucide-react';
+import { Loader2, RefreshCw, ShieldCheck, BarChart3, Users, UserPlus, MousePointerClick, Repeat, AlertTriangle, Activity, Crown, Play } from 'lucide-react';
 import { SiteHeader } from '@/components/app/site-header';
 import { SiteFooter } from '@/components/app/site-footer';
 import { Button } from '@/components/ui/button';
@@ -37,7 +37,7 @@ type ByTool = { tool: string; count: number; last_seen: string };
 type ErrData = { groups: ErrGroup[]; last_24h: number; by_tool?: ByTool[] };
 
 type ToolHealth = { slug: string; ok: boolean | null; detail: string | null; fail_streak: number; auto_disabled: boolean; checked_at: string };
-type HealthData = { tools: ToolHealth[]; heartbeat: { checked_at: string } | null; now: string };
+type HealthData = { tools: ToolHealth[]; heartbeat: { checked_at: string } | null; browserHeartbeat?: { checked_at: string } | null; now: string };
 
 export default function DashboardPage() {
   const isOwner = useIsOwner();
@@ -46,6 +46,23 @@ export default function DashboardPage() {
   const [health, setHealth] = useState<HealthData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [testsBusy, setTestsBusy] = useState(false);
+  const [testsMsg, setTestsMsg] = useState<string | null>(null);
+
+  async function runTests() {
+    setTestsBusy(true); setTestsMsg(null);
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('dd_token') : null;
+      const ownerKey = typeof document !== 'undefined' ? (document.cookie.match(/(?:^|;\s*)ddadmin=([^;]+)/)?.[1] ?? null) : null;
+      const headers: Record<string, string> = {};
+      if (token) headers.Authorization = `Bearer ${token}`;
+      if (ownerKey) headers['x-owner-key'] = decodeURIComponent(ownerKey);
+      const res = await fetch(`${API}/api/events/run-tests`, { method: 'POST', headers });
+      const data = await res.json().catch(() => ({}));
+      setTestsMsg(res.ok ? (data.started ? 'Tests started — results update in ~1 min, then hit Refresh.' : (data.note || 'Already running.')) : 'Could not start the tests.');
+    } catch { setTestsMsg('Could not start the tests.'); }
+    finally { setTestsBusy(false); }
+  }
 
   const load = useCallback(async () => {
     setLoading(true); setError(null);
@@ -147,12 +164,17 @@ export default function DashboardPage() {
                 <section className="mt-8">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <h2 className="flex items-center gap-2 text-lg font-semibold"><Activity className="size-4 text-primary" /> Tool health (auto-monitor)</h2>
-                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${stale ? 'bg-destructive/10 text-destructive' : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'}`}>
-                      <span className={`size-2 rounded-full ${stale ? 'bg-destructive' : 'bg-emerald-500 animate-pulse'}`} />
-                      {health.heartbeat ? (stale ? `Monitor down — last ran ${new Date(health.heartbeat.checked_at).toLocaleTimeString()}` : `Live · checked ${new Date(health.heartbeat.checked_at).toLocaleTimeString()}`) : 'Monitor not run yet'}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${stale ? 'bg-destructive/10 text-destructive' : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'}`}>
+                        <span className={`size-2 rounded-full ${stale ? 'bg-destructive' : 'bg-emerald-500 animate-pulse'}`} />
+                        {health.heartbeat ? (stale ? `Monitor down — last ran ${new Date(health.heartbeat.checked_at).toLocaleTimeString()}` : `Live · checked ${new Date(health.heartbeat.checked_at).toLocaleTimeString()}`) : 'Monitor not run yet'}
+                      </span>
+                      <Button size="sm" variant="outline" onClick={() => void runTests()} disabled={testsBusy}><Play className="size-3.5" /> {testsBusy ? 'Starting…' : 'Run tests now'}</Button>
+                    </div>
                   </div>
-                  <p className="mt-1 text-xs text-muted-foreground">A canary probes each tool on a schedule. A failing tool auto-disables (users see “temporarily unavailable”) and re-enables on recovery; you’re emailed either way. “Logic” = the client tool’s core engine tested in Node; “live” = the real server endpoint.</p>
+                  <p className="mt-1 text-xs text-muted-foreground">The Node canary runs tool cores every 10 min; a headless-browser (Playwright) canary drives the in-browser tools with a real file every 30 min. A failing tool auto-disables (users see “temporarily unavailable”) and re-enables on recovery; you’re emailed either way. <b className="text-foreground">Run tests now</b> fires both immediately — results appear below after ~1 min (hit Refresh).</p>
+                  {health.browserHeartbeat && <p className="mt-1 text-[11px] text-muted-foreground">Browser (Playwright) tests last ran {new Date(health.browserHeartbeat.checked_at).toLocaleTimeString()}.</p>}
+                  {testsMsg && <p className="mt-1 text-xs font-medium text-primary">{testsMsg}</p>}
 
                   {/* summary KPI tiles */}
                   <div className="mt-3 grid grid-cols-3 gap-3">

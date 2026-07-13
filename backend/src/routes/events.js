@@ -7,6 +7,8 @@ const rateLimit = require('express-rate-limit');
 const { clientKey } = require('../utils/rateLimitKey');
 const { makeStore, redisDown } = require('../utils/rateLimitStore');
 const jwt = require('jsonwebtoken');
+const { spawn } = require('child_process');
+const path = require('path');
 const db = require('../db');
 const { trackEvent } = require('../utils/trackEvent');
 
@@ -230,11 +232,33 @@ router.get('/health', async (req, res) => {
       `SELECT slug, ok, detail, fail_streak, auto_disabled, checked_at FROM tool_health ORDER BY slug`
     ).catch(() => ({ rows: [] }));
     const heartbeat = rows.find((r) => r.slug === '__heartbeat__') || null;
-    const tools = rows.filter((r) => r.slug !== '__heartbeat__');
-    res.json({ tools, heartbeat, now: new Date().toISOString() });
+    const browserHeartbeat = rows.find((r) => r.slug === '__browser_heartbeat__') || null;
+    const tools = rows.filter((r) => r.slug !== '__heartbeat__' && r.slug !== '__browser_heartbeat__');
+    res.json({ tools, heartbeat, browserHeartbeat, now: new Date().toISOString() });
   } catch (err) {
     console.error('tool health failed:', err.message);
     res.status(500).json({ error: 'Could not load health' });
+  }
+});
+
+// Owner-only "Run tests now": fires the Node canary + the Playwright browser canary
+// in the background (they update tool_health). Debounced so it can't be spammed.
+let lastTestRun = 0;
+router.post('/run-tests', async (req, res) => {
+  if (!(await isOwnerRequest(req))) return res.status(404).json({ error: 'Not found' });
+  const now = Date.now();
+  if (now - lastTestRun < 45000) return res.json({ started: false, note: 'Tests are already running — give it a minute.' });
+  lastTestRun = now;
+  const backendRoot = path.join(__dirname, '..', '..');
+  try {
+    for (const script of ['scripts/canary.js', 'scripts/browser-canary.js']) {
+      const child = spawn(process.execPath, [script], { cwd: backendRoot, detached: true, stdio: 'ignore' });
+      child.unref();
+    }
+    res.json({ started: true });
+  } catch (err) {
+    console.error('run-tests failed:', err.message);
+    res.status(500).json({ error: 'Could not start the tests.' });
   }
 });
 
