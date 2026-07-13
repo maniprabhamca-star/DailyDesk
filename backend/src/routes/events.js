@@ -138,7 +138,8 @@ router.get('/stats', async (req, res) => {
     const [users, uniq, active, ret, tops, uses] = await Promise.all([
       rows(`SELECT (SELECT count(*) FROM users)::int AS registered,
                    (SELECT count(*) FROM users WHERE created_at > now() - interval '24 hours')::int AS signups_24h,
-                   (SELECT count(*) FROM users WHERE created_at > now() - interval '7 days')::int AS signups_7d`),
+                   (SELECT count(*) FROM users WHERE created_at > now() - interval '7 days')::int AS signups_7d,
+                   (SELECT count(*) FROM users WHERE plan='pro')::int AS pro`),
       rows(`SELECT count(DISTINCT ${V})::int AS unique_visitors FROM user_events`),
       rows(`SELECT count(DISTINCT ${V}) FILTER (WHERE created_at > now() - interval '1 day')::int  AS dau,
                    count(DISTINCT ${V}) FILTER (WHERE created_at > now() - interval '7 days')::int  AS wau,
@@ -152,6 +153,13 @@ router.get('/stats', async (req, res) => {
               GROUP BY module ORDER BY uses DESC LIMIT 10`),
       rows(`SELECT count(*)::int AS total_tool_uses FROM user_events WHERE event_type='module_used'`),
     ]);
+    // Pro metrics — isolated so a missing table/column can never break the dashboard.
+    let pro_active_30d = 0, pro_waitlist = 0;
+    try { pro_active_30d = (await rows(`SELECT count(DISTINCT ue.user_id)::int AS c FROM user_events ue JOIN users u ON u.id = ue.user_id WHERE u.plan='pro' AND ue.created_at > now() - interval '30 days'`))[0].c; }
+    catch (e) { console.error('pro_active stat:', e.message); }
+    try { pro_waitlist = (await rows(`SELECT count(*)::int AS c FROM pro_waitlist`))[0].c; }
+    catch { /* pro_waitlist table may not exist until the first signup */ }
+
     res.json({
       registered_users: users[0].registered,
       signups_24h: users[0].signups_24h,
@@ -161,6 +169,9 @@ router.get('/stats', async (req, res) => {
       returning_visitors: ret[0].returning_visitors,
       total_tool_uses: uses[0].total_tool_uses,
       top_tools: tops,
+      pro_subscribers: users[0].pro,
+      pro_active_30d,
+      pro_waitlist,
     });
   } catch (err) {
     console.error('usage stats error:', err.message);

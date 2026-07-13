@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { Loader2, RefreshCw, ShieldCheck, BarChart3, Users, UserPlus, MousePointerClick, Repeat, AlertTriangle, Activity } from 'lucide-react';
+import { Loader2, RefreshCw, ShieldCheck, BarChart3, Users, UserPlus, MousePointerClick, Repeat, AlertTriangle, Activity, Crown } from 'lucide-react';
 import { SiteHeader } from '@/components/app/site-header';
 import { SiteFooter } from '@/components/app/site-footer';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,9 @@ type Stats = {
   returning_visitors: number;
   total_tool_uses: number;
   top_tools: { module: string; uses: number }[];
+  pro_subscribers: number;
+  pro_active_30d: number;
+  pro_waitlist: number;
 };
 
 function Metric({ icon: Icon, label, value, sub }: { icon: typeof Users; label: string; value: number | string; sub?: string }) {
@@ -105,6 +108,15 @@ export default function DashboardPage() {
               <Metric icon={BarChart3} label="This week (WAU)" value={stats.wau} />
               <Metric icon={BarChart3} label="This month (MAU)" value={stats.mau} />
             </div>
+
+            <section className="mt-8">
+              <h2 className="flex items-center gap-2 text-lg font-semibold"><Crown className="size-4 text-amber-500" /> Pro</h2>
+              <div className="mt-3 grid grid-cols-3 gap-3">
+                <Metric icon={Crown} label="Pro subscribers" value={stats.pro_subscribers} sub="active paid plans" />
+                <Metric icon={Activity} label="Pro active (30d)" value={stats.pro_active_30d} sub="used a tool while Pro" />
+                <Metric icon={UserPlus} label="Pro waitlist" value={stats.pro_waitlist} sub="notify-me signups" />
+              </div>
+            </section>
 
             <section className="mt-8">
               <h2 className="text-lg font-semibold">Top tools</h2>
