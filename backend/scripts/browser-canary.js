@@ -65,7 +65,9 @@ async function record(slug, ok, detail) {
   console.log(`[bcanary] ${ok ? 'OK  ' : 'FAIL'} ${slug} — ${detail}`);
 }
 
-const ACTION_RE = /compress|convert|resize|extract|split|rotate|merge|make|create|process|apply|start|to pdf|to jpg/i;
+// NB: no "extract" — on pdf-to-jpg that's a HANDOFF button that navigates to the
+// Extract-Images tool, which would abandon the convert flow.
+const ACTION_RE = /compress|convert|resize|split|rotate|merge|make|create|process|apply|start|to pdf|to jpg/i;
 const DOWNLOAD_RE = /download|save|\.zip|\.pdf|\.jpg|\.png/i;
 
 async function driveUpload(page, t) {
@@ -75,13 +77,21 @@ async function driveUpload(page, t) {
   await fileInput.setInputFiles(t.fixture);
   await page.waitForTimeout(2500); // ingest + reveal controls
 
+  // Click matching controls by ACCESSIBLE NAME (catches icon-only buttons via
+  // aria-label/title) across button + link roles.
+  const clickAll = async (nameRe, roles) => {
+    for (const role of roles) {
+      const loc = page.getByRole(role, { name: nameRe });
+      const n = await loc.count();
+      for (let i = 0; i < n; i++) { const b = loc.nth(i); if (await b.isEnabled().catch(() => false)) await b.click({ timeout: 4000 }).catch(() => {}); }
+    }
+  };
   const dlPromise = page.waitForEvent('download', { timeout: 60000 }).catch(() => null);
   for (let round = 0; round < 4; round++) {
-    const acts = await page.locator('button:visible').filter({ hasText: ACTION_RE }).all();
-    for (const b of acts) { if (await b.isEnabled().catch(() => false)) await b.click({ timeout: 4000 }).catch(() => {}); }
+    await clickAll(ACTION_RE, ['button']);
     await page.waitForTimeout(3000);
-    const dls = await page.locator('button:visible, a:visible').filter({ hasText: DOWNLOAD_RE }).all();
-    for (const b of dls) { if (await b.isEnabled().catch(() => false)) await b.click({ timeout: 4000 }).catch(() => {}); }
+    await clickAll(DOWNLOAD_RE, ['button', 'link']);
+    for (const a of await page.locator('a[download]:visible').all()) await a.click({ timeout: 4000 }).catch(() => {});
     await page.waitForTimeout(1500);
   }
   const dl = await dlPromise;
