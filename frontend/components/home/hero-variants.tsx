@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { useReducedMotion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import {
   ShieldCheck, CloudOff, Ban, UserX, ArrowRight, Download, Check,
-  Combine, Shrink, PenTool, Image as ImageIcon,
+  Combine, Shrink, PenTool, Image as ImageIcon, type LucideIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { liveToolCount } from '@/components/app/catalog';
@@ -102,27 +102,40 @@ function FramedSlider() {
 
 // The product screenshot surrounded by floating tool tiles + a few accent marks —
 // our own take on the "product cluster" hero visual (brand colours, our tools).
+// A floating tool tile — elevated (soft coloured glow + shadow, no sticker ring)
+// with a gentle staggered bob, so it reads as hovering over the product.
+function FloatTile({ Icon, bg, glow, pos, delay }: { Icon: LucideIcon; bg: string; glow: string; pos: string; delay: number }) {
+  const reduce = useReducedMotion();
+  return (
+    <motion.span
+      aria-hidden
+      className={`absolute z-10 ${pos}`}
+      animate={reduce ? undefined : { y: [0, -7, 0] }}
+      transition={reduce ? undefined : { duration: 3.8, repeat: Infinity, ease: 'easeInOut', delay }}
+    >
+      <span className="absolute -inset-2 rounded-[1.4rem] opacity-50 blur-lg" style={{ background: glow }} />
+      <span className={`relative flex size-11 items-center justify-center rounded-2xl text-white shadow-xl ring-1 ring-white/25 ${bg}`}>
+        <Icon className="size-[18px]" strokeWidth={2.25} />
+      </span>
+    </motion.span>
+  );
+}
+
 function ProductCluster() {
-  // Four tool tiles pinned to the FRAME's corners (not the outer box), so they
-  // pop off each corner cleanly at every width instead of drifting over the
-  // slider content on narrow screens — the tidy "product + corner badges" look.
+  // Four tool tiles floating just off the product's corners — elevated + gently
+  // bobbing for a premium, hovering look (was: flat badges pinned to each corner).
   const tiles = [
-    { bg: 'bg-violet-500', Icon: PenTool, cls: '-left-4 -top-4' },
-    { bg: 'bg-amber-500', Icon: ImageIcon, cls: '-right-4 -top-4' },
-    { bg: 'bg-teal-500', Icon: Shrink, cls: '-left-4 -bottom-4' },
-    { bg: 'bg-rose-600', Icon: Combine, cls: '-right-4 -bottom-4' },
+    { bg: 'bg-violet-500', glow: 'rgba(139,92,246,0.55)', Icon: PenTool, pos: '-left-6 -top-6', delay: 0 },
+    { bg: 'bg-amber-500', glow: 'rgba(245,158,11,0.55)', Icon: ImageIcon, pos: '-right-7 -top-3', delay: 0.7 },
+    { bg: 'bg-teal-500', glow: 'rgba(20,184,166,0.55)', Icon: Shrink, pos: '-left-7 -bottom-3', delay: 1.3 },
+    { bg: 'bg-rose-600', glow: 'rgba(225,29,72,0.55)', Icon: Combine, pos: '-right-6 -bottom-6', delay: 0.4 },
   ];
   return (
     <div className="relative mx-auto flex h-[320px] w-full max-w-[520px] items-center justify-center md:h-[368px] md:translate-y-6">
-      <div aria-hidden className="pointer-events-none absolute inset-8 rounded-[40px]" style={{ background: 'radial-gradient(closest-side, rgba(124,58,237,0.10), transparent)' }} />
-      {/* the sliding browser-framed product shot with tool tiles on its corners */}
+      <div aria-hidden className="pointer-events-none absolute inset-8 rounded-[40px]" style={{ background: 'radial-gradient(closest-side, rgba(124,58,237,0.12), transparent)' }} />
       <div className="relative w-[360px] max-w-[86%] md:max-w-[92%]">
         <FramedSlider />
-        {tiles.map((t, i) => (
-          <span key={i} className={`absolute z-10 flex size-10 items-center justify-center rounded-2xl text-white shadow-lift ring-4 ring-background ${t.bg} ${t.cls}`}>
-            <t.Icon className="size-[18px]" strokeWidth={2.25} />
-          </span>
-        ))}
+        {tiles.map((t, i) => <FloatTile key={i} {...t} />)}
       </div>
     </div>
   );
