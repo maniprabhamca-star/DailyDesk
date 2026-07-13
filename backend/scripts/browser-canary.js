@@ -184,7 +184,7 @@ async function driveUtil(page, t) {
     { slug: '/word-counter', kind: 'util', fill: 'alpha beta gamma delta echo', fillSel: 'textarea', expectRe: /5\s*words?/i },
     { slug: '/json-formatter', kind: 'util', fill: '{"a":1,"b":[2,3]}', fillSel: 'textarea', click: /^format$/i, expectRe: /valid json/i },
     { slug: '/color-picker', kind: 'util', expectRe: /#[0-9a-fA-F]{6}/ },
-    { slug: '/password-generator', kind: 'util', click: /regenerate/i, expectRe: /copy password/i },
+    { slug: '/password-generator', kind: 'util', click: /regenerate/i, expectRe: /(?=\S{10})\S*\d/ }, // a 10+ char run with a digit = a real generated password
   ];
   if (fx.heic) TOOLS.push({ slug: '/heic-to-jpg', kind: 'upload', fixture: fx.heic });
 
