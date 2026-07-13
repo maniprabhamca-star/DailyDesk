@@ -93,14 +93,17 @@ async function driveUpload(page, t) {
   await page.waitForTimeout(2500);
   const actionRe = t.action || ACTION_RE;
   const dlPromise = page.waitForEvent('download', { timeout: t.dlTimeout || 60000 }).catch(() => null);
-  for (let round = 0; round < (t.rounds || 4); round++) {
-    await clickAll(page, actionRe, ['button']);
-    await page.waitForTimeout(3000);
+  let dl = null;
+  for (let round = 0; round < (t.rounds || 6); round++) {
+    await clickAll(page, actionRe, ['button']); // disabled buttons are skipped → no restart
     await clickAll(page, DOWNLOAD_RE, ['button', 'link']);
     for (const a of await page.locator('a[download]:visible').all()) await a.click({ timeout: 4000 }).catch(() => {});
-    await page.waitForTimeout(1500);
+    // break the moment the download fires (don't burn the whole round budget)
+    dl = await Promise.race([dlPromise, new Promise((r) => setTimeout(() => r('_tick'), 2800))]);
+    if (dl && dl !== '_tick') break;
+    dl = null;
   }
-  const dl = await dlPromise;
+  if (!dl) dl = await dlPromise;
   if (!dl) return { ok: false, detail: 'no download produced' };
   const p = await dl.path();
   const size = p ? fs.statSync(p).size : 0;
@@ -137,6 +140,14 @@ async function driveText(page, t) {
 }
 
 (async () => {
+  // Single-run lock: the cron (every 30 min) and the dashboard "Run tests now" must
+  // not launch two runs on the shared Chromium profile at once (they'd deadlock).
+  const LOCK = '/tmp/dd-bcanary.lock';
+  if (fs.existsSync(LOCK) && (Date.now() - fs.statSync(LOCK).mtimeMs) < 8 * 60 * 1000) {
+    console.log('[bcanary] another run in progress — skipping'); process.exit(0);
+  }
+  try { fs.writeFileSync(LOCK, String(process.pid)); } catch { /* ignore */ }
+
   const fx = await fixtures();
   const TOOLS = [
     { slug: '/compress-pdf', kind: 'upload', fixture: fx.pdf },
@@ -175,5 +186,6 @@ async function driveText(page, t) {
   }
   await ctx.close().catch(() => {});
   await record('__browser_heartbeat__', true, 'browser canary ran');
+  try { fs.unlinkSync(LOCK); } catch { /* ignore */ }
   process.exit(0);
-})().catch((e) => { console.error('[bcanary] fatal', e); process.exit(1); });
+})().catch((e) => { console.error('[bcanary] fatal', e); try { fs.unlinkSync('/tmp/dd-bcanary.lock'); } catch { /* ignore */ } process.exit(1); });
