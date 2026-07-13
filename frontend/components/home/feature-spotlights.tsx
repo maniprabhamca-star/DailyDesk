@@ -5,8 +5,8 @@ import { motion } from 'framer-motion';
 import {
   ArrowRight, FileText, Scissors, Combine, Search, QrCode,
   Shrink, RotateCw, ListOrdered, Image as ImageIcon, KeyRound,
-  MousePointer2, Download,
 } from 'lucide-react';
+import Image from 'next/image';
 import { liveToolCount } from '@/components/app/catalog';
 
 function Row({
@@ -125,58 +125,17 @@ export function FeatureSpotlights() {
           <p className="mx-auto mt-4 max-w-xl text-[15px] leading-relaxed text-muted-foreground sm:text-lg">Annotate, sign, redact and edit with the precision of a design tool and the ease of a doc — ⌘K commands, snap-to guides, a live properties inspector and reusable signatures. Nothing uploaded, ever.</p>
         </div>
 
-        {/* Dark, single-accent editor mockup — the flagship gets a larger, product-grade screen. */}
-        <div className="mx-auto mt-11 max-w-3xl overflow-hidden rounded-2xl border border-slate-700/60 bg-slate-900 shadow-2xl ring-1 ring-white/5">
-          <div className="flex items-center gap-2.5 border-b border-slate-800 px-4 py-2.5">
-            <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary text-[11px] font-bold text-white">D</span>
-            <span className="text-sm font-medium text-slate-200">Editor</span>
-            <span className="ml-auto hidden items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800/60 px-2.5 py-1 text-xs text-slate-400 sm:flex">Do anything <span className="rounded border border-slate-600 px-1 text-[10px]">⌘K</span></span>
-            <span className="flex items-center gap-1 rounded-lg bg-primary px-2.5 py-1 text-xs font-medium text-white"><Download className="size-3.5" /> Export</span>
-          </div>
-          <div className="flex items-center gap-1 border-b border-slate-800 px-3 py-2">
-            <span className="flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1 text-xs font-medium text-white"><MousePointer2 className="size-3.5" /> Select</span>
-            {['Text', 'Sign', 'Shape', 'Highlight'].map((t) => (
-              <span key={t} className="rounded-md px-2.5 py-1 text-xs text-slate-400">{t}</span>
-            ))}
-          </div>
-          <div className="flex bg-slate-950/40">
-            <div className="hidden w-14 shrink-0 flex-col gap-2 border-r border-slate-800 p-2.5 sm:flex">
-              <div className="h-16 rounded-md border border-primary/70 bg-slate-800 ring-1 ring-primary/40" />
-              <div className="h-16 rounded-md border border-slate-700 bg-slate-800/60" />
-              <div className="h-16 rounded-md border border-slate-700 bg-slate-800/60" />
-            </div>
-            <div className="min-w-0 flex-1 p-6">
-              <div className="mx-auto max-w-[16rem] rounded-lg bg-white p-4 shadow-xl">
-                <div className="h-2.5 w-2/3 rounded bg-slate-800/80" />
-                <div className="mt-1.5 h-1.5 w-2/5 rounded bg-slate-300" />
-                <div className="mt-3.5 space-y-1.5"><div className="h-1.5 w-full rounded bg-slate-200" /><div className="h-1.5 w-[88%] rounded bg-slate-200" /><div className="h-1.5 w-[94%] rounded bg-slate-200" /><div className="h-1.5 w-[72%] rounded bg-slate-200" /></div>
-                <div className="relative mt-6">
-                  <div className="absolute -top-5 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-lg bg-slate-900 px-2 py-1 shadow-lg">
-                    <span className="size-2 rounded-[2px] bg-slate-500" /><span className="size-2 rounded-[2px] bg-slate-500" /><span className="size-2 rounded-[2px] bg-slate-600" />
-                  </div>
-                  <div className="relative rounded-md p-2 ring-2 ring-primary">
-                    <svg viewBox="0 0 120 28" className="h-8 w-full text-primary" aria-hidden="true"><path d="M3 20 Q14 4 26 17 T52 14 T78 17 T104 10 T118 15" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" /></svg>
-                    <span className="absolute -left-1 -top-1 size-2 rounded-full border-2 border-primary bg-white" /><span className="absolute -right-1 -top-1 size-2 rounded-full border-2 border-primary bg-white" /><span className="absolute -bottom-1 -left-1 size-2 rounded-full border-2 border-primary bg-white" /><span className="absolute -bottom-1 -right-1 size-2 rounded-full border-2 border-primary bg-white" />
-                  </div>
-                  <p className="mt-2.5 text-center text-[10px] text-slate-400">Authorized signature</p>
-                </div>
-              </div>
-            </div>
-            <div className="hidden w-32 shrink-0 border-l border-slate-800 p-3 lg:block">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Signature</p>
-              <div className="mt-2 grid grid-cols-2 gap-1.5">
-                <div className="rounded-md border border-slate-700 bg-slate-800/60 px-1.5 py-1 text-[10px] tabular-nums text-slate-300"><span className="text-slate-500">X</span> 150</div>
-                <div className="rounded-md border border-slate-700 bg-slate-800/60 px-1.5 py-1 text-[10px] tabular-nums text-slate-300"><span className="text-slate-500">Y</span> 250</div>
-              </div>
-              <p className="mt-3 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Opacity</p>
-              <div className="mt-1.5 h-1.5 rounded-full bg-slate-700"><div className="h-1.5 w-3/4 rounded-full bg-primary" /></div>
-              <p className="mt-3 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Ink</p>
-              <div className="mt-1.5 flex gap-1.5">
-                <span className="size-4 rounded-full bg-primary ring-2 ring-primary/50 ring-offset-2 ring-offset-slate-900" />
-                <span className="size-4 rounded-full bg-slate-100" /><span className="size-4 rounded-full bg-slate-400" /><span className="size-4 rounded-full bg-slate-800 ring-1 ring-slate-600" />
-              </div>
-            </div>
-          </div>
+        {/* Real editor screen — a genuine pdf.js-rendered document composited into the
+            editor UI (annotate + sign). Generated by scripts/gen-editor-showcase.mjs. */}
+        <div className="mx-auto mt-11 max-w-3xl overflow-hidden rounded-2xl border border-slate-700/60 shadow-2xl ring-1 ring-white/5">
+          <Image
+            src="/editor-showcase.png"
+            alt="The DiemDesk Editor — highlighting and signing a PDF, entirely on your device"
+            width={1536}
+            height={980}
+            className="block h-auto w-full"
+            sizes="(min-width: 768px) 48rem, 100vw"
+          />
         </div>
 
         <div className="mt-9 text-center">
