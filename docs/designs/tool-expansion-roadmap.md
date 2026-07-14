@@ -7,6 +7,16 @@ catalog; this doc is the source of truth for the "why" and the priority order._
 
 ---
 
+## 0. Decision (2026-07-13, owner)
+- **Build all six, one at a time**, each fully QA'd before the next.
+- **Ship them GATED** (owner-only / `coming_soon`, hidden from the public) as they're finished.
+- **Reveal them together at the Pro launch** as one catalog expansion moment.
+- ⚠ _Proactive note:_ items **1–5 are free, on-device acquisition tools** — gating them delays their
+  organic SEO traffic (each is a keyword magnet). If we want earlier traffic, we could flip the finished
+  **free** ones public as they land and keep only the **Pro** one (**#6 PDF→Excel**) gated for the launch
+  moment. Following the "gate all until Pro launch" call for now; easy to change.
+- After these six ship, the **Phase 2** list (§7) is the next slate.
+
 ## 1. Method
 
 Three inputs:
@@ -154,6 +164,43 @@ Priority = (global demand × SEO) × (brand/privacy fit) ÷ effort. Top of each 
 Everything in 1–5 is on-device → free forever → costs us nothing and pulls organic traffic. #6 is the Pro hook.
 
 ---
+
+## 7. Phase 2 — what to add AFTER the launch six (fresh research 2026-07-13)
+
+Grouped by the pull that justifies each. Compliance + AI/data are the revenue-heavy ones.
+
+### Compliance (Pro — deadline-driven, businesses must comply)
+- **Accessible / tagged PDF (PDF/UA)** — the **EU Accessibility Act** began enforcement **28 Jun 2025**:
+  customer-facing PDFs (invoices, statements, contracts, forms, reports) must be accessible — tagged tree,
+  reading order, alt text, form labels. Real legal pressure on every EU-facing business; almost nobody makes
+  this easy. A "check + auto-tag PDF for accessibility" tool is a strong Pro compliance play.
+  Sources: [PDFix EAA](https://pdfix.net/european-accessibility-act-2025-are-your-pdfs-ready/),
+  [iText EAA](https://itextpdf.com/blog/technical-notes/european-accessibility-act-compliance-itext).
+- **e-Invoice** (Factur-X/ZUGFeRD/XRechnung view·validate·embed; NF-e/CFDI→PDF) — live EU/LatAm mandates (§2F).
+- **PDF/A convert + validate** · **trusted timestamp (RFC 3161)** · **Bates numbering** (US legal).
+
+### AI / data extraction (Pro — the 2026 wave: "Intelligent Document Processing")
+The hottest trend in document tools right now is LLM+OCR turning docs/photos into structured data.
+- **Receipt / invoice / statement → spreadsheet** (photo or PDF → clean CSV/Excel rows) — huge for
+  bookkeeping, expenses, tax; the category everyone (Textract, Docsumo, Nanonets, Lido) is racing on.
+- **Summarize / chat with a PDF · translate keeping layout** — already in our AI-layer plan; all run on
+  Haiku + per-user cap + revenue-pegged budget ([[dailydesk-ai-cost-control]]).
+Source: [Lido — best document AI 2026](https://www.lido.app/blog/best-document-ai-tools).
+
+### Media (Free — everyday consumer, cheap on-device)
+- **AVIF / WebP convert** (modern web formats) · **RAW photo → JPG** (photographers) ·
+  **extract audio from video → MP3** · **audio convert / trim / compress** · **subtitle editor** (SRT/VTT, burn-in).
+
+### Productivity / convert (Free + light-Pro)
+- **Mail-merge / document assembly** (one template + a CSV → many personalised PDFs) — business/Pro.
+- **Apple iWork → PDF/Office** (.pages/.numbers/.key — Windows users can't open these) · **Markdown → PDF/Word**.
+
+### Accessibility / voice (Free — on-brand, and the EAA tailwind)
+- **PDF → audio (text-to-speech)** · **speech-to-text** (Web Speech API) — accessibility + hands-free,
+  and voice-driven document handling is explicitly a 2026 trend.
+
+**Phase-2 top pick:** **Accessible PDF (PDF/UA)** — a hard legal deadline is already live across the EU and
+there's no easy consumer tool for it, plus **Receipt→Spreadsheet** as the AI/data flagship.
 
 ## 6. What's still pending (so nothing's lost)
 
