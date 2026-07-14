@@ -151,25 +151,41 @@ router.get('/stats', async (req, res) => {
   if (!(await isOwnerRequest(req))) return res.status(404).json({ error: 'Not found' });
 
   const V = 'coalesce(visitor_id, ip_address::text)';
-  const rows = (sql) => db.query(sql).then((r) => r.rows);
+  const rows = (sql, params = []) => db.query(sql, params).then((r) => r.rows);
+
+  // Human-only filter: exclude bots, crawlers, and headless automation (incl. our
+  // own Playwright health-canary) so counts reflect real people, not scripts.
+  const BOT_RE = 'bot|crawl|spider|slurp|headless|phantom|puppeteer|playwright|selenium|webdriver|python-requests|python-urllib|okhttp|java/|curl/|wget/|go-http|lighthouse|pagespeed|gtmetrix|semrush|ahrefs|dotbot|mj12|facebookexternalhit|whatsapp|telegrambot|discordbot|bingpreview|apis-google';
+  const HUMAN = `(user_agent IS NULL OR user_agent !~* '${BOT_RE}')`;
+
+  // Optional date range (YYYY-MM-DD) — applies to the ACTIVITY metrics (visitors,
+  // tool uses, top tools, file sizes, returning). Fixed cards (registered total,
+  // rolling DAU/WAU/MAU) are unaffected by design. Validated + parameterized.
+  const DATE = /^\d{4}-\d{2}-\d{2}$/;
+  const from = DATE.test(String(req.query.from || '')) ? String(req.query.from) : null;
+  const to = DATE.test(String(req.query.to || '')) ? String(req.query.to) : null;
+  const ranged = !!(from && to);
+  const RANGE = ranged ? `created_at >= $1::date AND created_at < ($2::date + 1)` : 'TRUE';
+  const rp = ranged ? [from, to] : [];
+
   try {
     const [users, uniq, active, ret, tops, uses] = await Promise.all([
       rows(`SELECT (SELECT count(*) FROM users)::int AS registered,
                    (SELECT count(*) FROM users WHERE created_at > now() - interval '24 hours')::int AS signups_24h,
                    (SELECT count(*) FROM users WHERE created_at > now() - interval '7 days')::int AS signups_7d,
                    (SELECT count(*) FROM users WHERE plan='pro')::int AS pro`),
-      rows(`SELECT count(DISTINCT ${V})::int AS unique_visitors FROM user_events`),
+      rows(`SELECT count(DISTINCT ${V})::int AS unique_visitors FROM user_events WHERE ${HUMAN} AND ${RANGE}`, rp),
       rows(`SELECT count(DISTINCT ${V}) FILTER (WHERE created_at > now() - interval '1 day')::int  AS dau,
                    count(DISTINCT ${V}) FILTER (WHERE created_at > now() - interval '7 days')::int  AS wau,
                    count(DISTINCT ${V}) FILTER (WHERE created_at > now() - interval '30 days')::int AS mau
-              FROM user_events`),
+              FROM user_events WHERE ${HUMAN}`),
       rows(`SELECT count(*)::int AS returning_visitors FROM (
-              SELECT ${V} AS v FROM user_events GROUP BY v
-              HAVING count(DISTINCT date_trunc('day', created_at)) >= 2) t`),
+              SELECT ${V} AS v FROM user_events WHERE ${HUMAN} AND ${RANGE} GROUP BY v
+              HAVING count(DISTINCT date_trunc('day', created_at)) >= 2) t`, rp),
       rows(`SELECT module, count(*)::int AS uses FROM user_events
-              WHERE event_type='module_used' AND module IS NOT NULL
-              GROUP BY module ORDER BY uses DESC LIMIT 10`),
-      rows(`SELECT count(*)::int AS total_tool_uses FROM user_events WHERE event_type='module_used'`),
+              WHERE event_type='module_used' AND module IS NOT NULL AND ${HUMAN} AND ${RANGE}
+              GROUP BY module ORDER BY uses DESC LIMIT 10`, rp),
+      rows(`SELECT count(*)::int AS total_tool_uses FROM user_events WHERE event_type='module_used' AND ${HUMAN} AND ${RANGE}`, rp),
     ]);
     // Pro metrics — isolated so a missing table/column can never break the dashboard.
     let pro_active_30d = 0, pro_waitlist = 0;
@@ -184,14 +200,14 @@ router.get('/stats', async (req, res) => {
     let size_buckets = {}; let size_by_tool = [];
     try {
       const sb = await rows(`SELECT metadata->>'bucket' AS bucket, count(*)::int AS c
-                             FROM user_events WHERE event_type='file_size' AND metadata->>'bucket' IS NOT NULL
-                             GROUP BY 1`);
+                             FROM user_events WHERE event_type='file_size' AND metadata->>'bucket' IS NOT NULL AND ${HUMAN} AND ${RANGE}
+                             GROUP BY 1`, rp);
       const m = Object.fromEntries(sb.map((r) => [r.bucket, r.c]));
       size_buckets = Object.fromEntries(SIZE_BUCKET_ORDER.map((b) => [b, m[b] || 0]));
       size_by_tool = await rows(`SELECT module, metadata->>'bucket' AS bucket, count(*)::int AS c
                                 FROM user_events
-                                WHERE event_type='file_size' AND module IS NOT NULL AND metadata->>'bucket' IN ('100MB-1GB','1-2GB','>2GB')
-                                GROUP BY module, bucket ORDER BY c DESC LIMIT 20`);
+                                WHERE event_type='file_size' AND module IS NOT NULL AND metadata->>'bucket' IN ('100MB-1GB','1-2GB','>2GB') AND ${HUMAN} AND ${RANGE}
+                                GROUP BY module, bucket ORDER BY c DESC LIMIT 20`, rp);
     } catch (e) { console.error('size bucket stat:', e.message); }
 
     res.json({
@@ -208,6 +224,7 @@ router.get('/stats', async (req, res) => {
       pro_waitlist,
       size_buckets,
       size_by_tool,
+      range: ranged ? { from, to } : null,
     });
   } catch (err) {
     console.error('usage stats error:', err.message);

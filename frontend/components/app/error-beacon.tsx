@@ -25,6 +25,20 @@ function scrub(s: string): string {
     .replace(/\b(?:eyJ[\w-]{6,}|sk-[\w-]{6,}|Bearer\s+[\w.-]{6,})/gi, '[token]');
 }
 
+// Errors thrown by BROWSER EXTENSIONS and other injected third-party scripts
+// aren't our bugs and can't be acted on — they'd just bury real errors in the
+// dashboard. Drop anything whose source/stack points at an extension scheme, a
+// known injected-global wrapper (e.g. a WebSocket/XHR shim), or the opaque
+// cross-origin "Script error." with no location.
+const THIRD_PARTY =
+  /chrome-extension:\/\/|moz-extension:\/\/|safari-web-extension:\/\/|safari-extension:\/\/|ms-browser-extension:\/\/|webkit-masked-url:\/\/|\bOriginal(WebSocket|XMLHttpRequest|Fetch|EventSource)\b/i;
+function isNoise(message: string, source: string, stack?: string): boolean {
+  if (THIRD_PARTY.test(`${message}\n${source}\n${stack || ''}`)) return true;
+  // opaque cross-origin error with no usable location = third-party script
+  if (!/:\d+:\d+$/.test(source) && /^script error\.?$/i.test(message.trim())) return true;
+  return false;
+}
+
 export function ErrorBeacon() {
   useEffect(() => {
     const seen = new Set<string>();
@@ -32,6 +46,7 @@ export function ErrorBeacon() {
 
     const report = (message: string, source: string, stack?: string) => {
       if (!message) return;
+      if (isNoise(message, source, stack)) return; // skip extension / third-party noise
       const sig = `${message}@${source}`.slice(0, 300);
       if (seen.has(sig)) return;            // dedupe identical errors
       seen.add(sig);

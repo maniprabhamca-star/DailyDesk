@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
-import { Loader2, RefreshCw, ShieldCheck, BarChart3, Users, UserPlus, MousePointerClick, Repeat, AlertTriangle, Activity, Crown, Play } from 'lucide-react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import { Loader2, RefreshCw, ShieldCheck, BarChart3, Users, UserPlus, MousePointerClick, Repeat, AlertTriangle, Activity, Crown, Play, CalendarDays } from 'lucide-react';
 import { SiteHeader } from '@/components/app/site-header';
 import { SiteFooter } from '@/components/app/site-footer';
 import { Button } from '@/components/ui/button';
@@ -22,9 +22,28 @@ type Stats = {
   pro_waitlist: number;
   size_buckets?: Record<string, number>;
   size_by_tool?: { module: string; bucket: string; c: number }[];
+  range?: { from: string; to: string } | null;
 };
 
 const SIZE_ORDER = ['<50MB', '50-100MB', '100MB-1GB', '1-2GB', '>2GB'];
+
+type RangeKey = 'all' | 'today' | '7d' | '30d' | 'custom';
+const RANGE_PRESETS: { key: RangeKey; label: string }[] = [
+  { key: 'all', label: 'All time' },
+  { key: 'today', label: 'Today' },
+  { key: '7d', label: '7 days' },
+  { key: '30d', label: '30 days' },
+  { key: 'custom', label: 'Custom' },
+];
+const isoDay = (d: Date) => d.toISOString().slice(0, 10);
+function presetDates(key: RangeKey): { from: string; to: string } | null {
+  const now = new Date();
+  const to = isoDay(now);
+  if (key === 'today') return { from: to, to };
+  if (key === '7d') { const f = new Date(now); f.setDate(now.getDate() - 6); return { from: isoDay(f), to }; }
+  if (key === '30d') { const f = new Date(now); f.setDate(now.getDate() - 29); return { from: isoDay(f), to }; }
+  return null; // 'all' or 'custom' (custom resolved from the pickers)
+}
 
 function Metric({ icon: Icon, label, value, sub }: { icon: typeof Users; label: string; value: number | string; sub?: string }) {
   return (
@@ -52,6 +71,15 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [testsBusy, setTestsBusy] = useState(false);
   const [testsMsg, setTestsMsg] = useState<string | null>(null);
+  const [rangeKey, setRangeKey] = useState<RangeKey>('all');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
+
+  // Effective {from,to} for the activity metrics; null = all time.
+  const dates = useMemo<{ from: string; to: string } | null>(() => {
+    if (rangeKey === 'custom') return customFrom && customTo ? { from: customFrom, to: customTo } : null;
+    return presetDates(rangeKey);
+  }, [rangeKey, customFrom, customTo]);
 
   async function runTests() {
     setTestsBusy(true); setTestsMsg(null);
@@ -68,7 +96,7 @@ export default function DashboardPage() {
     finally { setTestsBusy(false); }
   }
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (range: { from: string; to: string } | null) => {
     setLoading(true); setError(null);
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('dd_token') : null;
@@ -77,7 +105,8 @@ export default function DashboardPage() {
       const headers: Record<string, string> = {};
       if (token) headers.Authorization = `Bearer ${token}`;
       if (ownerKey) headers['x-owner-key'] = decodeURIComponent(ownerKey);
-      const res = await fetch(`${API}/api/events/stats`, { headers });
+      const qs = range ? `?from=${range.from}&to=${range.to}` : '';
+      const res = await fetch(`${API}/api/events/stats${qs}`, { headers });
       if (!res.ok) {
         if (res.status === 404) throw new Error('Not available — log in as the owner account (or open from a browser with the owner bypass).');
         throw new Error(`Request failed (${res.status})`);
@@ -91,7 +120,7 @@ export default function DashboardPage() {
     } finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { if (isOwner) void load(); else setLoading(false); }, [isOwner, load]);
+  useEffect(() => { if (isOwner) void load(dates); else setLoading(false); }, [isOwner, load, dates]);
 
   const maxUse = stats?.top_tools.reduce((m, t) => Math.max(m, t.uses), 0) || 1;
 
@@ -106,8 +135,28 @@ export default function DashboardPage() {
               <ShieldCheck className="size-4 text-emerald-600" /> First-party data from your own server — no third-party trackers.
             </p>
           </div>
-          {isOwner && <Button size="sm" variant="outline" onClick={() => void load()} disabled={loading}><RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} /> Refresh</Button>}
+          {isOwner && <Button size="sm" variant="outline" onClick={() => void load(dates)} disabled={loading}><RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} /> Refresh</Button>}
         </div>
+
+        {isOwner && (
+          <div className="mt-5 flex flex-wrap items-center gap-2">
+            <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground"><CalendarDays className="size-3.5" /> Activity range</span>
+            <div className="flex flex-wrap gap-1 rounded-lg border bg-muted/40 p-1">
+              {RANGE_PRESETS.map((p) => (
+                <button key={p.key} type="button" onClick={() => setRangeKey(p.key)}
+                  className={`rounded-md px-2.5 py-1 text-xs font-semibold transition ${rangeKey === p.key ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-card'}`}>{p.label}</button>
+              ))}
+            </div>
+            {rangeKey === 'custom' && (
+              <div className="flex items-center gap-1.5 text-xs">
+                <input type="date" value={customFrom} max={customTo || isoDay(new Date())} onChange={(e) => setCustomFrom(e.target.value)} className="rounded-md border bg-background px-2 py-1" />
+                <span className="text-muted-foreground">→</span>
+                <input type="date" value={customTo} min={customFrom} max={isoDay(new Date())} onChange={(e) => setCustomTo(e.target.value)} className="rounded-md border bg-background px-2 py-1" />
+              </div>
+            )}
+            <span className="text-xs text-muted-foreground">{dates ? `${dates.from} → ${dates.to}` : 'All time'}</span>
+          </div>
+        )}
 
         {!isOwner ? (
           <div className="mt-10 rounded-xl border bg-card p-8 text-center text-muted-foreground">This page is available to the owner account only.</div>
@@ -129,6 +178,9 @@ export default function DashboardPage() {
               <Metric icon={BarChart3} label="This week (WAU)" value={stats.wau} />
               <Metric icon={BarChart3} label="This month (MAU)" value={stats.mau} />
             </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Unique visitors, tool uses, returning, top tools &amp; file sizes reflect <b className="text-foreground">{stats.range ? `${stats.range.from} → ${stats.range.to}` : 'all time'}</b> · bots &amp; automated traffic (incl. the health canary) are excluded. DAU/WAU/MAU are fixed rolling windows.
+            </p>
 
             <section className="mt-8">
               <h2 className="flex items-center gap-2 text-lg font-semibold"><Crown className="size-4 text-amber-500" /> Pro</h2>

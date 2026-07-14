@@ -29,6 +29,17 @@ function maxSize(files: FileList | null | undefined): number {
   return m;
 }
 
+// Don't count automated traffic — our own headless health-canary (Playwright),
+// dev/test runs, and most bots. It would inflate unique-visitor and tool-use
+// numbers so the dashboard no longer reflects real people. navigator.webdriver
+// is set by WebDriver/Playwright/Selenium; we also skip obvious headless UAs.
+function isAutomated(): boolean {
+  try {
+    if (navigator.webdriver) return true;
+    return /headless|playwright|puppeteer|phantom|electron|\bbot\b|crawler|spider/i.test(navigator.userAgent || '');
+  } catch { return false; }
+}
+
 // Stable, anonymous, first-party visitor id (random UUID in localStorage — no
 // personal data, no third-party tracker). Lets us count unique + returning
 // visitors accurately without requiring signup.
@@ -58,6 +69,7 @@ export function UsageBeacon() {
   useEffect(() => {
     if (!pathname || !TOOL_HREFS.has(pathname)) return;
     if (last.current === pathname) return; // de-dupe re-renders
+    if (isAutomated()) return;             // don't count bots / our own canary
     last.current = pathname;
 
     const moduleName = pathname.replace(/^\//, '');
@@ -84,6 +96,7 @@ export function UsageBeacon() {
     const report = (files: FileList | null | undefined) => {
       const bytes = maxSize(files);
       if (bytes <= 0) return;
+      if (isAutomated()) return;          // don't count bots / our own canary
       const route = window.location.pathname;
       if (!TOOL_HREFS.has(route)) return; // real tool routes only
       try {

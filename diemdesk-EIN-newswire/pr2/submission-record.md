@@ -51,3 +51,9 @@ private PDF editor, PDF to Word, sign PDF, redact PDF, on-device, no upload, doc
 - [ ] Fill `[Your name]` (title byline in the quote + contact) and the publish date
 - [ ] Confirm PR #1 has run and the site shows **no Chrome security warning** before scheduling
 - [ ] Schedule for next week (pick date/time)
+
+## ✅ PUBLISHED & DISTRIBUTED — 2026-07-14
+- **Report:** [distribution-report.pdf](distribution-report.pdf) (EIN report #926216313, archived in repo).
+- **Reach (per EIN):** distributed to major newswires, **AP News**, National Law Review, and 15+ local US TV-affiliate news sites (WSAV Savannah GA, WRBL Columbus GA, KDVR FOX31 Denver, KLAS Las Vegas, WIAT Birmingham, KSEE Fresno, WHBF Rock Island, WJHL Johnson City, etc.), plus indexed on Google/Bing and AI databases (Gemini/ChatGPT ingestion).
+- **Nature:** EIN's standard automated syndication (affiliate reprints + search/AI indexing), not editorial coverage — value = backlinks + search presence, not journalist pickup.
+- **Traffic note (same day):** dashboard showed "25 unique visitors" but DB analysis found only 11 distinct IPs and ~20 automated/headless UAs (our own Playwright tests + the tool-health canary + crawlers) — real external humans were single digits. See the bot-filter fix shipped 2026-07-14. Country-level geo lives in Cloudflare Web Analytics.
