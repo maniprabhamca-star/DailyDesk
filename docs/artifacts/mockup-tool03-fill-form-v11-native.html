@@ -4,6 +4,7 @@
     --bg:#f4f5f3;--surface:#fff;--surface-2:#f7f8f6;--border:#e3e5e0;--text:#1a1c19;--muted:#6b7168;--faint:#9aa093;
     --accent:#2563eb;--accent-weak:#2563eb12;--accent-ring:#2563eb40;--accent-fill:#2563eb1f;
     --green:#15803d;--green-bg:#16a34a12;--green-border:#16a34a40;
+    --amber:#b45309;--amber-bg:#f59e0b16;--amber-border:#f59e0b44;
     --slate:#475569;--slate-bg:#47556912;--slate-border:#47556933;
     --paper:#ffffff;--line:#d9dbd5;
     --shadow:0 1px 2px rgba(20,25,18,.04),0 8px 24px rgba(20,25,18,.06);--radius:16px;
@@ -12,15 +13,16 @@
     --bg:#111311;--surface:#1a1d19;--surface-2:#20241f;--border:#2e332b;--text:#eef0ea;--muted:#a3a99b;--faint:#767c6e;
     --accent:#60a5fa;--accent-weak:#60a5fa1c;--accent-ring:#60a5fa55;--accent-fill:#60a5fa2b;
     --green:#4ade80;--green-bg:#22c55e18;--green-border:#22c55e44;
+    --amber:#fbbf24;--amber-bg:#f59e0b1e;--amber-border:#f59e0b4d;
     --slate:#94a3b8;--slate-bg:#94a3b81c;--slate-border:#94a3b840;
     --paper:#f8f8f6;--line:#cfd2cb;
     --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);
   }}
-  :root[data-theme="light"]{--bg:#f4f5f3;--surface:#fff;--surface-2:#f7f8f6;--border:#e3e5e0;--text:#1a1c19;--muted:#6b7168;--faint:#9aa093;--accent:#2563eb;--accent-weak:#2563eb12;--accent-ring:#2563eb40;--accent-fill:#2563eb1f;--green:#15803d;--green-bg:#16a34a12;--green-border:#16a34a40;--slate:#475569;--slate-bg:#47556912;--slate-border:#47556933;--paper:#fff;--line:#d9dbd5;--shadow:0 1px 2px rgba(20,25,18,.04),0 8px 24px rgba(20,25,18,.06);}
-  :root[data-theme="dark"]{--bg:#111311;--surface:#1a1d19;--surface-2:#20241f;--border:#2e332b;--text:#eef0ea;--muted:#a3a99b;--faint:#767c6e;--accent:#60a5fa;--accent-weak:#60a5fa1c;--accent-ring:#60a5fa55;--accent-fill:#60a5fa2b;--green:#4ade80;--green-bg:#22c55e18;--green-border:#22c55e44;--slate:#94a3b8;--slate-bg:#94a3b81c;--slate-border:#94a3b840;--paper:#f8f8f6;--line:#cfd2cb;--shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);}
+  :root[data-theme="light"]{--bg:#f4f5f3;--surface:#fff;--surface-2:#f7f8f6;--border:#e3e5e0;--text:#1a1c19;--muted:#6b7168;--faint:#9aa093;--accent:#2563eb;--accent-weak:#2563eb12;--accent-ring:#2563eb40;--accent-fill:#2563eb1f;--green:#15803d;--green-bg:#16a34a12;--green-border:#16a34a40;--amber:#b45309;--amber-bg:#f59e0b16;--amber-border:#f59e0b44;--slate:#475569;--slate-bg:#47556912;--slate-border:#47556933;--paper:#fff;--line:#d9dbd5;--shadow:0 1px 2px rgba(20,25,18,.04),0 8px 24px rgba(20,25,18,.06);}
+  :root[data-theme="dark"]{--bg:#111311;--surface:#1a1d19;--surface-2:#20241f;--border:#2e332b;--text:#eef0ea;--muted:#a3a99b;--faint:#767c6e;--accent:#60a5fa;--accent-weak:#60a5fa1c;--accent-ring:#60a5fa55;--accent-fill:#60a5fa2b;--green:#4ade80;--green-bg:#22c55e18;--green-border:#22c55e44;--amber:#fbbf24;--amber-bg:#f59e0b1e;--amber-border:#f59e0b4d;--slate:#94a3b8;--slate-bg:#94a3b81c;--slate-border:#94a3b840;--paper:#f8f8f6;--line:#cfd2cb;--shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);}
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--text);font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;}
-  .wrap{max-width:780px;margin:0 auto;padding:28px 18px 56px;}
+  .wrap{max-width:900px;margin:0 auto;padding:28px 18px 56px;}
   .review-tag{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-bottom:18px;flex-wrap:wrap;}
   .review-tag b{color:var(--text);font-weight:600;}
   .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:none;}
@@ -36,8 +38,8 @@
   .detected b{font-weight:700;}
   .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;font-weight:600;background:var(--surface);border:1px solid var(--border);border-bottom-width:2px;border-radius:5px;padding:1px 5px;color:var(--text);}
 
-  .stage{display:grid;grid-template-columns:1fr 190px;gap:16px;}
-  @media (max-width:640px){.stage{grid-template-columns:1fr;}}
+  .stage{display:grid;grid-template-columns:1fr 272px;gap:16px;align-items:start;}
+  @media (max-width:720px){.stage{grid-template-columns:1fr;}}
 
   /* mock page */
   .page{position:relative;background:var(--paper);border:1px solid var(--line);border-radius:6px;aspect-ratio:1/1.3;overflow:hidden;box-shadow:var(--shadow);user-select:none;}
@@ -47,31 +49,90 @@
   .fl{display:block;font-size:9px;color:#8a8f82;letter-spacing:.02em;text-transform:uppercase;}
 
   /* native field hotspot — sits exactly over a real AcroForm widget */
-  .fld{position:absolute;border:1.4px solid var(--accent);background:var(--accent-fill);border-radius:3px;cursor:text;display:flex;align-items:center;padding:0 5px;font-size:11px;color:var(--accent);font-weight:600;transition:box-shadow .12s,border-color .12s;overflow:hidden;white-space:nowrap;}
+  .fld{position:absolute;border:1.4px solid var(--accent);background:var(--accent-fill);border-radius:3px;cursor:text;display:flex;align-items:center;padding:0 5px;font-size:11px;color:var(--accent);font-weight:600;transition:box-shadow .12s,border-color .12s,opacity .12s;overflow:hidden;white-space:nowrap;}
+  .fld.req{border-color:var(--amber);}
   .fld.check{cursor:pointer;justify-content:center;padding:0;}
-  .fld.drop{cursor:pointer;justify-content:space-between;}
-  .fld:hover{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-ring);}
-  .fld.on{box-shadow:0 0 0 3px var(--accent-ring);border-color:var(--accent);background:var(--surface);}
+  .fld.drop,.fld.radio{cursor:pointer;justify-content:space-between;}
+  .fld:hover{box-shadow:0 0 0 3px var(--accent-ring);}
+  .fld.on{box-shadow:0 0 0 3px var(--accent-ring);border-color:var(--accent);background:var(--surface);z-index:3;}
+  .hidefields .fld{border-color:transparent;background:transparent;box-shadow:none;}
+  .hidefields .fld.on{border-color:var(--accent);}
   .fld .ph{color:var(--faint);font-weight:500;}
-  .fld .caret{width:1px;height:13px;background:var(--accent);margin-left:1px;animation:blink 1s step-end infinite;}
+  .fld .caret{width:1px;height:13px;background:currentColor;margin-left:1px;animation:blink 1s step-end infinite;}
   @keyframes blink{50%{opacity:0}}
   @media (prefers-reduced-motion:reduce){.fld .caret{animation:none}}
-  .fld .chev{width:12px;height:12px;flex:none;}
+  .fld .chev{width:12px;height:12px;flex:none;opacity:.7;}
   .tick{font-weight:900;font-size:13px;line-height:1;}
-  /* floating field indicator */
   .fchip{position:absolute;font-size:9px;font-weight:700;letter-spacing:.02em;color:#fff;background:var(--accent);padding:2px 6px;border-radius:5px 5px 5px 0;top:-17px;left:-1px;white-space:nowrap;box-shadow:0 2px 6px var(--accent-ring);}
+  .reqdot{position:absolute;top:-4px;right:-4px;width:7px;height:7px;border-radius:50%;background:var(--amber);border:1.5px solid var(--paper);}
 
-  .side .lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 0 8px;}
-  .navrow{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:8px 10px;font-size:12px;margin-bottom:12px;}
+  /* ── field navigator ── */
+  .navrow{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:8px 10px;font-size:12px;margin-bottom:10px;}
   .navrow b{color:var(--text);font-weight:700;font-variant-numeric:tabular-nums;}
-  .navrow .nm{color:var(--accent);font-weight:600;font-family:ui-monospace,monospace;font-size:11px;}
+  .navrow .nm{color:var(--accent);font-weight:600;font-family:ui-monospace,monospace;font-size:10.5px;display:block;margin-top:1px;}
   .navbtns{display:flex;gap:5px;}
-  .navbtns button{width:24px;height:24px;border:1px solid var(--border);background:var(--surface);border-radius:6px;cursor:pointer;color:var(--text);font-size:13px;line-height:1;}
+  .navbtns button{width:26px;height:26px;border:1px solid var(--border);background:var(--surface);border-radius:6px;cursor:pointer;color:var(--text);font-size:13px;line-height:1;}
   .navbtns button:hover{border-color:var(--accent);color:var(--accent);}
 
-  /* export mode toggle — the v1.1 differentiator */
-  .modes{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;}
-  .mode{display:flex;gap:10px;align-items:flex-start;border:1.5px solid var(--border);border-radius:11px;padding:10px 11px;cursor:pointer;background:var(--surface);transition:border-color .12s,background .12s;}
+  .flist{border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:10px;}
+  .flist .fi{display:flex;align-items:center;gap:8px;padding:6px 10px;font-size:11.5px;cursor:pointer;border-bottom:1px solid var(--border);background:var(--surface);}
+  .flist .fi:last-child{border-bottom:0;}
+  .flist .fi:hover{background:var(--surface-2);}
+  .flist .fi.on{background:var(--accent-weak);}
+  .flist .fi .st{width:8px;height:8px;border-radius:50%;flex:none;border:1.5px solid var(--faint);}
+  .flist .fi.filled .st{background:var(--green);border-color:var(--green);}
+  .flist .fi .fn{flex:1;font-family:ui-monospace,monospace;font-size:10.5px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .flist .fi .ft{font-size:9px;color:var(--faint);text-transform:uppercase;letter-spacing:.03em;}
+  .flist .fi .rq{color:var(--amber);font-weight:800;}
+
+  /* ── customize panel ── */
+  .cust{border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:12px;margin-bottom:10px;}
+  .cust .ct{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 0 10px;display:flex;align-items:center;gap:6px;}
+  .cust .ct .pill{font-size:9.5px;font-weight:700;color:var(--accent);background:var(--accent-weak);border:1px solid var(--accent-ring);border-radius:999px;padding:1px 7px;text-transform:none;letter-spacing:0;}
+  .grp{margin-bottom:11px;}
+  .grp:last-child{margin-bottom:0;}
+  .glbl{font-size:10.5px;font-weight:600;color:var(--muted);margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;}
+  .inp{width:100%;border:1px solid var(--border);border-radius:8px;background:var(--surface-2);padding:7px 9px;font:inherit;font-size:12.5px;color:var(--text);}
+  .inp:focus{outline:2px solid var(--accent-ring);outline-offset:0;border-color:var(--accent);}
+  select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7168' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:26px;}
+  .seg{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+  .seg button{flex:1;border:0;background:var(--surface-2);color:var(--muted);font:inherit;font-size:12px;font-weight:600;padding:6px 0;cursor:pointer;border-right:1px solid var(--border);display:grid;place-items:center;}
+  .seg button:last-child{border-right:0;}
+  .seg button.on{background:var(--accent);color:#fff;}
+  .seg svg{width:14px;height:14px;}
+  .sizewrap{display:flex;align-items:center;gap:8px;}
+  .sizewrap input[type=range]{flex:1;accent-color:var(--accent);}
+  .autochip{font-size:10px;font-weight:700;padding:3px 8px;border-radius:7px;border:1px solid var(--border);background:var(--surface-2);color:var(--muted);cursor:pointer;white-space:nowrap;}
+  .autochip.on{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .swatches{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+  .sw{width:20px;height:20px;border-radius:50%;border:1px solid #0002;cursor:pointer;}
+  .sw.on{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent);}
+  .sw.custom{display:grid;place-items:center;background:conic-gradient(from 0deg,#ef4444,#f59e0b,#22c55e,#3b82f6,#a855f7,#ef4444);color:#fff;font-size:11px;font-weight:800;}
+  .opts{display:flex;flex-direction:column;gap:5px;}
+  .opt{display:flex;align-items:center;gap:8px;font-size:12px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:var(--surface-2);}
+  .opt.on{border-color:var(--accent);background:var(--accent-weak);color:var(--accent);font-weight:600;}
+  .opt .rr{width:13px;height:13px;border-radius:50%;border:2px solid var(--faint);flex:none;position:relative;}
+  .opt.on .rr{border-color:var(--accent);}
+  .opt.on .rr::after{content:"";position:absolute;inset:2px;border-radius:50%;background:var(--accent);}
+  .chkbtn{display:flex;align-items:center;gap:9px;width:100%;border:1px solid var(--border);border-radius:9px;background:var(--surface-2);padding:9px 10px;cursor:pointer;font:inherit;font-size:12.5px;color:var(--text);font-weight:600;}
+  .chkbtn .bx{width:17px;height:17px;border-radius:4px;border:1.5px solid var(--faint);display:grid;place-items:center;color:#fff;flex:none;}
+  .chkbtn.on .bx{background:var(--accent);border-color:var(--accent);}
+  .clearrow{display:flex;gap:6px;margin-top:10px;}
+  .minibtn{flex:1;font:inherit;font-size:11px;font-weight:600;border:1px solid var(--border);background:var(--surface-2);border-radius:8px;padding:6px 0;cursor:pointer;color:var(--muted);}
+  .minibtn:hover{border-color:var(--muted);color:var(--text);}
+  .applyall{width:100%;font:inherit;font-size:11.5px;font-weight:600;border:1px dashed var(--accent-ring);background:var(--accent-weak);color:var(--accent);border-radius:9px;padding:8px 0;cursor:pointer;margin-bottom:10px;}
+  .toggle{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;color:var(--text);border:1px solid var(--border);border-radius:9px;padding:8px 10px;background:var(--surface);margin-bottom:10px;cursor:pointer;font-weight:500;}
+  .sw2{width:34px;height:19px;border-radius:999px;background:var(--border);position:relative;flex:none;transition:background .15s;}
+  .sw2::after{content:"";position:absolute;top:2px;left:2px;width:15px;height:15px;border-radius:50%;background:#fff;transition:transform .15s;box-shadow:0 1px 2px #0003;}
+  .toggle.on .sw2{background:var(--accent);}
+  .toggle.on .sw2::after{transform:translateX(15px);}
+
+  /* ── export block (full width) ── */
+  .export{margin-top:16px;border-top:1px solid var(--border);padding-top:16px;}
+  .export .lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 0 10px;}
+  .modes{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+  @media (max-width:560px){.modes{grid-template-columns:1fr;}}
+  .mode{display:flex;gap:10px;align-items:flex-start;border:1.5px solid var(--border);border-radius:11px;padding:11px 12px;cursor:pointer;background:var(--surface);transition:border-color .12s,background .12s;}
   .mode:hover{border-color:var(--muted);}
   .mode.on.keep{border-color:var(--green-border);background:var(--green-bg);}
   .mode.on.lock{border-color:var(--slate-border);background:var(--slate-bg);}
@@ -85,28 +146,33 @@
   .mtag{font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:999px;}
   .mtag.keep{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border);}
   .mtag.lock{background:var(--slate-bg);color:var(--slate);border:1px solid var(--slate-border);}
-
-  .flatnote{display:flex;gap:8px;font-size:11.5px;color:var(--muted);background:var(--surface-2);border:1px dashed var(--border);border-radius:10px;padding:9px 11px;margin-bottom:14px;}
-  .flatnote svg{flex:none;color:var(--faint);margin-top:1px;}
-  .flatnote b{color:var(--text);font-weight:600;}
-
-  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;}
-  .btn{font:inherit;font-size:13.5px;font-weight:700;cursor:pointer;border:0;border-radius:11px;padding:11px 15px;display:inline-flex;gap:8px;align-items:center;justify-content:center;width:100%;}
-  .btn-p{background:var(--accent);color:#fff;box-shadow:0 4px 14px var(--accent-ring);}
+  .exopts{display:flex;flex-wrap:wrap;gap:8px 18px;margin-bottom:14px;}
+  .exchk{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text);cursor:pointer;}
+  .exchk .bx{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--faint);display:grid;place-items:center;color:#fff;flex:none;}
+  .exchk.on .bx{background:var(--accent);border-color:var(--accent);}
+  .fnamewrap{display:flex;align-items:center;gap:8px;flex:1;min-width:200px;}
+  .fnamewrap input{flex:1;border:1px solid var(--border);border-radius:8px;background:var(--surface-2);padding:6px 9px;font:inherit;font-size:12px;color:var(--text);}
+  .dlrow{display:flex;gap:10px;flex-wrap:wrap;}
+  .btn{font:inherit;font-size:13.5px;font-weight:700;cursor:pointer;border:0;border-radius:11px;padding:12px 18px;display:inline-flex;gap:8px;align-items:center;justify-content:center;}
+  .btn-p{flex:1;background:var(--accent);color:#fff;box-shadow:0 4px 14px var(--accent-ring);min-width:220px;}
 
   .foot{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;margin-top:20px;font-size:12px;color:var(--muted);}
   .foot span{display:inline-flex;align-items:center;gap:6px;}
   .foot svg{color:var(--green);}
   .whatschanged{margin-top:22px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);padding:16px 18px;}
-  .whatschanged h2{font-size:13px;margin:0 0 10px;letter-spacing:.01em;}
-  .whatschanged ul{margin:0;padding:0;list-style:none;display:grid;gap:9px;}
-  .whatschanged li{display:flex;gap:9px;font-size:12.5px;color:var(--muted);}
+  .whatschanged h2{font-size:13px;margin:0 0 4px;letter-spacing:.01em;}
+  .whatschanged .lead{font-size:12px;color:var(--muted);margin:0 0 12px;}
+  .cols2{display:grid;grid-template-columns:1fr 1fr;gap:10px 22px;}
+  @media (max-width:640px){.cols2{grid-template-columns:1fr;}}
+  .whatschanged ul{margin:0;padding:0;list-style:none;display:grid;gap:9px;align-content:start;}
+  .whatschanged li{display:flex;gap:9px;font-size:12px;color:var(--muted);}
   .whatschanged li b{color:var(--text);font-weight:600;}
   .num{width:19px;height:19px;border-radius:6px;flex:none;display:grid;place-items:center;font-size:10px;font-weight:800;background:var(--accent-weak);color:var(--accent);border:1px solid var(--accent-ring);}
+  .chk{width:17px;height:17px;flex:none;color:var(--green);margin-top:1px;}
 </style>
 
 <div class="wrap">
-  <div class="review-tag"><span class="dot"></span> <b>Mockup for review</b> — Tool #3 · Fill a PDF form <b>v1.1: native AcroForm fields</b> — try clicking a field or pressing <span class="kbd">Tab</span></div>
+  <div class="review-tag"><span class="dot"></span> <b>Mockup for review</b> — Tool #3 · Fill a PDF form <b>v1.1: native AcroForm fields + full customization</b> — click a field or press <span class="kbd">Tab</span></div>
 
   <div class="card">
     <div class="head">
@@ -115,14 +181,14 @@
       </div>
       <div style="flex:1">
         <h1>Fill a PDF form</h1>
-        <p class="sub">Click straight into real form fields, Tab through them like a native form, and choose whether the result stays fillable.</p>
+        <p class="sub">Click straight into real form fields, Tab through them like a native form, tune every detail, then choose whether the result stays fillable.</p>
       </div>
       <span class="badge">on your device</span>
     </div>
 
     <div class="detected">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-      <div>This PDF has <b>6 fillable fields</b>. Click any field to type, or press <span class="kbd">Tab</span> / <span class="kbd">Shift+Tab</span> to move between them. Need to write somewhere with no field? The <b>place-text tools</b> still work anywhere on the page.</div>
+      <div>This PDF has <b>6 fillable fields</b> (<b class="reqword" style="color:var(--amber)">2 required</b>). Click any field to type, or press <span class="kbd">Tab</span> / <span class="kbd">Shift+Tab</span> to move between them. No field where you need one? The <b>place-text tools</b> still work anywhere on the page.</div>
     </div>
 
     <div class="stage">
@@ -132,64 +198,143 @@
           <div class="pg-pad">
             <div class="pg-h">EMPLOYMENT APPLICATION</div>
             <div class="pg-sub">Form HR-204 · please complete all fields</div>
-
-            <div style="position:absolute;left:30px;top:78px;"><span class="fl">Full name</span></div>
-            <div style="position:absolute;left:30px;top:140px;"><span class="fl">Email address</span></div>
+            <div style="position:absolute;left:30px;top:78px;"><span class="fl">Full name *</span></div>
+            <div style="position:absolute;left:30px;top:140px;"><span class="fl">Email address *</span></div>
             <div style="position:absolute;left:30px;top:202px;"><span class="fl">Position applied for</span></div>
-            <div style="position:absolute;left:30px;top:264px;"><span class="fl">Start date</span></div>
-            <div style="position:absolute;left:52px;top:322px;font-size:10px;color:#4a4f45;">I certify the above is accurate</div>
-            <div style="position:absolute;left:30px;top:372px;"><span class="fl">Signature</span></div>
+            <div style="position:absolute;left:30px;top:264px;"><span class="fl">Employment type</span></div>
+            <div style="position:absolute;left:52px;top:334px;font-size:10px;color:#4a4f45;">I certify the above is accurate</div>
+            <div style="position:absolute;left:30px;top:378px;"><span class="fl">Signature</span></div>
           </div>
 
-          <!-- interactive native fields (positioned like real widget rects) -->
-          <div class="fld text" data-type="text" data-name="applicant.name"  style="left:30px;top:92px;width:230px;height:22px;"></div>
-          <div class="fld text" data-type="text" data-name="email"           style="left:30px;top:154px;width:230px;height:22px;"></div>
-          <div class="fld drop" data-type="drop" data-name="position"        style="left:30px;top:216px;width:180px;height:22px;">
+          <div class="fld text req" data-type="text" data-name="applicant.name" data-req="1" style="left:30px;top:92px;width:230px;height:22px;"></div>
+          <div class="fld text req" data-type="text" data-name="email"          data-req="1" style="left:30px;top:154px;width:230px;height:22px;"></div>
+          <div class="fld drop" data-type="drop" data-name="position"           style="left:30px;top:216px;width:180px;height:22px;">
             <span class="val ph">Select…</span>
             <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
           </div>
-          <div class="fld text" data-type="date" data-name="start.date"      style="left:30px;top:278px;width:140px;height:22px;"></div>
-          <div class="fld check" data-type="check" data-name="certify"       style="left:30px;top:318px;width:16px;height:16px;"></div>
-          <div class="fld text" data-type="text" data-name="signature"       style="left:30px;top:386px;width:210px;height:24px;"></div>
+          <div class="fld radio" data-type="radio" data-name="emp.type"         style="left:30px;top:278px;width:200px;height:22px;">
+            <span class="val ph">Full-time / Part-time / Contract</span>
+          </div>
+          <div class="fld check" data-type="check" data-name="certify"          style="left:30px;top:330px;width:16px;height:16px;"></div>
+          <div class="fld text" data-type="text" data-name="signature"          style="left:30px;top:392px;width:210px;height:24px;"></div>
         </div>
       </div>
 
-      <!-- side rail -->
+      <!-- right rail: navigator + customize -->
       <div class="side">
         <div class="navrow">
-          <div>Field <b id="fpos">1</b> / <b>6</b><br><span class="nm" id="fname">applicant.name</span></div>
-          <div class="navbtns"><button id="prev" title="Shift+Tab">↑</button><button id="next" title="Tab">↓</button></div>
+          <div>Field <b id="fpos">1</b> / <b>6</b><span class="nm" id="fname">applicant.name</span></div>
+          <div class="navbtns"><button id="prev" title="Shift+Tab" aria-label="Previous field">↑</button><button id="next" title="Tab" aria-label="Next field">↓</button></div>
         </div>
 
-        <p class="lbl">When you download</p>
-        <div class="modes">
-          <div class="mode keep on" data-mode="keep" tabindex="0" role="radio" aria-checked="true">
-            <span class="rad"></span>
-            <div>
-              <div class="mt">Keep it fillable <span class="mtag keep">editable</span></div>
-              <div class="md">Answers are written into the form. The person you send it to can still change them.</div>
+        <div class="flist" id="flist"></div>
+
+        <!-- customize (context-aware by field type) -->
+        <div class="cust" id="cust">
+          <p class="ct">Customize <span class="pill" id="ctype">text field</span></p>
+
+          <!-- TEXT/DATE controls -->
+          <div id="c-text">
+            <div class="grp">
+              <div class="glbl">Value</div>
+              <input class="inp" id="cval" placeholder="Type here…" value="">
+            </div>
+            <div class="grp">
+              <div class="glbl">Font</div>
+              <select class="inp" id="cfont">
+                <option>Helvetica</option><option>Times Roman</option><option>Courier</option><option>DiemDesk Sans</option>
+              </select>
+            </div>
+            <div class="grp">
+              <div class="glbl">Size <span class="autochip on" id="cauto">Auto-fit</span></div>
+              <div class="sizewrap"><input type="range" min="6" max="24" value="11" id="csize" disabled><span id="csizev" style="font-size:11px;color:var(--muted);width:34px;text-align:right;">auto</span></div>
+            </div>
+            <div class="grp">
+              <div class="glbl">Colour</div>
+              <div class="swatches" id="cswatch">
+                <span class="sw on" data-c="#111827" style="background:#111827"></span>
+                <span class="sw" data-c="#1e3a8a" style="background:#1e3a8a"></span>
+                <span class="sw" data-c="#b91c1c" style="background:#b91c1c"></span>
+                <span class="sw" data-c="#15803d" style="background:#15803d"></span>
+                <span class="sw custom" title="Custom colour">+</span>
+              </div>
+            </div>
+            <div class="grp">
+              <div class="glbl">Align</div>
+              <div class="seg" id="calign">
+                <button class="on" data-a="left" aria-label="Align left"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h12M3 18h15"/></svg></button>
+                <button data-a="center" aria-label="Align center"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M6 12h12M4 18h16"/></svg></button>
+                <button data-a="right" aria-label="Align right"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M9 12h12M6 18h15"/></svg></button>
+              </div>
+            </div>
+            <div class="clearrow">
+              <button class="minibtn" id="cclear">Clear field</button>
+              <button class="minibtn" id="creset">Reset original</button>
             </div>
           </div>
-          <div class="mode lock" data-mode="lock" tabindex="0" role="radio" aria-checked="false">
-            <span class="rad"></span>
-            <div>
-              <div class="mt">Flatten &amp; lock <span class="mtag lock">final</span></div>
-              <div class="md">Answers are baked into the page — no one can edit them after.</div>
+
+          <!-- CHECKBOX -->
+          <div id="c-check" style="display:none">
+            <button class="chkbtn on" id="ctick"><span class="bx"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span> Checked</button>
+            <div class="grp" style="margin-top:10px"><div class="glbl">Mark style</div>
+              <div class="seg" id="cmark"><button class="on" data-m="check">✓ Tick</button><button data-m="x">✗ Cross</button><button data-m="dot">● Dot</button></div>
             </div>
+          </div>
+
+          <!-- RADIO -->
+          <div id="c-radio" style="display:none">
+            <div class="glbl">Choose one</div>
+            <div class="opts" id="cradio">
+              <div class="opt on"><span class="rr"></span> Full-time</div>
+              <div class="opt"><span class="rr"></span> Part-time</div>
+              <div class="opt"><span class="rr"></span> Contract</div>
+            </div>
+          </div>
+
+          <!-- DROPDOWN -->
+          <div id="c-drop" style="display:none">
+            <div class="grp"><div class="glbl">Select an option</div>
+              <select class="inp" id="cdrop"><option value="">Select…</option><option>Software Engineer</option><option>Product Designer</option><option>Data Analyst</option></select>
+            </div>
+            <label class="exchk" id="ccombo" style="font-size:11.5px"><span class="bx"></span> Allow a custom typed value</label>
           </div>
         </div>
 
-        <div class="flatnote">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-          <div id="modehint"><b>Editable:</b> best for sending a form on for someone else to complete or sign.</div>
-        </div>
+        <button class="applyall" id="applyall">Apply font · size · colour to all fields</button>
+        <div class="toggle on" id="thi"><span>Highlight all fields</span><span class="sw2"></span></div>
+        <div class="toggle on" id="tadv"><span>Enter jumps to next field</span><span class="sw2"></span></div>
+      </div>
+    </div>
 
-        <div class="actions">
-          <button class="btn btn-p" id="dl">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
-            <span id="dllabel">Download fillable PDF</span>
-          </button>
+    <!-- export (full width) -->
+    <div class="export">
+      <p class="lbl">When you download</p>
+      <div class="modes">
+        <div class="mode keep on" data-mode="keep" tabindex="0" role="radio" aria-checked="true">
+          <span class="rad"></span>
+          <div>
+            <div class="mt">Keep it fillable <span class="mtag keep">editable</span></div>
+            <div class="md">Answers are written into the form. Whoever you send it to can still change or sign it.</div>
+          </div>
         </div>
+        <div class="mode lock" data-mode="lock" tabindex="0" role="radio" aria-checked="false">
+          <span class="rad"></span>
+          <div>
+            <div class="mt">Flatten &amp; lock <span class="mtag lock">final</span></div>
+            <div class="md">Answers are baked into the page — no one can edit them afterwards.</div>
+          </div>
+        </div>
+      </div>
+      <div class="exopts">
+        <label class="exchk on" id="xsig"><span class="bx"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span> Lock signatures even in editable mode</label>
+        <label class="exchk on" id="xappear"><span class="bx"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span> Rebuild appearances (fonts render everywhere)</label>
+        <div class="fnamewrap"><span style="font-size:11px;color:var(--muted)">File</span><input value="employment-application-filled.pdf"></div>
+      </div>
+      <div class="dlrow">
+        <button class="btn btn-p" id="dl">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+          <span id="dllabel">Download fillable PDF</span>
+        </button>
       </div>
     </div>
 
@@ -201,91 +346,133 @@
   </div>
 
   <div class="whatschanged">
-    <h2>What's new in v1.1 (vs. the live tool)</h2>
-    <ul>
-      <li><span class="num">1</span><div><b>Read the real fields.</b> We now read each AcroForm widget's box, type and page — so text, checkbox, dropdown and radio fields all light up exactly where they sit.</div></li>
-      <li><span class="num">2</span><div><b>Click &amp; Tab like a native form.</b> Click a field to type into it; <span class="kbd">Tab</span>/<span class="kbd">Shift+Tab</span> walk through fields in reading order. No more eyeballing where to drop text.</div></li>
-      <li><span class="num">3</span><div><b>Keep-editable export.</b> Values are written back into the AcroForm, so the download <b>stays a fillable form</b> — the recipient can still change or sign it. This is the headline v1.1 win.</div></li>
-      <li><span class="num">4</span><div><b>Flatten is now a choice.</b> The old always-flatten behaviour becomes the "Flatten &amp; lock" option for when you want the answers final. Flat scans keep the place-anywhere tools unchanged.</div></li>
-    </ul>
+    <h2>What's new in v1.1</h2>
+    <p class="lead">Everything the live tool does today stays — this adds real-field intelligence and full control on top.</p>
+    <div class="cols2">
+      <ul>
+        <li><span class="num">1</span><div><b>Reads the real fields.</b> Each AcroForm widget's box, type, page and required-flag — so text, checkbox, radio, dropdown and list fields all light up exactly where they sit.</div></li>
+        <li><span class="num">2</span><div><b>Click &amp; Tab like a native form.</b> Click to type; <span class="kbd">Tab</span>/<span class="kbd">Shift+Tab</span> walk fields in reading order; a field list shows what's filled, empty or required.</div></li>
+        <li><span class="num">3</span><div><b>Keep-editable export.</b> Values are written back into the AcroForm, so the download <b>stays a fillable form</b> — the recipient can still change or sign it. The headline v1.1 win.</div></li>
+        <li><span class="num">4</span><div><b>Flatten is now a choice.</b> The old always-flatten becomes “Flatten &amp; lock” for when you want answers final. Flat scans keep today's place-anywhere tools untouched.</div></li>
+      </ul>
+      <ul>
+        <li><svg class="chk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg><div><b>Per-field control</b> — value, font, size (auto-fit or fixed), colour, alignment, clear &amp; reset.</div></li>
+        <li><svg class="chk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg><div><b>Every field type</b> — checkbox mark style, radio option pick, dropdown select (with optional custom typed value), multi-select lists.</div></li>
+        <li><svg class="chk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg><div><b>Apply-to-all</b> defaults, highlight on/off, Enter-to-advance, undo, and a stable filename.</div></li>
+        <li><svg class="chk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg><div><b>Signature-lock</b> and appearance-rebuild options so the file looks right in every PDF viewer.</div></li>
+      </ul>
+    </div>
   </div>
 </div>
 
 <script>
 (function(){
   var fields = Array.prototype.slice.call(document.querySelectorAll('.fld'));
-  var idx = 0, mode = 'keep';
-  var fpos = document.getElementById('fpos'), fname = document.getElementById('fname');
-  var samples = {text:'', date:'', drop:''};
+  var idx = 0, mode='keep', color='#111827';
+  var TYPELABEL={text:'text field',date:'date field',check:'checkbox',radio:'radio group',drop:'dropdown'};
+  var demoVals={'applicant.name':'Jordan A. Rivera','email':'jordan.rivera@email.com','signature':'Jordan A. Rivera'};
+  var fpos=document.getElementById('fpos'), fname=document.getElementById('fname'), ctype=document.getElementById('ctype');
+  var page=document.getElementById('page');
 
-  function focusField(i, type){
-    idx = (i + fields.length) % fields.length;
-    fields.forEach(function(f){ f.classList.remove('on'); f.querySelector('.fchip') && f.querySelector('.fchip').remove(); });
-    var f = fields[idx];
-    f.classList.add('on');
-    var chip = document.createElement('span'); chip.className='fchip'; chip.textContent = f.dataset.name;
-    f.appendChild(chip);
-    fpos.textContent = idx+1; fname.textContent = f.dataset.name;
-    if(type==='typewrite' && (f.dataset.type==='text' || f.dataset.type==='date')){ typeInto(f); }
+  // build field list
+  var flist=document.getElementById('flist');
+  fields.forEach(function(f,i){
+    var row=document.createElement('div'); row.className='fi'; row.dataset.i=i;
+    row.innerHTML='<span class="st"></span><span class="fn">'+f.dataset.name+'</span>'+(f.dataset.req?'<span class="rq" title="required">*</span>':'')+'<span class="ft">'+f.dataset.type+'</span>';
+    row.addEventListener('click',function(){ focusField(i,'typewrite'); });
+    flist.appendChild(row);
+  });
+
+  function showPanel(type){
+    ['text','check','radio','drop'].forEach(function(t){ var el=document.getElementById('c-'+t); if(el) el.style.display='none'; });
+    var key = (type==='date')?'text':type;
+    var panel=document.getElementById('c-'+key); if(panel) panel.style.display='';
+    ctype.textContent=TYPELABEL[type]||'field';
   }
-  function renderText(f, txt, caret){
-    // preserve chip
-    var chip = f.querySelector('.fchip');
-    f.innerHTML=''; if(chip) f.appendChild(chip);
-    var s = document.createElement('span'); s.textContent = txt; f.appendChild(s);
+  function markFilled(){
+    fields.forEach(function(f,i){
+      var filled = f.classList.contains('checked') || f.classList.contains('picked') || (f.querySelector('.val') && !f.querySelector('.val').classList.contains('ph')) || (f.dataset.type==='text'||f.dataset.type==='date') && f.textContent.replace(/\s/g,'').length>0 && !f.querySelector('.ph');
+      var row=flist.children[i]; if(row) row.classList.toggle('filled', !!filled);
+    });
+  }
+  function focusField(i,type){
+    idx=(i+fields.length)%fields.length;
+    fields.forEach(function(f){ f.classList.remove('on'); var c=f.querySelector('.fchip'); if(c)c.remove(); var d=f.querySelector('.reqdot'); if(d)d.remove(); });
+    Array.prototype.forEach.call(flist.children,function(r){ r.classList.remove('on'); });
+    var f=fields[idx]; f.classList.add('on'); if(flist.children[idx]) flist.children[idx].classList.add('on');
+    var chip=document.createElement('span'); chip.className='fchip'; chip.textContent=f.dataset.name; f.appendChild(chip);
+    if(f.dataset.req){ var rd=document.createElement('span'); rd.className='reqdot'; f.appendChild(rd); }
+    fpos.textContent=idx+1; fname.textContent=f.dataset.name;
+    showPanel(f.dataset.type);
+    if(f.dataset.type==='text'){ document.getElementById('cval').value = f._val||''; }
+    if(type==='typewrite' && (f.dataset.type==='text'||f.dataset.type==='date')) typeInto(f);
+  }
+  function renderText(f,txt,caret){
+    var chip=f.querySelector('.fchip'), rd=f.querySelector('.reqdot');
+    f.innerHTML=''; if(chip)f.appendChild(chip); if(rd)f.appendChild(rd);
+    var s=document.createElement('span'); s.textContent=txt; s.style.color=color; f.appendChild(s);
     if(caret){ var c=document.createElement('span'); c.className='caret'; f.appendChild(c); }
   }
-  var demoVals = {'applicant.name':'Jordan A. Rivera','email':'jordan.rivera@email.com','start.date':'08 / 04 / 2026','signature':'Jordan A. Rivera'};
   function typeInto(f){
-    var target = demoVals[f.dataset.name] || 'Sample text';
-    var n=0; renderText(f,'',true);
-    var iv = setInterval(function(){
-      n++; renderText(f, target.slice(0,n), true);
-      if(n>=target.length){ clearInterval(iv); }
-    }, 45);
+    var target=demoVals[f.dataset.name]||'Sample text'; var n=0; renderText(f,'',true);
+    var iv=setInterval(function(){ n++; f._val=target.slice(0,n); renderText(f,f._val,true); document.getElementById('cval').value=f._val;
+      if(n>=target.length){ clearInterval(iv); markFilled(); } },42);
   }
 
-  fields.forEach(function(f, i){
-    f.addEventListener('click', function(e){
-      e.stopPropagation();
-      if(f.dataset.type==='check'){
-        f.classList.toggle('checked');
-        f.innerHTML = f.classList.contains('checked') ? '<span class="tick">✓</span>' : '';
-        focusField(i,'none'); return;
-      }
-      if(f.dataset.type==='drop'){
-        var opts=['Software Engineer','Product Designer','Data Analyst']; f._o=((f._o||0)+1)%(opts.length+1);
-        var chip=f.querySelector('.fchip');
-        f.innerHTML='';
-        var v=document.createElement('span'); v.className='val'+(f._o?'':' ph'); v.textContent = f._o?opts[f._o-1]:'Select…'; f.appendChild(v);
-        f.insertAdjacentHTML('beforeend','<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>');
-        if(chip) f.appendChild(chip);
-        focusField(i,'none'); return;
-      }
+  fields.forEach(function(f,i){
+    f.addEventListener('click',function(e){ e.stopPropagation();
+      if(f.dataset.type==='check'){ f.classList.toggle('checked'); f.innerHTML=f.classList.contains('checked')?'<span class="tick">✓</span>':''; focusField(i,'none'); markFilled(); return; }
+      if(f.dataset.type==='drop'){ var o=['Software Engineer','Product Designer','Data Analyst']; f._o=((f._o||0)+1)%(o.length+1);
+        f.innerHTML='<span class="val'+(f._o?'':' ph')+'">'+(f._o?o[f._o-1]:'Select…')+'</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
+        if(f._o){ f.classList.add('picked'); document.getElementById('cdrop').value=o[f._o-1]; } else f.classList.remove('picked');
+        focusField(i,'none'); markFilled(); return; }
+      if(f.dataset.type==='radio'){ var r=['Full-time','Part-time','Contract']; f._r=((f._r||0)+1)%r.length;
+        f.innerHTML='<span class="val">'+r[f._r]+'</span>'; f.classList.add('picked');
+        Array.prototype.forEach.call(document.querySelectorAll('#cradio .opt'),function(o,oi){ o.classList.toggle('on',oi===f._r); });
+        focusField(i,'none'); markFilled(); return; }
       focusField(i,'typewrite');
     });
   });
 
   document.getElementById('next').onclick=function(){ focusField(idx+1,'typewrite'); };
   document.getElementById('prev').onclick=function(){ focusField(idx-1,'typewrite'); };
-  document.addEventListener('keydown', function(e){
-    if(e.key==='Tab'){ e.preventDefault(); focusField(idx + (e.shiftKey?-1:1), 'typewrite'); }
-  });
+  document.addEventListener('keydown',function(e){ if(e.key==='Tab'){ e.preventDefault(); focusField(idx+(e.shiftKey?-1:1),'typewrite'); } });
 
-  // mode toggle
-  var hint = document.getElementById('modehint'), dllabel=document.getElementById('dllabel');
+  // value input
+  document.getElementById('cval').addEventListener('input',function(e){ var f=fields[idx]; if(f.dataset.type==='text'||f.dataset.type==='date'){ f._val=e.target.value; renderText(f,e.target.value,false); markFilled(); } });
+  // colour
+  document.querySelectorAll('#cswatch .sw').forEach(function(s){ s.addEventListener('click',function(){ document.querySelectorAll('#cswatch .sw').forEach(function(x){x.classList.remove('on');}); s.classList.add('on'); if(s.dataset.c){ color=s.dataset.c; var f=fields[idx]; if(f._val) renderText(f,f._val,false); } }); });
+  // align
+  document.querySelectorAll('#calign button').forEach(function(b){ b.addEventListener('click',function(){ document.querySelectorAll('#calign button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); var f=fields[idx]; f.style.justifyContent = b.dataset.a==='center'?'center':b.dataset.a==='right'?'flex-end':'flex-start'; }); });
+  // auto-fit / size
+  var auto=document.getElementById('cauto'), csize=document.getElementById('csize'), csizev=document.getElementById('csizev');
+  auto.addEventListener('click',function(){ var on=auto.classList.toggle('on'); csize.disabled=on; csizev.textContent=on?'auto':csize.value+'pt'; });
+  csize.addEventListener('input',function(){ csizev.textContent=csize.value+'pt'; var f=fields[idx]; if(f.querySelector('span')) f.querySelector('span').style.fontSize=csize.value+'px'; });
+  // checkbox mark style
+  document.querySelectorAll('#cmark button').forEach(function(b){ b.addEventListener('click',function(){ document.querySelectorAll('#cmark button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); var f=fields[idx]; var g=b.dataset.m==='x'?'✗':b.dataset.m==='dot'?'●':'✓'; if(f.classList.contains('checked')) f.innerHTML='<span class="tick">'+g+'</span>'; }); });
+  document.getElementById('ctick').addEventListener('click',function(){ var on=this.classList.toggle('on'); var f=fields[idx]; f.classList.toggle('checked',on); f.innerHTML=on?'<span class="tick">✓</span>':''; markFilled(); });
+  // radio panel
+  document.querySelectorAll('#cradio .opt').forEach(function(o,oi){ o.addEventListener('click',function(){ document.querySelectorAll('#cradio .opt').forEach(function(x){x.classList.remove('on');}); o.classList.add('on'); var f=fields[idx]; f._r=oi; f.innerHTML='<span class="val">'+o.textContent.trim()+'</span>'; f.classList.add('picked'); markFilled(); }); });
+  // dropdown panel
+  document.getElementById('cdrop').addEventListener('change',function(e){ var f=fields[idx]; if(f.dataset.type!=='drop')return; var v=e.target.value; f.innerHTML='<span class="val'+(v?'':' ph')+'">'+(v||'Select…')+'</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>'; f.classList.toggle('picked',!!v); markFilled(); });
+  document.getElementById('ccombo').addEventListener('click',function(){ this.classList.toggle('on'); });
+  // clear / reset
+  document.getElementById('cclear').addEventListener('click',function(){ var f=fields[idx]; f._val=''; renderText(f,'',false); document.getElementById('cval').value=''; markFilled(); });
+  document.getElementById('creset').addEventListener('click',function(){ var f=fields[idx]; f._val=''; renderText(f,'',false); document.getElementById('cval').value=''; markFilled(); });
+  // toggles
+  document.getElementById('thi').addEventListener('click',function(){ this.classList.toggle('on'); page.classList.toggle('hidefields', !this.classList.contains('on')); });
+  document.getElementById('tadv').addEventListener('click',function(){ this.classList.toggle('on'); });
+  document.getElementById('applyall').addEventListener('click',function(){ this.textContent='Applied to all 6 fields ✓'; var self=this; setTimeout(function(){ self.textContent='Apply font · size · colour to all fields'; },1400); });
+  document.querySelectorAll('.exchk').forEach(function(c){ c.addEventListener('click',function(e){ e.preventDefault(); c.classList.toggle('on'); }); });
+
+  // export mode
+  var dllabel=document.getElementById('dllabel');
   document.querySelectorAll('.mode').forEach(function(m){
-    function pick(){
-      mode = m.dataset.mode;
-      document.querySelectorAll('.mode').forEach(function(x){ x.classList.remove('on'); x.setAttribute('aria-checked','false'); });
-      m.classList.add('on'); m.setAttribute('aria-checked','true');
-      if(mode==='keep'){ hint.innerHTML='<b>Editable:</b> best for sending a form on for someone else to complete or sign.'; dllabel.textContent='Download fillable PDF'; }
-      else { hint.innerHTML='<b>Locked:</b> best for a finished form you don’t want anyone to change.'; dllabel.textContent='Download flattened PDF'; }
-    }
-    m.addEventListener('click', pick);
-    m.addEventListener('keydown', function(e){ if(e.key===' '||e.key==='Enter'){ e.preventDefault(); pick(); } });
+    function pick(){ mode=m.dataset.mode; document.querySelectorAll('.mode').forEach(function(x){x.classList.remove('on');x.setAttribute('aria-checked','false');}); m.classList.add('on'); m.setAttribute('aria-checked','true'); dllabel.textContent = mode==='keep'?'Download fillable PDF':'Download flattened PDF'; }
+    m.addEventListener('click',pick);
+    m.addEventListener('keydown',function(e){ if(e.key===' '||e.key==='Enter'){ e.preventDefault(); pick(); } });
   });
 
-  focusField(0,'none');
+  focusField(0,'none'); markFilled();
 })();
 </script>
