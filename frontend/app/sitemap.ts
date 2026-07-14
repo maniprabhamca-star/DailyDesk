@@ -9,6 +9,7 @@ const ROUTES: Array<{ path: string; priority: number; changeFrequency: MetadataR
   { path: '/split-pdf', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/compress-pdf', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/compress-to-size', priority: 0.9, changeFrequency: 'monthly' },
+  { path: '/fill-pdf-form', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/rotate-pdf', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/delete-pages-from-pdf', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/add-page-numbers-to-pdf', priority: 0.9, changeFrequency: 'monthly' },

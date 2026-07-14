@@ -5,7 +5,7 @@ import {
   ScanText, MessageSquare, AlignLeft, Languages,
   QrCode, KeyRound, NotebookPen, Flame, Wallet, FolderLock, Link2,
   ImageDown, Smartphone, Eraser, Film, Clapperboard, ArrowLeftRight, Images, Scaling, Repeat, Crop,
-  Ruler, Braces, Palette, CaseSensitive, Crosshair, Contact,
+  Ruler, Braces, Palette, CaseSensitive, Crosshair, Contact, SquarePen,
   Cloud, Sparkles, type LucideIcon,
 } from 'lucide-react';
 
@@ -73,6 +73,7 @@ export const catalog: CatGroup[] = [
       { name: 'Share-Safe PDF Check', href: '/share-safe-pdf-check', icon: ShieldCheck, badge: 'device', soon: true },
       { name: 'Redact PDF', href: '/redact-pdf', icon: EyeOff, badge: 'device', soon: true },
       { name: 'Sign PDF', href: '/sign-pdf', icon: PenTool, badge: 'device' },
+      { name: 'Fill PDF form', href: '/fill-pdf-form', icon: SquarePen, badge: 'device' },
       { name: 'Flatten PDF', href: '/flatten-pdf', icon: Layers, badge: 'device' },
       { name: 'Protect PDF', href: '/protect-pdf', icon: Lock, badge: 'device' },
       { name: 'Unlock PDF', href: '/unlock-pdf', icon: Unlock, badge: 'device' },
