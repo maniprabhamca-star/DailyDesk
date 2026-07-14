@@ -3,8 +3,9 @@
 Reference docs and shareable overviews for DiemDesk (privacy-first, on-device document toolkit).
 
 ## Visual overviews (open the HTML in a browser)
-- **[product-overview.html](product-overview.html)** — the full product story: the three moats (privacy · convenience · determinism), the complete toolkit, the free-vs-Pro model, the Pro differentiators, and how the in-browser tools work end-to-end. Theme-aware, responsive.
-- **[tool-status-board.html](tool-status-board.html)** — the tool inventory at a glance: what's live, built-but-gated, and planned; free vs Pro; on-device vs server (with the 3/day Office chip); plus the planned Pro differentiators.
+All visual HTML artifacts live in **[`artifacts/`](artifacts/)** (see [artifacts/README.md](artifacts/README.md) for the file↔live-link map). The two overviews:
+- **[artifacts/overview-product.html](artifacts/overview-product.html)** — the full product story: the three moats (privacy · convenience · determinism), the complete toolkit, the free-vs-Pro model, the Pro differentiators, and how the in-browser tools work end-to-end. Theme-aware, responsive.
+- **[artifacts/overview-status-board.html](artifacts/overview-status-board.html)** — the tool inventory at a glance: what's live, built-but-gated, and planned; free vs Pro; on-device vs server (with the 3/day Office chip); plus the planned Pro differentiators. Tool mockups #1–#4 are in `artifacts/` too.
 
 ## Model in one line
 Every in-browser tool is **free & unlimited forever** (they run on your device and cost us nothing). Only the few server-processed tools are metered: **Office conversions = 3 free/day → Pro unlimited**; OCR + AI = Pro. The Pro tier's moat is a set of features rivals structurally can't copy — **on-device batch, redaction certificate, saved workflows, encrypted File Vault** (flagships), plus self-destruct shares, certificate of completion, Bates numbering, brand kit, and an offline PWA.

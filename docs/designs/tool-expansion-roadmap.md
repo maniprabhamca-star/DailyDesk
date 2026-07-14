@@ -13,7 +13,7 @@ catalog; this doc is the source of truth for the "why" and the priority order._
   publishing them early starts their SEO traffic sooner). Add each to the sitemap + `/overview` on launch.
 - **Keep #6 PDF→Excel GATED** (owner-only / `coming_soon`) — it's the **Pro** tool; reveal at the Pro launch.
 - For **every** finished tool: send the owner a **screenshot + the live test URL**, and reflect it in
-  **`/overview` (public)** + the **internal artifacts** (`tool-status-board.html`, `product-overview.html`).
+  **`/overview` (public)** + the **internal artifacts** (`docs/artifacts/` — overview + status board + mockups).
 - After the six, the **Phase 2** list (§7) is the next slate.
 
 ## 1. Method

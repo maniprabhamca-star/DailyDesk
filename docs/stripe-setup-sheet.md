@@ -21,8 +21,8 @@ Account: `acct_1OS29LKn6TWL2bZM` · currently **Test mode / sandbox** ("Review i
 ## Business profile (gear ⚙ → Business → Public details)
 | Field | Value |
 |---|---|
-| Public business name | DiemDesk |
-| Legal entity name | `[your registered entity]` |
+| Public / operating business name (shows at checkout) | DiemDesk |
+| Legal entity name (IRS-matched; not customer-facing) | JPNM Rapid Universe LLC |
 | Website | https://diemdesk.com |
 | **Support email** | `[support@diemdesk.com or your Gmail]`  ← this is the field you were looking for |
 | Support phone / address | `[number]` / `[Georgia, USA address]` |
