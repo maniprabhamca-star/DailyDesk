@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Upload, X, Download, Loader2, Type, Check, Calendar, PenLine, Undo2, Trash2, ChevronLeft, ChevronRight, MousePointer2, ClipboardCheck } from 'lucide-react';
+import { Upload, X, Download, Loader2, Type, Check, Calendar, PenLine, Undo2, Trash2, ChevronLeft, ChevronRight, MousePointer2, ClipboardCheck, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { downloadBlob as download } from '@/lib/download';
 import { BigFileHint } from '@/components/app/big-file-hint';
@@ -41,12 +41,20 @@ export function FillFormTool() {
   const [done, setDone] = useState<{ blob: Blob; name: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
+  const editRef = useRef<HTMLInputElement>(null);
   const drag = useRef<{ id: string; sx: number; sy: number; ox: number; oy: number } | null>(null);
 
   const disp = pageImg ? (() => { const s = Math.min(MAX_W / pageImg.w, MAX_H / pageImg.h); return { w: pageImg.w * s, h: pageImg.h * s }; })() : null;
   const sel = els.find((e) => e.id === selId) || null;
 
   useEffect(() => () => { handle?.destroy?.(); }, [handle]);
+  // Jump straight to typing after placing/selecting a text-like item.
+  useEffect(() => {
+    if (sel && (sel.kind === 'text' || sel.kind === 'date' || sel.kind === 'signature')) {
+      const t = setTimeout(() => { editRef.current?.focus(); editRef.current?.select(); }, 30);
+      return () => clearTimeout(t);
+    }
+  }, [selId, sel]);
 
   async function loadFile(f?: File) {
     if (!f) return;
@@ -142,9 +150,13 @@ export function FillFormTool() {
         </div>
       ) : (
         <>
-          {fieldCount > 0 && (
+          {fieldCount > 0 ? (
             <p className="mb-3 flex items-center gap-2 rounded-lg border border-primary/25 bg-primary/[0.06] px-3 py-2 text-xs text-foreground">
               <ClipboardCheck className="size-4 shrink-0 text-primary" /> This PDF has <b>{fieldCount} fillable field{fieldCount === 1 ? '' : 's'}</b>. Place text right on them, or use the toolbar anywhere.
+            </p>
+          ) : (
+            <p className="mb-3 flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/[0.06] px-3 py-2 text-xs text-foreground">
+              <Info className="size-4 shrink-0 text-amber-500" /> This is a <b>flat form</b> (no embedded fields) — fill it by placing your own text. <b>Pick&nbsp;Text</b> above, click a blank line, then just type.
             </p>
           )}
 
@@ -201,8 +213,8 @@ export function FillFormTool() {
                 <div className="rounded-xl border bg-card p-3">
                   <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Selected {sel.kind}</p>
                   {(sel.kind === 'text' || sel.kind === 'date' || sel.kind === 'signature') && (
-                    <input value={sel.text} onChange={(e) => patch(sel.id, { text: e.target.value })} placeholder="Type…"
-                      className="mb-2 w-full rounded-md border bg-background px-2.5 py-1.5 text-sm" style={{ fontFamily: fontFamilyFor(sel.kind) }} />
+                    <input ref={editRef} value={sel.text} onChange={(e) => patch(sel.id, { text: e.target.value })} onFocus={(e) => e.currentTarget.select()} placeholder="Type here…"
+                      className="mb-2 w-full rounded-md border border-primary/50 bg-background px-2.5 py-1.5 text-sm ring-1 ring-primary/20" style={{ fontFamily: fontFamilyFor(sel.kind) }} />
                   )}
                   <label className="text-[11px] text-muted-foreground">Size</label>
                   <input type="range" min={0.01} max={0.06} step={0.002} value={sel.fontFrac} onChange={(e) => patch(sel.id, { fontFrac: parseFloat(e.target.value) })} className="mb-2 w-full" />
