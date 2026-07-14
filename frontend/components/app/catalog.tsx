@@ -28,7 +28,7 @@ export const BADGE: Record<Badge, { icon: LucideIcon; color: string; label: stri
 // AI tools. Search surfaces (⌘K palette, header search) badge these "Pro" and send
 // free users to pricing instead of a dead end. Keep in sync with the pro-launch
 // checklist. Matched by tool name.
-export const PRO_TOOLS = new Set(['Edit PDF', 'Redact PDF', 'OCR', 'Chat with PDF', 'Summarize', 'Translate']);
+export const PRO_TOOLS = new Set(['Edit PDF', 'Redact PDF', 'OCR', 'Chat with PDF', 'Summarize', 'Translate', 'File vault', 'Link in bio']);
 
 export const catalog: CatGroup[] = [
   {
