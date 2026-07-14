@@ -11,6 +11,7 @@ Every in-browser tool is **free & unlimited forever** (they run on your device a
 
 ## Design specs
 - **[designs/on-device-batch.md](designs/on-device-batch.md)** — the on-device Batch (Pro) design: gate + runner states, per-tool controls, engineering shape. New designs we discuss get committed under `designs/`.
+- **[designs/diemdesk-studio-concept.md](designs/diemdesk-studio-concept.md)** — the **DiemDesk Studio** concept: a private, no-watermark, on-device Canva-style design studio as a Pro feature (built on the owner's "Bonafide banner studio" base). Positioning, phased scope (MVP → brand kit/integration → AI), tech, and open questions.
 - **[designs/tool-expansion-roadmap.md](designs/tool-expansion-roadmap.md)** — research-grounded roadmap of the next tools to build: the world's real day-to-day file pains (compress-to-KB, ID photos, form-fill, privacy chores, e-invoice mandates), our gaps vs iLovePDF/Smallpdf, and a prioritised Free-vs-Pro list (top 6 to do next). Sourced from search + regional-mandate research.
 
 ## Launch
