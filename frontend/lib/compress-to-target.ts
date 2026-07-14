@@ -137,15 +137,23 @@ export async function compressPdfToTarget(
     return cache.get(i)!;
   };
 
-  let lo = 0, hi = PDF_LADDER.length - 1, ans = -1;
+  // Fast-path the impossible case: if even the lowest rung (40 DPI) can't fit, the
+  // target is out of reach — hand that back after ONE render instead of grinding
+  // through the whole ladder. (e.g. a 27 MB multi-page scan asked for 200 KB.)
+  const last = PDF_LADDER.length - 1;
+  const smallest = await sizeAt(last);
+  if (smallest.byteLength > targetBytes) {
+    return { blob: new Blob([new Uint8Array(smallest)], { type: 'application/pdf' }), name, before, after: smallest.byteLength, reached: false };
+  }
+  // Reachable — binary-search the highest-fidelity rung that still fits under it.
+  let lo = 0, hi = last, ans = last;
   while (lo <= hi) {
     const mid = (lo + hi) >> 1;
     const out = await sizeAt(mid);
     if (out.byteLength <= targetBytes) { ans = mid; hi = mid - 1; } else lo = mid + 1;
   }
-  const idx = ans >= 0 ? ans : PDF_LADDER.length - 1;
-  const out = await sizeAt(idx);
-  return { blob: new Blob([new Uint8Array(out)], { type: 'application/pdf' }), name, before, after: out.byteLength, reached: ans >= 0 };
+  const out = await sizeAt(ans);
+  return { blob: new Blob([new Uint8Array(out)], { type: 'application/pdf' }), name, before, after: out.byteLength, reached: true };
 }
 
 // ---------------------------------------------------------------- SHARED ------
