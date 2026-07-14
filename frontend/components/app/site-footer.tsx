@@ -41,7 +41,7 @@ const PILLS = [
 export function SiteFooter() {
   return (
     <footer className="relative overflow-hidden border-t border-white/10 bg-[#0f172a] text-slate-300">
-      <div className="relative z-10 mx-auto max-w-6xl px-4 pb-5 pt-9 sm:px-6">
+      <div className="relative z-10 mx-auto max-w-[1400px] px-4 pb-5 pt-9 sm:px-6">
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_1fr]">
           <div>
             <Link href="/" className="flex items-center gap-2.5">

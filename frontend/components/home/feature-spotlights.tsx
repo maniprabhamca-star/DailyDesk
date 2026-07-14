@@ -37,7 +37,7 @@ function Row({
 
 export function FeatureSpotlights() {
   return (
-    <section className="mx-auto max-w-6xl space-y-14 px-4 pb-14 pt-8 sm:px-6 md:space-y-20">
+    <section className="mx-auto max-w-[1400px] space-y-14 px-4 pb-14 pt-8 sm:px-6 md:space-y-20">
 
       {/* 1 · Breadth of tools — live launcher grid */}
       <Row eyebrow="All-in-one toolkit" eyebrowColor="#7c3aed" title="One workspace. Every tool, every day." body="PDFs, QR codes, passwords and more — a whole toolkit that runs free, right in your browser. One tab, everything you reach for." cta="Browse all tools" href="/#tools">

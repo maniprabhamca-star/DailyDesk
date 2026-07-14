@@ -105,7 +105,7 @@ export function AllToolsDirectory() {
 
   return (
     <section id="tools" className="scroll-mt-20 bg-muted/20">
-      <div className="mx-auto max-w-6xl px-4 pb-10 pt-9 sm:px-6">
+      <div className="mx-auto max-w-[1400px] px-4 pb-10 pt-9 sm:px-6">
         {/* Heading + a REAL live filter (narrows the grid as you type) */}
         <div className="mb-7 flex items-center justify-between gap-3">
           <div>

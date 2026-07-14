@@ -43,7 +43,7 @@ export default function EditorShellDemo() {
   const pages = [1, 2, 3, 4, 5];
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
+    <div className="mx-auto max-w-[1400px] px-4 py-8">
       <div className="mb-5">
         <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Design review · not deployed</p>
         <h1 className="mt-1 text-2xl font-bold tracking-tight">Shared editor shell</h1>

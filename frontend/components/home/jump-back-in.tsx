@@ -24,7 +24,7 @@ export function JumpBackIn() {
   if (recent.length === 0) return null;
 
   return (
-    <section aria-label="Jump back in" className="mx-auto max-w-6xl px-4 pb-2 sm:px-6">
+    <section aria-label="Jump back in" className="mx-auto max-w-[1400px] px-4 pb-2 sm:px-6">
       <div className="flex flex-wrap items-center gap-2.5 rounded-2xl border bg-card px-4 py-3 shadow-soft">
         <span className="mr-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           <History className="size-3.5" /> Jump back in

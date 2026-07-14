@@ -17,7 +17,7 @@ export function LaunchBanner() {
     <div className="relative bg-gradient-to-r from-primary to-indigo-600 text-white">
       <Link
         href="/free"
-        className="mx-auto flex max-w-6xl items-center justify-center gap-2 px-10 py-2.5 text-center text-[13px] font-medium hover:opacity-95 sm:text-sm"
+        className="mx-auto flex max-w-[1400px] items-center justify-center gap-2 px-10 py-2.5 text-center text-[13px] font-medium hover:opacity-95 sm:text-sm"
       >
         <Sparkles className="hidden size-4 shrink-0 sm:inline" />
         <span>

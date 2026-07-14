@@ -77,7 +77,7 @@ export default function OverviewPage() {
       <main>
         {/* HERO — committed dark brand band */}
         <section className="relative overflow-hidden border-b border-white/10 bg-[radial-gradient(120%_140%_at_15%_0%,#241f5e_0%,#14132e_45%,#0a0a18_100%)] text-indigo-50">
-          <div className="mx-auto max-w-6xl px-5 py-14 sm:py-20">
+          <div className="mx-auto max-w-[1400px] px-5 py-14 sm:py-20">
             <div className="mb-7 flex items-center gap-2.5">
               <BrandMark className="size-9" />
               <span className="text-lg font-semibold tracking-tight text-white">DiemDesk</span>
@@ -109,7 +109,7 @@ export default function OverviewPage() {
         </section>
 
         {/* MOATS */}
-        <section className="mx-auto max-w-6xl px-5 py-14">
+        <section className="mx-auto max-w-[1400px] px-5 py-14">
           <p className="text-[11.5px] font-bold uppercase tracking-[0.14em] text-primary">Why DiemDesk wins</p>
           <h2 className="mt-2 text-2xl font-extrabold tracking-tight sm:text-[26px]">Three moats competitors can’t cross</h2>
           <p className="mt-2 max-w-[62ch] text-sm text-muted-foreground">The online tools from iLovePDF, Smallpdf and Adobe are <span className="font-medium text-foreground">server-first</span> — every file uploads to them. DiemDesk is <span className="font-medium text-foreground">device-first</span>. That one choice creates advantages they’d have to rebuild their stack to match.</p>
@@ -128,7 +128,7 @@ export default function OverviewPage() {
 
         {/* TOOL GRID (data-driven) */}
         <section className="border-y bg-muted/20">
-          <div className="mx-auto max-w-6xl px-5 py-14">
+          <div className="mx-auto max-w-[1400px] px-5 py-14">
             <p className="text-[11.5px] font-bold uppercase tracking-[0.14em] text-primary">What runs where</p>
             <h2 className="mt-2 text-2xl font-extrabold tracking-tight sm:text-[26px]">{TOTAL} tools · {ON_DEVICE} on your device</h2>
             <p className="mt-2 max-w-[62ch] text-sm text-muted-foreground">The green <span className="font-medium text-foreground">on device</span> badge means it runs in your browser — free &amp; unlimited, forever. Server-side Office conversions are 3 free a day, then Pro. Tools tagged <span className="font-medium text-foreground">coming soon</span> aren’t live yet — {LIVE} of the {TOTAL} are available today.</p>
@@ -173,7 +173,7 @@ export default function OverviewPage() {
         </section>
 
         {/* FREE VS PRO (from PRICING source) */}
-        <section className="mx-auto max-w-6xl px-5 py-14">
+        <section className="mx-auto max-w-[1400px] px-5 py-14">
           <p className="text-[11.5px] font-bold uppercase tracking-[0.14em] text-primary">The model</p>
           <h2 className="mt-2 text-2xl font-extrabold tracking-tight sm:text-[26px]">Free where it costs us nothing. Pro where it earns its keep.</h2>
           <div className="mt-7 grid gap-4 md:grid-cols-2">
@@ -207,7 +207,7 @@ export default function OverviewPage() {
 
         {/* PRO DIFFERENTIATORS */}
         <section className="border-y bg-muted/20">
-          <div className="mx-auto max-w-6xl px-5 py-14">
+          <div className="mx-auto max-w-[1400px] px-5 py-14">
             <p className="text-[11.5px] font-bold uppercase tracking-[0.14em] text-primary">The Pro moat</p>
             <h2 className="mt-2 text-2xl font-extrabold tracking-tight sm:text-[26px]">Pro features rivals structurally can’t copy</h2>
             <p className="mt-2 max-w-[62ch] text-sm text-muted-foreground">Built for professionals with sensitive, repetitive documents — legal, HR, accounting, healthcare, agencies. Each leans on the device-first architecture. ★ = flagship.</p>
@@ -228,7 +228,7 @@ export default function OverviewPage() {
         </section>
 
         {/* END TO END */}
-        <section className="mx-auto max-w-6xl px-5 py-14">
+        <section className="mx-auto max-w-[1400px] px-5 py-14">
           <p className="text-[11.5px] font-bold uppercase tracking-[0.14em] text-primary">End to end</p>
           <h2 className="mt-2 text-2xl font-extrabold tracking-tight sm:text-[26px]">How the in-browser tools actually work</h2>
           <p className="mt-2 max-w-[62ch] text-sm text-muted-foreground">No magic — just modern browsers. WebAssembly runs real document engines on your machine, so the file never leaves.</p>

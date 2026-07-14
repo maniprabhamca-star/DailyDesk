@@ -123,7 +123,7 @@ export default function Home() {
 
       {/* Why DiemDesk */}
       <section className="border-y bg-muted/30 py-16">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <div className="mx-auto max-w-[1400px] px-4 sm:px-6">
           <Reveal className="mb-8 text-center">
             <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Why DiemDesk</h2>
             <p className="mt-2 text-muted-foreground">Built private, fast, and free — without the catch.</p>
@@ -145,7 +145,7 @@ export default function Home() {
       </section>
 
       {/* Stats band */}
-      <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
+      <section className="mx-auto max-w-[1400px] px-4 py-14 sm:px-6">
         <div className="grid grid-cols-2 gap-y-6 rounded-2xl border bg-card p-8 shadow-soft sm:grid-cols-4">
           {stats.map((s) => (
             <div key={s.l} className="border-border px-4 text-center sm:border-l sm:first:border-l-0">

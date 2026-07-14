@@ -6,7 +6,7 @@ import { ArrowRight, FlaskConical, ShieldCheck } from 'lucide-react';
 // /compress-pdf "Put to the test" band — keep both honest if levels are retuned.
 export function ProofStrip() {
   return (
-    <section className="mx-auto max-w-6xl px-4 py-5 sm:px-6">
+    <section className="mx-auto max-w-[1400px] px-4 py-5 sm:px-6">
       <div className="flex flex-col items-center gap-6 rounded-2xl bg-[#0f172a] px-6 py-7 text-slate-300 sm:flex-row sm:gap-8 sm:px-9">
         <div className="min-w-0 flex-1 text-center sm:text-left">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-300">

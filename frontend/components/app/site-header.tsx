@@ -80,7 +80,7 @@ export function SiteHeader({ heroSearchRef }: { heroSearchRef?: React.RefObject<
 
   return (
     <header className="sticky top-0 z-40 border-b-2 border-border bg-background/85 shadow-[0_1px_8px_rgba(15,23,42,0.08)] backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-6xl items-center gap-5 px-4 sm:px-6">
+      <div className="mx-auto flex h-16 max-w-[1400px] items-center gap-5 px-4 sm:px-6">
         <Link href="/" className="flex items-center gap-2.5">
           <BrandMark className="size-9" animate />
           <span className="text-xl font-semibold tracking-tight">DiemDesk</span>
@@ -151,7 +151,7 @@ export function SiteHeader({ heroSearchRef }: { heroSearchRef?: React.RefObject<
       {/* Mobile menu */}
       {mobileOpen && (
         <div className="border-t sm:hidden">
-          <div className="mx-auto flex max-w-6xl flex-col gap-0.5 px-4 py-3">
+          <div className="mx-auto flex max-w-[1400px] flex-col gap-0.5 px-4 py-3">
             {[
               { label: 'All tools', href: '/#tools' },
               { label: 'Pricing', href: '/pricing' },
