@@ -7,15 +7,14 @@ catalog; this doc is the source of truth for the "why" and the priority order._
 
 ---
 
-## 0. Decision (2026-07-13, owner)
+## 0. Decision (2026-07-13, owner — updated)
 - **Build all six, one at a time**, each fully QA'd before the next.
-- **Ship them GATED** (owner-only / `coming_soon`, hidden from the public) as they're finished.
-- **Reveal them together at the Pro launch** as one catalog expansion moment.
-- ⚠ _Proactive note:_ items **1–5 are free, on-device acquisition tools** — gating them delays their
-  organic SEO traffic (each is a keyword magnet). If we want earlier traffic, we could flip the finished
-  **free** ones public as they land and keep only the **Pro** one (**#6 PDF→Excel**) gated for the launch
-  moment. Following the "gate all until Pro launch" call for now; easy to change.
-- After these six ship, the **Phase 2** list (§7) is the next slate.
+- **Ship the five FREE tools (#1–5) PUBLIC as each is finished** (they're on-device acquisition tools —
+  publishing them early starts their SEO traffic sooner). Add each to the sitemap + `/overview` on launch.
+- **Keep #6 PDF→Excel GATED** (owner-only / `coming_soon`) — it's the **Pro** tool; reveal at the Pro launch.
+- For **every** finished tool: send the owner a **screenshot + the live test URL**, and reflect it in
+  **`/overview` (public)** + the **internal artifacts** (`tool-status-board.html`, `product-overview.html`).
+- After the six, the **Phase 2** list (§7) is the next slate.
 
 ## 1. Method
 
