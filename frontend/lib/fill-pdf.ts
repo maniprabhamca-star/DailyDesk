@@ -99,7 +99,7 @@ export function isFillable(t: NativeFieldType): boolean {
 // Read every AcroForm widget's geometry, type and constraints. Returns [] for a
 // flat PDF (no form) — the tool then falls back to the place-anywhere overlay.
 export async function extractNativeFields(file: File): Promise<NativeField[]> {
-  const { PDFDocument } = await import('pdf-lib');
+  const { PDFDocument, PDFTextField, PDFCheckBox, PDFRadioGroup, PDFDropdown, PDFOptionList, PDFSignature } = await import('pdf-lib');
   let doc;
   try {
     doc = await PDFDocument.load(new Uint8Array(await file.arrayBuffer()), { ignoreEncryption: true });
@@ -118,14 +118,15 @@ export async function extractNativeFields(file: File): Promise<NativeField[]> {
   const out: NativeField[] = [];
   for (const field of fields) {
     const name = field.getName();
-    const ctor = field.constructor.name;
+    // Use instanceof, NOT constructor.name — the production minifier mangles
+    // class names, so name checks silently mis-type every field as text.
     const type: NativeFieldType =
-      ctor === 'PDFTextField' ? 'text'
-      : ctor === 'PDFCheckBox' ? 'checkbox'
-      : ctor === 'PDFRadioGroup' ? 'radio'
-      : ctor === 'PDFDropdown' ? 'dropdown'
-      : ctor === 'PDFOptionList' ? 'optionlist'
-      : ctor === 'PDFSignature' ? 'signature'
+      field instanceof PDFTextField ? 'text'
+      : field instanceof PDFCheckBox ? 'checkbox'
+      : field instanceof PDFRadioGroup ? 'radio'
+      : field instanceof PDFDropdown ? 'dropdown'
+      : field instanceof PDFOptionList ? 'optionlist'
+      : field instanceof PDFSignature ? 'signature'
       : 'text';
 
     // metadata (guarded — not every field type has every getter)
