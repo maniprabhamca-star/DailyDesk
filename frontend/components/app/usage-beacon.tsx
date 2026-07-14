@@ -82,7 +82,7 @@ export function UsageBeacon() {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ module: moduleName, visitorId: getVisitorId() }),
+        body: JSON.stringify({ module: moduleName, visitorId: getVisitorId(), ref: document.referrer || '' }),
       }).catch(() => {});
     } catch {
       /* ignore */
@@ -105,7 +105,7 @@ export function UsageBeacon() {
           method: 'POST',
           keepalive: true,
           headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-          body: JSON.stringify({ module: route.replace(/^\//, ''), sizeBucket: sizeBucket(bytes), visitorId: getVisitorId() }),
+          body: JSON.stringify({ module: route.replace(/^\//, ''), sizeBucket: sizeBucket(bytes), visitorId: getVisitorId(), ref: document.referrer || '' }),
         }).catch(() => {});
       } catch { /* ignore */ }
     };

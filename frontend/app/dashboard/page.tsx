@@ -1,7 +1,11 @@
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { Loader2, RefreshCw, ShieldCheck, BarChart3, Users, UserPlus, MousePointerClick, Repeat, AlertTriangle, Activity, Crown, Play, CalendarDays } from 'lucide-react';
+import {
+  Loader2, RefreshCw, ShieldCheck, BarChart3, Users, UserPlus, MousePointerClick, Repeat,
+  AlertTriangle, Activity, Crown, Play, CalendarDays, Globe, Link2, MonitorSmartphone,
+  Chrome, MessageSquare, Star, TrendingUp,
+} from 'lucide-react';
 import { SiteHeader } from '@/components/app/site-header';
 import { SiteFooter } from '@/components/app/site-footer';
 import { Button } from '@/components/ui/button';
@@ -23,28 +27,44 @@ type Stats = {
   size_buckets?: Record<string, number>;
   size_by_tool?: { module: string; bucket: string; c: number }[];
   range?: { from: string; to: string } | null;
+  bots?: number;
+  signups_range?: number | null;
+  countries?: { country: string; visitors: number }[];
+  sources?: { source: string; visitors: number }[];
+  devices?: { device: string; visitors: number }[];
+  browsers?: { browser: string; visitors: number }[];
+  trend?: { d: string; visitors: number; uses: number }[];
+  feedback_recent?: { at: string; category: string | null; rating: number | null; message: string; page: string | null }[];
+  feedback_summary?: { total: number; last_7d: number; avg_rating: number | null } | null;
 };
 
 const SIZE_ORDER = ['<50MB', '50-100MB', '100MB-1GB', '1-2GB', '>2GB'];
 
 type RangeKey = 'all' | 'today' | '7d' | '30d' | 'custom';
 const RANGE_PRESETS: { key: RangeKey; label: string }[] = [
-  { key: 'all', label: 'All time' },
-  { key: 'today', label: 'Today' },
-  { key: '7d', label: '7 days' },
-  { key: '30d', label: '30 days' },
-  { key: 'custom', label: 'Custom' },
+  { key: 'all', label: 'All time' }, { key: 'today', label: 'Today' },
+  { key: '7d', label: '7 days' }, { key: '30d', label: '30 days' }, { key: 'custom', label: 'Custom' },
 ];
 const isoDay = (d: Date) => d.toISOString().slice(0, 10);
 function presetDates(key: RangeKey): { from: string; to: string } | null {
-  const now = new Date();
-  const to = isoDay(now);
+  const now = new Date(); const to = isoDay(now);
   if (key === 'today') return { from: to, to };
   if (key === '7d') { const f = new Date(now); f.setDate(now.getDate() - 6); return { from: isoDay(f), to }; }
   if (key === '30d') { const f = new Date(now); f.setDate(now.getDate() - 29); return { from: isoDay(f), to }; }
-  return null; // 'all' or 'custom' (custom resolved from the pickers)
+  return null;
 }
 
+// Country code → flag emoji + English name (no data files — Intl + regional-indicator letters).
+function flagEmoji(cc: string): string {
+  if (!/^[A-Z]{2}$/i.test(cc)) return '🏳️';
+  return String.fromCodePoint(...cc.toUpperCase().split('').map((c) => 0x1f1e6 + c.charCodeAt(0) - 65));
+}
+const regionName = (() => {
+  try { const dn = new Intl.DisplayNames(['en'], { type: 'region' }); return (cc: string) => { try { return dn.of(cc) || cc; } catch { return cc; } }; }
+  catch { return (cc: string) => cc; }
+})();
+
+// ── Small shared building blocks ──────────────────────────────────────────
 function Metric({ icon: Icon, label, value, sub }: { icon: typeof Users; label: string; value: number | string; sub?: string }) {
   return (
     <div className="rounded-xl border bg-card p-4 shadow-soft">
@@ -55,12 +75,72 @@ function Metric({ icon: Icon, label, value, sub }: { icon: typeof Users; label: 
   );
 }
 
+function BarList({ items, empty = 'No data yet.' }: { items: { label: React.ReactNode; value: number }[]; empty?: string }) {
+  const max = Math.max(1, ...items.map((i) => i.value));
+  if (!items.length) return <p className="py-2 text-sm text-muted-foreground">{empty}</p>;
+  return (
+    <div className="space-y-2">
+      {items.map((it, i) => (
+        <div key={i} className="flex items-center gap-3">
+          <span className="w-40 shrink-0 truncate text-sm">{it.label}</span>
+          <div className="h-5 flex-1 overflow-hidden rounded bg-muted"><div className="h-full rounded bg-primary/70" style={{ width: `${Math.max(4, (it.value / max) * 100)}%` }} /></div>
+          <span className="w-12 shrink-0 text-right text-sm tabular-nums text-muted-foreground">{it.value.toLocaleString()}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Section({ icon: Icon, title, right, children }: { icon?: typeof Users; title: string; right?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <section className="mt-8">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="flex items-center gap-2 text-lg font-semibold">{Icon && <Icon className="size-4 text-primary" />}{title}</h2>
+        {right}
+      </div>
+      <div className="mt-3">{children}</div>
+    </section>
+  );
+}
+
+// Daily activity: visitors as a line, tool-uses as faint bars behind.
+function TrendChart({ data }: { data: { d: string; visitors: number; uses: number }[] }) {
+  if (!data.length) return <p className="py-4 text-sm text-muted-foreground">No activity in this range yet.</p>;
+  const n = data.length, W = Math.max(n * 16, 80), H = 100, pad = 10;
+  const maxV = Math.max(1, ...data.map((d) => d.visitors));
+  const maxU = Math.max(1, ...data.map((d) => d.uses));
+  const x = (i: number) => (n === 1 ? W / 2 : pad + (i * (W - 2 * pad)) / (n - 1));
+  const yV = (v: number) => H - pad - (v / maxV) * (H - 2 * pad);
+  const yUbar = (u: number) => (u / maxU) * (H - 2 * pad);
+  const bw = Math.min(12, ((W - 2 * pad) / n) * 0.55);
+  const line = data.map((d, i) => `${x(i)},${yV(d.visitors)}`).join(' ');
+  const peak = data.reduce((m, d) => (d.visitors > m.visitors ? d : m), data[0]);
+  return (
+    <div>
+      <div className="mb-1 flex gap-4 text-xs text-muted-foreground">
+        <span className="inline-flex items-center gap-1.5"><span className="h-0.5 w-4 rounded bg-primary" /> Visitors</span>
+        <span className="inline-flex items-center gap-1.5"><span className="h-2 w-3 rounded-sm bg-primary/25" /> Tool uses</span>
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="w-full" style={{ height: 130 }}>
+        {data.map((d, i) => { const h = yUbar(d.uses); return <rect key={i} x={x(i) - bw / 2} y={H - pad - h} width={bw} height={h} rx="1" className="fill-primary/20" />; })}
+        <polyline points={line} fill="none" className="stroke-primary" strokeWidth="1.75" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
+      </svg>
+      <div className="mt-1 flex justify-between text-[11px] text-muted-foreground">
+        <span>{data[0].d}</span>
+        <span className="font-medium text-foreground">Peak {peak.visitors} on {peak.d}</span>
+        <span>{data[n - 1].d}</span>
+      </div>
+    </div>
+  );
+}
+
 type ErrGroup = { message: string; source: string | null; count: number; last_seen: string; visitors: number; last_path: string | null };
 type ByTool = { tool: string; count: number; last_seen: string };
 type ErrData = { groups: ErrGroup[]; last_24h: number; by_tool?: ByTool[] };
-
 type ToolHealth = { slug: string; ok: boolean | null; detail: string | null; fail_streak: number; auto_disabled: boolean; checked_at: string };
 type HealthData = { tools: ToolHealth[]; heartbeat: { checked_at: string } | null; browserHeartbeat?: { checked_at: string } | null; now: string };
+
+type AudTab = 'country' | 'sources' | 'devices' | 'browsers';
 
 export default function DashboardPage() {
   const isOwner = useIsOwner();
@@ -74,8 +154,8 @@ export default function DashboardPage() {
   const [rangeKey, setRangeKey] = useState<RangeKey>('all');
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
+  const [audTab, setAudTab] = useState<AudTab>('country');
 
-  // Effective {from,to} for the activity metrics; null = all time.
   const dates = useMemo<{ from: string; to: string } | null>(() => {
     if (rangeKey === 'custom') return customFrom && customTo ? { from: customFrom, to: customTo } : null;
     return presetDates(rangeKey);
@@ -100,7 +180,6 @@ export default function DashboardPage() {
     setLoading(true); setError(null);
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('dd_token') : null;
-      // Owner bypass: the ddadmin cookie also authorises the dashboard (no app login).
       const ownerKey = typeof document !== 'undefined' ? (document.cookie.match(/(?:^|;\s*)ddadmin=([^;]+)/)?.[1] ?? null) : null;
       const headers: Record<string, string> = {};
       if (token) headers.Authorization = `Bearer ${token}`;
@@ -112,7 +191,6 @@ export default function DashboardPage() {
         throw new Error(`Request failed (${res.status})`);
       }
       setStats(await res.json());
-      // Errors + tool health are best-effort — don't fail the dashboard if they 500.
       try { const er = await fetch(`${API}/api/events/errors`, { headers }); if (er.ok) setErrs(await er.json()); } catch { /* ignore */ }
       try { const hr = await fetch(`${API}/api/events/health`, { headers }); if (hr.ok) setHealth(await hr.json()); } catch { /* ignore */ }
     } catch (e) {
@@ -122,7 +200,15 @@ export default function DashboardPage() {
 
   useEffect(() => { if (isOwner) void load(dates); else setLoading(false); }, [isOwner, load, dates]);
 
-  const maxUse = stats?.top_tools.reduce((m, t) => Math.max(m, t.uses), 0) || 1;
+  const rangeLabel = stats?.range ? `${stats.range.from} → ${stats.range.to}` : 'all time';
+
+  const audItems: { label: React.ReactNode; value: number }[] = useMemo(() => {
+    if (!stats) return [];
+    if (audTab === 'country') return (stats.countries || []).map((c) => ({ label: <span>{flagEmoji(c.country)} {regionName(c.country)}</span>, value: c.visitors }));
+    if (audTab === 'sources') return (stats.sources || []).map((s) => ({ label: s.source === 'direct' ? 'Direct / in-app' : s.source, value: s.visitors }));
+    if (audTab === 'devices') return (stats.devices || []).map((d) => ({ label: d.device, value: d.visitors }));
+    return (stats.browsers || []).map((b) => ({ label: b.browser, value: b.visitors }));
+  }, [stats, audTab]);
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
@@ -131,16 +217,14 @@ export default function DashboardPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Usage dashboard</h1>
-            <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
-              <ShieldCheck className="size-4 text-emerald-600" /> First-party data from your own server — no third-party trackers.
-            </p>
+            <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground"><ShieldCheck className="size-4 text-emerald-600" /> First-party data from your own server — no third-party trackers.</p>
           </div>
           {isOwner && <Button size="sm" variant="outline" onClick={() => void load(dates)} disabled={loading}><RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} /> Refresh</Button>}
         </div>
 
         {isOwner && (
           <div className="mt-5 flex flex-wrap items-center gap-2">
-            <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground"><CalendarDays className="size-3.5" /> Activity range</span>
+            <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground"><CalendarDays className="size-3.5" /> Range</span>
             <div className="flex flex-wrap gap-1 rounded-lg border bg-muted/40 p-1">
               {RANGE_PRESETS.map((p) => (
                 <button key={p.key} type="button" onClick={() => setRangeKey(p.key)}
@@ -166,88 +250,92 @@ export default function DashboardPage() {
           <div className="mt-8 rounded-xl border border-destructive/30 bg-destructive/5 p-6 text-center text-sm text-destructive">{error}</div>
         ) : stats ? (
           <>
+            {/* ── Overview ── */}
             <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <Metric icon={Users} label="Registered users" value={stats.registered_users} sub={`+${stats.signups_24h} today · +${stats.signups_7d} this week`} />
-              <Metric icon={UserPlus} label="Unique visitors" value={stats.unique_visitors} />
-              <Metric icon={MousePointerClick} label="Total tool uses" value={stats.total_tool_uses} />
-              <Metric icon={Repeat} label="Returning visitors" value={stats.returning_visitors} />
+              <Metric icon={UserPlus} label="Unique visitors" value={stats.unique_visitors} sub={`people${stats.bots ? ` · ${stats.bots.toLocaleString()} bots filtered` : ''}`} />
+              <Metric icon={MousePointerClick} label="Tool uses" value={stats.total_tool_uses} />
+              <Metric icon={Repeat} label="Returning" value={stats.returning_visitors} sub={`${Math.max(0, stats.unique_visitors - stats.returning_visitors).toLocaleString()} first-time`} />
+              <Metric icon={Users} label="Registered users" value={stats.registered_users} sub={`+${stats.signups_24h} today · +${stats.signups_7d} / 7d`} />
             </div>
-
             <div className="mt-3 grid grid-cols-3 gap-3">
               <Metric icon={BarChart3} label="Active today (DAU)" value={stats.dau} />
               <Metric icon={BarChart3} label="This week (WAU)" value={stats.wau} />
               <Metric icon={BarChart3} label="This month (MAU)" value={stats.mau} />
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
-              Unique visitors, tool uses, returning, top tools &amp; file sizes reflect <b className="text-foreground">{stats.range ? `${stats.range.from} → ${stats.range.to}` : 'all time'}</b> · bots &amp; automated traffic (incl. the health canary) are excluded. DAU/WAU/MAU are fixed rolling windows.
+              Activity metrics reflect <b className="text-foreground">{rangeLabel}</b> · bots &amp; automated traffic (incl. the health canary) are excluded. DAU/WAU/MAU are fixed rolling windows.
             </p>
 
-            <section className="mt-8">
-              <h2 className="flex items-center gap-2 text-lg font-semibold"><Crown className="size-4 text-amber-500" /> Pro</h2>
-              <div className="mt-3 grid grid-cols-3 gap-3">
-                <Metric icon={Crown} label="Pro subscribers" value={stats.pro_subscribers} sub="active paid plans" />
-                <Metric icon={Activity} label="Pro active (30d)" value={stats.pro_active_30d} sub="used a tool while Pro" />
-                <Metric icon={UserPlus} label="Pro waitlist" value={stats.pro_waitlist} sub="notify-me signups" />
-              </div>
-            </section>
+            {/* ── Daily activity ── */}
+            <Section icon={TrendingUp} title="Daily activity"><TrendChart data={stats.trend || []} /></Section>
 
-            <section className="mt-8">
-              <h2 className="text-lg font-semibold">Top tools</h2>
-              {stats.top_tools.length === 0 ? (
-                <p className="mt-2 text-sm text-muted-foreground">No tool usage recorded yet.</p>
-              ) : (
-                <div className="mt-3 space-y-2">
-                  {stats.top_tools.map((t) => (
-                    <div key={t.module} className="flex items-center gap-3">
-                      <span className="w-40 shrink-0 truncate text-sm font-medium">{t.module}</span>
-                      <div className="h-5 flex-1 overflow-hidden rounded bg-muted">
-                        <div className="h-full rounded bg-primary/70" style={{ width: `${Math.max(4, (t.uses / maxUse) * 100)}%` }} />
-                      </div>
-                      <span className="w-12 shrink-0 text-right text-sm tabular-nums text-muted-foreground">{t.uses.toLocaleString()}</span>
-                    </div>
+            {/* ── Audience (tabbed to stay compact) ── */}
+            <Section icon={Globe} title="Audience"
+              right={
+                <div className="flex gap-1 rounded-lg border bg-muted/40 p-1 text-xs">
+                  {([['country', 'Country', Globe], ['sources', 'Sources', Link2], ['devices', 'Devices', MonitorSmartphone], ['browsers', 'Browsers', Chrome]] as const).map(([k, lbl, Icon]) => (
+                    <button key={k} onClick={() => setAudTab(k)} className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 font-semibold transition ${audTab === k ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-card'}`}><Icon className="size-3.5" />{lbl}</button>
                   ))}
                 </div>
-              )}
-            </section>
+              }>
+              <div className="rounded-xl border bg-card p-4 shadow-soft">
+                <BarList items={audItems} empty={audTab === 'country' ? 'No country data yet (arrives with Cloudflare on new visits).' : audTab === 'sources' ? 'No referrers yet — new visits will show their source.' : 'No data yet.'} />
+                {audTab === 'sources' && <p className="mt-3 text-[11px] text-muted-foreground">“Direct / in-app” = typed the URL, a bookmark, or navigated within the site. Others are the site that linked here.</p>}
+              </div>
+            </Section>
 
-            {stats.size_buckets && (() => {
-              const buckets = stats.size_buckets!;
-              const total = SIZE_ORDER.reduce((s, b) => s + (buckets[b] || 0), 0);
-              const maxB = Math.max(1, ...SIZE_ORDER.map((b) => buckets[b] || 0));
-              const big = (buckets['100MB-1GB'] || 0) + (buckets['1-2GB'] || 0) + (buckets['>2GB'] || 0);
-              return (
-                <section className="mt-8">
-                  <h2 className="text-lg font-semibold">File sizes</h2>
-                  <p className="mt-1 text-xs text-muted-foreground">How large real users’ files are (largest file per upload; bucket only — no filenames or bytes). The in-browser guard warns above ~1.6&nbsp;GB on an 8&nbsp;GB device.</p>
-                  {total === 0 ? (
-                    <p className="mt-3 text-sm text-muted-foreground">No file selections recorded yet.</p>
-                  ) : (
-                    <>
-                      <div className="mt-3 space-y-2">
-                        {SIZE_ORDER.map((b) => {
-                          const n = buckets[b] || 0;
-                          const heavy = b === '1-2GB' || b === '>2GB';
-                          return (
-                            <div key={b} className="flex items-center gap-3">
-                              <span className="w-24 shrink-0 text-sm font-medium tabular-nums">{b}</span>
-                              <div className="h-5 flex-1 overflow-hidden rounded bg-muted">
-                                <div className={`h-full rounded ${heavy ? 'bg-red-500/70' : 'bg-primary/70'}`} style={{ width: `${Math.max(2, (n / maxB) * 100)}%` }} />
-                              </div>
-                              <span className="w-20 shrink-0 text-right text-sm tabular-nums text-muted-foreground">{n.toLocaleString()} · {Math.round((n / total) * 100)}%</span>
+            {/* ── Engagement: top tools + file sizes ── */}
+            <div className="mt-8 grid gap-6 lg:grid-cols-2">
+              <div>
+                <h2 className="text-lg font-semibold">Top tools</h2>
+                <div className="mt-3"><BarList items={(stats.top_tools || []).map((t) => ({ label: t.module, value: t.uses }))} empty="No tool usage in this range yet." /></div>
+              </div>
+              {stats.size_buckets && (() => {
+                const b = stats.size_buckets!; const total = SIZE_ORDER.reduce((s, k) => s + (b[k] || 0), 0);
+                const maxB = Math.max(1, ...SIZE_ORDER.map((k) => b[k] || 0));
+                const big = (b['100MB-1GB'] || 0) + (b['1-2GB'] || 0) + (b['>2GB'] || 0);
+                return (
+                  <div>
+                    <h2 className="text-lg font-semibold">File sizes</h2>
+                    {total === 0 ? <p className="mt-3 text-sm text-muted-foreground">No file selections in this range yet.</p> : (
+                      <>
+                        <div className="mt-3 space-y-2">
+                          {SIZE_ORDER.map((k) => { const n = b[k] || 0; const heavy = k === '1-2GB' || k === '>2GB'; return (
+                            <div key={k} className="flex items-center gap-3">
+                              <span className="w-20 shrink-0 text-sm font-medium tabular-nums">{k}</span>
+                              <div className="h-5 flex-1 overflow-hidden rounded bg-muted"><div className={`h-full rounded ${heavy ? 'bg-red-500/70' : 'bg-primary/70'}`} style={{ width: `${Math.max(2, (n / maxB) * 100)}%` }} /></div>
+                              <span className="w-16 shrink-0 text-right text-sm tabular-nums text-muted-foreground">{Math.round((n / total) * 100)}%</span>
                             </div>
-                          );
-                        })}
-                      </div>
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        {big.toLocaleString()} of {total.toLocaleString()} uploads ({Math.round((big / total) * 100)}%) were ≥100&nbsp;MB
-                        {stats.size_by_tool && stats.size_by_tool.length ? ` — mostly ${stats.size_by_tool.slice(0, 3).map((t) => `${t.module} (${t.bucket})`).join(', ')}` : ''}.
-                      </p>
-                    </>
-                  )}
-                </section>
-              );
-            })()}
+                          ); })}
+                        </div>
+                        <p className="mt-2 text-xs text-muted-foreground">{big.toLocaleString()} of {total.toLocaleString()} uploads ({Math.round((big / total) * 100)}%) were ≥100&nbsp;MB.</p>
+                      </>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
 
+            {/* ── Funnel + Pro ── */}
+            <Section icon={Crown} title="Funnel & Pro">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {[
+                  { label: 'Visitors', value: stats.unique_visitors, sub: rangeLabel === 'all time' ? 'all time' : 'in range' },
+                  { label: stats.range ? 'New signups' : 'Registered', value: stats.range ? (stats.signups_range ?? 0) : stats.registered_users, sub: stats.range ? 'in range' : 'total' },
+                  { label: 'Pro waitlist', value: stats.pro_waitlist, sub: 'notify-me' },
+                  { label: 'Pro subscribers', value: stats.pro_subscribers, sub: 'paid plans' },
+                ].map((s, i) => (
+                  <div key={i} className="relative rounded-xl border bg-card p-4 shadow-soft">
+                    <p className="text-2xl font-bold tracking-tight">{s.value.toLocaleString()}</p>
+                    <p className="text-xs font-medium">{s.label}</p>
+                    <p className="text-[11px] text-muted-foreground">{s.sub}</p>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">Pro active (30d): <b className="text-foreground">{stats.pro_active_30d.toLocaleString()}</b> used a tool while on Pro.</p>
+            </Section>
+
+            {/* ── Tool health (unchanged behaviour) ── */}
             {health && (() => {
               const stale = !health.heartbeat || (Date.now() - new Date(health.heartbeat.checked_at).getTime()) > 25 * 60 * 1000;
               const errByTool = new Map((errs?.by_tool || []).map((t) => [t.tool, t.count]));
@@ -266,18 +354,12 @@ export default function DashboardPage() {
                       <Button size="sm" variant="outline" onClick={() => void runTests()} disabled={testsBusy}><Play className="size-3.5" /> {testsBusy ? 'Starting…' : 'Run tests now'}</Button>
                     </div>
                   </div>
-                  <p className="mt-1 text-xs text-muted-foreground">The Node canary runs tool cores every 10 min; a headless-browser (Playwright) canary drives the in-browser tools with a real file every 30 min. A failing tool auto-disables (users see “temporarily unavailable”) and re-enables on recovery; you’re emailed either way. <b className="text-foreground">Run tests now</b> fires both immediately — results appear below after ~1 min (hit Refresh).</p>
-                  {health.browserHeartbeat && <p className="mt-1 text-[11px] text-muted-foreground">Browser (Playwright) tests last ran {new Date(health.browserHeartbeat.checked_at).toLocaleTimeString()}.</p>}
                   {testsMsg && <p className="mt-1 text-xs font-medium text-primary">{testsMsg}</p>}
-
-                  {/* summary KPI tiles */}
                   <div className="mt-3 grid grid-cols-3 gap-3">
                     <div className="rounded-xl border bg-card p-4 shadow-soft"><p className="text-2xl font-bold text-emerald-600">{healthy}</p><p className="text-xs text-muted-foreground">Healthy</p></div>
                     <div className={`rounded-xl border p-4 shadow-soft ${failing ? 'border-amber-500/40 bg-amber-500/5' : 'bg-card'}`}><p className={`text-2xl font-bold ${failing ? 'text-amber-600' : ''}`}>{failing}</p><p className="text-xs text-muted-foreground">Failing</p></div>
                     <div className={`rounded-xl border p-4 shadow-soft ${disabled ? 'border-destructive/40 bg-destructive/5' : 'bg-card'}`}><p className={`text-2xl font-bold ${disabled ? 'text-destructive' : ''}`}>{disabled}</p><p className="text-xs text-muted-foreground">Auto-disabled</p></div>
                   </div>
-
-                  {/* per-tool KPI cards */}
                   {health.tools.length > 0 && (
                     <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                       {health.tools.map((t) => {
@@ -306,16 +388,13 @@ export default function DashboardPage() {
               );
             })()}
 
-            <section className="mt-8">
-              <h2 className="flex items-center gap-2 text-lg font-semibold">
-                <AlertTriangle className="size-4 text-amber-500" /> Client errors
-                {errs && <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">{errs.last_24h} in 24h</span>}
-              </h2>
-              <p className="mt-1 text-xs text-muted-foreground">Uncaught JS errors real browsers hit — first-party, so you catch a broken tool without any third-party tracker.</p>
+            {/* ── Client errors ── */}
+            <Section icon={AlertTriangle} title="Client errors" right={errs ? <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">{errs.last_24h} in 24h</span> : undefined}>
+              <p className="-mt-1 mb-2 text-xs text-muted-foreground">Real first-party JS errors only — browser-extension &amp; third-party noise is filtered out.</p>
               {!errs || errs.groups.length === 0 ? (
-                <p className="mt-3 rounded-lg border border-emerald-600/20 bg-emerald-500/5 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-400">No errors reported. 🎉</p>
+                <p className="rounded-lg border border-emerald-600/20 bg-emerald-500/5 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-400">No errors reported. 🎉</p>
               ) : (
-                <div className="mt-3 space-y-2">
+                <div className="space-y-2">
                   {errs.groups.map((g, i) => (
                     <div key={i} className="rounded-lg border bg-card p-3 text-sm shadow-soft">
                       <div className="flex items-start justify-between gap-3">
@@ -327,10 +406,31 @@ export default function DashboardPage() {
                   ))}
                 </div>
               )}
-            </section>
+            </Section>
+
+            {/* ── Recent feedback ── */}
+            <Section icon={MessageSquare} title="Recent feedback"
+              right={stats.feedback_summary ? <span className="text-xs text-muted-foreground">{stats.feedback_summary.total} total · {stats.feedback_summary.last_7d} this week{stats.feedback_summary.avg_rating != null ? ` · ★ ${stats.feedback_summary.avg_rating}` : ''}</span> : undefined}>
+              {!stats.feedback_recent || stats.feedback_recent.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No feedback yet.</p>
+              ) : (
+                <div className="space-y-2">
+                  {stats.feedback_recent.map((f, i) => (
+                    <div key={i} className="rounded-lg border bg-card p-3 text-sm shadow-soft">
+                      <div className="flex items-center gap-2">
+                        {f.category && <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">{f.category}</span>}
+                        {f.rating != null && <span className="inline-flex items-center gap-0.5 text-[11px] text-amber-500"><Star className="size-3 fill-amber-500" />{f.rating}</span>}
+                        <span className="ml-auto text-[11px] text-muted-foreground">{f.at}{f.page ? ` · ${f.page}` : ''}</span>
+                      </div>
+                      <p className="mt-1 break-words text-sm">{f.message}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Section>
 
             <p className="mt-8 text-xs text-muted-foreground">
-              Traffic &amp; audience stats (visitors, sources, countries) live in Cloudflare Web Analytics. This page shows tool engagement from your own database.
+              Country comes from Cloudflare’s edge (no IP is geo-located or stored for it). Full traffic/source detail also lives in Cloudflare Web Analytics; this page shows tool engagement from your own database.
             </p>
           </>
         ) : null}

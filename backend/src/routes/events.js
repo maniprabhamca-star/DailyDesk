@@ -99,10 +99,22 @@ router.post('/track', trackLimiter, (req, res) => {
     catch { /* anonymous usage — leave userId null */ }
   }
 
+  // Acquisition source = the referrer HOST only (never the full URL/path). Our own
+  // domain or empty = a direct/in-app visit (null). Lets us see if visitors came
+  // from the press sites, search, etc. without storing personal browsing data.
+  let referrer = null;
+  try {
+    const raw = typeof req.body.ref === 'string' ? req.body.ref : '';
+    if (raw) {
+      const host = new URL(raw).hostname.replace(/^www\./, '');
+      if (host && !/(^|\.)diemdesk\.com$/i.test(host)) referrer = host.slice(0, 255);
+    }
+  } catch { /* malformed referrer → treat as direct */ }
+
   // A file was selected/dropped — record its size bucket (bucket only, never the
   // filename or bytes). Distinct 'file_size' event; leaves usage counts untouched.
   if (SIZE_BUCKETS.has(req.body && req.body.sizeBucket)) {
-    trackEvent(req, 'file_size', { module, metadata: { bucket: req.body.sizeBucket }, userId, visitorId });
+    trackEvent(req, 'file_size', { module, metadata: { bucket: req.body.sizeBucket }, userId, visitorId, referrer });
     return res.status(204).end();
   }
 
@@ -115,6 +127,7 @@ router.post('/track', trackLimiter, (req, res) => {
     metadata: action ? { action: String(action).slice(0, 50) } : {},
     userId,
     visitorId,
+    referrer,
   });
   res.status(204).end();
 });
@@ -210,6 +223,27 @@ router.get('/stats', async (req, res) => {
                                 GROUP BY module, bucket ORDER BY c DESC LIMIT 20`, rp);
     } catch (e) { console.error('size bucket stat:', e.message); }
 
+    // ── Audience & acquisition (human-only, range-scoped; isolated so a failure
+    // can never break the core dashboard) ──
+    let bots = 0, countries = [], sources = [], devices = [], browsers = [], trend = [], signups_range = null;
+    try {
+      bots = (await rows(`SELECT count(DISTINCT ${V}) FILTER (WHERE NOT ${HUMAN})::int c FROM user_events WHERE ${RANGE}`, rp))[0].c;
+      countries = await rows(`SELECT country, count(DISTINCT ${V})::int visitors FROM user_events WHERE country IS NOT NULL AND ${HUMAN} AND ${RANGE} GROUP BY country ORDER BY visitors DESC LIMIT 8`, rp);
+      sources = await rows(`SELECT coalesce(referrer,'direct') AS source, count(DISTINCT ${V})::int visitors FROM user_events WHERE ${HUMAN} AND ${RANGE} GROUP BY 1 ORDER BY visitors DESC LIMIT 8`, rp);
+      devices = await rows(`SELECT CASE WHEN user_agent ~* 'iPad|Tablet|PlayBook|Silk' THEN 'Tablet' WHEN user_agent ~* 'Mobi|iPhone|iPod|Android.*Mobile|Windows Phone' THEN 'Mobile' ELSE 'Desktop' END AS device, count(DISTINCT ${V})::int visitors FROM user_events WHERE ${HUMAN} AND ${RANGE} GROUP BY 1 ORDER BY visitors DESC`, rp);
+      browsers = await rows(`SELECT CASE WHEN user_agent ~* 'Edg/' THEN 'Edge' WHEN user_agent ~* 'OPR/|Opera' THEN 'Opera' WHEN user_agent ~* 'Firefox/|FxiOS' THEN 'Firefox' WHEN user_agent ~* 'Chrome/|CriOS' THEN 'Chrome' WHEN user_agent ~* 'Safari/' THEN 'Safari' ELSE 'Other' END AS browser, count(DISTINCT ${V})::int visitors FROM user_events WHERE ${HUMAN} AND ${RANGE} GROUP BY 1 ORDER BY visitors DESC LIMIT 6`, rp);
+      const trendRange = ranged ? RANGE : `created_at > now() - interval '14 days'`;
+      trend = await rows(`SELECT to_char(date_trunc('day',created_at),'YYYY-MM-DD') AS d, count(DISTINCT ${V})::int visitors, count(*) FILTER (WHERE event_type='module_used')::int uses FROM user_events WHERE ${HUMAN} AND ${trendRange} GROUP BY 1 ORDER BY 1`, ranged ? rp : []);
+    } catch (e) { console.error('audience stat:', e.message); }
+    if (ranged) { try { signups_range = (await rows(`SELECT count(*)::int c FROM users WHERE created_at >= $1::date AND created_at < ($2::date + 1)`, rp))[0].c; } catch { /* ignore */ } }
+
+    // ── Recent feedback (isolated: table may not exist until first submission) ──
+    let feedback_recent = [], feedback_summary = null;
+    try {
+      feedback_recent = await rows(`SELECT to_char(created_at,'Mon DD, HH24:MI') AS at, category, rating, left(message, 240) AS message, page FROM feedback ORDER BY created_at DESC LIMIT 6`);
+      feedback_summary = (await rows(`SELECT count(*)::int total, count(*) FILTER (WHERE created_at > now() - interval '7 days')::int last_7d, round(avg(rating) FILTER (WHERE rating IS NOT NULL), 1)::float AS avg_rating FROM feedback`))[0];
+    } catch { /* feedback table may not exist yet */ }
+
     res.json({
       registered_users: users[0].registered,
       signups_24h: users[0].signups_24h,
@@ -225,6 +259,10 @@ router.get('/stats', async (req, res) => {
       size_buckets,
       size_by_tool,
       range: ranged ? { from, to } : null,
+      bots,
+      signups_range,
+      countries, sources, devices, browsers, trend,
+      feedback_recent, feedback_summary,
     });
   } catch (err) {
     console.error('usage stats error:', err.message);
