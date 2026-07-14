@@ -3,9 +3,9 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { ConvertImageTool } from '@/components/tools/convert-image-tool';
 
 export const metadata: Metadata = {
-  title: 'Convert Image — WebP to PNG, PNG to JPG & More, Free | DiemDesk',
+  title: "Convert Image — WebP to PNG, PNG to JPG, Free | DiemDesk",
   description:
-    'Convert images between WebP, PNG, and JPG free in your browser — WebP to PNG, PNG to JPG, JPG to WebP, GIF and BMP in too. Full quality, nothing uploaded, no signup.',
+    "Convert images between WebP, PNG and JPG free in your browser — WebP to PNG, PNG to JPG, JPG to WebP and more. Full quality, nothing uploaded.",
   alternates: { canonical: '/convert-image' },
   openGraph: {
     images: ['/og.png'],

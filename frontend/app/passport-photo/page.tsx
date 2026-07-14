@@ -3,9 +3,9 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { PassportPhotoTool } from '@/components/tools/passport-photo-tool';
 
 export const metadata: Metadata = {
-  title: 'Passport & ID Photo Maker — 45+ Country Specs, Free | DiemDesk',
+  title: "Passport & ID Photo Maker — 45+ Countries, Free | DiemDesk",
   description:
-    'Make a compliant passport, visa or ID photo for 45+ countries — US visa, Schengen, UK, India, Canada and more. Auto-crops to the exact size, swaps the background, and hits the file-size limit, all in your browser. Your photo is never uploaded.',
+    "Make a compliant passport, visa or ID photo for 45+ countries — auto-crop, swap the background and hit the file-size limit, all in your browser.",
   alternates: { canonical: '/passport-photo' },
   openGraph: {
     images: ['/og.png'],

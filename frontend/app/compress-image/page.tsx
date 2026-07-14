@@ -5,7 +5,7 @@ import { CompressImageTool } from '@/components/tools/compress-image-tool';
 export const metadata: Metadata = {
   title: 'Compress Image — JPG, PNG & WebP Free | DiemDesk',
   description:
-    'Compress images free, right in your browser — shrink JPG, PNG, and WebP with the pro-grade mozjpeg encoder, compare before and after, and your photo is never uploaded.',
+    "Compress JPG, PNG and WebP images free in your browser with the pro-grade mozjpeg encoder. Compare before and after — your photo is never uploaded.",
   alternates: { canonical: '/compress-image' },
   openGraph: {
     images: ['/og.png'],

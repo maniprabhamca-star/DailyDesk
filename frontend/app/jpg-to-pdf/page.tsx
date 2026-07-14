@@ -3,9 +3,9 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { JpgToPdfTool } from '@/components/pdf/jpg-to-pdf-tool';
 
 export const metadata: Metadata = {
-  title: 'JPG to PDF — Convert Images to PDF Free, In Your Browser | DiemDesk',
+  title: "JPG to PDF — Convert Images to PDF, Free | DiemDesk",
   description:
-    'Convert JPG and PNG images to a PDF, free and instantly. Reorder pages, choose page size, no signup, no watermark — and your images never leave your browser.',
+    "Convert JPG and PNG images to a PDF free and instantly. Reorder pages, choose page size, no signup, no watermark — images never leave your browser.",
   alternates: { canonical: '/jpg-to-pdf' },
   openGraph: {
     images: ['/og.png'],

@@ -5,7 +5,7 @@ import { CompressVideoTool } from '@/components/tools/compress-video-tool';
 export const metadata: Metadata = {
   title: 'Compress Video — Shrink MP4 Free, In Your Browser | DiemDesk',
   description:
-    'Compress a video free and on your device — nothing is uploaded. Pick MP4 for compatibility or WebM for the smallest file, choose quality and resolution, and get a much smaller video in seconds. No signup, no size games.',
+    "Compress a video free on your device — nothing uploaded. Pick MP4 or WebM, choose quality and resolution, and get a much smaller file in seconds.",
   alternates: { canonical: '/compress-video' },
   openGraph: {
     images: ['/og.png'],

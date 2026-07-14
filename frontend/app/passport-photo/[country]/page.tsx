@@ -14,8 +14,8 @@ export function generateMetadata({ params }: { params: { country: string } }): M
   if (!s) return {};
   const cap = capOf(s.maxKB);
   return {
-    title: `${s.label} Photo Size & Maker — ${s.wMM}×${s.hMM} mm Free | DiemDesk`,
-    description: `Make a compliant ${s.label} photo free — ${s.wMM}×${s.hMM} mm (${s.wPx}×${s.hPx} px), ${s.bgName.toLowerCase()} background${cap ? `, under ${cap}` : ''}. Cropped, background swapped and sized on your device. Never uploaded.`,
+    title: `${s.label} Passport Photo — ${s.wMM}×${s.hMM} mm | DiemDesk`,
+    description: `${s.label} photo, free — ${s.wMM}×${s.hMM} mm, ${s.bgName.toLowerCase()} background${cap ? `, under ${cap}` : ''}. Cropped and sized on your device — never uploaded.`,
     alternates: { canonical: `/passport-photo/${s.id}` },
     openGraph: { images: ['/og.png'], title: `${s.label} Photo Maker — Free | DiemDesk`, type: 'website' },
   };

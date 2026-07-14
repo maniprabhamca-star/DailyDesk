@@ -2,9 +2,9 @@ import type { Metadata } from 'next';
 import { AlternativePage, type AltData } from '@/components/marketing/alternative-page';
 
 export const metadata: Metadata = {
-  title: 'Free Sejda Alternative — No Hourly Limit, No Upload | DiemDesk',
+  title: "Sejda Alternative — No Hourly Limit, No Upload | DiemDesk",
   description:
-    'Looking for a Sejda alternative? DiemDesk runs PDF tools in your browser with no 3-tasks-per-hour limit and no 50 MB / 200-page cap. Free during launch. Compared honestly.',
+    "A Sejda alternative: DiemDesk runs PDF tools in your browser — no 3-tasks-per-hour limit, no 50 MB / 200-page cap. Free during launch, compared honestly.",
   alternates: { canonical: '/sejda-alternative' },
   openGraph: {
     images: ['/og.png'],

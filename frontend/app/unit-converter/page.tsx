@@ -3,9 +3,9 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { UnitConverterTool } from '@/components/tools/unit-converter-tool';
 
 export const metadata: Metadata = {
-  title: 'Unit Converter — Length, Weight, Temperature & More | DiemDesk',
+  title: "Unit Converter — Length, Weight, Temp & More | DiemDesk",
   description:
-    'Convert length, weight, temperature, area, volume, speed, time, and data sizes instantly — precise factors, both directions, free and offline-friendly in your browser.',
+    "Convert length, weight, temperature, area, volume, speed, time and data sizes instantly — precise, both directions, free and offline in your browser.",
   alternates: { canonical: '/unit-converter' },
   openGraph: {
     images: ['/og.png'],

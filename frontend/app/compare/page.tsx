@@ -9,7 +9,7 @@ import { liveToolCount } from '@/components/app/catalog';
 export const metadata: Metadata = {
   title: 'DiemDesk vs Smallpdf, iLovePDF & Adobe — PDF Tools Compared',
   description:
-    'An honest comparison of DiemDesk with Smallpdf, iLovePDF, Sejda and Adobe Acrobat: price, free-plan limits, privacy and features. Prices from each vendor’s published plans (July 2026).',
+    "An honest comparison of DiemDesk with Smallpdf, iLovePDF, Sejda and Adobe Acrobat: price, free-plan limits, privacy and features. Sourced July 2026.",
   alternates: { canonical: '/compare' },
   openGraph: {
     images: ['/og.png'],

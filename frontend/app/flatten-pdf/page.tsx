@@ -3,9 +3,9 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { FlattenTool } from '@/components/pdf/flatten-tool';
 
 export const metadata: Metadata = {
-  title: 'Flatten PDF — Make Forms & Annotations Uneditable, Free | DiemDesk',
+  title: "Flatten PDF — Lock Forms & Annotations, Free | DiemDesk",
   description:
-    'Flatten a PDF free and in your browser: make filled form fields, signatures and annotations permanent, or lock every page as an image so nothing can be changed. No upload, no signup, no page limits.',
+    "Flatten a PDF free in your browser: make form fields, signatures and annotations permanent, or lock every page as an image. No upload, no signup.",
   alternates: { canonical: '/flatten-pdf' },
   openGraph: {
     images: ['/og.png'],

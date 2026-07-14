@@ -5,7 +5,7 @@ import { WatermarkTool } from '@/components/pdf/watermark-tool';
 export const metadata: Metadata = {
   title: 'Watermark PDF — Stamp Text on Every Page Free | DiemDesk',
   description:
-    'Add a text watermark to a PDF free, in your browser — live preview, diagonal, straight or tiled, any color and opacity. No signup, no watermark-on-your-watermark, and your file is never uploaded.',
+    "Add a text watermark to a PDF free, in your browser — live preview, diagonal, straight or tiled, any color and opacity. Your file is never uploaded.",
   alternates: { canonical: '/watermark-pdf' },
   openGraph: {
     images: ['/og.png'],

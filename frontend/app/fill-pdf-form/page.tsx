@@ -5,7 +5,7 @@ import { FillFormTool } from '@/components/tools/fill-form-tool';
 export const metadata: Metadata = {
   title: 'Fill a PDF Form Online Free — Type, Tick & Sign | DiemDesk',
   description:
-    'Fill any PDF form free in your browser — type text, add checkmarks and dates, drop in a signature, then flatten so it can’t be changed. Works on real form fields and flat scans. Your document is never uploaded.',
+    "Fill any PDF form free in your browser — type text, add checkmarks and dates, drop in a signature, then flatten. Works on real fields and flat scans.",
   alternates: { canonical: '/fill-pdf-form' },
   openGraph: {
     images: ['/og.png'],

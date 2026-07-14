@@ -4,7 +4,7 @@ import { KeywordLanding } from '@/components/app/keyword-landing';
 export const metadata: Metadata = {
   title: 'Compress PDF to 100 KB Online Free — Exact Size | DiemDesk',
   description:
-    'Compress a PDF to under 100 KB (or 50 KB, 200 KB, 500 KB, 1 MB) for exam, visa and government portal uploads — free, instant, and 100% on your device. Nothing is uploaded.',
+    "Compress a PDF to under 100 KB (or 50 KB, 200 KB, 500 KB, 1 MB) for exam, visa and portal uploads — free, instant, 100% on your device.",
   alternates: { canonical: '/compress-pdf-to-100kb' },
   openGraph: { images: ['/og.png'], title: 'Compress PDF to 100 KB — Free | DiemDesk', description: 'Hit an exact KB limit for portal uploads, on your device.', type: 'website' },
 };

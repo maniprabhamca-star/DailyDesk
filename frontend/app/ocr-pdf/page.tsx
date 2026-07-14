@@ -3,9 +3,9 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { OcrTool } from '@/components/tools/ocr-tool';
 
 export const metadata: Metadata = {
-  title: 'OCR PDF — Make Scanned PDFs Searchable & Extract Text Free | DiemDesk',
+  title: "OCR PDF — Make Scanned PDFs Searchable, Free | DiemDesk",
   description:
-    'Turn a scanned PDF or image into a searchable PDF and extract the text with OCR — free, no signup, no watermark. Pages prepared in your browser; recognised securely and deleted immediately.',
+    "Turn a scanned PDF or image into a searchable PDF and pull out the text with OCR — free. Pages recognised securely and deleted immediately.",
   alternates: { canonical: '/ocr-pdf' },
   openGraph: {
     images: ['/og.png'],

@@ -4,7 +4,7 @@ import { AlternativePage, type AltData } from '@/components/marketing/alternativ
 export const metadata: Metadata = {
   title: 'Free Adobe Acrobat Alternative — No Subscription | DiemDesk',
   description:
-    'Looking for an Adobe Acrobat alternative? DiemDesk runs PDF tools free in your browser — no $20/mo subscription, no install, no account. An honest, sourced comparison.',
+    "An Adobe Acrobat alternative: DiemDesk runs PDF tools free in your browser — no subscription, no install, no account. An honest, sourced comparison.",
   alternates: { canonical: '/adobe-acrobat-alternative' },
   openGraph: {
     images: ['/og.png'],

@@ -2,9 +2,9 @@ import type { Metadata } from 'next';
 import { AlternativePage, type AltData } from '@/components/marketing/alternative-page';
 
 export const metadata: Metadata = {
-  title: 'Free Smallpdf Alternative — Private, No Daily Limits | DiemDesk',
+  title: "Smallpdf Alternative — Private, No Daily Limits | DiemDesk",
   description:
-    'Looking for a Smallpdf alternative? DiemDesk runs PDF tools in your browser — no uploads, no 2-task daily limit, no watermarks. Free during launch. Compare honestly.',
+    "A Smallpdf alternative: DiemDesk runs PDF tools in your browser — no uploads, no 2-task daily limit, no watermarks. Free during launch, compared honestly.",
   alternates: { canonical: '/smallpdf-alternative' },
   openGraph: {
     images: ['/og.png'],

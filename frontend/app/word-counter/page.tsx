@@ -3,9 +3,9 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { WordCounterTool } from '@/components/tools/word-counter-tool';
 
 export const metadata: Metadata = {
-  title: 'Word Counter — Count Words, Characters & Reading Time | DiemDesk',
+  title: "Word Counter — Words, Characters & Reading Time | DiemDesk",
   description:
-    'Count words, characters, sentences, and paragraphs live as you type — with reading time, speaking time, and keyword density. Free, no signup, and your text never leaves your browser.',
+    "Count words, characters, sentences and paragraphs live as you type — with reading time, speaking time and keyword density. Nothing leaves your browser.",
   alternates: { canonical: '/word-counter' },
   openGraph: {
     images: ['/og.png'],

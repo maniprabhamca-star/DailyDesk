@@ -3,9 +3,9 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { MetadataTool } from '@/components/pdf/metadata-tool';
 
 export const metadata: Metadata = {
-  title: 'Remove PDF Metadata — Clean Author & Hidden Info Free | DiemDesk',
+  title: "Remove PDF Metadata — Clean Hidden Info, Free | DiemDesk",
   description:
-    'See and remove the hidden metadata in a PDF — author name, editing software, timestamps, XMP history — free and in your browser. Nothing is uploaded, pages stay untouched. No signup, no watermark.',
+    "See and remove the hidden metadata in a PDF — author, editing software, timestamps, XMP history — free in your browser. Nothing uploaded, pages untouched.",
   alternates: { canonical: '/remove-pdf-metadata' },
   openGraph: {
     images: ['/og.png'],

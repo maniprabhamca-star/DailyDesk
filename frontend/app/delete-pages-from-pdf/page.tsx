@@ -5,7 +5,7 @@ import { DeletePagesTool } from '@/components/pdf/delete-pages-tool';
 export const metadata: Metadata = {
   title: 'Delete Pages from PDF — Remove PDF Pages Free | DiemDesk',
   description:
-    'Delete pages from a PDF, free and in your browser. See every page, tap the ones to remove, and download — no signup, no watermark, your file never leaves your device.',
+    "Delete pages from a PDF free, in your browser. See every page, tap the ones to remove and download — no signup, no watermark, nothing uploaded.",
   alternates: { canonical: '/delete-pages-from-pdf' },
   openGraph: {
     images: ['/og.png'],

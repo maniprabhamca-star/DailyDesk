@@ -5,7 +5,7 @@ import { HeicTool } from '@/components/tools/heic-tool';
 export const metadata: Metadata = {
   title: 'HEIC to JPG — Convert iPhone Photos Free | DiemDesk',
   description:
-    'Convert HEIC and HEIF iPhone photos to JPG or PNG, free and right in your browser — full quality, burst photos included, and nothing is ever uploaded. No signup, no watermark, works on Windows, Mac, and Android.',
+    "Convert HEIC and HEIF iPhone photos to JPG or PNG free in your browser — full quality, burst photos included, nothing uploaded. Works on any device.",
   alternates: { canonical: '/heic-to-jpg' },
   openGraph: {
     images: ['/og.png'],

@@ -8,7 +8,7 @@ import { LegalPage, Section, Callout, FlowStep } from '@/components/legal/legal-
 export const metadata: Metadata = {
   title: 'Security — How DiemDesk Protects Your Files | DiemDesk',
   description:
-    'How DiemDesk keeps your documents safe: in-browser processing so files never leave your device, end-to-end encrypted File Vault (zero-knowledge, AES-256), and exactly how AI features handle your data.',
+    "How DiemDesk keeps documents safe: in-browser processing so files never leave your device, an encrypted File Vault, and how AI handles your data.",
   alternates: { canonical: '/security' },
   openGraph: {
     images: ['/og.png'],

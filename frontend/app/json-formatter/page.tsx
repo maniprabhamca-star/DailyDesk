@@ -5,7 +5,7 @@ import { JsonFormatterTool } from '@/components/tools/json-formatter-tool';
 export const metadata: Metadata = {
   title: 'JSON Formatter — Beautify, Validate & Minify JSON | DiemDesk',
   description:
-    'Format, validate, and minify JSON instantly in your browser — clear error messages with line and column, sorted keys, syntax highlighting. Free, no signup, and your data never leaves your device.',
+    "Format, validate and minify JSON in your browser — clear errors with line and column, sorted keys, highlighting. Free, nothing leaves your device.",
   alternates: { canonical: '/json-formatter' },
   openGraph: {
     images: ['/og.png'],

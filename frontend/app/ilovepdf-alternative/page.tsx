@@ -4,7 +4,7 @@ import { AlternativePage, type AltData } from '@/components/marketing/alternativ
 export const metadata: Metadata = {
   title: 'Free iLovePDF Alternative — No Ads, No Upload | DiemDesk',
   description:
-    'Looking for an iLovePDF alternative? DiemDesk runs PDF tools in your browser — no ads, no uploads, no batch caps. Free during launch. An honest, sourced comparison.',
+    "An iLovePDF alternative: DiemDesk runs PDF tools in your browser — no ads, no uploads, no batch caps. Free during launch. An honest, sourced comparison.",
   alternates: { canonical: '/ilovepdf-alternative' },
   openGraph: {
     images: ['/og.png'],

@@ -5,7 +5,7 @@ import { SignTool } from '@/components/pdf/sign-tool';
 export const metadata: Metadata = {
   title: 'Sign PDF — Draw, Type or Upload a Signature Free | DiemDesk',
   description:
-    'Sign a PDF free in your browser: draw your signature, type it in a script style, or upload an image — then drag it exactly into place. No signup, no watermark, and the document never leaves your device.',
+    "Sign a PDF free in your browser: draw your signature, type it in a script style or upload an image, then drag it into place. Nothing leaves your device.",
   alternates: { canonical: '/sign-pdf' },
   openGraph: {
     images: ['/og.png'],

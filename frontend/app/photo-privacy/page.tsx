@@ -3,9 +3,9 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { PhotoPrivacyTool } from '@/components/tools/photo-privacy-tool';
 
 export const metadata: Metadata = {
-  title: 'Blur Faces & Remove Photo Metadata (EXIF/GPS) — Free | DiemDesk',
+  title: "Blur Faces & Remove Photo EXIF/GPS Data — Free | DiemDesk",
   description:
-    'Strip hidden GPS location, device and timestamp data from a photo and blur faces, plates or text — free, right in your browser. Auto-detect faces and batch-scrub with Pro. Your photo is never uploaded.',
+    "Strip hidden GPS, device and timestamp data from a photo and blur faces, plates or text — free in your browser. Auto-detect and batch-scrub with Pro.",
   alternates: { canonical: '/photo-privacy' },
   openGraph: {
     images: ['/og.png'],

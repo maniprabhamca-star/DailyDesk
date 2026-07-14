@@ -3,7 +3,7 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { MergeTool } from '@/components/pdf/merge-tool';
 
 export const metadata: Metadata = {
-  title: 'Merge PDF — Combine PDF Files Free, In Your Browser | DiemDesk',
+  title: "Merge PDF — Combine PDF Files Free | DiemDesk",
   description:
     'Combine multiple PDF files into one, free and instantly. Reorder pages, no signup, no watermark — and your files never leave your browser.',
   alternates: { canonical: '/merge-pdf' },

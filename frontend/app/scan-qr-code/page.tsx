@@ -3,9 +3,9 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { ScanQrTool } from '@/components/tools/scan-qr-tool';
 
 export const metadata: Metadata = {
-  title: 'QR Code Scanner — Scan a QR Code From an Image, Free | DiemDesk',
+  title: "QR Code Scanner — Scan a QR From an Image, Free | DiemDesk",
   description:
-    'Scan a QR code from a photo or screenshot right in your browser — the image is never uploaded. Reads links, Wi-Fi passwords, contact cards, email, SMS and more. Free, no signup, no app to install.',
+    "Scan a QR code from a photo or screenshot right in your browser — nothing uploaded. Reads links, Wi-Fi, contact cards, email and SMS. Free, no app needed.",
   alternates: { canonical: '/scan-qr-code' },
   openGraph: {
     images: ['/og.png'],

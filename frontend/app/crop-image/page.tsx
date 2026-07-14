@@ -5,7 +5,7 @@ import { CropImageTool } from '@/components/tools/crop-image-tool';
 export const metadata: Metadata = {
   title: 'Crop Image — Free Online Photo Cropper | DiemDesk',
   description:
-    'Crop a photo free in your browser — drag the crop box exactly where you want it, with 1:1, 4:3, 16:9, and 3:2 presets. Full resolution kept, nothing uploaded, no signup.',
+    "Crop a photo free in your browser — drag the crop box where you want it, with 1:1, 4:3, 16:9 and 3:2 presets. Full resolution kept, nothing uploaded.",
   alternates: { canonical: '/crop-image' },
   openGraph: {
     images: ['/og.png'],

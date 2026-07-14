@@ -4,7 +4,7 @@ import { KeywordLanding } from '@/components/app/keyword-landing';
 export const metadata: Metadata = {
   title: 'Fill a PDF Form Online Free — Type, Tick & Sign | DiemDesk',
   description:
-    'Fill any PDF form online free — type text, add checkmarks and dates, drop in a signature, then flatten. Works on real form fields and flat scans. Your document is never uploaded.',
+    "Fill any PDF form online free — type text, add checkmarks and dates, add a signature, then flatten. Works on real form fields and flat scans.",
   alternates: { canonical: '/fill-pdf-form-online' },
   openGraph: { images: ['/og.png'], title: 'Fill a PDF Form Online — Free | DiemDesk', description: 'Type, tick, date and sign any PDF, on your device.', type: 'website' },
 };

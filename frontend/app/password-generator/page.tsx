@@ -3,9 +3,9 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { PasswordTool } from '@/components/tools/password-tool';
 
 export const metadata: Metadata = {
-  title: 'Strong Password Generator — Passwords & Passphrases | DiemDesk',
+  title: "Strong Password Generator & Passphrase Maker | DiemDesk",
   description:
-    'Generate strong random passwords or memorable passphrases free, with a strength meter and time-to-crack estimate. On-device — nothing is sent or stored, ever.',
+    "Generate strong random passwords or memorable passphrases free, with a strength meter and time-to-crack estimate. On-device — nothing is sent or stored.",
   alternates: { canonical: '/password-generator' },
   openGraph: {
     images: ['/og.png'],

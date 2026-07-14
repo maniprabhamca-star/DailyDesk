@@ -8,7 +8,7 @@ import { LegalPage, Section, Callout } from '@/components/legal/legal-page';
 export const metadata: Metadata = {
   title: 'Terms of Service | DiemDesk',
   description:
-    'The rules for using DiemDesk, in plain English: acceptable use, accounts and billing, your ownership of your files, AI and File Vault terms, and our liability.',
+    "The rules for using DiemDesk in plain English: acceptable use, accounts and billing, your ownership of your files, and AI and File Vault terms.",
   alternates: { canonical: '/terms' },
   openGraph: {
     images: ['/og.png'],

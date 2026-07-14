@@ -5,7 +5,7 @@ import { QrCodeTool } from '@/components/tools/qr-code-tool';
 export const metadata: Metadata = {
   title: 'WiFi QR Code Generator — Share Your Wi-Fi Free | DiemDesk',
   description:
-    'Make a QR code that connects guests to your Wi-Fi in one scan — no typing passwords. Free, generated in your browser: your network password is never uploaded.',
+    "Make a QR code that connects guests to your Wi-Fi in one scan — no typing passwords. Free, generated in your browser: your password is never uploaded.",
   alternates: { canonical: '/wifi-qr-code' },
   openGraph: {
     images: ['/og.png'],

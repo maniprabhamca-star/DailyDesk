@@ -5,7 +5,7 @@ import { OfficeToPdfTool } from '@/components/tools/office-to-pdf-tool';
 export const metadata: Metadata = {
   title: 'Excel to PDF — Convert XLSX to PDF Free | DiemDesk',
   description:
-    'Convert an Excel spreadsheet (XLSX, XLS, ODS, CSV) to PDF free — every sheet paginated cleanly. No signup, no watermark. Sent encrypted, converted, and deleted from our server immediately.',
+    "Convert an Excel spreadsheet (XLSX, XLS, ODS, CSV) to PDF free — every sheet paginated cleanly. Sent encrypted, converted and deleted immediately.",
   alternates: { canonical: '/excel-to-pdf' },
   openGraph: {
     images: ['/og.png'],

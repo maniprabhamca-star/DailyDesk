@@ -5,7 +5,7 @@ import { ReorderTool } from '@/components/pdf/reorder-tool';
 export const metadata: Metadata = {
   title: 'Reorder PDF Pages — Drag & Drop, Free | DiemDesk',
   description:
-    'Rearrange PDF pages free, in your browser — drag pages into a new order (or reverse the whole document), preview every page, and download. No signup, no watermark, your file is never uploaded.',
+    "Rearrange PDF pages free, in your browser — drag pages into a new order or reverse the whole document, preview every page, and download. Never uploaded.",
   alternates: { canonical: '/reorder-pdf' },
   openGraph: {
     images: ['/og.png'],

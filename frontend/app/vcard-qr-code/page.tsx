@@ -5,7 +5,7 @@ import { QrCodeTool } from '@/components/tools/qr-code-tool';
 export const metadata: Metadata = {
   title: 'vCard QR Code Generator — Contact Card QR Free | DiemDesk',
   description:
-    'Turn your contact details into a QR code — one scan adds you to their phone. Free vCard QR generator that runs in your browser: your details are never uploaded.',
+    "Turn your contact details into a QR code — one scan adds you to their phone. A free vCard QR generator in your browser: your details are never uploaded.",
   alternates: { canonical: '/vcard-qr-code' },
   openGraph: {
     images: ['/og.png'],

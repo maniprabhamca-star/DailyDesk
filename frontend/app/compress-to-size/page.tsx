@@ -3,9 +3,9 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { CompressTargetTool } from '@/components/tools/compress-target-tool';
 
 export const metadata: Metadata = {
-  title: 'Compress PDF or Image to a Target Size (100 KB, 200 KB, 1 MB) | DiemDesk',
+  title: "Compress PDF or Image to a Target Size (KB/MB) | DiemDesk",
   description:
-    'Compress a PDF or image to an exact size — under 50 KB, 100 KB, 200 KB, 500 KB, 1 MB or 2 MB — for exam, visa and government portal uploads or email. Free, instant, and 100% on your device. Nothing is uploaded.',
+    "Compress a PDF or image to an exact size — 50 KB, 100 KB, 200 KB, 500 KB, 1 MB or 2 MB — for exam, visa and portal uploads. Free, on your device.",
   alternates: { canonical: '/compress-to-size' },
   openGraph: {
     images: ['/og.png'],

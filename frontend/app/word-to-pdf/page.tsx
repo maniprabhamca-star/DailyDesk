@@ -5,7 +5,7 @@ import { OfficeToPdfTool } from '@/components/tools/office-to-pdf-tool';
 export const metadata: Metadata = {
   title: 'Word to PDF — Convert DOCX to PDF Free | DiemDesk',
   description:
-    'Convert a Word document (DOCX, DOC, ODT, RTF) to PDF free — layout, fonts, and images preserved. No signup, no watermark. Sent encrypted, converted, and deleted from our server immediately.',
+    "Convert a Word document (DOCX, DOC, ODT, RTF) to PDF free — layout, fonts and images preserved. Sent encrypted, converted and deleted immediately.",
   alternates: { canonical: '/word-to-pdf' },
   openGraph: {
     images: ['/og.png'],

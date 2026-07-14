@@ -4,7 +4,7 @@ import { KeywordLanding } from '@/components/app/keyword-landing';
 export const metadata: Metadata = {
   title: 'Blur Image Online Free — Faces, Plates & Text | DiemDesk',
   description:
-    'Blur faces, license plates or sensitive text in a photo free, right in your browser. Draw a box to blur, or auto-detect faces with Pro. Your image is never uploaded.',
+    "Blur faces, license plates or sensitive text in a photo free, in your browser. Draw a box, or auto-detect faces with Pro. Nothing is uploaded.",
   alternates: { canonical: '/blur-image' },
   openGraph: { images: ['/og.png'], title: 'Blur Image — Faces & Plates — Free | DiemDesk', description: 'Blur faces, plates or text on your device.', type: 'website' },
 };

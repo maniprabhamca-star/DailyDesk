@@ -2,9 +2,9 @@ import type { Metadata } from 'next';
 import { KeywordLanding } from '@/components/app/keyword-landing';
 
 export const metadata: Metadata = {
-  title: 'US Visa Photo Maker (DS-160) — 2×2 in, 600px, ≤240 KB Free | DiemDesk',
+  title: "US Visa Photo Maker (DS-160) — 2×2 in, Free | DiemDesk",
   description:
-    'Make a compliant US visa (DS-160) photo free — 2×2 inches, 600×600 to 1200×1200 px, white background, under 240 KB. Crop, swap the background and hit the size limit on your device. No upload.',
+    "Make a compliant US visa (DS-160) photo free — 2×2 in, white background, under 240 KB. Crop, swap the background and hit the size limit, all on-device.",
   alternates: { canonical: '/us-visa-photo' },
   openGraph: { images: ['/og.png'], title: 'US Visa Photo Maker (DS-160) — Free | DiemDesk', description: 'Compliant 2×2 in, ≤240 KB DS-160 photo, on your device.', type: 'website' },
 };

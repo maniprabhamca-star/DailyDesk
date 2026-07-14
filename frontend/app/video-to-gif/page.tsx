@@ -3,9 +3,9 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { VideoToGifTool } from '@/components/tools/video-to-gif-tool';
 
 export const metadata: Metadata = {
-  title: 'Video to GIF — Convert MP4 to GIF Free, In Your Browser | DiemDesk',
+  title: "Video to GIF — Convert MP4 to GIF, Free | DiemDesk",
   description:
-    'Turn a video into an animated GIF free and on your device — the video is never uploaded. Trim the clip, pick the frame rate and size, loop it. Works with MP4, WebM and MOV. No signup, no watermark.',
+    "Turn a video into an animated GIF free, on your device — nothing uploaded. Trim, set the frame rate and size, loop it. Works with MP4, WebM and MOV.",
   alternates: { canonical: '/video-to-gif' },
   openGraph: {
     images: ['/og.png'],

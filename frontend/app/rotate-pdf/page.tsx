@@ -5,7 +5,7 @@ import { RotateTool } from '@/components/pdf/rotate-tool';
 export const metadata: Metadata = {
   title: 'Rotate PDF — Turn PDF Pages Free, In Your Browser | DiemDesk',
   description:
-    'Rotate PDF pages 90° or 180°, free and instantly. Rotate every page or just the ones you choose, no signup, no watermark — your file never leaves your browser.',
+    "Rotate PDF pages 90° or 180° free and instantly. Turn every page or just the ones you pick — no signup, no watermark, nothing leaves your browser.",
   alternates: { canonical: '/rotate-pdf' },
   openGraph: {
     images: ['/og.png'],

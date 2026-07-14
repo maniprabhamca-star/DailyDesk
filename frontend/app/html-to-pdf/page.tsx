@@ -3,9 +3,9 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { OfficeToPdfTool } from '@/components/tools/office-to-pdf-tool';
 
 export const metadata: Metadata = {
-  title: 'HTML to PDF — Convert HTML, TXT, RTF & ODT to PDF Free | DiemDesk',
+  title: "HTML to PDF — Convert HTML, TXT & RTF Free | DiemDesk",
   description:
-    'Convert an HTML page, plain-text file, RTF, or ODT document to PDF free — layout and fonts preserved. No signup, no watermark. Sent encrypted, converted, and deleted from our server immediately.',
+    "Convert an HTML page, text file, RTF or ODT to PDF free — layout and fonts preserved. Sent encrypted, converted and deleted from our server at once.",
   alternates: { canonical: '/html-to-pdf' },
   openGraph: {
     images: ['/og.png'],

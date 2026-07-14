@@ -5,7 +5,7 @@ import { OfficeToPdfTool } from '@/components/tools/office-to-pdf-tool';
 export const metadata: Metadata = {
   title: 'PowerPoint to PDF — Convert PPTX to PDF Free | DiemDesk',
   description:
-    'Convert a PowerPoint presentation (PPTX, PPT, ODP) to PDF free — one slide per page, layouts and images preserved. No signup, no watermark. Sent encrypted, converted, and deleted immediately.',
+    "Convert a PowerPoint (PPTX, PPT, ODP) to PDF free — one slide per page, layouts and images preserved. Sent encrypted, converted and deleted immediately.",
   alternates: { canonical: '/powerpoint-to-pdf' },
   openGraph: {
     images: ['/og.png'],

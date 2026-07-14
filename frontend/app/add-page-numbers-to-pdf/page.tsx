@@ -5,7 +5,7 @@ import { PageNumbersTool } from '@/components/pdf/page-numbers-tool';
 export const metadata: Metadata = {
   title: 'Add Page Numbers to PDF — Free, In Your Browser | DiemDesk',
   description:
-    'Add page numbers to a PDF, free and in your browser. Choose the position, format, and where numbering starts — no signup, no watermark, your file never leaves your device.',
+    "Add page numbers to a PDF free, in your browser. Choose the position, format and starting number — no signup, no watermark, nothing uploaded.",
   alternates: { canonical: '/add-page-numbers-to-pdf' },
   openGraph: {
     images: ['/og.png'],

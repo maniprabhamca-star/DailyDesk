@@ -7,7 +7,7 @@ import { LegalPage, Section, Callout } from '@/components/legal/legal-page';
 export const metadata: Metadata = {
   title: 'Privacy — Plain-English Privacy Policy | DiemDesk',
   description:
-    'DiemDesk in plain English: your files are processed in your browser and never uploaded, we don&rsquo;t sell your data, AI runs only when you ask, and the File Vault is encrypted so even we can&rsquo;t read it.',
+    "DiemDesk in plain English: files are processed in your browser, never uploaded; we don’t sell your data; AI runs only when you ask; the Vault is encrypted.",
   alternates: { canonical: '/privacy' },
   openGraph: {
     images: ['/og.png'],

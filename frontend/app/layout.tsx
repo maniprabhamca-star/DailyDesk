@@ -31,7 +31,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: 'Free PDF Tools — Merge, Compress, Convert & Sign | DiemDesk',
   description:
-    'Free online PDF tools — merge, split, compress, convert & sign PDFs, plus image, QR and everyday tools. No signup, no watermark, no upload: everything runs in your browser.',
+    "Free PDF tools — merge, split, compress, convert & sign, plus image & QR tools. No signup, no watermark, no upload — all in your browser.",
   applicationName: SITE_NAME,
   alternates: { canonical: '/' },
   openGraph: {

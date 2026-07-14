@@ -5,7 +5,7 @@ import { RedactTool } from '@/components/pdf/redact-tool';
 export const metadata: Metadata = {
   title: 'Redact PDF — Permanently Black Out Text, Free | DiemDesk',
   description:
-    'Redact a PDF in your browser: black out sensitive text and the content underneath is permanently removed — not just covered. Private by design, never uploaded.',
+    "Redact a PDF in your browser: black out sensitive text and the content underneath is permanently removed — not just covered. Private, never uploaded.",
   alternates: { canonical: '/redact-pdf' },
   robots: { index: false, follow: false },
   openGraph: {

@@ -6,7 +6,7 @@ import { CompressTool } from '@/components/pdf/compress-tool';
 export const metadata: Metadata = {
   title: 'Compress PDF — Reduce PDF File Size Free | DiemDesk',
   description:
-    'Compress a PDF to make it smaller, free and in your browser. Shrinks images and scanned pages — even files other tools return unchanged — while text stays crisp. No signup, no watermark, your file never leaves your device.',
+    "Compress a PDF free in your browser. Shrinks images and scanned pages — even files other tools leave unchanged — while text stays crisp. Nothing uploaded.",
   alternates: { canonical: '/compress-pdf' },
   openGraph: {
     images: ['/og.png'],

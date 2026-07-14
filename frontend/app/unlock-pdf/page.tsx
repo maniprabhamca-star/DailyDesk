@@ -5,7 +5,7 @@ import { UnlockTool } from '@/components/pdf/unlock-tool';
 export const metadata: Metadata = {
   title: 'Unlock PDF — Remove a PDF Password You Know, Free | DiemDesk',
   description:
-    'Remove a PDF password you know and get a copy that opens freely — free and in your browser, so the file and password never leave your device. No signup, no watermark.',
+    "Remove a PDF password you know and get a copy that opens freely — free, in your browser, so the file and password never leave your device.",
   alternates: { canonical: '/unlock-pdf' },
   openGraph: {
     images: ['/og.png'],

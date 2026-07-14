@@ -5,7 +5,7 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'Pricing — Free Forever or Pro | DiemDesk',
   description:
-    'DiemDesk pricing: in-browser PDF, QR and password tools are free forever — no signup, no watermark, no daily limits. Pro adds batch processing, large files, unlimited Office conversions, and more.',
+    "DiemDesk pricing: in-browser PDF, QR and password tools are free forever — no daily limits. Pro adds batch, large files and unlimited conversions.",
   alternates: { canonical: '/pricing' },
   openGraph: {
     images: ['/og.png'],

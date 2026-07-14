@@ -3,7 +3,7 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { ClientPacketBuilder } from '@/components/workflows/client-packet-builder';
 
 export const metadata: Metadata = {
-  title: 'Client Packet Builder - Document Workflow Template | DiemDesk',
+  title: "Client Packet Builder — Document Workflow | DiemDesk",
   description: 'Build polished client document packets with a guided workflow for merge, cleanup, signing, share-safe checks, and compression.',
   alternates: { canonical: '/client-packet-builder' },
 };

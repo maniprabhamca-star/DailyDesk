@@ -7,7 +7,7 @@ import { liveToolCount } from '@/components/app/catalog';
 export const metadata: Metadata = {
   title: 'About DiemDesk — Private, Everyday Document Tools | DiemDesk',
   description:
-    'DiemDesk is a private-by-design toolkit of 35+ PDF, image and everyday tools that run right in your browser — no uploads, no signup, no watermarks. Learn who we are and why we build this way.',
+    "DiemDesk is a private-by-design toolkit of 35+ PDF, image and everyday tools that run in your browser — no uploads, no signup, no watermarks.",
   alternates: { canonical: '/about' },
   openGraph: {
     images: ['/og.png'],

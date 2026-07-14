@@ -4,7 +4,7 @@ import { KeywordLanding } from '@/components/app/keyword-landing';
 export const metadata: Metadata = {
   title: 'Remove EXIF & GPS Data from Photos Online Free | DiemDesk',
   description:
-    'Strip hidden EXIF metadata — GPS location, camera/device, timestamps — from your photos free, right in your browser. See what’s hidden, then download a clean copy. Nothing is uploaded.',
+    "Strip hidden EXIF data — GPS location, camera and timestamps — from your photos free, in your browser. See what is hidden, then download a clean copy.",
   alternates: { canonical: '/remove-exif' },
   openGraph: { images: ['/og.png'], title: 'Remove EXIF & GPS from Photos — Free | DiemDesk', description: 'Strip hidden location & device data on your device.', type: 'website' },
 };

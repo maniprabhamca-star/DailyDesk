@@ -5,7 +5,7 @@ import { ResizeImageTool } from '@/components/tools/resize-image-tool';
 export const metadata: Metadata = {
   title: 'Resize Image — Exact Pixels or Percent, Free | DiemDesk',
   description:
-    'Resize a JPG, PNG, or WebP to exact pixel dimensions or a percentage — with high-quality resampling, aspect-ratio lock, and presets. Free, in your browser: the photo never leaves your device.',
+    "Resize a JPG, PNG or WebP to exact pixels or a percentage — high-quality resampling, aspect-ratio lock and presets. The photo never leaves your device.",
   alternates: { canonical: '/resize-image' },
   openGraph: {
     images: ['/og.png'],

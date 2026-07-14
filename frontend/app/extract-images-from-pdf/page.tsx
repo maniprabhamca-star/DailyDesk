@@ -5,7 +5,7 @@ import { ExtractImagesTool } from '@/components/pdf/extract-images-tool';
 export const metadata: Metadata = {
   title: 'Extract Images from PDF — Original Quality, Free | DiemDesk',
   description:
-    'Pull every embedded image out of a PDF at original quality, free and in your browser. Photos export as the exact JPGs inside the file, graphics as lossless PNGs — no signup, no watermark, nothing uploaded.',
+    "Pull every embedded image out of a PDF at original quality, free in your browser. Photos export as JPGs, graphics as lossless PNGs. Nothing uploaded.",
   alternates: { canonical: '/extract-images-from-pdf' },
   openGraph: {
     images: ['/og.png'],
