@@ -20,7 +20,11 @@ type Stats = {
   pro_subscribers: number;
   pro_active_30d: number;
   pro_waitlist: number;
+  size_buckets?: Record<string, number>;
+  size_by_tool?: { module: string; bucket: string; c: number }[];
 };
+
+const SIZE_ORDER = ['<50MB', '50-100MB', '100MB-1GB', '1-2GB', '>2GB'];
 
 function Metric({ icon: Icon, label, value, sub }: { icon: typeof Users; label: string; value: number | string; sub?: string }) {
   return (
@@ -153,6 +157,44 @@ export default function DashboardPage() {
                 </div>
               )}
             </section>
+
+            {stats.size_buckets && (() => {
+              const buckets = stats.size_buckets!;
+              const total = SIZE_ORDER.reduce((s, b) => s + (buckets[b] || 0), 0);
+              const maxB = Math.max(1, ...SIZE_ORDER.map((b) => buckets[b] || 0));
+              const big = (buckets['100MB-1GB'] || 0) + (buckets['1-2GB'] || 0) + (buckets['>2GB'] || 0);
+              return (
+                <section className="mt-8">
+                  <h2 className="text-lg font-semibold">File sizes</h2>
+                  <p className="mt-1 text-xs text-muted-foreground">How large real users’ files are (largest file per upload; bucket only — no filenames or bytes). The in-browser guard warns above ~1.6&nbsp;GB on an 8&nbsp;GB device.</p>
+                  {total === 0 ? (
+                    <p className="mt-3 text-sm text-muted-foreground">No file selections recorded yet.</p>
+                  ) : (
+                    <>
+                      <div className="mt-3 space-y-2">
+                        {SIZE_ORDER.map((b) => {
+                          const n = buckets[b] || 0;
+                          const heavy = b === '1-2GB' || b === '>2GB';
+                          return (
+                            <div key={b} className="flex items-center gap-3">
+                              <span className="w-24 shrink-0 text-sm font-medium tabular-nums">{b}</span>
+                              <div className="h-5 flex-1 overflow-hidden rounded bg-muted">
+                                <div className={`h-full rounded ${heavy ? 'bg-red-500/70' : 'bg-primary/70'}`} style={{ width: `${Math.max(2, (n / maxB) * 100)}%` }} />
+                              </div>
+                              <span className="w-20 shrink-0 text-right text-sm tabular-nums text-muted-foreground">{n.toLocaleString()} · {Math.round((n / total) * 100)}%</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {big.toLocaleString()} of {total.toLocaleString()} uploads ({Math.round((big / total) * 100)}%) were ≥100&nbsp;MB
+                        {stats.size_by_tool && stats.size_by_tool.length ? ` — mostly ${stats.size_by_tool.slice(0, 3).map((t) => `${t.module} (${t.bucket})`).join(', ')}` : ''}.
+                      </p>
+                    </>
+                  )}
+                </section>
+              );
+            })()}
 
             {health && (() => {
               const stale = !health.heartbeat || (Date.now() - new Date(health.heartbeat.checked_at).getTime()) > 25 * 60 * 1000;

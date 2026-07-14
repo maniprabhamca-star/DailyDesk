@@ -25,6 +25,11 @@ const trackLimiter = rateLimit({
 });
 
 const MODULE_RE = /^[a-z0-9-]{1,50}$/;
+// Ordered file-size buckets recorded when a user selects/drops a file (see
+// usage-beacon.tsx). We store the BUCKET ONLY — never the filename or exact bytes
+// — so the dashboard shows how large real users' files are, per tool.
+const SIZE_BUCKET_ORDER = ['<50MB', '50-100MB', '100MB-1GB', '1-2GB', '>2GB'];
+const SIZE_BUCKETS = new Set(SIZE_BUCKET_ORDER);
 
 // First-party client-error store (privacy-first alternative to Sentry). Created
 // lazily so no separate migration step is needed on deploy.
@@ -92,6 +97,13 @@ router.post('/track', trackLimiter, (req, res) => {
   if (auth && auth.startsWith('Bearer ')) {
     try { userId = jwt.verify(auth.split(' ')[1], process.env.JWT_SECRET).userId; }
     catch { /* anonymous usage — leave userId null */ }
+  }
+
+  // A file was selected/dropped — record its size bucket (bucket only, never the
+  // filename or bytes). Distinct 'file_size' event; leaves usage counts untouched.
+  if (SIZE_BUCKETS.has(req.body && req.body.sizeBucket)) {
+    trackEvent(req, 'file_size', { module, metadata: { bucket: req.body.sizeBucket }, userId, visitorId });
+    return res.status(204).end();
   }
 
   // `pro:true` from a signed-in user marks that a Pro-only feature actually RAN
@@ -166,6 +178,22 @@ router.get('/stats', async (req, res) => {
     try { pro_waitlist = (await rows(`SELECT count(*)::int AS c FROM pro_waitlist`))[0].c; }
     catch { /* pro_waitlist table may not exist until the first signup */ }
 
+    // File-size distribution (how big are real users' files?) — ordered buckets,
+    // isolated so it can never break the dashboard. Also splits by tool for the
+    // heavy ones so we can see which tools attract the big files.
+    let size_buckets = {}; let size_by_tool = [];
+    try {
+      const sb = await rows(`SELECT metadata->>'bucket' AS bucket, count(*)::int AS c
+                             FROM user_events WHERE event_type='file_size' AND metadata->>'bucket' IS NOT NULL
+                             GROUP BY 1`);
+      const m = Object.fromEntries(sb.map((r) => [r.bucket, r.c]));
+      size_buckets = Object.fromEntries(SIZE_BUCKET_ORDER.map((b) => [b, m[b] || 0]));
+      size_by_tool = await rows(`SELECT module, metadata->>'bucket' AS bucket, count(*)::int AS c
+                                FROM user_events
+                                WHERE event_type='file_size' AND module IS NOT NULL AND metadata->>'bucket' IN ('100MB-1GB','1-2GB','>2GB')
+                                GROUP BY module, bucket ORDER BY c DESC LIMIT 20`);
+    } catch (e) { console.error('size bucket stat:', e.message); }
+
     res.json({
       registered_users: users[0].registered,
       signups_24h: users[0].signups_24h,
@@ -178,6 +206,8 @@ router.get('/stats', async (req, res) => {
       pro_subscribers: users[0].pro,
       pro_active_30d,
       pro_waitlist,
+      size_buckets,
+      size_by_tool,
     });
   } catch (err) {
     console.error('usage stats error:', err.message);
