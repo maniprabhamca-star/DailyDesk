@@ -85,6 +85,41 @@ export function allowedBatchCount(count: number, plan: Plan): number {
   return plan === 'pro' ? count : Math.min(count, FREE_MAX_BATCH);
 }
 
+// ---- Physical browser capacity (device RAM) — NOT a paywall --------------
+// This limit is independent of plan: it's the hard ceiling of processing ON the
+// device. A tool must hold the input + the decoded/working data + the output in
+// the tab's memory at once (a heavy re-encode/render needs ~3x the file size in
+// RAM; a light structural op ~1.5x), and a single ArrayBuffer maxes out near 2 GB
+// in today's browsers — so even a 64 GB desktop can't process an arbitrarily large
+// file in one tab. We use this to WARN before a huge file crashes the tab, never
+// to gate a sale (Pro doesn't lift a law of physics).
+const AB_HARD_CAP = 2 * 1024 * 1024 * 1024; // ~single-ArrayBuffer / wasm32 ceiling
+
+// Chrome/Edge expose approximate device RAM in GB (coarse buckets, capped at 8);
+// other browsers don't, so assume a middle-of-the-road 4 GB.
+export function deviceMemoryGB(): number {
+  if (typeof navigator === 'undefined') return 4;
+  const dm = (navigator as unknown as { deviceMemory?: number }).deviceMemory;
+  return typeof dm === 'number' && dm > 0 ? dm : 4;
+}
+
+export type OpWeight = 'light' | 'heavy';
+
+// Largest input this device can process on-device before the tab is likely to run
+// out of memory. ~60% of reported RAM is a realistic working budget for one tab
+// (the rest is the OS, the browser, other tabs), divided by the op's memory factor.
+export function browserSafeMaxBytes(weight: OpWeight = 'heavy'): number {
+  const budget = deviceMemoryGB() * 0.6 * 1024 * 1024 * 1024;
+  const perFile = budget / (weight === 'heavy' ? 3 : 1.5);
+  return Math.min(Math.floor(perFile), AB_HARD_CAP);
+}
+
+// True when a file is big enough that in-browser processing will very likely fail
+// on this device — the signal to show the graceful "too large" guard.
+export function exceedsBrowserCapacity(bytes: number, weight: OpWeight = 'heavy'): boolean {
+  return bytes > browserSafeMaxBytes(weight);
+}
+
 export function fmtBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;

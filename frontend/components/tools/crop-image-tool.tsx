@@ -10,6 +10,7 @@ import { KeepGoing } from '@/components/app/keep-going';
 import { decodeImage, encodeCanvas, canEncodeWebp, detectFormat, type OutFormat } from '@/lib/image-convert';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
+import { BigFileHint } from '@/components/app/big-file-hint';
 
 // Crop image — a real draggable/resizable crop box on the photo itself, with
 // aspect presets. All fractions of the displayed image, applied to the
@@ -182,6 +183,8 @@ export function CropImageTool() {
             <Button size="icon" variant="ghost" aria-label="Remove" onClick={() => { setFile(null); setDone(null); setError(null); }}><X className="size-4" /></Button>
           </div>
         )}
+
+        {file && <BigFileHint bytes={file.size} />}
 
         {file && srcUrl && !done && (
           <div className="mt-4 space-y-3">

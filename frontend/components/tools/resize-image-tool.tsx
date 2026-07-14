@@ -11,6 +11,7 @@ import { decodeImage, resample, encodeCanvas, canEncodeWebp, detectFormat, resiz
 import { BatchRunner } from '@/components/app/batch-runner';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
+import { BigFileHint } from '@/components/app/big-file-hint';
 
 const MAX_DIM = 12000; // sanity cap either side
 
@@ -224,6 +225,8 @@ export function ResizeImageTool() {
             <Button size="icon" variant="ghost" aria-label="Remove" onClick={() => { if (bitmap) bitmap.close(); setBitmap(null); setFile(null); setDone(null); setError(null); }}><X className="size-4" /></Button>
           </div>
         )}
+
+        {file && <BigFileHint bytes={file.size} />}
 
         {file && bitmap && !done && (
           <div className="mt-4 space-y-4">

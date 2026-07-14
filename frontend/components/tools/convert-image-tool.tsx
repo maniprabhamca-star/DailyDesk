@@ -11,6 +11,7 @@ import { decodeImage, encodeCanvas, canEncodeWebp, detectFormat, buildPreviewCan
 import { BatchRunner } from '@/components/app/batch-runner';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
+import { BigFileHint } from '@/components/app/big-file-hint';
 import { BeforeAfter } from '@/components/pdf/before-after';
 import { useQualityPreview } from '@/lib/use-quality-preview';
 
@@ -183,6 +184,8 @@ export function ConvertImageTool() {
             <Button size="icon" variant="ghost" aria-label="Remove" onClick={() => { setFile(null); setDone(null); setError(null); setBeforePrev((p) => { if (p) URL.revokeObjectURL(p.url); return null; }); prevCanvasRef.current = null; }}><X className="size-4" /></Button>
           </div>
         )}
+
+        {file && <BigFileHint bytes={file.size} />}
 
         {file && !done && formatControls}
 
