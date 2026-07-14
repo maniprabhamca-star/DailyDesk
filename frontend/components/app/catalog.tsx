@@ -5,7 +5,7 @@ import {
   ScanText, MessageSquare, AlignLeft, Languages,
   QrCode, KeyRound, NotebookPen, Flame, Wallet, FolderLock, Link2,
   ImageDown, Smartphone, Eraser, Film, Clapperboard, ArrowLeftRight, Images, Scaling, Repeat, Crop,
-  Ruler, Braces, Palette, CaseSensitive,
+  Ruler, Braces, Palette, CaseSensitive, Crosshair,
   Cloud, Sparkles, type LucideIcon,
 } from 'lucide-react';
 
@@ -36,6 +36,7 @@ export const catalog: CatGroup[] = [
       { name: 'Merge PDF', href: '/merge-pdf', icon: Combine, badge: 'device' },
       { name: 'Split PDF', href: '/split-pdf', icon: Split, badge: 'device' },
       { name: 'Compress PDF', href: '/compress-pdf', icon: Shrink, badge: 'device' },
+      { name: 'Compress to size', href: '/compress-to-size', icon: Crosshair, badge: 'device' },
       { name: 'Rotate PDF', href: '/rotate-pdf', icon: RotateCw, badge: 'device' },
       { name: 'Reorder pages', href: '/reorder-pdf', icon: ArrowLeftRight, badge: 'device' },
       { name: 'Compare PDF', href: '/compare-pdf', icon: ArrowLeftRight, badge: 'device', soon: true },

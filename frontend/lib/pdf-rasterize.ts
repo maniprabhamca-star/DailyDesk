@@ -16,10 +16,13 @@ const MAX_DIM = 5000; // hard clamp on the long edge — huge pages degrade grac
 
 export async function rasterizePdf(
   src: File | Blob,
-  preset: RasterPreset,
+  // A named Flatten preset, OR an explicit { dpi, quality } — the latter lets the
+  // Compress-to-target tool sweep the knob to hit a byte target. Additive: existing
+  // string callers (Flatten) are unchanged.
+  preset: RasterPreset | { dpi: number; quality: number },
   onProgress?: (done: number, total: number) => void,
 ): Promise<Uint8Array> {
-  const { dpi, quality } = RASTER_PRESETS[preset];
+  const { dpi, quality } = typeof preset === 'string' ? RASTER_PRESETS[preset] : preset;
   const pdfjs = await getPdfjs();
   const data = new Uint8Array(await src.arrayBuffer());
   const task = pdfjs.getDocument(pdfDocOptions(data));
