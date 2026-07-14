@@ -84,6 +84,7 @@ export function CompressTargetTool() {
   const [done, setDone] = useState<(TargetResult & { url: string; secs: number }) | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const runningName = useRef<string>('');
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => () => { if (done) URL.revokeObjectURL(done.url); }, [done]);
 
@@ -105,6 +106,8 @@ export function CompressTargetTool() {
 
   async function run() {
     if (!file || !customValid) return;
+    const controller = new AbortController();
+    abortRef.current = controller;
     setBusy(true);
     setError(null);
     setProgress('Preparing…');
@@ -112,18 +115,23 @@ export function CompressTargetTool() {
     const startedAt = performance.now();
     try {
       const res = isPdfFile(file)
-        ? await compressPdfToTarget(file, effectiveTarget, setProgress)
-        : await compressImageToTarget(file, effectiveTarget, setProgress);
+        ? await compressPdfToTarget(file, effectiveTarget, setProgress, controller.signal)
+        : await compressImageToTarget(file, effectiveTarget, setProgress, controller.signal);
       if (runningName.current !== file.name) return;
       const url = URL.createObjectURL(res.blob);
       setDone({ ...res, url, secs: (performance.now() - startedAt) / 1000 });
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Compression failed. Try a different file or target.');
+      if ((e as { name?: string })?.name !== 'AbortError') {
+        setError(e instanceof Error ? e.message : 'Compression failed. Try a different file or target.');
+      }
     } finally {
       setBusy(false);
       setProgress('');
+      abortRef.current = null;
     }
   }
+
+  function cancelRun() { abortRef.current?.abort(); }
 
   function reset() {
     setFile(null);
@@ -260,9 +268,16 @@ export function CompressTargetTool() {
 
               {error && <p className="mt-3 text-sm text-red-600 dark:text-red-400">{error}</p>}
 
-              <Button className="mt-5 w-full" size="lg" onClick={run} disabled={busy || !customValid}>
-                {busy ? <><Loader2 className="size-4 animate-spin" /> {progress || 'Compressing…'}</> : <><Shrink className="size-4" /> {customValid ? `Compress to ${fmtTarget(effectiveTarget)}` : 'Enter a target size'}</>}
-              </Button>
+              {busy ? (
+                <div className="mt-5 flex gap-2">
+                  <Button className="flex-1" size="lg" disabled><Loader2 className="size-4 animate-spin" /> {progress || 'Compressing…'}</Button>
+                  <Button size="lg" variant="outline" onClick={cancelRun}><X className="size-4" /> Cancel</Button>
+                </div>
+              ) : (
+                <Button className="mt-5 w-full" size="lg" onClick={run} disabled={!customValid}>
+                  <Shrink className="size-4" /> {customValid ? `Compress to ${fmtTarget(effectiveTarget)}` : 'Enter a target size'}
+                </Button>
+              )}
             </>
           )}
 
@@ -273,12 +288,14 @@ export function CompressTargetTool() {
                   {done.reached ? <CheckCircle2 className="size-5" /> : <AlertTriangle className="size-5" />}
                 </span>
                 <div className="min-w-0">
-                  {done.reached ? (
+                  {done.unchanged ? (
+                    <p className="text-sm font-semibold">Already under {fmtTarget(effectiveTarget)} — <span className="text-emerald-600 dark:text-emerald-400">nothing to compress ✓</span></p>
+                  ) : done.reached ? (
                     <p className="text-sm font-semibold">Done — {fmt(done.after)} <span className="text-emerald-600 dark:text-emerald-400">· under your {fmtTarget(effectiveTarget)} limit ✓</span></p>
                   ) : (
-                    <p className="text-sm font-semibold">Smallest we could reach: {fmt(done.after)} <span className="text-amber-600 dark:text-amber-400">· couldn’t get under {fmtTarget(effectiveTarget)}</span></p>
+                    <p className="text-sm font-semibold">Smallest we could reach: {fmt(done.after)} <span className="text-amber-600 dark:text-amber-400">(the max possible) · couldn’t get under {fmtTarget(effectiveTarget)}</span></p>
                   )}
-                  <p className="text-xs text-muted-foreground">was {fmt(done.before)} · −{Math.max(0, Math.round((1 - done.after / done.before) * 100))}% · {formatDuration(done.secs)}</p>
+                  <p className="text-xs text-muted-foreground">was {fmt(done.before)}{done.unchanged ? '' : ` · −${Math.max(0, Math.round((1 - done.after / done.before) * 100))}%`} · {formatDuration(done.secs)}</p>
                 </div>
               </div>
               {!done.reached && (

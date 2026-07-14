@@ -12,11 +12,17 @@ export type TargetResult = {
   name: string;
   before: number;
   after: number;
-  reached: boolean; // false = target was too small; this is the smallest we could make
+  reached: boolean;   // false = target was too small; this is the smallest we could make
+  unchanged?: boolean; // true = file was already under the target, returned as-is
 };
 
 function baseName(name: string): string {
   return name.replace(/\.[^./\\]+$/, '');
+}
+
+// Throw an AbortError the caller can recognise (Cancel button → aborts the run).
+function ckAbort(signal?: AbortSignal) {
+  if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
 }
 
 // ---------------------------------------------------------------- IMAGE -------
@@ -27,10 +33,11 @@ export async function compressImageToTarget(
   file: File,
   targetBytes: number,
   onProgress?: (msg: string) => void,
+  signal?: AbortSignal,
 ): Promise<TargetResult> {
   const before = file.size;
   if (before <= targetBytes) {
-    return { blob: file, name: file.name, before, after: before, reached: true };
+    return { blob: file, name: file.name, before, after: before, reached: true, unchanged: true };
   }
   const bmp = await decodeImage(file);
   const ow = (bmp as { width: number }).width;
@@ -65,6 +72,7 @@ export async function compressImageToTarget(
     let smallest: Blob | null = null;
     const name = `${baseName(file.name)}-compressed.jpg`;
     for (let i = 0; i < SCALES.length; i++) {
+      ckAbort(signal);
       const scale = SCALES[i];
       onProgress?.(`Fitting the target… (${Math.round(scale * 100)}%)`);
       const low = await render(scale, Q_MIN);
@@ -107,10 +115,11 @@ export async function compressPdfToTarget(
   file: File,
   targetBytes: number,
   onProgress?: (msg: string) => void,
+  signal?: AbortSignal,
 ): Promise<TargetResult> {
   const before = file.size;
   if (before <= targetBytes) {
-    return { blob: file, name: file.name, before, after: before, reached: true };
+    return { blob: file, name: file.name, before, after: before, reached: true, unchanged: true };
   }
 
   const name = `${baseName(file.name)}-compressed.pdf`;
@@ -130,9 +139,10 @@ export async function compressPdfToTarget(
   //    smallest index (= highest fidelity) whose output is still under the target.
   const cache = new Map<number, Uint8Array>();
   const sizeAt = async (i: number): Promise<Uint8Array> => {
+    ckAbort(signal);
     if (!cache.has(i)) {
-      onProgress?.(`Compressing… (${PDF_LADDER[i].dpi} DPI)`);
-      cache.set(i, await rasterizePdf(file, PDF_LADDER[i]));
+      const dpi = PDF_LADDER[i].dpi;
+      cache.set(i, await rasterizePdf(file, PDF_LADDER[i], (done, total) => onProgress?.(`Compressing at ${dpi} DPI · page ${done}/${total}`), signal));
     }
     return cache.get(i)!;
   };

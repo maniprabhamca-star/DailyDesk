@@ -23,6 +23,31 @@ function fmtKB(bytes: number) {
   return bytes < 1024 * 1024 ? `${Math.round(bytes / 1024)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
+// Progressive enhancement: where the browser exposes the Shape Detection API
+// (Chrome/Edge), auto-place the head between the guides at the spec's head size.
+// Any failure / unsupported browser → returns null and we keep manual placement.
+async function autoPlaceFace(bmp: ImageBitmap, spec: PassportSpec, frameH: number): Promise<{ zoom: number; off: { x: number; y: number } } | null> {
+  try {
+    const FD = (window as unknown as { FaceDetector?: new (o?: object) => { detect: (i: CanvasImageSource) => Promise<{ boundingBox: DOMRectReadOnly }[]> } }).FaceDetector;
+    if (!FD) return null;
+    const faces = await new FD({ fastMode: true, maxDetectedFaces: 1 }).detect(bmp);
+    if (!faces || !faces.length) return null;
+    const b = faces[0].boundingBox;
+    const headH = b.height * 1.45;               // crown→chin ≈ 1.45× the face box
+    const headTop = b.y - b.height * 0.35;
+    const headCx = b.x + b.width / 2;
+    const hf = (spec.headMin + spec.headMax) / 2; // desired head fraction of output
+    const sh = headH / hf;
+    const sw = sh * (FRAME_W / frameH);
+    const sy = headTop - 0.08 * sh;               // crown ~8% from the top
+    const sx = headCx - sw / 2;
+    const cover = Math.max(FRAME_W / bmp.width, frameH / bmp.height);
+    const zoom = Math.min(4, Math.max(1, (FRAME_W / sw) / cover));
+    const scale = cover * zoom;
+    return { zoom, off: { x: -sx * scale, y: -sy * scale } };
+  } catch { return null; }
+}
+
 export function PassportPhotoTool() {
   const [spec, setSpec] = useState<PassportSpec>(PASSPORT_SPECS[0]);
   const [query, setQuery] = useState('');
@@ -35,6 +60,7 @@ export function PassportPhotoTool() {
   const [bgBusy, setBgBusy] = useState(false);
   const [bgMsg, setBgMsg] = useState('');
   const [exporting, setExporting] = useState(false);
+  const [autoPlaced, setAutoPlaced] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ url: string; blob: Blob; size: number; name: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -84,13 +110,17 @@ export function PassportPhotoTool() {
       setError('Please choose a photo (JPG, PNG, or WebP).');
       return;
     }
-    setError(null); setResult(null); setCutout(null); setBgId('keep'); setZoom(1);
+    setError(null); setResult(null); setCutout(null); setBgId('keep'); setZoom(1); setAutoPlaced(false);
     try {
       const bmp = await createImageBitmap(f);
       setSrcBmp(bmp);
       setFile(f);
       const cover = Math.max(FRAME_W / bmp.width, frameH / bmp.height);
-      setOffset({ x: (FRAME_W - bmp.width * cover) / 2, y: (frameH - bmp.height * cover) / 2 });
+      let off = { x: (FRAME_W - bmp.width * cover) / 2, y: (frameH - bmp.height * cover) / 2 };
+      let z = 1;
+      const auto = await autoPlaceFace(bmp, spec, frameH);
+      if (auto) { z = auto.zoom; off = clampOffset(auto.off, bmp.width * cover * z, bmp.height * cover * z); setAutoPlaced(true); }
+      setZoom(z); setOffset(off);
     } catch {
       setError('Could not read that photo. Try a JPG or PNG.');
     }
@@ -237,7 +267,7 @@ export function PassportPhotoTool() {
               </div>
               {bgBusy && <div className="absolute inset-0 flex items-center justify-center rounded-md bg-background/70 text-xs font-medium"><Loader2 className="mr-1.5 size-4 animate-spin" /> {bgMsg}</div>}
             </div>
-            <p className="text-center text-[11px] text-muted-foreground">Drag to move · line your head up with the guides</p>
+            <p className="text-center text-[11px] text-muted-foreground">{autoPlaced ? '✓ Auto-positioned — drag or zoom to fine-tune' : 'Drag to move · line your head up with the guides'}</p>
             <input type="range" min={1} max={4} step={0.02} value={zoom} onChange={(e) => onZoom(parseFloat(e.target.value))} className="w-full" aria-label="Zoom" />
           </div>
 

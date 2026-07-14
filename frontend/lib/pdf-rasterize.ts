@@ -21,6 +21,7 @@ export async function rasterizePdf(
   // string callers (Flatten) are unchanged.
   preset: RasterPreset | { dpi: number; quality: number },
   onProgress?: (done: number, total: number) => void,
+  signal?: AbortSignal,
 ): Promise<Uint8Array> {
   const { dpi, quality } = typeof preset === 'string' ? RASTER_PRESETS[preset] : preset;
   const pdfjs = await getPdfjs();
@@ -30,6 +31,7 @@ export async function rasterizePdf(
   try {
     const out = await PDFDocument.create();
     for (let i = 1; i <= doc.numPages; i++) {
+      if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
       const page = await doc.getPage(i);
       // scale 1 = 72 DPI; the base viewport already folds in the page /Rotate,
       // so the output page keeps the orientation the reader actually sees.
