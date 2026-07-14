@@ -10,10 +10,19 @@ import { KeepGoing } from '@/components/app/keep-going';
 import { compressImageToTarget, compressPdfToTarget, isPdfFile, isImageFile, type TargetResult } from '@/lib/compress-to-target';
 
 const KB = 1024, MB = 1024 * 1024;
+
 function fmt(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < MB) return `${(bytes / KB).toFixed(0)} KB`;
   return `${(bytes / MB).toFixed(bytes < 10 * MB ? 1 : 0)} MB`;
+}
+
+// Friendly TARGET label: rolls up into MB once you're at ~1000 KB, so a custom
+// "1000 KB" reads as "1 MB" (not "1000 KB"), and 1536 KB reads as "1.5 MB".
+function fmtTarget(bytes: number) {
+  if (bytes < 1000 * KB) return `${Math.round(bytes / KB)} KB`;
+  const mb = Math.round((bytes / MB) * 10) / 10;
+  return `${mb} MB`;
 }
 
 const SIZE_PRESETS: { label: string; bytes: number }[] = [
@@ -25,21 +34,47 @@ const SIZE_PRESETS: { label: string; bytes: number }[] = [
   { label: '2 MB', bytes: 2 * MB },
 ];
 
-// Real government / exam / everyday upload limits — one tap fills the exact cap.
-const EXAM_PRESETS: { label: string; note: string; bytes: number }[] = [
-  { label: 'UPSC photo', note: '40 KB', bytes: 40 * KB },
-  { label: 'UPSC PDF', note: '300 KB', bytes: 300 * KB },
-  { label: 'SSC', note: '100 KB', bytes: 100 * KB },
-  { label: 'IBPS', note: '50 KB', bytes: 50 * KB },
-  { label: 'SBI', note: '50 KB', bytes: 50 * KB },
-  { label: 'Email', note: '25 MB', bytes: 25 * MB },
+// Real, sourced upload limits from the portals people actually fight with,
+// worldwide. One tap fills the exact cap. (Photo DIMENSION cropping — 35×45 mm,
+// 2×2 in — lives in the Passport/ID Photo tool; here we hit the byte limit.)
+type Preset = { label: string; note: string; bytes: number };
+const PRESET_GROUPS: { label: string; items: Preset[] }[] = [
+  {
+    label: '🇮🇳 India exams & forms',
+    items: [
+      { label: 'UPSC photo', note: '40 KB', bytes: 40 * KB },
+      { label: 'UPSC doc', note: '300 KB', bytes: 300 * KB },
+      { label: 'SSC', note: '100 KB', bytes: 100 * KB },
+      { label: 'IBPS', note: '50 KB', bytes: 50 * KB },
+      { label: 'SBI', note: '50 KB', bytes: 50 * KB },
+      { label: 'Signature', note: '20 KB', bytes: 20 * KB },
+    ],
+  },
+  {
+    label: '🛂 Passport & visa',
+    items: [
+      { label: 'US visa', note: '240 KB', bytes: 240 * KB },
+      { label: 'India passport', note: '250 KB', bytes: 250 * KB },
+      { label: 'India e-Visa', note: '1 MB', bytes: 1 * MB },
+      { label: 'Canada PR', note: '4 MB', bytes: 4 * MB },
+      { label: 'Passport photo', note: '200 KB', bytes: 200 * KB },
+    ],
+  },
+  {
+    label: '✉️ Everyday sharing',
+    items: [
+      { label: 'Email', note: '25 MB', bytes: 25 * MB },
+      { label: 'Discord', note: '25 MB', bytes: 25 * MB },
+      { label: 'Web upload', note: '2 MB', bytes: 2 * MB },
+    ],
+  },
 ];
 
 type Kind = 'pdf' | 'image';
 
 export function CompressTargetTool() {
   const [file, setFile] = useState<File | null>(null);
-  const [kind, setKind] = useState<Kind>('pdf'); // accept-filter hint; auto-set from the dropped file
+  const [kind, setKind] = useState<Kind>('pdf');
   const [target, setTarget] = useState<number>(200 * KB);
   const [customOn, setCustomOn] = useState(false);
   const [customKb, setCustomKb] = useState('150');
@@ -48,11 +83,13 @@ export function CompressTargetTool() {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<(TargetResult & { url: string; secs: number }) | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const cancelledName = useRef<string>('');
+  const runningName = useRef<string>('');
 
   useEffect(() => () => { if (done) URL.revokeObjectURL(done.url); }, [done]);
 
-  const effectiveTarget = customOn ? Math.max(1, Math.round(parseFloat(customKb || '0') * KB)) : target;
+  const customNum = parseFloat(customKb);
+  const customValid = !customOn || (isFinite(customNum) && customNum > 0);
+  const effectiveTarget = customOn ? Math.max(1, Math.round((isFinite(customNum) ? customNum : 0) * KB)) : target;
 
   function loadFile(f?: File) {
     if (!f) return;
@@ -67,18 +104,17 @@ export function CompressTargetTool() {
   }
 
   async function run() {
-    if (!file) return;
+    if (!file || !customValid) return;
     setBusy(true);
     setError(null);
     setProgress('Preparing…');
-    cancelledName.current = file.name;
+    runningName.current = file.name;
     const startedAt = performance.now();
     try {
-      const isPdf = isPdfFile(file);
-      const res = isPdf
+      const res = isPdfFile(file)
         ? await compressPdfToTarget(file, effectiveTarget, setProgress)
         : await compressImageToTarget(file, effectiveTarget, setProgress);
-      if (cancelledName.current !== file.name) return; // file changed mid-run
+      if (runningName.current !== file.name) return;
       const url = URL.createObjectURL(res.blob);
       setDone({ ...res, url, secs: (performance.now() - startedAt) / 1000 });
     } catch (e) {
@@ -96,15 +132,7 @@ export function CompressTargetTool() {
     if (inputRef.current) inputRef.current.value = '';
   }
 
-  const Chip = ({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) => (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`rounded-lg border px-3 py-2 text-sm font-semibold transition ${on ? 'border-primary bg-primary text-primary-foreground shadow-sm' : 'border-border bg-card hover:border-primary/40'}`}
-    >
-      {children}
-    </button>
-  );
+  const presetOn = (bytes: number) => !customOn && target === bytes;
 
   return (
     <div className="mx-auto max-w-xl">
@@ -116,7 +144,6 @@ export function CompressTargetTool() {
         onChange={(e) => loadFile(e.target.files?.[0])}
       />
 
-      {/* Format hint / accept toggle */}
       {!file && (
         <div className="mb-4 inline-flex rounded-xl border bg-muted/50 p-1">
           {(['pdf', 'image'] as Kind[]).map((k) => (
@@ -124,7 +151,7 @@ export function CompressTargetTool() {
               key={k}
               type="button"
               onClick={() => setKind(k)}
-              className={`rounded-lg px-4 py-1.5 text-sm font-semibold capitalize transition ${kind === k ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'}`}
+              className={`rounded-lg px-4 py-1.5 text-sm font-semibold transition ${kind === k ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'}`}
             >
               {k === 'pdf' ? 'PDF' : 'Image'}
             </button>
@@ -166,14 +193,21 @@ export function CompressTargetTool() {
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {SIZE_PRESETS.map((p) => (
-                  <Chip key={p.label} on={!customOn && target === p.bytes} onClick={() => { setCustomOn(false); setTarget(p.bytes); }}>{p.label}</Chip>
+                  <button
+                    key={p.label}
+                    type="button"
+                    onClick={() => { setCustomOn(false); setTarget(p.bytes); }}
+                    className={`rounded-lg border px-3 py-2 text-sm font-semibold transition ${presetOn(p.bytes) ? 'border-primary bg-primary text-primary-foreground shadow-sm' : 'border-border bg-card hover:border-primary/40'}`}
+                  >
+                    {p.label}
+                  </button>
                 ))}
                 <button
                   type="button"
                   onClick={() => setCustomOn(true)}
                   className={`rounded-lg border border-dashed px-3 py-2 text-sm font-semibold transition ${customOn ? 'border-primary bg-primary/10 text-foreground' : 'border-border bg-muted/40 text-muted-foreground hover:border-primary/40'}`}
                 >
-                  Custom KB…
+                  Custom…
                 </button>
               </div>
 
@@ -188,34 +222,46 @@ export function CompressTargetTool() {
                     aria-label="Custom target in KB"
                   />
                   <span className="text-sm text-muted-foreground">KB</span>
+                  {customValid ? (
+                    <span className="text-sm font-medium text-primary">= {fmtTarget(effectiveTarget)}</span>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">enter a size</span>
+                  )}
                 </div>
               )}
 
               <div className="mt-3 rounded-xl border bg-muted/40 p-3">
-                <p className="mb-2.5 flex items-center gap-1.5 text-xs font-semibold">🎓 Government &amp; exam presets <span className="font-normal text-muted-foreground">— fill the exact limit</span></p>
-                <div className="flex flex-wrap gap-2">
-                  {EXAM_PRESETS.map((p) => (
-                    <button
-                      key={p.label}
-                      type="button"
-                      onClick={() => { setCustomOn(false); setTarget(p.bytes); }}
-                      className={`rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition ${!customOn && target === p.bytes ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card hover:border-primary/40'}`}
-                    >
-                      {p.label} <span className={!customOn && target === p.bytes ? 'text-primary-foreground/80' : 'text-muted-foreground'}>{p.note}</span>
-                    </button>
+                <p className="mb-2 text-xs font-semibold">Real-world upload limits <span className="font-normal text-muted-foreground">— fill the exact cap</span></p>
+                <div className="space-y-2.5">
+                  {PRESET_GROUPS.map((g) => (
+                    <div key={g.label}>
+                      <p className="mb-1.5 text-[11px] font-medium text-muted-foreground">{g.label}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {g.items.map((p) => (
+                          <button
+                            key={p.label}
+                            type="button"
+                            onClick={() => { setCustomOn(false); setTarget(p.bytes); }}
+                            className={`rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition ${presetOn(p.bytes) ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card hover:border-primary/40'}`}
+                          >
+                            {p.label} <span className={presetOn(p.bytes) ? 'text-primary-foreground/80' : 'text-muted-foreground'}>{p.note}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
 
               <p className="mt-4 flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/[0.05] px-3 py-2 text-xs text-muted-foreground">
                 <Info className="mt-0.5 size-3.5 shrink-0 text-primary" />
-                <span><b className="text-foreground">How it hits the target:</b> we step the {isPdfFile(file) ? 'resolution &amp; quality' : 'quality, then size'} down just enough to fit — {isPdfFile(file) ? 'text stays readable' : 'photos stay sharp'}. Everything runs in your browser; the file is never uploaded.</span>
+                <span><b className="text-foreground">How it hits the target:</b> we step the {isPdfFile(file) ? 'resolution & quality' : 'quality, then size'} down just enough to fit — {isPdfFile(file) ? 'text stays readable' : 'photos stay sharp'}. Everything runs in your browser; the file is never uploaded.</span>
               </p>
 
               {error && <p className="mt-3 text-sm text-red-600 dark:text-red-400">{error}</p>}
 
-              <Button className="mt-5 w-full" size="lg" onClick={run} disabled={busy}>
-                {busy ? <><Loader2 className="size-4 animate-spin" /> {progress || 'Compressing…'}</> : <><Shrink className="size-4" /> Compress to {fmt(effectiveTarget)}</>}
+              <Button className="mt-5 w-full" size="lg" onClick={run} disabled={busy || !customValid}>
+                {busy ? <><Loader2 className="size-4 animate-spin" /> {progress || 'Compressing…'}</> : <><Shrink className="size-4" /> {customValid ? `Compress to ${fmtTarget(effectiveTarget)}` : 'Enter a target size'}</>}
               </Button>
             </>
           )}
@@ -228,9 +274,9 @@ export function CompressTargetTool() {
                 </span>
                 <div className="min-w-0">
                   {done.reached ? (
-                    <p className="text-sm font-semibold">Done — {fmt(done.after)} <span className="text-emerald-600 dark:text-emerald-400">· under your {fmt(effectiveTarget)} limit ✓</span></p>
+                    <p className="text-sm font-semibold">Done — {fmt(done.after)} <span className="text-emerald-600 dark:text-emerald-400">· under your {fmtTarget(effectiveTarget)} limit ✓</span></p>
                   ) : (
-                    <p className="text-sm font-semibold">Smallest we could reach: {fmt(done.after)} <span className="text-amber-600 dark:text-amber-400">· couldn’t get under {fmt(effectiveTarget)}</span></p>
+                    <p className="text-sm font-semibold">Smallest we could reach: {fmt(done.after)} <span className="text-amber-600 dark:text-amber-400">· couldn’t get under {fmtTarget(effectiveTarget)}</span></p>
                   )}
                   <p className="text-xs text-muted-foreground">was {fmt(done.before)} · −{Math.max(0, Math.round((1 - done.after / done.before) * 100))}% · {formatDuration(done.secs)}</p>
                 </div>
