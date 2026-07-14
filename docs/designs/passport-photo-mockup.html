@@ -1,0 +1,174 @@
+<title>Passport &amp; ID photo maker — DiemDesk mockup</title>
+<style>
+  :root{
+    --bg:#f4f5f3; --surface:#ffffff; --surface-2:#f7f8f6; --border:#e3e5e0;
+    --text:#1a1c19; --muted:#6b7168; --faint:#9aa093;
+    --accent:#4f46e5; --accent-weak:#4f46e510; --accent-ring:#4f46e540;
+    --green:#15803d; --green-bg:#16a34a12; --green-border:#16a34a40;
+    --shadow:0 1px 2px rgba(20,25,18,.04),0 8px 24px rgba(20,25,18,.06);
+    --radius:16px;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#111311; --surface:#1a1d19; --surface-2:#20241f; --border:#2e332b;
+      --text:#eef0ea; --muted:#a3a99b; --faint:#767c6e;
+      --accent:#818cf8; --accent-weak:#818cf81c; --accent-ring:#818cf855;
+      --green:#4ade80; --green-bg:#22c55e18; --green-border:#22c55e44;
+      --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="light"]{ --bg:#f4f5f3;--surface:#fff;--surface-2:#f7f8f6;--border:#e3e5e0;--text:#1a1c19;--muted:#6b7168;--faint:#9aa093;--accent:#4f46e5;--accent-weak:#4f46e510;--accent-ring:#4f46e540;--green:#15803d;--green-bg:#16a34a12;--green-border:#16a34a40;--shadow:0 1px 2px rgba(20,25,18,.04),0 8px 24px rgba(20,25,18,.06); }
+  :root[data-theme="dark"]{ --bg:#111311;--surface:#1a1d19;--surface-2:#20241f;--border:#2e332b;--text:#eef0ea;--muted:#a3a99b;--faint:#767c6e;--accent:#818cf8;--accent-weak:#818cf81c;--accent-ring:#818cf855;--green:#4ade80;--green-bg:#22c55e18;--green-border:#22c55e44;--shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35); }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:720px;margin:0 auto;padding:28px 18px 56px;}
+  .review-tag{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-bottom:18px;}
+  .review-tag b{color:var(--text);font-weight:600;}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:none;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px;}
+  .head{display:flex;align-items:flex-start;gap:13px;margin-bottom:18px;}
+  .glyph{width:42px;height:42px;border-radius:12px;flex:none;display:grid;place-items:center;background:var(--accent-weak);color:var(--accent);border:1px solid var(--accent-ring);}
+  h1{font-size:19px;line-height:1.25;margin:0 0 3px;letter-spacing:-.01em;font-weight:700;}
+  .sub{font-size:13px;color:var(--muted);margin:0;}
+  .badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 8px;border-radius:999px;background:var(--green-bg);color:var(--green);border:1px solid var(--green-border);white-space:nowrap;}
+
+  .grid{display:grid;grid-template-columns:220px 1fr;gap:20px;}
+  @media (max-width:560px){ .grid{grid-template-columns:1fr;} }
+
+  /* preview */
+  .previewwrap{display:flex;flex-direction:column;align-items:center;gap:8px;}
+  .frame{position:relative;width:200px;height:257px;border-radius:8px;overflow:hidden;background:linear-gradient(#eef2ff,#e0e7ff);border:1px solid var(--border);}
+  .frame.dark-ok{outline:2px solid var(--green);outline-offset:2px;}
+  .silhouette{position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:132px;color:#c7cdf7;}
+  .guide{position:absolute;left:0;right:0;border-top:1.5px dashed var(--accent);opacity:.7;}
+  .guide span{position:absolute;right:6px;top:-9px;font-size:10px;font-weight:700;color:var(--accent);background:var(--surface);padding:0 4px;border-radius:4px;}
+  .cap{font-size:12px;color:var(--muted);}
+  .cap b{color:var(--text);}
+  .okrow{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--green);}
+
+  /* controls */
+  .label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:0 0 8px;}
+  .grp+.grp{margin-top:16px;}
+  .chips{display:flex;flex-wrap:wrap;gap:7px;}
+  .chip{font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;border-radius:9px;padding:7px 11px;border:1px solid var(--border);background:var(--surface);color:var(--text);}
+  .chip:hover{border-color:var(--accent-ring);}
+  .chip.on{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 2px 8px var(--accent-ring);}
+  .chip .k{font-weight:600;opacity:.7;}
+  .chip.on .k{opacity:.85;}
+  .chip.ghost{background:var(--surface-2);color:var(--muted);border-style:dashed;}
+
+  .swatches{display:flex;flex-wrap:wrap;gap:8px;}
+  .sw{width:34px;height:34px;border-radius:9px;border:1px solid var(--border);cursor:pointer;position:relative;}
+  .sw.on{outline:2px solid var(--accent);outline-offset:2px;}
+  .sw .t{position:absolute;left:0;right:0;bottom:-16px;text-align:center;font-size:9px;color:var(--muted);white-space:nowrap;}
+
+  .spec{margin-top:16px;display:flex;flex-wrap:wrap;gap:8px 16px;font-size:12px;color:var(--muted);border-top:1px solid var(--border);padding-top:13px;}
+  .spec b{color:var(--text);font-weight:600;}
+
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;}
+  .btn{font:inherit;font-size:14px;font-weight:700;cursor:pointer;border:0;border-radius:11px;padding:12px 16px;display:inline-flex;gap:8px;align-items:center;justify-content:center;}
+  .btn-p{flex:1;background:var(--accent);color:#fff;box-shadow:0 4px 14px var(--accent-ring);}
+  .btn-g{background:var(--surface);color:var(--text);border:1px solid var(--border);}
+
+  .note{display:flex;gap:9px;font-size:12.5px;color:var(--muted);margin-top:16px;background:var(--accent-weak);border:1px solid var(--accent-ring);border-radius:11px;padding:11px 13px;}
+  .note svg{flex:none;color:var(--accent);margin-top:1px;}
+  .note b{color:var(--text);font-weight:600;}
+  .foot{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;margin-top:22px;font-size:12px;color:var(--muted);}
+  .foot span{display:inline-flex;align-items:center;gap:6px;}
+  .foot svg{color:var(--green);}
+</style>
+
+<div class="wrap">
+  <div class="review-tag"><span class="dot"></span> <b>Mockup for review</b> — Tool #2: Passport &amp; ID photo · design only, not yet built</div>
+
+  <div class="card">
+    <div class="head">
+      <div class="glyph">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-6 8-6s8 2 8 6"/></svg>
+      </div>
+      <div style="flex:1">
+        <h1>Passport &amp; ID photo maker</h1>
+        <p class="sub">Compliant passport, visa &amp; ID photos to any country’s spec — cropped, background swapped, sized to fit.</p>
+      </div>
+      <span class="badge">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+        Your face never leaves your device
+      </span>
+    </div>
+
+    <div class="grid">
+      <!-- PREVIEW -->
+      <div class="previewwrap">
+        <div class="frame dark-ok" title="Live preview">
+          <svg class="silhouette" viewBox="0 0 132 170" fill="currentColor"><circle cx="66" cy="66" r="42"/><path d="M8 170c0-34 26-52 58-52s58 18 58 52z"/></svg>
+          <div class="guide" style="top:14%"><span>crown</span></div>
+          <div class="guide" style="top:74%"><span>chin</span></div>
+        </div>
+        <p class="cap"><b>US visa</b> · 600×600 px</p>
+        <span class="okrow">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          Head size &amp; position OK
+        </span>
+      </div>
+
+      <!-- CONTROLS -->
+      <div>
+        <div class="grp">
+          <p class="label">Country &amp; document</p>
+          <div class="chips">
+            <button class="chip on">US visa <span class="k">2×2 in</span></button>
+            <button class="chip">US passport <span class="k">2×2 in</span></button>
+            <button class="chip">Schengen visa <span class="k">35×45</span></button>
+            <button class="chip">UK passport <span class="k">35×45</span></button>
+            <button class="chip">India passport <span class="k">35×45</span></button>
+            <button class="chip">India visa <span class="k">2×2 in</span></button>
+            <button class="chip">Canada <span class="k">50×70</span></button>
+            <button class="chip">Australia <span class="k">35×45</span></button>
+            <button class="chip">China <span class="k">33×48</span></button>
+            <button class="chip">Biometric <span class="k">35×45</span></button>
+            <button class="chip ghost">Custom mm / px…</button>
+          </div>
+        </div>
+
+        <div class="grp">
+          <p class="label">Background</p>
+          <div class="swatches">
+            <div class="sw on" style="background:#ffffff"><span class="t">White</span></div>
+            <div class="sw" style="background:#f2f2f0"><span class="t">Off-white</span></div>
+            <div class="sw" style="background:#dbe7f5"><span class="t">Light blue</span></div>
+            <div class="sw" style="background:#c9d4e3"><span class="t">Grey</span></div>
+            <div class="sw" style="background:linear-gradient(135deg,#eee 25%,#ccc 0,#ccc 50%,#eee 0,#eee 75%,#ccc 0);background-size:12px 12px"><span class="t">Keep</span></div>
+          </div>
+        </div>
+
+        <div class="spec">
+          <span>Size: <b>600–1200 px sq</b></span>
+          <span>File: <b>JPEG ≤ 240 KB</b></span>
+          <span>Head: <b>50–69% of height</b></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-p">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 21h16"/></svg>
+        Download photo
+      </button>
+      <button class="btn btn-g">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 9h18M9 4v14"/></svg>
+        Print sheet — 6 copies on 4×6
+      </button>
+    </div>
+
+    <div class="note">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+      <span><b>How it works:</b> we crop to the exact head size &amp; position the country requires, replace the background on your device (using our background remover), and export a JPEG that meets the pixel and file-size rules — all in your browser. Your photo is never uploaded.</span>
+    </div>
+  </div>
+
+  <div class="foot">
+    <span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> On-device — no upload</span>
+    <span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> 10+ country specs</span>
+    <span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Meets the KB limit too</span>
+  </div>
+</div>
