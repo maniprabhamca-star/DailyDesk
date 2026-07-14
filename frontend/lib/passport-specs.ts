@@ -99,3 +99,13 @@ export const SPEC_GROUPS = ['Popular', 'Americas', 'Europe (Schengen)', 'Asia', 
 export function getSpec(id: string): PassportSpec | undefined {
   return PASSPORT_SPECS.find((s) => s.id === id);
 }
+
+// Specs whose size, head-height and background were checked against an official or
+// widely-cited source (see docs/passport-spec-sources.md, 2026-07-14). The rest use
+// standard ICAO 35×45 values and should be double-checked against the portal.
+export const VERIFIED_SPECS = new Set<string>([
+  'us-visa', 'us-passport', 'uk-passport', 'schengen-visa', 'india-passport', 'india-evisa',
+  'canada', 'australia', 'china-visa', 'japan', 'biometric',
+  'germany', 'france', 'italy', 'spain', 'netherlands', 'portugal', 'belgium', 'switzerland', 'austria', 'sweden', 'norway', 'poland', 'greece', 'ireland',
+]);
+export const isVerified = (id: string): boolean => VERIFIED_SPECS.has(id);

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { downloadBlob as download } from '@/lib/download';
 import { BigFileHint } from '@/components/app/big-file-hint';
 import { KeepGoing } from '@/components/app/keep-going';
-import { PASSPORT_SPECS, SPEC_GROUPS, type PassportSpec } from '@/lib/passport-specs';
+import { PASSPORT_SPECS, SPEC_GROUPS, isVerified, type PassportSpec } from '@/lib/passport-specs';
 import { renderPassport, prepareCutout, buildPrintSheet, type Crop } from '@/lib/passport-photo';
 
 const FRAME_W = 232;
@@ -275,6 +275,7 @@ export function PassportPhotoTool() {
           <div>
             <p className="text-sm font-semibold">{spec.label}</p>
             <p className="text-xs text-muted-foreground">{spec.wPx}×{spec.hPx} px · {spec.wMM}×{spec.hMM} mm{spec.maxKB ? ` · ≤${spec.maxKB >= 1024 ? `${spec.maxKB / 1024} MB` : `${spec.maxKB} KB`}` : ''} · {spec.bgName} background</p>
+            <p className="mt-0.5 text-[11px]">{isVerified(spec.id) ? <span className="text-emerald-600 dark:text-emerald-400">✓ Spec checked against an official source</span> : <span className="text-muted-foreground">Standard ICAO spec — double-check your portal’s exact rules</span>}</p>
 
             <p className="mt-4 mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Background</p>
             <div className="flex flex-wrap gap-2.5">

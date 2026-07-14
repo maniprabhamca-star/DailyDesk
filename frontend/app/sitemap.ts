@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { SITE_URL } from '@/lib/site';
+import { PASSPORT_SPECS } from '@/lib/passport-specs';
 
 // Every indexable route. Add new tool pages here when they ship (part of the
 // per-task SEO checklist). /login and /register are noindex → not listed.
@@ -60,14 +61,28 @@ const ROUTES: Array<{ path: string; priority: number; changeFrequency: MetadataR
   { path: '/privacy', priority: 0.3, changeFrequency: 'yearly' },
   { path: '/terms', priority: 0.3, changeFrequency: 'yearly' },
   { path: '/refund-policy', priority: 0.3, changeFrequency: 'yearly' },
+  // Keyword SEO landing pages (link into the tools).
+  { path: '/compress-pdf-to-100kb', priority: 0.8, changeFrequency: 'monthly' },
+  { path: '/us-visa-photo', priority: 0.8, changeFrequency: 'monthly' },
+  { path: '/remove-exif', priority: 0.8, changeFrequency: 'monthly' },
+  { path: '/blur-image', priority: 0.8, changeFrequency: 'monthly' },
+  { path: '/fill-pdf-form-online', priority: 0.8, changeFrequency: 'monthly' },
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const lastModified = new Date();
-  return ROUTES.map((r) => ({
+  const staticRoutes = ROUTES.map((r) => ({
     url: `${SITE_URL}${r.path === '/' ? '' : r.path}`,
     lastModified,
     changeFrequency: r.changeFrequency,
     priority: r.priority,
   }));
+  // Per-country passport/visa photo landing pages (one per spec).
+  const countryRoutes = PASSPORT_SPECS.map((s) => ({
+    url: `${SITE_URL}/passport-photo/${s.id}`,
+    lastModified,
+    changeFrequency: 'monthly' as const,
+    priority: 0.7,
+  }));
+  return [...staticRoutes, ...countryRoutes];
 }
