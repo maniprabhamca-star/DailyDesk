@@ -48,13 +48,17 @@ export function FillFormTool() {
   const sel = els.find((e) => e.id === selId) || null;
 
   useEffect(() => () => { handle?.destroy?.(); }, [handle]);
-  // Jump straight to typing after placing/selecting a text-like item.
+  // Jump straight to typing after placing/selecting a text-like item. Depend ONLY
+  // on selId (the selection changing) — NOT on `sel`, which gets a new object
+  // reference on every keystroke and would re-select-all, overwriting each char.
   useEffect(() => {
-    if (sel && (sel.kind === 'text' || sel.kind === 'date' || sel.kind === 'signature')) {
+    const el = els.find((e) => e.id === selId);
+    if (el && (el.kind === 'text' || el.kind === 'date' || el.kind === 'signature')) {
       const t = setTimeout(() => { editRef.current?.focus(); editRef.current?.select(); }, 30);
       return () => clearTimeout(t);
     }
-  }, [selId, sel]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selId]);
 
   async function loadFile(f?: File) {
     if (!f) return;
