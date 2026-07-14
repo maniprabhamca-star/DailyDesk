@@ -5,7 +5,7 @@ import {
   ScanText, MessageSquare, AlignLeft, Languages,
   QrCode, KeyRound, NotebookPen, Flame, Wallet, FolderLock, Link2,
   ImageDown, Smartphone, Eraser, Film, Clapperboard, ArrowLeftRight, Images, Scaling, Repeat, Crop,
-  Ruler, Braces, Palette, CaseSensitive, Crosshair,
+  Ruler, Braces, Palette, CaseSensitive, Crosshair, Contact,
   Cloud, Sparkles, type LucideIcon,
 } from 'lucide-react';
 
@@ -104,6 +104,7 @@ export const catalog: CatGroup[] = [
       { name: 'Convert image', href: '/convert-image', icon: Repeat, badge: 'device' },
       { name: 'HEIC to JPG', href: '/heic-to-jpg', icon: Smartphone, badge: 'device' },
       { name: 'Background remover', href: '/remove-background', icon: Eraser, badge: 'device' },
+      { name: 'Passport & ID photo', href: '/passport-photo', icon: Contact, badge: 'device' },
       { name: 'Compress video', href: '/compress-video', icon: Film, badge: 'device' },
       { name: 'Video to GIF', href: '/video-to-gif', icon: Clapperboard, badge: 'device' },
     ],
