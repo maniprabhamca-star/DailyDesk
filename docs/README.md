@@ -11,6 +11,7 @@ Every in-browser tool is **free & unlimited forever** (they run on your device a
 
 ## Design specs
 - **[designs/on-device-batch.md](designs/on-device-batch.md)** — the on-device Batch (Pro) design: gate + runner states, per-tool controls, engineering shape. New designs we discuss get committed under `designs/`.
+- **[designs/tool-expansion-roadmap.md](designs/tool-expansion-roadmap.md)** — research-grounded roadmap of the next tools to build: the world's real day-to-day file pains (compress-to-KB, ID photos, form-fill, privacy chores, e-invoice mandates), our gaps vs iLovePDF/Smallpdf, and a prioritised Free-vs-Pro list (top 6 to do next). Sourced from search + regional-mandate research.
 
 ## Launch
 - **[wednesday-launch-runbook.md](wednesday-launch-runbook.md)** — the tight ordered go-public runbook for launch day (flip basic-auth, reset data, tool gating, verify, submit sitemap) — Claude-vs-you steps + exact commands.
