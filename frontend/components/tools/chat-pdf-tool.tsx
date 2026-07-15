@@ -182,7 +182,7 @@ export function ChatPdfTool() {
           <header className="flex items-center gap-2 border-b px-4 py-3">
             <span className="flex size-7 items-center justify-center rounded-lg bg-violet-500/10 text-violet-600 dark:text-violet-400"><Sparkles className="size-4" /></span>
             <b className="text-sm">Ask this document</b>
-            {remaining != null && <span className="ml-auto rounded-full border bg-muted/40 px-2.5 py-0.5 text-[11px] text-muted-foreground">{remaining} left today</span>}
+            {remaining != null && <span className="ml-auto rounded-full border bg-muted/40 px-2.5 py-0.5 text-[11px] text-muted-foreground">{remaining} left this month</span>}
           </header>
 
           <div ref={threadRef} className="flex-1 space-y-3.5 overflow-auto p-4" style={{ maxHeight: 360 }}>

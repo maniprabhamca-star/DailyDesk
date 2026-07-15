@@ -107,7 +107,7 @@ Mostly free/on-device unless marked.
 - [ ] ⏳ Reset test data (TRUNCATE user_events) + reset test Pro accounts to free
 - [ ] ⏳ Top up Anthropic credits before public AI
 - [ ] ⏳ Counsel review of Terms (billing/liability) · USPTO/trademark check
-- [ ] ⏳ **Align AI per-user cap to the economics model** — current code `AI_USER_DAILY_MAX=40/day` is looser than the ~100/month playbook; tighten or rely on the global daily kill-switch (see `dailydesk-unit-economics`)
+- [x] ✅ **Align AI per-user cap to the economics model** (2026-07-15) — now `AI_USER_MONTHLY_MAX=100`/month (was 40/day); ~$2 worst case/user. Added optional `AI_GLOBAL_MONTHLY_USD` — **set to ~20% of monthly Pro revenue at launch** (the "cost can't exceed revenue" guarantee). See `dailydesk-unit-economics`.
 
 ---
 
