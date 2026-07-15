@@ -1,0 +1,278 @@
+<title>Dev &amp; CSV utilities pack — DiemDesk mockup</title>
+<style>
+  :root{
+    --bg:#f4f5f3;--surface:#fff;--surface-2:#f7f8f6;--border:#e3e5e0;--text:#1a1c19;--muted:#6b7168;--faint:#9aa093;
+    --accent:#2563eb;--accent-weak:#2563eb12;--accent-ring:#2563eb40;
+    --green:#15803d;--green-bg:#16a34a12;--green-border:#16a34a40;
+    --violet:#7c3aed;--amber:#b45309;--rose:#be123c;--teal:#0d9488;
+    --code-bg:#f6f7f5;--radius:16px;
+    --shadow:0 1px 2px rgba(20,25,18,.04),0 8px 24px rgba(20,25,18,.06);
+    --mono:"SFMono-Regular",ui-monospace,Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --bg:#111311;--surface:#1a1d19;--surface-2:#20241f;--border:#2e332b;--text:#eef0ea;--muted:#a3a99b;--faint:#767c6e;
+    --accent:#60a5fa;--accent-weak:#60a5fa1c;--accent-ring:#60a5fa55;
+    --green:#4ade80;--green-bg:#22c55e18;--green-border:#22c55e44;
+    --violet:#a78bfa;--amber:#fbbf24;--rose:#fb7185;--teal:#2dd4bf;
+    --code-bg:#141712;--shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);
+  }}
+  :root[data-theme="light"]{--bg:#f4f5f3;--surface:#fff;--surface-2:#f7f8f6;--border:#e3e5e0;--text:#1a1c19;--muted:#6b7168;--faint:#9aa093;--accent:#2563eb;--accent-weak:#2563eb12;--accent-ring:#2563eb40;--green:#15803d;--green-bg:#16a34a12;--green-border:#16a34a40;--violet:#7c3aed;--amber:#b45309;--rose:#be123c;--teal:#0d9488;--code-bg:#f6f7f5;--shadow:0 1px 2px rgba(20,25,18,.04),0 8px 24px rgba(20,25,18,.06);}
+  :root[data-theme="dark"]{--bg:#111311;--surface:#1a1d19;--surface-2:#20241f;--border:#2e332b;--text:#eef0ea;--muted:#a3a99b;--faint:#767c6e;--accent:#60a5fa;--accent-weak:#60a5fa1c;--accent-ring:#60a5fa55;--green:#4ade80;--green-bg:#22c55e18;--green-border:#22c55e44;--violet:#a78bfa;--amber:#fbbf24;--rose:#fb7185;--teal:#2dd4bf;--code-bg:#141712;--shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:900px;margin:0 auto;padding:28px 18px 60px;}
+  .review-tag{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-bottom:20px;flex-wrap:wrap;}
+  .review-tag b{color:var(--text);font-weight:600;}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:none;}
+  h1{font-size:22px;font-weight:800;letter-spacing:-.02em;margin:0 0 4px;}
+  .lead{font-size:14px;color:var(--muted);margin:0 0 26px;max-width:60ch;}
+  .eyebrow{font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:34px 0 12px;display:flex;align-items:center;gap:8px;}
+  .eyebrow::after{content:"";flex:1;height:1px;background:var(--border);}
+
+  /* ── HUB: grouped tool directory ── */
+  .group{margin-bottom:22px;}
+  .glabel{font-size:12px;font-weight:700;color:var(--text);margin:0 0 10px;display:flex;align-items:center;gap:7px;}
+  .gdot{width:8px;height:8px;border-radius:3px;}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;}
+  .card{display:flex;gap:11px;align-items:flex-start;padding:12px 13px;border:1px solid var(--border);border-radius:12px;background:var(--surface);box-shadow:var(--shadow);cursor:default;transition:border-color .12s,transform .12s;}
+  .card:hover{border-color:var(--accent-ring);transform:translateY(-1px);}
+  .cico{width:34px;height:34px;border-radius:9px;flex:none;display:grid;place-items:center;font-family:var(--mono);font-size:13px;font-weight:700;}
+  .card b{font-size:13px;font-weight:600;display:block;letter-spacing:-.01em;}
+  .card span{font-size:11.5px;color:var(--muted);display:block;margin-top:1px;line-height:1.35;}
+
+  /* ── shared TOOL TEMPLATE ── */
+  .demo-note{font-size:12.5px;color:var(--muted);margin:0 0 14px;}
+  .chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px;}
+  .chip{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:6px 12px;cursor:pointer;color:var(--muted);transition:all .12s;}
+  .chip .mono{font-family:var(--mono);font-size:11px;}
+  .chip:hover{border-color:var(--accent-ring);}
+  .chip.on{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:0 2px 10px var(--accent-ring);}
+
+  .tool{border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow);overflow:hidden;}
+  .thead{display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid var(--border);}
+  .tico{width:40px;height:40px;border-radius:11px;flex:none;display:grid;place-items:center;font-family:var(--mono);font-weight:800;font-size:14px;background:var(--accent-weak);color:var(--accent);border:1px solid var(--accent-ring);}
+  .thead h2{font-size:16px;margin:0;letter-spacing:-.01em;}
+  .thead p{font-size:12.5px;color:var(--muted);margin:1px 0 0;}
+  .badge{margin-left:auto;display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:4px 9px;border-radius:999px;background:var(--green-bg);color:var(--green);border:1px solid var(--green-border);white-space:nowrap;}
+
+  .tbody{padding:16px 18px;}
+  .opts{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:14px;}
+  .seg{display:inline-flex;border:1px solid var(--border);border-radius:9px;overflow:hidden;}
+  .seg button{border:0;background:var(--surface-2);color:var(--muted);font:inherit;font-size:12.5px;font-weight:600;padding:6px 13px;cursor:pointer;border-right:1px solid var(--border);}
+  .seg button:last-child{border-right:0;}
+  .seg button.on{background:var(--accent);color:#fff;}
+  .btn{font:inherit;font-size:13px;font-weight:600;border:0;border-radius:9px;padding:8px 15px;cursor:pointer;display:inline-flex;gap:7px;align-items:center;background:var(--accent);color:#fff;box-shadow:0 2px 10px var(--accent-ring);}
+  .btn.ghost{background:var(--surface-2);color:var(--text);border:1px solid var(--border);box-shadow:none;}
+
+  /* the clean in → out layout */
+  .io{display:grid;grid-template-columns:1fr;gap:12px;}
+  @media (min-width:640px){.io.two{grid-template-columns:1fr 1fr;}}
+  .pane{display:flex;flex-direction:column;}
+  .plabel{display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px;height:22px;}
+  .copy{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--accent);background:var(--accent-weak);border:1px solid var(--accent-ring);border-radius:7px;padding:3px 9px;cursor:pointer;text-transform:none;letter-spacing:0;}
+  textarea,.out{width:100%;min-height:150px;border:1px solid var(--border);border-radius:11px;background:var(--code-bg);padding:11px 13px;font-family:var(--mono);font-size:12.5px;line-height:1.55;color:var(--text);resize:vertical;outline:none;white-space:pre-wrap;word-break:break-word;overflow:auto;}
+  textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-ring);}
+  .out{white-space:pre-wrap;}
+  .out.empty{color:var(--faint);}
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-family:var(--mono);font-size:12px;}
+  .kv .k{color:var(--accent);}
+  .diffline{display:block;padding:0 4px;border-radius:3px;}
+  .diff-add{background:var(--green-bg);color:var(--green);}
+  .diff-del{background:#f43f5e18;color:var(--rose);text-decoration:line-through;text-decoration-color:var(--rose)66;}
+  .foot{display:flex;flex-wrap:wrap;gap:16px;justify-content:center;margin-top:24px;font-size:12px;color:var(--muted);}
+  .foot span{display:inline-flex;align-items:center;gap:6px;}
+  .foot svg{color:var(--green);}
+
+  .why{margin-top:30px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);padding:18px 20px;}
+  .why h3{font-size:14px;margin:0 0 12px;}
+  .why ul{margin:0;padding:0;list-style:none;display:grid;gap:10px;}
+  .why li{display:flex;gap:10px;font-size:12.5px;color:var(--muted);}
+  .why li b{color:var(--text);font-weight:600;}
+  .num{width:20px;height:20px;border-radius:6px;flex:none;display:grid;place-items:center;font-size:10px;font-weight:800;background:var(--accent-weak);color:var(--accent);border:1px solid var(--accent-ring);}
+</style>
+
+<div class="wrap">
+  <div class="review-tag"><span class="dot"></span> <b>Mockup for review</b> — Tool #5 · Dev &amp; CSV utilities pack · design only, not yet built</div>
+
+  <h1>Dev &amp; CSV utilities</h1>
+  <p class="lead">A pack of small, single-purpose developer tools — each on its own keyword URL for SEO, all running 100% in your browser. One clean, consistent template so 15 tools never feel cluttered.</p>
+
+  <!-- ── HUB ── -->
+  <p class="eyebrow">The pack — one tidy home, grouped by job</p>
+
+  <div class="group">
+    <p class="glabel"><span class="gdot" style="background:var(--accent)"></span> Encode &amp; decode</p>
+    <div class="cards">
+      <div class="card"><span class="cico" style="background:var(--accent-weak);color:var(--accent)">64</span><div><b>Base64</b><span>Encode / decode text &amp; files · /base64</span></div></div>
+      <div class="card"><span class="cico" style="background:var(--accent-weak);color:var(--accent)">%</span><div><b>URL encode</b><span>Encode / decode URLs · /url-encode</span></div></div>
+      <div class="card"><span class="cico" style="background:var(--accent-weak);color:var(--accent)">&amp;</span><div><b>HTML entities</b><span>Escape / unescape · /html-entities</span></div></div>
+    </div>
+  </div>
+
+  <div class="group">
+    <p class="glabel"><span class="gdot" style="background:var(--violet)"></span> Hash &amp; token</p>
+    <div class="cards">
+      <div class="card"><span class="cico" style="background:#7c3aed18;color:var(--violet)">#</span><div><b>Hash generator</b><span>MD5 · SHA-1/256/512 · /hash-generator</span></div></div>
+      <div class="card"><span class="cico" style="background:#7c3aed18;color:var(--violet)">JW</span><div><b>JWT decoder</b><span>Read header &amp; payload · /jwt-decoder</span></div></div>
+    </div>
+  </div>
+
+  <div class="group">
+    <p class="glabel"><span class="gdot" style="background:var(--teal)"></span> IDs &amp; time</p>
+    <div class="cards">
+      <div class="card"><span class="cico" style="background:#0d948818;color:var(--teal)">ID</span><div><b>UUID generator</b><span>v4 UUIDs, bulk · /uuid-generator</span></div></div>
+      <div class="card"><span class="cico" style="background:#0d948818;color:var(--teal)">⏱</span><div><b>Timestamp</b><span>Unix ↔ date · /timestamp-converter</span></div></div>
+    </div>
+  </div>
+
+  <div class="group">
+    <p class="glabel"><span class="gdot" style="background:var(--amber)"></span> Data &amp; CSV</p>
+    <div class="cards">
+      <div class="card"><span class="cico" style="background:#b4530918;color:var(--amber)">⇄</span><div><b>CSV ↔ JSON</b><span>Convert both ways · /csv-to-json</span></div></div>
+      <div class="card"><span class="cico" style="background:#b4530918;color:var(--amber)">Y</span><div><b>JSON ↔ YAML</b><span>Convert both ways · /json-to-yaml</span></div></div>
+      <div class="card"><span class="cico" style="background:#b4530918;color:var(--amber)">▦</span><div><b>CSV cleaner</b><span>Trim, dedupe, re-delimit · /csv-cleaner</span></div></div>
+    </div>
+  </div>
+
+  <div class="group">
+    <p class="glabel"><span class="gdot" style="background:var(--rose)"></span> Text</p>
+    <div class="cards">
+      <div class="card"><span class="cico" style="background:#be123c18;color:var(--rose)">±</span><div><b>Text diff</b><span>Compare two texts · /text-diff</span></div></div>
+      <div class="card"><span class="cico" style="background:#be123c18;color:var(--rose)">Aa</span><div><b>Case converter</b><span>camel · snake · Title · /case-converter</span></div></div>
+      <div class="card"><span class="cico" style="background:#be123c18;color:var(--rose)">-</span><div><b>Slugify</b><span>Text → url-slug · /slugify</span></div></div>
+      <div class="card"><span class="cico" style="background:#be123c18;color:var(--rose)">↕</span><div><b>Sort / dedupe lines</b><span>Order &amp; unique · /sort-lines</span></div></div>
+      <div class="card"><span class="cico" style="background:#be123c18;color:var(--rose)">.*</span><div><b>Regex tester</b><span>Live match &amp; groups · /regex-tester</span></div></div>
+      <div class="card"><span class="cico" style="background:#be123c18;color:var(--rose)">¶</span><div><b>Lorem ipsum</b><span>Placeholder text · /lorem-ipsum</span></div></div>
+    </div>
+  </div>
+
+  <!-- ── SHARED TEMPLATE (interactive) ── -->
+  <p class="eyebrow">The shared tool template — try a few</p>
+  <p class="demo-note">Every tool in the pack uses this exact layout: a clear <b>Input → Output</b>, one obvious action, one-click copy, and options only when needed. Switch tools below — the frame never changes, so the pack feels like one product, not fifteen.</p>
+
+  <div class="chips" id="chips">
+    <button class="chip on" data-t="base64"><span class="mono">64</span> Base64</button>
+    <button class="chip" data-t="csv"><span class="mono">⇄</span> CSV → JSON</button>
+    <button class="chip" data-t="uuid"><span class="mono">ID</span> UUID</button>
+    <button class="chip" data-t="hash"><span class="mono">#</span> SHA-256</button>
+    <button class="chip" data-t="jwt"><span class="mono">JW</span> JWT decoder</button>
+    <button class="chip" data-t="diff"><span class="mono">±</span> Text diff</button>
+  </div>
+
+  <div class="tool">
+    <div class="thead">
+      <span class="tico" id="tico">64</span>
+      <div><h2 id="tname">Base64 encode / decode</h2><p id="tdesc">Convert text to Base64 and back — instantly, on your device.</p></div>
+      <span class="badge">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2a5 5 0 0 1 5 5v3H7V7a5 5 0 0 1 5-5Z"/><rect x="4" y="10" width="16" height="11" rx="2"/></svg>
+        on your device
+      </span>
+    </div>
+    <div class="tbody" id="tbody"></div>
+  </div>
+
+  <div class="foot">
+    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg> Never uploaded</span>
+    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg> Free, no signup</span>
+    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg> Each tool = its own SEO page</span>
+  </div>
+
+  <div class="why">
+    <h3>Why this pack, and how it stays clean</h3>
+    <ul>
+      <li><span class="num">1</span><div><b>One template, fifteen tools.</b> Identical header, Input→Output panels, copy button and spacing everywhere — so the pack reads as a single polished product, never a cluttered grab-bag.</div></li>
+      <li><span class="num">2</span><div><b>Options only when needed.</b> Base64 shows an Encode/Decode switch; UUID shows a count; most tools show nothing but the two panels. No knobs for the sake of knobs.</div></li>
+      <li><span class="num">3</span><div><b>Each is its own keyword URL</b> (/base64, /csv-to-json, /uuid-generator…) — the whole point: cheap, client-side pages that each rank for a specific developer search.</div></li>
+      <li><span class="num">4</span><div><b>100% on-device &amp; free.</b> Nothing is uploaded; reinforces the privacy hook. A small hub page links them all, grouped as above.</div></li>
+    </ul>
+  </div>
+</div>
+
+<script>
+(function(){
+  const tools = {
+    base64: { ico:'64', name:'Base64 encode / decode', desc:'Convert text to Base64 and back — instantly, on your device.', render:renderBase64 },
+    csv:    { ico:'⇄', name:'CSV → JSON', desc:'Turn CSV rows into a clean JSON array (and back).', render:renderCsv },
+    uuid:   { ico:'ID', name:'UUID generator', desc:'Generate random v4 UUIDs, one or many at once.', render:renderUuid },
+    hash:   { ico:'#', name:'SHA-256 hash', desc:'Hash any text with SHA-256 — computed in your browser.', render:renderHash },
+    jwt:    { ico:'JW', name:'JWT decoder', desc:'Read a token’s header & payload without sending it anywhere.', render:renderJwt },
+    diff:   { ico:'±', name:'Text diff', desc:'Compare two blocks of text line by line.', render:renderDiff },
+  };
+  const tbody=document.getElementById('tbody');
+  function setTool(key){
+    const t=tools[key];
+    document.getElementById('tico').textContent=t.ico;
+    document.getElementById('tname').textContent=t.name;
+    document.getElementById('tdesc').textContent=t.desc;
+    tbody.innerHTML=''; t.render(tbody);
+  }
+  document.querySelectorAll('#chips .chip').forEach(c=>c.addEventListener('click',()=>{
+    document.querySelectorAll('#chips .chip').forEach(x=>x.classList.remove('on')); c.classList.add('on'); setTool(c.dataset.t);
+  }));
+
+  function paneIn(label,val){ return `<div class="pane"><div class="plabel">${label}</div><textarea data-in>${val||''}</textarea></div>`; }
+  function paneOut(label){ return `<div class="pane"><div class="plabel">${label}<button class="copy" data-copy>⧉ Copy</button></div><div class="out empty" data-out>Output appears here…</div></div>`; }
+  function wire(el){
+    const out=el.querySelector('[data-out]'); const cp=el.querySelector('[data-copy]');
+    if(cp) cp.addEventListener('click',()=>{ const t=out.textContent||''; navigator.clipboard&&navigator.clipboard.writeText(t); cp.textContent='✓ Copied'; setTimeout(()=>cp.textContent='⧉ Copy',1100); });
+    return out;
+  }
+  function put(out,txt){ if(txt==null||txt===''){ out.className='out empty'; out.textContent='Output appears here…'; } else { out.className='out'; out.textContent=txt; } }
+
+  function renderBase64(el){
+    el.innerHTML=`<div class="opts"><div class="seg" data-mode><button class="on" data-m="enc">Encode</button><button data-m="dec">Decode</button></div></div>
+      <div class="io two">${paneIn('Input','DiemDesk — private by design')}${paneOut('Output')}</div>`;
+    const out=wire(el); const inp=el.querySelector('[data-in]'); let mode='enc';
+    const run=()=>{ try{ put(out, mode==='enc'? btoa(unescape(encodeURIComponent(inp.value))) : decodeURIComponent(escape(atob(inp.value.trim())))); }catch(e){ put(out,'⚠ Not valid Base64'); } };
+    el.querySelectorAll('[data-mode] button').forEach(b=>b.addEventListener('click',()=>{ el.querySelectorAll('[data-mode] button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); mode=b.dataset.m; run(); }));
+    inp.addEventListener('input',run); run();
+  }
+  function renderCsv(el){
+    el.innerHTML=`<div class="io two">${paneIn('CSV in','name,role,city\nJordan,Founder,Atlanta\nSam,Design,Austin')}${paneOut('JSON out')}</div>`;
+    const out=wire(el); const inp=el.querySelector('[data-in]');
+    const run=()=>{ const lines=inp.value.trim().split(/\r?\n/).filter(Boolean); if(lines.length<2){ put(out,''); return; }
+      const head=lines[0].split(','); const rows=lines.slice(1).map(l=>{ const c=l.split(','); const o={}; head.forEach((h,i)=>o[h.trim()]=(c[i]||'').trim()); return o; });
+      put(out, JSON.stringify(rows,null,2)); };
+    inp.addEventListener('input',run); run();
+  }
+  function renderUuid(el){
+    el.innerHTML=`<div class="opts"><label style="font-size:12.5px;color:var(--muted)">How many</label>
+      <input type="number" data-n value="5" min="1" max="50" style="width:70px;border:1px solid var(--border);border-radius:8px;background:var(--surface-2);padding:6px 9px;font:inherit;color:var(--text)">
+      <button class="btn" data-gen>Generate</button></div>
+      <div class="io">${paneOut('UUIDs')}</div>`;
+    const out=wire(el);
+    const gen=()=>{ const n=Math.max(1,Math.min(50,parseInt(el.querySelector('[data-n]').value)||1)); const arr=[]; for(let i=0;i<n;i++) arr.push(crypto.randomUUID?crypto.randomUUID():'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return (c==='x'?r:(r&0x3|0x8)).toString(16);})); put(out,arr.join('\n')); };
+    el.querySelector('[data-gen]').addEventListener('click',gen); gen();
+  }
+  function renderHash(el){
+    el.innerHTML=`<div class="io two">${paneIn('Text','hash me')}${paneOut('SHA-256')}</div>`;
+    const out=wire(el); const inp=el.querySelector('[data-in]');
+    const run=async()=>{ try{ const buf=await crypto.subtle.digest('SHA-256', new TextEncoder().encode(inp.value)); put(out, Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('')); }catch(e){ put(out,''); } };
+    inp.addEventListener('input',run); run();
+  }
+  function renderJwt(el){
+    const sample='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0IiwibmFtZSI6IkpvcmRhbiIsInBybyI6dHJ1ZX0.abc';
+    el.innerHTML=`<div class="io two">${paneIn('Token',sample)}<div class="pane"><div class="plabel">Decoded</div><div class="out" data-out></div></div></div>`;
+    const inp=el.querySelector('[data-in]'); const out=el.querySelector('[data-out]');
+    const b64=s=>{ s=s.replace(/-/g,'+').replace(/_/g,'/'); try{ return decodeURIComponent(escape(atob(s+'==='.slice((s.length+3)%4)))); }catch(e){ return null; } };
+    const run=()=>{ const parts=inp.value.trim().split('.'); if(parts.length<2){ out.className='out empty'; out.textContent='Paste a JWT…'; return; }
+      const h=b64(parts[0]), p=b64(parts[1]); if(!h||!p){ out.className='out empty'; out.textContent='⚠ Not a valid JWT'; return; }
+      out.className='out'; try{ out.innerHTML='<b style="color:var(--accent)">header</b>\n'+JSON.stringify(JSON.parse(h),null,2)+'\n\n<b style="color:var(--accent)">payload</b>\n'+JSON.stringify(JSON.parse(p),null,2); }catch(e){ out.textContent=h+'\n\n'+p; } };
+    inp.addEventListener('input',run); run();
+  }
+  function renderDiff(el){
+    el.innerHTML=`<div class="io two">${paneIn('Original','alpha\nbeta\ngamma')}${paneIn('Changed','alpha\nbeta 2\ngamma\ndelta')}</div>
+      <div class="pane" style="margin-top:12px"><div class="plabel">Diff</div><div class="out" data-out></div></div>`;
+    const ins=el.querySelectorAll('[data-in]'); const out=el.querySelector('[data-out]');
+    const run=()=>{ const a=ins[0].value.split('\n'), b=ins[1].value.split('\n'); const max=Math.max(a.length,b.length); let html='';
+      for(let i=0;i<max;i++){ const x=a[i], y=b[i];
+        if(x===y && x!==undefined) html+=`<span class="diffline">  ${esc(x)}</span>`;
+        else { if(x!==undefined) html+=`<span class="diffline diff-del">- ${esc(x)}</span>`; if(y!==undefined) html+=`<span class="diffline diff-add">+ ${esc(y)}</span>`; } }
+      out.className='out'; out.innerHTML=html||'<span class="out empty">Identical</span>'; };
+    ins.forEach(i=>i.addEventListener('input',run)); run();
+  }
+  function esc(s){ return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  setTool('base64');
+})();
+</script>
