@@ -85,7 +85,7 @@ export const catalog: CatGroup[] = [
     label: 'AI & scan', color: '#db2777', tools: [
       { name: 'Clean scanned PDF', href: '/clean-scanned-pdf', icon: ScanText, badge: 'device', soon: true },
       { name: 'OCR', icon: ScanText, badge: 'server', soon: true },
-      { name: 'Chat with PDF', icon: MessageSquare, badge: 'ai', soon: true },
+      { name: 'Chat with PDF', href: '/chat-pdf', icon: MessageSquare, badge: 'ai', soon: true },
       { name: 'Summarize', icon: AlignLeft, badge: 'ai', soon: true },
       { name: 'Translate', icon: Languages, badge: 'ai', soon: true },
     ],
