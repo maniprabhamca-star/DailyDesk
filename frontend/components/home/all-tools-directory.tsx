@@ -102,6 +102,8 @@ function Tile({ t, groupColor }: { t: CatTool; groupColor: string }) {
 // live search always shows every match regardless.
 const HOME_LIMIT = 6;
 const TOTAL_TOOLS = catalog.reduce((n, g) => n + g.tools.length, 0);
+// Stable anchor per category so "See all →" jumps to THAT section on /tools.
+const groupId = (label: string) => `cat-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;
 
 export function AllToolsDirectory({ full = false, asPage = false }: { full?: boolean; asPage?: boolean } = {}) {
   const [q, setQ] = useState('');
@@ -144,13 +146,13 @@ export function AllToolsDirectory({ full = false, asPage = false }: { full?: boo
             const shown = showAll ? tools : tools.slice(0, HOME_LIMIT);
             const hidden = tools.length - shown.length;
             return (
-              <div key={g.label}>
+              <div key={g.label} id={groupId(g.label)} className="scroll-mt-24">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                     <span className="size-2 rounded-full" style={{ backgroundColor: g.color }} /> {g.label}
                   </p>
                   {hidden > 0 && (
-                    <Link href="/tools" className="shrink-0 text-xs font-semibold text-primary hover:underline">See all {tools.length} &rarr;</Link>
+                    <Link href={`/tools#${groupId(g.label)}`} className="shrink-0 text-xs font-semibold text-primary hover:underline">See all {tools.length} &rarr;</Link>
                   )}
                 </div>
                 <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
