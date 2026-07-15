@@ -3,6 +3,7 @@ import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 
 import { formatDuration } from '@/lib/format';
 import { useRef, useState } from 'react';
+import { useFileHandoff } from '@/lib/file-handoff';
 import { Upload, FileText, X, Download, Loader2, FileType, CheckCircle2, RotateCcw, Cloud } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -37,6 +38,7 @@ export function PdfToWordTool() {
   const xhrRef = useRef<XMLHttpRequest | null>(null);
   function cancelRun() { xhrRef.current?.abort(); xhrRef.current = null; }
 
+  useFileHandoff(loadOne);
   function loadOne(f?: File) {
     if (!f) return;
     if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) {

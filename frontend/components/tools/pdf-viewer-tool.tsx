@@ -13,10 +13,11 @@ import { KeepGoing } from '@/components/app/keep-going';
 import { openPdf, renderPage, useLazyPageThumb, dprTarget, type PdfHandle } from '@/lib/pdf-render';
 import { setHandoff, useFileHandoff } from '@/lib/file-handoff';
 
-// "Do more" targets — hand the OPEN file to a tool with no re-upload. All free,
-// on-device; each target reads the hand-off via useFileHandoff. (Pro actions like
-// Redact / PDF→Excel / OCR / AI come once wired + gated.)
-const DO_MORE: { label: string; href: string; color: string }[] = [
+// "Do more" targets — hand the OPEN file to a tool with no re-upload. Free tools
+// carry the file (each reads it via useFileHandoff); Pro tools are badged and
+// route to the tool (gated) or pricing until they're wired + purchasable.
+type DoMore = { label: string; href: string; color: string; pro?: string };
+const DO_MORE: DoMore[] = [
   { label: 'Compress', href: '/compress-pdf', color: '#0d9488' },
   { label: 'Split', href: '/split-pdf', color: '#d97706' },
   { label: 'Sign', href: '/sign-pdf', color: '#7c3aed' },
@@ -25,6 +26,11 @@ const DO_MORE: { label: string; href: string; color: string }[] = [
   { label: 'Rotate', href: '/rotate-pdf', color: '#0284c7' },
   { label: 'Reorder', href: '/reorder-pdf', color: '#9333ea' },
   { label: 'Delete pages', href: '/delete-pages-from-pdf', color: '#dc2626' },
+  { label: 'To Word', href: '/pdf-to-word', color: '#1d4ed8' },
+  { label: 'Redact', href: '/redact-pdf', color: '#475569', pro: 'Pro' },
+  { label: 'To Excel', href: '/pricing', color: '#15803d', pro: 'Pro' },
+  { label: 'OCR', href: '/ocr-pdf', color: '#0284c7', pro: 'Pro' },
+  { label: 'Summarize', href: '/pricing', color: '#7c3aed', pro: 'Pro · AI' },
 ];
 
 function Thumb({ handle, index, active, onClick }: { handle: PdfHandle; index: number; active: boolean; onClick: () => void }) {
@@ -75,8 +81,20 @@ export function PdfViewerTool() {
     }
   }, []);
 
-  // Receive a file handed off from another tool (or a future PWA share/open-with).
+  // Receive a file handed off from another tool.
   useFileHandoff(loadFile);
+
+  // Desktop "Open with" (File Handling API): when the installed PWA is launched
+  // to open a .pdf, the OS hands the file in via launchQueue. No service worker
+  // needed for this path (that's only required for the Android share sheet).
+  useEffect(() => {
+    const lq = (window as unknown as { launchQueue?: { setConsumer: (cb: (p: { files?: Array<{ getFile: () => Promise<File> }> }) => void) => void } }).launchQueue;
+    if (!lq?.setConsumer) return;
+    lq.setConsumer(async (params) => {
+      const fh = params.files?.[0];
+      if (fh?.getFile) { try { void loadFile(await fh.getFile()); } catch { /* ignore */ } }
+    });
+  }, [loadFile]);
 
   const gotoPage = useCallback(async (i: number) => {
     if (!handle || i < 0 || i >= numPages) return;
@@ -112,9 +130,11 @@ export function PdfViewerTool() {
     if (inputRef.current) inputRef.current.value = '';
   }
 
-  function handOff(href: string) {
-    if (file) setHandoff(file);
-    router.push(href);
+  function handOff(item: DoMore) {
+    // Free tools consume the file (no re-upload). Pro/coming-soon targets don't
+    // consume it yet, so we clear the hand-off to avoid a stale carry-over.
+    setHandoff(file && !item.pro ? file : null);
+    router.push(item.href);
   }
 
   const dispW = Math.round(640 * zoom);
@@ -208,10 +228,11 @@ export function PdfViewerTool() {
             </p>
             <div className="flex flex-wrap gap-2">
               {DO_MORE.map((t) => (
-                <button key={t.href} onClick={() => handOff(t.href)}
+                <button key={t.label} onClick={() => handOff(t)}
                   className="group inline-flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2 text-sm font-semibold transition hover:-translate-y-0.5 hover:border-primary hover:shadow-sm">
                   <span className="size-2.5 rounded-full" style={{ background: t.color }} />
                   {t.label}
+                  {t.pro && <span className="inline-flex items-center rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">{t.pro}</span>}
                   <ArrowRight className="size-3.5 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-primary" />
                 </button>
               ))}
