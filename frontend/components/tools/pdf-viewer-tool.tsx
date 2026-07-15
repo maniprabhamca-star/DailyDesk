@@ -28,7 +28,7 @@ const DO_MORE: DoMore[] = [
   { label: 'Delete pages', href: '/delete-pages-from-pdf', color: '#dc2626' },
   { label: 'To Word', href: '/pdf-to-word', color: '#1d4ed8' },
   { label: 'Redact', href: '/redact-pdf', color: '#475569', pro: 'Pro' },
-  { label: 'To Excel', href: '/pricing', color: '#15803d', pro: 'Pro' },
+  { label: 'To Excel', href: '/pdf-to-excel', color: '#15803d' },
   { label: 'OCR', href: '/ocr-pdf', color: '#0284c7', pro: 'Pro' },
   { label: 'Summarize', href: '/pricing', color: '#7c3aed', pro: 'Pro · AI' },
 ];

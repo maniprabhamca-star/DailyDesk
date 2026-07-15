@@ -1,0 +1,185 @@
+<title>PDF → Excel — DiemDesk mockup</title>
+<style>
+  :root{
+    --bg:#f4f5f3;--surface:#fff;--surface-2:#f7f8f6;--border:#e3e5e0;--text:#1a1c19;--muted:#6b7168;--faint:#9aa093;
+    --accent:#15803d;--accent-weak:#15803d12;--accent-ring:#15803d40;
+    --blue:#2563eb;--amber:#b45309;--paper:#fff;--line:#dcdfd8;--radius:16px;
+    --grid-head:#eef3ee;--grid-line:#e0e4dd;--grid-alt:#f7faf7;
+    --shadow:0 1px 2px rgba(20,25,18,.04),0 10px 30px rgba(20,25,18,.08);
+    --mono:"SFMono-Regular",ui-monospace,Menlo,monospace;
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --bg:#111311;--surface:#1a1d19;--surface-2:#20241f;--border:#2e332b;--text:#eef0ea;--muted:#a3a99b;--faint:#767c6e;
+    --accent:#4ade80;--accent-weak:#22c55e18;--accent-ring:#22c55e44;--blue:#60a5fa;--amber:#fbbf24;
+    --paper:#f6f6f4;--line:#cfd2cb;--grid-head:#242a22;--grid-line:#2e332b;--grid-alt:#1e221d;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 34px rgba(0,0,0,.4);
+  }}
+  :root[data-theme="light"]{--bg:#f4f5f3;--surface:#fff;--surface-2:#f7f8f6;--border:#e3e5e0;--text:#1a1c19;--muted:#6b7168;--faint:#9aa093;--accent:#15803d;--accent-weak:#15803d12;--accent-ring:#15803d40;--blue:#2563eb;--amber:#b45309;--paper:#fff;--line:#dcdfd8;--grid-head:#eef3ee;--grid-line:#e0e4dd;--grid-alt:#f7faf7;--shadow:0 1px 2px rgba(20,25,18,.04),0 10px 30px rgba(20,25,18,.08);}
+  :root[data-theme="dark"]{--bg:#111311;--surface:#1a1d19;--surface-2:#20241f;--border:#2e332b;--text:#eef0ea;--muted:#a3a99b;--faint:#767c6e;--accent:#4ade80;--accent-weak:#22c55e18;--accent-ring:#22c55e44;--blue:#60a5fa;--amber:#fbbf24;--paper:#f6f6f4;--line:#cfd2cb;--grid-head:#242a22;--grid-line:#2e332b;--grid-alt:#1e221d;--shadow:0 1px 2px rgba(0,0,0,.3),0 12px 34px rgba(0,0,0,.4);}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:980px;margin:0 auto;padding:28px 18px 60px;}
+  .review-tag{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-bottom:18px;flex-wrap:wrap;}
+  .review-tag b{color:var(--text);font-weight:600;}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:none;}
+  h1{font-size:22px;font-weight:800;letter-spacing:-.02em;margin:0 0 4px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:3px 9px;border-radius:999px;}
+  .badge.dev{background:var(--accent-weak);color:var(--accent);border:1px solid var(--accent-ring);}
+  .lead{font-size:14px;color:var(--muted);margin:0 0 8px;max-width:66ch;}
+  .lead b{color:var(--text);}
+  .diff{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:var(--accent);background:var(--accent-weak);border:1px solid var(--accent-ring);border-radius:10px;padding:7px 12px;margin:6px 0 20px;}
+
+  .app{border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow);overflow:hidden;}
+  .tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);background:var(--surface-2);padding:8px 10px 0;overflow-x:auto;}
+  .tab{font-size:12.5px;font-weight:600;padding:8px 14px;border-radius:9px 9px 0 0;color:var(--muted);cursor:pointer;white-space:nowrap;border:1px solid transparent;border-bottom:none;}
+  .tab.on{background:var(--surface);color:var(--text);border-color:var(--border);}
+  .tab .pg{color:var(--faint);font-weight:500;}
+  .body{display:grid;grid-template-columns:280px 1fr;gap:0;}
+  @media (max-width:720px){.body{grid-template-columns:1fr;} .page-col{border-right:none;border-bottom:1px solid var(--border);}}
+
+  .page-col{border-right:1px solid var(--border);background:var(--surface-2);padding:16px;}
+  .pagedoc{position:relative;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:16px 16px 20px;color:#2a2c28;box-shadow:var(--shadow);font-size:8.5px;}
+  .pagedoc .ttl{font-size:11px;font-weight:800;color:#15803d;}
+  .pagedoc .sub{color:#6b7168;margin:2px 0 12px;font-size:8px;}
+  .pagedoc .row{display:flex;justify-content:space-between;margin:6px 0;color:#3a3f36;}
+  .region{position:absolute;border:2px solid var(--accent);border-radius:6px;background:rgba(21,128,61,.08);left:12px;right:12px;top:56px;bottom:16px;}
+  .region .lab{position:absolute;top:-9px;left:8px;background:var(--accent);color:#fff;font-size:8px;font-weight:800;padding:1px 6px;border-radius:5px;}
+  .pagemeta{font-size:11px;color:var(--muted);margin-top:12px;display:flex;align-items:center;gap:6px;}
+  .detected{font-size:11px;color:var(--accent);background:var(--accent-weak);border:1px solid var(--accent-ring);border-radius:8px;padding:7px 10px;margin-top:10px;display:flex;gap:7px;}
+
+  .grid-col{min-width:0;display:flex;flex-direction:column;}
+  .grid-head{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+  .grid-head b{font-size:13.5px;}
+  .grid-head .n{font-size:11px;color:var(--muted);background:var(--surface-2);border:1px solid var(--border);border-radius:999px;padding:2px 9px;}
+  .sheet-wrap{overflow-x:auto;padding:0;}
+  table{border-collapse:collapse;width:100%;font-size:12.5px;}
+  th,td{border:1px solid var(--grid-line);padding:7px 11px;text-align:left;white-space:nowrap;}
+  th{background:var(--grid-head);font-weight:700;position:sticky;top:0;}
+  tbody tr:nth-child(even){background:var(--grid-alt);}
+  td.num{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--mono);font-size:11.5px;}
+  .rowhdr{width:34px;color:var(--faint);text-align:center;background:var(--surface-2);font-weight:600;font-size:10.5px;}
+  th.rowhdr{background:var(--grid-head);}
+
+  .export{display:flex;flex-wrap:wrap;align-items:center;gap:14px;border-top:1px solid var(--border);padding:12px 16px;background:var(--surface-2);}
+  .seg{display:inline-flex;border:1px solid var(--border);border-radius:9px;overflow:hidden;background:var(--surface);}
+  .seg button{border:0;background:transparent;padding:7px 13px;font:inherit;font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:6px;}
+  .seg button.on{background:var(--accent);color:#fff;}
+  .opt{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--text);cursor:pointer;}
+  .opt input{accent-color:var(--accent);width:15px;height:15px;}
+  .sel{font-size:12.5px;border:1px solid var(--border);border-radius:8px;background:var(--surface);padding:7px 9px;color:var(--text);}
+  .dl{margin-left:auto;display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:#fff;border:0;border-radius:11px;padding:10px 18px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer;box-shadow:0 3px 12px var(--accent-ring);}
+
+  .tiers{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px;}
+  @media (max-width:600px){.tiers{grid-template-columns:1fr;}}
+  .tier{border:1px solid var(--border);border-radius:14px;background:var(--surface);padding:14px 16px;}
+  .tier.pro{border-color:#f59e0b55;}
+  .tier h4{margin:0 0 8px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;display:flex;align-items:center;gap:7px;}
+  .tier.free h4{color:var(--accent);}
+  .tier.pro h4{color:#b45309;}
+  .tier ul{margin:0;padding:0;list-style:none;display:grid;gap:7px;}
+  .tier li{display:flex;gap:8px;font-size:12.5px;color:var(--muted);}
+  .tier li b{color:var(--text);font-weight:600;}
+  .tick{color:var(--accent);flex:none;margin-top:1px;}
+  .tier.pro .tick{color:#b45309;}
+
+  .privacy{margin-top:16px;border:1px solid var(--accent-ring);background:var(--accent-weak);border-radius:12px;padding:12px 14px;font-size:12.5px;color:var(--text);display:flex;gap:9px;}
+  .privacy svg{flex:none;margin-top:1px;color:var(--accent);}
+</style>
+
+<div class="wrap">
+  <div class="review-tag"><span class="dot"></span> <b>Mockup for review</b> — PDF → Excel (tool #2) · on-device table extraction · design only, not yet built</div>
+
+  <h1>PDF → Excel <span class="badge dev">🔒 On your device</span></h1>
+  <p class="lead">Pull the tables out of a PDF into a clean spreadsheet — <b>bank statements, invoices, reports</b> — and download <b>.xlsx</b> or <b>.csv</b>. Edit any cell before you export.</p>
+  <div class="diff">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 2a5 5 0 0 1 5 5v3H7V7a5 5 0 0 1 5-5Z"/><rect x="4" y="10" width="16" height="11" rx="2"/></svg>
+    Unlike Smallpdf, iLovePDF or Adobe, your statement is <b>never uploaded</b> — it's converted right in your browser.
+  </div>
+
+  <div class="app">
+    <div class="tabs">
+      <div class="tab on">Page 1 <span class="pg">· Table 1</span></div>
+      <div class="tab">Page 2 <span class="pg">· Table 1</span></div>
+      <div class="tab">Page 3 <span class="pg">· Table 1</span></div>
+    </div>
+    <div class="body">
+      <!-- page preview with detected region -->
+      <div class="page-col">
+        <div class="pagedoc">
+          <div class="ttl">NORTHWIND BANK</div>
+          <div class="sub">Statement · Jul 2026 · Acct ••4021</div>
+          <div class="region"><span class="lab">TABLE DETECTED</span></div>
+          <div class="row" style="visibility:hidden">.</div>
+          <div class="row"><span>04 Jul&nbsp;&nbsp;Opening balance</span><span>2,140.00</span></div>
+          <div class="row"><span>06 Jul&nbsp;&nbsp;Card — Groceries</span><span>−82.40</span></div>
+          <div class="row"><span>09 Jul&nbsp;&nbsp;Salary</span><span>+3,200.00</span></div>
+          <div class="row"><span>14 Jul&nbsp;&nbsp;Rent</span><span>−1,450.00</span></div>
+          <div class="row"><span>21 Jul&nbsp;&nbsp;Transfer</span><span>−300.00</span></div>
+        </div>
+        <div class="pagemeta">3 pages · 3 tables found</div>
+        <div class="detected">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          Columns aligned automatically from the page layout — check the grid and fix any cell before exporting.
+        </div>
+      </div>
+
+      <!-- extracted grid -->
+      <div class="grid-col">
+        <div class="grid-head">
+          <b>Page 1 · Table 1</b>
+          <span class="n">5 rows × 4 columns</span>
+        </div>
+        <div class="sheet-wrap">
+          <table>
+            <thead>
+              <tr><th class="rowhdr"></th><th>Date</th><th>Description</th><th>Amount</th><th>Balance</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="rowhdr">1</td><td>04 Jul 2026</td><td>Opening balance</td><td class="num">—</td><td class="num">2,140.00</td></tr>
+              <tr><td class="rowhdr">2</td><td>06 Jul 2026</td><td>Card — Groceries</td><td class="num">−82.40</td><td class="num">2,057.60</td></tr>
+              <tr><td class="rowhdr">3</td><td>09 Jul 2026</td><td>Salary</td><td class="num">+3,200.00</td><td class="num">5,257.60</td></tr>
+              <tr><td class="rowhdr">4</td><td>14 Jul 2026</td><td>Rent</td><td class="num">−1,450.00</td><td class="num">3,807.60</td></tr>
+              <tr><td class="rowhdr">5</td><td>21 Jul 2026</td><td>Transfer to savings</td><td class="num">−300.00</td><td class="num">3,507.60</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="export">
+          <div class="seg">
+            <button class="on"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg> Excel .xlsx</button>
+            <button>.csv</button>
+          </div>
+          <select class="sel"><option>One sheet per table</option><option>Combine into one sheet</option></select>
+          <label class="opt"><input type="checkbox" checked> First row is a header</label>
+          <button class="dl">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+            Download spreadsheet
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tiers">
+    <div class="tier free">
+      <h4><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg> Free — forever</h4>
+      <ul>
+        <li><svg class="tick" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg><span><b>On-device</b> table extraction, one file at a time</span></li>
+        <li><svg class="tick" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg><span>Edit cells, choose columns, export <b>.xlsx / .csv</b></span></li>
+        <li><svg class="tick" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg><span>No upload, no watermark, no daily cap</span></li>
+      </ul>
+    </div>
+    <div class="tier pro">
+      <h4>✦ Pro</h4>
+      <ul>
+        <li><svg class="tick" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg><span><b>Batch</b> — many statements/PDFs into one workbook at once</span></li>
+        <li><svg class="tick" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg><span><b>AI cleanup</b> for messy, merged or wrapped tables <span style="color:var(--amber);font-weight:600">(AI)</span></span></li>
+        <li><svg class="tick" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg><span><b>Scanned PDFs</b> — OCR the page, then extract the table</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="privacy">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 2a5 5 0 0 1 5 5v3H7V7a5 5 0 0 1 5-5Z"/><rect x="4" y="10" width="16" height="11" rx="2"/></svg>
+    <span><b>Why on-device matters here:</b> the #1 use for PDF→Excel is bank and card statements. Every big competitor uploads that file to their servers. DiemDesk reads the page layout with the same in-browser engine as our other tools — your financial data never leaves your computer. The basic conversion is <b>free</b> for exactly that reason: it's our privacy calling card. Pro adds scale (batch) and the AI cleanup for the tables that positional extraction alone can't untangle.</span>
+  </div>
+</div>

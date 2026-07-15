@@ -62,7 +62,7 @@ export const catalog: CatGroup[] = [
       { name: 'Extract images', href: '/extract-images-from-pdf', icon: Images, badge: 'device' },
       { name: 'PDF to Word', href: '/pdf-to-word', icon: FileType, badge: 'server' },
       { name: 'PDF to PowerPoint', icon: Presentation, badge: 'server', soon: true },
-      { name: 'PDF to Excel', icon: FileSpreadsheet, badge: 'server', soon: true },
+      { name: 'PDF to Excel', href: '/pdf-to-excel', icon: FileSpreadsheet, badge: 'device' },
       { name: 'PDF to PDF/A', icon: FileCheck, badge: 'server', soon: true },
     ],
   },

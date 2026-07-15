@@ -19,6 +19,7 @@ const ROUTES: Array<{ path: string; priority: number; changeFrequency: MetadataR
   { path: '/jpg-to-pdf', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/pdf-to-jpg', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/pdf-to-word', priority: 0.9, changeFrequency: 'monthly' },
+  { path: '/pdf-to-excel', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/word-to-pdf', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/excel-to-pdf', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/powerpoint-to-pdf', priority: 0.9, changeFrequency: 'monthly' },
