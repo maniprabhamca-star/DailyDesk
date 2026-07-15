@@ -21,5 +21,6 @@ takes the existing URL) whenever a file changes.
 | [mockup-pdf-viewer.html](mockup-pdf-viewer.html) | PDF viewer + "Do more" hand-off bar (free viewer, free+Pro actions) + PWA open-with note (mockup, for review) | https://claude.ai/code/artifact/f52b2a95-117d-417d-b167-fcc5e5bbfd80 |
 | [mockup-ai-chat-pdf.html](mockup-ai-chat-pdf.html) | Chat with PDF (AI, the first Pro tool) — cited answers, on-device text extraction, honest privacy note (interactive mockup) | https://claude.ai/code/artifact/c0f0c0e9-38c6-444a-a07a-c2056c083e9b |
 | [mockup-ai-pdf-to-excel.html](mockup-ai-pdf-to-excel.html) | PDF→Excel — on-device table extraction, editable grid, .xlsx/.csv; free basic + Pro batch/AI (mockup) | https://claude.ai/code/artifact/65c6a85d-a9a0-45f8-a434-1d35e378c3d8 |
+| [unit-economics.html](unit-economics.html) | Interactive margin calculator — true profit per Pro user (AI+Stripe+Vault+infra), break-even, 20%-revenue AI budget guardrail | https://claude.ai/code/artifact/050b1f1c-d52e-4412-abf3-3c161a37dcac |
 
 _Design docs (Markdown, not visual artifacts) stay in [`../designs/`](../designs/)._
