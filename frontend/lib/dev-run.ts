@@ -3,7 +3,7 @@
 
 export type DiffLine = { t: 'same' | 'add' | 'del'; s: string };
 export type DevResult = { text?: string; diff?: DiffLine[]; error?: string };
-export type RunOpts = { a?: string; b?: string; mode?: string; algo?: string; count?: number };
+export type RunOpts = { a?: string; b?: string; mode?: string; algo?: string; count?: number; pattern?: string; flags?: string };
 
 // ── encode / decode ──────────────────────────────────────────────────────
 const b64encode = (s: string) => btoa(unescape(encodeURIComponent(s)));
@@ -106,6 +106,84 @@ function lineDiff(aStr: string, bStr: string): DiffLine[] {
   return out;
 }
 
+// ── text helpers ────────────────────────────────────────────────────────────
+const cap = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+const toWords = (s: string) => s.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/[_\-.]+/g, ' ').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
+function relTime(ms: number): string {
+  const diff = ms - Date.now(); const abs = Math.abs(diff); const fut = diff > 0;
+  const u: [number, string][] = [[31536e6, 'year'], [2592e6, 'month'], [864e5, 'day'], [36e5, 'hour'], [6e4, 'minute'], [1e3, 'second']];
+  for (const [ms1, name] of u) { if (abs >= ms1) { const n = Math.round(abs / ms1); return `${n} ${name}${n === 1 ? '' : 's'} ${fut ? 'from now' : 'ago'}`; } }
+  return 'just now';
+}
+
+// ── JSON ↔ YAML (compact, common-subset) ────────────────────────────────────
+function toYaml(v: unknown, ind = 0): string {
+  const p = '  '.repeat(ind);
+  const scalar = (x: unknown): string => {
+    if (x === null || x === undefined) return 'null';
+    if (typeof x === 'boolean' || typeof x === 'number') return String(x);
+    const s = String(x);
+    return s === '' || /[:#\-?*&!|>'"%@`,{}\[\]]/.test(s) || /^\s|\s$/.test(s) || /^(true|false|null|~|\d)/i.test(s) ? JSON.stringify(s) : s;
+  };
+  if (v === null || typeof v !== 'object') return scalar(v);
+  if (Array.isArray(v)) {
+    if (!v.length) return '[]';
+    return v.map((it) => {
+      if (it !== null && typeof it === 'object' && Object.keys(it).length) {
+        const body = toYaml(it, ind + 1);
+        return body.split('\n').map((ln, i) => (i === 0 ? p + '- ' + ln.slice((ind + 1) * 2) : ln)).join('\n');
+      }
+      return p + '- ' + scalar(it);
+    }).join('\n');
+  }
+  const keys = Object.keys(v as Record<string, unknown>);
+  if (!keys.length) return '{}';
+  return keys.map((k) => {
+    const val = (v as Record<string, unknown>)[k];
+    if (val !== null && typeof val === 'object' && Object.keys(val).length) return `${p}${k}:\n${toYaml(val, ind + 1)}`;
+    return `${p}${k}: ${scalar(val)}`;
+  }).join('\n');
+}
+function yScalar(s: string): unknown {
+  const t = s.trim();
+  if (t === '' || t === '~' || t === 'null') return null;
+  if (t === 'true') return true; if (t === 'false') return false;
+  if (/^-?\d+(\.\d+)?$/.test(t)) return Number(t);
+  if ((t[0] === '"' && t.endsWith('"')) || (t[0] === "'" && t.endsWith("'"))) { try { return JSON.parse(t[0] === "'" ? `"${t.slice(1, -1).replace(/"/g, '\\"')}"` : t); } catch { return t.slice(1, -1); } }
+  return t;
+}
+function yamlParse(src: string): unknown {
+  const lines = src.replace(/\t/g, '  ').split('\n').filter((l) => l.trim() !== '' && !/^\s*#/.test(l));
+  let i = 0;
+  const indentOf = (l: string) => l.length - l.trimStart().length;
+  // A block's indent = the indent of its first line; siblings share it exactly,
+  // and any deeper line belongs to a nested child (parsed recursively).
+  function parseBlock(): unknown {
+    const base = indentOf(lines[i]);
+    if (lines[i].trimStart().startsWith('- ') || lines[i].trim() === '-') {
+      const arr: unknown[] = [];
+      while (i < lines.length && indentOf(lines[i]) === base && (lines[i].trimStart().startsWith('- ') || lines[i].trim() === '-')) {
+        const rest = lines[i].trim() === '-' ? '' : lines[i].trimStart().slice(2);
+        if (rest.trim() === '') { i++; arr.push(i < lines.length && indentOf(lines[i]) > base ? parseBlock() : null); }
+        else if (/^[\w.$-]+:(\s|$)/.test(rest)) { lines[i] = ' '.repeat(base + 2) + rest; arr.push(parseBlock()); }
+        else { i++; arr.push(yScalar(rest)); }
+      }
+      return arr;
+    }
+    const obj: Record<string, unknown> = {};
+    while (i < lines.length && indentOf(lines[i]) === base && !lines[i].trimStart().startsWith('- ')) {
+      const m = lines[i].trim().match(/^([^:]+):\s*(.*)$/); if (!m) { i++; continue; }
+      const key = m[1].trim().replace(/^["']|["']$/g, ''); const val = m[2];
+      if (val.trim() === '') { i++; obj[key] = i < lines.length && indentOf(lines[i]) > base ? parseBlock() : null; }
+      else { i++; obj[key] = yScalar(val); }
+    }
+    return obj;
+  }
+  return i < lines.length ? parseBlock() : null;
+}
+
+const LOREM = 'lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua enim ad minim veniam quis nostrud exercitation ullamco laboris nisi aliquip ex ea commodo consequat duis aute irure in reprehenderit voluptate velit esse cillum eu fugiat nulla pariatur excepteur sint occaecat cupidatat non proident sunt culpa qui officia deserunt mollit anim id est laborum'.split(' ');
+
 export async function runDev(slug: string, o: RunOpts): Promise<DevResult> {
   const a = o.a ?? '';
   try {
@@ -148,6 +226,81 @@ export async function runDev(slug: string, o: RunOpts): Promise<DevResult> {
         return { text: JSON.stringify(objs, null, 2) };
       }
       case 'text-diff': return { diff: lineDiff(a, o.b ?? '') };
+
+      case 'timestamp-converter': {
+        if (!a.trim()) return { text: '' };
+        if (o.mode === 'Date → Unix') {
+          const d = new Date(a.trim());
+          if (isNaN(d.getTime())) return { error: 'Could not parse that date. Try an ISO date like 2026-07-14T18:30:00Z.' };
+          return { text: `Unix (seconds):  ${Math.floor(d.getTime() / 1000)}\nUnix (millis):   ${d.getTime()}\nISO (UTC):       ${d.toISOString()}` };
+        }
+        const num = Number(a.trim());
+        if (!Number.isFinite(num)) return { error: 'Enter a Unix timestamp (seconds or milliseconds).' };
+        const ms = Math.abs(num) >= 1e12 ? num : num * 1000;
+        const d = new Date(ms);
+        if (isNaN(d.getTime())) return { error: 'That timestamp is out of range.' };
+        return { text: `Local:     ${d.toString()}\nUTC:       ${d.toUTCString()}\nISO:       ${d.toISOString()}\nRelative:  ${relTime(ms)}` };
+      }
+      case 'json-to-yaml': {
+        if (!a.trim()) return { text: '' };
+        if (o.mode === 'YAML → JSON') return { text: JSON.stringify(yamlParse(a), null, 2) };
+        return { text: toYaml(JSON.parse(a)) };
+      }
+      case 'csv-cleaner': {
+        if (!a.trim()) return { text: '' };
+        const seen = new Set<string>(); const out: string[] = [];
+        for (const r of parseCsv(a)) {
+          const trimmed = r.map((c) => c.trim());
+          if (trimmed.every((c) => c === '')) continue;
+          const key = trimmed.join(''); if (seen.has(key)) continue; seen.add(key);
+          out.push(trimmed.map(csvCell).join(','));
+        }
+        return { text: out.join('\n') };
+      }
+      case 'case-converter': {
+        if (!a) return { text: '' };
+        const low = toWords(a).map((w) => w.toLowerCase());
+        switch (o.mode) {
+          case 'UPPERCASE': return { text: a.toUpperCase() };
+          case 'lowercase': return { text: a.toLowerCase() };
+          case 'Title Case': return { text: low.map(cap).join(' ') };
+          case 'camelCase': return { text: low.map((w, i) => (i ? cap(w) : w)).join('') };
+          case 'snake_case': return { text: low.join('_') };
+          case 'kebab-case': return { text: low.join('-') };
+          default: return { text: low.map(cap).join(' ') };
+        }
+      }
+      case 'slugify': return { text: a.toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') };
+      case 'sort-lines': {
+        let lines = a.split('\n');
+        switch (o.mode) {
+          case 'Z → A': lines = [...lines].sort((x, y) => y.localeCompare(x)); break;
+          case 'Unique': { const s = new Set<string>(); lines = lines.filter((l) => (s.has(l) ? false : (s.add(l), true))); break; }
+          case 'Reverse': lines = [...lines].reverse(); break;
+          default: lines = [...lines].sort((x, y) => x.localeCompare(y)); break; // A → Z
+        }
+        return { text: lines.join('\n') };
+      }
+      case 'regex-tester': {
+        if (!o.pattern) return { text: '' };
+        let re: RegExp;
+        const flags = (o.flags || '').replace(/[^gimsuy]/g, '');
+        try { re = new RegExp(o.pattern, flags.includes('g') ? flags : flags + 'g'); } catch (e) { return { error: `Invalid regex: ${e instanceof Error ? e.message : ''}` }; }
+        const lines: string[] = []; let m: RegExpExecArray | null; let n = 0;
+        while ((m = re.exec(a)) !== null) {
+          n++;
+          lines.push(`Match ${n} @${m.index}: ${JSON.stringify(m[0])}${m.length > 1 ? `   groups: ${JSON.stringify(m.slice(1))}` : ''}`);
+          if (m.index === re.lastIndex) re.lastIndex++;
+          if (n >= 2000) break;
+        }
+        return { text: n ? `${n} match${n === 1 ? '' : 'es'}\n\n${lines.join('\n')}` : 'No matches.' };
+      }
+      case 'lorem-ipsum': {
+        const n = Math.max(1, Math.min(50, o.count || 3));
+        const para = () => { const len = 24 + Math.floor(Math.random() * 36); const w = Array.from({ length: len }, () => LOREM[(Math.random() * LOREM.length) | 0]); return cap(w[0]) + ' ' + w.slice(1).join(' ') + '.'; };
+        return { text: Array.from({ length: n }, para).join('\n\n') };
+      }
+
       default: return { error: 'Unknown tool.' };
     }
   } catch (e) {

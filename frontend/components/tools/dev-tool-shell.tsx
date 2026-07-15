@@ -13,19 +13,21 @@ export function DevToolShell({ tool }: { tool: DevTool }) {
   const [mode, setMode] = useState(tool.modes?.[0] ?? '');
   const [algo, setAlgo] = useState(tool.algos?.includes('SHA-256') ? 'SHA-256' : (tool.algos?.[0] ?? ''));
   const [count, setCount] = useState(5);
+  const [pattern, setPattern] = useState(tool.pattern ?? '');
+  const [flags, setFlags] = useState(tool.flags ?? 'g');
   const [res, setRes] = useState<DevResult>({});
   const [copied, setCopied] = useState(false);
 
   const run = useCallback(async () => {
-    setRes(await runDev(tool.slug, { a, b, mode, algo, count }));
-  }, [tool.slug, a, b, mode, algo, count]);
+    setRes(await runDev(tool.slug, { a, b, mode, algo, count, pattern, flags }));
+  }, [tool.slug, a, b, mode, algo, count, pattern, flags]);
 
   // Live tools recompute as you type / switch options. Generators run once on
   // mount (so the page isn't empty) and then only on the Generate button.
   useEffect(() => {
     void run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [a, b, mode, algo, tool.slug]);
+  }, [a, b, mode, algo, pattern, flags, tool.slug]);
 
   const outText = res.diff ? res.diff.map((d) => (d.t === 'add' ? '+ ' : d.t === 'del' ? '- ' : '  ') + d.s).join('\n') : (res.text ?? '');
   const copy = () => { if (!outText) return; navigator.clipboard?.writeText(outText); setCopied(true); setTimeout(() => setCopied(false), 1200); };
@@ -53,6 +55,21 @@ export function DevToolShell({ tool }: { tool: DevTool }) {
       </div>
 
       <div className="p-4 sm:p-5">
+        {/* regex pattern + flags */}
+        {tool.kind === 'regex' && (
+          <div className="mb-4 flex flex-wrap items-end gap-3">
+            <div className="min-w-[220px] flex-1">
+              <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Pattern</label>
+              <div className="flex items-center rounded-lg border bg-muted/30 font-mono text-sm focus-within:border-primary">
+                <span className="pl-2.5 text-muted-foreground">/</span>
+                <input value={pattern} onChange={(e) => setPattern(e.target.value)} placeholder="pattern" className="w-full bg-transparent px-1 py-2 outline-none" spellCheck={false} />
+                <span className="text-muted-foreground">/</span>
+                <input value={flags} onChange={(e) => setFlags(e.target.value.replace(/[^gimsuy]/g, ''))} placeholder="flags" className="w-14 bg-transparent px-1.5 py-2 outline-none" spellCheck={false} />
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* options */}
         {(tool.modes || tool.algos || tool.count) && (
           <div className="mb-4 flex flex-wrap items-center gap-3">

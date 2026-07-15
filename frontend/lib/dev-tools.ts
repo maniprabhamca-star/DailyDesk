@@ -3,7 +3,7 @@
 // crypto, etc.). Each tool is its own SEO keyword page, all rendered by the one
 // shared DevToolShell so the pack stays consistent and uncluttered.
 
-export type DevKind = 'transform' | 'generate' | 'inspect' | 'diff';
+export type DevKind = 'transform' | 'generate' | 'inspect' | 'diff' | 'regex';
 export type DevGroup = 'Encode & decode' | 'Hash & token' | 'IDs & time' | 'Data & CSV' | 'Text';
 
 export type DevTool = {
@@ -22,6 +22,7 @@ export type DevTool = {
   count?: boolean;         // generate tools: show a "how many" input
   inLabel?: string; outLabel?: string; inLabelB?: string;
   sampleA?: string; sampleB?: string;
+  pattern?: string; flags?: string; // regex kind: default pattern + flags
   intro: string;           // visible how-to/why paragraph (keyword depth)
   faq: { q: string; a: string }[];
 };
@@ -127,15 +128,106 @@ export const DEV_TOOLS: DevTool[] = [
     ],
   },
 
-  // ── planned (hub shows them, routes land in the next batch) ──
-  { slug: 'timestamp-converter', name: 'Timestamp', tagline: 'Unix epoch ↔ date', group: 'IDs & time', glyph: '⏱', kind: 'transform', built: false, seoTitle: '', seoDesc: '', h1: '', intro: '', faq: [] },
-  { slug: 'json-to-yaml', name: 'JSON ↔ YAML', tagline: 'Convert JSON and YAML', group: 'Data & CSV', glyph: 'Y', kind: 'transform', built: false, seoTitle: '', seoDesc: '', h1: '', intro: '', faq: [] },
-  { slug: 'csv-cleaner', name: 'CSV cleaner', tagline: 'Trim, dedupe, re-delimit', group: 'Data & CSV', glyph: '▦', kind: 'transform', built: false, seoTitle: '', seoDesc: '', h1: '', intro: '', faq: [] },
-  { slug: 'case-converter', name: 'Case converter', tagline: 'camelCase, snake_case, Title', group: 'Text', glyph: 'Aa', kind: 'transform', built: false, seoTitle: '', seoDesc: '', h1: '', intro: '', faq: [] },
-  { slug: 'slugify', name: 'Slugify', tagline: 'Text → url-slug', group: 'Text', glyph: '-', kind: 'transform', built: false, seoTitle: '', seoDesc: '', h1: '', intro: '', faq: [] },
-  { slug: 'sort-lines', name: 'Sort / dedupe lines', tagline: 'Order & unique lines', group: 'Text', glyph: '↕', kind: 'transform', built: false, seoTitle: '', seoDesc: '', h1: '', intro: '', faq: [] },
-  { slug: 'regex-tester', name: 'Regex tester', tagline: 'Live match & groups', group: 'Text', glyph: '.*', kind: 'transform', built: false, seoTitle: '', seoDesc: '', h1: '', intro: '', faq: [] },
-  { slug: 'lorem-ipsum', name: 'Lorem ipsum', tagline: 'Placeholder text', group: 'Text', glyph: '¶', kind: 'generate', built: false, seoTitle: '', seoDesc: '', h1: '', intro: '', faq: [] },
+  {
+    slug: 'timestamp-converter', name: 'Timestamp', tagline: 'Unix epoch ↔ date', group: 'IDs & time', glyph: '⏱',
+    kind: 'transform', built: true, modes: ['Unix → Date', 'Date → Unix'], inLabel: 'Input', outLabel: 'Result', sampleA: '1716239022',
+    seoTitle: 'Unix Timestamp Converter — Epoch ↔ Date | DiemDesk',
+    seoDesc: 'Convert a Unix timestamp (epoch) to a human date, or a date back to epoch — seconds or milliseconds — free in your browser. Nothing uploaded.',
+    h1: 'Unix timestamp converter',
+    intro: 'A Unix timestamp counts the seconds (or milliseconds) since 1 Jan 1970 UTC. Paste an epoch to see it as a local, UTC and ISO date, or paste a date to get the epoch back — all on your device.',
+    faq: [
+      { q: 'Seconds or milliseconds?', a: 'Both — it auto-detects: 13-digit or longer values are treated as milliseconds, shorter ones as seconds.' },
+      { q: 'Which timezone?', a: 'It shows your local time plus UTC and ISO 8601, so there’s no ambiguity.' },
+    ],
+  },
+  {
+    slug: 'json-to-yaml', name: 'JSON ↔ YAML', tagline: 'Convert JSON and YAML', group: 'Data & CSV', glyph: 'Y',
+    kind: 'transform', built: true, modes: ['JSON → YAML', 'YAML → JSON'], inLabel: 'Input', outLabel: 'Output',
+    sampleA: '{\n  "name": "DiemDesk",\n  "private": true,\n  "tools": ["pdf", "image", "dev"]\n}',
+    seoTitle: 'JSON to YAML Converter — Both Ways, Free | DiemDesk',
+    seoDesc: 'Convert JSON to YAML or YAML to JSON, free in your browser. Handles nested objects, arrays and quoted strings. Your data is never uploaded.',
+    h1: 'JSON ↔ YAML converter',
+    intro: 'YAML and JSON describe the same data in different styles — YAML is indentation-based and easy to read, JSON is compact and everywhere. Paste one to get the other; conversion runs entirely in your browser.',
+    faq: [
+      { q: 'Does it handle nested data?', a: 'Yes — nested objects and arrays, booleans, numbers, null and quoted strings all convert both ways.' },
+      { q: 'Is my data uploaded?', a: 'No — it converts on your device, so it’s safe for config that contains secrets.' },
+    ],
+  },
+  {
+    slug: 'csv-cleaner', name: 'CSV cleaner', tagline: 'Trim, drop blanks & dedupe', group: 'Data & CSV', glyph: '▦',
+    kind: 'transform', built: true, inLabel: 'Messy CSV', outLabel: 'Cleaned', sampleA: 'name , city\n Sam , Austin \n\nSam,Austin\n Lee ,Denver',
+    seoTitle: 'CSV Cleaner — Trim, Dedupe & Tidy CSV, Free | DiemDesk',
+    seoDesc: 'Clean up a messy CSV — trim whitespace, drop blank rows and remove duplicate rows — free in your browser. Your spreadsheet data is never uploaded.',
+    h1: 'CSV cleaner',
+    intro: 'Real-world CSVs arrive with stray spaces, blank lines and duplicate rows. This trims every cell, drops empty rows and removes exact duplicates to give you a clean CSV — all on your device.',
+    faq: [
+      { q: 'What does it remove?', a: 'Leading/trailing spaces in each cell, fully-blank rows, and rows that exactly duplicate an earlier one.' },
+      { q: 'Are quoted fields safe?', a: 'Yes — fields quoted because they contain commas are parsed correctly and re-quoted only when needed.' },
+    ],
+  },
+  {
+    slug: 'case-converter', name: 'Case converter', tagline: 'camelCase, snake_case, Title…', group: 'Text', glyph: 'Aa',
+    kind: 'transform', built: true, modes: ['lowercase', 'UPPERCASE', 'Title Case', 'camelCase', 'snake_case', 'kebab-case'],
+    inLabel: 'Input', outLabel: 'Output', sampleA: 'Hello World — example text',
+    seoTitle: 'Case Converter — camelCase, snake_case & More | DiemDesk',
+    seoDesc: 'Convert text between lowercase, UPPERCASE, Title Case, camelCase, snake_case and kebab-case, free in your browser. Nothing is uploaded.',
+    h1: 'Case converter',
+    intro: 'Switch text between the naming styles you actually use — lowercase, UPPERCASE, Title Case, camelCase, snake_case and kebab-case. Pick a style and paste your text; it converts instantly, on your device.',
+    faq: [
+      { q: 'How are words detected?', a: 'It splits on spaces, underscores, hyphens and camelCase humps, so even mixed input converts cleanly.' },
+      { q: 'Is it uploaded?', a: 'No — conversion runs entirely in your browser.' },
+    ],
+  },
+  {
+    slug: 'slugify', name: 'Slugify', tagline: 'Text → clean url-slug', group: 'Text', glyph: '-',
+    kind: 'transform', built: true, inLabel: 'Text', outLabel: 'Slug', sampleA: 'Hello World! My First Post (2024)',
+    seoTitle: 'Slugify — Text to URL Slug, Free Online | DiemDesk',
+    seoDesc: 'Turn any text into a clean url-slug — lowercase, hyphenated, accents and symbols stripped — free in your browser. Nothing is uploaded.',
+    h1: 'Slugify — text to URL slug',
+    intro: 'A slug is the readable, hyphenated part of a URL. This lowercases your text, strips accents and punctuation, and joins words with hyphens to make a clean, SEO-friendly slug — instantly, on your device.',
+    faq: [
+      { q: 'What happens to accents?', a: 'They’re normalized to plain ASCII (é → e), and any character that isn’t a letter or number becomes a hyphen.' },
+      { q: 'Uploaded anywhere?', a: 'No — it runs in your browser.' },
+    ],
+  },
+  {
+    slug: 'sort-lines', name: 'Sort / dedupe lines', tagline: 'Order & unique lines', group: 'Text', glyph: '↕',
+    kind: 'transform', built: true, modes: ['A → Z', 'Z → A', 'Unique', 'Reverse'], inLabel: 'Lines', outLabel: 'Result',
+    sampleA: 'banana\napple\ncherry\napple\ndate',
+    seoTitle: 'Sort & Dedupe Lines Online — Free | DiemDesk',
+    seoDesc: 'Sort lines A→Z or Z→A, remove duplicate lines, or reverse them — free in your browser. Handy for lists and logs. Your text is never uploaded.',
+    h1: 'Sort & dedupe lines',
+    intro: 'Paste a list to sort it alphabetically (A→Z or Z→A), remove duplicate lines, or reverse the order. Useful for tidying lists, logs and word sets — and it all runs on your device.',
+    faq: [
+      { q: 'Is the sort case-sensitive?', a: 'It uses locale-aware comparison, so it sorts naturally (a, B, c) rather than by raw character codes.' },
+      { q: 'Uploaded?', a: 'No — everything happens in your browser.' },
+    ],
+  },
+  {
+    slug: 'regex-tester', name: 'Regex tester', tagline: 'Live matches & capture groups', group: 'Text', glyph: '.*',
+    kind: 'regex', built: true, inLabel: 'Test string', outLabel: 'Matches',
+    sampleA: 'Contact jordan@example.com or sam@diemdesk.com today.', pattern: '(\\w+)@(\\w+\\.\\w+)', flags: 'g',
+    seoTitle: 'Regex Tester — Test & Debug Regex Online | DiemDesk',
+    seoDesc: 'Test a regular expression against your text and see every match and capture group live, free in your browser. Nothing is uploaded.',
+    h1: 'Regex tester',
+    intro: 'Write a regular expression and see, live, every place it matches in your text along with the capture groups. Enter your pattern and flags, paste a test string, and iterate — the matching runs entirely in your browser.',
+    faq: [
+      { q: 'Which flags are supported?', a: 'g, i, m, s, u and y — the standard JavaScript RegExp flags. g is always applied so you see every match.' },
+      { q: 'Is my text uploaded?', a: 'No — the regex runs on your device, so test strings with real data stay private.' },
+    ],
+  },
+  {
+    slug: 'lorem-ipsum', name: 'Lorem ipsum', tagline: 'Placeholder text, by paragraph', group: 'Text', glyph: '¶',
+    kind: 'generate', built: true, count: true, outLabel: 'Lorem ipsum',
+    seoTitle: 'Lorem Ipsum Generator — Placeholder Text, Free | DiemDesk',
+    seoDesc: 'Generate lorem ipsum placeholder text — choose how many paragraphs — free in your browser. Copy with one click for mockups and designs.',
+    h1: 'Lorem ipsum generator',
+    intro: 'Lorem ipsum is the classic placeholder text for mockups and layouts. Choose how many paragraphs you need and generate — then copy it in a click. Runs entirely on your device.',
+    faq: [
+      { q: 'How much can I generate?', a: 'From 1 up to 50 paragraphs at a time, each a realistic length.' },
+      { q: 'Is it always the same?', a: 'No — each run is randomized, so you get fresh filler every time.' },
+    ],
+  },
 ];
 
 export const DEV_GROUPS: DevGroup[] = ['Encode & decode', 'Hash & token', 'IDs & time', 'Data & CSV', 'Text'];
