@@ -18,5 +18,6 @@ takes the existing URL) whenever a file changes.
 | [mockup-tool03-fill-form-v11-native.html](mockup-tool03-fill-form-v11-native.html) | #3 v1.1 — native AcroForm click/Tab fill + keep-editable vs flatten (mockup, for review) | https://claude.ai/code/artifact/03b1c37c-2f19-42e7-bbbf-15664a677bc8 |
 | [mockup-tool04-photo-privacy.html](mockup-tool04-photo-privacy.html) | #4 Strip metadata + blur (free) / auto-blur + batch (Pro) — building | https://claude.ai/code/artifact/1f211647-7644-4e9e-8179-9492843463cb |
 | [mockup-tool05-dev-csv-pack.html](mockup-tool05-dev-csv-pack.html) | #5 Dev & CSV utilities pack — grouped hub + one clean shared tool template (mockup, for review) | https://claude.ai/code/artifact/a5405ed5-a02a-4a53-a85f-9ef73e3d63fd |
+| [mockup-pdf-viewer.html](mockup-pdf-viewer.html) | PDF viewer + "Do more" hand-off bar (free viewer, free+Pro actions) + PWA open-with note (mockup, for review) | https://claude.ai/code/artifact/f52b2a95-117d-417d-b167-fcc5e5bbfd80 |
 
 _Design docs (Markdown, not visual artifacts) stay in [`../designs/`](../designs/)._

@@ -1,0 +1,216 @@
+<title>PDF viewer + "Do more" — DiemDesk mockup</title>
+<style>
+  :root{
+    --bg:#f4f5f3;--surface:#fff;--surface-2:#f7f8f6;--border:#e3e5e0;--text:#1a1c19;--muted:#6b7168;--faint:#9aa093;
+    --accent:#2563eb;--accent-weak:#2563eb12;--accent-ring:#2563eb40;
+    --green:#15803d;--green-bg:#16a34a12;--green-border:#16a34a40;
+    --amber:#b45309;--paper:#fff;--line:#dcdfd8;--radius:16px;
+    --shadow:0 1px 2px rgba(20,25,18,.04),0 10px 30px rgba(20,25,18,.08);
+    --mono:"SFMono-Regular",ui-monospace,Menlo,monospace;
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --bg:#111311;--surface:#1a1d19;--surface-2:#20241f;--border:#2e332b;--text:#eef0ea;--muted:#a3a99b;--faint:#767c6e;
+    --accent:#60a5fa;--accent-weak:#60a5fa1c;--accent-ring:#60a5fa55;--green:#4ade80;--green-bg:#22c55e18;--green-border:#22c55e44;
+    --amber:#fbbf24;--paper:#f6f6f4;--line:#cfd2cb;--shadow:0 1px 2px rgba(0,0,0,.3),0 12px 34px rgba(0,0,0,.4);
+  }}
+  :root[data-theme="light"]{--bg:#f4f5f3;--surface:#fff;--surface-2:#f7f8f6;--border:#e3e5e0;--text:#1a1c19;--muted:#6b7168;--faint:#9aa093;--accent:#2563eb;--accent-weak:#2563eb12;--accent-ring:#2563eb40;--green:#15803d;--green-bg:#16a34a12;--green-border:#16a34a40;--amber:#b45309;--paper:#fff;--line:#dcdfd8;--shadow:0 1px 2px rgba(20,25,18,.04),0 10px 30px rgba(20,25,18,.08);}
+  :root[data-theme="dark"]{--bg:#111311;--surface:#1a1d19;--surface-2:#20241f;--border:#2e332b;--text:#eef0ea;--muted:#a3a99b;--faint:#767c6e;--accent:#60a5fa;--accent-weak:#60a5fa1c;--accent-ring:#60a5fa55;--green:#4ade80;--green-bg:#22c55e18;--green-border:#22c55e44;--amber:#fbbf24;--paper:#f6f6f4;--line:#cfd2cb;--shadow:0 1px 2px rgba(0,0,0,.3),0 12px 34px rgba(0,0,0,.4);}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:940px;margin:0 auto;padding:28px 18px 60px;}
+  .review-tag{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-bottom:18px;flex-wrap:wrap;}
+  .review-tag b{color:var(--text);font-weight:600;}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:none;}
+  h1{font-size:22px;font-weight:800;letter-spacing:-.02em;margin:0 0 4px;}
+  .lead{font-size:14px;color:var(--muted);margin:0 0 22px;max-width:62ch;}
+  .badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:4px 9px;border-radius:999px;background:var(--green-bg);color:var(--green);border:1px solid var(--green-border);white-space:nowrap;}
+  .pro{display:inline-flex;align-items:center;gap:3px;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:2px 6px;border-radius:999px;background:linear-gradient(90deg,#f59e0b,#f97316);color:#fff;}
+
+  /* ── viewer window ── */
+  .app{border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow);overflow:hidden;}
+  .bar{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--border);background:var(--surface-2);flex-wrap:wrap;}
+  .file{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;min-width:0;}
+  .file svg{color:var(--accent);flex:none;}
+  .file .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px;}
+  .file .sz{font-size:11px;font-weight:500;color:var(--faint);}
+  .grp{display:inline-flex;align-items:center;border:1px solid var(--border);border-radius:9px;overflow:hidden;background:var(--surface);}
+  .grp button{border:0;background:transparent;color:var(--text);width:30px;height:30px;cursor:pointer;font-size:15px;display:grid;place-items:center;border-right:1px solid var(--border);}
+  .grp button:last-child{border-right:0;}
+  .grp button:hover{background:var(--accent-weak);color:var(--accent);}
+  .grp .lbl{font-size:12px;font-variant-numeric:tabular-nums;color:var(--muted);padding:0 10px;min-width:52px;text-align:center;}
+  .icobtn{width:32px;height:32px;border:1px solid var(--border);border-radius:9px;background:var(--surface);cursor:pointer;display:grid;place-items:center;color:var(--muted);}
+  .icobtn:hover{border-color:var(--accent);color:var(--accent);}
+  .icobtn.on{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .search{display:flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:9px;background:var(--surface);padding:0 9px;height:32px;}
+  .search input{border:0;background:transparent;outline:none;font:inherit;font-size:12.5px;color:var(--text);width:120px;}
+  .search svg{color:var(--faint);}
+  .spacer{flex:1;}
+  .dl{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:9px;border:0;background:var(--accent);color:#fff;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px var(--accent-ring);}
+
+  .body{display:grid;grid-template-columns:132px 1fr;min-height:440px;}
+  @media (max-width:620px){.body{grid-template-columns:0 1fr;} .thumbs{display:none;}}
+  .thumbs{border-right:1px solid var(--border);background:var(--surface-2);padding:12px 10px;overflow:auto;max-height:520px;}
+  .thumb{border:1.5px solid var(--border);border-radius:6px;background:var(--paper);aspect-ratio:1/1.3;margin-bottom:10px;cursor:pointer;position:relative;overflow:hidden;transition:border-color .12s;}
+  .thumb:hover{border-color:var(--accent-ring);}
+  .thumb.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-ring);}
+  .thumb .pg{position:absolute;bottom:3px;right:4px;font-size:8.5px;font-weight:700;color:var(--faint);}
+  .thumb .ln{height:2px;background:#0000000d;border-radius:2px;margin:5px 6px;}
+  .thumb .ln.t{margin-top:8px;width:60%;}
+  .stage{background:var(--surface-2);display:flex;justify-content:center;padding:22px;overflow:auto;max-height:520px;}
+  /* mock rendered page */
+  .page{background:var(--paper);width:340px;border:1px solid var(--line);box-shadow:var(--shadow);color:#2a2c28;flex:none;transform-origin:top center;transition:transform .12s;}
+  .page .pad{padding:26px 30px;}
+  .ph{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #1a1c19;padding-bottom:10px;}
+  .ph .co{font-size:15px;font-weight:800;color:#1a1c19;letter-spacing:.02em;}
+  .ph .mut{font-size:9px;color:#8a8f82;margin-top:2px;}
+  .ph .inv{text-align:right;font-size:9px;color:#8a8f82;}
+  .ph .inv b{display:block;font-size:13px;color:#1a1c19;}
+  .rows{margin-top:16px;}
+  .r{display:flex;justify-content:space-between;font-size:9.5px;color:#4a4f45;padding:5px 0;border-bottom:1px solid #ececec;}
+  .r .d{color:#8a8f82;}
+  .tot{display:flex;justify-content:space-between;font-size:11px;font-weight:800;color:#1a1c19;margin-top:12px;padding-top:8px;border-top:2px solid #1a1c19;}
+  .note-lines{margin-top:18px;}
+  .note-lines span{display:block;height:5px;background:#0000000a;border-radius:3px;margin-bottom:7px;}
+  .note-lines span:nth-child(2){width:88%;} .note-lines span:nth-child(3){width:72%;}
+
+  /* ── Do more bar ── */
+  .domore{border-top:1px solid var(--border);background:var(--surface);padding:13px 14px;}
+  .dm-head{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+  .dm-head b{font-size:13px;}
+  .dm-head .sub{font-size:11.5px;color:var(--muted);}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;}
+  .chip{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;border:1px solid var(--border);background:var(--surface-2);border-radius:10px;padding:7px 11px;cursor:pointer;color:var(--text);transition:all .12s;}
+  .chip:hover{border-color:var(--accent);transform:translateY(-1px);box-shadow:0 3px 10px var(--accent-ring);}
+  .chip .ci{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;color:#fff;font-size:11px;flex:none;}
+  .chip .arw{color:var(--faint);font-size:12px;}
+
+  .foot{display:flex;flex-wrap:wrap;gap:16px;justify-content:center;margin-top:22px;font-size:12px;color:var(--muted);}
+  .foot span{display:inline-flex;align-items:center;gap:6px;}
+  .foot svg{color:var(--green);}
+  .why{margin-top:26px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);padding:18px 20px;}
+  .why h3{font-size:14px;margin:0 0 12px;}
+  .why ul{margin:0;padding:0;list-style:none;display:grid;gap:10px;}
+  .why li{display:flex;gap:10px;font-size:12.5px;color:var(--muted);}
+  .why li b{color:var(--text);font-weight:600;}
+  .num{width:20px;height:20px;border-radius:6px;flex:none;display:grid;place-items:center;font-size:10px;font-weight:800;background:var(--accent-weak);color:var(--accent);border:1px solid var(--accent-ring);}
+  .openwith{margin-top:16px;border:1px dashed var(--accent-ring);background:var(--accent-weak);border-radius:12px;padding:12px 14px;font-size:12.5px;color:var(--text);}
+  .openwith b{font-weight:700;}
+</style>
+
+<div class="wrap">
+  <div class="review-tag"><span class="dot"></span> <b>Mockup for review</b> — PDF viewer + “Do more” hand-off · design only, not yet built</div>
+
+  <h1>PDF viewer</h1>
+  <p class="lead">Open any PDF and read it privately on your device — pages, zoom, search, thumbnails — then hand the <b>same file</b> straight to any tool with one click, no re-upload. This is the entry point: the place documents land, that turns into everything else.</p>
+
+  <div class="app">
+    <!-- toolbar -->
+    <div class="bar">
+      <div class="file">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+        <span class="nm">invoice-2026-07.pdf</span><span class="sz">· 8 pages · 240 KB</span>
+      </div>
+      <button class="icobtn on" id="thumbBtn" title="Thumbnails">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      </button>
+      <div class="grp">
+        <button id="prev">‹</button><span class="lbl" id="pglbl">2 / 8</span><button id="next">›</button>
+      </div>
+      <div class="grp">
+        <button id="zout">−</button><span class="lbl" id="zlbl">100%</span><button id="zin">+</button>
+      </div>
+      <div class="search">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <input placeholder="Search in document…">
+      </div>
+      <span class="spacer"></span>
+      <span class="badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2a5 5 0 0 1 5 5v3H7V7a5 5 0 0 1 5-5Z"/><rect x="4" y="10" width="16" height="11" rx="2"/></svg> on your device</span>
+      <button class="dl"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg> Download</button>
+    </div>
+
+    <!-- body: thumbnails + page -->
+    <div class="body">
+      <div class="thumbs" id="thumbs"></div>
+      <div class="stage">
+        <div class="page" id="page">
+          <div class="pad">
+            <div class="ph">
+              <div><div class="co">NORTHWIND LTD</div><div class="mut">123 Market St · Atlanta, GA</div></div>
+              <div class="inv">INVOICE<b>#2026-0714</b>Due Aug 4, 2026</div>
+            </div>
+            <div class="rows">
+              <div class="r"><span>Design retainer <span class="d">— July</span></span><span>$2,400.00</span></div>
+              <div class="r"><span>Illustration <span class="d">— 12 assets</span></span><span>$1,080.00</span></div>
+              <div class="r"><span>Revisions <span class="d">— round 2</span></span><span>$   360.00</span></div>
+              <div class="r"><span>Print prep <span class="d">— 4×6 sheet</span></span><span>$   150.00</span></div>
+            </div>
+            <div class="tot"><span>Total due</span><span id="pgtot">$3,990.00</span></div>
+            <div class="note-lines"><span></span><span></span><span></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- do more -->
+    <div class="domore">
+      <div class="dm-head"><b>Do more with this file</b> <span class="sub">— hands the open PDF straight to a tool · no re-upload</span></div>
+      <div class="chips" id="chips">
+        <span class="chip"><span class="ci" style="background:#0d9488">⤓</span> Compress <span class="arw">→</span></span>
+        <span class="chip"><span class="ci" style="background:#d97706">✂</span> Split <span class="arw">→</span></span>
+        <span class="chip"><span class="ci" style="background:#7c3aed">✎</span> Sign <span class="arw">→</span></span>
+        <span class="chip"><span class="ci" style="background:#2563eb">▤</span> Fill form <span class="arw">→</span></span>
+        <span class="chip"><span class="ci" style="background:#0f766e">◫</span> Watermark <span class="arw">→</span></span>
+        <span class="chip"><span class="ci" style="background:#1d4ed8">W</span> to Word <span class="arw">→</span></span>
+        <span class="chip"><span class="ci" style="background:#475569">▮</span> Redact <span class="pro">Pro</span> <span class="arw">→</span></span>
+        <span class="chip"><span class="ci" style="background:#15803d">▦</span> to Excel <span class="pro">Pro</span> <span class="arw">→</span></span>
+        <span class="chip"><span class="ci" style="background:#0284c7">⌕</span> OCR <span class="pro">Pro</span> <span class="arw">→</span></span>
+        <span class="chip"><span class="ci" style="background:#7c3aed">✦</span> Summarize <span class="pro">Pro · AI</span> <span class="arw">→</span></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg> Free · never uploaded</span>
+    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg> Same file flows to any tool</span>
+    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg> Works in any browser</span>
+  </div>
+
+  <div class="openwith">
+    <b>“Open with DiemDesk” (like Gmail shows):</b> once you <b>install</b> DiemDesk (it’s a PWA), it registers as a handler — on <b>Android</b> it appears in Gmail’s Share sheet, on <b>desktop Chrome/Edge</b> it becomes an “Open with” option for .pdf. A plain browser tab can’t do this — it needs the install. The <b>native app</b> (roadmap) completes iPhone + full open-with.
+  </div>
+
+  <div class="why">
+    <h3>Why the viewer, and how free/Pro works here</h3>
+    <ul>
+      <li><span class="num">1</span><div><b>The viewer is FREE.</b> Viewing on-device (pages, zoom, search, thumbnails) — the acquisition hook and a huge search term (“pdf viewer online / open pdf”).</div></li>
+      <li><span class="num">2</span><div><b>“Do more” is a hand-off, not a paywall.</b> Most actions open a <b>free</b> tool (compress, split, sign, fill, watermark, to-Word). A <b>few are Pro</b> and clearly badged (Redact, PDF→Excel, OCR, AI, Vault) — same gating we use across the site.</div></li>
+      <li><span class="num">3</span><div><b>The moat:</b> the file never re-uploads between steps — view → act → act again, all on your device. That’s the “one private workspace” story rivals (server-first) can’t match.</div></li>
+      <li><span class="num">4</span><div><b>Build order:</b> viewer first (pdf.js infra already exists) → PWA <code>share_target</code>/<code>file_handlers</code> for open-with → native apps for iOS.</div></li>
+    </ul>
+  </div>
+</div>
+
+<script>
+(function(){
+  const N=8; let page=2, zoom=100;
+  const thumbs=document.getElementById('thumbs'), pglbl=document.getElementById('pglbl'), zlbl=document.getElementById('zlbl'), pageEl=document.getElementById('page');
+  const totals=['$1,200.00','$3,990.00','$2,150.00','$980.00','$4,600.00','$720.00','$3,010.00','$1,540.00'];
+  for(let i=1;i<=N;i++){ const d=document.createElement('div'); d.className='thumb'+(i===page?' on':''); d.dataset.p=i;
+    d.innerHTML='<div class="ln t"></div><div class="ln"></div><div class="ln" style="width:80%"></div><div class="ln" style="width:45%"></div><span class="pg">'+i+'</span>';
+    d.addEventListener('click',()=>go(i)); thumbs.appendChild(d); }
+  function render(){
+    pglbl.textContent=page+' / '+N; zlbl.textContent=zoom+'%';
+    pageEl.style.transform='scale('+(zoom/100)+')';
+    document.getElementById('pgtot').textContent=totals[page-1];
+    [...thumbs.children].forEach((t,i)=>t.classList.toggle('on',i+1===page));
+    const active=thumbs.children[page-1]; if(active) active.scrollIntoView({block:'nearest'});
+  }
+  function go(p){ page=Math.max(1,Math.min(N,p)); render(); }
+  document.getElementById('prev').onclick=()=>go(page-1);
+  document.getElementById('next').onclick=()=>go(page+1);
+  document.getElementById('zin').onclick=()=>{ zoom=Math.min(200,zoom+20); render(); };
+  document.getElementById('zout').onclick=()=>{ zoom=Math.max(60,zoom-20); render(); };
+  document.getElementById('thumbBtn').onclick=(e)=>{ const on=e.currentTarget.classList.toggle('on'); document.getElementById('thumbs').style.display=on?'':'none'; document.querySelector('.body').style.gridTemplateColumns=on?'132px 1fr':'0 1fr'; };
+  render();
+})();
+</script>
