@@ -2,6 +2,7 @@
 import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 
 import { useEffect, useRef, useState } from 'react';
+import { useFileHandoff } from '@/lib/file-handoff';
 import { Upload, FileText, X, Download, Loader2, Trash2, Zap, RotateCcw, ScanSearch } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -86,6 +87,7 @@ export function DeletePagesTool() {
   // Free the pdf.js document (and its cached thumbnails) on replace/unmount.
   useEffect(() => () => { setHandle((prev) => { if (prev) void prev.destroy(); return null; }); }, []);
 
+  useFileHandoff(loadOne);
   async function loadOne(f?: File) {
     if (!f) return;
     if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) {

@@ -1,5 +1,5 @@
 import {
-  Combine, Split, Shrink, RotateCw, FileMinus, ListOrdered,
+  Combine, Split, Shrink, RotateCw, FileMinus, ListOrdered, Eye,
   FileImage, Image as ImageIcon, FileType, FileType2, Code2, Presentation, FileSpreadsheet, FileCheck,
   PenLine, Highlighter, Stamp, EyeOff, PenTool, Lock, Unlock, Fingerprint, Layers, ScanLine, ShieldCheck,
   ScanText, MessageSquare, AlignLeft, Languages,
@@ -34,6 +34,7 @@ export const PRO_TOOLS = new Set(['Edit PDF', 'Redact PDF', 'OCR', 'Chat with PD
 export const catalog: CatGroup[] = [
   {
     label: 'Organize PDF', color: '#dc2626', tools: [
+      { name: 'PDF viewer', href: '/pdf-viewer', icon: Eye, badge: 'device' },
       { name: 'Merge PDF', href: '/merge-pdf', icon: Combine, badge: 'device' },
       { name: 'Split PDF', href: '/split-pdf', icon: Split, badge: 'device' },
       { name: 'Compress PDF', href: '/compress-pdf', icon: Shrink, badge: 'device' },

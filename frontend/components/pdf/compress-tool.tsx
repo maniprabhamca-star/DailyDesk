@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useFileHandoff } from '@/lib/file-handoff';
 import { Upload, FileText, X, Download, Loader2, Zap, Shrink, CheckCircle2, Coffee, Sparkles, Type, Eye, Lock, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { UploadError, wrongTypeError } from '@/components/app/upload-error';
@@ -332,6 +333,7 @@ export function CompressTool() {
   // No auto-scroll on done — the browser's native scroll anchoring keeps the
   // view stable, and the result renders in place with a persistent Download bar.
 
+  useFileHandoff(loadOne);
   function loadOne(f?: File) {
     if (!f) return;
     if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useFileHandoff } from '@/lib/file-handoff';
 import {
   Upload, X, Download, Loader2, Type, Check, Calendar, PenLine, Undo2, Trash2,
   ChevronLeft, ChevronRight, MousePointer2, ClipboardCheck, Info, AlignLeft, AlignCenter,
@@ -102,6 +103,7 @@ export function FillFormTool() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selKey, pageIdx]);
 
+  useFileHandoff(loadFile);
   async function loadFile(f?: File) {
     if (!f) return;
     if (f.type !== 'application/pdf' && !/\.pdf$/i.test(f.name)) { setError('Please choose a PDF.'); return; }

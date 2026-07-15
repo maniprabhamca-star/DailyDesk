@@ -2,6 +2,7 @@
 import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 
 import { useEffect, useRef, useState } from 'react';
+import { useFileHandoff } from '@/lib/file-handoff';
 import { Upload, FileText, X, Download, Loader2, Zap, FileOutput, Layers, Copy, SplitSquareHorizontal, Gauge, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -59,6 +60,7 @@ export function SplitTool() {
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  useFileHandoff(loadOne);
   async function loadOne(f?: File) {
     if (!f) return;
     if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) {

@@ -2,6 +2,7 @@
 import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 
 import { useEffect, useRef, useState } from 'react';
+import { useFileHandoff } from '@/lib/file-handoff';
 import { Upload, FileText, X, Loader2, PenTool, Type as TypeIcon, ImagePlus, Eraser, Zap, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -94,6 +95,7 @@ export function SignTool() {
   const dragOffset = useRef<{ dx: number; dy: number } | null>(null);
 
   // ---- load PDF ------------------------------------------------------------
+  useFileHandoff(loadOne);
   async function loadOne(f?: File) {
     if (!f) return;
     if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) {

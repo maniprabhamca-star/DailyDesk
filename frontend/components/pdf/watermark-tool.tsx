@@ -2,6 +2,7 @@
 import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 
 import { useEffect, useRef, useState } from 'react';
+import { useFileHandoff } from '@/lib/file-handoff';
 import { Upload, FileText, X, Download, Loader2, Stamp, Zap, Type as TypeIcon, Image as ImageIcon, Bold, Italic } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -173,6 +174,7 @@ export function WatermarkTool() {
 
   useEffect(() => () => { if (previewHandle.current) void previewHandle.current.destroy(); }, []);
 
+  useFileHandoff(loadOne);
   function loadOne(f?: File) {
     if (!f) return;
     if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) {

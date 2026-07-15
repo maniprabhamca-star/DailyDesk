@@ -7,6 +7,7 @@ import { DEV_TOOLS } from '@/lib/dev-tools';
 // per-task SEO checklist). /login and /register are noindex → not listed.
 const ROUTES: Array<{ path: string; priority: number; changeFrequency: MetadataRoute.Sitemap[number]['changeFrequency'] }> = [
   { path: '/', priority: 1, changeFrequency: 'weekly' },
+  { path: '/pdf-viewer', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/merge-pdf', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/split-pdf', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/compress-pdf', priority: 0.9, changeFrequency: 'monthly' },

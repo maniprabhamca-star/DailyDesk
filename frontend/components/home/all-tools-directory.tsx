@@ -8,6 +8,7 @@ import { catalog, BADGE, type CatTool } from '@/components/app/catalog';
 // Per-tool colour + one-line benefit. Each tool gets its OWN hue (not one colour
 // per group) and a benefit blurb — our distinct, premium take on a tool grid.
 const META: Record<string, { color: string; desc: string }> = {
+  'PDF viewer': { color: '#0284c7', desc: 'Open & read on-device' },
   'Merge PDF': { color: '#e11d48', desc: 'Join files into one' },
   'Split PDF': { color: '#d97706', desc: 'Pull out pages' },
   'Compress PDF': { color: '#0d9488', desc: 'Shrink the size' },

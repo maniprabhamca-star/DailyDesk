@@ -2,6 +2,7 @@
 import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 
 import { useEffect, useRef, useState } from 'react';
+import { useFileHandoff } from '@/lib/file-handoff';
 import { Upload, FileText, X, Download, Loader2, RotateCw, RotateCcw, Zap, RefreshCw, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -100,6 +101,7 @@ export function RotateTool() {
   // Free the pdf.js document (and its cached thumbnails) on replace/unmount.
   useEffect(() => () => { setHandle((prev) => { if (prev) void prev.destroy(); return null; }); }, []);
 
+  useFileHandoff(loadOne);
   async function loadOne(f?: File) {
     if (!f) return;
     if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) {
