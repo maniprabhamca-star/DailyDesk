@@ -96,6 +96,25 @@ export function PdfViewerTool() {
     });
   }, [loadFile]);
 
+  // Android "Share to DiemDesk": the service worker caught the shared PDF and
+  // redirected here with ?shared=1 — pick it up from the share cache and open it.
+  useEffect(() => {
+    if (typeof window === 'undefined' || new URLSearchParams(window.location.search).get('shared') !== '1') return;
+    (async () => {
+      try {
+        const cache = await caches.open('dd-share');
+        const res = await cache.match('/__shared_pdf');
+        if (res) {
+          const blob = await res.blob();
+          const name = decodeURIComponent(res.headers.get('X-Name') || 'shared.pdf');
+          await cache.delete('/__shared_pdf');
+          void loadFile(new File([blob], name, { type: 'application/pdf' }));
+        }
+      } catch { /* ignore */ }
+      window.history.replaceState({}, '', '/pdf-viewer');
+    })();
+  }, [loadFile]);
+
   const gotoPage = useCallback(async (i: number) => {
     if (!handle || i < 0 || i >= numPages) return;
     setPageIdx(i);

@@ -14,5 +14,11 @@
   ],
   "file_handlers": [
     { "action": "/pdf-viewer", "accept": { "application/pdf": [".pdf"] } }
-  ]
+  ],
+  "share_target": {
+    "action": "/pdf-viewer",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": { "files": [{ "name": "file", "accept": ["application/pdf", ".pdf"] }] }
+  }
 }
