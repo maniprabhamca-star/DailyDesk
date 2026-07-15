@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ShieldCheck, Zap, Target, Check, ArrowRight, Sparkles, Lock } from 'lucide-react';
+import { ShieldCheck, Zap, Target, Check, ArrowRight, Sparkles, Lock, Globe, Download, Smartphone } from 'lucide-react';
 import { SiteHeader } from '@/components/app/site-header';
 import { SiteFooter } from '@/components/app/site-footer';
 import { BrandMark } from '@/components/app/brand-mark';
@@ -62,6 +62,37 @@ const DIFFS: { name: string; desc: string; moat: string; flag?: boolean }[] = [
   { name: 'Offline PWA', desc: "Install it; works fully offline. Server-first rivals go dark without a connection.", moat: 'Convenience' },
   { name: 'True re-encode Edit', desc: "Higher-fidelity in-place text-editing tier for Pro.", moat: 'Determinism' },
 ];
+
+// Beyond-market tools — the ones no rival PDF site ships (our best-in-class layer).
+// status: 'live' = usable today · 'soon' = on the roadmap. tier: free / pro / ai.
+const BEYOND: { name: string; desc: string; status: 'live' | 'soon'; tier: 'free' | 'pro' | 'ai' }[] = [
+  { name: 'Compress to exact size', desc: 'Hit a precise KB/MB limit for exam, visa & court portals — not just “smaller”.', status: 'live', tier: 'free' },
+  { name: 'PDF → Excel', desc: 'Bank statements & tables → an editable spreadsheet, converted on your device.', status: 'live', tier: 'free' },
+  { name: 'Chat with PDF', desc: 'Ask your document and get answers with the exact page they came from.', status: 'soon', tier: 'ai' },
+  { name: 'AI auto-redact PII', desc: 'Find names, SSNs, emails & IDs and redact them automatically.', status: 'soon', tier: 'ai' },
+  { name: 'Natural-language commands', desc: '“Delete blank pages”, “redact all emails” — typed into the ⌘K palette.', status: 'soon', tier: 'ai' },
+  { name: 'Sanitize / clean PDF', desc: 'Strip hidden metadata + embedded scripts, entirely on your device.', status: 'soon', tier: 'free' },
+  { name: 'Semantic compare', desc: 'What actually changed between two versions — meaning, not pixels.', status: 'soon', tier: 'ai' },
+  { name: 'PDF → Markdown / EPUB', desc: 'Clean Markdown or a reflowable e-book straight out of a PDF.', status: 'soon', tier: 'free' },
+  { name: 'PDF → audio (read aloud)', desc: 'Listen to any document — accessibility and hands-free.', status: 'soon', tier: 'free' },
+  { name: 'Bates numbering', desc: 'Legal page-stamping for discovery and case files.', status: 'soon', tier: 'pro' },
+  { name: 'Trusted timestamp', desc: 'Cryptographic proof a document existed at a point in time.', status: 'soon', tier: 'pro' },
+  { name: 'One-drop workflows', desc: 'Merge · clean · sign · compress in a single drop.', status: 'soon', tier: 'free' },
+];
+
+// Where DiemDesk runs — web today, native apps next.
+const PLATFORMS: { icon: typeof Globe; name: string; status: 'live' | 'soon'; desc: string }[] = [
+  { icon: Globe, name: 'Web', status: 'live', desc: 'Every tool runs in any modern browser — nothing to install.' },
+  { icon: Download, name: 'Install as an app', status: 'live', desc: 'Add DiemDesk to your home screen or desktop (PWA); works offline.' },
+  { icon: Smartphone, name: 'iOS app', status: 'soon', desc: 'Native iPhone & iPad app — open PDFs straight from Mail & Files.' },
+  { icon: Smartphone, name: 'Android app', status: 'soon', desc: '“Share to DiemDesk” from any app; full open-with support.' },
+];
+
+const tierTag: Record<'free' | 'pro' | 'ai', { label: string; cls: string }> = {
+  free: { label: 'free', cls: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/30' },
+  pro: { label: 'Pro', cls: 'text-white bg-gradient-to-r from-amber-500 to-orange-500 border-transparent' },
+  ai: { label: 'Pro · AI', cls: 'text-fuchsia-600 dark:text-fuchsia-400 bg-fuchsia-500/10 border-fuchsia-500/30' },
+};
 
 // runtime badge for a tool row
 function runtime(badge: string) {
@@ -173,6 +204,26 @@ export default function OverviewPage() {
           </div>
         </section>
 
+        {/* BEYOND-MARKET — unique tools no rival ships */}
+        <section className="mx-auto max-w-[1400px] px-5 py-14">
+          <p className="text-[11.5px] font-bold uppercase tracking-[0.14em] text-primary">Beyond parity</p>
+          <h2 className="mt-2 text-2xl font-extrabold tracking-tight sm:text-[26px]">Tools no other PDF site ships</h2>
+          <p className="mt-2 max-w-[62ch] text-sm text-muted-foreground">Matching iLovePDF and Smallpdf is table stakes. These are the ones that make DiemDesk best-in-class — most run on your device, a few are AI. <span className="font-medium text-foreground">Live</span> ones you can use today; the rest are on the roadmap.</p>
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {BEYOND.map((b) => (
+              <div key={b.name} className="rounded-xl border bg-card p-4 shadow-soft">
+                <div className="flex items-center gap-2">
+                  <span className={`size-2 shrink-0 rounded-full ${b.status === 'live' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                  <span className="min-w-0 flex-1 truncate text-sm font-semibold">{b.name}</span>
+                  <span className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${tierTag[b.tier].cls}`}>{tierTag[b.tier].label}</span>
+                </div>
+                <p className="mt-1.5 text-[12px] leading-relaxed text-muted-foreground">{b.desc}</p>
+                <p className="mt-2 text-[9.5px] font-bold uppercase tracking-wide text-muted-foreground/70">{b.status === 'live' ? 'Live now' : 'On the roadmap'}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
         {/* FREE VS PRO (from PRICING source) */}
         <section className="mx-auto max-w-[1400px] px-5 py-14">
           <p className="text-[11.5px] font-bold uppercase tracking-[0.14em] text-primary">The model</p>
@@ -225,6 +276,25 @@ export default function OverviewPage() {
                 </div>
               ))}
             </div>
+          </div>
+        </section>
+
+        {/* PLATFORMS — web today, native apps next */}
+        <section className="mx-auto max-w-[1400px] px-5 py-14">
+          <p className="text-[11.5px] font-bold uppercase tracking-[0.14em] text-primary">Use it anywhere</p>
+          <h2 className="mt-2 text-2xl font-extrabold tracking-tight sm:text-[26px]">One private toolkit — web today, native apps next</h2>
+          <p className="mt-2 max-w-[62ch] text-sm text-muted-foreground">Start in the browser with nothing to install. Native <span className="font-medium text-foreground">iOS &amp; Android</span> apps are on the way — so you can open a PDF straight from Mail, Files or any app and it stays on your device.</p>
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {PLATFORMS.map((p) => (
+              <div key={p.name} className="rounded-xl border bg-card p-4 shadow-soft">
+                <div className="flex items-center gap-2">
+                  <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary"><p.icon className="size-4" /></span>
+                  <span className="text-sm font-semibold">{p.name}</span>
+                  <span className={`ml-auto shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${p.status === 'live' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/30' : 'text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/30'}`}>{p.status === 'live' ? 'Live' : 'Coming soon'}</span>
+                </div>
+                <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">{p.desc}</p>
+              </div>
+            ))}
           </div>
         </section>
 
