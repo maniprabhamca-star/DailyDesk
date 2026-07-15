@@ -10,8 +10,9 @@ import { PRICING } from '@/lib/pricing';
 
 export const metadata: Metadata = {
   title: 'The DiemDesk toolkit — private, on-device document tools',
+  // Count comes from the catalog (single source) so it never goes stale as tools ship.
   description:
-    "See everything DiemDesk does: 35 tools live today across 9 categories, most running 100% on your device. What runs where, and what is free vs Pro.",
+    `See everything DiemDesk does: ${liveToolCount} tools live, most running 100% on your device. What runs where, and what's free vs Pro.`,
   alternates: { canonical: '/overview' },
   openGraph: {
     images: ['/og.png'],
