@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 // so crawlers can see the directive), but let link equity flow.
 export const metadata: Metadata = {
   title: 'Create your free account | DiemDesk',
+  description: 'Create a free DiemDesk account — no card, no daily limits. Every in-browser PDF, image and everyday tool, with files that never leave your device.',
   alternates: { canonical: '/register' },
   robots: { index: false, follow: true },
 };

@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 // so crawlers can see the directive), but let link equity flow.
 export const metadata: Metadata = {
   title: 'Log in | DiemDesk',
+  description: 'Log in to your DiemDesk account to manage your plan and settings. Private by design — your files never leave your device.',
   alternates: { canonical: '/login' },
   robots: { index: false, follow: true },
 };

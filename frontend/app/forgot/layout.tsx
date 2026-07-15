@@ -6,6 +6,7 @@ import type { Metadata } from 'next';
 // page — the "duplicate title / non-self-canonical" audit flag).
 export const metadata: Metadata = {
   title: 'Reset your password | DiemDesk',
+  description: 'Reset your DiemDesk password — enter your email and we’ll send a secure link to set a new one.',
   alternates: { canonical: '/forgot' },
   robots: { index: false, follow: true },
 };

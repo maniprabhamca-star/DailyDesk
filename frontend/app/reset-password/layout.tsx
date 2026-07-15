@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 // with its own canonical so it doesn't inherit the root/home metadata.
 export const metadata: Metadata = {
   title: 'Set a new password | DiemDesk',
+  description: 'Set a new password for your DiemDesk account and get back to your private, on-device tools.',
   alternates: { canonical: '/reset-password' },
   robots: { index: false, follow: true },
 };
