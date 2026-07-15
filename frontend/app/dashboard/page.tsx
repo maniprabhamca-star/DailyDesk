@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   Loader2, RefreshCw, ShieldCheck, BarChart3, Users, UserPlus, MousePointerClick, Repeat,
   AlertTriangle, Activity, Crown, Play, CalendarDays, Globe, Link2, MonitorSmartphone,
-  Chrome, MessageSquare, Star, TrendingUp,
+  Chrome, MessageSquare, Star, TrendingUp, SearchX,
 } from 'lucide-react';
 import { SiteHeader } from '@/components/app/site-header';
 import { SiteFooter } from '@/components/app/site-footer';
@@ -34,6 +34,7 @@ type Stats = {
   devices?: { device: string; visitors: number }[];
   browsers?: { browser: string; visitors: number }[];
   trend?: { d: string; visitors: number; uses: number }[];
+  search_misses?: { q: string; count: number; visitors: number }[];
   feedback_recent?: { at: string; category: string | null; rating: number | null; message: string; page: string | null }[];
   feedback_summary?: { total: number; last_7d: number; avg_rating: number | null } | null;
 };
@@ -315,6 +316,12 @@ export default function DashboardPage() {
                 );
               })()}
             </div>
+
+            {/* ── ⌘K searches with no result (demand signal) ── */}
+            <Section icon={SearchX} title="Searched, no result">
+              <p className="-mt-1 mb-2 text-xs text-muted-foreground">What people typed into ⌘K search that matched no tool — a straight demand signal for what to build next.</p>
+              <BarList items={(stats.search_misses || []).map((s) => ({ label: <span className="font-mono text-[13px]">{s.q}</span>, value: s.count }))} empty="No empty searches in this range — nobody hit a dead end. 🎉" />
+            </Section>
 
             {/* ── Funnel + Pro ── */}
             <Section icon={Crown} title="Funnel & Pro">

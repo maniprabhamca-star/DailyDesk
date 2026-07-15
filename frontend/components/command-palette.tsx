@@ -22,6 +22,7 @@ type Row =
   | { type: 'workflow'; label: string; sub: string };
 
 const WORKFLOWS = [{ label: 'Merge → Compress → Sign', sub: 'Chain tools, no re-upload' }];
+const API = process.env.NEXT_PUBLIC_API_URL || '';
 
 export function CommandPalette() {
   const router = useRouter();
@@ -36,6 +37,7 @@ export function CommandPalette() {
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
+  const missSent = useRef<Set<string>>(new Set()); // dedupe ⌘K "no result" reports
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -134,6 +136,28 @@ export function CommandPalette() {
     const el = listRef.current?.querySelector('[data-active="true"]');
     el?.scrollIntoView({ block: 'nearest' });
   }, [active]);
+
+  // ⌘K "misses": when a settled search returns nothing, report the query as a
+  // demand signal (which tool did they want that we don't have?). Debounced so we
+  // log the finished query once — not every keystroke — deduped per session, and
+  // never fired for automation.
+  useEffect(() => {
+    if (!open) return;
+    const q = query.trim().toLowerCase();
+    if (q.length < 2 || selectable.length > 0 || missSent.current.has(q)) return;
+    const timer = setTimeout(() => {
+      try {
+        if (navigator.webdriver) return;
+        missSent.current.add(q);
+        const vid = localStorage.getItem('dd_vid');
+        fetch(`${API}/api/events/track`, {
+          method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ search: q, visitorId: vid }),
+        }).catch(() => {});
+      } catch { /* never disrupt the palette */ }
+    }, 900);
+    return () => clearTimeout(timer);
+  }, [open, query, selectable.length]);
 
   const activeRowIndex = selectable[active];
 

@@ -89,6 +89,17 @@ router.post('/error', errorLimiter, async (req, res) => {
 
 router.post('/track', trackLimiter, (req, res) => {
   const { module, action, visitorId, pro } = req.body || {};
+
+  // ⌘K "no result" search — a demand signal (which tool did they want that we
+  // don't have?). No module needed; sanitized + length-capped before storing.
+  if (typeof (req.body && req.body.search) === 'string') {
+    const q = req.body.search.trim().toLowerCase().slice(0, 60);
+    if (q.length >= 2 && /^[\p{L}\p{N} .,+&/#'-]{2,60}$/u.test(q)) {
+      trackEvent(req, 'search_miss', { metadata: { q }, visitorId });
+    }
+    return res.status(204).end();
+  }
+
   // Ignore malformed input silently — this endpoint must never disrupt the app.
   if (!module || !MODULE_RE.test(module)) return res.status(204).end();
 
@@ -237,6 +248,14 @@ router.get('/stats', async (req, res) => {
     } catch (e) { console.error('audience stat:', e.message); }
     if (ranged) { try { signups_range = (await rows(`SELECT count(*)::int c FROM users WHERE created_at >= $1::date AND created_at < ($2::date + 1)`, rp))[0].c; } catch { /* ignore */ } }
 
+    // ⌘K searches that returned nothing — top demand signals (isolated).
+    let search_misses = [];
+    try {
+      search_misses = await rows(`SELECT metadata->>'q' AS q, count(*)::int AS count, count(DISTINCT ${V})::int AS visitors
+                                  FROM user_events WHERE event_type='search_miss' AND metadata->>'q' IS NOT NULL AND ${HUMAN} AND ${RANGE}
+                                  GROUP BY 1 ORDER BY count DESC, visitors DESC LIMIT 12`, rp);
+    } catch (e) { console.error('search miss stat:', e.message); }
+
     // ── Recent feedback (isolated: table may not exist until first submission) ──
     let feedback_recent = [], feedback_summary = null;
     try {
@@ -262,6 +281,7 @@ router.get('/stats', async (req, res) => {
       bots,
       signups_range,
       countries, sources, devices, browsers, trend,
+      search_misses,
       feedback_recent, feedback_summary,
     });
   } catch (err) {
