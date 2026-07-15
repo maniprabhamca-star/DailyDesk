@@ -6,6 +6,7 @@ import {
   QrCode, KeyRound, NotebookPen, Flame, Wallet, FolderLock, Link2,
   ImageDown, Smartphone, Eraser, Film, Clapperboard, ArrowLeftRight, Images, Scaling, Repeat, Crop,
   Ruler, Braces, Palette, CaseSensitive, Crosshair, Contact, SquarePen, ScanFace,
+  Binary, Hash, GitCompare, FileJson, Type,
   Cloud, Sparkles, type LucideIcon,
 } from 'lucide-react';
 
@@ -117,6 +118,26 @@ export const catalog: CatGroup[] = [
       { name: 'Unit converter', href: '/unit-converter', icon: Ruler, badge: 'device' },
       { name: 'JSON formatter', href: '/json-formatter', icon: Braces, badge: 'device' },
       { name: 'Color picker', href: '/color-picker', icon: Palette, badge: 'device' },
+    ],
+  },
+  {
+    label: 'Developer tools', color: '#4f46e5', tools: [
+      { name: 'Base64', href: '/base64', icon: Binary, badge: 'device' },
+      { name: 'URL encode', href: '/url-encode', icon: Link2, badge: 'device' },
+      { name: 'HTML entities', href: '/html-entities', icon: Code2, badge: 'device' },
+      { name: 'Hash generator', href: '/hash-generator', icon: Hash, badge: 'device' },
+      { name: 'JWT decoder', href: '/jwt-decoder', icon: KeyRound, badge: 'device' },
+      { name: 'UUID generator', href: '/uuid-generator', icon: Fingerprint, badge: 'device' },
+      { name: 'CSV to JSON', href: '/csv-to-json', icon: FileJson, badge: 'device' },
+      { name: 'Text diff', href: '/text-diff', icon: GitCompare, badge: 'device' },
+      { name: 'Timestamp', icon: Ruler, badge: 'device', soon: true },
+      { name: 'JSON to YAML', icon: Braces, badge: 'device', soon: true },
+      { name: 'CSV cleaner', icon: FileSpreadsheet, badge: 'device', soon: true },
+      { name: 'Case converter', icon: Type, badge: 'device', soon: true },
+      { name: 'Slugify', icon: Link2, badge: 'device', soon: true },
+      { name: 'Sort lines', icon: ListOrdered, badge: 'device', soon: true },
+      { name: 'Regex tester', icon: Code2, badge: 'device', soon: true },
+      { name: 'Lorem ipsum', icon: Type, badge: 'device', soon: true },
     ],
   },
   {

@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { SITE_URL } from '@/lib/site';
 import { PASSPORT_SPECS } from '@/lib/passport-specs';
+import { DEV_TOOLS } from '@/lib/dev-tools';
 
 // Every indexable route. Add new tool pages here when they ship (part of the
 // per-task SEO checklist). /login and /register are noindex → not listed.
@@ -77,6 +78,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     changeFrequency: r.changeFrequency,
     priority: r.priority,
   }));
+  // Dev & CSV pack — the hub + every built tool (auto-adds as tools ship).
+  const devRoutes = [
+    { url: `${SITE_URL}/developer-tools`, lastModified, changeFrequency: 'monthly' as const, priority: 0.7 },
+    ...DEV_TOOLS.filter((t) => t.built).map((t) => ({
+      url: `${SITE_URL}/${t.slug}`, lastModified, changeFrequency: 'monthly' as const, priority: 0.8,
+    })),
+  ];
   // Per-country passport/visa photo landing pages (one per spec).
   const countryRoutes = PASSPORT_SPECS.map((s) => ({
     url: `${SITE_URL}/passport-photo/${s.id}`,
@@ -84,5 +92,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     changeFrequency: 'monthly' as const,
     priority: 0.7,
   }));
-  return [...staticRoutes, ...countryRoutes];
+  return [...staticRoutes, ...devRoutes, ...countryRoutes];
 }
