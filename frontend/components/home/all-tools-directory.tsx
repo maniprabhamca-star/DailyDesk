@@ -96,12 +96,22 @@ function Tile({ t, groupColor }: { t: CatTool; groupColor: string }) {
   );
 }
 
-export function AllToolsDirectory() {
+// On the home page we show a tidy PREVIEW — each category capped to one row with
+// a "See all" link — and move the full directory to /tools, so the landing page
+// doesn't become a wall of ~65 tiles. `full` (on /tools) shows everything; a
+// live search always shows every match regardless.
+const HOME_LIMIT = 6;
+const TOTAL_TOOLS = catalog.reduce((n, g) => n + g.tools.length, 0);
+
+export function AllToolsDirectory({ full = false, asPage = false }: { full?: boolean; asPage?: boolean } = {}) {
   const [q, setQ] = useState('');
   const query = q.trim().toLowerCase();
   const matches = (t: CatTool) =>
     !query || t.name.toLowerCase().includes(query) || (META[t.name]?.desc?.toLowerCase().includes(query) ?? false);
   const empty = catalog.every((g) => !g.tools.some(matches));
+  const showAll = full || query.length > 0;
+
+  const Heading = asPage ? 'h1' : 'h2';
 
   return (
     <section id="tools" className="scroll-mt-20 bg-muted/20">
@@ -109,8 +119,10 @@ export function AllToolsDirectory() {
         {/* Heading + a REAL live filter (narrows the grid as you type) */}
         <div className="mb-7 flex items-center justify-between gap-3">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight">All tools</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Pick a tool — most run right in your browser, nothing uploaded.</p>
+            <Heading className="text-2xl font-bold tracking-tight">All tools</Heading>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {full ? 'Every DiemDesk tool — most run right in your browser, nothing uploaded.' : 'Pick a tool — most run right in your browser, nothing uploaded.'}
+            </p>
           </div>
           <div className="relative w-40 shrink-0 sm:w-60">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -129,13 +141,20 @@ export function AllToolsDirectory() {
           {catalog.map((g) => {
             const tools = g.tools.filter(matches);
             if (tools.length === 0) return null;
+            const shown = showAll ? tools : tools.slice(0, HOME_LIMIT);
+            const hidden = tools.length - shown.length;
             return (
               <div key={g.label}>
-                <p className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  <span className="size-2 rounded-full" style={{ backgroundColor: g.color }} /> {g.label}
-                </p>
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    <span className="size-2 rounded-full" style={{ backgroundColor: g.color }} /> {g.label}
+                  </p>
+                  {hidden > 0 && (
+                    <Link href="/tools" className="shrink-0 text-xs font-semibold text-primary hover:underline">See all {tools.length} &rarr;</Link>
+                  )}
+                </div>
                 <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-                  {tools.map((t) => <Tile key={t.name} t={t} groupColor={g.color} />)}
+                  {shown.map((t) => <Tile key={t.name} t={t} groupColor={g.color} />)}
                 </div>
               </div>
             );
@@ -144,6 +163,15 @@ export function AllToolsDirectory() {
             <p className="py-10 text-center text-sm text-muted-foreground">No tools match &ldquo;{q}&rdquo;.</p>
           )}
         </div>
+
+        {/* Browse-all — only on the home preview (not on /tools, not while searching) */}
+        {!full && !query && (
+          <div className="mt-9 text-center">
+            <Link href="/tools" className="inline-flex items-center gap-2 rounded-xl border bg-card px-5 py-2.5 text-sm font-semibold shadow-soft transition hover:-translate-y-0.5 hover:border-primary/50">
+              Browse all {TOTAL_TOOLS} tools &rarr;
+            </Link>
+          </div>
+        )}
 
         {/* Legend — "where each tool runs" (single subtle divider, no boxed band) */}
         <div className="mt-10 border-t border-border/60 pt-6">
