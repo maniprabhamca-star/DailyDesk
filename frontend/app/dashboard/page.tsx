@@ -41,18 +41,21 @@ type Stats = {
 
 const SIZE_ORDER = ['<50MB', '50-100MB', '100MB-1GB', '1-2GB', '>2GB'];
 
-type RangeKey = 'all' | 'today' | '7d' | '30d' | 'custom';
+type RangeKey = 'today' | 'yesterday' | '7d' | '30d' | 'all' | 'custom';
+// Ordered by how often they're actually used — Today first (and the default).
 const RANGE_PRESETS: { key: RangeKey; label: string }[] = [
-  { key: 'all', label: 'All time' }, { key: 'today', label: 'Today' },
-  { key: '7d', label: '7 days' }, { key: '30d', label: '30 days' }, { key: 'custom', label: 'Custom' },
+  { key: 'today', label: 'Today' }, { key: 'yesterday', label: 'Yesterday' },
+  { key: '7d', label: '7 days' }, { key: '30d', label: '30 days' },
+  { key: 'all', label: 'All time' }, { key: 'custom', label: 'Custom' },
 ];
 const isoDay = (d: Date) => d.toISOString().slice(0, 10);
 function presetDates(key: RangeKey): { from: string; to: string } | null {
   const now = new Date(); const to = isoDay(now);
   if (key === 'today') return { from: to, to };
+  if (key === 'yesterday') { const y = new Date(now); y.setDate(now.getDate() - 1); const d = isoDay(y); return { from: d, to: d }; }
   if (key === '7d') { const f = new Date(now); f.setDate(now.getDate() - 6); return { from: isoDay(f), to }; }
   if (key === '30d') { const f = new Date(now); f.setDate(now.getDate() - 29); return { from: isoDay(f), to }; }
-  return null;
+  return null; // 'all' / 'custom'
 }
 
 // Country code → flag emoji + English name (no data files — Intl + regional-indicator letters).
@@ -152,7 +155,7 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [testsBusy, setTestsBusy] = useState(false);
   const [testsMsg, setTestsMsg] = useState<string | null>(null);
-  const [rangeKey, setRangeKey] = useState<RangeKey>('all');
+  const [rangeKey, setRangeKey] = useState<RangeKey>('today');
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [audTab, setAudTab] = useState<AudTab>('country');

@@ -148,14 +148,21 @@ export function PdfToExcelTool() {
       <div>
         <div className="rounded-2xl border bg-card p-8 text-center">
           <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400"><AlertTriangle className="size-6" /></span>
-          <h3 className="mt-3 text-lg font-bold">No tables detected</h3>
-          <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
+          <h3 className="mt-3 text-lg font-bold">No tables in this PDF</h3>
+          <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
             {error === 'scanned'
               ? 'This looks like a scanned PDF with no selectable text. Run it through OCR first, then convert it here.'
-              : 'We couldn’t find a clear table layout in this PDF. It may not contain tabular data, or the columns aren’t aligned in the file.'}
+              : 'This looks like a form or a letter rather than a spreadsheet — its lines don’t repeat a table layout. Rather than hand you a scrambled grid, we’d point you somewhere better:'}
           </p>
-          <div className="mt-5 flex justify-center gap-2">
-            {error === 'scanned' && <Button asChild><a href="/ocr-pdf">Run OCR first</a></Button>}
+          {error !== 'scanned' && (
+            <p className="mx-auto mt-3 max-w-md text-[13px] text-muted-foreground">
+              If it’s a <b className="text-foreground">fillable form</b>, use <a href="/fill-pdf-form" className="font-semibold text-primary underline">Fill PDF form</a>. To pull out the words, try <a href="/pdf-to-word" className="font-semibold text-primary underline">PDF to Word</a>.
+            </p>
+          )}
+          <div className="mt-5 flex flex-wrap justify-center gap-2">
+            {error === 'scanned'
+              ? <Button asChild><a href="/ocr-pdf">Run OCR first</a></Button>
+              : <Button asChild><a href="/fill-pdf-form">Open Fill PDF form</a></Button>}
             <Button variant="outline" onClick={reset}>Try another PDF</Button>
           </div>
         </div>

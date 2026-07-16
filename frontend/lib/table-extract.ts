@@ -138,14 +138,31 @@ export function trimGrid(rows: string[][]): string[][] {
 // exported as a grid of empty cells (the 36×19 dealer-form bug).
 const STRONG_SUPPORT = 0.25; // a "real" column is filled on ≥25% of rows
 
+// ≥50% of rows must repeat the SAME multi-column shape. Measured on real files:
+// a bank statement's dominant shape covers ~70% of rows (one shape, over and over),
+// while a dealer-application FORM peaks at ~31% spread over 6 different shapes.
+// 50% separates them with margin.
+const SHAPE_SHARE = 0.5;
+
 export function looksTabular(rows: string[][], cols: number): boolean {
-  if (cols < 2 || rows.length < 2) return false;
-  // Need at least TWO columns that are genuinely populated down the page.
+  if (cols < 2 || rows.length < 3) return false;
+  // 1) Need at least TWO columns that are genuinely populated down the page.
   const need = Math.max(2, Math.ceil(rows.length * STRONG_SUPPORT));
   const strong = Array.from({ length: cols }, (_, c) => rows.filter((r) => (r[c] || '').trim() !== '').length)
     .filter((s) => s >= need).length;
   if (strong < 2) return false;
-  // …and most rows must actually span 2+ columns (kills prose whose word gaps mimic columns).
-  const multi = rows.filter((r) => r.filter((c) => c.trim() !== '').length >= 2).length;
-  return multi >= Math.max(2, Math.ceil(rows.length * 0.5));
+
+  // 2) The decisive test: a real table REPEATS a row shape — most data rows fill the
+  // same set of columns (date|desc|amount|balance, over and over). A form or letter
+  // fills a different combination on nearly every line, which is exactly how a
+  // dealer-application form ended up exported as scrambled cells. So require one
+  // multi-column shape to recur across a meaningful share of rows.
+  const shapes = new Map<string, number>();
+  for (const r of rows) {
+    const key = Array.from({ length: cols }, (_, c) => ((r[c] || '').trim() ? '1' : '0')).join('');
+    const filled = key.split('').filter((ch) => ch === '1').length;
+    if (filled >= 2) shapes.set(key, (shapes.get(key) || 0) + 1);
+  }
+  const dominant = shapes.size ? Math.max(...Array.from(shapes.values())) : 0;
+  return dominant >= Math.max(2, Math.ceil(rows.length * SHAPE_SHARE));
 }
