@@ -73,11 +73,21 @@ const BEYOND: { name: string; desc: string; status: 'live' | 'soon'; tier: 'free
   { name: 'Natural-language commands', desc: '“Delete blank pages”, “redact all emails” — typed into the ⌘K palette.', status: 'soon', tier: 'ai' },
   { name: 'Sanitize / clean PDF', desc: 'Strip hidden metadata + embedded scripts, entirely on your device.', status: 'soon', tier: 'free' },
   { name: 'Semantic compare', desc: 'What actually changed between two versions — meaning, not pixels.', status: 'soon', tier: 'ai' },
-  { name: 'PDF → Markdown / EPUB', desc: 'Clean Markdown or a reflowable e-book straight out of a PDF.', status: 'soon', tier: 'free' },
+  { name: 'PDF → Markdown', desc: 'Clean Markdown out of a PDF — for devs, notes and AI pipelines.', status: 'soon', tier: 'free' },
+  { name: 'Markdown → PDF', desc: 'The other direction: a Markdown file into a polished PDF or Word doc.', status: 'soon', tier: 'free' },
+  { name: 'PDF → EPUB', desc: 'A reflowable e-reader book out of a fixed-layout PDF.', status: 'soon', tier: 'free' },
   { name: 'PDF → audio (read aloud)', desc: 'Listen to any document — accessibility and hands-free.', status: 'soon', tier: 'free' },
+  { name: 'Speech → text', desc: 'Dictate or transcribe, right in the browser.', status: 'soon', tier: 'free' },
   { name: 'Bates numbering', desc: 'Legal page-stamping for discovery and case files.', status: 'soon', tier: 'pro' },
   { name: 'Trusted timestamp', desc: 'Cryptographic proof a document existed at a point in time.', status: 'soon', tier: 'pro' },
+  { name: 'Accessible PDF (PDF/UA)', desc: 'Auto-tag PDFs so they meet the EU Accessibility Act.', status: 'soon', tier: 'pro' },
+  { name: 'e-Invoice (Factur-X)', desc: 'View, validate & embed structured invoices — live EU mandates.', status: 'soon', tier: 'pro' },
+  { name: 'Receipt → spreadsheet', desc: 'Photos or PDFs of receipts → clean rows for bookkeeping.', status: 'soon', tier: 'ai' },
   { name: 'One-drop workflows', desc: 'Merge · clean · sign · compress in a single drop.', status: 'soon', tier: 'free' },
+  { name: 'Mail-merge', desc: 'One template + a CSV → many personalised PDFs.', status: 'soon', tier: 'pro' },
+  { name: 'AVIF / WebP · RAW → JPG', desc: 'Modern image formats and camera RAW, converted on your device.', status: 'soon', tier: 'free' },
+  { name: 'Extract & trim audio', desc: 'Pull audio out of a video, convert and trim it — no upload.', status: 'soon', tier: 'free' },
+  { name: 'Subtitle editor', desc: 'Edit and re-time subtitle tracks in the browser.', status: 'soon', tier: 'free' },
 ];
 
 // Where DiemDesk runs — web today, native apps next.

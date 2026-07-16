@@ -82,8 +82,42 @@ export function itemsToTable(items: TItem[]): { rows: string[][]; cols: number }
     return row;
   });
 
+  rows = dropPhantomColumns(rows);
   rows = trimGrid(rows);
   return { rows, cols: rows[0]?.length ?? 0 };
+}
+
+// A real table column is used by MANY rows. Free-form documents (forms, letters)
+// scatter text at dozens of x-positions, which the clustering above turns into
+// "phantom" columns used by only a row or two — the thing that made a 36-row form
+// come out as a 19-column mess. Drop any column too weakly supported to be real
+// and merge its text LEFT into the nearest surviving column, so nothing is lost.
+const COL_SUPPORT = 0.15; // a column must be filled on ≥15% of rows to be real
+
+function dropPhantomColumns(rows: string[][]): string[][] {
+  if (rows.length < 4) return rows; // too few rows to judge support
+  const nCols = Math.max(0, ...rows.map((r) => r.length));
+  if (nCols < 2) return rows;
+  const support = Array.from({ length: nCols }, (_, c) => rows.filter((r) => (r[c] || '').trim() !== '').length);
+  const min = Math.max(2, Math.ceil(rows.length * COL_SUPPORT));
+  const keep = support.map((s) => s >= min);
+  if (!keep.some(Boolean)) return rows; // nothing qualifies — leave as-is
+  return rows.map((r) => {
+    const out: string[] = [];
+    let carry = '';
+    for (let c = 0; c < nCols; c++) {
+      const text = (r[c] || '').trim();
+      if (keep[c]) {
+        out.push([carry, text].filter(Boolean).join(' '));
+        carry = '';
+      } else if (text) {
+        carry = [carry, text].filter(Boolean).join(' '); // merge into the next kept column
+      }
+    }
+    // anything trailing after the last kept column joins the last cell
+    if (carry && out.length) out[out.length - 1] = [out[out.length - 1], carry].filter(Boolean).join(' ');
+    return out;
+  });
 }
 
 // Drop fully-empty rows and fully-empty columns.
@@ -98,10 +132,20 @@ export function trimGrid(rows: string[][]): string[][] {
   return out.map((r) => keep.map((c) => r[c] || ''));
 }
 
-// A page's grid is "tabular enough" to offer: 2+ columns, 2+ rows, and most rows
-// populate 2+ columns (filters out prose pages whose word gaps mimic columns).
+// A page's grid is "tabular enough" to offer as a table. Real tables have SEVERAL
+// columns each populated down most of the page. Forms and letters don't — they have
+// one column of labels plus scattered text, which must be rejected rather than
+// exported as a grid of empty cells (the 36×19 dealer-form bug).
+const STRONG_SUPPORT = 0.25; // a "real" column is filled on ≥25% of rows
+
 export function looksTabular(rows: string[][], cols: number): boolean {
   if (cols < 2 || rows.length < 2) return false;
+  // Need at least TWO columns that are genuinely populated down the page.
+  const need = Math.max(2, Math.ceil(rows.length * STRONG_SUPPORT));
+  const strong = Array.from({ length: cols }, (_, c) => rows.filter((r) => (r[c] || '').trim() !== '').length)
+    .filter((s) => s >= need).length;
+  if (strong < 2) return false;
+  // …and most rows must actually span 2+ columns (kills prose whose word gaps mimic columns).
   const multi = rows.filter((r) => r.filter((c) => c.trim() !== '').length >= 2).length;
   return multi >= Math.max(2, Math.ceil(rows.length * 0.5));
 }

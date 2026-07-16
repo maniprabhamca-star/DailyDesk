@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Upload, X, Loader2, Download, FileSpreadsheet, ShieldCheck, AlertTriangle, Trash2, Table2 } from 'lucide-react';
+import { Upload, X, Loader2, Download, FileSpreadsheet, ShieldCheck, AlertTriangle, Trash2, Table2, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { downloadBlob } from '@/lib/download';
 import { openPdf, renderPage, dprTarget, type PdfHandle } from '@/lib/pdf-render';
@@ -170,6 +170,14 @@ export function PdfToExcelTool() {
   return (
     <div>
       <div className="overflow-hidden rounded-2xl border bg-card">
+        {/* file header — which document you're looking at */}
+        <div className="flex items-center gap-2 border-b bg-muted/20 px-4 py-2.5">
+          <FileText className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+          <span className="min-w-0 flex-1 truncate text-sm font-semibold" title={file?.name}>{file?.name}</span>
+          <span className="shrink-0 text-[11px] text-muted-foreground">
+            {tables.length} {tables.length === 1 ? 'table' : 'tables'} found
+          </span>
+        </div>
         {/* tabs */}
         <div className="flex items-center gap-2 overflow-x-auto border-b bg-muted/30 px-3 pt-2">
           {tables.map((tb, i) => (

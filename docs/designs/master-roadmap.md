@@ -89,17 +89,19 @@ Mostly free/on-device unless marked.
 - [ ] ⏳ Font-subsetting Path B (Edit PDF)
 
 ## 8. Infra · monitoring · go-live
-- [ ] ⏳ Lift basic-auth → go public (Google can crawl) — **#1 growth action**
-- [ ] ⏳ Set `NEXT_PUBLIC_SITE_URL` on VPS to the real domain (canonicals/sitemap)
-- [ ] ⏳ Cloudflare Full-strict SSL upgrade
-- [ ] ⏳ Node 20 → 22/24 on VPS (20 is EOL; below pdfjs engines)
-- [ ] ⏳ DMARC reject · origin firewall to Cloudflare IPs · Bot Fight Mode
-- [ ] ⏳ Submit sitemap to Google Search Console + Bing; Core Web Vitals pass on real domain
+_Status re-verified against the live server 2026-07-15 — several items below were stale and are now corrected._
+- [x] ✅ **Basic-auth lifted — site is PUBLIC** (verified: `diemdesk.com` → HTTP 200, no auth). EIN Presswire launch done.
+- [x] ✅ **Sitemap live + submitted to Google Search Console** (`/sitemap.xml` → 200).
+- [x] ✅ **OG image shipped** (`/og.png` → 200, 48 KB, referenced site-wide). _Optional later: per-tool OG variants._
+- [x] ✅ **DMARC record exists** — `v=DMARC1; p=quarantine; rua=mailto:support@diemdesk.com`.
+- [ ] ⏳ **DMARC `p=quarantine` → `p=reject`** (strongest anti-spoofing; do after the rua reports show legit mail passing)
+- [ ] ⏳ **Cloudflare Full → Full (strict)**: origin currently uses a **self-signed** cert (`/etc/nginx/ssl/diemdesk-origin.crt`), which "Full" encrypts but does NOT verify. Fix = issue a free **Cloudflare Origin CA cert**, install on nginx, flip SSL mode to Full (strict). ~10 min.
+- [ ] ⏳ **Node 20 → 22 LTS on VPS** (verified running **v20.20.2** — EOL, no security patches; also below pdfjs-dist v6's ≥22.13 engine). Needs PM2 reinstall/restart care.
+- [ ] ⏳ Origin firewall restricted to Cloudflare IP ranges · Cloudflare Bot Fight Mode
+- [ ] ⏳ Core Web Vitals pass on the live domain (Lighthouse/PageSpeed)
 - [ ] ⏳ Monitoring V3: autonomous auto-PR, OCR canary, per-tool SLO alerts
 - [ ] ⏳ Real-phone mobile QA sweep; install PWA + test Android "Share to DiemDesk" + desktop "Open with"
 - [ ] ⏳ Native Capacitor **iOS + Android apps** (completes robust open-with, esp. iPhone) — **next agreed build**
-- [ ] ⏳ OG images (branded 1200×630 + per-tool)
-- [ ] ⏳ Full-site SEO validation pass (titles/desc lengths, canonicals, JSON-LD) before public
 
 ## 9. Business / billing (gates real revenue)
 - [ ] ⏳ **Stripe LIVE**: create live product/prices ($5.98/mo, $60/yr, founding $4.99 coupon cap 1000) + Customer Portal + flip `BILLING_ENABLED`
