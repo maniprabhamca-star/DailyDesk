@@ -73,6 +73,16 @@ local parser → balance validates?  ── yes ─→ done, $0, fully private
 ```
 **Why it matters:** the spec proposes Sonnet for tier 3. Sonnet on every fallback page is the one thing that could break the unit economics (300 pages × Sonnet ≈ eats the $19). Escalating *only when the balance fails* keeps the blended cost near zero while making the top of the ladder as accurate as needed. **Meter AI pages separately and peg them to the Statements-Pro price** — see `dailydesk-unit-economics`.
 
+### ⚖️ Legal / branding rules (owner-approved 2026-07-16 — binding)
+1. **NO bank logos. Ever.** Text names only ("SBI", "HDFC Bank") to describe which formats we read. The original spec §5.1 said "supported banks logos/names" — **logos are dropped.** Using a bank's mark risks implying endorsement; naming them in text to describe compatibility is normal nominative use.
+2. **Independence disclaimer, on the tool page and every bank landing page:** *"DiemDesk is not affiliated with, endorsed by, or connected to any bank. Bank names are used only to describe supported statement formats; all trademarks belong to their owners."*
+3. **Accuracy disclaimer:** *"Check the output before you file anything."* A conversion aid — not accounting/tax/financial advice, not a substitute for the bank's statement of record. The balance check catches most errors; it is not a guarantee.
+4. **Privacy claim scoped honestly:** local for tiers 1–2; tier-3 AI = explicit consent, never silent.
+5. **Counsel review required before launch** — banking + trademarks + financial output raises the stakes above our other tools. On the legal checklist.
+
+### 🔒 Marketing the on-device promise (owner decision 2026-07-16)
+Showcase privacy **harder here than on any other tool** — for Compress PDF it's a bonus; for a bank statement it's the **purchase reason**. Every rival uploads the most sensitive document a person owns. Put it in the `<h1>`, the `<title>`, and above the fold — not a footer badge. Give users the falsifiable proof line ("open DevTools → Network, zero requests"), because a claim they can verify is worth more than one they must trust.
+
 ### Risks / critical path (call these early)
 1. **Sample collection is the bottleneck, not code.** Parsers need real layouts per bank (netbanking export, e-statement, passbook). Without samples, parsers are guesses. Start collecting on day 1; build synthetic fixtures matching real layouts for the test suite.
 2. **Tally XML must be validated by a real Tally Prime import** — owner-dependency; a "looks right" XML that Tally rejects is worthless.
