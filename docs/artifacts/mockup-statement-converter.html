@@ -1,0 +1,176 @@
+<title>Bank Statement Converter — DiemDesk mockup</title>
+<style>
+  :root{
+    --bg:#f5f7f5;--panel:#fff;--panel-2:#eef2ee;--line:#dfe5dd;--ink:#141812;--muted:#5b6356;--faint:#8d9587;
+    --accent:#15803d;--accent-weak:#15803d12;--accent-ring:#15803d40;
+    --good:#16a34a;--good-bg:#16a34a12;--warn:#b45309;--warn-bg:#f59e0b1a;--warn-ring:#f59e0b55;
+    --indigo:#4f46e5;--indigo-bg:#4f46e514;
+    --grid-line:#e3e8e1;--grid-head:#edf2ec;--grid-alt:#f8faf8;
+    --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --shadow:0 1px 2px rgba(20,25,18,.04),0 10px 30px rgba(20,25,18,.07);
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --bg:#0f120e;--panel:#171b14;--panel-2:#1f241c;--line:#2c3228;--ink:#eef1ea;--muted:#a2a994;--faint:#6d7562;
+    --accent:#4ade80;--accent-weak:#22c55e18;--accent-ring:#22c55e44;
+    --good:#4ade80;--good-bg:#22c55e1a;--warn:#fbbf24;--warn-bg:#f59e0b1f;--warn-ring:#f59e0b66;
+    --indigo:#a5b4fc;--indigo-bg:#6366f11f;
+    --grid-line:#2c3228;--grid-head:#232921;--grid-alt:#1c211a;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 34px rgba(0,0,0,.45);
+  }}
+  :root[data-theme="light"]{--bg:#f5f7f5;--panel:#fff;--panel-2:#eef2ee;--line:#dfe5dd;--ink:#141812;--muted:#5b6356;--faint:#8d9587;--accent:#15803d;--accent-weak:#15803d12;--accent-ring:#15803d40;--good:#16a34a;--good-bg:#16a34a12;--warn:#b45309;--warn-bg:#f59e0b1a;--warn-ring:#f59e0b55;--indigo:#4f46e5;--indigo-bg:#4f46e514;--grid-line:#e3e8e1;--grid-head:#edf2ec;--grid-alt:#f8faf8;--shadow:0 1px 2px rgba(20,25,18,.04),0 10px 30px rgba(20,25,18,.07);}
+  :root[data-theme="dark"]{--bg:#0f120e;--panel:#171b14;--panel-2:#1f241c;--line:#2c3228;--ink:#eef1ea;--muted:#a2a994;--faint:#6d7562;--accent:#4ade80;--accent-weak:#22c55e18;--accent-ring:#22c55e44;--good:#4ade80;--good-bg:#22c55e1a;--warn:#fbbf24;--warn-bg:#f59e0b1f;--warn-ring:#f59e0b66;--indigo:#a5b4fc;--indigo-bg:#6366f11f;--grid-line:#2c3228;--grid-head:#232921;--grid-alt:#1c211a;--shadow:0 1px 2px rgba(0,0,0,.3),0 12px 34px rgba(0,0,0,.45);}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.5;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1120px;margin:0 auto;padding:26px 18px 64px;}
+  .tag{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-bottom:16px;flex-wrap:wrap}
+  .tag b{color:var(--ink)} .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:none}
+  h1{font-size:23px;font-weight:800;letter-spacing:-.02em;margin:0 0 4px}
+  .lead{font-size:13.5px;color:var(--muted);margin:0 0 18px;max-width:70ch}
+  .lead b{color:var(--ink)}
+
+  .app{border:1px solid var(--line);border-radius:16px;background:var(--panel);box-shadow:var(--shadow);overflow:hidden}
+
+  /* file + bank identity */
+  .idbar{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--panel-2);flex-wrap:wrap}
+  .idbar .fname{font-size:13.5px;font-weight:700;display:flex;align-items:center;gap:7px}
+  .chip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:999px;border:1px solid var(--line);background:var(--panel)}
+  .chip.bank{color:var(--indigo);background:var(--indigo-bg);border-color:transparent}
+  .chip.meta{color:var(--muted);font-weight:600}
+  .idbar .right{margin-left:auto;display:flex;gap:7px;align-items:center}
+
+  /* THE TRUST BAR — the hero of this screen */
+  .trust{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line);background:var(--good-bg)}
+  .trust .ic{width:34px;height:34px;border-radius:50%;background:var(--good);color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;flex:none}
+  .trust .t{font-size:14.5px;font-weight:800;color:var(--ink)}
+  .trust .s{font-size:12px;color:var(--muted);margin-top:1px}
+  .trust.warn{background:var(--warn-bg)} .trust.warn .ic{background:var(--warn)}
+  .trust .act{margin-left:auto;font-size:12px;font-weight:700;color:var(--warn);border:1px solid var(--warn-ring);background:transparent;border-radius:8px;padding:6px 11px;cursor:pointer}
+
+  /* summary strip */
+  .sum{display:grid;grid-template-columns:repeat(5,1fr);border-bottom:1px solid var(--line)}
+  @media (max-width:760px){.sum{grid-template-columns:repeat(2,1fr)}}
+  .sum div{padding:11px 16px;border-right:1px solid var(--line)}
+  .sum div:last-child{border-right:0}
+  .sum .k{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--faint)}
+  .sum .v{font-family:var(--mono);font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:2px}
+  .v.dr{color:#dc2626} .v.cr{color:var(--good)}
+
+  /* table */
+  .tblwrap{max-height:330px;overflow:auto}
+  table{border-collapse:collapse;width:100%;font-size:12.5px}
+  th,td{border-bottom:1px solid var(--grid-line);padding:7px 10px;text-align:left;white-space:nowrap}
+  th{background:var(--grid-head);position:sticky;top:0;font-size:10.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);z-index:1}
+  tbody tr:nth-child(even){background:var(--grid-alt)}
+  td.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+  td.ok{width:26px;text-align:center;color:var(--good);font-weight:800}
+  tr.bad{background:var(--warn-bg)!important}
+  tr.bad td.ok{color:var(--warn)}
+  td.narr{white-space:normal;min-width:230px;color:var(--ink)}
+  .cty{font-size:10.5px;color:var(--faint);display:block}
+  .edit{outline:1px dashed var(--accent-ring);outline-offset:-2px;border-radius:3px}
+
+  /* export bar */
+  .exp{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--line);background:var(--panel-2)}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--panel)}
+  .seg button{border:0;background:transparent;padding:7px 12px;font:inherit;font-size:12.5px;font-weight:700;color:var(--muted);cursor:pointer}
+  .seg button.on{background:var(--accent);color:#fff}
+  .seg button.star{color:var(--accent)}
+  .seg button.star.on{color:#fff}
+  .dl{margin-left:auto;display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:#fff;border:0;border-radius:11px;padding:10px 17px;font:inherit;font-size:13.5px;font-weight:800;cursor:pointer;box-shadow:0 3px 12px var(--accent-ring)}
+  .quota{font-size:11.5px;color:var(--muted)}
+  .quota b{color:var(--ink)}
+
+  /* tally options */
+  .tally{padding:12px 16px;border-top:1px dashed var(--line);background:var(--accent-weak);display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  @media (max-width:760px){.tally{grid-template-columns:1fr}}
+  .tally label{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);display:block;margin-bottom:3px}
+  .tally input{width:100%;font:inherit;font-size:12.5px;padding:6px 9px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--ink)}
+  .tally .note{grid-column:1/-1;font-size:11.5px;color:var(--muted)}
+
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+  @media (max-width:760px){.cards{grid-template-columns:1fr}}
+  .card{border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:12.5px;line-height:1.55;background:var(--panel)}
+  .card.priv{border-color:var(--accent-ring);background:var(--accent-weak)}
+  .card.legal{border-color:var(--warn-ring);background:var(--warn-bg)}
+  .card h4{margin:0 0 5px;font-size:12.5px;font-weight:800;display:flex;align-items:center;gap:6px}
+  .card.priv h4{color:var(--accent)} .card.legal h4{color:var(--warn)}
+  .card p{margin:0;color:var(--muted)} .card b{color:var(--ink)}
+</style>
+
+<div class="wrap">
+  <div class="tag"><span class="dot"></span> <b>Mockup for review</b> — Bank Statement Converter · the review screen · design only, not built</div>
+  <h1>Statement review — the screen the whole product hangs on</h1>
+  <p class="lead">Everything above this screen (detect bank, extract rows) is invisible plumbing. <b>This</b> is where a CA decides whether to trust us. So the balance check isn't a footnote — it's the headline.</p>
+
+  <div class="app">
+    <!-- identity -->
+    <div class="idbar">
+      <span class="fname">📄 SBI_Statement_Jul2026.pdf</span>
+      <span class="chip bank">🏦 State Bank of India · 97%</span>
+      <span class="chip meta">A/c ••••6789</span>
+      <span class="chip meta">01 Jul – 31 Jul 2026</span>
+      <span class="chip meta">4 pages</span>
+      <span class="right"><span class="chip">✕ New file</span></span>
+    </div>
+
+    <!-- THE TRUST BAR -->
+    <div class="trust">
+      <span class="ic">✓</span>
+      <span>
+        <span class="t">All 214 transactions verified against the running balance</span>
+        <span class="s">Every row's balance recomputes exactly from the one above it — the extraction is arithmetically proven, not guessed.</span>
+      </span>
+    </div>
+
+    <!-- summary -->
+    <div class="sum">
+      <div><div class="k">Opening</div><div class="v">₹98,420.00</div></div>
+      <div><div class="k">Total debits</div><div class="v dr">₹3,41,905.50</div></div>
+      <div><div class="k">Total credits</div><div class="v cr">₹4,45,000.00</div></div>
+      <div><div class="k">Closing</div><div class="v">₹2,01,514.50</div></div>
+      <div><div class="k">Transactions</div><div class="v">214</div></div>
+    </div>
+
+    <!-- table -->
+    <div class="tblwrap">
+      <table>
+        <thead><tr><th></th><th>Date</th><th>Narration</th><th>Ref / Chq</th><th style="text-align:right">Debit</th><th style="text-align:right">Credit</th><th style="text-align:right">Balance</th></tr></thead>
+        <tbody>
+          <tr><td class="ok">✓</td><td>04/07/2026</td><td class="narr">NEFT/HDFC BANK/SALARY JUL<span class="cty">counterparty: ACME PVT LTD</span></td><td>REF9912</td><td class="num">—</td><td class="num">75,000.00</td><td class="num">1,73,420.00</td></tr>
+          <tr><td class="ok">✓</td><td>06/07/2026</td><td class="narr">UPI/DR/527819/RAVI KUMAR/ICICI<span class="cty">counterparty: RAVI KUMAR</span></td><td>REF9913</td><td class="num">2,500.00</td><td class="num">—</td><td class="num">1,70,920.00</td></tr>
+          <tr><td class="ok">✓</td><td>09/07/2026</td><td class="narr">IMPS/AXIS BANK/RENT TRANSFER<span class="cty">counterparty: S MEHTA</span></td><td>REF9914</td><td class="num">18,000.00</td><td class="num">—</td><td class="num">1,52,920.00</td></tr>
+          <tr class="bad"><td class="ok">!</td><td>11/07/2026</td><td class="narr"><span class="edit">UPI/DR/5281/SWlGGY ORDER</span><span class="cty">⚠ balance doesn't reconcile — expected 1,52,470.00, statement says 1,52,740.00. Likely a misread digit; fix the cell.</span></td><td>REF9915</td><td class="num edit">450.00</td><td class="num">—</td><td class="num">1,52,740.00</td></tr>
+          <tr><td class="ok">✓</td><td>14/07/2026</td><td class="narr">ATM WDL KOTAK ATM PUNE<span class="cty">counterparty: —</span></td><td>REF9916</td><td class="num">3,000.00</td><td class="num">—</td><td class="num">1,49,740.00</td></tr>
+          <tr><td class="ok">✓</td><td>21/07/2026</td><td class="narr">NEFT/CANARA BANK/VENDOR PAY<span class="cty">counterparty: SHREE TRADERS</span></td><td>REF9917</td><td class="num">27,300.00</td><td class="num">—</td><td class="num">1,22,440.00</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- export -->
+    <div class="exp">
+      <div class="seg">
+        <button>Excel .xlsx</button><button>.csv</button><button class="on star">★ Tally XML</button><button>QBO</button><button>OFX</button>
+      </div>
+      <span class="quota"><b>3</b> of 5 free pages used this month</span>
+      <button class="dl">⬇ Export 214 transactions</button>
+    </div>
+    <div class="tally">
+      <div><label>Company name (in Tally)</label><input value="Acme Traders Pvt Ltd"></div>
+      <div><label>Bank ledger</label><input value="SBI A/c 6789"></div>
+      <div><label>Default contra ledger</label><input value="Suspense"></div>
+      <p class="note">Debits → <b>Payment</b> vouchers · Credits → <b>Receipt</b> vouchers (override per row before export). Produces a Tally Prime–ready <code>&lt;ENVELOPE&gt;</code> import file. <b>No competitor does this.</b></p>
+    </div>
+  </div>
+
+  <div class="cards">
+    <div class="card priv">
+      <h4>🔒 Processed on your device</h4>
+      <p>Your statement is read <b>in your browser</b> — it is never uploaded, stored, or seen by us. Check it yourself: DevTools → Network, zero requests. Password-protected PDF? The password is used locally and never leaves the page. <b>If a layout ever needs AI help, we ask first</b> — never silently.</p>
+    </div>
+    <div class="card legal">
+      <h4>⚠ Please read — accuracy &amp; independence</h4>
+      <p><b>Check the output before you file anything.</b> The balance check catches most extraction errors, but it is a conversion aid — not accounting, tax, or financial advice, and not a substitute for the bank's own statement of record. <b>DiemDesk is not affiliated with, endorsed by, or connected to any bank.</b> Bank names are used only to describe which formats we read; all trademarks belong to their owners.</p>
+    </div>
+  </div>
+</div>
