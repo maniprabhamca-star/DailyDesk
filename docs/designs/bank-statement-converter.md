@@ -32,6 +32,12 @@
 
 **Pricing (deliberately NOT bundled into the $5.98 Pro):** Free 5 pages/mo (no signup) · Credit pack ₹399/$4.99 = 20 pages, never expires (tax season!) · **Statements Pro ₹1,499/$19/mo** = 300 pages/mo · existing Pro gets 20 pages/mo included.
 
+> **⭐ Why a separate price (owner, 2026-07-16 — the whole thesis in one line):**
+> *"The person converting bank statements is a business saving hours of paid work — the person merging a PDF is not."*
+> Bundling the converter into $5.98 gives our **most valuable feature to our least valuable price**. DocuClipper charges $29–159/mo for exactly this, so **$19 is already the cheap option in the buyer's eyes**. And it doesn't cannibalise: the existing $5.98 plan gets **20 statement pages/mo included**, so the old plan becomes *more* attractive, not less.
+>
+> **Architecture: same site, same account system, same Stripe — separate price.** No second website, no separate login, no restructuring. Concretely it's just: **one new tool page** with its own upgrade prompt, **two new Stripe prices** (one-time pack + $19 recurring), and a **page-quota counter**.
+
 **India parsing gotchas (bake into tests):** DD/MM/YYYY (never assume MM/DD) · Indian lakh grouping `1,23,456.78` · single amount column with Dr/Cr markers · multi-line UPI/NEFT narrations · `UPI/DR/527XXXXX/PAYEE/BANK` counterparty parsing · repeated page headers/footers · password-protected e-statements are the norm.
 
 ---

@@ -7,7 +7,7 @@ import {
   ImageDown, Smartphone, Eraser, Film, Clapperboard, ArrowLeftRight, Images, Scaling, Repeat, Crop,
   Ruler, Braces, Palette, CaseSensitive, Crosshair, Contact, SquarePen, ScanFace,
   Binary, Hash, GitCompare, FileJson, Type,
-  Cloud, Sparkles, type LucideIcon,
+  Cloud, Sparkles, Landmark, type LucideIcon,
 } from 'lucide-react';
 
 // A tool's "where it runs" tag — the single source of truth for every privacy
@@ -63,6 +63,7 @@ export const catalog: CatGroup[] = [
       { name: 'PDF to Word', href: '/pdf-to-word', icon: FileType, badge: 'server' },
       { name: 'PDF to PowerPoint', icon: Presentation, badge: 'server', soon: true },
       { name: 'PDF to Excel', href: '/pdf-to-excel', icon: FileSpreadsheet, badge: 'device' },
+      { name: 'Bank statement to Excel', href: '/bank-statement-converter', icon: Landmark, badge: 'device', soon: true },
       { name: 'PDF to PDF/A', icon: FileCheck, badge: 'server', soon: true },
     ],
   },

@@ -1,0 +1,277 @@
+'use client';
+
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Upload, Loader2, Download, FileText, ShieldCheck, AlertTriangle, Check, X, Landmark, Lock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { downloadBlob } from '@/lib/download';
+import { buildXlsx, toCsv, type Cell } from '@/lib/xlsx';
+import { parseStatement, type StatementResult } from '@/lib/banks/statement';
+import { formatINR, type Txn } from '@/lib/banks/balance';
+import { useFileHandoff } from '@/lib/file-handoff';
+
+type Fmt = 'xlsx' | 'csv';
+
+// Money is integer paise internally; the grid edits strings, so re-parse on commit.
+const toRupees = (p: number | null) => (p == null ? '' : formatINR(p));
+
+export function StatementConverterTool() {
+  const [file, setFile] = useState<File | null>(null);
+  const [res, setRes] = useState<StatementResult | null>(null);
+  const [txns, setTxns] = useState<Txn[]>([]);
+  const [status, setStatus] = useState<'idle' | 'reading' | 'ready'>('idle');
+  const [pct, setPct] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [fmt, setFmt] = useState<Fmt>('xlsx');
+  const [exporting, setExporting] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const load = useCallback(async (f?: File) => {
+    if (!f) return;
+    if (f.type !== 'application/pdf' && !/\.pdf$/i.test(f.name)) { setError('Please choose a PDF statement.'); return; }
+    setError(null); setRes(null); setTxns([]); setStatus('reading'); setPct(0);
+    try {
+      const r = await parseStatement(f, setPct);
+      setRes(r); setTxns(r.validation.txns); setFile(f); setStatus('ready');
+    } catch {
+      setError('Could not open that PDF. If it’s password-protected, unlock it first.');
+      setStatus('idle');
+    }
+  }, []);
+
+  useFileHandoff(load);
+  useEffect(() => { if (status === 'idle') { setFile(null); setRes(null); } }, [status]);
+
+  const reset = () => { setStatus('idle'); setFile(null); setRes(null); setTxns([]); setError(null); };
+
+  const rows = useCallback((): Cell[][] => {
+    const head = ['Date', 'Narration', 'Ref / Chq', 'Debit', 'Credit', 'Balance'];
+    return [head, ...txns.map((t) => [
+      t.date, t.narration, t.ref,
+      t.debit == null ? '' : t.debit / 100,
+      t.credit == null ? '' : t.credit / 100,
+      t.balance / 100,
+    ])];
+  }, [txns]);
+
+  const doExport = useCallback(async () => {
+    if (!txns.length || exporting) return;
+    setExporting(true);
+    try {
+      const base = (file?.name || 'statement.pdf').replace(/\.[^.]+$/, '');
+      if (fmt === 'csv') {
+        downloadBlob(new Blob(['﻿' + toCsv(rows())], { type: 'text/csv;charset=utf-8' }), `${base}.csv`);
+      } else {
+        const summary: Cell[][] = [
+          ['Bank', res?.bank?.name || 'Unknown'],
+          ['Account', res?.meta.account || '—'],
+          ['Period', res?.meta.period || '—'],
+          ['Opening balance', (res?.validation.opening ?? 0) / 100],
+          ['Total debits', (res?.validation.totalDebit ?? 0) / 100],
+          ['Total credits', (res?.validation.totalCredit ?? 0) / 100],
+          ['Closing balance', (res?.validation.closing ?? 0) / 100],
+          ['Transactions', txns.length],
+          ['Balance-verified', `${res?.validation.verified ?? 0} of ${res?.validation.total ?? 0}`],
+        ];
+        downloadBlob(await buildXlsx([
+          { name: 'Transactions', rows: rows() },
+          { name: 'Summary', rows: summary },
+        ]), `${base}.xlsx`);
+      }
+    } finally { setExporting(false); }
+  }, [txns, exporting, file, fmt, rows, res]);
+
+  // ---- empty ---------------------------------------------------------------
+  if (status === 'idle') {
+    return (
+      <div>
+        <button
+          onClick={() => inputRef.current?.click()}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => { e.preventDefault(); void load(e.dataTransfer.files?.[0]); }}
+          className="flex w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border bg-card p-12 text-center transition hover:border-emerald-500/50 hover:bg-emerald-500/5"
+        >
+          <span className="flex size-14 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"><Upload className="size-6" /></span>
+          <span className="mt-4 text-base font-semibold">Drop your bank statement PDF</span>
+          <span className="mt-1 max-w-md text-sm text-muted-foreground">
+            It’s read <b className="text-foreground">on your device</b> — never uploaded. Every row is checked against the running balance before you export.
+          </span>
+        </button>
+        <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="hidden"
+          onChange={(e) => { void load(e.target.files?.[0]); e.target.value = ''; }} />
+        {error && <p className="mt-3 text-center text-sm text-destructive">{error}</p>}
+        <Notes />
+      </div>
+    );
+  }
+
+  if (status === 'reading') {
+    return (
+      <div className="rounded-2xl border bg-card p-12 text-center">
+        <Loader2 className="mx-auto size-6 animate-spin text-emerald-600" />
+        <p className="mt-3 text-sm font-medium">Reading your statement on this device… {Math.round(pct * 100)}%</p>
+        <p className="mt-1 text-xs text-muted-foreground">Nothing is being uploaded.</p>
+      </div>
+    );
+  }
+
+  const v = res!.validation;
+
+  // ---- no statement found --------------------------------------------------
+  if (!v.roles || !txns.length) {
+    return (
+      <div>
+        <div className="rounded-2xl border bg-card p-8 text-center">
+          <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400"><AlertTriangle className="size-6" /></span>
+          <h3 className="mt-3 text-lg font-bold">We couldn’t find a transaction table</h3>
+          <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+            {!res!.hasText
+              ? 'This looks like a scanned statement with no selectable text. Run it through OCR first, then come back.'
+              : 'The rows in this PDF don’t form a running-balance table, so we won’t guess — a wrong number in your books is worse than no number.'}
+          </p>
+          <div className="mt-5 flex flex-wrap justify-center gap-2">
+            {!res!.hasText && <Button asChild><a href="/ocr-pdf">Run OCR first</a></Button>}
+            <Button variant="outline" onClick={reset}>Try another statement</Button>
+          </div>
+        </div>
+        <Notes />
+      </div>
+    );
+  }
+
+  const allOk = v.ok;
+
+  return (
+    <div>
+      <div className="overflow-hidden rounded-2xl border bg-card">
+        {/* identity */}
+        <div className="flex flex-wrap items-center gap-2 border-b bg-muted/20 px-4 py-2.5">
+          <FileText className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+          <span className="max-w-[240px] truncate text-sm font-semibold" title={file?.name}>{file?.name}</span>
+          {res!.bank && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-bold text-primary">
+              <Landmark className="size-3" /> {res!.bank.name} · {Math.round(res!.bank.confidence * 100)}%
+            </span>
+          )}
+          {res!.meta.account && <Chip>A/c {res!.meta.account}</Chip>}
+          {res!.meta.period && <Chip>{res!.meta.period}</Chip>}
+          <Chip>{res!.numPages} {res!.numPages === 1 ? 'page' : 'pages'}</Chip>
+          <button onClick={reset} className="ml-auto flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:text-foreground"><X className="size-3.5" /> New file</button>
+        </div>
+
+        {/* THE TRUST BAR — the whole product's credibility */}
+        <div className={`flex items-center gap-3 border-b px-4 py-3.5 ${allOk ? 'bg-emerald-500/10' : 'bg-amber-500/10'}`}>
+          <span className={`flex size-8 shrink-0 items-center justify-center rounded-full text-white ${allOk ? 'bg-emerald-600' : 'bg-amber-500'}`}>
+            {allOk ? <Check className="size-4" /> : <AlertTriangle className="size-4" />}
+          </span>
+          <span className="min-w-0">
+            <span className="block text-sm font-bold">
+              {allOk
+                ? `All ${v.total} transactions verified against the running balance`
+                : `${v.verified} of ${v.total} verified · ${v.failures.length} row${v.failures.length === 1 ? '' : 's'} don’t reconcile`}
+            </span>
+            <span className="block text-xs text-muted-foreground">
+              {allOk
+                ? 'Every row’s balance recomputes exactly from the one above it — the extraction is arithmetically proven, not guessed.'
+                : 'Highlighted rows below show what the balance should have been. Fix the cell, or check the original.'}
+            </span>
+          </span>
+        </div>
+
+        {/* summary */}
+        <div className="grid grid-cols-2 border-b sm:grid-cols-5">
+          <Stat k="Opening" v={`₹${toRupees(v.opening)}`} />
+          <Stat k="Total debits" v={`₹${toRupees(v.totalDebit)}`} tone="dr" />
+          <Stat k="Total credits" v={`₹${toRupees(v.totalCredit)}`} tone="cr" />
+          <Stat k="Closing" v={`₹${toRupees(v.closing)}`} />
+          <Stat k="Transactions" v={String(v.total)} />
+        </div>
+
+        {/* table */}
+        <div className="max-h-[380px] overflow-auto">
+          <table className="w-full border-collapse text-[12.5px]">
+            <thead className="sticky top-0 z-10">
+              <tr className="bg-muted/60 text-[10.5px] uppercase tracking-wide text-muted-foreground">
+                <th className="w-8 border-b px-2 py-2" />
+                <th className="border-b px-2.5 py-2 text-left font-bold">Date</th>
+                <th className="border-b px-2.5 py-2 text-left font-bold">Narration</th>
+                <th className="border-b px-2.5 py-2 text-left font-bold">Ref / Chq</th>
+                <th className="border-b px-2.5 py-2 text-right font-bold">Debit</th>
+                <th className="border-b px-2.5 py-2 text-right font-bold">Credit</th>
+                <th className="border-b px-2.5 py-2 text-right font-bold">Balance</th>
+              </tr>
+            </thead>
+            <tbody>
+              {txns.map((t, i) => (
+                <tr key={i} className={t.ok ? (i % 2 ? 'bg-muted/20' : '') : 'bg-amber-500/10'}>
+                  <td className={`border-b px-2 text-center font-bold ${t.ok ? 'text-emerald-600' : 'text-amber-600'}`}>{t.ok ? '✓' : '!'}</td>
+                  <td className="whitespace-nowrap border-b px-2.5 py-1.5">{t.date}</td>
+                  <td className="min-w-[220px] border-b px-2.5 py-1.5">
+                    {t.narration}
+                    {!t.ok && t.expected != null && (
+                      <span className="mt-0.5 block text-[10.5px] text-amber-700 dark:text-amber-400">
+                        ⚠ expected ₹{toRupees(t.expected)} — statement says ₹{toRupees(t.balance)}
+                      </span>
+                    )}
+                  </td>
+                  <td className="whitespace-nowrap border-b px-2.5 py-1.5 text-muted-foreground">{t.ref}</td>
+                  <td className="whitespace-nowrap border-b px-2.5 py-1.5 text-right font-mono tabular-nums">{t.debit == null ? '—' : toRupees(t.debit)}</td>
+                  <td className="whitespace-nowrap border-b px-2.5 py-1.5 text-right font-mono tabular-nums">{t.credit == null ? '—' : toRupees(t.credit)}</td>
+                  <td className="whitespace-nowrap border-b px-2.5 py-1.5 text-right font-mono tabular-nums">{toRupees(t.balance)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* export */}
+        <div className="flex flex-wrap items-center gap-3 border-t bg-muted/20 px-4 py-3">
+          <div className="inline-flex overflow-hidden rounded-lg border">
+            <button onClick={() => setFmt('xlsx')} className={`px-3 py-1.5 text-xs font-bold ${fmt === 'xlsx' ? 'bg-emerald-600 text-white' : 'text-muted-foreground'}`}>Excel .xlsx</button>
+            <button onClick={() => setFmt('csv')} className={`px-3 py-1.5 text-xs font-bold ${fmt === 'csv' ? 'bg-emerald-600 text-white' : 'text-muted-foreground'}`}>.csv</button>
+            <span className="border-l px-3 py-1.5 text-xs font-bold text-muted-foreground/60" title="Coming next">★ Tally XML · soon</span>
+          </div>
+          <button onClick={() => void doExport()} disabled={exporting}
+            className="ml-auto inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50">
+            {exporting ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />} Export {v.total} transactions
+          </button>
+        </div>
+      </div>
+      <Notes />
+    </div>
+  );
+}
+
+function Chip({ children }: { children: React.ReactNode }) {
+  return <span className="rounded-full border bg-card px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground">{children}</span>;
+}
+
+function Stat({ k, v, tone }: { k: string; v: string; tone?: 'dr' | 'cr' }) {
+  return (
+    <div className="border-r px-4 py-2.5 last:border-r-0">
+      <div className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground/70">{k}</div>
+      <div className={`mt-0.5 font-mono text-sm font-bold tabular-nums ${tone === 'dr' ? 'text-red-600 dark:text-red-400' : tone === 'cr' ? 'text-emerald-600 dark:text-emerald-400' : ''}`}>{v}</div>
+    </div>
+  );
+}
+
+function Notes() {
+  return (
+    <div className="mt-4 grid gap-3 md:grid-cols-2">
+      <div className="flex items-start gap-2.5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3.5 text-[13px] leading-relaxed">
+        <Lock className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+        <p>
+          <b>Processed on your device.</b> Your statement is read in your browser — never uploaded, stored, or seen by us.
+          Check for yourself: open DevTools → Network and watch zero requests leave. Every competitor uploads this file to their servers.
+        </p>
+      </div>
+      <div className="flex items-start gap-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3.5 text-[13px] leading-relaxed">
+        <ShieldCheck className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+        <p>
+          <b>Check the output before you file anything.</b> The balance check catches most extraction errors, but this is a
+          conversion aid — not accounting, tax or financial advice, and not a substitute for your bank’s statement of record.
+          <b> DiemDesk is not affiliated with, endorsed by, or connected to any bank</b>; bank names describe supported formats only.
+        </p>
+      </div>
+    </div>
+  );
+}

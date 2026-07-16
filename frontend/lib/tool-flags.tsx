@@ -12,6 +12,9 @@ const DEFAULT_TOOL_FLAGS: FlagMap = {
   // Chat with PDF — the first AI (Pro) tool. Ships dark: owner-only until the
   // ANTHROPIC_API_KEY is set + Pro billing goes live, then flip to 'pro'.
   '/chat-pdf': 'coming_soon',
+  // Bank Statement Converter — the paid flagship. Owner-only until it's been
+  // validated against real statements and the Statements pricing/quota is live.
+  '/bank-statement-converter': 'coming_soon',
   // Document-command-center tools: owner-only until reviewed + launched.
   '/clean-scanned-pdf': 'coming_soon',
   '/share-safe-pdf-check': 'coming_soon',
