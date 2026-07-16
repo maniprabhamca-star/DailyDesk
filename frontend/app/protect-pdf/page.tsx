@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     "Password-protect a PDF with AES-256 encryption free, in your browser — file and password never leave your device. Optionally block printing and copying.",
   alternates: { canonical: '/protect-pdf' },
   openGraph: {
-    images: ['/og.png'],
+    images: ['/og/protect-pdf.png'],
     title: 'Protect PDF — Password Protect with AES-256, Free | DiemDesk',
     description: 'Password-protect a PDF with bank-grade AES-256, privately in your browser. Free, no signup.',
     type: 'website',

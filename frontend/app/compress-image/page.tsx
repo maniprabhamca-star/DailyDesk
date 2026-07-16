@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     "Compress JPG, PNG and WebP images free in your browser with the pro-grade mozjpeg encoder. Compare before and after — your photo is never uploaded.",
   alternates: { canonical: '/compress-image' },
   openGraph: {
-    images: ['/og.png'],
+    images: ['/og/compress-image.png'],
     title: 'Compress Image — JPG, PNG & WebP Free | DiemDesk',
     description: 'Shrink JPG, PNG, and WebP privately in your browser. Pro-grade encoder, before/after compare, no upload.',
     type: 'website',

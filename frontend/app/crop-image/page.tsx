@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     "Crop a photo free in your browser — drag the crop box where you want it, with 1:1, 4:3, 16:9 and 3:2 presets. Full resolution kept, nothing uploaded.",
   alternates: { canonical: '/crop-image' },
   openGraph: {
-    images: ['/og.png'],
+    images: ['/og/crop-image.png'],
     title: 'Crop Image — Free Online Photo Cropper | DiemDesk',
     description: 'Drag-to-crop with aspect presets, privately in your browser. Free, no signup.',
     type: 'website',

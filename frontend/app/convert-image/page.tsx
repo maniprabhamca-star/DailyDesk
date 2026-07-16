@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     "Convert images between WebP, PNG and JPG free in your browser — WebP to PNG, PNG to JPG, JPG to WebP and more. Full quality, nothing uploaded.",
   alternates: { canonical: '/convert-image' },
   openGraph: {
-    images: ['/og.png'],
+    images: ['/og/convert-image.png'],
     title: 'Convert Image — WebP to PNG, PNG to JPG & More, Free | DiemDesk',
     description: 'Switch images between WebP, PNG, and JPG privately in your browser. Free, no signup.',
     type: 'website',

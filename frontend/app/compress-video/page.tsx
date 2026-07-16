@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     "Compress a video free on your device — nothing uploaded. Pick MP4 or WebM, choose quality and resolution, and get a much smaller file in seconds.",
   alternates: { canonical: '/compress-video' },
   openGraph: {
-    images: ['/og.png'],
+    images: ['/og/compress-video.png'],
     title: 'Compress Video — Shrink MP4 Free, In Your Browser | DiemDesk',
     description: 'Make videos smaller privately in your browser — MP4 or WebM, your choice of quality. Nothing uploaded.',
     type: 'website',

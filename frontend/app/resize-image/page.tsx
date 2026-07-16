@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     "Resize a JPG, PNG or WebP to exact pixels or a percentage — high-quality resampling, aspect-ratio lock and presets. The photo never leaves your device.",
   alternates: { canonical: '/resize-image' },
   openGraph: {
-    images: ['/og.png'],
+    images: ['/og/resize-image.png'],
     title: 'Resize Image — Exact Pixels or Percent, Free | DiemDesk',
     description: 'Resize images to exact dimensions with pro-quality resampling — privately in your browser.',
     type: 'website',

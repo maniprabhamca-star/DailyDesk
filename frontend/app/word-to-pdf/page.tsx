@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     "Convert a Word document (DOCX, DOC, ODT, RTF) to PDF free — layout, fonts and images preserved. Sent encrypted, converted and deleted immediately.",
   alternates: { canonical: '/word-to-pdf' },
   openGraph: {
-    images: ['/og.png'],
+    images: ['/og/word-to-pdf.png'],
     title: 'Word to PDF — Convert DOCX to PDF Free | DiemDesk',
     description: 'Turn Word documents into polished PDFs free — converted securely and deleted immediately.',
     type: 'website',

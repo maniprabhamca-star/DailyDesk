@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     'Combine multiple PDF files into one, free and instantly. Reorder pages, no signup, no watermark — and your files never leave your browser.',
   alternates: { canonical: '/merge-pdf' },
   openGraph: {
-    images: ['/og.png'],
+    images: ['/og/merge-pdf.png'],
     title: 'Merge PDF — Combine PDF Files Free | DiemDesk',
     description: 'Combine multiple PDFs into one, privately in your browser. Free, no signup, no watermark.',
     type: 'website',

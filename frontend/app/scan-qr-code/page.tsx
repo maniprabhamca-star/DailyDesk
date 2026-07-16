@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     "Scan a QR code from a photo or screenshot right in your browser — nothing uploaded. Reads links, Wi-Fi, contact cards, email and SMS. Free, no app needed.",
   alternates: { canonical: '/scan-qr-code' },
   openGraph: {
-    images: ['/og.png'],
+    images: ['/og/scan-qr-code.png'],
     title: 'QR Code Scanner — Scan a QR Code From an Image, Free | DiemDesk',
     description: 'Decode any QR code from a photo or screenshot, privately in your browser. Links, Wi-Fi, contacts, and more.',
     type: 'website',

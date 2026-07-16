@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     "See and remove the hidden metadata in a PDF — author, editing software, timestamps, XMP history — free in your browser. Nothing uploaded, pages untouched.",
   alternates: { canonical: '/remove-pdf-metadata' },
   openGraph: {
-    images: ['/og.png'],
+    images: ['/og/remove-pdf-metadata.png'],
     title: 'Remove PDF Metadata — Clean Author & Hidden Info Free | DiemDesk',
     description: 'Wipe author names, software traces and timestamps from a PDF, privately in your browser. Free, no signup.',
     type: 'website',

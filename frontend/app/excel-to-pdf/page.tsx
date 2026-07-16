@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     "Convert an Excel spreadsheet (XLSX, XLS, ODS, CSV) to PDF free — every sheet paginated cleanly. Sent encrypted, converted and deleted immediately.",
   alternates: { canonical: '/excel-to-pdf' },
   openGraph: {
-    images: ['/og.png'],
+    images: ['/og/excel-to-pdf.png'],
     title: 'Excel to PDF — Convert XLSX to PDF Free | DiemDesk',
     description: 'Turn spreadsheets into shareable PDFs free — converted securely and deleted immediately.',
     type: 'website',

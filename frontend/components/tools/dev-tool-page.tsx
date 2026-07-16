@@ -22,7 +22,8 @@ export function devMeta(slug: string): Metadata {
     title: t.seoTitle,
     description: t.seoDesc,
     alternates: { canonical: `/${t.slug}` },
-    openGraph: { images: ['/og.png'], title: t.seoTitle, description: t.seoDesc, type: 'website' },
+    // Each tool has its own branded share card (scripts/gen-og-images.mjs).
+    openGraph: { images: [`/og/${t.slug}.png`], title: t.seoTitle, description: t.seoDesc, type: 'website' },
   };
 }
 

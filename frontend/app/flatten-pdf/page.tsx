@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     "Flatten a PDF free in your browser: make form fields, signatures and annotations permanent, or lock every page as an image. No upload, no signup.",
   alternates: { canonical: '/flatten-pdf' },
   openGraph: {
-    images: ['/og.png'],
+    images: ['/og/flatten-pdf.png'],
     title: 'Flatten PDF — Make Forms & Annotations Uneditable, Free | DiemDesk',
     description: 'Make filled forms, signatures and annotations permanent — flattened on your device, never uploaded. No page limits.',
     type: 'website',

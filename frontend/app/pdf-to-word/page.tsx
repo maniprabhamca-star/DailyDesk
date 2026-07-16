@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     "Convert a PDF to an editable Word document (.docx) free — no signup, no watermark. Sent encrypted, converted and deleted from our server immediately.",
   alternates: { canonical: '/pdf-to-word' },
   openGraph: {
-    images: ['/og.png'],
+    images: ['/og/pdf-to-word.png'],
     title: 'PDF to Word — Convert PDF to Editable DOCX Free | DiemDesk',
     description: 'Turn a PDF into an editable Word document free — converted securely and deleted immediately.',
     type: 'website',

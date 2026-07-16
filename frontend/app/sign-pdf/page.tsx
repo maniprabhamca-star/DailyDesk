@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     "Sign a PDF free in your browser: draw your signature, type it in a script style or upload an image, then drag it into place. Nothing leaves your device.",
   alternates: { canonical: '/sign-pdf' },
   openGraph: {
-    images: ['/og.png'],
+    images: ['/og/sign-pdf.png'],
     title: 'Sign PDF — Draw, Type or Upload a Signature Free | DiemDesk',
     description: 'Draw, type, or upload a signature and place it on any page — privately in your browser. Free, no signup.',
     type: 'website',

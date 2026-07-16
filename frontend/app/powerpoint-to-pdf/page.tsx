@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     "Convert a PowerPoint (PPTX, PPT, ODP) to PDF free — one slide per page, layouts and images preserved. Sent encrypted, converted and deleted immediately.",
   alternates: { canonical: '/powerpoint-to-pdf' },
   openGraph: {
-    images: ['/og.png'],
+    images: ['/og/powerpoint-to-pdf.png'],
     title: 'PowerPoint to PDF — Convert PPTX to PDF Free | DiemDesk',
     description: 'Turn presentations into shareable PDFs free — converted securely and deleted immediately.',
     type: 'website',

@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     "Split a PDF in your browser: extract specific pages into one PDF, or split every page into separate files. Free — nothing leaves your browser.",
   alternates: { canonical: '/split-pdf' },
   openGraph: {
-    images: ['/og.png'],
+    images: ['/og/split-pdf.png'],
     title: 'Split PDF — Extract or Split Pages Free | DiemDesk',
     description: 'Extract pages or split a PDF into separate files, privately in your browser. Free, no signup, no watermark.',
     type: 'website',

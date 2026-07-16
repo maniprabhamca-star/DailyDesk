@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     "Format, validate and minify JSON in your browser — clear errors with line and column, sorted keys, highlighting. Free, nothing leaves your device.",
   alternates: { canonical: '/json-formatter' },
   openGraph: {
-    images: ['/og.png'],
+    images: ['/og/json-formatter.png'],
     title: 'JSON Formatter — Beautify, Validate & Minify JSON | DiemDesk',
     description: 'Pretty-print, validate, and minify JSON privately in your browser, with line/column error messages.',
     type: 'website',

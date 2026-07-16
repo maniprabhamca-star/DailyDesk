@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     "Remove a PDF password you know and get a copy that opens freely — free, in your browser, so the file and password never leave your device.",
   alternates: { canonical: '/unlock-pdf' },
   openGraph: {
-    images: ['/og.png'],
+    images: ['/og/unlock-pdf.png'],
     title: 'Unlock PDF — Remove a PDF Password You Know, Free | DiemDesk',
     description: 'Tired of typing a PDF password? Remove it privately in your browser — file and password never uploaded.',
     type: 'website',

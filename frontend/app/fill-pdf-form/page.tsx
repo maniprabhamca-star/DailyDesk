@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     "Fill any PDF form free in your browser — type text, add checkmarks and dates, drop in a signature, then flatten. Works on real fields and flat scans.",
   alternates: { canonical: '/fill-pdf-form' },
   openGraph: {
-    images: ['/og.png'],
+    images: ['/og/fill-pdf-form.png'],
     title: 'Fill a PDF Form — Free & On Your Device | DiemDesk',
     description: 'Type, tick, date and sign any PDF — form fields or flat scans — then flatten. On your device, no upload.',
     type: 'website',

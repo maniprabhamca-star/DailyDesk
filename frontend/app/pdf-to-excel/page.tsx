@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   title: 'PDF to Excel — Convert Tables Free, No Upload | DiemDesk',
   description: 'Extract tables from PDF into Excel or CSV — bank statements, invoices, reports. Editable cells, .xlsx or .csv, and your file never leaves your browser.',
   alternates: { canonical: '/pdf-to-excel' },
-  openGraph: { images: ['/og.png'], title: 'PDF to Excel — private, in your browser', description: 'Turn PDF tables into an editable spreadsheet without uploading your file. Export .xlsx or .csv.', type: 'website' },
+  openGraph: { images: ['/og/pdf-to-excel.png'], title: 'PDF to Excel — private, in your browser', description: 'Turn PDF tables into an editable spreadsheet without uploading your file. Export .xlsx or .csv.', type: 'website' },
 };
 
 const steps = [

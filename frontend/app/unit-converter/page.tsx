@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     "Convert length, weight, temperature, area, volume, speed, time and data sizes instantly — precise, both directions, free and offline in your browser.",
   alternates: { canonical: '/unit-converter' },
   openGraph: {
-    images: ['/og.png'],
+    images: ['/og/unit-converter.png'],
     title: 'Unit Converter — Length, Weight, Temperature & More | DiemDesk',
     description: 'Instant, precise unit conversion across 8 categories — right in your browser.',
     type: 'website',

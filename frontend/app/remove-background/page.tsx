@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     'Remove image backgrounds with AI that runs on your device — your photo is never uploaded. Free, full resolution, transparent PNG, no signup, no watermark.',
   alternates: { canonical: '/remove-background' },
   openGraph: {
-    images: ['/og.png'],
+    images: ['/og/remove-background.png'],
     title: 'Remove Background from Image — Free, On Your Device | DiemDesk',
     description: 'AI background removal that never uploads your photo. Free, full resolution, transparent PNG.',
     type: 'website',

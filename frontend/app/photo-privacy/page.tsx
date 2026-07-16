@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     "Strip hidden GPS, device and timestamp data from a photo and blur faces, plates or text — free in your browser. Auto-detect and batch-scrub with Pro.",
   alternates: { canonical: '/photo-privacy' },
   openGraph: {
-    images: ['/og.png'],
+    images: ['/og/photo-privacy.png'],
     title: 'Blur Faces & Remove Photo Metadata — Free | DiemDesk',
     description: 'Strip EXIF/GPS and blur faces or plates before you share. On your device, no upload.',
     type: 'website',

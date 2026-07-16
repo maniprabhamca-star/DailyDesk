@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     "Rotate PDF pages 90° or 180° free and instantly. Turn every page or just the ones you pick — no signup, no watermark, nothing leaves your browser.",
   alternates: { canonical: '/rotate-pdf' },
   openGraph: {
-    images: ['/og.png'],
+    images: ['/og/rotate-pdf.png'],
     title: 'Rotate PDF — Turn PDF Pages Free | DiemDesk',
     description: 'Rotate PDF pages left, right, or 180°, privately in your browser. Free, no signup, no watermark.',
     type: 'website',

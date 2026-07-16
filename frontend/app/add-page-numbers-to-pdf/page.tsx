@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     "Add page numbers to a PDF free, in your browser. Choose the position, format and starting number — no signup, no watermark, nothing uploaded.",
   alternates: { canonical: '/add-page-numbers-to-pdf' },
   openGraph: {
-    images: ['/og.png'],
+    images: ['/og/add-page-numbers-to-pdf.png'],
     title: 'Add Page Numbers to PDF — Free | DiemDesk',
     description: 'Number your PDF pages privately in your browser. Pick the corner, format, and start number. Free, no signup, no watermark.',
     type: 'website',

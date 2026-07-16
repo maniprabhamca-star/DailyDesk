@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     'Create QR codes free — links, Wi-Fi, contact cards, email, SMS. Custom colors, logo, bulk ZIP export. In your browser: no signup, no expiry, no watermark.',
   alternates: { canonical: '/qr-code-generator' },
   openGraph: {
-    images: ['/og.png'],
+    images: ['/og/qr-code-generator.png'],
     title: 'Free QR Code Generator — Colors, Logo, Bulk | DiemDesk',
     description: 'Custom colors, logo overlay, and bulk export — free, in your browser, nothing uploaded.',
     type: 'website',

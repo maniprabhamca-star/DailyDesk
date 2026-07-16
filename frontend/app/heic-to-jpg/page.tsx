@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     "Convert HEIC and HEIF iPhone photos to JPG or PNG free in your browser — full quality, burst photos included, nothing uploaded. Works on any device.",
   alternates: { canonical: '/heic-to-jpg' },
   openGraph: {
-    images: ['/og.png'],
+    images: ['/og/heic-to-jpg.png'],
     title: 'HEIC to JPG — Convert iPhone Photos Free | DiemDesk',
     description: 'Open iPhone HEIC photos anywhere: convert to JPG or PNG privately in your browser. Free, no signup, no upload.',
     type: 'website',

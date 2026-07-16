@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     "Make a compliant passport, visa or ID photo for 45+ countries — auto-crop, swap the background and hit the file-size limit, all in your browser.",
   alternates: { canonical: '/passport-photo' },
   openGraph: {
-    images: ['/og.png'],
+    images: ['/og/passport-photo.png'],
     title: 'Passport & ID Photo Maker — 45+ Country Specs | DiemDesk',
     description: 'Compliant passport/visa/ID photos for 45+ countries — cropped, background swapped, sized to fit. On your device, no upload.',
     type: 'website',

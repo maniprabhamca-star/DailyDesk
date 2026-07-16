@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     "Pull every embedded image out of a PDF at original quality, free in your browser. Photos export as JPGs, graphics as lossless PNGs. Nothing uploaded.",
   alternates: { canonical: '/extract-images-from-pdf' },
   openGraph: {
-    images: ['/og.png'],
+    images: ['/og/extract-images-from-pdf.png'],
     title: 'Extract Images from PDF — Original Quality, Free | DiemDesk',
     description: 'Get the actual pictures inside a PDF — original JPGs and lossless PNGs, privately in your browser. Free, no signup.',
     type: 'website',

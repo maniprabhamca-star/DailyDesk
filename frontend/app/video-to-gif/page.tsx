@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     "Turn a video into an animated GIF free, on your device — nothing uploaded. Trim, set the frame rate and size, loop it. Works with MP4, WebM and MOV.",
   alternates: { canonical: '/video-to-gif' },
   openGraph: {
-    images: ['/og.png'],
+    images: ['/og/video-to-gif.png'],
     title: 'Video to GIF — Convert MP4 to GIF Free, In Your Browser | DiemDesk',
     description: 'Make an animated GIF from any video, privately in your browser. Trim, set fps and size, loop — nothing uploaded.',
     type: 'website',

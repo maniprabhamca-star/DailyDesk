@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     "Count words, characters, sentences and paragraphs live as you type — with reading time, speaking time and keyword density. Nothing leaves your browser.",
   alternates: { canonical: '/word-counter' },
   openGraph: {
-    images: ['/og.png'],
+    images: ['/og/word-counter.png'],
     title: 'Word Counter — Count Words, Characters & Reading Time | DiemDesk',
     description: 'Live word and character counts with reading time and keyword density — private, in your browser.',
     type: 'website',

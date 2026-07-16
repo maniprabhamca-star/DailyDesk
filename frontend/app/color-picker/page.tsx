@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     "Pick any color and get HEX, RGB and HSL with one-click copy — plus shades, tints, an eyedropper and WCAG contrast checks. Free, in your browser.",
   alternates: { canonical: '/color-picker' },
   openGraph: {
-    images: ['/og.png'],
+    images: ['/og/color-picker.png'],
     title: 'Color Picker — HEX, RGB, HSL, Shades & Contrast | DiemDesk',
     description: 'HEX/RGB/HSL conversion, shades and tints, eyedropper, and WCAG contrast — free in your browser.',
     type: 'website',

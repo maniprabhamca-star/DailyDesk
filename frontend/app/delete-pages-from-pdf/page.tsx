@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     "Delete pages from a PDF free, in your browser. See every page, tap the ones to remove and download — no signup, no watermark, nothing uploaded.",
   alternates: { canonical: '/delete-pages-from-pdf' },
   openGraph: {
-    images: ['/og.png'],
+    images: ['/og/delete-pages-from-pdf.png'],
     title: 'Delete Pages from PDF — Remove PDF Pages Free | DiemDesk',
     description: 'Visually remove pages from a PDF, privately in your browser. Free, no signup, no watermark.',
     type: 'website',

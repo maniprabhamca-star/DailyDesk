@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     "Compress a PDF or image to an exact size — 50 KB, 100 KB, 200 KB, 500 KB, 1 MB or 2 MB — for exam, visa and portal uploads. Free, on your device.",
   alternates: { canonical: '/compress-to-size' },
   openGraph: {
-    images: ['/og.png'],
+    images: ['/og/compress-to-size.png'],
     title: 'Compress to a Target Size — PDF & Image | DiemDesk',
     description: 'Hit an exact KB/MB limit for exam, visa and portal uploads. PDF & image, on your device, no upload.',
     type: 'website',

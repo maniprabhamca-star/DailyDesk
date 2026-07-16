@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "og": "node scripts/gen-og-images.mjs"
   },
   "dependencies": {
     "@jsquash/jpeg": "^1.6.0",

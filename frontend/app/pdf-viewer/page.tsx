@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   title: 'PDF Viewer — Open & Read PDFs Free, Private | DiemDesk',
   description: 'Open and read any PDF in your browser — pages, zoom, search and thumbnails — then send it straight to any tool with no re-upload. Never uploaded.',
   alternates: { canonical: '/pdf-viewer' },
-  openGraph: { images: ['/og.png'], title: 'PDF Viewer — private, in your browser', description: 'Read any PDF on your device, then hand it to any tool with no re-upload.', type: 'website' },
+  openGraph: { images: ['/og/pdf-viewer.png'], title: 'PDF Viewer — private, in your browser', description: 'Read any PDF on your device, then hand it to any tool with no re-upload.', type: 'website' },
 };
 
 const steps = [

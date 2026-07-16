@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     "Rearrange PDF pages free, in your browser — drag pages into a new order or reverse the whole document, preview every page, and download. Never uploaded.",
   alternates: { canonical: '/reorder-pdf' },
   openGraph: {
-    images: ['/og.png'],
+    images: ['/og/reorder-pdf.png'],
     title: 'Reorder PDF Pages — Drag & Drop, Free | DiemDesk',
     description: 'Drag PDF pages into a new order with a visual preview — free, private, in your browser.',
     type: 'website',

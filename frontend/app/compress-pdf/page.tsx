@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     "Compress a PDF free in your browser. Shrinks images and scanned pages — even files other tools leave unchanged — while text stays crisp. Nothing uploaded.",
   alternates: { canonical: '/compress-pdf' },
   openGraph: {
-    images: ['/og.png'],
+    images: ['/og/compress-pdf.png'],
     title: 'Compress PDF — Reduce PDF File Size Free | DiemDesk',
     description: 'Make your PDF smaller privately in your browser. Shrinks images, keeps text sharp. Free, no signup, no watermark.',
     type: 'website',
