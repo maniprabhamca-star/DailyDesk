@@ -94,9 +94,9 @@ _Status re-verified against the live server 2026-07-15 — several items below w
 - [x] ✅ **Sitemap live + submitted to Google Search Console** (`/sitemap.xml` → 200).
 - [x] ✅ **OG image shipped** (`/og.png` → 200, 48 KB, referenced site-wide). _Optional later: per-tool OG variants._
 - [x] ✅ **DMARC record exists** — `v=DMARC1; p=quarantine; rua=mailto:support@diemdesk.com`.
-- [ ] ⏳ **DMARC `p=quarantine` → `p=reject`** (strongest anti-spoofing; do after the rua reports show legit mail passing)
-- [ ] ⏳ **Cloudflare Full → Full (strict)**: origin currently uses a **self-signed** cert (`/etc/nginx/ssl/diemdesk-origin.crt`), which "Full" encrypts but does NOT verify. Fix = issue a free **Cloudflare Origin CA cert**, install on nginx, flip SSL mode to Full (strict). ~10 min.
-- [ ] ⏳ **Node 20 → 22 LTS on VPS** (verified running **v20.20.2** — EOL, no security patches; also below pdfjs-dist v6's ≥22.13 engine). Needs PM2 reinstall/restart care.
+- [ ] ⚠️ **BLOCKED — DMARC `p=quarantine` → `p=reject`**: a DKIM-selector scan found **NO DKIM record** for diemdesk.com (mail runs through Hostinger: MX mx1/mx2.hostinger.com, SPF `include:_spf.mail.hostinger.com ~all`). With no DKIM, DMARC rests on SPF alone and `p=reject` risks **bouncing real mail** (password resets). **Do first:** enable DKIM in Hostinger hPanel → Emails → DKIM, confirm the `_domainkey` record resolves + rua reports show passes → *then* flip to reject.
+- [ ] 🔨 **Cloudflare Full → Full (strict)** — IN PROGRESS. Origin used a **self-signed** cert, which "Full" encrypts but does NOT verify. CSR + private key generated on the VPS 2026-07-16 (`/etc/nginx/ssl/diemdesk-cf-origin.{key,csr}`, key chmod 600, never leaves the box). **Owner step:** paste the CSR into Cloudflare → SSL/TLS → Origin Server → Create Certificate ("I have my own private key and CSR") → return the signed cert → install in nginx → flip SSL mode to Full (strict).
+- [x] ✅ **Node 20 → 22 LTS on VPS** (2026-07-16) — now **v22.23.1** / npm 10.9.8 / pm2 7.0.3. No native modules (bcryptjs is pure JS) so no ABI rebuild was needed; backend+frontend `npm ci` + rebuild, `pm2 update`, `pm2 save`. Verified: health ok, site 200, AI chat answering. Also clears pdfjs-dist v6's ≥22.13 engine warning.
 - [ ] ⏳ Origin firewall restricted to Cloudflare IP ranges · Cloudflare Bot Fight Mode
 - [ ] ⏳ Core Web Vitals pass on the live domain (Lighthouse/PageSpeed)
 - [ ] ⏳ Monitoring V3: autonomous auto-PR, OCR canary, per-tool SLO alerts
