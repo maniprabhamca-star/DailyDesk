@@ -66,6 +66,7 @@ const DIFFS: { name: string; desc: string; moat: string; flag?: boolean }[] = [
 // Beyond-market tools — the ones no rival PDF site ships (our best-in-class layer).
 // status: 'live' = usable today · 'soon' = on the roadmap. tier: free / pro / ai.
 const BEYOND: { name: string; desc: string; status: 'live' | 'soon'; tier: 'free' | 'pro' | 'ai' }[] = [
+  { name: 'Bank statement → Excel & Tally', desc: 'Statement PDF → a transaction table where every row is checked against the running balance — then export to Excel, CSV or Tally. Processed on your device: the one document you should never upload.', status: 'soon', tier: 'pro' },
   { name: 'Compress to exact size', desc: 'Hit a precise KB/MB limit for exam, visa & court portals — not just “smaller”.', status: 'live', tier: 'free' },
   { name: 'PDF → Excel', desc: 'Bank statements & tables → an editable spreadsheet, converted on your device.', status: 'live', tier: 'free' },
   { name: 'Chat with PDF', desc: 'Ask your document and get answers with the exact page they came from.', status: 'soon', tier: 'ai' },

@@ -8,6 +8,19 @@ Related: [tool-expansion-roadmap.md](tool-expansion-roadmap.md) · [status board
 
 ---
 
+## ⭐ FLAGSHIP — Bank Statement Converter (the Pro conversion engine)
+**Full spec: [bank-statement-converter.md](bank-statement-converter.md)** · owner spec 2026-07-16 · **status: specified, not started**
+
+The paid flagship. Bank statement PDF → verified transaction table → **Excel / CSV / Tally XML / QBO / OFX**, India-first (SBI, HDFC, ICICI, Axis, Kotak, PNB, BoB, Canara, Union, IDFC/Yes). The 57 free tools are the funnel; **this is what people pay for.**
+- **Wedge:** only converter that processes **locally**, **validates every row against the running balance**, and exports to **Tally** (which every Indian CA uses and no competitor supports).
+- **Willingness to pay is proven:** DocuClipper $29–159/mo · CapyParse $29/mo · BankStatementLab $9/mo.
+- **Pricing (NOT bundled into $5.98 Pro):** Free 5 pages/mo · credit pack ₹399/$4.99 = 20 pages · **Statements Pro ₹1,499/$19/mo** = 300 pages.
+- **Head start:** ~70% of the extraction engine already shipped for PDF→Excel (`table-extract.ts`, `pdf-tables.ts`, `xlsx.ts`, editable grid, unlock-pdf, OCR, AI + cost caps, Stripe).
+- **New work:** bank fingerprinting · per-bank column maps · **balance-validation engine** · **Tally XML writer** · bank SEO pages · page quota + new Stripe tier.
+- **Key idea:** balance validation doubles as a **free accuracy oracle** → local → Haiku → escalate to Sonnet **only when the balance fails** (keeps AI cost near zero).
+- **Critical path:** collecting real statement samples per bank (not code) + validating Tally XML against a real Tally Prime import.
+- [ ] ⏳ **Sequencing decision:** this is the revenue engine; native apps only distribute a product that doesn't monetise yet. **Recommend this ahead of native apps** — owner's call.
+
 ## 0. Just shipped (2026-07-15)
 - ✅ **Chat with PDF** (`/chat-pdf`) — 🌓 first AI/Pro tool, ships dark. On-device text extract → cited answers. Key live on VPS, owner can use now.
 - ✅ **PDF → Excel** (`/pdf-to-excel`) — free, on-device table extraction → editable grid → .xlsx/.csv.
