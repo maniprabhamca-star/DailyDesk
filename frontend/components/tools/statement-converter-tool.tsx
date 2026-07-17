@@ -8,9 +8,10 @@ import { buildXlsx, toCsv, type Cell } from '@/lib/xlsx';
 import { passwordErrorKind } from '@/lib/pdf-render';
 import { parseStatement, type StatementResult } from '@/lib/banks/statement';
 import { formatMoney, currencySymbol, type Txn, type Currency } from '@/lib/banks/balance';
+import { buildTallyXml } from '@/lib/banks/tally';
 import { useFileHandoff } from '@/lib/file-handoff';
 
-type Fmt = 'xlsx' | 'csv';
+type Fmt = 'xlsx' | 'csv' | 'tally';
 
 export function StatementConverterTool() {
   const [file, setFile] = useState<File | null>(null);
@@ -21,6 +22,10 @@ export function StatementConverterTool() {
   const [error, setError] = useState<string | null>(null);
   const [fmt, setFmt] = useState<Fmt>('xlsx');
   const [exporting, setExporting] = useState(false);
+  // Tally ledger mapping — these names must already exist in the user's Tally company.
+  const [company, setCompany] = useState('');
+  const [bankLedger, setBankLedger] = useState('');
+  const [contraLedger, setContraLedger] = useState('Suspense');
   // Bank e-statements are password-protected by default, so this is the common
   // path, not an edge case. The password stays in this tab — pdf.js decrypts on
   // the device and it is never sent anywhere.
@@ -73,7 +78,14 @@ export function StatementConverterTool() {
     setExporting(true);
     try {
       const base = (file?.name || 'statement.pdf').replace(/\.[^.]+$/, '');
-      if (fmt === 'csv') {
+      if (fmt === 'tally') {
+        const { xml } = buildTallyXml(txns, {
+          company: company.trim() || 'My Company',
+          bankLedger: bankLedger.trim() || (res?.bank?.name ?? 'Bank Account'),
+          contraLedger: contraLedger.trim() || 'Suspense',
+        });
+        downloadBlob(new Blob([xml], { type: 'application/xml' }), `${base}-tally.xml`);
+      } else if (fmt === 'csv') {
         downloadBlob(new Blob(['﻿' + toCsv(rows())], { type: 'text/csv;charset=utf-8' }), `${base}.csv`);
       } else {
         const summary: Cell[][] = [
@@ -94,7 +106,7 @@ export function StatementConverterTool() {
         ]), `${base}.xlsx`);
       }
     } finally { setExporting(false); }
-  }, [txns, exporting, file, fmt, rows, res]);
+  }, [txns, exporting, file, fmt, rows, res, company, bankLedger, contraLedger]);
 
   // ---- locked: ask for the password (the NORMAL path for bank e-statements) --
   if (status === 'idle' && locked) {
@@ -286,16 +298,43 @@ export function StatementConverterTool() {
           <div className="inline-flex overflow-hidden rounded-lg border">
             <button onClick={() => setFmt('xlsx')} className={`px-3 py-1.5 text-xs font-bold ${fmt === 'xlsx' ? 'bg-emerald-600 text-white' : 'text-muted-foreground'}`}>Excel .xlsx</button>
             <button onClick={() => setFmt('csv')} className={`px-3 py-1.5 text-xs font-bold ${fmt === 'csv' ? 'bg-emerald-600 text-white' : 'text-muted-foreground'}`}>.csv</button>
-            <span className="border-l px-3 py-1.5 text-xs font-bold text-muted-foreground/60" title="Coming next">★ Tally XML · soon</span>
+            <button onClick={() => setFmt('tally')} className={`border-l px-3 py-1.5 text-xs font-bold ${fmt === 'tally' ? 'bg-emerald-600 text-white' : 'text-emerald-700 dark:text-emerald-400'}`}>★ Tally XML</button>
           </div>
           <button onClick={() => void doExport()} disabled={exporting}
             className="ml-auto inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50">
             {exporting ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />} Export {v.total} transactions
           </button>
         </div>
+
+        {/* Tally ledger mapping — these names must already exist in the user's Tally company */}
+        {fmt === 'tally' && (
+          <div className="grid gap-3 border-t border-dashed bg-emerald-500/[0.06] px-4 py-3 sm:grid-cols-3">
+            <Field label="Company name (in Tally)" value={company} onChange={setCompany} placeholder="Acme Traders Pvt Ltd" />
+            <Field label="Bank ledger" value={bankLedger} onChange={setBankLedger} placeholder={res!.bank?.name ? `${res!.bank.name} A/c` : 'Bank A/c'} />
+            <Field label="Default contra ledger" value={contraLedger} onChange={setContraLedger} placeholder="Suspense" />
+            <p className="text-[11.5px] text-muted-foreground sm:col-span-3">
+              Debits → <b className="text-foreground">Payment</b> vouchers · Credits → <b className="text-foreground">Receipt</b> vouchers.
+              Produces a Tally Prime–ready <code className="rounded bg-muted px-1">&lt;ENVELOPE&gt;</code> import file. These ledger names must already exist in your Tally company.
+            </p>
+          </div>
+        )}
       </div>
       <Notes />
     </div>
+  );
+}
+
+function Field({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder: string }) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{label}</span>
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full rounded-lg border bg-background px-2.5 py-1.5 text-xs outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30"
+      />
+    </label>
   );
 }
 
