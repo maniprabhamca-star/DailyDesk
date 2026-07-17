@@ -10,6 +10,7 @@ import { parseStatement, type StatementResult } from '@/lib/banks/statement';
 import { formatMoney, currencySymbol, type Txn, type Currency } from '@/lib/banks/balance';
 import { buildTallyXml } from '@/lib/banks/tally';
 import { useCurrency, price, STATEMENT_PRICE } from '@/lib/currency';
+import { getQuota, consumePages, type Quota } from '@/lib/statement-quota';
 import { ShareButton } from '@/components/app/share-button';
 import { KeepGoing } from '@/components/app/keep-going';
 import { useFileHandoff } from '@/lib/file-handoff';
@@ -40,6 +41,9 @@ export function StatementConverterTool() {
   // Billing currency from the visitor's country (NOT the statement's own currency).
   const billing = useCurrency();
   const stmtPrice = STATEMENT_PRICE[billing];
+  // Page quota — only a page COUNT is sent to the server, never the statement.
+  const [quota, setQuota] = useState<Quota | null>(null);
+  const [overQuota, setOverQuota] = useState(false);
 
   const load = useCallback(async (f?: File, password?: string) => {
     if (!f) return;
@@ -113,9 +117,21 @@ export function StatementConverterTool() {
   const doExport = useCallback(async () => {
     if (!txns.length || exporting) return;
     setExporting(true);
-    try { const { blob, name } = await makeExport(); downloadBlob(blob, name); }
-    finally { setExporting(false); }
-  }, [txns, exporting, makeExport]);
+    try {
+      // Meter the pages first (only a number is sent). If the free allowance is
+      // spent and enforcement is on, show the upgrade prompt instead of exporting.
+      const c = await consumePages(res?.numPages ?? 0);
+      if (!c.allowed) { setOverQuota(true); return; }
+      setQuota((q) => (q ? { ...q, used: c.used, remaining: c.remaining } : q));
+      const { blob, name } = await makeExport();
+      downloadBlob(blob, name);
+    } finally { setExporting(false); }
+  }, [txns, exporting, makeExport, res]);
+
+  // Load the current allowance when a result is ready (for the usage display).
+  useEffect(() => {
+    if (status === 'ready') { setOverQuota(false); void getQuota().then(setQuota); }
+  }, [status]);
 
   // Web Share must hand over the file within the click gesture (Safari drops the
   // gesture across an await), so keep the current export pre-built in a ref.
@@ -315,6 +331,15 @@ export function StatementConverterTool() {
           </table>
         </div>
 
+        {/* over-quota → upgrade prompt instead of export */}
+        {overQuota && (
+          <div className="flex flex-wrap items-center gap-3 border-t border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm">
+            <span className="font-semibold text-amber-800 dark:text-amber-300">You’ve used your {stmtPrice.freePages} free statement pages this month.</span>
+            <span className="text-muted-foreground">Upgrade to Statements Pro — {price(stmtPrice.proMonthly, billing)}/mo — to keep converting.</span>
+            <a href="/pricing" className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-amber-500 px-3.5 py-2 text-sm font-bold text-white hover:bg-amber-600">See Statements Pro</a>
+          </div>
+        )}
+
         {/* export */}
         <div className="flex flex-wrap items-center gap-3 border-t bg-muted/20 px-4 py-3">
           <div className="inline-flex overflow-hidden rounded-lg border">
@@ -323,7 +348,13 @@ export function StatementConverterTool() {
             <button onClick={() => setFmt('tally')} className={`border-l px-3 py-1.5 text-xs font-bold ${fmt === 'tally' ? 'bg-emerald-600 text-white' : 'text-emerald-700 dark:text-emerald-400'}`}>★ Tally XML</button>
           </div>
           <span className="text-[11px] text-muted-foreground">
-            Free · <b className="text-foreground">{stmtPrice.freePages} pages/mo</b> · Statements Pro <b className="text-foreground">{price(stmtPrice.proMonthly, billing)}/mo</b>
+            {quota?.pro || quota?.unlimited ? (
+              <>Statements Pro · <b className="text-foreground">unlimited pages</b></>
+            ) : quota ? (
+              <><b className="text-foreground">{quota.used} of {quota.limit}</b> free pages used this month · Pro <b className="text-foreground">{price(stmtPrice.proMonthly, billing)}/mo</b> for {stmtPrice.proPages}</>
+            ) : (
+              <>Free · <b className="text-foreground">{stmtPrice.freePages} pages/mo</b> · Statements Pro <b className="text-foreground">{price(stmtPrice.proMonthly, billing)}/mo</b></>
+            )}
           </span>
           <div className="ml-auto flex items-center gap-2">
             <ShareButton size="sm" title="Bank statement export" label="Share" get={() => (shareCache.current ? [shareCache.current] : [])} />
