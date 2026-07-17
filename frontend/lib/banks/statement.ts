@@ -8,7 +8,7 @@
 import { openPdf } from '../pdf-render';
 import { itemsToTable, type TItem } from '../table-extract';
 import { fingerprintBank, type BankMatch } from './fingerprint';
-import { validate, type Validation } from './balance';
+import { validate, detectCurrency, type Validation, type Currency } from './balance';
 
 export type StatementMeta = {
   account: string | null;   // masked before it ever reaches the UI
@@ -20,6 +20,7 @@ export type StatementResult = {
   bank: BankMatch | null;
   meta: StatementMeta;
   validation: Validation;
+  currency: Currency;       // never show ₹ on a Wells Fargo statement
   numPages: number;
   hasText: boolean;         // false = scanned image → needs OCR first
 };
@@ -112,6 +113,7 @@ export async function parseStatement(
       bank: fingerprintBank(fullText, headerText || fullText.slice(0, 1200)),
       meta: readMeta(headerText || fullText.slice(0, 1500)),
       validation: validate(rows),
+      currency: detectCurrency(fullText),
       numPages: handle.numPages,
       hasText: fullText.trim().length > 40,
     };

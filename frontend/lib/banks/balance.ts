@@ -42,8 +42,10 @@ export type Txn = {
   ref: string;
   debit: Money | null;
   credit: Money | null;
-  balance: Money;
-  ok: boolean;            // reconciles against the previous row
+  /** null on statements that only print a periodic "ending daily balance" (US banks)
+   *  rather than a running balance on every row. */
+  balance: Money | null;
+  ok: boolean;            // its balance span reconciles
   expected?: Money;       // what the balance SHOULD have been, when !ok
 };
 
@@ -91,6 +93,12 @@ const DATE_RES = [
   /^\d{1,2}[/\-.]\d{1,2}[/\-.]\d{2,4}$/,               // 04/07/2026 · 4-7-26
   /^\d{1,2}[\s\-]?[A-Z]{3}[\s\-]?'?\d{2,4}$/i,          // 04 Jul 2026 · 04-JUL-26
   /^\d{4}-\d{2}-\d{2}$/,                                // 2026-07-04
+  // US statements print the day WITHOUT a year (the year lives in the statement
+  // period header): "5/27", "12/3". A real Wells Fargo statement produced ZERO
+  // recognised dates until this existed. Bounded to plausible month/day values so
+  // it can't swallow arbitrary "1/2"-style fractions.
+  /^(0?[1-9]|1[0-2])[/-](0?[1-9]|[12]\d|3[01])$/,       // 5/27 · 12/3
+  /^\d{1,2}\s[A-Z]{3}$/i,                               // 27 May
 ];
 export const looksLikeDate = (s: string): boolean => DATE_RES.some((re) => re.test(String(s || '').trim()));
 
@@ -141,12 +149,33 @@ export function solveLayout(grid: string[][]): ColumnRoles | null {
   const markerCols = prof.filter((p) => p.marker >= 0.5).map((p) => p.c);
 
   const amt = (r: string[], c: number): Money | null => { const p = parseAmount(cell(r, c)); return p ? p.value : null; };
-  const pairs = rows.length - 1;
-  const need = Math.max(2, Math.ceil(pairs * 0.6)); // most rows must obey, not just a lucky few
 
   type Hyp = Omit<ColumnRoles, 'date' | 'narration' | 'ref'>;
   let best: Hyp | null = null;
   const keep = (h: Hyp) => { if (!best || h.score > best.score) best = h; };
+
+  // Score a hypothesis by walking BALANCE ANCHORS — the rows that actually carry a
+  // balance — and summing every amount in between.
+  //
+  // ⚠ Indian statements print a balance on EVERY row; US ones (Wells Fargo) print an
+  // "Ending daily balance" on only SOME rows. Checking bal[i] against bal[i-1] works
+  // for the first and silently fails the second. Anchoring generalises both: with a
+  // balance on every row the span is one row and this reduces exactly to the per-row
+  // check; with sparse balances it verifies per day instead. One rule, both layouts.
+  const scoreChain = (balCol: number, split: (r: string[]) => { d: Money; c: Money }) => {
+    const anchors: number[] = [];
+    for (let i = 0; i < rows.length; i++) if (amt(rows[i], balCol) != null) anchors.push(i);
+    if (anchors.length < 3) return { score: 0, pairs: 0 };
+    let score = 0;
+    for (let k = 1; k < anchors.length; k++) {
+      const a = anchors[k - 1];
+      const b = anchors[k];
+      let d = 0; let c = 0;
+      for (let i = a + 1; i <= b; i++) { const x = split(rows[i]); d += x.d; c += x.c; }
+      if (amt(rows[b], balCol) === (amt(rows[a], balCol) as Money) - d + c) score++;
+    }
+    return { score, pairs: anchors.length - 1 };
+  };
 
   // Hypothesis A — separate debit + credit columns (the common case).
   // Ordered triples, so trying (d,c,b) AND (c,d,b) is what identifies which of the
@@ -156,13 +185,7 @@ export function solveLayout(grid: string[][]): ColumnRoles | null {
       if (d === b) continue;
       for (const c of numCols) {
         if (c === b || c === d) continue;
-        let score = 0;
-        for (let i = 1; i < rows.length; i++) {
-          const prev = amt(rows[i - 1], b); const bal = amt(rows[i], b);
-          if (prev == null || bal == null) continue;
-          const deb = amt(rows[i], d) ?? 0; const cr = amt(rows[i], c) ?? 0;
-          if (bal === prev - deb + cr) score++;
-        }
+        const { score, pairs } = scoreChain(b, (r) => ({ d: amt(r, d) ?? 0, c: amt(r, c) ?? 0 }));
         keep({ mode: 'debit-credit', balance: b, debit: d, credit: c, score, pairs });
       }
     }
@@ -172,12 +195,10 @@ export function solveLayout(grid: string[][]): ColumnRoles | null {
   for (const b of numCols) {
     for (const a of numCols) {
       if (a === b) continue;
-      let score = 0;
-      for (let i = 1; i < rows.length; i++) {
-        const prev = amt(rows[i - 1], b); const bal = amt(rows[i], b); const v = amt(rows[i], a);
-        if (prev == null || bal == null || v == null) continue;
-        if (bal === prev + v) score++;
-      }
+      const { score, pairs } = scoreChain(b, (r) => {
+        const v = amt(r, a) ?? 0;
+        return v < 0 ? { d: -v, c: 0 } : { d: 0, c: v };
+      });
       keep({ mode: 'signed', balance: b, amount: a, score, pairs });
     }
   }
@@ -187,20 +208,20 @@ export function solveLayout(grid: string[][]): ColumnRoles | null {
     for (const a of numCols) {
       if (a === b) continue;
       for (const m of markerCols) {
-        let score = 0;
-        for (let i = 1; i < rows.length; i++) {
-          const prev = amt(rows[i - 1], b); const bal = amt(rows[i], b); const v = amt(rows[i], a);
-          if (prev == null || bal == null || v == null) continue;
-          const isDr = /^DR/i.test(cell(rows[i], m));
-          if (bal === prev + (isDr ? -Math.abs(v) : Math.abs(v))) score++;
-        }
+        const { score, pairs } = scoreChain(b, (r) => {
+          const v = amt(r, a);
+          if (v == null) return { d: 0, c: 0 };
+          return /^DR/i.test(cell(r, m)) ? { d: Math.abs(v), c: 0 } : { d: 0, c: Math.abs(v) };
+        });
         keep({ mode: 'marker', balance: b, amount: a, marker: m, score, pairs });
       }
     }
   }
 
-  if (!best || (best as Hyp).score < need) return null;
+  // Most anchors must obey, not just a lucky few.
+  if (!best) return null;
   const win = best as Hyp;
+  if (win.score < Math.max(2, Math.ceil(win.pairs * 0.6))) return null;
 
   // Narration = the widest text column that isn't already spoken for.
   const used = new Set<number>([dateCol.c, win.balance, win.debit, win.credit, win.amount, win.marker].filter((x): x is number => x != null));
@@ -229,51 +250,62 @@ export function validate(grid: string[][]): Validation {
     return p ? p.value : null;
   };
 
-  const txns: Txn[] = [];
-  let prevBal: Money | null = null;
-  let totalDebit = 0;
-  let totalCredit = 0;
-
-  for (let i = 0; i < rows.length; i++) {
-    const r = rows[i];
-    const balance = val(r, roles.balance);
-    if (balance == null) continue;
-
-    let debit: Money | null = null;
-    let credit: Money | null = null;
+  // Split a row into debit/credit under the solved layout.
+  const split = (r: string[]): { debit: Money | null; credit: Money | null } => {
     if (roles.mode === 'debit-credit') {
       const d = val(r, roles.debit); const c = val(r, roles.credit);
-      debit = d ? Math.abs(d) : null;
-      credit = c ? Math.abs(c) : null;
-    } else if (roles.mode === 'signed') {
-      const v = val(r, roles.amount);
-      if (v != null) { if (v < 0) debit = -v; else credit = v; }
-    } else {
-      const v = val(r, roles.amount);
-      if (v != null) { if (/^DR/i.test(cell(r, roles.marker!))) debit = Math.abs(v); else credit = Math.abs(v); }
+      return { debit: d ? Math.abs(d) : null, credit: c ? Math.abs(c) : null };
     }
+    const v = val(r, roles.amount);
+    if (v == null) return { debit: null, credit: null };
+    if (roles.mode === 'signed') return v < 0 ? { debit: -v, credit: null } : { debit: null, credit: v };
+    return /^DR/i.test(cell(r, roles.marker!))
+      ? { debit: Math.abs(v), credit: null }
+      : { debit: null, credit: Math.abs(v) };
+  };
 
-    const expected = prevBal == null ? null : prevBal - (debit ?? 0) + (credit ?? 0);
-    // The first transaction has no predecessor, so it anchors the run rather than failing.
-    const ok = expected == null ? true : expected === balance;
-
-    txns.push({
-      row: i, date: cell(r, roles.date), narration: cell(r, roles.narration),
+  const txns: Txn[] = rows.map((r, i) => {
+    const { debit, credit } = split(r);
+    return {
+      row: i,
+      date: cell(r, roles.date),
+      narration: cell(r, roles.narration),
       ref: roles.ref != null ? cell(r, roles.ref) : '',
-      debit, credit, balance, ok, ...(ok ? {} : { expected: expected as Money }),
-    });
-
-    totalDebit += debit ?? 0;
-    totalCredit += credit ?? 0;
-    prevBal = balance;
-  }
-
+      debit, credit,
+      balance: val(r, roles.balance),   // may be null — sparse "ending daily balance"
+      ok: true,                          // decided by the anchor walk below
+    };
+  });
   if (!txns.length) return { ...empty, roles };
 
+  const totalDebit = txns.reduce((s, t) => s + (t.debit ?? 0), 0);
+  const totalCredit = txns.reduce((s, t) => s + (t.credit ?? 0), 0);
+
+  // Walk the balance anchors. Every row between two anchors belongs to that span:
+  // if the span reconciles, those rows are verified together; if not, they're all
+  // flagged (we can't tell WHICH row inside the span is wrong — saying so is honest).
+  const anchors = txns.map((t, i) => (t.balance != null ? i : -1)).filter((i) => i >= 0);
+  for (let k = 1; k < anchors.length; k++) {
+    const a = anchors[k - 1];
+    const b = anchors[k];
+    let d = 0; let c = 0;
+    for (let i = a + 1; i <= b; i++) { d += txns[i].debit ?? 0; c += txns[i].credit ?? 0; }
+    const expected = (txns[a].balance as Money) - d + c;
+    if (expected !== txns[b].balance) {
+      txns[b].expected = expected;
+      for (let i = a + 1; i <= b; i++) txns[i].ok = false;
+    }
+  }
+
   const failures = txns.map((t, i) => (t.ok ? -1 : i)).filter((i) => i >= 0);
-  const first = txns[0];
-  // The balance BEFORE the first transaction — reported as the opening balance.
-  const opening = first.balance + (first.debit ?? 0) - (first.credit ?? 0);
+  const firstAnchor = anchors[0];
+  // The balance BEFORE the first transaction: unwind the first anchor's span.
+  let opening: Money | null = null;
+  if (firstAnchor != null) {
+    let d = 0; let c = 0;
+    for (let i = 0; i <= firstAnchor; i++) { d += txns[i].debit ?? 0; c += txns[i].credit ?? 0; }
+    opening = (txns[firstAnchor].balance as Money) + d - c;
+  }
 
   return {
     ok: failures.length === 0,
@@ -283,13 +315,16 @@ export function validate(grid: string[][]): Validation {
     total: txns.length,
     failures,
     opening,
-    closing: txns[txns.length - 1].balance,
+    closing: anchors.length ? (txns[anchors[anchors.length - 1]].balance as Money) : null,
     totalDebit,
     totalCredit,
   };
 }
 
-/** Paise → "1,23,456.78" (Indian grouping — the audience is Indian CAs). */
+export type Currency = 'INR' | 'USD';
+
+/** Minor units → "1,23,456.78" (Indian lakh/crore grouping — the core audience is
+ *  Indian CAs). Use formatMoney() when the statement may not be INR. */
 export function formatINR(paise: Money): string {
   const neg = paise < 0;
   const s = Math.abs(paise).toString().padStart(3, '0');
@@ -300,4 +335,29 @@ export function formatINR(paise: Money): string {
   const rest = rupees.slice(0, -3);
   const grouped = rest ? `${rest.replace(/\B(?=(\d{2})+(?!\d))/g, ',')},${last3}` : last3;
   return `${neg ? '-' : ''}${grouped}.${dec}`;
+}
+
+/** Minor units → "123,456.78" (Western thousands grouping). */
+function formatWestern(cents: Money): string {
+  const neg = cents < 0;
+  const s = Math.abs(cents).toString().padStart(3, '0');
+  const whole = s.slice(0, -2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return `${neg ? '-' : ''}${whole}.${s.slice(-2)}`;
+}
+
+/** Format money in the statement's OWN currency. Showing "₹2,034.57" on a Wells
+ *  Fargo statement is simply wrong — and lakh grouping is wrong for USD too. */
+export function formatMoney(minor: Money | null, cur: Currency = 'INR'): string {
+  if (minor == null) return '—';
+  return cur === 'INR' ? formatINR(minor) : formatWestern(minor);
+}
+
+export const currencySymbol = (cur: Currency): string => (cur === 'INR' ? '₹' : '$');
+
+/** Guess the statement's currency from its text. Defaults to INR (the core market). */
+export function detectCurrency(text: string): Currency {
+  const t = (text || '').toUpperCase();
+  const inr = (t.match(/₹|\bINR\b|\bRS\.?\b/g) || []).length;
+  const usd = (t.match(/\$|\bUSD\b/g) || []).length;
+  return usd > inr ? 'USD' : 'INR';
 }

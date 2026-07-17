@@ -7,13 +7,10 @@ import { downloadBlob } from '@/lib/download';
 import { buildXlsx, toCsv, type Cell } from '@/lib/xlsx';
 import { passwordErrorKind } from '@/lib/pdf-render';
 import { parseStatement, type StatementResult } from '@/lib/banks/statement';
-import { formatINR, type Txn } from '@/lib/banks/balance';
+import { formatMoney, currencySymbol, type Txn, type Currency } from '@/lib/banks/balance';
 import { useFileHandoff } from '@/lib/file-handoff';
 
 type Fmt = 'xlsx' | 'csv';
-
-// Money is integer paise internally; the grid edits strings, so re-parse on commit.
-const toRupees = (p: number | null) => (p == null ? '' : formatINR(p));
 
 export function StatementConverterTool() {
   const [file, setFile] = useState<File | null>(null);
@@ -65,7 +62,9 @@ export function StatementConverterTool() {
       t.date, t.narration, t.ref,
       t.debit == null ? '' : t.debit / 100,
       t.credit == null ? '' : t.credit / 100,
-      t.balance / 100,
+      // MUST stay blank when the bank didn't print one (US "ending daily balance"
+      // statements): exporting 0.00 would invent a balance that isn't in the record.
+      t.balance == null ? '' : t.balance / 100,
     ])];
   }, [txns]);
 
@@ -79,12 +78,13 @@ export function StatementConverterTool() {
       } else {
         const summary: Cell[][] = [
           ['Bank', res?.bank?.name || 'Unknown'],
+          ['Currency', res?.currency || 'INR'],
           ['Account', res?.meta.account || '—'],
           ['Period', res?.meta.period || '—'],
-          ['Opening balance', (res?.validation.opening ?? 0) / 100],
+          ['Opening balance', res?.validation.opening == null ? '' : res.validation.opening / 100],
           ['Total debits', (res?.validation.totalDebit ?? 0) / 100],
           ['Total credits', (res?.validation.totalCredit ?? 0) / 100],
-          ['Closing balance', (res?.validation.closing ?? 0) / 100],
+          ['Closing balance', res?.validation.closing == null ? '' : res.validation.closing / 100],
           ['Transactions', txns.length],
           ['Balance-verified', `${res?.validation.verified ?? 0} of ${res?.validation.total ?? 0}`],
         ];
@@ -168,6 +168,11 @@ export function StatementConverterTool() {
   }
 
   const v = res!.validation;
+  // Format in the statement's OWN currency — "₹2,034.57" on a Wells Fargo statement
+  // would be plainly wrong, and lakh grouping is wrong for USD.
+  const cur: Currency = res!.currency;
+  const sym = currencySymbol(cur);
+  const money = (m: number | null) => formatMoney(m, cur);
 
   // ---- no statement found --------------------------------------------------
   if (!v.roles || !txns.length) {
@@ -232,10 +237,10 @@ export function StatementConverterTool() {
 
         {/* summary */}
         <div className="grid grid-cols-2 border-b sm:grid-cols-5">
-          <Stat k="Opening" v={`₹${toRupees(v.opening)}`} />
-          <Stat k="Total debits" v={`₹${toRupees(v.totalDebit)}`} tone="dr" />
-          <Stat k="Total credits" v={`₹${toRupees(v.totalCredit)}`} tone="cr" />
-          <Stat k="Closing" v={`₹${toRupees(v.closing)}`} />
+          <Stat k="Opening" v={`${sym}${money(v.opening)}`} />
+          <Stat k="Total debits" v={`${sym}${money(v.totalDebit)}`} tone="dr" />
+          <Stat k="Total credits" v={`${sym}${money(v.totalCredit)}`} tone="cr" />
+          <Stat k="Closing" v={`${sym}${money(v.closing)}`} />
           <Stat k="Transactions" v={String(v.total)} />
         </div>
 
@@ -262,14 +267,14 @@ export function StatementConverterTool() {
                     {t.narration}
                     {!t.ok && t.expected != null && (
                       <span className="mt-0.5 block text-[10.5px] text-amber-700 dark:text-amber-400">
-                        ⚠ expected ₹{toRupees(t.expected)} — statement says ₹{toRupees(t.balance)}
+                        ⚠ expected {sym}{money(t.expected ?? null)} — statement says {sym}{money(t.balance)}
                       </span>
                     )}
                   </td>
                   <td className="whitespace-nowrap border-b px-2.5 py-1.5 text-muted-foreground">{t.ref}</td>
-                  <td className="whitespace-nowrap border-b px-2.5 py-1.5 text-right font-mono tabular-nums">{t.debit == null ? '—' : toRupees(t.debit)}</td>
-                  <td className="whitespace-nowrap border-b px-2.5 py-1.5 text-right font-mono tabular-nums">{t.credit == null ? '—' : toRupees(t.credit)}</td>
-                  <td className="whitespace-nowrap border-b px-2.5 py-1.5 text-right font-mono tabular-nums">{toRupees(t.balance)}</td>
+                  <td className="whitespace-nowrap border-b px-2.5 py-1.5 text-right font-mono tabular-nums">{money(t.debit)}</td>
+                  <td className="whitespace-nowrap border-b px-2.5 py-1.5 text-right font-mono tabular-nums">{money(t.credit)}</td>
+                  <td className="whitespace-nowrap border-b px-2.5 py-1.5 text-right font-mono tabular-nums text-muted-foreground">{money(t.balance)}</td>
                 </tr>
               ))}
             </tbody>
