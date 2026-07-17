@@ -3,6 +3,7 @@ import { SITE_URL } from '@/lib/site';
 import { PASSPORT_SPECS } from '@/lib/passport-specs';
 import { DEV_TOOLS } from '@/lib/dev-tools';
 import { BANK_PAGES } from '@/lib/bank-statements';
+import { WORKFLOWS } from '@/lib/statement-workflows';
 
 // Every indexable route. Add new tool pages here when they ship (part of the
 // per-task SEO checklist). /login and /register are noindex → not listed.
@@ -98,6 +99,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     changeFrequency: 'monthly' as const,
     priority: 0.8,
   }));
+  // Outcome-led Statement Converter workflow pages (to Tally / QuickBooks / CSV).
+  const workflowRoutes = WORKFLOWS.map((w) => ({
+    url: `${SITE_URL}/${w.slug}`,
+    lastModified,
+    changeFrequency: 'monthly' as const,
+    priority: 0.8,
+  }));
   // Per-country passport/visa photo landing pages (one per spec).
   const countryRoutes = PASSPORT_SPECS.map((s) => ({
     url: `${SITE_URL}/passport-photo/${s.id}`,
@@ -105,5 +113,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     changeFrequency: 'monthly' as const,
     priority: 0.7,
   }));
-  return [...staticRoutes, ...devRoutes, ...bankRoutes, ...countryRoutes];
+  return [...staticRoutes, ...devRoutes, ...bankRoutes, ...workflowRoutes, ...countryRoutes];
 }

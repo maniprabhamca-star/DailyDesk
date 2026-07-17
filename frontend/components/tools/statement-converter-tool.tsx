@@ -11,6 +11,7 @@ import { formatMoney, currencySymbol, type Txn, type Currency } from '@/lib/bank
 import { buildTallyXml } from '@/lib/banks/tally';
 import { useCurrency, price, STATEMENT_PRICE } from '@/lib/currency';
 import { ShareButton } from '@/components/app/share-button';
+import { KeepGoing } from '@/components/app/keep-going';
 import { useFileHandoff } from '@/lib/file-handoff';
 
 type Fmt = 'xlsx' | 'csv' | 'tally';
@@ -347,6 +348,7 @@ export function StatementConverterTool() {
         )}
       </div>
       <Notes />
+      <KeepGoing exclude="/bank-statement-converter" title="Do more, privately" />
     </div>
   );
 }

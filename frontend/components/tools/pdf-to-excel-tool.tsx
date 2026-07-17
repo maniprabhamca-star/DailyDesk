@@ -5,6 +5,7 @@ import { Upload, X, Loader2, Download, FileSpreadsheet, ShieldCheck, AlertTriang
 import { Button } from '@/components/ui/button';
 import { downloadBlob } from '@/lib/download';
 import { ShareButton } from '@/components/app/share-button';
+import { KeepGoing } from '@/components/app/keep-going';
 import { openPdf, renderPage, dprTarget, type PdfHandle } from '@/lib/pdf-render';
 import { extractTables, type Table } from '@/lib/pdf-tables';
 import { buildXlsx, toCsv, coerce, type Sheet } from '@/lib/xlsx';
@@ -277,6 +278,7 @@ export function PdfToExcelTool() {
         </div>
       </div>
       <PrivacyNote />
+      <KeepGoing exclude="/pdf-to-excel" title="Do more, privately" />
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { openPdf, renderPage, dprTarget, type PdfHandle } from '@/lib/pdf-render';
 import { extractChunks, retrieve, type Chunk } from '@/lib/pdf-chat';
 import { useFileHandoff } from '@/lib/file-handoff';
+import { KeepGoing } from '@/components/app/keep-going';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 const STARTERS = [
@@ -242,6 +243,7 @@ export function ChatPdfTool() {
         </section>
       </div>
       <PrivacyNote />
+      <KeepGoing exclude="/chat-pdf" title="Do more, privately" />
     </div>
   );
 }

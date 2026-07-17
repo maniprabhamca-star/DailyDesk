@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 import { downloadBlob as download } from '@/lib/download';
 import { openPdf, renderPage, dprTarget, type PdfHandle, type RenderedPage } from '@/lib/pdf-render';
+import { KeepGoing } from '@/components/app/keep-going';
 
 type Side = 'left' | 'right';
 type PdfSummary = {
@@ -216,6 +217,7 @@ export function ComparePdfTool() {
   );
 
   return (
+    <>
     <Card>
       <CardContent className="p-5">
         <div className="grid gap-4 md:grid-cols-[1fr_auto_1fr] md:items-center">
@@ -307,5 +309,7 @@ export function ComparePdfTool() {
         )}
       </CardContent>
     </Card>
+    <KeepGoing exclude="/compare-pdf" title="Do more, privately" />
+    </>
   );
 }
