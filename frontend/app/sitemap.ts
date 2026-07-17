@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next';
 import { SITE_URL } from '@/lib/site';
 import { PASSPORT_SPECS } from '@/lib/passport-specs';
 import { DEV_TOOLS } from '@/lib/dev-tools';
+import { BANK_PAGES } from '@/lib/bank-statements';
 
 // Every indexable route. Add new tool pages here when they ship (part of the
 // per-task SEO checklist). /login and /register are noindex → not listed.
@@ -88,6 +89,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${SITE_URL}/${t.slug}`, lastModified, changeFrequency: 'monthly' as const, priority: 0.8,
     })),
   ];
+  // Bank-specific Statement Converter landing pages — the flagship's SEO engine.
+  // (The converter tool itself is owner-gated until launch and stays out of the
+  // sitemap, like /edit-pdf; these content pages seed ranking in the meantime.)
+  const bankRoutes = BANK_PAGES.map((b) => ({
+    url: `${SITE_URL}/bank-statement-converter/${b.slug}`,
+    lastModified,
+    changeFrequency: 'monthly' as const,
+    priority: 0.8,
+  }));
   // Per-country passport/visa photo landing pages (one per spec).
   const countryRoutes = PASSPORT_SPECS.map((s) => ({
     url: `${SITE_URL}/passport-photo/${s.id}`,
@@ -95,5 +105,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     changeFrequency: 'monthly' as const,
     priority: 0.7,
   }));
-  return [...staticRoutes, ...devRoutes, ...countryRoutes];
+  return [...staticRoutes, ...devRoutes, ...bankRoutes, ...countryRoutes];
 }
