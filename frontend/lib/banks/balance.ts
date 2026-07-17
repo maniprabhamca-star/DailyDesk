@@ -107,25 +107,34 @@ export function solveLayout(grid: string[][]): ColumnRoles | null {
   const nCols = Math.max(...grid.map((r) => r.length));
   if (nCols < 3) return null;
 
-  // profile every column
+  // ⚠ Profile the DATA ROWS ONLY, never the whole grid. A statement's letterhead
+  // (bank name, address, IFSC, account number, period) sits in the same columns as
+  // the transactions and would drag every ratio below threshold — an HDFC fixture
+  // with 5 transactions under a 6-line letterhead scored 45% dates and was rejected
+  // outright. So: find the date column by ABSOLUTE count first, use it to isolate
+  // the transaction rows, then profile only those.
+  const dateCounts = Array.from({ length: nCols }, (_, c) => ({
+    c,
+    n: grid.filter((r) => looksLikeDate(cell(r, c))).length,
+  })).sort((a, b) => b.n - a.n);
+
+  const dateCol = dateCounts[0];
+  if (!dateCol || dateCol.n < 3) return null; // need a few real transactions to work with
+
+  // Data rows = the ones that actually start a transaction (they carry a date).
+  const rows = grid.filter((r) => looksLikeDate(cell(r, dateCol.c)));
+  if (rows.length < 3) return null;
+
   const prof = Array.from({ length: nCols }, (_, c) => {
-    const cells = grid.map((r) => cell(r, c)).filter(Boolean);
+    const cells = rows.map((r) => cell(r, c)).filter(Boolean);
     return {
       c,
-      date: frac(cells.filter(looksLikeDate).length, cells.length),
       num: frac(cells.filter((s) => parseAmount(s) !== null).length, cells.length),
       marker: frac(cells.filter(isMarkerCell).length, cells.length),
       avgLen: frac(cells.reduce((a, s) => a + s.length, 0), cells.length),
       filled: cells.length,
     };
   });
-
-  const dateCol = prof.filter((p) => p.date >= 0.5).sort((a, b) => b.date - a.date)[0];
-  if (!dateCol) return null;
-
-  // Data rows are the ones that actually start a transaction (they carry a date).
-  const rows = grid.filter((r) => looksLikeDate(cell(r, dateCol.c)));
-  if (rows.length < 3) return null;
 
   const numCols = prof.filter((p) => p.c !== dateCol.c && p.num >= 0.5 && p.marker < 0.5).map((p) => p.c);
   if (numCols.length < 2) return null;
@@ -195,7 +204,7 @@ export function solveLayout(grid: string[][]): ColumnRoles | null {
 
   // Narration = the widest text column that isn't already spoken for.
   const used = new Set<number>([dateCol.c, win.balance, win.debit, win.credit, win.amount, win.marker].filter((x): x is number => x != null));
-  const textCols = prof.filter((p) => !used.has(p.c) && p.num < 0.5 && p.date < 0.5 && p.filled > 0).sort((a, b) => b.avgLen - a.avgLen);
+  const textCols = prof.filter((p) => !used.has(p.c) && p.num < 0.5 && p.filled > 0).sort((a, b) => b.avgLen - a.avgLen);
   const narration = textCols[0]?.c ?? -1;
   const ref = textCols[1]?.c ?? null;
 

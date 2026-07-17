@@ -52,11 +52,14 @@ function readMeta(headerText: string): StatementMeta {
   };
 }
 
+/** @param password unlocks protected e-statements — used by pdf.js in this tab and
+ *  never transmitted. Indian bank e-statements are password-protected by default. */
 export async function parseStatement(
   file: File | Blob,
   onProgress?: (fraction: number) => void,
+  password?: string,
 ): Promise<StatementResult> {
-  const handle = await openPdf(file);
+  const handle = await openPdf(file, password);
   try {
     const all: TItem[] = [];
     let fullText = '';

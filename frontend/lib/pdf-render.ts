@@ -36,16 +36,30 @@ const CACHE_CAP = 140; // bound memory: ~140 cached page bitmaps max per file
 const ASSETS = '/pdfjs/';
 
 /** getDocument() options every tool should use — wires up the WASM image decoders
- * (JPEG 2000/JBIG2), ICC color, CJK cmaps, and standard fonts. */
-export function pdfDocOptions(data: Uint8Array) {
+ * (JPEG 2000/JBIG2), ICC color, CJK cmaps, and standard fonts.
+ * `password` decrypts protected PDFs ON THIS DEVICE — it is passed straight to
+ * pdf.js in the tab and never sent anywhere. Bank e-statements are protected by
+ * default, so every tool that opens PDFs needs this path. */
+export function pdfDocOptions(data: Uint8Array, password?: string) {
   return {
     data,
+    ...(password ? { password } : {}),
     wasmUrl: `${ASSETS}wasm/`,
     iccUrl: `${ASSETS}iccs/`,
     cMapUrl: `${ASSETS}cmaps/`,
     cMapPacked: true,
     standardFontDataUrl: `${ASSETS}standard_fonts/`,
   };
+}
+
+/** Why did opening fail? Lets a tool show an inline password prompt instead of a
+ * dead end. pdf.js PasswordResponses: NEED_PASSWORD = 1, INCORRECT_PASSWORD = 2. */
+export function passwordErrorKind(err: unknown): 'need' | 'wrong' | null {
+  const e = err as { name?: string; code?: number; message?: string } | null;
+  if (!e) return null;
+  const isPwd = e.name === 'PasswordException' || /password/i.test(e.message || '');
+  if (!isPwd) return null;
+  return e.code === 2 || /incorrect/i.test(e.message || '') ? 'wrong' : 'need';
 }
 
 let pdfjsPromise: Promise<typeof import('pdfjs-dist')> | null = null;
@@ -81,10 +95,13 @@ export function dprTarget(cssLong: number, mult = 2.4, cap = 1800): number {
   return Math.min(cap, Math.round(cssLong * Math.max(mult, dpr)));
 }
 
-export async function openPdf(src: File | Blob): Promise<PdfHandle> {
+/** Open a PDF once per loaded file and reuse the handle for every page render.
+ * `password` unlocks protected PDFs locally; on failure the caller can use
+ * passwordErrorKind() to prompt for it and retry. */
+export async function openPdf(src: File | Blob, password?: string): Promise<PdfHandle> {
   const pdfjs = await getPdfjs();
   const data = new Uint8Array(await src.arrayBuffer());
-  const task = pdfjs.getDocument(pdfDocOptions(data));
+  const task = pdfjs.getDocument(pdfDocOptions(data, password));
   const doc = await task.promise;
   const cache = new Map<string, RenderedPage>();
   const handle: PdfHandle = {

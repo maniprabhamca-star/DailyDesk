@@ -5,6 +5,7 @@ import { Upload, Loader2, Download, FileText, ShieldCheck, AlertTriangle, Check,
 import { Button } from '@/components/ui/button';
 import { downloadBlob } from '@/lib/download';
 import { buildXlsx, toCsv, type Cell } from '@/lib/xlsx';
+import { passwordErrorKind } from '@/lib/pdf-render';
 import { parseStatement, type StatementResult } from '@/lib/banks/statement';
 import { formatINR, type Txn } from '@/lib/banks/balance';
 import { useFileHandoff } from '@/lib/file-handoff';
@@ -23,17 +24,32 @@ export function StatementConverterTool() {
   const [error, setError] = useState<string | null>(null);
   const [fmt, setFmt] = useState<Fmt>('xlsx');
   const [exporting, setExporting] = useState(false);
+  // Bank e-statements are password-protected by default, so this is the common
+  // path, not an edge case. The password stays in this tab — pdf.js decrypts on
+  // the device and it is never sent anywhere.
+  const [locked, setLocked] = useState<File | null>(null);
+  const [pw, setPw] = useState('');
+  const [pwWrong, setPwWrong] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const pwRef = useRef<HTMLInputElement>(null);
 
-  const load = useCallback(async (f?: File) => {
+  const load = useCallback(async (f?: File, password?: string) => {
     if (!f) return;
     if (f.type !== 'application/pdf' && !/\.pdf$/i.test(f.name)) { setError('Please choose a PDF statement.'); return; }
     setError(null); setRes(null); setTxns([]); setStatus('reading'); setPct(0);
     try {
-      const r = await parseStatement(f, setPct);
+      const r = await parseStatement(f, setPct, password);
       setRes(r); setTxns(r.validation.txns); setFile(f); setStatus('ready');
-    } catch {
-      setError('Could not open that PDF. If it’s password-protected, unlock it first.');
+      setLocked(null); setPw(''); setPwWrong(false);
+    } catch (e) {
+      const kind = passwordErrorKind(e);
+      if (kind) {
+        // Not an error — just locked. Ask for the password inline.
+        setLocked(f); setPwWrong(kind === 'wrong'); setStatus('idle');
+        setTimeout(() => pwRef.current?.focus(), 50);
+        return;
+      }
+      setError('Could not open that PDF — it may be damaged.');
       setStatus('idle');
     }
   }, []);
@@ -79,6 +95,43 @@ export function StatementConverterTool() {
       }
     } finally { setExporting(false); }
   }, [txns, exporting, file, fmt, rows, res]);
+
+  // ---- locked: ask for the password (the NORMAL path for bank e-statements) --
+  if (status === 'idle' && locked) {
+    return (
+      <div>
+        <div className="rounded-2xl border bg-card p-8 text-center">
+          <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary"><Lock className="size-6" /></span>
+          <h3 className="mt-3 text-lg font-bold">This statement is password-protected</h3>
+          <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+            Normal — most banks lock e-statements. Enter the password and we’ll open it <b className="text-foreground">on your device</b>.
+            The password stays in this tab and is never sent anywhere.
+          </p>
+          <div className="mx-auto mt-5 flex max-w-sm gap-2">
+            <input
+              ref={pwRef}
+              type="password"
+              value={pw}
+              autoComplete="off"
+              onChange={(e) => { setPw(e.target.value); setPwWrong(false); }}
+              onKeyDown={(e) => { if (e.key === 'Enter' && pw) void load(locked, pw); }}
+              placeholder="Statement password"
+              className={`flex-1 rounded-xl border bg-background px-3 py-2 text-sm outline-none focus:ring-2 ${pwWrong ? 'border-destructive focus:ring-destructive/30' : 'focus:border-emerald-500 focus:ring-emerald-500/30'}`}
+            />
+            <Button onClick={() => void load(locked, pw)} disabled={!pw}>Unlock</Button>
+          </div>
+          {pwWrong && <p className="mt-2 text-sm text-destructive">That password didn’t work — try again.</p>}
+          <p className="mx-auto mt-4 max-w-md text-xs text-muted-foreground">
+            Banks often use a pattern like PAN + date of birth (e.g. <code>ABCDE1234F01011990</code>). Check the email the statement came in.
+          </p>
+          <div className="mt-4 flex justify-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => { setLocked(null); setPw(''); setPwWrong(false); }}>Choose another file</Button>
+          </div>
+        </div>
+        <Notes />
+      </div>
+    );
+  }
 
   // ---- empty ---------------------------------------------------------------
   if (status === 'idle') {
