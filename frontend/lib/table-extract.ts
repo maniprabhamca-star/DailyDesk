@@ -7,6 +7,23 @@
 
 export type TItem = { x: number; y: number; w: number; h: number; s: string };
 
+export type TableOpts = {
+  /** Gap (× median font height) that separates two cells on a line. Lower = split
+   *  more eagerly. Bank statements pack columns tightly (a balance and the branch
+   *  code can sit 6pt apart), so they need a smaller value than generic documents. */
+  colGapMult?: number;
+  /** Drop columns too weakly populated to be real, merging their text left.
+   *  Essential for free-form documents (a form once produced 19 junk columns), but
+   *  WRONG for statements: a Credit column legitimately fills only a few rows and
+   *  would be dropped. Statements rely on balance validation as the filter instead. */
+  dropPhantom?: boolean;
+};
+
+// "Looks like a number" — used only to decide whether a cell may also align on its
+// RIGHT edge (amount columns are right-aligned). Deliberately loose; the real
+// parsing lives in lib/banks/balance.ts.
+const NUMISH = /^[₹$]?\s*[-+(]?\s*[\d,]+(\.\d{1,2})?\s*\)?\s*(DR|CR)?\.?$/i;
+
 function median(arr: number[]): number {
   if (!arr.length) return 0;
   const a = [...arr].sort((x, y) => x - y);
@@ -15,14 +32,15 @@ function median(arr: number[]): number {
 }
 
 // Turn positioned text items from ONE page into a grid of rows × columns.
-export function itemsToTable(items: TItem[]): { rows: string[][]; cols: number } {
+export function itemsToTable(items: TItem[], opts: TableOpts = {}): { rows: string[][]; cols: number } {
+  const { colGapMult = 0.9, dropPhantom = true } = opts;
   const clean = items.filter((it) => it.s && it.s.trim().length);
   if (clean.length < 2) return { rows: clean.map((it) => [it.s.trim()]), cols: clean.length ? 1 : 0 };
 
   const mh = median(clean.map((it) => it.h).filter((h) => h > 0)) || 10;
-  const rowTol = Math.max(mh * 0.5, 2); // same-line y tolerance
-  const colGap = Math.max(mh * 0.9, 4); // gap that separates two cells on a line
-  const colTol = Math.max(mh * 1.2, 6); // x spread that still counts as one column
+  const rowTol = Math.max(mh * 0.5, 2);          // same-line y tolerance
+  const colGap = Math.max(mh * colGapMult, 3);   // gap that separates two cells on a line
+  const colTol = Math.max(mh * 1.2, 6);          // x spread that still counts as one column
 
   // 1) Group items into lines by y (PDF y increases upward → sort descending).
   const sorted = [...clean].sort((a, b) => b.y - a.y || a.x - b.x);
@@ -36,9 +54,9 @@ export function itemsToTable(items: TItem[]): { rows: string[][]; cols: number }
   for (const l of lines) l.items.sort((a, b) => a.x - b.x);
 
   // 2) Split each line into cells at horizontal gaps larger than colGap.
-  type LCell = { x: number; text: string };
-  const lineCells: LCell[][] = lines.map((l) => {
-    const cells: LCell[] = [];
+  type LCell = { x: number; end: number; text: string; line: number };
+  const cells: LCell[] = [];
+  lines.forEach((l, li) => {
     let cur: { x: number; end: number; text: string } | null = null;
     for (const it of l.items) {
       const t = it.s.replace(/\s+/g, ' ').trim();
@@ -47,42 +65,61 @@ export function itemsToTable(items: TItem[]): { rows: string[][]; cols: number }
         cur.text += `${it.s.startsWith(' ') ? '' : ' '}${t}`;
         cur.end = it.x + it.w;
       } else {
-        if (cur) cells.push({ x: cur.x, text: cur.text });
+        if (cur) cells.push({ ...cur, line: li });
         cur = { x: it.x, end: it.x + it.w, text: t };
       }
     }
-    if (cur) cells.push({ x: cur.x, text: cur.text });
-    return cells;
+    if (cur) cells.push({ ...cur, line: li });
   });
 
-  // 3) Cluster all cell x-starts into column left-edges.
-  const xs = lineCells.flat().map((c) => c.x).sort((a, b) => a - b);
-  const edges: number[] = [];
-  for (const x of xs) {
-    if (!edges.length || x - edges[edges.length - 1] > colTol) edges.push(x);
-  }
-  const colOf = (x: number): number => {
-    let best = 0;
-    let bestD = Infinity;
-    for (let i = 0; i < edges.length; i++) {
-      const d = Math.abs(x - edges[i]);
-      if (d < bestD) { bestD = d; best = i; }
+  // 3) Group cells into columns.
+  //
+  // ⚠ Cluster TEXT by its LEFT edge but NUMBERS by either edge. Amount columns are
+  // right-aligned: in a real Axis statement a "1.00" debit starts 24pt to the right
+  // of a "13,500.00" debit, so left-edge-only clustering split one debit column into
+  // several and those rows lost their amount entirely (balance moved, debit+credit
+  // both empty). Their RIGHT edges, by contrast, were identical to the decimal
+  // (379.2 / 442.0 / 530.9). Numbers therefore join a column if either edge lines
+  // up; text joins on the left edge only, so a long narration can't chain itself
+  // into the amount column via a coincidental right edge.
+  const n = cells.length;
+  const parent = Array.from({ length: n }, (_, i) => i);
+  const find = (a: number): number => { while (parent[a] !== a) { parent[a] = parent[parent[a]]; a = parent[a]; } return a; };
+  const union = (a: number, b: number) => { const ra = find(a); const rb = find(b); if (ra !== rb) parent[rb] = ra; };
+
+  const link = (idxs: number[], key: (c: LCell) => number) => {
+    const sorted2 = [...idxs].sort((i, j) => key(cells[i]) - key(cells[j]));
+    for (let k = 1; k < sorted2.length; k++) {
+      if (key(cells[sorted2[k]]) - key(cells[sorted2[k - 1]]) <= colTol) union(sorted2[k], sorted2[k - 1]);
     }
-    return best;
   };
+  const allIdx = cells.map((_, i) => i);
+  link(allIdx, (c) => c.x);                                   // left edges: everything
+  const numIdx = allIdx.filter((i) => NUMISH.test(cells[i].text));
+  link(numIdx, (c) => c.end);                                 // right edges: numbers only
+
+  const groups = new Map<number, number[]>();
+  allIdx.forEach((i) => {
+    const r = find(i);
+    if (!groups.has(r)) groups.set(r, []);
+    groups.get(r)!.push(i);
+  });
+  const ordered = Array.from(groups.values())
+    .map((idxs) => ({ idxs, minX: Math.min(...idxs.map((i) => cells[i].x)) }))
+    .sort((a, b) => a.minX - b.minX);
+  const colOfCell = new Map<number, number>();
+  ordered.forEach((g, ci) => g.idxs.forEach((i) => colOfCell.set(i, ci)));
 
   // 4) Place each cell into its column to build the grid.
-  const cols = edges.length;
-  let rows: string[][] = lineCells.map((cells) => {
-    const row: string[] = new Array(cols).fill('');
-    for (const c of cells) {
-      const ci = colOf(c.x);
-      row[ci] = row[ci] ? `${row[ci]} ${c.text}` : c.text;
-    }
-    return row;
+  const cols = ordered.length;
+  let rows: string[][] = lines.map(() => new Array(cols).fill(''));
+  cells.forEach((c, i) => {
+    const ci = colOfCell.get(i)!;
+    const row = rows[c.line];
+    row[ci] = row[ci] ? `${row[ci]} ${c.text}` : c.text;
   });
 
-  rows = dropPhantomColumns(rows);
+  if (dropPhantom) rows = dropPhantomColumns(rows);
   rows = trimGrid(rows);
   return { rows, cols: rows[0]?.length ?? 0 };
 }

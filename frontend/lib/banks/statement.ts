@@ -95,7 +95,17 @@ export async function parseStatement(
       onProgress?.((p + 1) / handle.numPages);
     }
 
-    const { rows } = itemsToTable(all);
+    // Statement-specific extraction settings, both found by testing a real Axis
+    // statement that produced NOTHING under the defaults:
+    //  • dropPhantom OFF — the phantom-column filter needs a column filled on ≥15%
+    //    of rows, but a Credit column legitimately fills only a handful of them, so
+    //    it was being dropped and merged into Debit, leaving one amount column and
+    //    nothing to solve. Statements don't need that filter: balance validation is
+    //    a far stronger one, and it simply ignores empty columns.
+    //  • colGapMult 0.45 — statements pack columns tightly. At the 0.9 default the
+    //    balance and the branch code (6pt apart) merged into "1019.21 4034", so the
+    //    balance never parsed as a number.
+    const { rows } = itemsToTable(all, { dropPhantom: false, colGapMult: 0.45 });
     // Repeated page headers/footers carry no date, and validate() only treats
     // date-bearing rows as transactions — so they fall away for free.
     return {
