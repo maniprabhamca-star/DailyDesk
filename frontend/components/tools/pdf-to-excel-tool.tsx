@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Upload, X, Loader2, Download, FileSpreadsheet, ShieldCheck, AlertTriangle, Trash2, Table2, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { downloadBlob } from '@/lib/download';
+import { ShareButton } from '@/components/app/share-button';
 import { openPdf, renderPage, dprTarget, type PdfHandle } from '@/lib/pdf-render';
 import { extractTables, type Table } from '@/lib/pdf-tables';
 import { buildXlsx, toCsv, coerce, type Sheet } from '@/lib/xlsx';
@@ -98,27 +99,33 @@ export function PdfToExcelTool() {
     return out;
   }, [tables, header]);
 
+  const makeExport = useCallback(async (): Promise<{ blob: Blob; name: string }> => {
+    const base = (file?.name || 'tables.pdf').replace(/\.[^.]+$/, '');
+    if (fmt === 'csv') {
+      const rows = layout === 'combine' || tables.length === 1 ? combinedRows() : tables[active].rows;
+      return { blob: new Blob(['﻿' + toCsv(rows)], { type: 'text/csv;charset=utf-8' }), name: `${base}.csv` };
+    }
+    const sheets: Sheet[] = layout === 'combine'
+      ? [{ name: 'Tables', rows: combinedRows().map((row) => row.map((c) => coerce(c))) }]
+      : tables.map((t) => ({ name: `Page ${t.page}`, rows: t.rows.map((row) => row.map((c) => coerce(c))) }));
+    return { blob: await buildXlsx(sheets), name: `${base}.xlsx` };
+  }, [file, fmt, layout, active, tables, combinedRows]);
+
   const doExport = useCallback(async () => {
     if (!tables.length || exporting) return;
     setExporting(true);
-    try {
-      const base = (file?.name || 'tables.pdf').replace(/\.[^.]+$/, '');
-      if (fmt === 'csv') {
-        const rows = layout === 'combine' || tables.length === 1 ? combinedRows() : tables[active].rows;
-        const blob = new Blob(['﻿' + toCsv(rows)], { type: 'text/csv;charset=utf-8' });
-        downloadBlob(blob, `${base}.csv`);
-      } else {
-        let sheets: Sheet[];
-        if (layout === 'combine') {
-          sheets = [{ name: 'Tables', rows: combinedRows().map((row) => row.map((c) => coerce(c))) }];
-        } else {
-          sheets = tables.map((t) => ({ name: `Page ${t.page}`, rows: t.rows.map((row) => row.map((c) => coerce(c))) }));
-        }
-        const blob = await buildXlsx(sheets);
-        downloadBlob(blob, `${base}.xlsx`);
-      }
-    } finally { setExporting(false); }
-  }, [tables, exporting, file, fmt, layout, active, combinedRows]);
+    try { const { blob, name } = await makeExport(); downloadBlob(blob, name); }
+    finally { setExporting(false); }
+  }, [tables, exporting, makeExport]);
+
+  // Pre-build the export so Share can hand it over within the click gesture.
+  const shareCache = useRef<{ blob: Blob; name: string } | null>(null);
+  useEffect(() => {
+    let alive = true;
+    if (tables.length) void makeExport().then((f) => { if (alive) shareCache.current = f; });
+    else shareCache.current = null;
+    return () => { alive = false; };
+  }, [tables, makeExport]);
 
   // ---- empty state ---------------------------------------------------------
   if (status === 'idle') {
@@ -258,10 +265,13 @@ export function PdfToExcelTool() {
                 </select>
               )}
               <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={header} onChange={(e) => setHeader(e.target.checked)} className="size-4 accent-emerald-600" /> First row is a header</label>
-              <button onClick={() => void doExport()} disabled={exporting}
-                className="ml-auto inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50">
-                {exporting ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />} Download {fmt === 'xlsx' ? 'spreadsheet' : 'CSV'}
-              </button>
+              <div className="ml-auto flex items-center gap-2">
+                <ShareButton size="sm" title="Extracted tables" label="Share" get={() => (shareCache.current ? [shareCache.current] : [])} />
+                <button onClick={() => void doExport()} disabled={exporting}
+                  className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50">
+                  {exporting ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />} Download {fmt === 'xlsx' ? 'spreadsheet' : 'CSV'}
+                </button>
+              </div>
             </div>
           </section>
         </div>

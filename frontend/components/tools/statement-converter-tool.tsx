@@ -10,6 +10,7 @@ import { parseStatement, type StatementResult } from '@/lib/banks/statement';
 import { formatMoney, currencySymbol, type Txn, type Currency } from '@/lib/banks/balance';
 import { buildTallyXml } from '@/lib/banks/tally';
 import { useCurrency, price, STATEMENT_PRICE } from '@/lib/currency';
+import { ShareButton } from '@/components/app/share-button';
 import { useFileHandoff } from '@/lib/file-handoff';
 
 type Fmt = 'xlsx' | 'csv' | 'tally';
@@ -77,40 +78,56 @@ export function StatementConverterTool() {
     ])];
   }, [txns]);
 
+  // Build the export file for the current format — shared by Download and Share so
+  // they always produce the identical file, entirely on the device.
+  const makeExport = useCallback(async (): Promise<{ blob: Blob; name: string }> => {
+    const base = (file?.name || 'statement.pdf').replace(/\.[^.]+$/, '');
+    if (fmt === 'tally') {
+      const { xml } = buildTallyXml(txns, {
+        company: company.trim() || 'My Company',
+        bankLedger: bankLedger.trim() || (res?.bank?.name ?? 'Bank Account'),
+        contraLedger: contraLedger.trim() || 'Suspense',
+      });
+      return { blob: new Blob([xml], { type: 'application/xml' }), name: `${base}-tally.xml` };
+    }
+    if (fmt === 'csv') {
+      return { blob: new Blob(['﻿' + toCsv(rows())], { type: 'text/csv;charset=utf-8' }), name: `${base}.csv` };
+    }
+    const summary: Cell[][] = [
+      ['Bank', res?.bank?.name || 'Unknown'],
+      ['Currency', res?.currency || 'INR'],
+      ['Account', res?.meta.account || '—'],
+      ['Period', res?.meta.period || '—'],
+      ['Opening balance', res?.validation.opening == null ? '' : res.validation.opening / 100],
+      ['Total debits', (res?.validation.totalDebit ?? 0) / 100],
+      ['Total credits', (res?.validation.totalCredit ?? 0) / 100],
+      ['Closing balance', res?.validation.closing == null ? '' : res.validation.closing / 100],
+      ['Transactions', txns.length],
+      ['Balance-verified', `${res?.validation.verified ?? 0} of ${res?.validation.total ?? 0}`],
+    ];
+    const blob = await buildXlsx([{ name: 'Transactions', rows: rows() }, { name: 'Summary', rows: summary }]);
+    return { blob, name: `${base}.xlsx` };
+  }, [txns, file, fmt, rows, res, company, bankLedger, contraLedger]);
+
   const doExport = useCallback(async () => {
     if (!txns.length || exporting) return;
     setExporting(true);
-    try {
-      const base = (file?.name || 'statement.pdf').replace(/\.[^.]+$/, '');
-      if (fmt === 'tally') {
-        const { xml } = buildTallyXml(txns, {
-          company: company.trim() || 'My Company',
-          bankLedger: bankLedger.trim() || (res?.bank?.name ?? 'Bank Account'),
-          contraLedger: contraLedger.trim() || 'Suspense',
-        });
-        downloadBlob(new Blob([xml], { type: 'application/xml' }), `${base}-tally.xml`);
-      } else if (fmt === 'csv') {
-        downloadBlob(new Blob(['﻿' + toCsv(rows())], { type: 'text/csv;charset=utf-8' }), `${base}.csv`);
-      } else {
-        const summary: Cell[][] = [
-          ['Bank', res?.bank?.name || 'Unknown'],
-          ['Currency', res?.currency || 'INR'],
-          ['Account', res?.meta.account || '—'],
-          ['Period', res?.meta.period || '—'],
-          ['Opening balance', res?.validation.opening == null ? '' : res.validation.opening / 100],
-          ['Total debits', (res?.validation.totalDebit ?? 0) / 100],
-          ['Total credits', (res?.validation.totalCredit ?? 0) / 100],
-          ['Closing balance', res?.validation.closing == null ? '' : res.validation.closing / 100],
-          ['Transactions', txns.length],
-          ['Balance-verified', `${res?.validation.verified ?? 0} of ${res?.validation.total ?? 0}`],
-        ];
-        downloadBlob(await buildXlsx([
-          { name: 'Transactions', rows: rows() },
-          { name: 'Summary', rows: summary },
-        ]), `${base}.xlsx`);
-      }
-    } finally { setExporting(false); }
-  }, [txns, exporting, file, fmt, rows, res, company, bankLedger, contraLedger]);
+    try { const { blob, name } = await makeExport(); downloadBlob(blob, name); }
+    finally { setExporting(false); }
+  }, [txns, exporting, makeExport]);
+
+  // Web Share must hand over the file within the click gesture (Safari drops the
+  // gesture across an await), so keep the current export pre-built in a ref.
+  const shareCache = useRef<{ blob: Blob; name: string } | null>(null);
+  useEffect(() => {
+    let alive = true;
+    if (status === 'ready' && txns.length) {
+      void makeExport().then((f) => { if (alive) shareCache.current = f; });
+    } else {
+      shareCache.current = null;
+    }
+    return () => { alive = false; };
+  }, [status, txns, makeExport]);
 
   // ---- locked: ask for the password (the NORMAL path for bank e-statements) --
   if (status === 'idle' && locked) {
@@ -307,10 +324,13 @@ export function StatementConverterTool() {
           <span className="text-[11px] text-muted-foreground">
             Free · <b className="text-foreground">{stmtPrice.freePages} pages/mo</b> · Statements Pro <b className="text-foreground">{price(stmtPrice.proMonthly, billing)}/mo</b>
           </span>
-          <button onClick={() => void doExport()} disabled={exporting}
-            className="ml-auto inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50">
-            {exporting ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />} Export {v.total} transactions
-          </button>
+          <div className="ml-auto flex items-center gap-2">
+            <ShareButton size="sm" title="Bank statement export" label="Share" get={() => (shareCache.current ? [shareCache.current] : [])} />
+            <button onClick={() => void doExport()} disabled={exporting}
+              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50">
+              {exporting ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />} Export {v.total} transactions
+            </button>
+          </div>
         </div>
 
         {/* Tally ledger mapping — these names must already exist in the user's Tally company */}

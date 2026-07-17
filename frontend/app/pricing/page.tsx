@@ -13,6 +13,7 @@ import { SiteHeader } from '@/components/app/site-header';
 import { SiteFooter } from '@/components/app/site-footer';
 import { PRICING } from '@/lib/pricing';
 import { useCurrency, currencySymbol, fmtAmount, price, PRO_PRICE, STATEMENT_PRICE } from '@/lib/currency';
+import { useIsOwner } from '@/lib/plan';
 import { liveToolCount } from '@/components/app/catalog';
 import { Landmark } from 'lucide-react';
 
@@ -103,6 +104,10 @@ export default function PricingPage() {
   const proPerMonth = fmtAmount(annual ? pp.annualPerMonth : pp.monthly, currency);
   const proSub = annual ? `${sym}${fmtAmount(pp.annual, currency)} billed yearly` : 'billed monthly';
   const founding = currency === 'INR' ? '₹417/mo' : '$4.99/mo';
+  // The owner sees the COMPLETE, unrestricted pricing — the real checkout, not the
+  // launch waitlist — so they can review and test the full paid flow anytime.
+  const isOwner = useIsOwner();
+  const showWaitlist = WAITLIST_MODE && !isOwner;
 
   // Currency-aware comparison table (only the "Price per year" free/pro cells change).
   const groups = useMemo(() => baseGroups.map((g) => ({
@@ -163,7 +168,7 @@ export default function PricingPage() {
             <p className="mt-1 text-sm text-muted-foreground">For power users & businesses.</p>
             <p className="mt-5"><span className="text-4xl font-bold">{sym}{proPerMonth}</span><span className="text-muted-foreground"> /month</span></p>
             <p className="mt-1 text-xs text-muted-foreground">{proSub}</p>
-            {WAITLIST_MODE ? (
+            {showWaitlist ? (
               <ProWaitlist className="mt-6" />
             ) : (
               <>
