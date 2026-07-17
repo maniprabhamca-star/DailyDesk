@@ -23,9 +23,14 @@ export default function AccountPage() {
   // elsewhere (or a webhook that just landed) is reflected here without re-login.
   useEffect(() => { void refreshUser(); }, [refreshUser]);
 
-  // Not logged in → send to login.
+  // Not logged in → send to login. But a deliberate sign-out is already heading to
+  // /logged-out, and this guard used to race it there — which is exactly why
+  // logging out silently dumped people on the login screen.
   useEffect(() => {
-    if (!loading && !user) router.replace('/login');
+    if (loading || user) return;
+    let signedOut = false;
+    try { signedOut = sessionStorage.getItem('dd_signed_out') === '1'; } catch { /* ignore */ }
+    if (!signedOut) router.replace('/login');
   }, [loading, user, router]);
 
   if (loading || !user) {

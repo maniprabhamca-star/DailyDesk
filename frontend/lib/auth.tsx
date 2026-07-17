@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { api } from './api';
 
 export type User = { id: string; name: string; email: string; plan: string };
@@ -20,6 +21,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   // Restore session from localStorage on first load.
   useEffect(() => {
@@ -56,11 +58,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     persist(res.token, res.user);
   }, [persist]);
 
+  // Signing out must SAY it worked. Clearing state silently left people on
+  // whatever page they were on (or bounced to /login by the /account guard) with
+  // no idea whether they'd logged out or been kicked out.
   const logout = useCallback(() => {
     localStorage.removeItem('dd_token');
     localStorage.removeItem('dd_user');
+    // Tells auth guards this is a deliberate sign-out, so they don't race us to
+    // /login. The /logged-out page clears it on arrival.
+    try { sessionStorage.setItem('dd_signed_out', '1'); } catch { /* ignore */ }
     setUser(null);
-  }, []);
+    router.replace('/logged-out');
+  }, [router]);
 
   // Re-read the account from the server (fresh token + plan). Used after a Stripe
   // upgrade so the new plan takes effect without re-login. Silent on failure.
