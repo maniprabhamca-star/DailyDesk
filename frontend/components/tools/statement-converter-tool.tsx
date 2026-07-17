@@ -9,6 +9,7 @@ import { passwordErrorKind } from '@/lib/pdf-render';
 import { parseStatement, type StatementResult } from '@/lib/banks/statement';
 import { formatMoney, currencySymbol, type Txn, type Currency } from '@/lib/banks/balance';
 import { buildTallyXml } from '@/lib/banks/tally';
+import { useCurrency, price, STATEMENT_PRICE } from '@/lib/currency';
 import { useFileHandoff } from '@/lib/file-handoff';
 
 type Fmt = 'xlsx' | 'csv' | 'tally';
@@ -34,6 +35,9 @@ export function StatementConverterTool() {
   const [pwWrong, setPwWrong] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const pwRef = useRef<HTMLInputElement>(null);
+  // Billing currency from the visitor's country (NOT the statement's own currency).
+  const billing = useCurrency();
+  const stmtPrice = STATEMENT_PRICE[billing];
 
   const load = useCallback(async (f?: File, password?: string) => {
     if (!f) return;
@@ -300,6 +304,9 @@ export function StatementConverterTool() {
             <button onClick={() => setFmt('csv')} className={`px-3 py-1.5 text-xs font-bold ${fmt === 'csv' ? 'bg-emerald-600 text-white' : 'text-muted-foreground'}`}>.csv</button>
             <button onClick={() => setFmt('tally')} className={`border-l px-3 py-1.5 text-xs font-bold ${fmt === 'tally' ? 'bg-emerald-600 text-white' : 'text-emerald-700 dark:text-emerald-400'}`}>★ Tally XML</button>
           </div>
+          <span className="text-[11px] text-muted-foreground">
+            Free · <b className="text-foreground">{stmtPrice.freePages} pages/mo</b> · Statements Pro <b className="text-foreground">{price(stmtPrice.proMonthly, billing)}/mo</b>
+          </span>
           <button onClick={() => void doExport()} disabled={exporting}
             className="ml-auto inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50">
             {exporting ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />} Export {v.total} transactions

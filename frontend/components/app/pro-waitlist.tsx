@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/lib/auth';
 import { api } from '@/lib/api';
+import { useCurrency } from '@/lib/currency';
 
 // Pro launch waitlist form (free-first phase). Captures email + an optional
 // "most-wanted feature" vote, then posts to /api/waitlist which stores it and
@@ -19,6 +20,7 @@ const FEATURES = [
 
 export function ProWaitlist({ className = '' }: { className?: string }) {
   const { user } = useAuth();
+  const foundingRate = useCurrency() === 'INR' ? '₹417/mo' : '$4.99/mo';
   const [email, setEmail] = useState(user?.email || '');
   const [feature, setFeature] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -44,7 +46,7 @@ export function ProWaitlist({ className = '' }: { className?: string }) {
       <div id="pro-waitlist" className={`rounded-xl border border-primary/30 bg-primary/[0.06] p-4 text-center ${className}`}>
         <span className="mx-auto flex size-10 items-center justify-center rounded-full bg-primary text-primary-foreground"><Check className="size-5" /></span>
         <p className="mt-2 text-sm font-semibold">You’re on the list</p>
-        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">We’ll email you the day Pro opens — your founding rate of $4.99/mo for life is saved.</p>
+        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">We’ll email you the day Pro opens — your founding rate of {foundingRate} for life is saved.</p>
       </div>
     );
   }
@@ -65,7 +67,7 @@ export function ProWaitlist({ className = '' }: { className?: string }) {
       <Button type="submit" size="lg" className="mt-4 w-full" disabled={busy}>
         {busy ? <><Loader2 className="size-4 animate-spin" /> Joining…</> : <><Bell className="size-4" /> Notify me at launch</>}
       </Button>
-      <p className="mt-2 text-center text-[11px] text-muted-foreground">Founding members lock in $4.99/mo for life.</p>
+      <p className="mt-2 text-center text-[11px] text-muted-foreground">Founding members lock in {foundingRate} for life.</p>
     </form>
   );
 }

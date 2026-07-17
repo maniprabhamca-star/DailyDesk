@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   Check, Minus, ShieldCheck, CloudOff, Lock, Star, ChevronDown,
@@ -12,14 +12,18 @@ import { WAITLIST_MODE } from '@/lib/flags';
 import { SiteHeader } from '@/components/app/site-header';
 import { SiteFooter } from '@/components/app/site-footer';
 import { PRICING } from '@/lib/pricing';
+import { useCurrency, currencySymbol, fmtAmount, price, PRO_PRICE, STATEMENT_PRICE } from '@/lib/currency';
 import { liveToolCount } from '@/components/app/catalog';
+import { Landmark } from 'lucide-react';
 
 type Cell = boolean | string;
 type Row = { label: string; comp: Cell; free: Cell; pro: Cell; link?: { href: string; text: string } };
 
-const groups: { title: string; rows: Row[] }[] = [
+const baseGroups: { title: string; rows: Row[] }[] = [
   {
     title: 'Value & trust',
+    // "Price per year" free/pro cells are made currency-aware in the component;
+    // the competitor figure stays USD because those products bill in USD.
     rows: [
       { label: 'Price per year', comp: 'Up to ~$240', free: '$0', pro: '~$60' },
       { label: 'Tools available', comp: '~21', free: `${liveToolCount}+`, pro: `${liveToolCount}+` },
@@ -93,8 +97,20 @@ function CellView({ value, tone }: { value: Cell; tone?: 'pro' | 'muted' }) {
 
 export default function PricingPage() {
   const [annual, setAnnual] = useState(true);
-  const proPerMonth = annual ? PRICING.pro.annualPerMonth : PRICING.pro.monthly;
-  const proSub = annual ? PRICING.pro.annualNote : 'billed monthly';
+  const currency = useCurrency();
+  const sym = currencySymbol(currency);
+  const pp = PRO_PRICE[currency];
+  const proPerMonth = fmtAmount(annual ? pp.annualPerMonth : pp.monthly, currency);
+  const proSub = annual ? `${sym}${fmtAmount(pp.annual, currency)} billed yearly` : 'billed monthly';
+  const founding = currency === 'INR' ? '₹417/mo' : '$4.99/mo';
+
+  // Currency-aware comparison table (only the "Price per year" free/pro cells change).
+  const groups = useMemo(() => baseGroups.map((g) => ({
+    ...g,
+    rows: g.rows.map((r) => (r.label === 'Price per year'
+      ? { ...r, free: `${sym}0`, pro: `~${sym}${fmtAmount(pp.annual, currency)}` }
+      : r)),
+  })), [currency, sym, pp.annual]);
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
@@ -129,7 +145,7 @@ export default function PricingPage() {
           <div className="flex flex-col rounded-2xl border bg-card p-7 shadow-soft">
             <h2 className="text-lg font-bold">Free</h2>
             <p className="mt-1 text-sm text-muted-foreground">For everyday document tasks.</p>
-            <p className="mt-5"><span className="text-4xl font-bold">$0</span><span className="text-muted-foreground"> /forever</span></p>
+            <p className="mt-5"><span className="text-4xl font-bold">{sym}0</span><span className="text-muted-foreground"> /forever</span></p>
             <Button asChild variant="outline" className="mt-6"><Link href="/register">Get started free</Link></Button>
             <ul className="mt-6 space-y-2.5 text-sm">
               {PRICING.freeFeatures.map((f) => (
@@ -145,7 +161,7 @@ export default function PricingPage() {
             </span>
             <h2 className="text-lg font-bold">Pro</h2>
             <p className="mt-1 text-sm text-muted-foreground">For power users & businesses.</p>
-            <p className="mt-5"><span className="text-4xl font-bold">${proPerMonth}</span><span className="text-muted-foreground"> /month</span></p>
+            <p className="mt-5"><span className="text-4xl font-bold">{sym}{proPerMonth}</span><span className="text-muted-foreground"> /month</span></p>
             <p className="mt-1 text-xs text-muted-foreground">{proSub}</p>
             {WAITLIST_MODE ? (
               <ProWaitlist className="mt-6" />
@@ -153,7 +169,7 @@ export default function PricingPage() {
               <>
                 <ProCheckout className="mt-6" interval={annual ? 'year' : 'month'} />
                 <p className="mt-3 rounded-lg bg-amber-400/10 px-3 py-2 text-center text-xs font-medium text-amber-700 dark:text-amber-400">
-                  Founding offer — first 1,000 members lock in $4.99/mo for life
+                  Founding offer — first 1,000 members lock in {founding} for life
                 </p>
               </>
             )}
@@ -168,6 +184,34 @@ export default function PricingPage() {
         <p className="mt-4 text-center text-xs text-muted-foreground">
           New subscribers protected by our <Link href="/refund-policy" className="font-medium text-primary hover:underline">14-day money-back guarantee</Link>, monthly or annual.
         </p>
+
+        {/* Statement Converter — its own tier (priced against DocuClipper $29+, not the free tools) */}
+        <div className="mt-14 rounded-2xl border bg-card p-7 shadow-soft">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="flex size-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"><Landmark className="size-4" /></span>
+            <h2 className="text-lg font-bold">Bank Statement Converter</h2>
+            <span className="rounded-full bg-amber-400/15 px-2.5 py-0.5 text-xs font-semibold text-amber-700 dark:text-amber-400">Coming soon</span>
+          </div>
+          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+            A separate plan for the pros who need it — statement PDF → balance-verified table → Excel, CSV &amp; Tally, all on your device.
+            Priced for the hours it saves a bookkeeper, not against free PDF tools.
+          </p>
+          <div className="mt-5 grid gap-4 sm:grid-cols-3">
+            {[
+              { name: 'Free', price: `${sym}0`, sub: `${STATEMENT_PRICE[currency].freePages} statement pages / month`, note: 'No signup · all export formats' },
+              { name: 'Credit pack', price: price(STATEMENT_PRICE[currency].pack, currency), sub: `${STATEMENT_PRICE[currency].packPages} pages · never expires`, note: 'One-time — for tax season' },
+              { name: 'Statements Pro', price: `${price(STATEMENT_PRICE[currency].proMonthly, currency)}/mo`, sub: `${STATEMENT_PRICE[currency].proPages} pages / month`, note: 'Batch · priority · saved presets', highlight: true },
+            ].map((t) => (
+              <div key={t.name} className={`rounded-xl border p-4 ${t.highlight ? 'border-emerald-500/50 bg-emerald-500/[0.05]' : ''}`}>
+                <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t.name}</div>
+                <div className="mt-1 text-2xl font-bold">{t.price}</div>
+                <div className="mt-1 text-[13px] font-medium">{t.sub}</div>
+                <div className="mt-1 text-xs text-muted-foreground">{t.note}</div>
+              </div>
+            ))}
+          </div>
+          <p className="mt-4 text-xs text-muted-foreground">Existing Pro subscribers get {STATEMENT_PRICE[currency].packPages} statement pages a month included.</p>
+        </div>
 
         {/* Comparison table */}
         <h2 className="mt-16 text-center text-2xl font-bold tracking-tight">How we compare</h2>
