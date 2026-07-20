@@ -36,7 +36,9 @@ function month() { return new Date().toISOString().slice(0, 7); }  // YYYY-MM
 function costUsd(inTok, outTok) { return (inTok / 1e6) * PRICE_IN + (outTok / 1e6) * PRICE_OUT; }
 
 // Call BEFORE a request. Returns { ok, reason, message, remaining, extra }.
-async function check(userId) {
+// `weight` = how many actions this request counts as against the user's monthly
+// cap (translate = 3: its output is ~the whole document, not a 700-token answer).
+async function check(userId, weight = 1) {
   if (redisDown()) return { ok: true, remaining: null }; // degrade to allow (bounded by max_tokens)
   const d = day();
   const m = month();
@@ -55,8 +57,8 @@ async function check(userId) {
     // Per-user monthly fair-use cap.
     const uKey = `ai:u:${userId}:${m}`;
     const used = Number(await redis.get(uKey)) || 0;
-    if (used >= USER_MONTHLY_MAX) {
-      return { ok: false, reason: 'ai-limit', message: `You've reached this month's limit of ${USER_MONTHLY_MAX} questions. It resets next month.`, extra: { limit: USER_MONTHLY_MAX } };
+    if (used + weight > USER_MONTHLY_MAX) {
+      return { ok: false, reason: 'ai-limit', message: `You've reached this month's limit of ${USER_MONTHLY_MAX} AI actions. It resets next month.`, extra: { limit: USER_MONTHLY_MAX } };
     }
     return { ok: true, remaining: USER_MONTHLY_MAX - used };
   } catch {
@@ -66,14 +68,14 @@ async function check(userId) {
 
 // Call AFTER a successful AI call to record the user's monthly count + global spend
 // (both daily and monthly, so either backstop can enforce and the dashboard can show).
-async function record(userId, inTok, outTok) {
+async function record(userId, inTok, outTok, weight = 1) {
   if (redisDown()) return;
   const d = day();
   const m = month();
   const micro = Math.max(0, Math.round(costUsd(inTok, outTok) * 1e6));
   try {
     await redis.pipeline()
-      .incr(`ai:u:${userId}:${m}`).expire(`ai:u:${userId}:${m}`, MONTH_TTL)
+      .incrby(`ai:u:${userId}:${m}`, Math.max(1, weight)).expire(`ai:u:${userId}:${m}`, MONTH_TTL)
       .incrby(`ai:spend:${d}`, micro).expire(`ai:spend:${d}`, DAY_TTL)
       .incrby(`ai:spend:m:${m}`, micro).expire(`ai:spend:m:${m}`, MONTH_TTL)
       .exec();

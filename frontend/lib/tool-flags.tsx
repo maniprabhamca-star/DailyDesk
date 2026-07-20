@@ -9,9 +9,12 @@ type FlagMap = Record<string, ToolStatus>;
 
 const DEFAULT_TOOL_FLAGS: FlagMap = {
   '/edit-pdf': 'coming_soon',
-  // Chat with PDF — the first AI (Pro) tool. Ships dark: owner-only until the
-  // ANTHROPIC_API_KEY is set + Pro billing goes live, then flip to 'pro'.
+  // The AI (Pro) tools ship dark: owner-only until the ANTHROPIC_API_KEY is set
+  // + Pro billing goes live, then flip each to 'pro'.
   '/chat-pdf': 'coming_soon',
+  '/summarize-pdf': 'coming_soon',
+  '/translate-pdf': 'coming_soon',
+  '/pdf-question-generator': 'coming_soon',
   // Bank Statement Converter — the paid flagship. Owner-only until it's been
   // validated against real statements and the Statements pricing/quota is live.
   '/bank-statement-converter': 'coming_soon',

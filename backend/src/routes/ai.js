@@ -1,16 +1,17 @@
-// AI — "Chat with PDF": answer questions about a document the user is reading.
+// AI — the document tools that run on Claude: Chat with PDF, Summarize,
+// Translate, and the Question generator.
 //
 // PRIVACY (the honest exception): every other DiemDesk tool is 100% on-device.
-// This one isn't — but the FILE is still never uploaded. The browser extracts the
-// text with pdf.js and sends only the SNIPPETS relevant to each question. We
-// forward those to Claude and return the answer. Nothing is stored, nothing is
-// logged as content, and we don't train on it.
+// These aren't — but the FILE is still never uploaded. The browser extracts the
+// text with pdf.js and sends only text. We forward it to Claude and return the
+// result. Nothing is stored, nothing is logged as content, and we don't train
+// on it.
 //
 // COST: this is our only per-use AI cost, so it's Pro-gated and wrapped in hard
-// controls (utils/aiBudget) — a per-user daily cap AND a global daily USD budget
-// kill-switch pegged to revenue. Model = Claude Haiku (cheapest capable). Until the
-// owner sets ANTHROPIC_API_KEY (and flips AI_ENABLED), the endpoint reports
-// "coming-soon" so the feature can ship dark and be turned on at Pro launch.
+// controls (utils/aiBudget) — a per-user monthly cap AND global daily/monthly
+// USD budget kill-switches pegged to revenue. Model = Claude Haiku (cheapest
+// capable). Until the owner sets ANTHROPIC_API_KEY (and flips AI_ENABLED), every
+// endpoint reports "coming-soon" so the tools ship dark and turn on at Pro launch.
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const jwt = require('jsonwebtoken');
@@ -28,6 +29,14 @@ const API_URL = 'https://api.anthropic.com/v1/messages';
 const MODEL = process.env.AI_MODEL || 'claude-haiku-4-5-20251001';
 const MAX_TOKENS = Number(process.env.AI_MAX_TOKENS || 700);
 const MAX_CONTEXT_CHARS = Number(process.env.AI_MAX_CONTEXT_CHARS || 12000);
+// Summarize/questions read much more of the document than a chat question does.
+const SUM_MAX_CHARS = Number(process.env.AI_SUM_MAX_CHARS || 60000);
+// Translate is the costly one (whole text in AND out) → tight page/char caps and
+// it counts as 3 actions against the user's monthly allowance.
+const TR_MAX_PAGES = Number(process.env.AI_TR_MAX_PAGES || 30);
+const TR_MAX_CHARS = Number(process.env.AI_TR_MAX_CHARS || 90000);
+const TR_BATCH_CHARS = Number(process.env.AI_TR_BATCH_CHARS || 7000);
+const TR_WEIGHT = Number(process.env.AI_TR_WEIGHT || 3);
 const TIMEOUT_MS = Number(process.env.AI_TIMEOUT_MS || 45000);
 const AI_ENABLED = process.env.AI_ENABLED === 'true';
 // Owner accounts may use AI in prod before the public flip, to test — mirrors the
@@ -36,8 +45,6 @@ const OWNER_EMAILS = (process.env.AI_OWNER_EMAILS || 'maniprabhamca@gmail.com,mr
   .split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
 
 const hasKey = () => !!process.env.ANTHROPIC_API_KEY;
-
-const SYSTEM = "You are DiemDesk's document assistant. Answer the user's question using ONLY the document excerpts provided below — each is tagged with the page it came from. When you use an excerpt, cite its page like \"(p.3)\". If the answer is not in the excerpts, say you couldn't find it in the document rather than guessing. Be concise, accurate and plain-spoken; never invent figures, dates or names.";
 
 // Identify the caller: plan + whether they're the owner (for the pre-launch test path).
 async function whoIs(req) {
@@ -51,6 +58,73 @@ async function whoIs(req) {
   } catch { return { plan: null, email: null, userId: null, isOwner: false }; }
 }
 
+// The shared front door for every AI endpoint: availability → Pro gate → budget.
+// Returns { who, capKey, remaining } or null (response already sent).
+async function preflight(req, res, { weight = 1, proMessage } = {}) {
+  if (!hasKey()) { res.status(503).json({ error: 'coming-soon', message: 'AI tools are coming soon.' }); return null; }
+  const who = await whoIs(req);
+  if (!AI_ENABLED && !who.isOwner) { res.status(503).json({ error: 'coming-soon', message: 'AI tools are coming soon.' }); return null; }
+  const isPro = who.plan === 'pro' || who.isOwner;
+  if (!isPro) { res.status(402).json({ error: 'pro-required', message: proMessage || 'This is a Pro feature.' }); return null; }
+  const capKey = who.userId || clientKey(req);
+  const cap = await budget.check(capKey, weight);
+  if (!cap.ok) { res.status(429).json({ error: cap.reason, message: cap.message, ...(cap.extra || {}) }); return null; }
+  return { who, capKey, remaining: cap.remaining };
+}
+
+// One Claude call. Returns { ok, text, usage } or { ok:false }.
+async function callClaude(system, messages, maxTokens) {
+  const r = await fetch(API_URL, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-api-key': process.env.ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, system, messages }),
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  if (!r.ok) {
+    const detail = await r.text().catch(() => '');
+    console.error('anthropic error', r.status, detail.slice(0, 300));
+    return { ok: false };
+  }
+  const data = await r.json();
+  const text = (data.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('').trim();
+  return { ok: true, text, usage: data.usage || {} };
+}
+
+// Sanitize page-tagged text blocks from the client into a bounded context string.
+function packContext(list, maxChars, perBlock = 4000) {
+  const blocks = Array.isArray(list) ? list : [];
+  let ctx = '';
+  for (const s of blocks) {
+    const page = Number(s && s.page) || 0;
+    const text = String((s && s.text) || '').slice(0, perBlock).trim();
+    if (!text) continue; // an empty page must not defeat the no-context check
+    const block = `[Page ${page}]\n${text}\n\n`;
+    if (ctx.length + block.length > maxChars) break;
+    ctx += block;
+  }
+  return ctx;
+}
+
+// Claude is asked for strict JSON; be forgiving about fences/prose around it.
+function parseJson(text) {
+  if (!text) return null;
+  const cleaned = text.replace(/```(?:json)?/gi, '').trim();
+  const start = cleaned.indexOf('{');
+  const end = cleaned.lastIndexOf('}');
+  if (start === -1 || end <= start) return null;
+  try { return JSON.parse(cleaned.slice(start, end + 1)); } catch { return null; }
+}
+
+// A short free-text option (language name, tone, focus…) — never let it become
+// a prompt-injection vector or a novel: strip control chars, cap the length.
+const opt = (v, max = 120) => String(v || '').replace(/[\r\n\t]+/g, ' ').trim().slice(0, max);
+
+const FAIL = { error: 'ai-failed', message: 'The assistant is unavailable right now — please try again.' };
+
 // AI calls cost money — a tight per-client burst limit on top of the daily caps.
 router.use(rateLimit({
   windowMs: 60 * 1000,
@@ -58,44 +132,25 @@ router.use(rateLimit({
   keyGenerator: clientKey,
   store: makeStore('rl:ai:'),
   skip: (req) => redisDown() || isCanaryReq(req),
-  message: { error: 'rate', message: 'Too many questions at once — give it a second.' },
+  message: { error: 'rate', message: 'Too many requests at once — give it a second.' },
 }));
 
-// Admin kill-switch for the tool (matches the hidden front-end button).
-router.use(guard('/chat-pdf'));
+// ---------------------------------------------------------------------------
+// Chat with PDF (unchanged behaviour, now on the shared plumbing)
+// ---------------------------------------------------------------------------
+const CHAT_SYSTEM = "You are DiemDesk's document assistant. Answer the user's question using ONLY the document excerpts provided below — each is tagged with the page it came from. When you use an excerpt, cite its page like \"(p.3)\". If the answer is not in the excerpts, say you couldn't find it in the document rather than guessing. Be concise, accurate and plain-spoken; never invent figures, dates or names.";
 
-router.post('/chat', async (req, res) => {
-  // 1) Availability — dark until the owner provides a key (+ flips AI_ENABLED for public).
-  if (!hasKey()) return res.status(503).json({ error: 'coming-soon', message: 'AI chat is coming soon.' });
-  const who = await whoIs(req);
-  if (!AI_ENABLED && !who.isOwner) return res.status(503).json({ error: 'coming-soon', message: 'AI chat is coming soon.' });
-
-  // 2) Pro gate (owner bypasses for pre-launch testing).
-  const isPro = who.plan === 'pro' || who.isOwner;
-  if (!isPro) return res.status(402).json({ error: 'pro-required', message: 'Chat with PDF is a Pro feature.' });
-
-  // 3) Validate input — only text snippets, never a file.
+router.post('/chat', guard('/chat-pdf'), async (req, res) => {
   const { question, context, history } = req.body || {};
   if (typeof question !== 'string' || !question.trim()) {
     return res.status(400).json({ error: 'no-question', message: 'Please ask a question.' });
   }
-  const snippets = Array.isArray(context) ? context : [];
-  let ctx = '';
-  for (const s of snippets) {
-    const page = Number(s && s.page) || 0;
-    const text = String((s && s.text) || '').slice(0, 4000);
-    const block = `[Page ${page}]\n${text}\n\n`;
-    if (ctx.length + block.length > MAX_CONTEXT_CHARS) break;
-    ctx += block;
-  }
+  const ctx = packContext(context, MAX_CONTEXT_CHARS);
   if (!ctx.trim()) return res.status(400).json({ error: 'no-context', message: 'No document text was provided.' });
 
-  // 4) Cost controls — per-user daily cap + global budget kill-switch.
-  const capKey = who.userId || clientKey(req);
-  const cap = await budget.check(capKey);
-  if (!cap.ok) return res.status(429).json({ error: cap.reason, message: cap.message, ...(cap.extra || {}) });
+  const pre = await preflight(req, res, { proMessage: 'Chat with PDF is a Pro feature.' });
+  if (!pre) return;
 
-  // 5) Build the messages (short prior history for follow-ups) and call Claude.
   const messages = [];
   if (Array.isArray(history)) {
     for (const h of history.slice(-4)) {
@@ -107,34 +162,226 @@ router.post('/chat', async (req, res) => {
   messages.push({ role: 'user', content: `Document excerpts:\n\n${ctx}\nQuestion: ${question.trim()}` });
 
   try {
-    const r = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({ model: MODEL, max_tokens: MAX_TOKENS, system: SYSTEM, messages }),
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-    });
-    if (!r.ok) {
-      const detail = await r.text().catch(() => '');
-      console.error('anthropic error', r.status, detail.slice(0, 300));
-      return res.status(502).json({ error: 'ai-failed', message: 'The assistant is unavailable right now — please try again.' });
-    }
-    const data = await r.json();
-    const answer = (data.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('').trim();
-    const usage = data.usage || {};
-    await budget.record(capKey, usage.input_tokens || 0, usage.output_tokens || 0);
+    const r = await callClaude(CHAT_SYSTEM, messages, MAX_TOKENS);
+    if (!r.ok) return res.status(502).json(FAIL);
+    await budget.record(pre.capKey, r.usage.input_tokens || 0, r.usage.output_tokens || 0);
     // Usage signal only — never the question or the answer (privacy).
-    trackEvent(req, 'ai_chat', { module: '/chat-pdf', userId: who.userId });
+    trackEvent(req, 'ai_chat', { module: '/chat-pdf', userId: pre.who.userId });
     return res.json({
-      answer: answer || "I couldn't find an answer to that in the document.",
-      remaining: cap.remaining != null ? Math.max(0, cap.remaining - 1) : null,
+      answer: r.text || "I couldn't find an answer to that in the document.",
+      remaining: pre.remaining != null ? Math.max(0, pre.remaining - 1) : null,
     });
   } catch (e) {
     console.error('ai chat error:', e.message);
-    return res.status(502).json({ error: 'ai-failed', message: 'The assistant is unavailable right now — please try again.' });
+    return res.status(502).json(FAIL);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Summarize — page-cited summary + key points, with audience/language/focus
+// ---------------------------------------------------------------------------
+const SUM_SYSTEM = "You are DiemDesk's document summarizer. Work ONLY from the page-tagged document excerpts provided. Every claim in the summary must cite the page it came from, inline, like \"(p.3)\". Never invent figures, dates or names; if the excerpts are partial, summarize what is there without guessing the rest. Respond with STRICT JSON only, no prose around it: {\"summary\": string, \"keyPoints\": [{\"text\": string, \"page\": number}]} — keyPoints are the 3-8 most important takeaways, each with the page number it came from.";
+
+const SUM_LENGTH = {
+  tldr: { words: 'in 2-3 sentences (a TL;DR)', tokens: 400 },
+  standard: { words: 'in one solid paragraph-sized summary (~150-250 words)', tokens: 800 },
+  detailed: { words: 'thoroughly (~400-600 words), covering every major section', tokens: 1600 },
+};
+const SUM_FORMAT = {
+  paragraphs: 'flowing paragraphs',
+  bullets: 'concise bullet points (one per line, starting with "- ")',
+  brief: 'an executive brief: one bold opening takeaway sentence, then short paragraphs a busy executive can scan',
+  sections: 'section-by-section: a short heading per document section, each followed by its 1-3 sentence summary',
+};
+const SUM_AUDIENCE = {
+  general: 'a general reader',
+  simple: 'someone with no background in the subject — plain everyday words, explain any jargon in brackets',
+  professional: 'a business professional — precise, action-oriented',
+  technical: 'a technical expert — keep the domain terminology and exact figures',
+};
+
+router.post('/summarize', guard('/summarize-pdf'), async (req, res) => {
+  const { context, length, format, audience, language, focus } = req.body || {};
+  const ctx = packContext(context, SUM_MAX_CHARS);
+  if (!ctx.trim()) return res.status(400).json({ error: 'no-context', message: 'No document text was provided.' });
+
+  const pre = await preflight(req, res, { proMessage: 'Summarize PDF is a Pro feature.' });
+  if (!pre) return;
+
+  const len = SUM_LENGTH[length] || SUM_LENGTH.standard;
+  const fmt = SUM_FORMAT[format] || SUM_FORMAT.paragraphs;
+  const aud = SUM_AUDIENCE[audience] || SUM_AUDIENCE.general;
+  const lang = opt(language, 40);
+  const foc = opt(focus, 200);
+
+  const ask = [
+    `Summarize the document ${len.words}, written as ${fmt}, for ${aud}.`,
+    lang && lang.toLowerCase() !== 'same as document' ? `Write the summary and key points in ${lang}.` : '',
+    foc ? `Pay special attention to: ${foc}.` : '',
+  ].filter(Boolean).join(' ');
+
+  try {
+    const r = await callClaude(SUM_SYSTEM, [{ role: 'user', content: `Document excerpts:\n\n${ctx}\nTask: ${ask}` }], len.tokens);
+    if (!r.ok) return res.status(502).json(FAIL);
+    const parsed = parseJson(r.text);
+    const summary = parsed && typeof parsed.summary === 'string' ? parsed.summary : r.text;
+    const keyPoints = parsed && Array.isArray(parsed.keyPoints)
+      ? parsed.keyPoints.filter((k) => k && typeof k.text === 'string').map((k) => ({ text: k.text, page: Number(k.page) || 0 })).slice(0, 10)
+      : [];
+    await budget.record(pre.capKey, r.usage.input_tokens || 0, r.usage.output_tokens || 0);
+    trackEvent(req, 'ai_summarize', { module: '/summarize-pdf', userId: pre.who.userId });
+    return res.json({ summary, keyPoints, remaining: pre.remaining != null ? Math.max(0, pre.remaining - 1) : null });
+  } catch (e) {
+    console.error('ai summarize error:', e.message);
+    return res.status(502).json(FAIL);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Translate — page-by-page, tone + glossary + translator notes
+// ---------------------------------------------------------------------------
+const TR_SYSTEM = "You are DiemDesk's document translator. Translate each page's text faithfully — keep numbering, clause references and structure; translate meaning, never summarize or omit. Respond with STRICT JSON only: {\"pages\": [{\"page\": number, \"translation\": string, \"notes\": [string]}]} — one entry per input page, in order. \"notes\" flags genuinely ambiguous terms where the target language forces a choice (explain the alternatives in one short sentence each); leave it an empty array when nothing is ambiguous. Do not add commentary anywhere else.";
+
+router.post('/translate', guard('/translate-pdf'), async (req, res) => {
+  const { pages, to, from, tone, glossary, notes } = req.body || {};
+  const list = (Array.isArray(pages) ? pages : [])
+    .map((p) => ({ page: Number(p && p.page) || 0, text: String((p && p.text) || '').slice(0, 8000) }))
+    .filter((p) => p.text.trim());
+  if (!list.length) return res.status(400).json({ error: 'no-context', message: 'No document text was provided.' });
+  if (list.length > TR_MAX_PAGES) {
+    return res.status(400).json({ error: 'too-long', message: `Translate handles up to ${TR_MAX_PAGES} pages per run — split the document first.` });
+  }
+  const totalChars = list.reduce((n, p) => n + p.text.length, 0);
+  if (totalChars > TR_MAX_CHARS) {
+    return res.status(400).json({ error: 'too-long', message: 'That document has too much text for one run — split it and translate the parts.' });
+  }
+  const target = opt(to, 40);
+  if (!target) return res.status(400).json({ error: 'no-language', message: 'Pick a language to translate into.' });
+
+  const pre = await preflight(req, res, { weight: TR_WEIGHT, proMessage: 'Translate PDF is a Pro feature.' });
+  if (!pre) return;
+
+  const src = opt(from, 40);
+  const toneTxt = tone === 'formal' ? 'Use a formal register.' : tone === 'informal' ? 'Use an informal, natural register.' : '';
+  const gl = opt(glossary, 300);
+  const wantNotes = notes !== false;
+
+  const brief = [
+    `Translate ${src ? `from ${src} ` : ''}into ${target}.`,
+    toneTxt,
+    gl ? `Do NOT translate these terms — keep them exactly as written: ${gl}.` : '',
+    wantNotes ? '' : 'Leave every "notes" array empty.',
+  ].filter(Boolean).join(' ');
+
+  // Batch pages so each Claude call stays small; sequential keeps order + lets us
+  // stop on the first failure without burning the rest of the budget.
+  const batches = [];
+  let cur = [];
+  let curChars = 0;
+  for (const p of list) {
+    if (cur.length && curChars + p.text.length > TR_BATCH_CHARS) { batches.push(cur); cur = []; curChars = 0; }
+    cur.push(p); curChars += p.text.length;
+  }
+  if (cur.length) batches.push(cur);
+
+  try {
+    const out = [];
+    let inTok = 0;
+    let outTok = 0;
+    for (const batch of batches) {
+      const body = batch.map((p) => `[Page ${p.page}]\n${p.text}`).join('\n\n');
+      const maxT = Math.min(8000, Math.round(batch.reduce((n, p) => n + p.text.length, 0) / 2.2) + 600);
+      const r = await callClaude(TR_SYSTEM, [{ role: 'user', content: `${brief}\n\nPages:\n\n${body}` }], maxT);
+      if (!r.ok) return res.status(502).json(FAIL);
+      inTok += r.usage.input_tokens || 0;
+      outTok += r.usage.output_tokens || 0;
+      const parsed = parseJson(r.text);
+      const got = parsed && Array.isArray(parsed.pages) ? parsed.pages : null;
+      if (!got) return res.status(502).json(FAIL);
+      for (const g of got) {
+        out.push({
+          page: Number(g && g.page) || 0,
+          translation: String((g && g.translation) || ''),
+          notes: (Array.isArray(g && g.notes) ? g.notes : []).map((n) => String(n)).slice(0, 5),
+        });
+      }
+    }
+    await budget.record(pre.capKey, inTok, outTok, TR_WEIGHT);
+    trackEvent(req, 'ai_translate', { module: '/translate-pdf', userId: pre.who.userId });
+    return res.json({ pages: out, remaining: pre.remaining != null ? Math.max(0, pre.remaining - TR_WEIGHT) : null });
+  } catch (e) {
+    console.error('ai translate error:', e.message);
+    return res.status(502).json(FAIL);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Question generator — types, difficulty, Bloom's level, explanations
+// ---------------------------------------------------------------------------
+const Q_SYSTEM = "You are DiemDesk's study-question generator. Create questions STRICTLY from the page-tagged document excerpts — every question must be answerable from them and must carry the page number its answer comes from. Respond with STRICT JSON only: {\"questions\": [{\"type\": \"mcq\"|\"tf\"|\"blank\"|\"flash\"|\"open\", \"q\": string, \"options\": [string] (mcq only, exactly 4), \"answerIndex\": number (mcq only, 0-3), \"answer\": string (all other types; for tf exactly \"True\" or \"False\"), \"explanation\": string (one sentence: why this answer is right), \"bloom\": \"recall\"|\"understand\"|\"apply\"|\"analyze\", \"page\": number}]}. For fill-in-the-blank, write the sentence with ____ for the missing term. Never invent facts not in the excerpts.";
+
+const Q_TYPES = new Set(['mcq', 'tf', 'blank', 'flash', 'open', 'mixed']);
+const Q_BLOOM = new Set(['any', 'recall', 'understand', 'apply', 'analyze']);
+
+router.post('/questions', guard('/pdf-question-generator'), async (req, res) => {
+  const { context, type, count, difficulty, bloom, explanations } = req.body || {};
+  const ctx = packContext(context, SUM_MAX_CHARS);
+  if (!ctx.trim()) return res.status(400).json({ error: 'no-context', message: 'No document text was provided.' });
+
+  const pre = await preflight(req, res, { proMessage: 'The question generator is a Pro feature.' });
+  if (!pre) return;
+
+  const qType = Q_TYPES.has(type) ? type : 'mcq';
+  const n = Math.max(1, Math.min(30, Number(count) || 10));
+  const diff = difficulty === 'easy' ? 'easy' : difficulty === 'hard' ? 'hard' : 'mixed difficulty';
+  const bl = Q_BLOOM.has(bloom) ? bloom : 'any';
+  const wantWhy = explanations !== false;
+
+  const typeTxt = {
+    mcq: 'multiple-choice questions (4 options each, exactly one correct)',
+    tf: 'true/false statements',
+    blank: 'fill-in-the-blank sentences',
+    flash: 'flashcards (a prompt on the front, the answer on the back — use "q" for front, "answer" for back)',
+    open: 'open questions that need a short written answer',
+    mixed: 'a varied mix of multiple-choice, true/false, fill-in-the-blank and open questions',
+  }[qType];
+
+  const ask = [
+    `Create ${n} ${diff} ${typeTxt} from the document.`,
+    bl !== 'any' ? `Target the "${bl}" thinking level (Bloom's taxonomy) for every question.` : 'Vary the thinking level across recall, understand, apply and analyze.',
+    wantWhy ? 'Include the one-sentence explanation for every question.' : 'Set every "explanation" to an empty string.',
+  ].join(' ');
+
+  try {
+    const r = await callClaude(Q_SYSTEM, [{ role: 'user', content: `Document excerpts:\n\n${ctx}\nTask: ${ask}` }], Math.min(6000, 300 + n * 180));
+    if (!r.ok) return res.status(502).json(FAIL);
+    const parsed = parseJson(r.text);
+    const raw = parsed && Array.isArray(parsed.questions) ? parsed.questions : null;
+    if (!raw || !raw.length) return res.status(502).json(FAIL);
+    const questions = raw.slice(0, n).map((it) => {
+      const t = Q_TYPES.has(it && it.type) && it.type !== 'mixed' ? it.type : 'open';
+      const q = {
+        type: t,
+        q: String((it && it.q) || '').slice(0, 600),
+        answer: String((it && it.answer) || '').slice(0, 600),
+        explanation: String((it && it.explanation) || '').slice(0, 400),
+        bloom: Q_BLOOM.has(it && it.bloom) ? it.bloom : 'recall',
+        page: Number(it && it.page) || 0,
+      };
+      if (t === 'mcq') {
+        q.options = (Array.isArray(it.options) ? it.options : []).map((o) => String(o).slice(0, 300)).slice(0, 4);
+        q.answerIndex = Math.max(0, Math.min(3, Number(it.answerIndex) || 0));
+        if (q.options.length !== 4) return null; // malformed → drop
+      }
+      return q.q ? q : null;
+    }).filter(Boolean);
+    if (!questions.length) return res.status(502).json(FAIL);
+    await budget.record(pre.capKey, r.usage.input_tokens || 0, r.usage.output_tokens || 0);
+    trackEvent(req, 'ai_questions', { module: '/pdf-question-generator', userId: pre.who.userId });
+    return res.json({ questions, remaining: pre.remaining != null ? Math.max(0, pre.remaining - 1) : null });
+  } catch (e) {
+    console.error('ai questions error:', e.message);
+    return res.status(502).json(FAIL);
   }
 });
 

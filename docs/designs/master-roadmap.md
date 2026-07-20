@@ -64,10 +64,10 @@ Mostly free/on-device unless marked.
 
 ## 3. AI layer (Pro — needs the Anthropic key, now live)
 - [x] 🌓 Chat with PDF
-- [ ] ⏳ Summarize
-- [ ] ⏳ Translate (output-heavy — most expensive AI action, see economics)
+- [x] 🌓 Summarize (`/summarize-pdf` — page-cited, audience/language/focus controls; PDF/DOCX/MD/TXT export on-device)
+- [x] 🌓 Translate (`/translate-pdf` — tone, do-not-translate glossary, translator notes, side-by-side; weighted 3× vs the monthly AI cap; 30-page/run cap)
 - [ ] ⏳ Auto-redact PII (also §2)
-- [ ] ⏳ Question generation (study/quiz from a doc)
+- [x] 🌓 Question generation (`/pdf-question-generator` — 6 types, Bloom's levels, explanations; Anki CSV + Moodle GIFT + PDF quiz sheet)
 - [ ] ⏳ Natural-language ⌘K (also §2)
 - [ ] ⏳ Semantic compare (also §2)
 - [ ] ⏳ PDF→Excel **AI cleanup** for messy/scanned tables (Pro add-on)
