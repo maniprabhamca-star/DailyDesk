@@ -66,7 +66,7 @@ Mostly free/on-device unless marked.
 - [x] 🌓 Chat with PDF
 - [x] 🌓 Summarize (`/summarize-pdf` — page-cited, audience/language/focus controls; PDF/DOCX/MD/TXT export on-device)
 - [x] 🌓 Translate (`/translate-pdf` — tone, do-not-translate glossary, translator notes, side-by-side; weighted 3× vs the monthly AI cap; 30-page/run cap)
-- [ ] ⏳ Auto-redact PII (also §2)
+- [x] 🌓 Auto-redact PII ("AI find personal info" in /redact-pdf — review panel, approve-per-finding, boxes from page text positions, burn stays on-device)
 - [x] 🌓 Question generation (`/pdf-question-generator` — 6 types, Bloom's levels, explanations; Anki CSV + Moodle GIFT + PDF quiz sheet)
 - [ ] ⏳ Natural-language ⌘K (also §2)
 - [x] 🌓 Semantic compare (violet "What changed in meaning" section in /compare-pdf — amounts/dates/obligations, severity-ranked; weighted 2× vs the AI cap)
