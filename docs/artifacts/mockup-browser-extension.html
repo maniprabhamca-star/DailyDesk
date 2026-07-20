@@ -1,0 +1,720 @@
+<title>DiemDesk Browser Extension — v1 Mockup</title>
+
+<style>
+  :root {
+    --amber:  #E39A2B;
+    --amber-d:#C4801A;
+    --green:  #2F9E68;
+    --green-l:#E6F4EC;
+    --coral:  #DD6248;
+
+    --ink:    #1C1813;
+    --ink-2:  #4A4239;
+    --ink-3:  #857A6C;
+    --line:   #E4DDD2;
+    --panel:  #FFFFFF;
+    --ground: #F6F2EB;
+    --stage:  #EDE7DD;
+
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+
+    --r: 10px;
+    --shadow: 0 1px 2px rgba(28,24,19,.06), 0 12px 28px -8px rgba(28,24,19,.18);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink:    #F2ECE3;
+      --ink-2:  #C0B6A8;
+      --ink-3:  #8B8073;
+      --line:   #2E2822;
+      --panel:  #1F1A16;
+      --ground: #141110;
+      --stage:  #0E0C0B;
+      --green-l:#14291F;
+      --shadow: 0 1px 2px rgba(0,0,0,.5), 0 14px 32px -8px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ink:#F2ECE3; --ink-2:#C0B6A8; --ink-3:#8B8073; --line:#2E2822;
+    --panel:#1F1A16; --ground:#141110; --stage:#0E0C0B; --green-l:#14291F;
+    --shadow: 0 1px 2px rgba(0,0,0,.5), 0 14px 32px -8px rgba(0,0,0,.6);
+  }
+  :root[data-theme="light"] {
+    --ink:#1C1813; --ink-2:#4A4239; --ink-3:#857A6C; --line:#E4DDD2;
+    --panel:#FFFFFF; --ground:#F6F2EB; --stage:#EDE7DD; --green-l:#E6F4EC;
+    --shadow: 0 1px 2px rgba(28,24,19,.06), 0 12px 28px -8px rgba(28,24,19,.18);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 56px 24px 96px; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin: 0 0 14px;
+  }
+
+  h1 {
+    font-size: clamp(30px, 4.4vw, 46px);
+    line-height: 1.05;
+    letter-spacing: -.028em;
+    font-weight: 780;
+    margin: 0 0 18px;
+    text-wrap: balance;
+  }
+
+  .lede {
+    font-size: 18px;
+    color: var(--ink-2);
+    max-width: 60ch;
+    margin: 0;
+  }
+  .lede strong { color: var(--ink); font-weight: 650; }
+
+  h2 {
+    font-size: 13px;
+    font-family: var(--mono);
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--ink-3);
+    margin: 0 0 6px;
+  }
+  .sec-title {
+    font-size: 25px;
+    letter-spacing: -.02em;
+    font-weight: 700;
+    margin: 0 0 10px;
+    text-wrap: balance;
+  }
+  .sec-note { color: var(--ink-2); margin: 0; max-width: 56ch; }
+
+  section { margin-top: 76px; }
+
+  .rule { height: 1px; background: var(--line); border: 0; margin: 0; }
+
+  /* ---- stage: where screens sit ---- */
+  .stage {
+    background: var(--stage);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 36px;
+    display: flex;
+    gap: 40px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    margin-top: 26px;
+  }
+  .stage-col { flex: 1 1 300px; min-width: 0; }
+
+  /* ---- the extension popup, at true width ---- */
+  .popup {
+    width: 380px;
+    max-width: 100%;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    flex: 0 0 auto;
+  }
+
+  .pop-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 13px 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  .mark { width: 26px; height: 26px; border-radius: 7px; flex: 0 0 auto; display: block; }
+  .pop-name { font-weight: 680; font-size: 14.5px; letter-spacing: -.01em; }
+
+  .pill {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: .04em;
+    color: var(--green);
+    background: var(--green-l);
+    border: 1px solid color-mix(in srgb, var(--green) 26%, transparent);
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--green);
+    animation: pulse 2.6s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity:1 } 50% { opacity:.32 } }
+  @media (prefers-reduced-motion: reduce) { .dot { animation: none } }
+
+  .pop-body { padding: 14px; display: flex; flex-direction: column; gap: 14px; }
+
+  /* detected-file card */
+  .detected {
+    border: 1px solid color-mix(in srgb, var(--amber) 34%, transparent);
+    background: color-mix(in srgb, var(--amber) 8%, transparent);
+    border-radius: var(--r);
+    padding: 11px 12px;
+  }
+  .detected-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--amber-d);
+    font-weight: 600;
+  }
+  @media (prefers-color-scheme: dark) { .detected-label { color: var(--amber); } }
+  :root[data-theme="dark"] .detected-label { color: var(--amber); }
+  :root[data-theme="light"] .detected-label { color: var(--amber-d); }
+
+  .file-row { display: flex; align-items: center; gap: 9px; margin-top: 7px; }
+  .file-ico {
+    width: 30px; height: 34px; border-radius: 4px; flex: 0 0 auto;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    display: grid; place-items: center;
+    font-family: var(--mono); font-size: 8.5px; font-weight: 700;
+    color: var(--coral);
+  }
+  .file-name { font-size: 13.5px; font-weight: 600; letter-spacing: -.008em; }
+  .file-meta { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+
+  .btn-row { display: flex; gap: 7px; margin-top: 11px; }
+  .btn {
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 7px 12px;
+    border-radius: 7px;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .btn-primary {
+    background: var(--amber);
+    border-color: var(--amber);
+    color: #221A0C;
+  }
+  .btn:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+  /* tool grid */
+  .grid-label {
+    font-family: var(--mono); font-size: 10px; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--ink-3); font-weight: 600;
+  }
+  .tools { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-top: 8px; }
+  .tool {
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    padding: 11px 7px 9px;
+    text-align: center;
+    background: var(--panel);
+    cursor: pointer;
+    transition: border-color .15s ease, transform .15s ease;
+  }
+  .tool:hover { transform: translateY(-1px); }
+  .tool .t-ico { font-size: 17px; line-height: 1; display: block; margin-bottom: 5px; }
+  .tool .t-name { font-size: 11.5px; font-weight: 600; letter-spacing: -.005em; }
+  .tool.c-amber:hover { border-color: var(--amber); }
+  .tool.c-green:hover { border-color: var(--green); }
+  .tool.c-coral:hover { border-color: var(--coral); }
+
+  /* the proof footer — the whole point */
+  .proof {
+    border-top: 1px solid var(--line);
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    background: color-mix(in srgb, var(--green) 6%, transparent);
+  }
+  .proof-num {
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--green);
+    font-variant-numeric: tabular-nums;
+  }
+  .proof-txt { font-size: 11.5px; color: var(--ink-2); line-height: 1.4; }
+  .proof-link { color: var(--ink-3); text-decoration: underline; text-underline-offset: 2px; }
+
+  /* progress screen */
+  .bar {
+    height: 5px; background: var(--line); border-radius: 999px; overflow: hidden; margin-top: 9px;
+  }
+  .bar > i { display: block; height: 100%; width: 68%; background: var(--amber); border-radius: 999px; }
+  .result {
+    display: flex; align-items: baseline; gap: 8px; margin-top: 4px;
+    font-family: var(--mono); font-size: 12px; font-variant-numeric: tabular-nums;
+  }
+  .was { color: var(--ink-3); text-decoration: line-through; }
+  .now { color: var(--green); font-weight: 700; font-size: 14px; }
+  .save { color: var(--ink-3); }
+
+  /* annotations */
+  .notes { display: flex; flex-direction: column; gap: 20px; }
+  .note { border-left: 2px solid var(--amber); padding-left: 14px; }
+  .note.g { border-left-color: var(--green); }
+  .note.c { border-left-color: var(--coral); }
+  .note h3 {
+    font-size: 14px; font-weight: 680; margin: 0 0 4px; letter-spacing: -.01em;
+  }
+  .note p { margin: 0; font-size: 14px; color: var(--ink-2); }
+  .note code {
+    font-family: var(--mono); font-size: 12.5px;
+    background: var(--stage); padding: 1px 5px; border-radius: 4px;
+    border: 1px solid var(--line);
+  }
+
+  /* in-page bar */
+  .browser {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    background: var(--panel);
+  }
+  .browser-chrome {
+    display: flex; align-items: center; gap: 7px;
+    padding: 9px 12px;
+    background: var(--stage);
+    border-bottom: 1px solid var(--line);
+  }
+  .tl { width: 10px; height: 10px; border-radius: 50%; background: var(--line); }
+  .urlbar {
+    flex: 1; margin-left: 8px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-family: var(--mono); font-size: 11px; color: var(--ink-3);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .inpage-bar {
+    display: flex; align-items: center; gap: 11px;
+    padding: 10px 13px;
+    background: color-mix(in srgb, var(--amber) 11%, var(--panel));
+    border-bottom: 1px solid color-mix(in srgb, var(--amber) 30%, transparent);
+    flex-wrap: wrap;
+  }
+  .inpage-txt { font-size: 13px; font-weight: 550; }
+  .inpage-actions { display: flex; gap: 6px; margin-left: auto; }
+  .pdf-canvas {
+    height: 190px;
+    background: repeating-linear-gradient(
+      180deg, transparent 0 13px,
+      color-mix(in srgb, var(--ink) 7%, transparent) 13px 15px
+    );
+    margin: 22px 34px;
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    opacity: .55;
+  }
+
+  /* context menu */
+  .ctx {
+    width: 262px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    box-shadow: var(--shadow);
+    padding: 5px;
+    font-size: 13px;
+  }
+  .ctx-item { padding: 6px 10px; border-radius: 5px; color: var(--ink-2); }
+  .ctx-item.on {
+    background: color-mix(in srgb, var(--amber) 15%, transparent);
+    color: var(--ink); font-weight: 600;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .ctx-sep { height: 1px; background: var(--line); margin: 5px 2px; }
+  .ctx-sub { color: var(--ink-3); margin-left: auto; }
+
+  /* build notes table */
+  .tbl-scroll { overflow-x: auto; margin-top: 22px; }
+  table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 14px; }
+  th, td { text-align: left; padding: 11px 13px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .11em;
+    text-transform: uppercase; color: var(--ink-3); font-weight: 600;
+  }
+  td strong { font-weight: 650; }
+  td.n { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ink-2); }
+
+  .flag {
+    display: inline-block;
+    font-family: var(--mono); font-size: 10px; letter-spacing: .07em;
+    padding: 2px 7px; border-radius: 999px; font-weight: 600;
+    border: 1px solid currentColor;
+  }
+  .flag.reuse { color: var(--green); }
+  .flag.new   { color: var(--amber-d); }
+  .flag.risk  { color: var(--coral); }
+  @media (prefers-color-scheme: dark) { .flag.new { color: var(--amber); } }
+  :root[data-theme="dark"] .flag.new { color: var(--amber); }
+  :root[data-theme="light"] .flag.new { color: var(--amber-d); }
+
+  .caption {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--ink-3);
+    margin: 0 0 12px;
+  }
+
+  .verdict {
+    margin-top: 30px;
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--coral);
+    border-radius: var(--r);
+    padding: 20px 22px;
+    background: var(--panel);
+  }
+  .verdict p { margin: 0; color: var(--ink-2); }
+  .verdict p + p { margin-top: 11px; }
+  .verdict strong { color: var(--ink); }
+
+  @media (max-width: 720px) {
+    .stage { padding: 20px; gap: 28px; }
+    .wrap { padding: 40px 18px 72px; }
+  }
+</style>
+
+<div class="wrap">
+
+  <p class="eyebrow">Mockup · v1 scope · not yet built</p>
+  <h1>DiemDesk for Chrome</h1>
+  <p class="lede">
+    Every competing PDF extension is a bookmark with extra steps — it ships your file to a server.
+    This one does the work <strong>in the extension itself</strong>, and shows you the network
+    counter sitting at zero while it happens. That readout is the product.
+  </p>
+
+  <!-- ============ SCREEN 1 ============ -->
+  <section>
+    <h2>Screen 01</h2>
+    <p class="sec-title">Toolbar popup — a PDF was detected on the page</p>
+    <p class="sec-note">
+      The default state does one job well: notice the PDF you are already looking at and offer to
+      act on it. No sign-in wall, no upload spinner.
+    </p>
+
+    <div class="stage">
+      <div class="popup">
+        <div class="pop-head">
+          <svg class="mark" viewBox="0 0 32 32" aria-label="DiemDesk">
+            <rect width="32" height="32" rx="8" fill="#1C1813"/>
+            <rect x="4" y="6" width="18" height="4" rx="2" fill="#E39A2B"/>
+            <rect x="4" y="13" width="13" height="4" rx="2" fill="#2F9E68"/>
+            <rect x="4" y="20" width="16" height="4" rx="2" fill="#DD6248"/>
+            <path d="M21 9.5h2.6c3.6 0 6.1 2.7 6.1 6.5s-2.5 6.5-6.1 6.5H21z" fill="#fff"/>
+          </svg>
+          <span class="pop-name">DiemDesk</span>
+          <span class="pill"><span class="dot"></span>ON DEVICE</span>
+        </div>
+
+        <div class="pop-body">
+          <div class="detected">
+            <span class="detected-label">Found on this page</span>
+            <div class="file-row">
+              <span class="file-ico">PDF</span>
+              <span>
+                <span class="file-name">Invoice-4417.pdf</span><br>
+                <span class="file-meta">2.4 MB · 6 pages</span>
+              </span>
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-primary">Compress</button>
+              <button class="btn">Open in viewer</button>
+            </div>
+          </div>
+
+          <div>
+            <span class="grid-label">Or pick a tool</span>
+            <div class="tools">
+              <div class="tool c-amber"><span class="t-ico">🗜️</span><span class="t-name">Compress</span></div>
+              <div class="tool c-green"><span class="t-ico">🔗</span><span class="t-name">Merge</span></div>
+              <div class="tool c-coral"><span class="t-ico">✂️</span><span class="t-name">Split</span></div>
+              <div class="tool c-amber"><span class="t-ico">🔄</span><span class="t-name">Rotate</span></div>
+              <div class="tool c-green"><span class="t-ico">🖼️</span><span class="t-name">To JPG</span></div>
+              <div class="tool c-coral"><span class="t-ico">✍️</span><span class="t-name">Sign</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="proof">
+          <span class="proof-num">0 B</span>
+          <span class="proof-txt">
+            uploaded this session.
+            <a class="proof-link" href="#verify">Check it in DevTools →</a>
+          </span>
+        </div>
+      </div>
+
+      <div class="stage-col notes">
+        <div class="note">
+          <h3>Detection, not a file picker</h3>
+          <p>
+            The popup reads the active tab for a PDF — a <code>.pdf</code> URL, an embedded viewer,
+            or a direct link. Competitors open a blank drop zone and make you find the file again.
+          </p>
+        </div>
+        <div class="note g">
+          <h3>The zero counter is the pitch</h3>
+          <p>
+            A real byte count from the extension's own <code>webRequest</code> tally, not a slogan.
+            It is the only claim in this category that a sceptic can verify in ten seconds — and the
+            only one an upload-based competitor structurally cannot copy.
+          </p>
+        </div>
+        <div class="note c">
+          <h3>Six tools, not fifty-seven</h3>
+          <p>
+            Only tools whose engine already runs client-side and fits the MV3 budget. Office
+            conversions and OCR are deliberately absent — they need a server, and putting them here
+            would break the promise the popup makes.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SCREEN 2 ============ -->
+  <section>
+    <h2>Screen 02</h2>
+    <p class="sec-title">Working — and the counter stays put</p>
+    <p class="sec-note">
+      The moment that earns the install. A 2.4 MB invoice becomes 610 KB while the network readout
+      never moves off zero.
+    </p>
+
+    <div class="stage">
+      <div class="popup">
+        <div class="pop-head">
+          <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
+            <rect width="32" height="32" rx="8" fill="#1C1813"/>
+            <rect x="4" y="6" width="18" height="4" rx="2" fill="#E39A2B"/>
+            <rect x="4" y="13" width="13" height="4" rx="2" fill="#2F9E68"/>
+            <rect x="4" y="20" width="16" height="4" rx="2" fill="#DD6248"/>
+            <path d="M21 9.5h2.6c3.6 0 6.1 2.7 6.1 6.5s-2.5 6.5-6.1 6.5H21z" fill="#fff"/>
+          </svg>
+          <span class="pop-name">Compressing</span>
+          <span class="pill"><span class="dot"></span>ON DEVICE</span>
+        </div>
+
+        <div class="pop-body">
+          <div>
+            <span class="file-name">Invoice-4417.pdf</span>
+            <div class="bar"><i></i></div>
+            <div class="file-meta" style="margin-top:7px">Rebuilding page 4 of 6 — in this tab</div>
+          </div>
+
+          <div class="detected" style="border-color: color-mix(in srgb, var(--green) 34%, transparent); background: color-mix(in srgb, var(--green) 8%, transparent);">
+            <span class="detected-label" style="color: var(--green)">Result</span>
+            <div class="result">
+              <span class="was">2.4 MB</span>
+              <span class="now">610 KB</span>
+              <span class="save">75% smaller</span>
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-primary">Save</button>
+              <button class="btn">Open in DiemDesk</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="proof">
+          <span class="proof-num">0 B</span>
+          <span class="proof-txt">still uploaded. The file never left this machine.</span>
+        </div>
+      </div>
+
+      <div class="stage-col notes">
+        <div class="note g">
+          <h3>"Open in DiemDesk" is the traffic mechanism</h3>
+          <p>
+            The honest answer to <em>how does an extension send site visits?</em> — it mostly does
+            not. It hands off when the user wants something the popup cannot do: a multi-file job,
+            a signature, the editor. That is a real but modest funnel, and it should not be oversold.
+          </p>
+        </div>
+        <div class="note">
+          <h3>Same engine, same output</h3>
+          <p>
+            Compression runs the identical code path as the site, so a file compressed in the
+            extension is byte-identical to one compressed on <code>/compress-pdf</code>. No second
+            implementation to keep in sync.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SCREEN 3 + 4 ============ -->
+  <section>
+    <h2>Screen 03 &amp; 04</h2>
+    <p class="sec-title">Two entry points you do not have to open a popup for</p>
+
+    <div class="stage">
+      <div class="stage-col" style="flex:1 1 420px">
+        <p class="caption">In-page bar · Chrome's built-in PDF viewer</p>
+        <div class="browser">
+          <div class="browser-chrome">
+            <span class="tl"></span><span class="tl"></span><span class="tl"></span>
+            <span class="urlbar">https://portal.suppliers.example.com/invoice-4417.pdf</span>
+          </div>
+          <div class="inpage-bar">
+            <svg class="mark" style="width:20px;height:20px" viewBox="0 0 32 32" aria-hidden="true">
+              <rect width="32" height="32" rx="8" fill="#1C1813"/>
+              <rect x="4" y="6" width="18" height="4" rx="2" fill="#E39A2B"/>
+              <rect x="4" y="13" width="13" height="4" rx="2" fill="#2F9E68"/>
+              <rect x="4" y="20" width="16" height="4" rx="2" fill="#DD6248"/>
+              <path d="M21 9.5h2.6c3.6 0 6.1 2.7 6.1 6.5s-2.5 6.5-6.1 6.5H21z" fill="#fff"/>
+            </svg>
+            <span class="inpage-txt">Compress or convert this — without uploading it</span>
+            <span class="inpage-actions">
+              <button class="btn btn-primary">Compress</button>
+              <button class="btn">Dismiss</button>
+            </span>
+          </div>
+          <div class="pdf-canvas"></div>
+        </div>
+        <div class="note g" style="margin-top:18px">
+          <h3>Dismissible, and it remembers</h3>
+          <p>
+            Injected bars are the single most common reason people uninstall an extension. One
+            dismissal silences it per origin, permanently.
+          </p>
+        </div>
+      </div>
+
+      <div class="stage-col" style="flex:0 1 300px">
+        <p class="caption">Right-click · any PDF link</p>
+        <div class="ctx">
+          <div class="ctx-item">Open link in new tab</div>
+          <div class="ctx-item">Save link as…</div>
+          <div class="ctx-item">Copy link address</div>
+          <div class="ctx-sep"></div>
+          <div class="ctx-item on">
+            <svg style="width:15px;height:15px;border-radius:4px" viewBox="0 0 32 32" aria-hidden="true">
+              <rect width="32" height="32" rx="8" fill="#1C1813"/>
+              <rect x="4" y="6" width="18" height="4" rx="2" fill="#E39A2B"/>
+              <rect x="4" y="13" width="13" height="4" rx="2" fill="#2F9E68"/>
+              <rect x="4" y="20" width="16" height="4" rx="2" fill="#DD6248"/>
+              <path d="M21 9.5h2.6c3.6 0 6.1 2.7 6.1 6.5s-2.5 6.5-6.1 6.5H21z" fill="#fff"/>
+            </svg>
+            DiemDesk <span class="ctx-sub">▸</span>
+          </div>
+        </div>
+
+        <div class="ctx" style="margin-top:10px; margin-left:26px; width:210px">
+          <div class="ctx-item on">Compress this PDF</div>
+          <div class="ctx-item">Convert to JPG</div>
+          <div class="ctx-item">Rotate pages</div>
+          <div class="ctx-sep"></div>
+          <div class="ctx-item">Open in DiemDesk</div>
+        </div>
+
+        <div class="note" style="margin-top:18px">
+          <h3>The lowest-friction path</h3>
+          <p>
+            No popup, no tab switch. This is the interaction people form a habit around, so it ships
+            in v1 rather than waiting.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ BUILD ============ -->
+  <section id="verify">
+    <h2>Build reality</h2>
+    <p class="sec-title">What it costs, and where it bites</p>
+    <p class="sec-note">
+      Estimates are calendar time for one developer already running everything else — not ideal
+      dev-days.
+    </p>
+
+    <div class="tbl-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Piece</th><th>Status</th><th>Notes</th><th>Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Compression / rotate / split engines</strong></td>
+            <td><span class="flag reuse">REUSE</span></td>
+            <td>Already framework-free in <code>lib/</code>. Lifts across largely unchanged.</td>
+            <td class="n">~1 wk</td>
+          </tr>
+          <tr>
+            <td><strong>pdf.js + WASM under MV3</strong></td>
+            <td><span class="flag risk">RISK</span></td>
+            <td>MV3's CSP blocks <code>unsafe-eval</code>; WASM needs an offscreen document, and the service worker dies after 30s idle mid-job. This is the part that slips.</td>
+            <td class="n">2–3 wks</td>
+          </tr>
+          <tr>
+            <td><strong>Popup UI + detection</strong></td>
+            <td><span class="flag new">NEW</span></td>
+            <td>Screens above. Small surface, but its own design system at 380px.</td>
+            <td class="n">~1.5 wks</td>
+          </tr>
+          <tr>
+            <td><strong>Context menu + in-page bar</strong></td>
+            <td><span class="flag new">NEW</span></td>
+            <td>Content script, per-origin dismissal memory.</td>
+            <td class="n">~1 wk</td>
+          </tr>
+          <tr>
+            <td><strong>Store review</strong></td>
+            <td><span class="flag risk">RISK</span></td>
+            <td>File-handling permissions draw a deeper review. Not schedulable — you wait.</td>
+            <td class="n">2–4 wks</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="verdict">
+      <p>
+        <strong>Roughly 10 weeks of build, then a review queue you cannot schedule around.</strong>
+        The extension is genuinely good — the zero-byte counter is the sharpest expression of the
+        whole product, and no upload-based competitor can answer it.
+      </p>
+      <p>
+        But be clear about what it returns. Both of its revenue paths end at
+        <code>/pricing</code>, and today <code>/pricing</code> collects waitlist emails rather than
+        payments. An extension that drives signups into a page that cannot charge is ten weeks spent
+        widening the top of a funnel with no bottom.
+      </p>
+      <p>
+        <strong>The order that makes this worth building:</strong> turn billing on, learn whether
+        six people will pay, then come back and build the thing that sends more of them.
+      </p>
+    </div>
+  </section>
+
+</div>
