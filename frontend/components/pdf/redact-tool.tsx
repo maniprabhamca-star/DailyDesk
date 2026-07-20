@@ -15,9 +15,11 @@ import { PageStrip } from '@/components/pdf/page-strip';
 import { EditorShell } from '@/components/pdf/editor-shell';
 import { setEditorContext, clearEditorContext } from '@/lib/command-registry';
 import { saveSession, loadSessionAsync, clearSession } from '@/lib/editor-session';
-import { Mail, Phone, CreditCard, Hash, Info, History, ChevronDown } from 'lucide-react';
+import { Mail, Phone, CreditCard, Hash, Info, History, ChevronDown, ScanFace } from 'lucide-react';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
+import { aiPost, pagesFromChunks, AI_FALLBACK_MSG } from '@/lib/ai-doc';
+import { extractChunks } from '@/lib/pdf-chat';
 
 // Redact PDF — box out sensitive content on a live page preview, then TRULY
 // remove it: every redacted page is rebuilt as a flat image with the boxes
@@ -28,6 +30,16 @@ import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
 type Pt = { x: number; y: number };
 type Box = { a: Pt; b: Pt };
 type Style = 'black' | 'white' | 'label';
+
+// One AI finding, awaiting the user's yes/no before any box is placed. The AI
+// only POINTS at PII — the boxes come from the page's own text positions, and
+// the burn stays 100% on-device.
+type AiFinding = { page: number; quote: string; type: string; reason: string; checked: boolean };
+const AI_TYPE_LABEL: Record<string, string> = {
+  name: 'Name', email: 'Email', phone: 'Phone', address: 'Address', id: 'Gov. ID',
+  account: 'Account/card', dob: 'Birth date', credential: 'Credential', other: 'Personal info',
+};
+const normQuote = (s: string) => s.toLowerCase().replace(/\s+/g, ' ').trim();
 
 // Pro "pattern presets": auto-find common sensitive data across the whole
 // document. Each tests a single text run (pdf.js emits text per run) — a match
@@ -87,6 +99,8 @@ export function RedactTool() {
   const [scanNote, setScanNote] = useState<string | null>(null);
   const [restorable, setRestorable] = useState<{ name: string; run: () => void } | null>(null); // saved session offered on the dropzone
   const [findOpen, setFindOpen] = useState(false); // is the Find & redact toolbar row expanded
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiFindings, setAiFindings] = useState<AiFinding[] | null>(null); // review list before boxes are placed
 
   const isPro = plan === 'pro'; // owner cookie / Pro email resolve to 'pro' via usePlan()
 
@@ -273,6 +287,88 @@ export function RedactTool() {
     void scan((s) => s.toLowerCase().includes(needle), `“${q}”`);
   };
 
+  // AI find-personal-info: extract the text on-device, ask the AI WHERE the PII
+  // is (text only — never the file), then show the findings for review. No box
+  // exists until the user approves; the burn is the same on-device engine.
+  const aiScan = useCallback(async () => {
+    if (!file || aiBusy || scanning) return;
+    setAiBusy(true); setAiFindings(null); setScanNote(null); setError(null);
+    try {
+      const { chunks, hasText } = await extractChunks(file);
+      if (!hasText) {
+        setScanNote('This looks like a scanned PDF — it has no selectable text for the AI to read. Draw boxes by hand, or run OCR first.');
+        return;
+      }
+      const r = await aiPost<{ findings: Array<Omit<AiFinding, 'checked'>> }>('/api/ai/redact-scan', { pages: pagesFromChunks(chunks) });
+      if (!r.ok || !r.data) { setScanNote(r.message || AI_FALLBACK_MSG); return; }
+      if (!r.data.findings.length) { setScanNote('The AI found no personal information in this document’s text.'); return; }
+      setAiFindings(r.data.findings.map((f) => ({ ...f, checked: true })));
+    } finally {
+      setAiBusy(false);
+    }
+  }, [file, aiBusy, scanning]);
+
+  // Place boxes for the APPROVED findings only — same position math as scan(),
+  // but page-scoped to each finding so a short name can't box the whole doc.
+  const boxAiFindings = useCallback(async () => {
+    if (!handle || !aiFindings || scanning) return;
+    const chosen = aiFindings.filter((f) => f.checked);
+    if (!chosen.length) { setAiFindings(null); return; }
+    setScanning('AI findings');
+    try {
+      const byPage = new Map<number, string[]>();
+      for (const f of chosen) {
+        const arr = byPage.get(f.page - 1) || [];
+        arr.push(normQuote(f.quote));
+        byPage.set(f.page - 1, arr);
+      }
+      const pdfjs = await getPdfjs();
+      const next: Record<number, Box[]> = {};
+      for (const k of Object.keys(boxes)) next[Number(k)] = [...boxes[Number(k)]];
+      let hits = 0; let firstHit = -1;
+      const located = new Set<string>();
+      for (const [pi, quotes] of Array.from(byPage.entries())) {
+        if (pi < 0 || pi >= handle.numPages) continue;
+        const page = await handle.doc.getPage(pi + 1);
+        const vp = page.getViewport({ scale: 1 });
+        const tc = await page.getTextContent();
+        for (const it of tc.items as Array<{ str?: string; transform?: number[]; width?: number; height?: number }>) {
+          const s = it.str;
+          if (!s || !s.trim() || !it.transform) continue;
+          const ns = normQuote(s);
+          const matched = quotes.filter((q) => (ns.length >= 3 && q.includes(ns)) || ns.includes(q));
+          if (!matched.length) continue;
+          const m = pdfjs.Util.transform(vp.transform, it.transform);
+          const fontH = Math.hypot(m[2], m[3]) || (it.height || 8);
+          const w = (it.width || 0) * vp.scale;
+          const left = m[4];
+          const top = m[5] - fontH;
+          const pad = fontH * 0.2;
+          const a = { x: Math.max(0, (left - pad) / vp.width), y: Math.max(0, (top - pad) / vp.height) };
+          const b = { x: Math.min(1, (left + w + pad) / vp.width), y: Math.min(1, (top + fontH + pad) / vp.height) };
+          if (b.x - a.x < 0.004 || b.y - a.y < 0.004) continue;
+          (next[pi] ||= []).push({ a, b });
+          hits++; if (firstHit < 0) firstHit = pi;
+          for (const q of matched) located.add(`${pi}:${q}`);
+        }
+      }
+      setBoxes(next);
+      if (firstHit >= 0) setSel(firstHit);
+      const unplaced = chosen.filter((f) => !located.has(`${f.page - 1}:${normQuote(f.quote)}`)).length;
+      setScanNote(
+        `${hits} box${hits === 1 ? '' : 'es'} placed from ${chosen.length} approved finding${chosen.length === 1 ? '' : 's'}` +
+        (unplaced
+          ? ` — ${unplaced} couldn’t be pinned to the page text (box ${unplaced === 1 ? 'it' : 'them'} by hand).`
+          : ' — review each box, then Redact & download.'),
+      );
+      setAiFindings(null);
+    } catch {
+      setError('Could not place the AI findings on this PDF — draw the boxes by hand instead.');
+    } finally {
+      setScanning(null);
+    }
+  }, [handle, aiFindings, scanning, boxes]);
+
   const redactedPages = Object.keys(boxes).map(Number).filter((i) => (boxes[i] || []).length > 0).sort((x, y) => x - y);
   const totalBoxes = redactedPages.reduce((n, i) => n + boxes[i].length, 0);
 
@@ -377,6 +473,8 @@ export function RedactTool() {
   };
   const runPresetRef = useRef(runPreset);
   runPresetRef.current = runPreset;
+  const aiScanRef = useRef(aiScan);
+  aiScanRef.current = aiScan;
   useEffect(() => {
     if (!file) { clearEditorContext(); return; }
     setEditorContext({
@@ -388,6 +486,7 @@ export function RedactTool() {
         { id: 'r-phone', label: 'Redact all phone numbers', keywords: 'telephone', icon: Phone, pro: true, run: () => runPresetRef.current('phone') },
         { id: 'r-ssn', label: 'Redact all SSNs', keywords: 'social security', icon: Hash, pro: true, run: () => runPresetRef.current('ssn') },
         { id: 'r-card', label: 'Redact all card numbers', keywords: 'credit card', icon: CreditCard, pro: true, run: () => runPresetRef.current('card') },
+        { id: 'r-ai', label: 'AI find personal info', hint: 'lists PII for your approval', keywords: 'pii scan names addresses', icon: ScanFace, pro: true, run: () => { void aiScanRef.current(); } },
         { id: 'r-next', label: 'Next page', run: () => cmdApi.current.next() },
         { id: 'r-prev', label: 'Previous page', run: () => cmdApi.current.prev() },
         { id: 'r-apply', label: 'Redact & download', icon: EyeOff, run: () => cmdApi.current.redact() },
@@ -440,6 +539,43 @@ export function RedactTool() {
           {scanning === p.label ? <Loader2 className="size-3 animate-spin" /> : <Icon className="size-3" />} {p.label}
         </button>
       ); })}
+      <button
+        onClick={() => void aiScan()}
+        disabled={aiBusy || !!scanning}
+        title="The AI reads the text (on-device extracted, text-only) and lists every piece of personal info it finds — you approve each before any box is placed."
+        className="inline-flex items-center gap-1.5 rounded-full border border-violet-500/40 bg-violet-500/10 px-2.5 py-1 text-[11px] font-bold text-violet-600 transition-all hover:-translate-y-px hover:bg-violet-500/20 disabled:opacity-50 dark:text-violet-400"
+      >
+        {aiBusy ? <Loader2 className="size-3 animate-spin" /> : <ScanFace className="size-3" />} AI find personal info
+      </button>
+    </div>
+  );
+  // The AI findings review panel — nothing is boxed until the user says so.
+  const aiPanel = aiFindings && (
+    <div className="w-full rounded-xl border border-violet-500/30 bg-violet-500/5 p-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="flex items-center gap-1.5 text-xs font-bold">
+          <ScanFace className="size-3.5 text-violet-600 dark:text-violet-400" />
+          AI found {aiFindings.length} item{aiFindings.length === 1 ? '' : 's'} — untick anything you want to keep
+        </p>
+        <div className="ml-auto flex gap-1.5">
+          <Button size="sm" onClick={() => void boxAiFindings()} disabled={!!scanning || !aiFindings.some((f) => f.checked)} className="h-7 bg-violet-600 px-2.5 text-xs text-white hover:bg-violet-700">
+            Box selected ({aiFindings.filter((f) => f.checked).length})
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => setAiFindings(null)} className="h-7 px-2.5 text-xs">Dismiss</Button>
+        </div>
+      </div>
+      <div className="mt-2 max-h-44 space-y-1 overflow-auto pr-1">
+        {aiFindings.map((f, i) => (
+          <label key={i} className="flex cursor-pointer items-start gap-2 rounded-lg border bg-card px-2.5 py-1.5 text-xs">
+            <input type="checkbox" checked={f.checked} className="mt-0.5 size-3.5 accent-violet-600"
+              onChange={() => setAiFindings((list) => list && list.map((x, j) => (j === i ? { ...x, checked: !x.checked } : x)))} />
+            <span className="rounded bg-violet-500/10 px-1.5 py-px font-bold text-violet-600 dark:text-violet-400">{AI_TYPE_LABEL[f.type] || 'Personal info'}</span>
+            <span className="min-w-0 flex-1"><b>&ldquo;{f.quote}&rdquo;</b>{f.reason ? <span className="text-muted-foreground"> — {f.reason}</span> : null}</span>
+            <span className="shrink-0 text-muted-foreground">p.{f.page}</span>
+          </label>
+        ))}
+      </div>
+      <p className="mt-2 text-[11px] text-muted-foreground">The AI only points — boxes come from the page&rsquo;s own text positions, and the removal itself runs 100% on your device.</p>
     </div>
   );
   const findUpsell = (
@@ -459,6 +595,7 @@ export function RedactTool() {
           {findSearchBox}
           {findPresets}
           {scanNote && <span className="flex w-full items-start gap-1.5 text-[11px] text-muted-foreground"><Info className="mt-0.5 size-3 shrink-0 text-amber-500" /> {scanNote}</span>}
+          {aiPanel}
         </>
       ) : (
         <div className="min-w-[220px] flex-1">{findUpsell}</div>

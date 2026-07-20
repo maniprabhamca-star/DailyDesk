@@ -420,6 +420,43 @@ router.post('/table-cleanup', guard('/pdf-to-excel'), async (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
+// AI redact-scan — FINDS personal info; the browser draws the boxes and the
+// on-device engine burns them. The AI only points, it never redacts.
+// ---------------------------------------------------------------------------
+const RED_SYSTEM = "You are DiemDesk's personal-information finder. Scan the page-tagged document text for PII: person names, email addresses, phone numbers, physical addresses, government IDs (SSN, passport, Aadhaar, PAN, driver's licence), bank/card/account numbers, dates of birth, and login credentials. Respond with STRICT JSON only: {\"findings\": [{\"page\": number, \"quote\": string, \"type\": \"name\"|\"email\"|\"phone\"|\"address\"|\"id\"|\"account\"|\"dob\"|\"credential\"|\"other\", \"reason\": string (short phrase)}]}. CRITICAL: each \"quote\" must be COPIED VERBATIM from the text (exact characters, 1-8 words) so software can locate it on the page — never paraphrase, never merge two occurrences. List each distinct value once per page it appears on. Do not flag generic role words (\"the customer\") or company names acting as businesses.";
+
+const RED_TYPES = new Set(['name', 'email', 'phone', 'address', 'id', 'account', 'dob', 'credential', 'other']);
+
+router.post('/redact-scan', guard('/redact-pdf'), async (req, res) => {
+  const ctx = packContext(req.body && req.body.pages, Number(process.env.AI_RED_MAX_CHARS || 40000));
+  if (!ctx.trim()) return res.status(400).json({ error: 'no-context', message: 'No document text was provided.' });
+
+  const pre = await preflight(req, res, { proMessage: 'AI find-personal-info is a Pro feature.' });
+  if (!pre) return;
+
+  try {
+    const r = await callClaude(RED_SYSTEM, [{ role: 'user', content: `Document text:\n\n${ctx}` }], 3000);
+    if (!r.ok) return res.status(502).json(FAIL);
+    const parsed = parseJson(r.text);
+    const findings = (parsed && Array.isArray(parsed.findings) ? parsed.findings : [])
+      .map((f) => ({
+        page: Number(f && f.page) || 0,
+        quote: String((f && f.quote) || '').slice(0, 200),
+        type: RED_TYPES.has(f && f.type) ? f.type : 'other',
+        reason: String((f && f.reason) || '').slice(0, 120),
+      }))
+      .filter((f) => f.page > 0 && f.quote.trim().length >= 2)
+      .slice(0, 80);
+    await budget.record(pre.capKey, r.usage.input_tokens || 0, r.usage.output_tokens || 0);
+    trackEvent(req, 'ai_redact_scan', { module: '/redact-pdf', userId: pre.who.userId });
+    return res.json({ findings, remaining: pre.remaining != null ? Math.max(0, pre.remaining - 1) : null });
+  } catch (e) {
+    console.error('ai redact-scan error:', e.message);
+    return res.status(502).json(FAIL);
+  }
+});
+
+// ---------------------------------------------------------------------------
 // Semantic compare — what changed in MEANING between two versions
 // ---------------------------------------------------------------------------
 const CMP_SYSTEM = "You are DiemDesk's document comparer. You get two versions of a document (A = original, B = updated) as page-tagged text. Report what changed IN MEANING — renegotiated amounts, shifted dates, added or removed obligations, changed parties, scope or conditions — not cosmetic rewording. Work ONLY from the provided text; never invent. Respond with STRICT JSON only: {\"verdict\": string (one plain-spoken sentence: what happened overall), \"differences\": [{\"kind\": \"added\"|\"removed\"|\"changed\", \"topic\": string (2-5 words), \"detail\": string (one sentence; quote the old and new value when relevant), \"pageA\": number|null, \"pageB\": number|null, \"severity\": \"minor\"|\"notable\"|\"critical\"}]} — most important first. If the versions are effectively identical in meaning, return an empty differences array.";

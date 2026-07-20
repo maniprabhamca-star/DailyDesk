@@ -20,6 +20,7 @@ export type AiDocState = {
   noText: boolean;
   error: string | null;
   preview: { url: string; w: number; h: number } | null;
+  previewPage: number;
   loadFile: (f?: File) => Promise<void>;
   reset: () => void;
   showPage: (idx: number) => void;
@@ -35,6 +36,7 @@ export function useAiDoc(): AiDocState {
   const [readPct, setReadPct] = useState(0);
   const [noText, setNoText] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [previewPage, setPreviewPage] = useState(0);
 
   useEffect(() => () => { handle?.destroy?.(); }, [handle]);
 
@@ -57,6 +59,7 @@ export function useAiDoc(): AiDocState {
     try {
       const h = await openPdf(f);
       setHandle(h); setNumPages(h.numPages); setFile(f);
+      setPreviewPage(0);
       void paint(h, 0);
       const { chunks: cx, hasText } = await extractChunks(f, setReadPct);
       setChunks(cx);
@@ -73,12 +76,17 @@ export function useAiDoc(): AiDocState {
   const reset = useCallback(() => {
     handle?.destroy?.();
     setFile(null); setHandle(null); setPreview(null); setChunks([]); setNumPages(0);
-    setStatus('idle'); setNoText(false); setError(null);
+    setStatus('idle'); setNoText(false); setError(null); setPreviewPage(0);
   }, [handle]);
 
-  const showPage = useCallback((idx: number) => { if (handle) void paint(handle, idx); }, [handle, paint]);
+  const showPage = useCallback((idx: number) => {
+    if (!handle) return;
+    const clamped = Math.max(0, Math.min(idx, handle.numPages - 1));
+    setPreviewPage(clamped);
+    void paint(handle, clamped);
+  }, [handle, paint]);
 
-  return { file, numPages, chunks, status, readPct, noText, error, preview, loadFile, reset, showPage };
+  return { file, numPages, chunks, status, readPct, noText, error, preview, previewPage, loadFile, reset, showPage };
 }
 
 export function AiDropzone({ doc, prompt, hint }: { doc: AiDocState; prompt: string; hint?: string }) {
@@ -104,20 +112,34 @@ export function AiDropzone({ doc, prompt, hint }: { doc: AiDocState; prompt: str
 }
 
 export function AiDocPanel({ doc }: { doc: AiDocState }) {
+  // Flash + scroll the preview when a page citation is clicked, so the jump is
+  // unmissable (the chips looked dead when the change happened off to the side).
+  const [flash, setFlash] = useState(false);
+  const boxRef = useRef<HTMLDivElement>(null);
+  const firstShow = useRef(true);
+  useEffect(() => {
+    if (firstShow.current) { firstShow.current = false; return; }
+    setFlash(true);
+    boxRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    const t = setTimeout(() => setFlash(false), 1100);
+    return () => clearTimeout(t);
+  }, [doc.previewPage]);
   return (
     <aside className="flex flex-col gap-3 rounded-2xl border bg-card p-4">
       <div className="flex items-center gap-2 text-sm font-semibold">
         <FileText className="size-4 shrink-0 text-primary" />
         <span className="truncate" title={doc.file?.name}>{doc.file?.name}</span>
       </div>
-      <div className="text-xs text-muted-foreground">{doc.numPages} {doc.numPages === 1 ? 'page' : 'pages'}</div>
-      <div className="overflow-hidden rounded-lg border bg-muted/40">
+      <div ref={boxRef} className={`overflow-hidden rounded-lg border bg-muted/40 transition-all duration-300 ${flash ? 'ring-2 ring-violet-500 shadow-[0_0_0_5px_rgba(139,92,246,0.25)]' : ''}`}>
         {doc.preview ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={doc.preview.url} alt="Page preview" className="w-full object-contain" draggable={false} />
         ) : (
           <div className="flex aspect-[1/1.3] items-center justify-center text-muted-foreground/40"><Loader2 className="size-5 animate-spin" /></div>
         )}
+      </div>
+      <div className={`text-center text-xs font-semibold transition-colors ${flash ? 'text-violet-600 dark:text-violet-400' : 'text-muted-foreground'}`}>
+        Page {doc.previewPage + 1} of {doc.numPages} <span className="font-normal text-muted-foreground">· click a p.N chip to jump</span>
       </div>
       <div className="flex items-start gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-[11px] leading-snug text-emerald-700 dark:text-emerald-400">
         <ShieldCheck className="mt-px size-3.5 shrink-0" />
