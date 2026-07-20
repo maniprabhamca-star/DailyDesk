@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "og": "node scripts/gen-og-images.mjs"
+    "og": "node scripts/gen-og-images.mjs",
+    "prebuild": "node scripts/gen-sw.mjs",
+    "predev": "node scripts/gen-sw.mjs",
+    "sw": "node scripts/gen-sw.mjs"
   },
   "dependencies": {
     "@jsquash/jpeg": "^1.6.0",

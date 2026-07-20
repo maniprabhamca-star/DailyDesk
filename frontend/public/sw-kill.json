@@ -1,0 +1,4 @@
+{
+  "disabled": false,
+  "_comment": "Kill switch for the service worker. Set \"disabled\": true on the server (no deploy needed) and every DiemDesk service worker wipes its caches and unregisters itself on its next activate or hourly check. Served no-cache via next.config.js. Recovery path for a bad worker — see public/sw.template.js."
+}

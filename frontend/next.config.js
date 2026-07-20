@@ -15,7 +15,11 @@ const nextConfig = {
   // immediately instead of being pinned for hours (a stale SW broke styling once).
   async headers() {
     return [
+      // Both must stay no-cache: a stale worker script, or a stale kill file, is
+      // the one failure mode with no in-band recovery. Verified on prod that
+      // Cloudflare returns cf-cache-status: BYPASS for these.
       { source: '/sw.js', headers: [{ key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' }] },
+      { source: '/sw-kill.json', headers: [{ key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' }] },
     ];
   },
 };
