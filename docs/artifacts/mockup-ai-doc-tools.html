@@ -1,0 +1,339 @@
+<title>AI document tools ×3 — DiemDesk mockup</title>
+<style>
+  :root{
+    --bg:#f4f5f3;--surface:#fff;--surface-2:#f7f8f6;--border:#e3e5e0;--text:#1a1c19;--muted:#6b7168;--faint:#9aa093;
+    --accent:#2563eb;--accent-weak:#2563eb12;--accent-ring:#2563eb40;
+    --ai:#7c3aed;--ai-weak:#7c3aed12;--ai-ring:#7c3aed40;
+    --green:#15803d;--green-bg:#16a34a12;--green-border:#16a34a40;--amber:#b45309;
+    --paper:#fff;--line:#dcdfd8;--radius:16px;
+    --shadow:0 1px 2px rgba(20,25,18,.04),0 10px 30px rgba(20,25,18,.08);
+    --mono:"SFMono-Regular",ui-monospace,Menlo,monospace;
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --bg:#111311;--surface:#1a1d19;--surface-2:#20241f;--border:#2e332b;--text:#eef0ea;--muted:#a3a99b;--faint:#767c6e;
+    --accent:#60a5fa;--accent-weak:#60a5fa1c;--accent-ring:#60a5fa55;--ai:#a78bfa;--ai-weak:#a78bfa1c;--ai-ring:#a78bfa55;
+    --green:#4ade80;--green-bg:#22c55e18;--green-border:#22c55e44;--amber:#fbbf24;--paper:#f6f6f4;--line:#cfd2cb;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 34px rgba(0,0,0,.4);
+  }}
+  :root[data-theme="light"]{--bg:#f4f5f3;--surface:#fff;--surface-2:#f7f8f6;--border:#e3e5e0;--text:#1a1c19;--muted:#6b7168;--faint:#9aa093;--accent:#2563eb;--accent-weak:#2563eb12;--accent-ring:#2563eb40;--ai:#7c3aed;--ai-weak:#7c3aed12;--ai-ring:#7c3aed40;--green:#15803d;--green-bg:#16a34a12;--green-border:#16a34a40;--amber:#b45309;--paper:#fff;--line:#dcdfd8;--shadow:0 1px 2px rgba(20,25,18,.04),0 10px 30px rgba(20,25,18,.08);}
+  :root[data-theme="dark"]{--bg:#111311;--surface:#1a1d19;--surface-2:#20241f;--border:#2e332b;--text:#eef0ea;--muted:#a3a99b;--faint:#767c6e;--accent:#60a5fa;--accent-weak:#60a5fa1c;--accent-ring:#60a5fa55;--ai:#a78bfa;--ai-weak:#a78bfa1c;--ai-ring:#a78bfa55;--green:#4ade80;--green-bg:#22c55e18;--green-border:#22c55e44;--amber:#fbbf24;--paper:#f6f6f4;--line:#cfd2cb;--shadow:0 1px 2px rgba(0,0,0,.3),0 12px 34px rgba(0,0,0,.4);}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1010px;margin:0 auto;padding:28px 18px 60px;}
+  .review-tag{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-bottom:18px;flex-wrap:wrap;}
+  .review-tag b{color:var(--text);font-weight:600;}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--ai);flex:none;}
+  h1{font-size:22px;font-weight:800;letter-spacing:-.02em;margin:0 0 4px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .pro{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:3px 9px;border-radius:999px;background:linear-gradient(90deg,#f59e0b,#f97316);color:#fff;}
+  .lead{font-size:14px;color:var(--muted);margin:0 0 18px;max-width:70ch;}
+
+  /* mockup-only tab switcher (prod = 3 separate routes) */
+  .tabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;}
+  .tab{font-size:13px;font-weight:700;border:1px solid var(--border);background:var(--surface);color:var(--muted);border-radius:999px;padding:8px 16px;cursor:pointer;transition:all .12s;}
+  .tab.on{background:var(--ai-weak);border-color:var(--ai-ring);color:var(--ai);}
+  .tab .r{font-weight:500;font-size:11px;opacity:.75;font-family:var(--mono);}
+  section{display:none;} section.on{display:block;}
+
+  .app{display:grid;grid-template-columns:290px 1fr;gap:0;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow);overflow:hidden;min-height:520px;}
+  @media (max-width:680px){.app{grid-template-columns:1fr;} .doc{display:none;}}
+  .doc{border-right:1px solid var(--border);background:var(--surface-2);padding:16px;display:flex;flex-direction:column;gap:12px;}
+  .docfile{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:600;}
+  .docfile svg{color:var(--accent);flex:none;}
+  .docfile .sz{font-size:11px;font-weight:500;color:var(--faint);}
+  .pagemini{background:var(--paper);border:1px solid var(--line);border-radius:8px;aspect-ratio:1/1.3;padding:14px 16px;color:#2a2c28;box-shadow:var(--shadow);}
+  .pagemini .h{font-size:11px;font-weight:800;color:#1a1c19;border-bottom:1.5px solid #1a1c19;padding-bottom:5px;}
+  .pagemini .r{display:flex;justify-content:space-between;font-size:8px;color:#4a4f45;margin-top:7px;}
+  .pagemini .ln{height:3px;background:#0000000d;border-radius:2px;margin:9px 0;}
+  .pagemini .ln.s{width:60%;}
+  .ondevice{font-size:11px;color:var(--green);background:var(--green-bg);border:1px solid var(--green-border);border-radius:9px;padding:8px 10px;display:flex;gap:7px;}
+  .ondevice svg{flex:none;margin-top:1px;}
+
+  .main{display:flex;flex-direction:column;min-width:0;}
+  .head{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);padding:12px 16px;flex-wrap:wrap;}
+  .head .ico{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:var(--ai-weak);color:var(--ai);border:1px solid var(--ai-ring);flex:none;}
+  .head b{font-size:14px;}
+  .head .cap{margin-left:auto;font-size:11px;color:var(--muted);background:var(--surface-2);border:1px solid var(--border);border-radius:999px;padding:3px 9px;}
+
+  .controls{display:flex;flex-wrap:wrap;gap:14px;padding:14px 16px;border-bottom:1px solid var(--border);background:var(--surface-2);}
+  .ctl{display:flex;flex-direction:column;gap:5px;}
+  .ctl label{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--faint);}
+  .seg{display:inline-flex;border:1px solid var(--border);border-radius:10px;background:var(--surface);overflow:hidden;}
+  .seg button{font:inherit;font-size:12.5px;font-weight:600;border:0;background:transparent;color:var(--muted);padding:7px 13px;cursor:pointer;}
+  .seg button.on{background:var(--ai-weak);color:var(--ai);}
+  .seg button+button{border-left:1px solid var(--border);}
+  select.sel{font:inherit;font-size:12.5px;font-weight:600;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text);padding:7px 11px;outline:none;}
+  .run{margin-left:auto;align-self:flex-end;display:inline-flex;align-items:center;gap:7px;font:inherit;font-size:13px;font-weight:700;border:0;border-radius:11px;background:var(--ai);color:#fff;padding:9px 18px;cursor:pointer;box-shadow:0 3px 10px var(--ai-ring);}
+
+  .out{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:12px;}
+  .card{border:1px solid var(--border);border-radius:12px;background:var(--surface-2);padding:13px 15px;font-size:13.5px;}
+  .card h4{margin:0 0 7px;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--faint);}
+  .cite{display:inline-flex;align-items:center;gap:3px;font-size:10.5px;font-weight:700;color:var(--accent);background:var(--accent-weak);border:1px solid var(--accent-ring);border-radius:6px;padding:1px 6px;margin-left:4px;cursor:pointer;}
+  .kp{margin:6px 0 0;padding-left:18px;} .kp li{margin:4px 0;}
+
+  .actions{display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid var(--border);padding:12px 16px;}
+  .act{display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:12.5px;font-weight:600;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text);padding:7px 13px;cursor:pointer;transition:all .12s;}
+  .act:hover{border-color:var(--ai);color:var(--ai);}
+  .act.primary{background:var(--ai);border-color:var(--ai);color:#fff;}
+
+  /* translate: side-by-side */
+  .duo{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  @media (max-width:760px){.duo{grid-template-columns:1fr;}}
+  .duo .card{margin:0;}
+  .lang-tag{display:inline-block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;border-radius:6px;padding:2px 7px;margin-bottom:6px;}
+  .lang-tag.src{background:var(--surface);border:1px solid var(--border);color:var(--muted);}
+  .lang-tag.dst{background:var(--ai-weak);border:1px solid var(--ai-ring);color:var(--ai);}
+  .pgsep{display:flex;align-items:center;gap:10px;font-size:11px;font-weight:700;color:var(--faint);}
+  .pgsep::before,.pgsep::after{content:"";flex:1;height:1px;background:var(--border);}
+
+  /* questions */
+  .q{border:1px solid var(--border);border-radius:12px;background:var(--surface-2);padding:12px 15px;}
+  .q .qq{font-size:13.5px;font-weight:600;display:flex;gap:8px;}
+  .q .n{width:22px;height:22px;border-radius:7px;flex:none;display:grid;place-items:center;font-size:11px;font-weight:800;background:var(--ai-weak);color:var(--ai);border:1px solid var(--ai-ring);}
+  .q .opts{margin:8px 0 0 30px;display:grid;gap:5px;font-size:12.5px;color:var(--muted);}
+  .q .opts .ok{color:var(--green);font-weight:700;}
+  .q .ans{margin:8px 0 0 30px;font-size:12.5px;color:var(--muted);}
+  .q .ans b{color:var(--green);}
+  .reveal{font-size:11.5px;font-weight:700;color:var(--ai);cursor:pointer;margin-left:30px;margin-top:6px;display:inline-block;}
+
+  .privacy{margin-top:16px;border:1px solid #f59e0b44;background:#f59e0b12;border-radius:12px;padding:12px 14px;font-size:12.5px;color:var(--text);}
+  .caveat{border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:12px 14px;font-size:12.5px;color:var(--muted);margin-top:10px;}
+  .caveat b{color:var(--text);}
+  .why{margin-top:24px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);padding:18px 20px;}
+  .why h3{font-size:14px;margin:0 0 12px;}
+  .why ul{margin:0;padding:0;list-style:none;display:grid;gap:10px;}
+  .why li{display:flex;gap:10px;font-size:12.5px;color:var(--muted);}
+  .why li b{color:var(--text);font-weight:600;}
+  .num{width:20px;height:20px;border-radius:6px;flex:none;display:grid;place-items:center;font-size:10px;font-weight:800;background:var(--ai-weak);color:var(--ai);border:1px solid var(--ai-ring);}
+</style>
+
+<div class="wrap">
+  <div class="review-tag"><span class="dot"></span> <b>Mockup for review</b> — AI document tools batch 1 · Summarize / Translate / Question generator · same shell, three routes · gated Pro (owner-only until Pro launch)</div>
+
+  <h1>AI document tools <span class="pro">✦ Pro · AI</span></h1>
+  <p class="lead">Three tools, one pattern: the PDF's text is read <b>in your browser</b> with pdf.js; only the text goes to the AI — never the file. Same left document panel as Chat with PDF, tool-specific controls on the right. Each is its own route for SEO: <code>/summarize-pdf</code> · <code>/translate-pdf</code> · <code>/pdf-question-generator</code>.</p>
+
+  <div class="tabs">
+    <button class="tab on" data-t="sum">Summarize <span class="r">/summarize-pdf</span></button>
+    <button class="tab" data-t="tra">Translate <span class="r">/translate-pdf</span></button>
+    <button class="tab" data-t="que">Questions <span class="r">/pdf-question-generator</span></button>
+  </div>
+
+  <!-- ============ SUMMARIZE ============ -->
+  <section class="on" id="sum">
+    <div class="app">
+      <div class="doc">
+        <div class="docfile">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+          annual-report.pdf <span class="sz">· 24 pages</span>
+        </div>
+        <div class="pagemini">
+          <div class="h">ANNUAL REPORT 2025</div>
+          <div class="ln s"></div><div class="ln"></div>
+          <div class="r"><span>Revenue</span><span>$4.2M</span></div>
+          <div class="r"><span>Growth YoY</span><span>+38%</span></div>
+          <div class="r"><span>Headcount</span><span>62</span></div>
+          <div class="ln"></div><div class="ln s"></div>
+        </div>
+        <div class="ondevice">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 2a5 5 0 0 1 5 5v3H7V7a5 5 0 0 1 5-5Z"/><rect x="4" y="10" width="16" height="11" rx="2"/></svg>
+          <span>Text extracted <b>on your device</b>. Only the text is sent to the AI — never the file.</span>
+        </div>
+      </div>
+      <div class="main">
+        <div class="head">
+          <span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h7"/></svg></span>
+          <b>Summarize this document</b>
+          <span class="cap">7 / 10 summaries today</span>
+        </div>
+        <div class="controls">
+          <div class="ctl"><label>Length</label>
+            <span class="seg"><button>TL;DR</button><button class="on">Standard</button><button>Detailed</button></span>
+          </div>
+          <div class="ctl"><label>Format</label>
+            <span class="seg"><button class="on">Paragraphs</button><button>Bullets</button></span>
+          </div>
+          <div class="ctl"><label>Pages</label>
+            <span class="seg"><button class="on">All 24</button><button>Range…</button></span>
+          </div>
+          <button class="run"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 3l14 9-14 9V3z"/></svg> Summarize</button>
+        </div>
+        <div class="out">
+          <div class="card">
+            <h4>Summary</h4>
+            The company closed 2025 with revenue of $4.2M, up 38% year over year, driven mainly by the mid-market segment <span class="cite">p.3</span>. Operating costs grew slower than revenue, moving gross margin from 61% to 68% <span class="cite">p.7</span>. The board approved a two-year expansion plan focused on the EU market, with hiring concentrated in support and sales <span class="cite">p.14</span>. The main flagged risk is supplier concentration: two vendors account for 71% of component spend <span class="cite">p.19</span>.
+          </div>
+          <div class="card">
+            <h4>Key points</h4>
+            <ul class="kp">
+              <li>Revenue $4.2M, +38% YoY — mid-market led <span class="cite">p.3</span></li>
+              <li>Gross margin 61% → 68% <span class="cite">p.7</span></li>
+              <li>EU expansion approved; hiring in support &amp; sales <span class="cite">p.14</span></li>
+              <li>Risk: 71% of component spend sits with two suppliers <span class="cite">p.19</span></li>
+            </ul>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="act primary"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg> Download .md</button>
+          <button class="act">Download .txt</button>
+          <button class="act"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy</button>
+          <button class="act">Ask a follow-up → Chat with PDF</button>
+        </div>
+      </div>
+    </div>
+    <div class="caveat"><b>Page citations are the differentiator</b> — every claim in the summary carries the page it came from (same cite chips as Chat with PDF), so the summary is checkable, not a black box. Competitors' summaries are uncited.</div>
+  </section>
+
+  <!-- ============ TRANSLATE ============ -->
+  <section id="tra">
+    <div class="app">
+      <div class="doc">
+        <div class="docfile">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+          liefervertrag.pdf <span class="sz">· 6 pages</span>
+        </div>
+        <div class="pagemini">
+          <div class="h">LIEFERVERTRAG</div>
+          <div class="ln s"></div><div class="ln"></div>
+          <div class="r"><span>§1 Vertragsgegenstand</span><span></span></div>
+          <div class="r"><span>§2 Lieferfristen</span><span></span></div>
+          <div class="r"><span>§3 Zahlungsbedingungen</span><span></span></div>
+          <div class="ln"></div><div class="ln s"></div>
+        </div>
+        <div class="ondevice">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 2a5 5 0 0 1 5 5v3H7V7a5 5 0 0 1 5-5Z"/><rect x="4" y="10" width="16" height="11" rx="2"/></svg>
+          <span>Text extracted <b>on your device</b>. Only the text is sent to the AI — never the file.</span>
+        </div>
+      </div>
+      <div class="main">
+        <div class="head">
+          <span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8l6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6"/></svg></span>
+          <b>Translate this document</b>
+          <span class="cap">2 / 5 translations today</span>
+        </div>
+        <div class="controls">
+          <div class="ctl"><label>From</label>
+            <select class="sel"><option>Auto-detect (German)</option><option>English</option><option>German</option><option>French</option></select>
+          </div>
+          <div class="ctl"><label>To</label>
+            <select class="sel"><option>English</option><option>Hindi</option><option>Tamil</option><option>Spanish</option><option>French</option><option>German</option><option>Chinese (Simplified)</option><option>Arabic</option><option>Portuguese</option><option>Japanese</option></select>
+          </div>
+          <div class="ctl"><label>View</label>
+            <span class="seg"><button class="on">Side by side</button><button>Translation only</button></span>
+          </div>
+          <button class="run"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 3l14 9-14 9V3z"/></svg> Translate</button>
+        </div>
+        <div class="out">
+          <div class="pgsep">Page 1 of 6</div>
+          <div class="duo">
+            <div class="card"><span class="lang-tag src">German · original</span><br>§1 Vertragsgegenstand. Der Lieferant verpflichtet sich, die in Anlage A bezeichneten Waren zu den dort genannten Preisen zu liefern…</div>
+            <div class="card"><span class="lang-tag dst">English · translation</span><br>§1 Subject of the contract. The supplier undertakes to deliver the goods specified in Annex A at the prices stated therein…</div>
+          </div>
+          <div class="duo">
+            <div class="card"><span class="lang-tag src">German</span><br>§2 Lieferfristen. Die Lieferung erfolgt innerhalb von 14 Werktagen nach Auftragsbestätigung…</div>
+            <div class="card"><span class="lang-tag dst">English</span><br>§2 Delivery periods. Delivery takes place within 14 working days of order confirmation…</div>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="act primary"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg> Download translation (.txt)</button>
+          <button class="act">Download side-by-side (.md)</button>
+          <button class="act">Copy</button>
+        </div>
+      </div>
+    </div>
+    <div class="caveat"><b>Honest scope:</b> this translates the document's <b>text</b> — it doesn't re-typeset the PDF's layout (nobody does this well; competitors that claim it produce broken files). You get clean, faithful translated text, page by page, with the original beside it. Costliest AI tool (whole text in + out) → capped at <b>30 pages per run</b>, lower daily cap than Summarize.</div>
+  </section>
+
+  <!-- ============ QUESTIONS ============ -->
+  <section id="que">
+    <div class="app">
+      <div class="doc">
+        <div class="docfile">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+          biology-ch4.pdf <span class="sz">· 18 pages</span>
+        </div>
+        <div class="pagemini">
+          <div class="h">CH 4 — CELL DIVISION</div>
+          <div class="ln s"></div><div class="ln"></div>
+          <div class="r"><span>4.1 Mitosis</span><span></span></div>
+          <div class="r"><span>4.2 Meiosis</span><span></span></div>
+          <div class="r"><span>4.3 The cell cycle</span><span></span></div>
+          <div class="ln"></div><div class="ln s"></div>
+        </div>
+        <div class="ondevice">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 2a5 5 0 0 1 5 5v3H7V7a5 5 0 0 1 5-5Z"/><rect x="4" y="10" width="16" height="11" rx="2"/></svg>
+          <span>Text extracted <b>on your device</b>. Only the text is sent to the AI — never the file.</span>
+        </div>
+      </div>
+      <div class="main">
+        <div class="head">
+          <span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/><circle cx="12" cy="12" r="10"/></svg></span>
+          <b>Generate questions</b>
+          <span class="cap">4 / 10 runs today</span>
+        </div>
+        <div class="controls">
+          <div class="ctl"><label>Type</label>
+            <span class="seg"><button class="on">Quiz (MCQ)</button><button>Flashcards</button><button>Open questions</button></span>
+          </div>
+          <div class="ctl"><label>How many</label>
+            <span class="seg"><button>5</button><button class="on">10</button><button>15</button></span>
+          </div>
+          <div class="ctl"><label>Difficulty</label>
+            <span class="seg"><button>Easy</button><button class="on">Mixed</button><button>Hard</button></span>
+          </div>
+          <button class="run"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 3l14 9-14 9V3z"/></svg> Generate</button>
+        </div>
+        <div class="out">
+          <div class="q">
+            <div class="qq"><span class="n">1</span> During which phase of mitosis do chromosomes align at the cell's equator? <span class="cite">p.6</span></div>
+            <div class="opts"><span>A. Prophase</span><span class="ok">B. Metaphase ✓</span><span>C. Anaphase</span><span>D. Telophase</span></div>
+          </div>
+          <div class="q">
+            <div class="qq"><span class="n">2</span> What is the key genetic difference between mitosis and meiosis? <span class="cite">p.11</span></div>
+            <span class="reveal">Show answer ▾</span>
+            <div class="ans" style="display:none"><b>Answer:</b> Mitosis produces two genetically identical diploid cells; meiosis produces four genetically distinct haploid cells.</div>
+          </div>
+          <div class="q">
+            <div class="qq"><span class="n">3</span> Name the three checkpoints of the cell cycle and what each verifies. <span class="cite">p.15</span></div>
+            <span class="reveal">Show answer ▾</span>
+            <div class="ans" style="display:none"><b>Answer:</b> G1 (cell size/DNA damage), G2 (DNA replication complete), M (spindle attachment).</div>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="act primary"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg> Download .md</button>
+          <button class="act">Anki / CSV export</button>
+          <button class="act">Copy</button>
+          <button class="act">Print quiz (answers on last page)</button>
+        </div>
+      </div>
+    </div>
+    <div class="caveat"><b>Anki-compatible CSV export is the differentiator</b> — students paste straight into Anki/Quizlet. Smallpdf's question generator has no flashcard export. Every question carries its page cite so teachers can verify against the source.</div>
+  </section>
+
+  <div class="privacy"><b>Privacy line (all three tools, verbatim from Chat with PDF):</b> the file never leaves your device — pdf.js extracts the text in your browser and only text is sent, over TLS, to our server and on to the AI. Nothing is stored, nothing is logged as content, never used for training. This is stated in the UI exactly like /chat-pdf.</div>
+
+  <div class="why">
+    <h3>Build notes (shared plumbing — why batch 1 is fast)</h3>
+    <ul>
+      <li><span class="num">1</span><span><b>One backend pattern:</b> each tool = a new endpoint in <code>routes/ai.js</code> reusing the exact control stack Chat with PDF already has — availability check → Pro/owner gate → per-user daily cap + global USD kill-switch (<code>aiBudget</code>) → per-tool <code>guard()</code> kill-switch → Haiku call. No new infrastructure.</span></li>
+      <li><span class="num">2</span><span><b>One frontend pattern:</b> reuse <code>lib/pdf-chat.ts</code> extraction + the Chat-with-PDF left panel; only the right-hand controls/output differ per tool.</span></li>
+      <li><span class="num">3</span><span><b>Gating:</b> all three ship <code>coming_soon</code> → owner-only via ToolGate (same as /chat-pdf), flipped to <code>pro</code> at Pro launch. Public sees "coming soon" pages that already rank (title/desc/JSON-LD/sitemap from day one).</span></li>
+      <li><span class="num">4</span><span><b>Cost (Haiku):</b> Summarize ≈ $0.01/run · Questions ≈ $0.01 · Translate ≈ $0.01–0.15 (whole text in+out — hence the 30-page/run cap). All inside the existing $5/day global kill-switch.</span></li>
+    </ul>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('on'));
+    document.querySelectorAll('section').forEach(x => x.classList.remove('on'));
+    t.classList.add('on');
+    document.getElementById(t.dataset.t).classList.add('on');
+  }));
+  document.querySelectorAll('.reveal').forEach(r => r.addEventListener('click', () => {
+    const a = r.nextElementSibling; const open = a.style.display !== 'none';
+    a.style.display = open ? 'none' : 'block'; r.textContent = open ? 'Show answer ▾' : 'Hide answer ▴';
+  }));
+  document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => {
+    b.parentElement.querySelectorAll('button').forEach(x => x.classList.remove('on')); b.classList.add('on');
+  }));
+</script>
