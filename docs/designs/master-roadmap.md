@@ -69,8 +69,8 @@ Mostly free/on-device unless marked.
 - [ ] ⏳ Auto-redact PII (also §2)
 - [x] 🌓 Question generation (`/pdf-question-generator` — 6 types, Bloom's levels, explanations; Anki CSV + Moodle GIFT + PDF quiz sheet)
 - [ ] ⏳ Natural-language ⌘K (also §2)
-- [ ] ⏳ Semantic compare (also §2)
-- [ ] ⏳ PDF→Excel **AI cleanup** for messy/scanned tables (Pro add-on)
+- [x] 🌓 Semantic compare (violet "What changed in meaning" section in /compare-pdf — amounts/dates/obligations, severity-ranked; weighted 2× vs the AI cap)
+- [x] 🌓 PDF→Excel **AI cleanup** (Pro button + undo in /pdf-to-excel — fixes split columns/title rows, never values)
 
 ## 4. Pro pillars & differentiators (the moat — rivals are server-first, can't copy)
 - [ ] ⏳ **On-device batch** ⭐ flagship — "100 files at once, zero uploads"
