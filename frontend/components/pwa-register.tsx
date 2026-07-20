@@ -11,7 +11,11 @@ import { useEffect } from 'react';
 export function PwaRegister() {
   useEffect(() => {
     if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
-    navigator.serviceWorker.register('/sw.js').catch(() => { /* ignore */ });
+    // updateViaCache: 'none' keeps the HTTP cache out from between the origin and
+    // the worker script, so a broken worker can always be replaced by a deploy.
+    // Safe to set now while the worker is a no-op; it must be in place BEFORE any
+    // caching worker ships, or a bad one could pin itself.
+    navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).catch(() => { /* ignore */ });
   }, []);
   return null;
 }

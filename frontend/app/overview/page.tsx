@@ -59,7 +59,7 @@ const DIFFS: { name: string; desc: string; moat: string; flag?: boolean }[] = [
   { name: 'Certificate of completion', desc: "DocuSign-style signed audit trail + verification hash for e-signatures.", moat: 'Determinism' },
   { name: 'Bates numbering', desc: "Legal page-stamping — a standard paid feature that pulls in the legal vertical.", moat: 'Convenience' },
   { name: 'Brand kit', desc: "Save logo / header-footer / watermark once, apply across a whole batch.", moat: 'Convenience' },
-  { name: 'Offline PWA', desc: "Install it; works fully offline. Server-first rivals go dark without a connection.", moat: 'Convenience' },
+  { name: 'Installable app', desc: "Add it to your home screen or desktop and it opens like a native app — no store, no installer.", moat: 'Convenience' },
   { name: 'True re-encode Edit', desc: "Higher-fidelity in-place text-editing tier for Pro.", moat: 'Determinism' },
 ];
 
@@ -94,7 +94,7 @@ const BEYOND: { name: string; desc: string; status: 'live' | 'soon'; tier: 'free
 // Where DiemDesk runs — web today, native apps next.
 const PLATFORMS: { icon: typeof Globe; name: string; status: 'live' | 'soon'; desc: string }[] = [
   { icon: Globe, name: 'Web', status: 'live', desc: 'Every tool runs in any modern browser — nothing to install.' },
-  { icon: Download, name: 'Install as an app', status: 'live', desc: 'Add DiemDesk to your home screen or desktop (PWA); works offline.' },
+  { icon: Download, name: 'Install as an app', status: 'live', desc: 'Add DiemDesk to your home screen or desktop (PWA).' },
   { icon: Smartphone, name: 'iOS app', status: 'soon', desc: 'Native iPhone & iPad app — open PDFs straight from Mail & Files.' },
   { icon: Smartphone, name: 'Android app', status: 'soon', desc: '“Share to DiemDesk” from any app; full open-with support.' },
 ];

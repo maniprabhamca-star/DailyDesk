@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import {
   ShieldCheck, CloudOff, Lock, KeyRound, Sparkles, Server, AlertTriangle, FileCheck2,
-  Zap, Check,
+  Zap,
 } from 'lucide-react';
 import { LegalPage, Section, Callout, FlowStep } from '@/components/legal/legal-page';
 
@@ -100,25 +100,28 @@ export default function SecurityPage() {
         </Callout>
       </Section>
 
-      <Section id="offline" title="Works offline">
-        <p className="flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:text-amber-400"><Zap className="size-3.5" /> Coming soon</span>
-          <span>Because our tools run on your device, they&rsquo;ll keep working without an internet connection — once we add secure HTTPS and the installable app (on the way).</span>
+      <Section id="offline" title="Working offline">
+        <p>
+          <strong className="text-foreground">Not yet — and we&rsquo;d rather say so than fudge it.</strong> Your files are
+          processed on your device, and that part is true today; you can watch it in your browser&rsquo;s network tab. But
+          the app itself is still loaded from the web each time you open it, so if you&rsquo;re offline you get a blank page.
         </p>
-        <p>Here&rsquo;s exactly how it will work, in plain terms — no fine print hidden:</p>
-        <Callout tone="default" icon={<Zap className="size-5" />} title="What makes offline work">
-          <ul className="space-y-2">
-            <li className="flex gap-2.5"><Check className="mt-0.5 size-4 shrink-0 text-emerald-600" strokeWidth={2.75} /> You&rsquo;ve opened the site online at least once before — that first visit is when your browser quietly saves a copy of the app to your device.</li>
-            <li className="flex gap-2.5"><Check className="mt-0.5 size-4 shrink-0 text-emerald-600" strokeWidth={2.75} /> The site is on secure HTTPS (arriving with our domain &amp; SSL — offline can&rsquo;t work without it).</li>
-            <li className="flex gap-2.5"><Check className="mt-0.5 size-4 shrink-0 text-emerald-600" strokeWidth={2.75} /> Same browser, same device — the saved copy lives there. A new browser, a new phone, or clearing your site data means it re-saves on your next online visit.</li>
-            <li className="flex gap-2.5"><Check className="mt-0.5 size-4 shrink-0 text-emerald-600" strokeWidth={2.75} /> Only the tools that run on your device work offline. AI (summarize, chat, translate), Office conversions, and File Vault sync still need a connection, because they reach our servers.</li>
-          </ul>
-          <p className="!mt-3 font-semibold text-foreground">
-            In one line: after your first online visit, reopening the site works offline in that browser — for the tools that run on your device.
+        <Callout tone="default" icon={<Zap className="size-5" />} title="Why it isn&rsquo;t on right now">
+          <p>
+            We shipped an offline cache in July 2026 and pulled it a few days later: it was serving some people an
+            outdated copy of the site. We&rsquo;d rather ship nothing than ship something stale. It&rsquo;s being rebuilt
+            properly, and this page will change the day it lands.
+          </p>
+          <p className="!mt-3">
+            When it does return, it will be per-tool and per-browser: once you&rsquo;ve actually <em>used</em> a tool online,
+            your browser keeps the pieces that tool needed, and it can run without a connection after that. A tool
+            you&rsquo;ve never opened won&rsquo;t work offline, because its files were never fetched.
           </p>
         </Callout>
         <p className="text-sm text-muted-foreground">
-          Most other PDF tools can&rsquo;t do this on the web at all — they upload your files to their servers, which requires a connection every time. Offline use is something only on-device tools like ours can offer.
+          Worth knowing either way: Office conversions, OCR, PDF/A, Link in bio, the AI tools (Summarize, Chat with your
+          PDF, Translate) and File Vault sync run on our servers and will always need a connection. Every tool in the
+          catalog is labelled.
         </p>
       </Section>
 

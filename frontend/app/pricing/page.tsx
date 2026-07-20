@@ -28,7 +28,7 @@ const baseGroups: { title: string; rows: Row[] }[] = [
     rows: [
       { label: 'Price per year', comp: 'Up to ~$240', free: '$0', pro: '~$60' },
       { label: 'Tools available', comp: '~21', free: `${liveToolCount}+`, pro: `${liveToolCount}+` },
-      { label: 'Works offline in your browser', comp: 'Paid apps only', free: 'Coming soon', pro: 'Coming soon', link: { href: '/security#offline', text: 'See how it works' } },
+      { label: 'Works offline in your browser', comp: 'Paid apps only', free: 'Not yet', pro: 'Not yet', link: { href: '/security#offline', text: 'Where this stands' } },
       { label: 'No signup required to use tools', comp: false, free: true, pro: true },
       { label: 'Money-back guarantee', comp: 'Conditional / none', free: 'Always free', pro: '14 days, no questions' },
     ],

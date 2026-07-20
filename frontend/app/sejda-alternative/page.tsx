@@ -35,7 +35,7 @@ const data: AltData = {
   ],
   faqs: [
     { q: 'Is DiemDesk better than Sejda’s free plan?', a: 'For everyday use, it lifts the limits people hit most on Sejda: there’s no 3-tasks-per-hour reset, no 50 MB size cap and no 200-page limit on the in-browser tools. Everything is free during launch.' },
-    { q: 'Does DiemDesk work locally like Sejda Desktop?', a: 'Sejda offers a paid desktop app that runs offline. DiemDesk’s in-browser tools also run on your device — no upload, nothing to install — and many keep working offline once the page has loaded. A few tools (Office conversions, and later OCR) genuinely need a server and are labelled clearly.' },
+    { q: 'Does DiemDesk work locally like Sejda Desktop?', a: 'Sejda sells a paid desktop app that runs offline. DiemDesk’s in-browser tools run on your device too — no upload, nothing to install — but the site itself still needs a connection to open, so it isn’t an offline substitute today. A few tools (Office conversions, OCR) genuinely need a server and are labelled in the catalog.' },
     { q: 'Can DiemDesk handle large or long PDFs?', a: 'Yes. In-browser tools handle files up to 100 MB and PDFs of any page count — well past Sejda’s free 50 MB / 200-page cap — because the work happens on your own device instead of an upload server.' },
   ],
 };
