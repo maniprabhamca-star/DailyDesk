@@ -1,4 +1,4 @@
-<title>AI document tools ×3 — DiemDesk mockup</title>
+<title>AI document tools ×3 — DiemDesk mockup v2</title>
 <style>
   :root{
     --bg:#f4f5f3;--surface:#fff;--surface-2:#f7f8f6;--border:#e3e5e0;--text:#1a1c19;--muted:#6b7168;--faint:#9aa093;
@@ -19,22 +19,21 @@
   :root[data-theme="dark"]{--bg:#111311;--surface:#1a1d19;--surface-2:#20241f;--border:#2e332b;--text:#eef0ea;--muted:#a3a99b;--faint:#767c6e;--accent:#60a5fa;--accent-weak:#60a5fa1c;--accent-ring:#60a5fa55;--ai:#a78bfa;--ai-weak:#a78bfa1c;--ai-ring:#a78bfa55;--green:#4ade80;--green-bg:#22c55e18;--green-border:#22c55e44;--amber:#fbbf24;--paper:#f6f6f4;--line:#cfd2cb;--shadow:0 1px 2px rgba(0,0,0,.3),0 12px 34px rgba(0,0,0,.4);}
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--text);font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;}
-  .wrap{max-width:1010px;margin:0 auto;padding:28px 18px 60px;}
+  .wrap{max-width:1040px;margin:0 auto;padding:28px 18px 60px;}
   .review-tag{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-bottom:18px;flex-wrap:wrap;}
   .review-tag b{color:var(--text);font-weight:600;}
   .dot{width:7px;height:7px;border-radius:50%;background:var(--ai);flex:none;}
   h1{font-size:22px;font-weight:800;letter-spacing:-.02em;margin:0 0 4px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
   .pro{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:3px 9px;border-radius:999px;background:linear-gradient(90deg,#f59e0b,#f97316);color:#fff;}
-  .lead{font-size:14px;color:var(--muted);margin:0 0 18px;max-width:70ch;}
+  .lead{font-size:14px;color:var(--muted);margin:0 0 18px;max-width:74ch;}
 
-  /* mockup-only tab switcher (prod = 3 separate routes) */
   .tabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;}
   .tab{font-size:13px;font-weight:700;border:1px solid var(--border);background:var(--surface);color:var(--muted);border-radius:999px;padding:8px 16px;cursor:pointer;transition:all .12s;}
   .tab.on{background:var(--ai-weak);border-color:var(--ai-ring);color:var(--ai);}
   .tab .r{font-weight:500;font-size:11px;opacity:.75;font-family:var(--mono);}
   section{display:none;} section.on{display:block;}
 
-  .app{display:grid;grid-template-columns:290px 1fr;gap:0;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow);overflow:hidden;min-height:520px;}
+  .app{display:grid;grid-template-columns:280px 1fr;gap:0;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow);overflow:hidden;min-height:560px;}
   @media (max-width:680px){.app{grid-template-columns:1fr;} .doc{display:none;}}
   .doc{border-right:1px solid var(--border);background:var(--surface-2);padding:16px;display:flex;flex-direction:column;gap:12px;}
   .docfile{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:600;}
@@ -54,15 +53,24 @@
   .head b{font-size:14px;}
   .head .cap{margin-left:auto;font-size:11px;color:var(--muted);background:var(--surface-2);border:1px solid var(--border);border-radius:999px;padding:3px 9px;}
 
-  .controls{display:flex;flex-wrap:wrap;gap:14px;padding:14px 16px;border-bottom:1px solid var(--border);background:var(--surface-2);}
+  .controls{display:flex;flex-wrap:wrap;gap:12px 16px;padding:14px 16px;border-bottom:1px solid var(--border);background:var(--surface-2);align-items:flex-end;}
   .ctl{display:flex;flex-direction:column;gap:5px;}
-  .ctl label{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--faint);}
-  .seg{display:inline-flex;border:1px solid var(--border);border-radius:10px;background:var(--surface);overflow:hidden;}
-  .seg button{font:inherit;font-size:12.5px;font-weight:600;border:0;background:transparent;color:var(--muted);padding:7px 13px;cursor:pointer;}
+  .ctl label{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--faint);display:flex;align-items:center;gap:6px;}
+  .uniq{display:inline-flex;font-size:8.5px;font-weight:800;letter-spacing:.05em;color:var(--ai);background:var(--ai-weak);border:1px solid var(--ai-ring);border-radius:5px;padding:1px 5px;text-transform:uppercase;}
+  .seg{display:inline-flex;border:1px solid var(--border);border-radius:10px;background:var(--surface);overflow:hidden;flex-wrap:wrap;}
+  .seg button{font:inherit;font-size:12px;font-weight:600;border:0;background:transparent;color:var(--muted);padding:7px 12px;cursor:pointer;}
   .seg button.on{background:var(--ai-weak);color:var(--ai);}
   .seg button+button{border-left:1px solid var(--border);}
-  select.sel{font:inherit;font-size:12.5px;font-weight:600;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text);padding:7px 11px;outline:none;}
-  .run{margin-left:auto;align-self:flex-end;display:inline-flex;align-items:center;gap:7px;font:inherit;font-size:13px;font-weight:700;border:0;border-radius:11px;background:var(--ai);color:#fff;padding:9px 18px;cursor:pointer;box-shadow:0 3px 10px var(--ai-ring);}
+  select.sel,input.txt{font:inherit;font-size:12.5px;font-weight:600;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text);padding:7px 11px;outline:none;}
+  input.txt{font-weight:500;min-width:230px;}
+  input.txt::placeholder{color:var(--faint);font-weight:400;}
+  input.txt:focus,select.sel:focus{border-color:var(--ai);box-shadow:0 0 0 3px var(--ai-ring);}
+  .ctl.grow{flex:1;min-width:240px;} .ctl.grow input{width:100%;}
+  .toggle{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:var(--text);cursor:pointer;padding:7px 0;}
+  .toggle .tk{width:30px;height:17px;border-radius:999px;background:var(--border);position:relative;transition:all .15s;flex:none;}
+  .toggle .tk::after{content:"";position:absolute;top:2px;left:2px;width:13px;height:13px;border-radius:50%;background:#fff;transition:all .15s;box-shadow:0 1px 2px rgba(0,0,0,.25);}
+  .toggle.on .tk{background:var(--ai);} .toggle.on .tk::after{left:15px;}
+  .run{margin-left:auto;display:inline-flex;align-items:center;gap:7px;font:inherit;font-size:13px;font-weight:700;border:0;border-radius:11px;background:var(--ai);color:#fff;padding:9px 18px;cursor:pointer;box-shadow:0 3px 10px var(--ai-ring);}
 
   .out{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:12px;}
   .card{border:1px solid var(--border);border-radius:12px;background:var(--surface-2);padding:13px 15px;font-size:13.5px;}
@@ -70,12 +78,14 @@
   .cite{display:inline-flex;align-items:center;gap:3px;font-size:10.5px;font-weight:700;color:var(--accent);background:var(--accent-weak);border:1px solid var(--accent-ring);border-radius:6px;padding:1px 6px;margin-left:4px;cursor:pointer;}
   .kp{margin:6px 0 0;padding-left:18px;} .kp li{margin:4px 0;}
 
-  .actions{display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid var(--border);padding:12px 16px;}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid var(--border);padding:12px 16px;align-items:center;}
+  .actions .lbl{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--faint);margin-right:2px;}
   .act{display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:12.5px;font-weight:600;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text);padding:7px 13px;cursor:pointer;transition:all .12s;}
   .act:hover{border-color:var(--ai);color:var(--ai);}
   .act.primary{background:var(--ai);border-color:var(--ai);color:#fff;}
+  .act .fmt{font-size:9.5px;font-weight:800;background:var(--surface-2);border:1px solid var(--border);border-radius:4px;padding:0 4px;color:var(--muted);}
+  .act.primary .fmt{background:#ffffff22;border-color:#ffffff44;color:#fff;}
 
-  /* translate: side-by-side */
   .duo{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
   @media (max-width:760px){.duo{grid-template-columns:1fr;}}
   .duo .card{margin:0;}
@@ -84,20 +94,25 @@
   .lang-tag.dst{background:var(--ai-weak);border:1px solid var(--ai-ring);color:var(--ai);}
   .pgsep{display:flex;align-items:center;gap:10px;font-size:11px;font-weight:700;color:var(--faint);}
   .pgsep::before,.pgsep::after{content:"";flex:1;height:1px;background:var(--border);}
+  .tnote{border:1px dashed var(--ai-ring);background:var(--ai-weak);border-radius:10px;padding:9px 12px;font-size:12px;color:var(--text);}
+  .tnote b{color:var(--ai);}
 
-  /* questions */
   .q{border:1px solid var(--border);border-radius:12px;background:var(--surface-2);padding:12px 15px;}
-  .q .qq{font-size:13.5px;font-weight:600;display:flex;gap:8px;}
+  .q .qq{font-size:13.5px;font-weight:600;display:flex;gap:8px;flex-wrap:wrap;align-items:baseline;}
   .q .n{width:22px;height:22px;border-radius:7px;flex:none;display:grid;place-items:center;font-size:11px;font-weight:800;background:var(--ai-weak);color:var(--ai);border:1px solid var(--ai-ring);}
+  .q .bl{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--amber);background:#f59e0b14;border:1px solid #f59e0b3a;border-radius:5px;padding:1px 6px;}
   .q .opts{margin:8px 0 0 30px;display:grid;gap:5px;font-size:12.5px;color:var(--muted);}
   .q .opts .ok{color:var(--green);font-weight:700;}
   .q .ans{margin:8px 0 0 30px;font-size:12.5px;color:var(--muted);}
   .q .ans b{color:var(--green);}
+  .q .why-a{margin:5px 0 0 30px;font-size:12px;color:var(--faint);font-style:italic;}
   .reveal{font-size:11.5px;font-weight:700;color:var(--ai);cursor:pointer;margin-left:30px;margin-top:6px;display:inline-block;}
 
   .privacy{margin-top:16px;border:1px solid #f59e0b44;background:#f59e0b12;border-radius:12px;padding:12px 14px;font-size:12.5px;color:var(--text);}
   .caveat{border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:12px 14px;font-size:12.5px;color:var(--muted);margin-top:10px;}
   .caveat b{color:var(--text);}
+  .vs{margin-top:10px;border:1px solid var(--ai-ring);border-radius:12px;background:var(--ai-weak);padding:12px 14px;font-size:12.5px;color:var(--text);}
+  .vs b{color:var(--ai);}
   .why{margin-top:24px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);padding:18px 20px;}
   .why h3{font-size:14px;margin:0 0 12px;}
   .why ul{margin:0;padding:0;list-style:none;display:grid;gap:10px;}
@@ -107,10 +122,10 @@
 </style>
 
 <div class="wrap">
-  <div class="review-tag"><span class="dot"></span> <b>Mockup for review</b> — AI document tools batch 1 · Summarize / Translate / Question generator · same shell, three routes · gated Pro (owner-only until Pro launch)</div>
+  <div class="review-tag"><span class="dot"></span> <b>Mockup v2 for review</b> — customization maxed vs competitors + on-device DOCX/PDF export · "Only here" chips mark options no PDF suite offers today</div>
 
   <h1>AI document tools <span class="pro">✦ Pro · AI</span></h1>
-  <p class="lead">Three tools, one pattern: the PDF's text is read <b>in your browser</b> with pdf.js; only the text goes to the AI — never the file. Same left document panel as Chat with PDF, tool-specific controls on the right. Each is its own route for SEO: <code>/summarize-pdf</code> · <code>/translate-pdf</code> · <code>/pdf-question-generator</code>.</p>
+  <p class="lead">Three tools, one pattern: text extracted <b>in your browser</b>, only text goes to the AI — never the file. Every export (<b>PDF, Word, Markdown, text</b>) is generated <b>on your device</b> too. Competitor baseline: iLovePDF summarize = 3 lengths + 2 depths; Smallpdf = chat-only customization. Everything tagged <span class="uniq">only here</span> exists in no PDF suite today.</p>
 
   <div class="tabs">
     <button class="tab on" data-t="sum">Summarize <span class="r">/summarize-pdf</span></button>
@@ -136,7 +151,7 @@
         </div>
         <div class="ondevice">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 2a5 5 0 0 1 5 5v3H7V7a5 5 0 0 1 5-5Z"/><rect x="4" y="10" width="16" height="11" rx="2"/></svg>
-          <span>Text extracted <b>on your device</b>. Only the text is sent to the AI — never the file.</span>
+          <span>Text extracted <b>on your device</b>. Only the text is sent to the AI — never the file. Exports are built on-device too.</span>
         </div>
       </div>
       <div class="main">
@@ -150,37 +165,48 @@
             <span class="seg"><button>TL;DR</button><button class="on">Standard</button><button>Detailed</button></span>
           </div>
           <div class="ctl"><label>Format</label>
-            <span class="seg"><button class="on">Paragraphs</button><button>Bullets</button></span>
+            <span class="seg"><button class="on">Paragraphs</button><button>Bullets</button><button>Executive brief</button><button>By section</button></span>
+          </div>
+          <div class="ctl"><label>Written for <span class="uniq">only here</span></label>
+            <span class="seg"><button class="on">General</button><button>Simple</button><button>Professional</button><button>Technical</button></span>
+          </div>
+          <div class="ctl"><label>Summary language <span class="uniq">only here</span></label>
+            <select class="sel"><option>Same as document</option><option>English</option><option>Hindi</option><option>Tamil</option><option>Telugu</option><option>Spanish</option><option>French</option><option>German</option><option>Arabic</option><option>Chinese (Simplified)</option><option>+ 20 more…</option></select>
           </div>
           <div class="ctl"><label>Pages</label>
             <span class="seg"><button class="on">All 24</button><button>Range…</button></span>
+          </div>
+          <div class="ctl grow"><label>Focus on… <span class="uniq">only here</span> <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
+            <input class="txt" placeholder="e.g. financial risks, obligations and deadlines, what changed vs last year" />
           </div>
           <button class="run"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 3l14 9-14 9V3z"/></svg> Summarize</button>
         </div>
         <div class="out">
           <div class="card">
-            <h4>Summary</h4>
-            The company closed 2025 with revenue of $4.2M, up 38% year over year, driven mainly by the mid-market segment <span class="cite">p.3</span>. Operating costs grew slower than revenue, moving gross margin from 61% to 68% <span class="cite">p.7</span>. The board approved a two-year expansion plan focused on the EU market, with hiring concentrated in support and sales <span class="cite">p.14</span>. The main flagged risk is supplier concentration: two vendors account for 71% of component spend <span class="cite">p.19</span>.
+            <h4>Summary — standard · general · focused on financial risks</h4>
+            The company closed 2025 with revenue of $4.2M, up 38% year over year, driven mainly by the mid-market segment <span class="cite">p.3</span>. Operating costs grew slower than revenue, moving gross margin from 61% to 68% <span class="cite">p.7</span>. The board approved a two-year EU expansion plan <span class="cite">p.14</span>. The main flagged risk is supplier concentration: two vendors account for 71% of component spend, and neither contract has a price-lock beyond March <span class="cite">p.19</span>.
           </div>
           <div class="card">
             <h4>Key points</h4>
             <ul class="kp">
               <li>Revenue $4.2M, +38% YoY — mid-market led <span class="cite">p.3</span></li>
               <li>Gross margin 61% → 68% <span class="cite">p.7</span></li>
-              <li>EU expansion approved; hiring in support &amp; sales <span class="cite">p.14</span></li>
-              <li>Risk: 71% of component spend sits with two suppliers <span class="cite">p.19</span></li>
+              <li>Risk: 71% of component spend with two suppliers, no price-lock past March <span class="cite">p.19</span></li>
             </ul>
           </div>
         </div>
         <div class="actions">
-          <button class="act primary"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg> Download .md</button>
-          <button class="act">Download .txt</button>
-          <button class="act"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy</button>
+          <span class="lbl">Export</span>
+          <button class="act primary"><span class="fmt">PDF</span> Summary PDF</button>
+          <button class="act"><span class="fmt">DOCX</span> Word</button>
+          <button class="act"><span class="fmt">MD</span> Markdown</button>
+          <button class="act"><span class="fmt">TXT</span> Text</button>
+          <button class="act">Copy</button>
           <button class="act">Ask a follow-up → Chat with PDF</button>
         </div>
       </div>
     </div>
-    <div class="caveat"><b>Page citations are the differentiator</b> — every claim in the summary carries the page it came from (same cite chips as Chat with PDF), so the summary is checkable, not a black box. Competitors' summaries are uncited.</div>
+    <div class="vs"><b>Vs competitors:</b> iLovePDF gives 3 lengths + 2 depths and follows your UI language; Smallpdf customizes only via chat. <b>We add:</b> audience control (explain it simply vs technically), any summary language (summarize a German contract in Tamil), a focus instruction, section-by-section mode — and every claim carries a <b>page citation</b> so the summary is checkable, not a black box. No PDF suite does any of these today.</div>
   </section>
 
   <!-- ============ TRANSLATE ============ -->
@@ -201,7 +227,7 @@
         </div>
         <div class="ondevice">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 2a5 5 0 0 1 5 5v3H7V7a5 5 0 0 1 5-5Z"/><rect x="4" y="10" width="16" height="11" rx="2"/></svg>
-          <span>Text extracted <b>on your device</b>. Only the text is sent to the AI — never the file.</span>
+          <span>Text extracted <b>on your device</b>. Only the text is sent to the AI — never the file. Exports are built on-device too.</span>
         </div>
       </div>
       <div class="main">
@@ -215,10 +241,19 @@
             <select class="sel"><option>Auto-detect (German)</option><option>English</option><option>German</option><option>French</option></select>
           </div>
           <div class="ctl"><label>To</label>
-            <select class="sel"><option>English</option><option>Hindi</option><option>Tamil</option><option>Spanish</option><option>French</option><option>German</option><option>Chinese (Simplified)</option><option>Arabic</option><option>Portuguese</option><option>Japanese</option></select>
+            <select class="sel"><option>English</option><option>Hindi</option><option>Tamil</option><option>Telugu</option><option>Malayalam</option><option>Kannada</option><option>Bengali</option><option>Marathi</option><option>Gujarati</option><option>Spanish</option><option>French</option><option>German</option><option>Chinese (Simplified)</option><option>Arabic</option><option>Portuguese</option><option>Japanese</option><option>+ 15 more…</option></select>
+          </div>
+          <div class="ctl"><label>Tone <span class="uniq">only here</span></label>
+            <span class="seg"><button class="on">Auto</button><button>Formal</button><button>Informal</button></span>
           </div>
           <div class="ctl"><label>View</label>
-            <span class="seg"><button class="on">Side by side</button><button>Translation only</button></span>
+            <span class="seg"><button class="on">Side by side</button><button>Translation only</button><button>Interleaved</button></span>
+          </div>
+          <div class="ctl grow"><label>Don't translate these <span class="uniq">only here</span> <span style="font-weight:400;text-transform:none;letter-spacing:0">(names, brands, terms)</span></label>
+            <input class="txt" placeholder="e.g. DiemDesk, Herr Schmidt, FOB, Anlage A" />
+          </div>
+          <div class="ctl"><label>Translator notes <span class="uniq">only here</span></label>
+            <span class="toggle on"><span class="tk"></span> Flag ambiguous terms</span>
           </div>
           <button class="run"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 3l14 9-14 9V3z"/></svg> Translate</button>
         </div>
@@ -226,21 +261,26 @@
           <div class="pgsep">Page 1 of 6</div>
           <div class="duo">
             <div class="card"><span class="lang-tag src">German · original</span><br>§1 Vertragsgegenstand. Der Lieferant verpflichtet sich, die in Anlage A bezeichneten Waren zu den dort genannten Preisen zu liefern…</div>
-            <div class="card"><span class="lang-tag dst">English · translation</span><br>§1 Subject of the contract. The supplier undertakes to deliver the goods specified in Annex A at the prices stated therein…</div>
+            <div class="card"><span class="lang-tag dst">English · translation</span><br>§1 Subject of the contract. The supplier undertakes to deliver the goods specified in Anlage A at the prices stated therein…</div>
           </div>
           <div class="duo">
             <div class="card"><span class="lang-tag src">German</span><br>§2 Lieferfristen. Die Lieferung erfolgt innerhalb von 14 Werktagen nach Auftragsbestätigung…</div>
             <div class="card"><span class="lang-tag dst">English</span><br>§2 Delivery periods. Delivery takes place within 14 working days of order confirmation…</div>
           </div>
+          <div class="tnote"><b>Translator note (p.1):</b> "Werktage" was translated as "working days" (Mon–Sat under German law, not Mon–Fri "business days") — verify which the parties intend.</div>
         </div>
         <div class="actions">
-          <button class="act primary"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg> Download translation (.txt)</button>
-          <button class="act">Download side-by-side (.md)</button>
+          <span class="lbl">Export</span>
+          <button class="act primary"><span class="fmt">PDF</span> Translation PDF</button>
+          <button class="act"><span class="fmt">DOCX</span> Word</button>
+          <button class="act"><span class="fmt">DOCX</span> Side-by-side Word</button>
+          <button class="act"><span class="fmt">TXT</span> Text</button>
           <button class="act">Copy</button>
         </div>
       </div>
     </div>
-    <div class="caveat"><b>Honest scope:</b> this translates the document's <b>text</b> — it doesn't re-typeset the PDF's layout (nobody does this well; competitors that claim it produce broken files). You get clean, faithful translated text, page by page, with the original beside it. Costliest AI tool (whole text in + out) → capped at <b>30 pages per run</b>, lower daily cap than Summarize.</div>
+    <div class="vs"><b>Vs competitors:</b> iLovePDF translates with a keep-layout option and OCR — credit where due. <b>We add what they don't have:</b> tone control (formal/informal — critical for German/French/Japanese correspondence), a do-not-translate glossary (names, brands, legal terms stay untouched), translator notes that flag ambiguous terms instead of silently picking one, side-by-side and interleaved views, and 8 Indian languages front-and-centre.</div>
+    <div class="caveat"><b>Honest scope (stated in the UI):</b> v1 translates the document's <b>text</b> — clean, faithful, page-by-page — and exports it as fresh PDF/Word. It does not re-typeset the original layout; that's a possible v2. Costliest AI tool (whole text in + out) → capped at <b>30 pages per run</b>, tighter daily cap.</div>
   </section>
 
   <!-- ============ QUESTIONS ============ -->
@@ -261,7 +301,7 @@
         </div>
         <div class="ondevice">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 2a5 5 0 0 1 5 5v3H7V7a5 5 0 0 1 5-5Z"/><rect x="4" y="10" width="16" height="11" rx="2"/></svg>
-          <span>Text extracted <b>on your device</b>. Only the text is sent to the AI — never the file.</span>
+          <span>Text extracted <b>on your device</b>. Only the text is sent to the AI — never the file. Exports are built on-device too.</span>
         </div>
       </div>
       <div class="main">
@@ -272,52 +312,65 @@
         </div>
         <div class="controls">
           <div class="ctl"><label>Type</label>
-            <span class="seg"><button class="on">Quiz (MCQ)</button><button>Flashcards</button><button>Open questions</button></span>
+            <span class="seg"><button class="on">Quiz (MCQ)</button><button>True / False</button><button>Fill-in-the-blank</button><button>Flashcards</button><button>Open</button><button>Mixed</button></span>
           </div>
           <div class="ctl"><label>How many</label>
-            <span class="seg"><button>5</button><button class="on">10</button><button>15</button></span>
+            <span class="seg"><button>5</button><button class="on">10</button><button>20</button><button>30</button></span>
           </div>
           <div class="ctl"><label>Difficulty</label>
             <span class="seg"><button>Easy</button><button class="on">Mixed</button><button>Hard</button></span>
+          </div>
+          <div class="ctl"><label>Thinking level <span class="uniq">first in a pdf suite</span></label>
+            <span class="seg"><button class="on">Any</button><button>Recall</button><button>Understand</button><button>Apply</button><button>Analyze</button></span>
+          </div>
+          <div class="ctl"><label>Pages</label>
+            <span class="seg"><button class="on">All 18</button><button>Range…</button></span>
+          </div>
+          <div class="ctl"><label>Explanations</label>
+            <span class="toggle on"><span class="tk"></span> Why each answer is right</span>
           </div>
           <button class="run"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 3l14 9-14 9V3z"/></svg> Generate</button>
         </div>
         <div class="out">
           <div class="q">
-            <div class="qq"><span class="n">1</span> During which phase of mitosis do chromosomes align at the cell's equator? <span class="cite">p.6</span></div>
+            <div class="qq"><span class="n">1</span> During which phase of mitosis do chromosomes align at the cell's equator? <span class="bl">Recall</span> <span class="cite">p.6</span></div>
             <div class="opts"><span>A. Prophase</span><span class="ok">B. Metaphase ✓</span><span>C. Anaphase</span><span>D. Telophase</span></div>
+            <div class="why-a">Why: the metaphase plate is defined as the equatorial alignment point — the excerpt on p.6 states it directly.</div>
           </div>
           <div class="q">
-            <div class="qq"><span class="n">2</span> What is the key genetic difference between mitosis and meiosis? <span class="cite">p.11</span></div>
+            <div class="qq"><span class="n">2</span> A cell finishes division with half the original chromosome count. Which process occurred, and why? <span class="bl">Apply</span> <span class="cite">p.11</span></div>
             <span class="reveal">Show answer ▾</span>
-            <div class="ans" style="display:none"><b>Answer:</b> Mitosis produces two genetically identical diploid cells; meiosis produces four genetically distinct haploid cells.</div>
+            <div class="ans" style="display:none"><b>Answer:</b> Meiosis — only meiosis halves the chromosome number (diploid → haploid); mitosis preserves it.</div>
           </div>
           <div class="q">
-            <div class="qq"><span class="n">3</span> Name the three checkpoints of the cell cycle and what each verifies. <span class="cite">p.15</span></div>
+            <div class="qq"><span class="n">3</span> Name the three checkpoints of the cell cycle and what each verifies. <span class="bl">Understand</span> <span class="cite">p.15</span></div>
             <span class="reveal">Show answer ▾</span>
             <div class="ans" style="display:none"><b>Answer:</b> G1 (cell size/DNA damage), G2 (DNA replication complete), M (spindle attachment).</div>
           </div>
         </div>
         <div class="actions">
-          <button class="act primary"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg> Download .md</button>
-          <button class="act">Anki / CSV export</button>
+          <span class="lbl">Export</span>
+          <button class="act primary"><span class="fmt">PDF</span> Quiz sheet <span style="font-weight:400;font-size:11px">(answers on last page)</span></button>
+          <button class="act"><span class="fmt">DOCX</span> Word</button>
+          <button class="act"><span class="fmt">CSV</span> Anki / Quizlet</button>
+          <button class="act"><span class="fmt">GIFT</span> Moodle</button>
+          <button class="act"><span class="fmt">MD</span> Markdown</button>
           <button class="act">Copy</button>
-          <button class="act">Print quiz (answers on last page)</button>
         </div>
       </div>
     </div>
-    <div class="caveat"><b>Anki-compatible CSV export is the differentiator</b> — students paste straight into Anki/Quizlet. Smallpdf's question generator has no flashcard export. Every question carries its page cite so teachers can verify against the source.</div>
+    <div class="vs"><b>Vs competitors:</b> Smallpdf's question generator makes basic Q&amp;As — no types, no levels, no exports. Standalone edtech tools (Questgen, StudyGlen) do offer Bloom's levels and LMS exports, but they're separate subscriptions. <b>We're the first PDF toolbox with:</b> 6 question types, thinking-level control, per-question explanations + page cites, and one-click Anki/Quizlet CSV, Moodle GIFT, and a print-ready PDF quiz sheet with the answer key on the last page.</div>
   </section>
 
-  <div class="privacy"><b>Privacy line (all three tools, verbatim from Chat with PDF):</b> the file never leaves your device — pdf.js extracts the text in your browser and only text is sent, over TLS, to our server and on to the AI. Nothing is stored, nothing is logged as content, never used for training. This is stated in the UI exactly like /chat-pdf.</div>
+  <div class="privacy"><b>Privacy line (all three tools, verbatim from Chat with PDF):</b> the file never leaves your device — pdf.js extracts the text in your browser and only text is sent, over TLS, to our server and on to the AI. Nothing is stored, nothing logged as content, never used for training. <b>All exports (PDF/DOCX/CSV/GIFT/MD/TXT) are generated on your device</b> — the AI's text comes back, and your browser builds the file.</div>
 
   <div class="why">
-    <h3>Build notes (shared plumbing — why batch 1 is fast)</h3>
+    <h3>Build notes (what changed in v2 + engineering)</h3>
     <ul>
-      <li><span class="num">1</span><span><b>One backend pattern:</b> each tool = a new endpoint in <code>routes/ai.js</code> reusing the exact control stack Chat with PDF already has — availability check → Pro/owner gate → per-user daily cap + global USD kill-switch (<code>aiBudget</code>) → per-tool <code>guard()</code> kill-switch → Haiku call. No new infrastructure.</span></li>
-      <li><span class="num">2</span><span><b>One frontend pattern:</b> reuse <code>lib/pdf-chat.ts</code> extraction + the Chat-with-PDF left panel; only the right-hand controls/output differ per tool.</span></li>
-      <li><span class="num">3</span><span><b>Gating:</b> all three ship <code>coming_soon</code> → owner-only via ToolGate (same as /chat-pdf), flipped to <code>pro</code> at Pro launch. Public sees "coming soon" pages that already rank (title/desc/JSON-LD/sitemap from day one).</span></li>
-      <li><span class="num">4</span><span><b>Cost (Haiku):</b> Summarize ≈ $0.01/run · Questions ≈ $0.01 · Translate ≈ $0.01–0.15 (whole text in+out — hence the 30-page/run cap). All inside the existing $5/day global kill-switch.</span></li>
+      <li><span class="num">1</span><span><b>On-device exports:</b> DOCX = minimal writer on jszip (same pattern as our .xlsx writer — no new dependency, license-clean); PDF = pdf-lib (already shipped). Non-Latin scripts (Hindi/Tamil/Arabic/CJK) in PDF export need a Unicode font — lazy-load a Noto Sans subset per script (OFL, license-clean); DOCX/TXT/MD need nothing (Word handles fonts itself).</span></li>
+      <li><span class="num">2</span><span><b>Customization is prompt-side, not new infra:</b> audience/tone/focus/thinking-level/glossary are all instructions to the same Haiku call — zero extra cost, zero new endpoints. The control stack (caps, kill-switches, Pro gate) is unchanged from Chat with PDF.</span></li>
+      <li><span class="num">3</span><span><b>Competitor claims are sourced</b> (checked 2026-07-20): iLovePDF summarize = Short/Medium/Long + Standard/Advanced; iLovePDF translate = keep-layout/text-only + OCR; Smallpdf summarize = chat-driven; Smallpdf question generator = basic Q&amp;A. Claims scoped per the comparison policy — edtech quiz tools DO have Bloom's/exports, so ours says "first in a PDF suite".</span></li>
+      <li><span class="num">4</span><span><b>Gating:</b> ships coming_soon → owner-only (ToolGate), Pro at launch. SEO pages + sitemap from day one. Summarize ≈ $0.01/run · Questions ≈ $0.01 · Translate $0.01–0.15 (30-page/run cap).</span></li>
     </ul>
   </div>
 </div>
@@ -336,4 +389,5 @@
   document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => {
     b.parentElement.querySelectorAll('button').forEach(x => x.classList.remove('on')); b.classList.add('on');
   }));
+  document.querySelectorAll('.toggle').forEach(t => t.addEventListener('click', () => t.classList.toggle('on')));
 </script>

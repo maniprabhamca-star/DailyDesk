@@ -10,13 +10,17 @@
 - **Gating:** every tool ships `coming_soon` (owner-only via ToolGate) → `pro` at launch. SEO page live from day one (title/desc/canonical/JSON-LD/OG + **sitemap.ts entry**).
 - **Per tool on ship:** `pro_used` tracking + browser-canary entry (owner-only tools need the `ddadmin` cookie path) + catalog card + /overview auto-update.
 
-## Batch 1 — document-AI trio (one pattern, three routes)
+## Batch 1 — document-AI trio (one pattern, three routes) — v2: customization maxed + on-device DOCX/PDF export
 
-| Tool | Route | Endpoint | Notes |
-|---|---|---|---|
-| Summarize PDF | `/summarize-pdf` | `POST /api/ai/summarize` | Length (TL;DR/Standard/Detailed) × format (paragraphs/bullets) × page range. **Page-cited** summary + key points. Export .md/.txt/copy. Long docs: map-reduce (chunk summaries → final pass). |
-| Translate PDF | `/translate-pdf` | `POST /api/ai/translate` | Auto-detect source; side-by-side or translation-only. **Honest scope: translates text, does NOT re-typeset the PDF.** Costliest tool (full text in+out): 30 pages/run cap, tighter daily cap. Export .txt/.md. |
-| Question generator | `/pdf-question-generator` | `POST /api/ai/questions` | MCQ / flashcards / open; 5-15; difficulty; page cites. **Anki/CSV export** (differentiator). Print view with answers on last page. |
+Competitor baseline (sourced 2026-07-20): iLovePDF summarize = Short/Medium/Long + Standard/Advanced depth, output follows UI language; iLovePDF translate = keep-layout/text-only + OCR; Smallpdf summarize = chat-driven only; Smallpdf question generator = basic Q&A, no exports. Standalone edtech tools (Questgen, StudyGlen) have Bloom's + LMS exports → our claim is scoped **"first in a PDF suite"**, never "nobody has this".
+
+| Tool | Route | Endpoint | Customization (bold = no PDF suite has it) | Exports (ALL generated on-device) |
+|---|---|---|---|---|
+| Summarize PDF | `/summarize-pdf` | `POST /api/ai/summarize` | Length ×3 · format ×4 (¶/bullets/exec brief/**by section**) · **audience** (general/simple/professional/technical) · **summary language** (30+, incl. Indian) · **focus instruction** (free text) · page range · **page-cited claims** | PDF · DOCX · MD · TXT · copy · hand-off → Chat with PDF |
+| Translate PDF | `/translate-pdf` | `POST /api/ai/translate` | Auto-detect source · 30+ targets (8 Indian languages front-and-centre) · **tone** (auto/formal/informal) · **do-not-translate glossary** · **translator notes** (flags ambiguous terms, e.g. Werktage) · view: side-by-side/only/interleaved. Honest scope: text-first, no layout re-typeset (iLovePDF has keep-layout — say so; v2 possibility). 30 pages/run cap. | PDF · DOCX · **side-by-side DOCX** · TXT · copy |
+| Question generator | `/pdf-question-generator` | `POST /api/ai/questions` | 6 types (MCQ/**T-F**/**fill-blank**/flashcards/open/**mixed**) · count 5-30 · difficulty · **Bloom's thinking level** (recall/understand/apply/analyze) · page range · **per-question explanations** + page cites | **PDF quiz sheet (answer key on last page)** · DOCX · **Anki/Quizlet CSV** · **Moodle GIFT** · MD · copy |
+
+**Export engineering:** DOCX = minimal writer on jszip (`lib/docx.ts`, same pattern as `lib/xlsx.ts` — no new dep, license-clean). PDF = pdf-lib (shipped). ⚠ Non-Latin scripts in PDF export (Hindi/Tamil/Arabic/CJK) need a Unicode font: lazy-load Noto Sans subsets per script (OFL — license-clean per assets policy); DOCX/TXT/MD need nothing. GIFT/CSV = trivial text writers. All customization is prompt-side on the same Haiku call — zero new infra, zero extra cost.
 
 ## Batch 2 — AI layers inside existing tools (no new routes)
 
