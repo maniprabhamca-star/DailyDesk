@@ -18,7 +18,7 @@ export function pagesFromChunks(chunks: Chunk[]): PageText[] {
   }
   return Array.from(map.entries())
     .sort((a, b) => a[0] - b[0])
-    .map(([page, parts]) => ({ page, text: parts.join(' ') }));
+    .map(([page, parts]) => ({ page, text: parts.join('\n') }));
 }
 
 // Cap the payload for summarize/questions. If the document is bigger than the

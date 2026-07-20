@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Upload, X, Loader2, ShieldCheck, Lock, FileText, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { openPdf, renderPage, dprTarget, type PdfHandle } from '@/lib/pdf-render';
+import { openPdf, renderPage, dprTarget, getPdfjs, type PdfHandle } from '@/lib/pdf-render';
 import { extractChunks, type Chunk } from '@/lib/pdf-chat';
 import { useFileHandoff } from '@/lib/file-handoff';
 
@@ -37,6 +37,10 @@ export function useAiDoc(): AiDocState {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => () => { handle?.destroy?.(); }, [handle]);
+
+  // Warm the pdf.js engine the moment the tool opens — cold-loading it at drop
+  // time was the owner-reported 5-10s lag before anything visibly happened.
+  useEffect(() => { void getPdfjs().catch(() => {}); }, []);
 
   const paint = useCallback(async (h: PdfHandle, idx: number) => {
     try {

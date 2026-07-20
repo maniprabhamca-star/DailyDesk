@@ -180,7 +180,7 @@ router.post('/chat', guard('/chat-pdf'), async (req, res) => {
 // ---------------------------------------------------------------------------
 // Summarize — page-cited summary + key points, with audience/language/focus
 // ---------------------------------------------------------------------------
-const SUM_SYSTEM = "You are DiemDesk's document summarizer. Work ONLY from the page-tagged document excerpts provided. Every claim in the summary must cite the page it came from, inline, like \"(p.3)\". Never invent figures, dates or names; if the excerpts are partial, summarize what is there without guessing the rest. Respond with STRICT JSON only, no prose around it: {\"summary\": string, \"keyPoints\": [{\"text\": string, \"page\": number}]} — keyPoints are the 3-8 most important takeaways, each with the page number it came from.";
+const SUM_SYSTEM = "You are DiemDesk's document summarizer. Work ONLY from the page-tagged document excerpts provided. Every claim in the summary must cite the page it came from, inline, like \"(p.3)\". Never invent figures, dates or names; if the excerpts are partial, summarize what is there without guessing the rest. Structure the summary for reading: separate paragraphs (or sections/bullets when that format is requested) with \\n\\n in the summary string — never return one unbroken wall of text. Respond with STRICT JSON only, no prose around it: {\"summary\": string, \"keyPoints\": [{\"text\": string, \"page\": number}]} — keyPoints are the 3-8 most important takeaways, each with the page number it came from.";
 
 const SUM_LENGTH = {
   tldr: { words: 'in 2-3 sentences (a TL;DR)', tokens: 400 },
@@ -240,7 +240,7 @@ router.post('/summarize', guard('/summarize-pdf'), async (req, res) => {
 // ---------------------------------------------------------------------------
 // Translate — page-by-page, tone + glossary + translator notes
 // ---------------------------------------------------------------------------
-const TR_SYSTEM = "You are DiemDesk's document translator. Translate each page's text faithfully — keep numbering, clause references and structure; translate meaning, never summarize or omit. Respond with STRICT JSON only: {\"pages\": [{\"page\": number, \"translation\": string, \"notes\": [string]}]} — one entry per input page, in order. \"notes\" flags genuinely ambiguous terms where the target language forces a choice (explain the alternatives in one short sentence each); leave it an empty array when nothing is ambiguous. Do not add commentary anywhere else.";
+const TR_SYSTEM = "You are DiemDesk's document translator. Translate each page's text faithfully — keep numbering, clause references and structure; translate meaning, never summarize or omit. PRESERVE THE LINE STRUCTURE: the input uses \\n for line breaks — labels, forms, lists and headings must keep one output line per input line (use \\n in the translation string); only join lines that are clearly one wrapped sentence. Respond with STRICT JSON only: {\"pages\": [{\"page\": number, \"translation\": string, \"notes\": [string]}]} — one entry per input page, in order. \"notes\" flags genuinely ambiguous terms where the target language forces a choice (explain the alternatives in one short sentence each); leave it an empty array when nothing is ambiguous. Do not add commentary anywhere else.";
 
 router.post('/translate', guard('/translate-pdf'), async (req, res) => {
   const { pages, to, from, tone, glossary, notes } = req.body || {};
@@ -381,6 +381,79 @@ router.post('/questions', guard('/pdf-question-generator'), async (req, res) => 
     return res.json({ questions, remaining: pre.remaining != null ? Math.max(0, pre.remaining - 1) : null });
   } catch (e) {
     console.error('ai questions error:', e.message);
+    return res.status(502).json(FAIL);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// PDF→Excel AI clean-up — fixes the grid's STRUCTURE, never its values
+// ---------------------------------------------------------------------------
+const CLEAN_SYSTEM = "You are DiemDesk's table-structure fixer. You receive a table extracted from a PDF as JSON rows (arrays of cell strings). The extraction sometimes merges a title line into a single-cell row, splits one logical column in two, merges two columns into one cell, or misaligns cells. Fix ONLY the structure: every VALUE must be preserved exactly as given — never invent, drop, translate, reformat or recalculate data. Keep a heading row as the first row if one exists; remove pure title/caption lines that are not part of the table. Make every row the same number of columns. Respond with STRICT JSON only: {\"rows\": [[string]]}.";
+
+router.post('/table-cleanup', guard('/pdf-to-excel'), async (req, res) => {
+  const raw = Array.isArray(req.body && req.body.rows) ? req.body.rows : null;
+  if (!raw || !raw.length) return res.status(400).json({ error: 'no-table', message: 'No table data was provided.' });
+  const rows = raw.slice(0, 300).map((r) => (Array.isArray(r) ? r.slice(0, 30).map((c) => String(c == null ? '' : c).slice(0, 300)) : []));
+  const payload = JSON.stringify(rows);
+  if (payload.length > 30000) {
+    return res.status(400).json({ error: 'too-long', message: 'That table is too large for AI clean-up — export it as-is or split the document first.' });
+  }
+
+  const pre = await preflight(req, res, { proMessage: 'AI clean-up is a Pro feature.' });
+  if (!pre) return;
+
+  try {
+    const r = await callClaude(CLEAN_SYSTEM, [{ role: 'user', content: `Table rows:\n${payload}` }], Math.min(8000, Math.round(payload.length / 2) + 600));
+    if (!r.ok) return res.status(502).json(FAIL);
+    const parsed = parseJson(r.text);
+    const out = parsed && Array.isArray(parsed.rows)
+      ? parsed.rows.filter(Array.isArray).map((rw) => rw.map((c) => String(c == null ? '' : c))).filter((rw) => rw.length)
+      : null;
+    if (!out || !out.length) return res.status(502).json(FAIL);
+    await budget.record(pre.capKey, r.usage.input_tokens || 0, r.usage.output_tokens || 0);
+    trackEvent(req, 'ai_table_cleanup', { module: '/pdf-to-excel', userId: pre.who.userId });
+    return res.json({ rows: out, remaining: pre.remaining != null ? Math.max(0, pre.remaining - 1) : null });
+  } catch (e) {
+    console.error('ai cleanup error:', e.message);
+    return res.status(502).json(FAIL);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Semantic compare — what changed in MEANING between two versions
+// ---------------------------------------------------------------------------
+const CMP_SYSTEM = "You are DiemDesk's document comparer. You get two versions of a document (A = original, B = updated) as page-tagged text. Report what changed IN MEANING — renegotiated amounts, shifted dates, added or removed obligations, changed parties, scope or conditions — not cosmetic rewording. Work ONLY from the provided text; never invent. Respond with STRICT JSON only: {\"verdict\": string (one plain-spoken sentence: what happened overall), \"differences\": [{\"kind\": \"added\"|\"removed\"|\"changed\", \"topic\": string (2-5 words), \"detail\": string (one sentence; quote the old and new value when relevant), \"pageA\": number|null, \"pageB\": number|null, \"severity\": \"minor\"|\"notable\"|\"critical\"}]} — most important first. If the versions are effectively identical in meaning, return an empty differences array.";
+
+const CMP_KINDS = new Set(['added', 'removed', 'changed']);
+const CMP_SEV = new Set(['minor', 'notable', 'critical']);
+
+router.post('/compare', guard('/compare-pdf'), async (req, res) => {
+  const a = packContext(req.body && req.body.a, 20000);
+  const b = packContext(req.body && req.body.b, 20000);
+  if (!a.trim() || !b.trim()) return res.status(400).json({ error: 'no-context', message: 'Both documents need selectable text.' });
+
+  // Two documents in one call — counts as 2 actions, like translate's weighting.
+  const pre = await preflight(req, res, { weight: 2, proMessage: 'AI meaning compare is a Pro feature.' });
+  if (!pre) return;
+
+  try {
+    const r = await callClaude(CMP_SYSTEM, [{ role: 'user', content: `DOCUMENT A (original):\n\n${a}\nDOCUMENT B (updated):\n\n${b}` }], 2500);
+    if (!r.ok) return res.status(502).json(FAIL);
+    const parsed = parseJson(r.text);
+    if (!parsed || typeof parsed.verdict !== 'string') return res.status(502).json(FAIL);
+    const differences = (Array.isArray(parsed.differences) ? parsed.differences : []).map((d) => ({
+      kind: CMP_KINDS.has(d && d.kind) ? d.kind : 'changed',
+      topic: String((d && d.topic) || '').slice(0, 80),
+      detail: String((d && d.detail) || '').slice(0, 500),
+      pageA: Number(d && d.pageA) || null,
+      pageB: Number(d && d.pageB) || null,
+      severity: CMP_SEV.has(d && d.severity) ? d.severity : 'notable',
+    })).filter((d) => d.detail).slice(0, 30);
+    await budget.record(pre.capKey, r.usage.input_tokens || 0, r.usage.output_tokens || 0, 2);
+    trackEvent(req, 'ai_compare', { module: '/compare-pdf', userId: pre.who.userId });
+    return res.json({ verdict: parsed.verdict.slice(0, 400), differences, remaining: pre.remaining != null ? Math.max(0, pre.remaining - 2) : null });
+  } catch (e) {
+    console.error('ai compare error:', e.message);
     return res.status(502).json(FAIL);
   }
 });

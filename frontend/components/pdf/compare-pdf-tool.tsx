@@ -1,13 +1,17 @@
 'use client';
 
 import { useMemo, useRef, useState } from 'react';
-import { AlertTriangle, ArrowLeftRight, CheckCircle2, Download, FileSearch, FileText, Loader2, Plus, Upload, X } from 'lucide-react';
+import { AlertTriangle, ArrowLeftRight, CheckCircle2, Download, FileSearch, FileText, Loader2, Plus, Sparkles, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 import { downloadBlob as download } from '@/lib/download';
 import { openPdf, renderPage, dprTarget, type PdfHandle, type RenderedPage } from '@/lib/pdf-render';
 import { KeepGoing } from '@/components/app/keep-going';
+import { aiPost, AI_FALLBACK_MSG } from '@/lib/ai-doc';
+
+type AiDiff = { kind: 'added' | 'removed' | 'changed'; topic: string; detail: string; pageA: number | null; pageB: number | null; severity: 'minor' | 'notable' | 'critical' };
+type AiCompare = { verdict: string; differences: AiDiff[] };
 
 type Side = 'left' | 'right';
 type PdfSummary = {
@@ -88,7 +92,15 @@ async function analyzePdf(file: File): Promise<PdfSummary> {
     for (let i = 1; i <= handle.numPages; i++) {
       const page = await handle.doc.getPage(i);
       const content = await page.getTextContent();
-      textByPage.push(content.items.map((it: unknown) => (it as { str?: string }).str || '').join(' '));
+      // Keep line breaks (hasEOL) so structured pages don't collapse to one line.
+      textByPage.push(
+        content.items
+          .map((it: unknown) => { const t = it as { str?: string; hasEOL?: boolean }; return (t.str || '') + (t.hasEOL ? '\n' : ' '); })
+          .join('')
+          .replace(/[ \t]+/g, ' ')
+          .replace(/ ?\n ?/g, '\n')
+          .trim(),
+      );
     }
     let thumb: RenderedPage | null = null;
     if (handle.numPages > 0) {
@@ -130,9 +142,23 @@ export function ComparePdfTool() {
   const [right, setRight] = useState<PdfSummary | null>(null);
   const [busy, setBusy] = useState<Side | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiRes, setAiRes] = useState<AiCompare | null>(null);
+  const [aiErr, setAiErr] = useState<string | null>(null);
   const leftInput = useRef<HTMLInputElement>(null);
   const rightInput = useRef<HTMLInputElement>(null);
   const comparison = useMemo(() => buildComparison(left, right), [left, right]);
+
+  // AI meaning compare (Pro): sends both documents' TEXT (never the files) and
+  // gets back the differences that matter — amounts, dates, obligations.
+  const aiCompare = async () => {
+    if (!left || !right || aiBusy) return;
+    setAiBusy(true); setAiErr(null); setAiRes(null);
+    const toPages = (s: PdfSummary) => s.textByPage.map((text, i) => ({ page: i + 1, text }));
+    const r = await aiPost<AiCompare>('/api/ai/compare', { a: toPages(left), b: toPages(right) });
+    if (r.ok && r.data) setAiRes(r.data); else setAiErr(r.message || AI_FALLBACK_MSG);
+    setAiBusy(false);
+  };
 
   async function pick(side: Side, file?: File) {
     if (!file) return;
@@ -142,6 +168,7 @@ export function ComparePdfTool() {
     }
     setBusy(side);
     setError(null);
+    setAiRes(null); setAiErr(null); // a new file invalidates the AI comparison
     try {
       const result = await analyzePdf(file);
       if (side === 'left') setLeft((prev) => { revokeSummary(prev); return result; });
@@ -156,6 +183,7 @@ export function ComparePdfTool() {
   function clear(side: Side) {
     if (side === 'left') setLeft((prev) => { revokeSummary(prev); return null; });
     else setRight((prev) => { revokeSummary(prev); return null; });
+    setAiRes(null); setAiErr(null);
   }
 
   function downloadReport() {
@@ -278,6 +306,41 @@ export function ComparePdfTool() {
                 </div>
               </section>
             </div>
+
+            {/* AI meaning compare — beyond the word diff: what actually changed */}
+            <section className="rounded-xl border border-violet-500/30 bg-violet-500/5 p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="flex items-center gap-2 text-sm font-semibold">
+                  <Sparkles className="size-4 text-violet-600 dark:text-violet-400" /> What changed in meaning
+                  <span className="rounded bg-gradient-to-r from-amber-500 to-orange-500 px-1.5 py-px text-[9px] font-extrabold uppercase text-white">Pro · AI</span>
+                </p>
+                <Button size="sm" onClick={() => void aiCompare()} disabled={aiBusy} className="bg-violet-600 text-white hover:bg-violet-700">
+                  {aiBusy ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />} {aiBusy ? 'Comparing…' : 'Explain the changes'}
+                </Button>
+              </div>
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                The word diff above shows <i>what words</i> moved — this reads both versions and tells you <i>what it means</i>: renegotiated amounts,
+                shifted dates, added or dropped obligations. Sends both documents&rsquo; text to the AI (never the files).
+              </p>
+              {aiErr && <p className="mt-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs">{aiErr}</p>}
+              {aiRes && (
+                <div className="mt-3 space-y-2">
+                  <p className="rounded-lg border bg-card px-3 py-2 text-sm font-medium">{aiRes.verdict}</p>
+                  {aiRes.differences.length === 0 && <p className="text-xs text-muted-foreground">No meaningful differences found.</p>}
+                  {aiRes.differences.map((d, i) => (
+                    <div key={i} className="rounded-lg border bg-card px-3 py-2">
+                      <div className="flex flex-wrap items-center gap-2 text-xs">
+                        <span className={`rounded-full px-2 py-0.5 font-semibold ${d.kind === 'added' ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' : d.kind === 'removed' ? 'bg-red-500/10 text-red-700 dark:text-red-400' : 'bg-amber-500/10 text-amber-700 dark:text-amber-400'}`}>{d.kind}</span>
+                        <b className="text-[13px]">{d.topic}</b>
+                        {d.severity === 'critical' && <span className="rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-extrabold uppercase text-white">critical</span>}
+                        <span className="ml-auto text-muted-foreground">{d.pageA ? `A p.${d.pageA}` : ''}{d.pageA && d.pageB ? ' · ' : ''}{d.pageB ? `B p.${d.pageB}` : ''}</span>
+                      </div>
+                      <p className="mt-1 text-[13px]">{d.detail}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
 
             <section className="rounded-xl border bg-card p-3">
               <div className="flex flex-wrap items-center justify-between gap-2">

@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Upload, X, Loader2, Download, FileSpreadsheet, ShieldCheck, AlertTriangle, Trash2, Table2, FileText } from 'lucide-react';
+import { Upload, X, Loader2, Download, FileSpreadsheet, ShieldCheck, AlertTriangle, Trash2, Table2, FileText, Sparkles, Undo2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { downloadBlob } from '@/lib/download';
 import { ShareButton } from '@/components/app/share-button';
@@ -10,6 +10,7 @@ import { openPdf, renderPage, dprTarget, type PdfHandle } from '@/lib/pdf-render
 import { extractTables, type Table } from '@/lib/pdf-tables';
 import { buildXlsx, toCsv, coerce, type Sheet } from '@/lib/xlsx';
 import { useFileHandoff } from '@/lib/file-handoff';
+import { aiPost, AI_FALLBACK_MSG } from '@/lib/ai-doc';
 
 type Fmt = 'xlsx' | 'csv';
 type Layout = 'sheet' | 'combine';
@@ -28,6 +29,9 @@ export function PdfToExcelTool() {
   const [layout, setLayout] = useState<Layout>('sheet');
   const [header, setHeader] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiMsg, setAiMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
+  const aiUndo = useRef<Map<number, string[][]>>(new Map());
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => () => { handle?.destroy?.(); }, [handle]);
@@ -79,6 +83,33 @@ export function PdfToExcelTool() {
     setFile(null); setHandle(null); setTables([]); setActive(0); setStatus('idle');
     setPreview(null); setNoTables(false); setError(null);
   };
+
+  // AI clean-up (Pro): sends the ACTIVE table's text to the AI, which fixes the
+  // structure (merged title rows, split numeric columns) without touching values.
+  // The one explicit exception to this tool's on-device promise — stated in the UI.
+  const aiCleanup = useCallback(async () => {
+    const tbl = tables[active];
+    if (!tbl || aiBusy) return;
+    setAiBusy(true); setAiMsg(null);
+    const r = await aiPost<{ rows: string[][] }>('/api/ai/table-cleanup', { rows: tbl.rows });
+    if (r.ok && r.data?.rows?.length) {
+      aiUndo.current.set(active, tbl.rows);
+      const rows = r.data.rows;
+      setTables((ts) => ts.map((t, i) => (i !== active ? t : { ...t, rows, cols: Math.max(...rows.map((x) => x.length)) })));
+      setAiMsg({ kind: 'ok', text: 'AI reorganized the grid — values untouched. Review it, then export (or undo).' });
+    } else {
+      setAiMsg({ kind: 'err', text: r.message || AI_FALLBACK_MSG });
+    }
+    setAiBusy(false);
+  }, [tables, active, aiBusy]);
+
+  const aiRevert = useCallback(() => {
+    const prev = aiUndo.current.get(active);
+    if (!prev) return;
+    aiUndo.current.delete(active);
+    setTables((ts) => ts.map((t, i) => (i !== active ? t : { ...t, rows: prev, cols: Math.max(...prev.map((x) => x.length)) })));
+    setAiMsg(null);
+  }, [active]);
 
   const editCell = (r: number, c: number, val: string) => {
     setTables((ts) => ts.map((t, i) => (i !== active ? t : { ...t, rows: t.rows.map((row, ri) => (ri !== r ? row : row.map((cell, ci) => (ci === c ? val : cell)))) })));
@@ -227,10 +258,28 @@ export function PdfToExcelTool() {
 
           {/* editable grid */}
           <section className="min-w-0">
-            <div className="flex items-center gap-2 border-b px-4 py-2.5 text-sm">
+            <div className="flex flex-wrap items-center gap-2 border-b px-4 py-2.5 text-sm">
               <b>Page {t?.page} · Table</b>
               <span className="rounded-full border bg-muted/40 px-2 py-0.5 text-[11px] text-muted-foreground">{t?.rows.length} rows × {t?.cols} cols</span>
+              <div className="ml-auto flex items-center gap-2">
+                {aiUndo.current.has(active) && (
+                  <button onClick={aiRevert} className="inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground">
+                    <Undo2 className="size-3.5" /> Undo
+                  </button>
+                )}
+                <button onClick={() => void aiCleanup()} disabled={aiBusy} title="Fixes split columns and stray title rows. Sends this table's text to the AI — the one exception to on-device."
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-violet-500/40 bg-violet-500/10 px-3 py-1.5 text-xs font-bold text-violet-600 transition hover:bg-violet-500/20 disabled:opacity-50 dark:text-violet-400">
+                  {aiBusy ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
+                  {aiBusy ? 'Cleaning…' : 'AI clean-up'}
+                  <span className="rounded bg-gradient-to-r from-amber-500 to-orange-500 px-1 text-[9px] font-extrabold uppercase text-white">Pro</span>
+                </button>
+              </div>
             </div>
+            {aiMsg && (
+              <div className={`border-b px-4 py-2 text-xs ${aiMsg.kind === 'ok' ? 'bg-violet-500/5 text-violet-700 dark:text-violet-300' : 'bg-amber-500/10 text-amber-700 dark:text-amber-400'}`}>
+                {aiMsg.text}
+              </div>
+            )}
             <div className="max-h-[360px] overflow-auto">
               <table className="w-full border-collapse text-[13px]">
                 <tbody>

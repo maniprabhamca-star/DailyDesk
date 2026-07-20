@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Upload, X, Loader2, Send, Sparkles, ShieldCheck, Lock, FileText, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { openPdf, renderPage, dprTarget, type PdfHandle } from '@/lib/pdf-render';
+import { openPdf, renderPage, dprTarget, getPdfjs, type PdfHandle } from '@/lib/pdf-render';
 import { extractChunks, retrieve, type Chunk } from '@/lib/pdf-chat';
 import { useFileHandoff } from '@/lib/file-handoff';
 import { KeepGoing } from '@/components/app/keep-going';
@@ -58,6 +58,8 @@ export function ChatPdfTool() {
 
   useEffect(() => () => { handle?.destroy?.(); }, [handle]);
   useEffect(() => { threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight }); }, [msgs]);
+  // Warm the pdf.js engine on mount so the first drop doesn't cold-load it.
+  useEffect(() => { void getPdfjs().catch(() => {}); }, []);
 
   const showPage = useCallback(async (h: PdfHandle, idx: number) => {
     try {

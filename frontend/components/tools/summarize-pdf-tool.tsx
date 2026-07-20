@@ -161,9 +161,17 @@ export function SummarizePdfTool() {
                 <div className="rounded-xl border bg-muted/30 p-4">
                   <h4 className="mb-2 text-[11px] font-extrabold uppercase tracking-wide text-muted-foreground/70">Summary</h4>
                   <div className="space-y-2.5 text-sm leading-relaxed">
-                    {result.summary.split(/\n+/).filter(Boolean).map((p, i) => (
-                      <p key={i}><CiteText text={p} onCite={(pg) => doc.showPage(pg - 1)} /></p>
-                    ))}
+                    {result.summary.split(/\n+/).filter(Boolean).map((p, i) => {
+                      const m = p.match(/^\s*[-•]\s+(.*)$/);
+                      return m ? (
+                        <div key={i} className="flex gap-2 pl-1">
+                          <span className="mt-[7px] size-1.5 shrink-0 rounded-full bg-violet-500" />
+                          <span><CiteText text={m[1]} onCite={(pg) => doc.showPage(pg - 1)} /></span>
+                        </div>
+                      ) : (
+                        <p key={i}><CiteText text={p} onCite={(pg) => doc.showPage(pg - 1)} /></p>
+                      );
+                    })}
                   </div>
                 </div>
                 {result.keyPoints.length > 0 && (

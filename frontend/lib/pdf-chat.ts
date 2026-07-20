@@ -24,10 +24,19 @@ export async function extractChunks(
     for (let i = 0; i < handle.numPages; i++) {
       const page = await handle.doc.getPage(i + 1);
       const tc = await page.getTextContent();
+      // Preserve LINE STRUCTURE (pdf.js marks line ends with hasEOL). Collapsing
+      // everything to one run-on line made labels/forms/contracts read as mush —
+      // and the AI tools faithfully reproduced the mush (owner-reported).
       const text = tc.items
-        .map((it) => ('str' in it ? (it as { str: string }).str : ''))
-        .join(' ')
-        .replace(/\s+/g, ' ')
+        .map((it) => {
+          if (!('str' in it)) return '';
+          const t = it as { str: string; hasEOL?: boolean };
+          return t.str + (t.hasEOL ? '\n' : ' ');
+        })
+        .join('')
+        .replace(/[ \t]+/g, ' ')
+        .replace(/ ?\n ?/g, '\n')
+        .replace(/\n{3,}/g, '\n\n')
         .trim();
       chars += text.length;
       for (const piece of splitText(text, 900)) {
@@ -45,8 +54,9 @@ export async function extractChunks(
   return { chunks, numPages: handle.numPages, chars, hasText: chars > 40 };
 }
 
-// Split a long page into ~`size`-char pieces, preferring sentence boundaries so a
-// chunk isn't cut mid-word/sentence (keeps the excerpts readable for the model).
+// Split a long page into ~`size`-char pieces, preferring line breaks, then
+// sentence boundaries, so a chunk isn't cut mid-word/sentence (keeps the
+// excerpts readable for the model).
 function splitText(s: string, size: number): string[] {
   if (s.length <= size) return [s];
   const out: string[] = [];
@@ -54,8 +64,10 @@ function splitText(s: string, size: number): string[] {
   while (i < s.length) {
     let end = Math.min(i + size, s.length);
     if (end < s.length) {
+      const nl = s.lastIndexOf('\n', end);
       const stop = s.lastIndexOf('. ', end);
-      if (stop > i + size * 0.5) end = stop + 1;
+      if (nl > i + size * 0.5) end = nl + 1;
+      else if (stop > i + size * 0.5) end = stop + 1;
     }
     out.push(s.slice(i, end));
     i = end;
