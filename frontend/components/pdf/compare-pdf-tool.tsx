@@ -9,8 +9,10 @@ import { downloadBlob as download } from '@/lib/download';
 import { openPdf, renderPage, dprTarget, type PdfHandle, type RenderedPage } from '@/lib/pdf-render';
 import { KeepGoing } from '@/components/app/keep-going';
 import { aiPost, AI_FALLBACK_MSG } from '@/lib/ai-doc';
+import { usePlan } from '@/lib/plan';
+import { useRouter } from 'next/navigation';
 
-type AiDiff = { kind: 'added' | 'removed' | 'changed'; topic: string; detail: string; pageA: number | null; pageB: number | null; severity: 'minor' | 'notable' | 'critical' };
+type AiDiff ={ kind: 'added' | 'removed' | 'changed'; topic: string; detail: string; pageA: number | null; pageB: number | null; severity: 'minor' | 'notable' | 'critical' };
 type AiCompare = { verdict: string; differences: AiDiff[] };
 
 type Side = 'left' | 'right';
@@ -138,6 +140,8 @@ function buildComparison(left: PdfSummary | null, right: PdfSummary | null) {
 }
 
 export function ComparePdfTool() {
+  const plan = usePlan();
+  const router = useRouter();
   const [left, setLeft] = useState<PdfSummary | null>(null);
   const [right, setRight] = useState<PdfSummary | null>(null);
   const [busy, setBusy] = useState<Side | null>(null);
@@ -153,6 +157,8 @@ export function ComparePdfTool() {
   // gets back the differences that matter — amounts, dates, obligations.
   const aiCompare = async () => {
     if (!left || !right || aiBusy) return;
+    // Free users get the pricing page, not a dead error (same as Redact's presets).
+    if (plan !== 'pro') { router.push('/pricing'); return; }
     setAiBusy(true); setAiErr(null); setAiRes(null);
     const toPages = (s: PdfSummary) => s.textByPage.map((text, i) => ({ page: i + 1, text }));
     const r = await aiPost<AiCompare>('/api/ai/compare', { a: toPages(left), b: toPages(right) });

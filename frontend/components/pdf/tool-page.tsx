@@ -3,6 +3,7 @@ import { SiteHeader } from '@/components/app/site-header';
 import { SiteFooter } from '@/components/app/site-footer';
 import { ToolGate } from '@/components/app/tool-gate';
 import { UpgradeCard } from '@/components/app/upgrade-card';
+import { EngineWarmup } from '@/components/pdf/engine-warmup';
 
 export type Faq = { q: string; a: string };
 
@@ -47,6 +48,8 @@ export function PdfToolPage({
     <div className="flex min-h-screen flex-col bg-background text-foreground">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
+      {/* Every PDF tool page pre-warms the pdf.js engine so the first drop is instant. */}
+      <EngineWarmup />
       <SiteHeader />
 
       {/* `wide` editors (Annotate/Edit/Redact) get a roomy, app-like canvas that

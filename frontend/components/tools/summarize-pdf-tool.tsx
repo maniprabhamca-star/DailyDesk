@@ -182,7 +182,7 @@ export function SummarizePdfTool() {
                         <li key={i} className="flex gap-2">
                           <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-violet-500" />
                           <span>
-                            {k.text}{' '}
+                            <CiteText text={k.text} onCite={(pg) => doc.showPage(pg - 1)} />{' '}
                             {k.page > 0 && (
                               <button onClick={() => doc.showPage(k.page - 1)}
                                 className="inline-flex items-center rounded-md border border-primary/40 bg-primary/10 px-1.5 py-px text-[11px] font-semibold text-primary hover:bg-primary/20">

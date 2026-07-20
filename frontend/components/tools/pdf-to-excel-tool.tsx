@@ -11,11 +11,15 @@ import { extractTables, type Table } from '@/lib/pdf-tables';
 import { buildXlsx, toCsv, coerce, type Sheet } from '@/lib/xlsx';
 import { useFileHandoff } from '@/lib/file-handoff';
 import { aiPost, AI_FALLBACK_MSG } from '@/lib/ai-doc';
+import { usePlan } from '@/lib/plan';
+import { useRouter } from 'next/navigation';
 
 type Fmt = 'xlsx' | 'csv';
 type Layout = 'sheet' | 'combine';
 
 export function PdfToExcelTool() {
+  const plan = usePlan();
+  const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [handle, setHandle] = useState<PdfHandle | null>(null);
   const [tables, setTables] = useState<Table[]>([]);
@@ -90,6 +94,8 @@ export function PdfToExcelTool() {
   const aiCleanup = useCallback(async () => {
     const tbl = tables[active];
     if (!tbl || aiBusy) return;
+    // Free users get the pricing page, not a dead error (same as Redact's presets).
+    if (plan !== 'pro') { router.push('/pricing'); return; }
     setAiBusy(true); setAiMsg(null);
     const r = await aiPost<{ rows: string[][] }>('/api/ai/table-cleanup', { rows: tbl.rows });
     if (r.ok && r.data?.rows?.length) {
@@ -101,7 +107,7 @@ export function PdfToExcelTool() {
       setAiMsg({ kind: 'err', text: r.message || AI_FALLBACK_MSG });
     }
     setAiBusy(false);
-  }, [tables, active, aiBusy]);
+  }, [tables, active, aiBusy, plan, router]);
 
   const aiRevert = useCallback(() => {
     const prev = aiUndo.current.get(active);

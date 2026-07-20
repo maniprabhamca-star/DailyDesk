@@ -24,8 +24,9 @@ export const PRICING = {
     'Batch processing — many files at once',
     'Edit PDF text + Search & pattern redaction',
     'Unlimited Office conversions + OCR — no daily cap, any size',
+    'AI document suite — chat, cited summaries, translate, question generator, AI find-personal-info, table clean-up (launching with Pro)',
     'Saved one-click workflows',
     'Priority speed & support',
-    'More AI actions & encrypted File Vault — coming soon',
+    'Encrypted File Vault — coming soon',
   ],
 } as const;

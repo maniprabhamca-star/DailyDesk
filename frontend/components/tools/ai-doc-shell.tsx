@@ -101,7 +101,8 @@ export function AiDropzone({ doc, prompt, hint }: { doc: AiDocState; prompt: str
       >
         <span className="flex size-14 items-center justify-center rounded-full bg-primary/10 text-primary"><Upload className="size-6" /></span>
         <span className="mt-4 text-base font-semibold">{prompt}</span>
-        <span className="mt-1 text-sm text-muted-foreground">{hint || 'or click to choose — it opens on your device, never uploaded'}</span>
+        <span className="mt-1 text-sm text-muted-foreground">{hint || 'it opens on your device — never uploaded'}</span>
+        <span className="mt-4 inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm">Choose PDF</span>
       </button>
       <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="hidden"
         onChange={(e) => { void doc.loadFile(e.target.files?.[0]); e.target.value = ''; }} />
@@ -215,22 +216,30 @@ export function Toggle({ on, onChange, label }: { on: boolean; onChange: (v: boo
   );
 }
 
-// Renders "(p.N)" citations in AI text as clickable page chips.
+// Renders AI text: "(p.N)" citations become clickable page chips and
+// "**bold**" runs render bold — the model bolds the pivotal figures/names so
+// a dense summary scans instead of reading as a wall (owner feedback).
 export function CiteText({ text, onCite }: { text: string; onCite: (p: number) => void }) {
-  const parts = text.split(/(\(p\.?\s*\d+\))/gi);
+  const segs = text.split(/(\*\*[^*]+\*\*)/g);
   return (
     <>
-      {parts.map((part, i) => {
-        const m = part.match(/\(p\.?\s*(\d+)\)/i);
-        if (m) {
-          return (
-            <button key={i} onClick={() => onCite(Number(m[1]))}
-              className="mx-0.5 inline-flex items-center rounded-md border border-primary/40 bg-primary/10 px-1.5 py-px align-baseline text-[11px] font-semibold text-primary hover:bg-primary/20">
-              p.{m[1]}
-            </button>
-          );
-        }
-        return <span key={i}>{part}</span>;
+      {segs.map((seg, si) => {
+        const bold = seg.match(/^\*\*([^*]+)\*\*$/);
+        const body = bold ? bold[1] : seg;
+        const parts = body.split(/(\(p\.?\s*\d+\))/gi);
+        const rendered = parts.map((part, i) => {
+          const m = part.match(/\(p\.?\s*(\d+)\)/i);
+          if (m) {
+            return (
+              <button key={i} onClick={() => onCite(Number(m[1]))}
+                className="mx-0.5 inline-flex items-center rounded-md border border-primary/40 bg-primary/10 px-1.5 py-px align-baseline text-[11px] font-semibold text-primary hover:bg-primary/20">
+                p.{m[1]}
+              </button>
+            );
+          }
+          return <span key={i}>{part}</span>;
+        });
+        return bold ? <b key={si} className="font-semibold text-foreground">{rendered}</b> : <span key={si}>{rendered}</span>;
       })}
     </>
   );
