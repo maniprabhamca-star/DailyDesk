@@ -110,6 +110,7 @@ export function RedactTool() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
   const live = useRef<Box | null>(null);
+  const hover = useRef(-1); // index of the box under the pointer (removable)
 
   async function loadOne(f?: File) {
     if (!f) return;
@@ -184,6 +185,30 @@ export function RedactTool() {
     const list = [...(boxes[sel] || [])];
     if (live.current) list.push(live.current);
     drawBoxes(ctx, c.width, c.height, list, style, labelText);
+    // Hovered box → removable: red tint + border + an ✕ badge, so "click to
+    // remove" is visible on the page, not a secret gesture.
+    const cur = boxes[sel] || [];
+    const hov = hover.current;
+    if (!live.current && hov >= 0 && hov < cur.length) {
+      const bx = cur[hov];
+      const x = Math.min(bx.a.x, bx.b.x) * c.width, y = Math.min(bx.a.y, bx.b.y) * c.height;
+      const w = Math.abs(bx.b.x - bx.a.x) * c.width, h = Math.abs(bx.b.y - bx.a.y) * c.height;
+      ctx.fillStyle = 'rgba(239,68,68,0.30)';
+      ctx.fillRect(x, y, w, h);
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = Math.max(2, 1.5 * dpr);
+      ctx.strokeRect(x + 1, y + 1, Math.max(0, w - 2), Math.max(0, h - 2));
+      const r = Math.max(9, 8 * dpr);
+      const cx = Math.min(c.width - r - 2, x + w), cy = Math.max(r + 2, y);
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fillStyle = '#ef4444'; ctx.fill();
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = Math.max(1.5, 1.2 * dpr); ctx.stroke();
+      const k = r * 0.42;
+      ctx.beginPath();
+      ctx.moveTo(cx - k, cy - k); ctx.lineTo(cx + k, cy + k);
+      ctx.moveTo(cx + k, cy - k); ctx.lineTo(cx - k, cy + k);
+      ctx.lineWidth = Math.max(2, 1.6 * dpr); ctx.stroke();
+    }
   }, [boxes, sel, style, labelText]);
 
   useEffect(() => { repaint(); }, [repaint, preview]);
@@ -213,6 +238,24 @@ export function RedactTool() {
     const r = wrapRef.current!.getBoundingClientRect();
     return { x: Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), y: Math.min(1, Math.max(0, (e.clientY - r.top) / r.height)) };
   }
+  // Which existing box (topmost) is under the pointer? -1 = none.
+  function hitBox(p: Pt): number {
+    const list = boxes[sel] || [];
+    for (let i = list.length - 1; i >= 0; i--) {
+      const bx = list[i];
+      const x0 = Math.min(bx.a.x, bx.b.x), x1 = Math.max(bx.a.x, bx.b.x);
+      const y0 = Math.min(bx.a.y, bx.b.y), y1 = Math.max(bx.a.y, bx.b.y);
+      if (p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1) return i;
+    }
+    return -1;
+  }
+  function setHover(idx: number) {
+    if (idx === hover.current) return;
+    hover.current = idx;
+    const c = canvasRef.current;
+    if (c) { c.style.cursor = idx >= 0 ? 'pointer' : 'crosshair'; c.title = idx >= 0 ? 'Click to remove this box' : ''; }
+    repaint();
+  }
   function onDown(e: React.PointerEvent<HTMLCanvasElement>) {
     if (!preview) return;
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -222,9 +265,12 @@ export function RedactTool() {
     repaint();
   }
   function onMove(e: React.PointerEvent<HTMLCanvasElement>) {
-    if (!drawing.current || !live.current) return;
-    live.current.b = frac(e);
-    repaint();
+    if (drawing.current && live.current) { live.current.b = frac(e); repaint(); return; }
+    setHover(hitBox(frac(e))); // hover feedback: boxes under the pointer are removable
+  }
+  function onLeave() {
+    setHover(-1);
+    onUp();
   }
   function onUp() {
     if (!drawing.current || !live.current) { drawing.current = false; return; }
@@ -241,6 +287,7 @@ export function RedactTool() {
         const y0 = Math.min(bx.a.y, bx.b.y), y1 = Math.max(bx.a.y, bx.b.y);
         if (p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1) {
           setBoxes((s) => ({ ...s, [sel]: (s[sel] || []).filter((_, j) => j !== i) }));
+          setHover(-1); // the box under the cursor is gone — back to draw mode
           return;
         }
       }
@@ -676,7 +723,7 @@ export function RedactTool() {
           <canvas
             ref={canvasRef}
             className="absolute inset-0 h-full w-full cursor-crosshair touch-none"
-            onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerLeave={onUp}
+            onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerLeave={onLeave}
           />
         </div>
       ) : (
