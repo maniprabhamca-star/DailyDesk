@@ -2,8 +2,50 @@
 
 import Link from 'next/link';
 import { CSSProperties, useState } from 'react';
-import { Search } from 'lucide-react';
+import { Search, Sparkles, MessageSquare, AlignLeft, Languages, HelpCircle, EyeOff, GitCompare, ArrowRight } from 'lucide-react';
 import { catalog, BADGE, type CatTool } from '@/components/app/catalog';
+
+// The AI suite gets its own violet block on the home preview (approved home
+// de-clutter mockup): one honest "Launching with Pro" badge instead of six
+// "soon" chips, benefit microcopy per tile, tiles link to the tools' real
+// pages (SEO pages with the coming-soon gate + FAQs — an informative funnel).
+const AI_SUITE = [
+  { name: 'Chat with PDF', href: '/chat-pdf', icon: MessageSquare, desc: 'page-cited answers you can verify' },
+  { name: 'Summarize', href: '/summarize-pdf', icon: AlignLeft, desc: 'checkable summary, any language' },
+  { name: 'Translate', href: '/translate-pdf', icon: Languages, desc: '30+ languages, glossary control' },
+  { name: 'Question generator', href: '/pdf-question-generator', icon: HelpCircle, desc: 'quiz + Anki export for revision' },
+  { name: 'AI find & redact', href: '/redact-pdf', icon: EyeOff, desc: 'spots personal info, you approve' },
+  { name: 'Meaning compare', href: '/compare-pdf', icon: GitCompare, desc: 'what changed — amounts, dates, terms' },
+];
+
+function AiSuiteBlock({ id }: { id: string }) {
+  return (
+    <div id={id} className="scroll-mt-24 rounded-2xl border-[1.5px] border-violet-500/30 bg-gradient-to-br from-violet-500/[0.06] to-violet-500/[0.02] p-4 sm:p-5">
+      <div className="mb-3.5 flex flex-wrap items-center gap-2.5">
+        <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          <span className="size-2 rounded-full bg-violet-500" /> AI document suite
+        </p>
+        <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+          <Sparkles className="size-2.5" /> Launching with Pro
+        </span>
+        <span className="hidden text-xs text-muted-foreground sm:inline">· answers cite the page · your file never leaves your device</span>
+        <Link href="/pricing" className="ml-auto shrink-0 text-xs font-semibold text-violet-600 hover:underline dark:text-violet-400">Explore the suite &rarr;</Link>
+      </div>
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+        {AI_SUITE.map((t) => (
+          <Link key={t.name} href={t.href}
+            className="group rounded-2xl border bg-card p-3.5 shadow-soft transition-all hover:-translate-y-0.5 hover:border-violet-500/60 hover:shadow-md">
+            <span className="mb-2.5 flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-violet-700 text-white shadow-sm transition-transform group-hover:scale-105">
+              <t.icon className="size-[19px]" strokeWidth={2.25} />
+            </span>
+            <p className="text-sm font-semibold leading-tight text-foreground">{t.name}</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{t.desc}</p>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 // Per-tool colour + one-line benefit. Each tool gets its OWN hue (not one colour
 // per group) and a benefit blurb — our distinct, premium take on a tool grid.
@@ -139,11 +181,28 @@ export function AllToolsDirectory({ full = false, asPage = false }: { full?: boo
           </div>
         </div>
 
+        {/* Category chip-bar — sticks under the header, jump-scrolls to each
+            group; on phones it scrolls horizontally (7 chips instead of a wall). */}
+        {!query && (
+          <div className="sticky top-14 z-20 -mx-4 mb-7 border-y bg-background/90 px-4 py-2 backdrop-blur sm:top-16 sm:-mx-6 sm:px-6">
+            <div className="flex w-max max-w-none gap-2 overflow-x-auto sm:w-auto sm:flex-wrap">
+              {catalog.map((g) => (
+                <a key={g.label} href={`#${groupId(g.label)}`}
+                  className="flex flex-none items-center gap-1.5 rounded-full border bg-card px-3.5 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground">
+                  <span className="size-2 rounded-full" style={{ backgroundColor: g.color }} /> {g.label}
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Grouped tile grids (filtered live) */}
         <div className="space-y-8">
           {catalog.map((g) => {
             const tools = g.tools.filter(matches);
             if (tools.length === 0) return null;
+            // The AI family renders as its own violet block on the home preview.
+            if (!showAll && g.label === 'AI & scan') return <AiSuiteBlock key={g.label} id={groupId(g.label)} />;
             const shown = showAll ? tools : tools.slice(0, HOME_LIMIT);
             const hidden = tools.length - shown.length;
             return (
@@ -158,6 +217,13 @@ export function AllToolsDirectory({ full = false, asPage = false }: { full?: boo
                 </div>
                 <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
                   {shown.map((t) => <Tile key={t.name} t={t} groupColor={g.color} />)}
+                  {/* Row-end door to the rest of the group — clicked far more than a header link */}
+                  {!showAll && hidden > 0 && (
+                    <Link href={`/tools#${groupId(g.label)}`}
+                      className="flex min-h-[96px] items-center justify-center gap-1.5 rounded-2xl border border-dashed bg-card/50 p-3.5 text-sm font-semibold text-muted-foreground transition-all hover:-translate-y-0.5 hover:border-primary/60 hover:text-primary">
+                      + {hidden} more <ArrowRight className="size-3.5" />
+                    </Link>
+                  )}
                 </div>
               </div>
             );
