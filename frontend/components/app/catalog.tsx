@@ -149,7 +149,7 @@ export const catalog: CatGroup[] = [
       { name: 'Habit tracker', icon: Flame, badge: 'device', soon: true },
       { name: 'Budget tracker', icon: Wallet, badge: 'device', soon: true },
       { name: 'Client packet builder', href: '/client-packet-builder', icon: FolderLock, badge: 'device', soon: true },
-      { name: 'File vault', icon: FolderLock, badge: 'encrypted', soon: true },
+      { name: 'File vault', href: '/file-vault', icon: FolderLock, badge: 'encrypted', soon: true },
       { name: 'Link in bio', icon: Link2, badge: 'server', soon: true },
     ],
   },
