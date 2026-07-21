@@ -356,10 +356,8 @@ export function RedactTool() {
       if (firstHit >= 0) setSel(firstHit);
       const unplaced = chosen.filter((f) => !located.has(`${f.page - 1}:${normQuote(f.quote)}`)).length;
       setScanNote(
-        `${hits} box${hits === 1 ? '' : 'es'} placed from ${chosen.length} approved finding${chosen.length === 1 ? '' : 's'}` +
-        (unplaced
-          ? ` — ${unplaced} couldn’t be pinned to the page text (box ${unplaced === 1 ? 'it' : 'them'} by hand).`
-          : ' — review each box, then Redact & download.'),
+        `Step 2 of 2 — ${hits} box${hits === 1 ? ' is' : 'es are'} now covering the pages. Check them, then press the “Redact” button (top right) to permanently remove what’s underneath.` +
+        (unplaced ? ` Note: ${unplaced} finding${unplaced === 1 ? '' : 's'} couldn’t be pinned to the page text — draw ${unplaced === 1 ? 'that box' : 'those boxes'} by hand.` : ''),
       );
       setAiFindings(null);
     } catch {
@@ -555,11 +553,12 @@ export function RedactTool() {
       <div className="flex flex-wrap items-center gap-2">
         <p className="flex items-center gap-1.5 text-xs font-bold">
           <ScanFace className="size-3.5 text-violet-600 dark:text-violet-400" />
-          AI found {aiFindings.length} item{aiFindings.length === 1 ? '' : 's'} — untick anything you want to keep
+          <span className="rounded bg-violet-600 px-1.5 py-px text-[9.5px] font-extrabold uppercase text-white">Step 1 of 2</span>
+          AI found {aiFindings.length} item{aiFindings.length === 1 ? '' : 's'} — untick anything you want to keep, then:
         </p>
         <div className="ml-auto flex gap-1.5">
           <Button size="sm" onClick={() => void boxAiFindings()} disabled={!!scanning || !aiFindings.some((f) => f.checked)} className="h-7 bg-violet-600 px-2.5 text-xs text-white hover:bg-violet-700">
-            Box selected ({aiFindings.filter((f) => f.checked).length})
+            Cover {aiFindings.filter((f) => f.checked).length === aiFindings.length ? `all ${aiFindings.length}` : aiFindings.filter((f) => f.checked).length} on the pages →
           </Button>
           <Button size="sm" variant="outline" onClick={() => setAiFindings(null)} className="h-7 px-2.5 text-xs">Dismiss</Button>
         </div>
@@ -694,7 +693,7 @@ export function RedactTool() {
             onUndo={undo}
             canUndo={(boxes[sel] || []).length > 0}
             onExport={apply}
-            exportLabel="Redact"
+            exportLabel={totalBoxes > 0 ? `Redact ${totalBoxes} area${totalBoxes === 1 ? '' : 's'}` : 'Redact'}
             exporting={busy}
             exportDisabled={redactedPages.length === 0}
             toolbar={

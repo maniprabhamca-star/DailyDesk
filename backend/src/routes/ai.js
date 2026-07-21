@@ -420,6 +420,45 @@ router.post('/table-cleanup', guard('/pdf-to-excel'), async (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
+// Natural-language ⌘K — maps a typed phrase to ONE existing command or tool.
+// Strictly constrained: the model may only answer with ids/hrefs the client
+// listed, the server re-validates, and the client runs NOTHING without a
+// further explicit user activation of the resolved row.
+// ---------------------------------------------------------------------------
+const CMD_SYSTEM = "You are DiemDesk's command interpreter. The user typed a natural-language request into the app's command palette. You get the available in-tool COMMANDS (id — label) and TOOLS (href — name). Pick the SINGLE best match for the request. Respond with STRICT JSON only: {\"kind\": \"cmd\"|\"tool\"|\"none\", \"id\": string|null, \"why\": string (under 10 words, plain-spoken)} — for kind cmd, id is the command id; for kind tool, id is the tool href; use kind \"none\" when nothing genuinely matches. NEVER output an id that is not in the lists. Prefer an in-tool command over switching tools when both fit.";
+
+router.post('/command', guard('/ai-command'), async (req, res) => {
+  const utterance = opt(req.body && req.body.utterance, 200);
+  if (!utterance) return res.status(400).json({ error: 'no-utterance', message: 'Type what you want to do.' });
+  const cmds = (Array.isArray(req.body && req.body.commands) ? req.body.commands : []).slice(0, 40)
+    .map((c) => ({ id: opt(c && c.id, 60), label: opt(c && c.label, 90), keywords: opt(c && c.keywords, 90) }))
+    .filter((c) => c.id && c.label);
+  const toolList = (Array.isArray(req.body && req.body.tools) ? req.body.tools : []).slice(0, 100)
+    .map((t) => ({ href: opt(t && t.href, 60), name: opt(t && t.name, 60) }))
+    .filter((t) => t.href && t.name);
+
+  const pre = await preflight(req, res, { proMessage: 'Natural-language commands are a Pro feature.' });
+  if (!pre) return;
+
+  try {
+    const listing = `COMMANDS:\n${cmds.map((c) => `${c.id} — ${c.label}${c.keywords ? ` (${c.keywords})` : ''}`).join('\n') || '(none)'}\n\nTOOLS:\n${toolList.map((t) => `${t.href} — ${t.name}`).join('\n') || '(none)'}`;
+    const r = await callClaude(CMD_SYSTEM, [{ role: 'user', content: `${listing}\n\nUser request: ${utterance}` }], 200);
+    if (!r.ok) return res.status(502).json(FAIL);
+    const parsed = parseJson(r.text) || {};
+    let kind = parsed.kind === 'cmd' || parsed.kind === 'tool' ? parsed.kind : 'none';
+    let id = typeof parsed.id === 'string' ? parsed.id : null;
+    if (kind === 'cmd' && !cmds.some((c) => c.id === id)) { kind = 'none'; id = null; }
+    if (kind === 'tool' && !toolList.some((t) => t.href === id)) { kind = 'none'; id = null; }
+    await budget.record(pre.capKey, r.usage.input_tokens || 0, r.usage.output_tokens || 0);
+    trackEvent(req, 'ai_command', { module: '/ai-command', userId: pre.who.userId });
+    return res.json({ kind, id, why: String(parsed.why || '').slice(0, 120), remaining: pre.remaining != null ? Math.max(0, pre.remaining - 1) : null });
+  } catch (e) {
+    console.error('ai command error:', e.message);
+    return res.status(502).json(FAIL);
+  }
+});
+
+// ---------------------------------------------------------------------------
 // AI redact-scan — FINDS personal info; the browser draws the boxes and the
 // on-device engine burns them. The AI only points, it never redacts.
 // ---------------------------------------------------------------------------

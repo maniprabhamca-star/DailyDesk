@@ -4,11 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import * as Dialog from '@radix-ui/react-dialog';
-import { Search, CornerDownLeft, Sun, Moon, LayoutGrid, Tag, Wand2, ShieldCheck, Sparkles, Wrench, FileText } from 'lucide-react';
+import { Search, CornerDownLeft, Sun, Moon, LayoutGrid, Tag, Wand2, ShieldCheck, Sparkles, Wrench, FileText, Loader2 } from 'lucide-react';
 import { catalog, PRO_TOOLS, type CatTool } from '@/components/app/catalog';
 import { getRecent, pushRecent } from '@/lib/recent';
-import { useIsOwner } from '@/lib/plan';
+import { useIsOwner, usePlan } from '@/lib/plan';
 import { useEditorContext, type EditorCommand } from '@/lib/command-registry';
+import { aiPost } from '@/lib/ai-doc';
 import { cn } from '@/lib/utils';
 
 type Tool = CatTool & { color: string; group: string };
@@ -19,7 +20,17 @@ type Row =
   | { type: 'action'; action: Action }
   | { type: 'cmd'; cmd: EditorCommand }
   | { type: 'goto'; page: number }
-  | { type: 'workflow'; label: string; sub: string };
+  | { type: 'workflow'; label: string; sub: string }
+  | { type: 'ai' };
+
+// Natural-language ⌘K (Pro): the typed phrase goes to the AI with the CURRENT
+// command/tool lists; the AI may only pick from them, and nothing runs until
+// the user explicitly activates the resolved row. Static commands stay free.
+type AiCmd =
+  | { phase: 'idle' }
+  | { phase: 'busy' }
+  | { phase: 'none' }
+  | { phase: 'resolved'; kind: 'cmd' | 'tool'; id: string; why: string };
 
 const WORKFLOWS = [{ label: 'Merge → Compress → Sign', sub: 'Chain tools, no re-upload' }];
 const API = process.env.NEXT_PUBLIC_API_URL || '';
@@ -28,7 +39,9 @@ export function CommandPalette() {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const isOwner = useIsOwner();
+  const plan = usePlan();
   const editorCtx = useEditorContext(); // commands published by the current editor
+  const [ai, setAi] = useState<AiCmd>({ phase: 'idle' });
   const isProTool = useCallback((t: Tool) => PRO_TOOLS.has(t.name), []);
   // Selectable? Pro tools always are (they route to pricing/upgrade or, for the
   // owner, open). Free tools are selectable only when live (have an href, not soon).
@@ -50,6 +63,7 @@ export function CommandPalette() {
   }, []);
 
   useEffect(() => { if (open) { setQuery(''); setActive(0); } }, [open]);
+  useEffect(() => { setAi({ phase: 'idle' }); }, [query]); // new phrase → fresh resolve
 
   // Every tool, flattened, carrying its group colour. Live = has an href.
   const tools = useMemo<Tool[]>(() => catalog.flatMap((g) => g.tools.map((t) => ({ ...t, color: g.color, group: g.label }))), []);
@@ -100,18 +114,53 @@ export function CommandPalette() {
       const ma = actions.filter(matchAction);
       if (mt.length) { rows.push({ type: 'header', label: 'Tools' }); mt.forEach((t) => rows.push({ type: 'tool', tool: t, disabled: toolDisabled(t)})); }
       if (ma.length) { rows.push({ type: 'header', label: 'Actions' }); ma.forEach((a) => rows.push({ type: 'action', action: a })); }
+      // Phrase-length queries get the natural-language row (Pro) — the fallback
+      // when exact matching can't read intent ("black out my address on page 2").
+      if (q.length >= 6) {
+        rows.push({ type: 'header', label: 'Ask AI', note: '· natural language' });
+        rows.push({ type: 'ai' });
+      }
     }
 
     const selectable = rows.map((_, i) => i).filter((i) => {
       const r = rows[i];
-      return (r.type === 'tool' && !r.disabled) || r.type === 'action' || r.type === 'cmd' || r.type === 'goto';
+      return (r.type === 'tool' && !r.disabled) || r.type === 'action' || r.type === 'cmd' || r.type === 'goto'
+        || (r.type === 'ai' && ai.phase !== 'busy' && ai.phase !== 'none');
     });
     return { rows, selectable };
-  }, [query, recent, actions, tools, toolDisabled, editorCtx]);
+  }, [query, recent, actions, tools, toolDisabled, editorCtx, ai.phase]);
+
+  // What the AI resolved to, in human words (for the confirm row).
+  const resolvedLabel = useMemo(() => {
+    if (ai.phase !== 'resolved') return '';
+    if (ai.kind === 'cmd') return editorCtx?.commands.find((c) => c.id === ai.id)?.label || '';
+    return tools.find((t) => t.href === ai.id)?.name || '';
+  }, [ai, editorCtx, tools]);
 
   const activate = useCallback((rowIndex: number) => {
     const r = rows[rowIndex];
     if (!r) return;
+    if (r.type === 'ai') {
+      // Free users → pricing (static commands stay free; the semantic layer is Pro).
+      if (plan !== 'pro') { setOpen(false); router.push('/pricing'); return; }
+      if (ai.phase === 'busy') return;
+      if (ai.phase === 'resolved') {
+        // Second explicit activation = consent to run the resolved command.
+        if (ai.kind === 'cmd') { const c = editorCtx?.commands.find((x) => x.id === ai.id); setOpen(false); c?.run(); }
+        else { const t = tools.find((x) => x.href === ai.id); setOpen(false); if (t?.href) { pushRecent(t.href); router.push(t.href); } }
+        return;
+      }
+      setAi({ phase: 'busy' });
+      const commands = (editorCtx?.commands || []).map((c) => ({ id: c.id, label: c.label, keywords: c.keywords || '' }));
+      const liveTools = tools.filter((t) => t.href && !t.soon).map((t) => ({ href: t.href as string, name: t.name }));
+      void aiPost<{ kind: 'cmd' | 'tool' | 'none'; id: string | null; why: string }>('/api/ai/command', {
+        utterance: query.trim(), commands, tools: liveTools,
+      }).then((res) => {
+        if (!res.ok || !res.data || res.data.kind === 'none' || !res.data.id) { setAi({ phase: 'none' }); return; }
+        setAi({ phase: 'resolved', kind: res.data.kind, id: res.data.id, why: res.data.why || '' });
+      });
+      return;
+    }
     if (r.type === 'cmd') { setOpen(false); r.cmd.run(); return; }
     if (r.type === 'goto') { setOpen(false); editorCtx?.goToPage?.(r.page); return; }
     if (r.type === 'tool') {
@@ -123,7 +172,7 @@ export function CommandPalette() {
         if (isOwner && t.href) { pushRecent(t.href); router.push(t.href); } else router.push('/pricing');
       } else if (t.href) { pushRecent(t.href); setOpen(false); router.push(t.href); }
     } else if (r.type === 'action') { setOpen(false); r.action.run(); }
-  }, [rows, router, isProTool, isOwner, editorCtx]);
+  }, [rows, router, isProTool, isOwner, editorCtx, ai, plan, query, tools]);
 
   function onInputKey(e: React.KeyboardEvent) {
     if (e.key === 'ArrowDown') { e.preventDefault(); setActive((a) => Math.min(a + 1, selectable.length - 1)); }
@@ -144,7 +193,10 @@ export function CommandPalette() {
   useEffect(() => {
     if (!open) return;
     const q = query.trim().toLowerCase();
-    if (q.length < 2 || selectable.length > 0 || missSent.current.has(q)) return;
+    // The Ask-AI row is always present for phrases — exclude it so real tool
+    // misses (demand signals) still get reported.
+    const realMatches = selectable.filter((i) => rows[i]?.type !== 'ai').length;
+    if (q.length < 2 || realMatches > 0 || missSent.current.has(q)) return;
     const timer = setTimeout(() => {
       try {
         if (navigator.webdriver) return;
@@ -157,7 +209,7 @@ export function CommandPalette() {
       } catch { /* never disrupt the palette */ }
     }, 900);
     return () => clearTimeout(timer);
-  }, [open, query, selectable.length]);
+  }, [open, query, selectable, rows]);
 
   const activeRowIndex = selectable[active];
 
@@ -211,6 +263,33 @@ export function CommandPalette() {
                     <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/12 text-primary"><FileText className="size-4" /></span>
                     <span className="min-w-0 flex-1 truncate text-sm font-medium">Go to page {r.page}</span>
                     {isActive && <CornerDownLeft className="size-4 shrink-0 text-muted-foreground" />}
+                  </button>
+                );
+              }
+              if (r.type === 'ai') {
+                const busy = ai.phase === 'busy';
+                const none = ai.phase === 'none';
+                const resolved = ai.phase === 'resolved';
+                return (
+                  <button key={`ai${i}`} data-active={isActive} disabled={busy || none}
+                    onMouseEnter={() => { if (!busy && !none) setActive(selectable.indexOf(i)); }} onClick={() => activate(i)}
+                    className={cn('flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors', isActive && 'bg-accent', none && 'opacity-60')}>
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-violet-500/12 text-violet-600 dark:text-violet-300">
+                      {busy ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium">
+                        {busy ? 'Working out what you mean…'
+                          : none ? 'Couldn’t match that to a command — try different words'
+                          : resolved ? <>Run: <b>{resolvedLabel || 'the matched command'}</b></>
+                          : <>Ask AI: “{query.trim()}”</>}
+                      </span>
+                      <span className="block truncate text-xs text-muted-foreground">
+                        {resolved ? (ai.phase === 'resolved' && ai.why ? ai.why : 'press Enter to run it') : 'plain words in, the right command out — nothing runs without you'}
+                      </span>
+                    </span>
+                    {!busy && !none && !resolved && <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm"><Sparkles className="size-2.5" /> Pro</span>}
+                    {resolved && isActive && <CornerDownLeft className="size-4 shrink-0 text-muted-foreground" />}
                   </button>
                 );
               }
