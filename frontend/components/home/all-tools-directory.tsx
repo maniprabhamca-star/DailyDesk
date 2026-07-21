@@ -167,7 +167,9 @@ export function AllToolsDirectory({ full = false, asPage = false }: { full?: boo
   return (
     <section id="tools" className="scroll-mt-20 bg-muted/20">
       <div className="mx-auto max-w-[1400px] px-4 pb-10 pt-9 sm:px-6">
-        {/* Heading + a REAL live filter (narrows the grid as you type) */}
+        {/* Heading. The live filter input renders ONLY on /tools (65+ tools need
+            narrowing there); on home it duplicated the header's ⌘K search that
+            sits inches above — one search box per viewport. */}
         <div className="mb-7 flex items-center justify-between gap-3">
           <div>
             <Heading className="text-2xl font-bold tracking-tight">All tools</Heading>
@@ -175,16 +177,18 @@ export function AllToolsDirectory({ full = false, asPage = false }: { full?: boo
               {full ? 'Every DiemDesk tool — most run right in your browser, nothing uploaded.' : 'Pick a tool — most run right in your browser, nothing uploaded.'}
             </p>
           </div>
-          <div className="relative w-40 shrink-0 sm:w-60">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Filter tools…"
-              aria-label="Filter tools"
-              className="w-full rounded-lg border bg-background py-2 pl-9 pr-3 text-sm outline-none transition-colors focus:border-primary/50 focus:ring-2 focus:ring-primary/15"
-            />
-          </div>
+          {full && (
+            <div className="relative w-40 shrink-0 sm:w-60">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Filter tools…"
+                aria-label="Filter tools"
+                className="w-full rounded-lg border bg-background py-2 pl-9 pr-3 text-sm outline-none transition-colors focus:border-primary/50 focus:ring-2 focus:ring-primary/15"
+              />
+            </div>
+          )}
         </div>
 
         {/* Category tab rail — one quiet row (scrolls sideways on phones, never
