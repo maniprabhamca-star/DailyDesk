@@ -74,7 +74,7 @@ Mostly free/on-device unless marked.
 
 ## 4. Pro pillars & differentiators (the moat — rivals are server-first, can't copy)
 - [ ] ⏳ **On-device batch** ⭐ flagship — "100 files at once, zero uploads"
-- [ ] ⏳ **Encrypted File Vault** ⭐ — zero-knowledge E2E (Argon2 + AES-256, separate passphrase + recovery key); 1GB free / 100GB Pro fair-use cap (NOT literal unlimited — see economics)
+- [x] 🌓 **Encrypted File Vault** ⭐ — phases 1-3 SHIPPED dark at `/file-vault` (crypto core 9/9 unit tests · ciphertext-only backend 9/9 prod e2e · UI to the approved mockup: ceremony/unlock/grid + visible encrypt-steps + 15-min auto-lock). Phase 4 remains: sync polish, recycle bin, rename UI. Quota currently 10GB Pro (env-tunable; revisit free/paid split vs economics at launch)
 - [ ] ⏳ **Redaction / clean certificate** ⭐ — signed proof "0 recoverable chars, metadata stripped"
 - [ ] ⏳ **Saved workflows** ⭐ — one-click document assembly line over a batch
 - [ ] ⏳ Self-destruct encrypted shares (expiring password-locked links we can't decrypt)
