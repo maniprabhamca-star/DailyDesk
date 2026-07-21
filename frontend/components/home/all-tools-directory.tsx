@@ -150,11 +150,17 @@ const groupId = (label: string) => `cat-${label.toLowerCase().replace(/[^a-z0-9]
 
 export function AllToolsDirectory({ full = false, asPage = false }: { full?: boolean; asPage?: boolean } = {}) {
   const [q, setQ] = useState('');
+  // One quiet tab rail instead of a wall of jump-chips: 'all' = the capped
+  // preview; picking a category swaps the grid IN PLACE to that one group,
+  // fully expanded. One focused view at a time — nothing to scroll past.
+  const [cat, setCat] = useState<string>('all');
   const query = q.trim().toLowerCase();
   const matches = (t: CatTool) =>
     !query || t.name.toLowerCase().includes(query) || (META[t.name]?.desc?.toLowerCase().includes(query) ?? false);
   const empty = catalog.every((g) => !g.tools.some(matches));
   const showAll = full || query.length > 0;
+  const activeGroups = query || full || cat === 'all' ? catalog : catalog.filter((g) => g.label === cat);
+  const expanded = !full && !query && cat !== 'all'; // a chosen category shows ALL its tools
 
   const Heading = asPage ? 'h1' : 'h2';
 
@@ -181,35 +187,63 @@ export function AllToolsDirectory({ full = false, asPage = false }: { full?: boo
           </div>
         </div>
 
-        {/* Category chip-bar — sticks under the header, jump-scrolls to each
-            group; on phones it scrolls horizontally (7 chips instead of a wall). */}
-        {!query && (
-          <div className="sticky top-14 z-20 -mx-4 mb-7 border-y bg-background/90 px-4 py-2 backdrop-blur sm:top-16 sm:-mx-6 sm:px-6">
-            <div className="flex w-max max-w-none gap-2 overflow-x-auto sm:w-auto sm:flex-wrap">
-              {catalog.map((g) => (
-                <a key={g.label} href={`#${groupId(g.label)}`}
-                  className="flex flex-none items-center gap-1.5 rounded-full border bg-card px-3.5 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground">
-                  <span className="size-2 rounded-full" style={{ backgroundColor: g.color }} /> {g.label}
-                </a>
-              ))}
+        {/* Category tab rail — one quiet row (scrolls sideways on phones, never
+            wraps). Text tabs with a colored underline for the active one; picks
+            filter the grid in place rather than jump-scrolling a long page. */}
+        {!full && !query && (
+          <div className="sticky top-14 z-20 -mx-4 mb-7 border-b bg-background/90 px-4 backdrop-blur sm:top-16 sm:-mx-6 sm:px-6">
+            <div className="flex gap-1 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {[{ label: 'all', color: '' }, ...catalog].map((g) => {
+                const isAll = g.label === 'all';
+                const active = cat === g.label;
+                return (
+                  <button
+                    key={g.label}
+                    onClick={() => setCat(g.label)}
+                    className={`relative flex-none px-3 py-2.5 text-[13px] font-semibold transition-colors ${
+                      active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {isAll ? 'All' : g.label}
+                    {active && (isAll
+                      ? <span className="absolute inset-x-2.5 bottom-0 h-[2.5px] rounded-full bg-primary" />
+                      : <span className="absolute inset-x-2.5 bottom-0 h-[2.5px] rounded-full" style={{ backgroundColor: g.color }} />)}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
 
         {/* Grouped tile grids (filtered live) */}
         <div className="space-y-8">
-          {catalog.map((g) => {
+          {activeGroups.map((g) => {
             const tools = g.tools.filter(matches);
             if (tools.length === 0) return null;
-            // The AI family renders as its own violet block on the home preview.
-            if (!showAll && g.label === 'AI & scan') return <AiSuiteBlock key={g.label} id={groupId(g.label)} />;
-            const shown = showAll ? tools : tools.slice(0, HOME_LIMIT);
+            // The AI family renders as its own violet block on the home preview;
+            // on its own tab the block appears with the family's non-suite tools
+            // (OCR, Clean scanned) below it — never duplicated as flat tiles.
+            if (!showAll && g.label === 'AI & scan') {
+              const extras = tools.filter((t) => !['Chat with PDF', 'Summarize', 'Translate', 'Question generator'].includes(t.name));
+              return (
+                <div key={g.label} id={groupId(g.label)} className="scroll-mt-24 space-y-4">
+                  <AiSuiteBlock id={`${groupId(g.label)}-suite`} />
+                  {expanded && extras.length > 0 && (
+                    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+                      {extras.map((t) => <Tile key={t.name} t={t} groupColor={g.color} />)}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+            const shown = showAll || expanded ? tools : tools.slice(0, HOME_LIMIT);
             const hidden = tools.length - shown.length;
             return (
               <div key={g.label} id={groupId(g.label)} className="scroll-mt-24">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                     <span className="size-2 rounded-full" style={{ backgroundColor: g.color }} /> {g.label}
+                    <span className="font-medium normal-case tracking-normal text-muted-foreground/60">· {tools.length}</span>
                   </p>
                   {hidden > 0 && (
                     <Link href={`/tools#${groupId(g.label)}`} className="shrink-0 text-xs font-semibold text-primary hover:underline">See all {tools.length} &rarr;</Link>
@@ -217,12 +251,11 @@ export function AllToolsDirectory({ full = false, asPage = false }: { full?: boo
                 </div>
                 <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
                   {shown.map((t) => <Tile key={t.name} t={t} groupColor={g.color} />)}
-                  {/* Row-end door to the rest of the group — clicked far more than a header link */}
-                  {!showAll && hidden > 0 && (
-                    <Link href={`/tools#${groupId(g.label)}`}
+                  {hidden > 0 && (
+                    <button onClick={() => setCat(g.label)}
                       className="flex min-h-[96px] items-center justify-center gap-1.5 rounded-2xl border border-dashed bg-card/50 p-3.5 text-sm font-semibold text-muted-foreground transition-all hover:-translate-y-0.5 hover:border-primary/60 hover:text-primary">
                       + {hidden} more <ArrowRight className="size-3.5" />
-                    </Link>
+                    </button>
                   )}
                 </div>
               </div>
