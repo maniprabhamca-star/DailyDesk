@@ -49,7 +49,10 @@ export function SiteFooter() {
   return (
     <footer className="relative overflow-hidden border-t border-white/10 bg-[#0f172a] text-slate-300">
       <div className="relative z-10 mx-auto max-w-[1400px] px-4 pb-5 pt-9 sm:px-6">
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_1fr]">
+        {/* Mobile (approved mockup): Tools+Product sit side-by-side and Legal
+            collapses to an inline link row — ~60% less scroll. Desktop (lg+)
+            keeps the original four-column spread untouched. */}
+        <div className="grid gap-8 lg:grid-cols-[1.6fr_1fr_1fr_1fr]">
           <div>
             <Link href="/" className="flex items-center gap-2.5">
               <BrandMark className="size-8" />
@@ -77,12 +80,30 @@ export function SiteFooter() {
               ))}
             </div>
           </div>
-          {COLUMNS.map((col) => (
+          {/* Tools + Product: a 2-up grid on phones; lg:contents dissolves the
+              wrapper so each becomes its own column of the outer grid on desktop. */}
+          <div className="grid grid-cols-2 gap-x-6 gap-y-8 lg:contents">
+            {COLUMNS.slice(0, 2).map((col) => (
+              <div key={col.title}>
+                <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-white">
+                  <span className="size-1.5 rounded-full" style={{ backgroundColor: col.color }} /> {col.title}
+                </p>
+                <ul className="mt-4 space-y-2.5 text-sm">
+                  {col.links.map((l) => (
+                    <li key={l.label}><Link href={l.href} className="font-medium text-slate-400 transition-colors hover:text-white">{l.label}</Link></li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          {/* Legal: five short, familiar words — an inline row on phones, the
+              usual column on desktop. */}
+          {COLUMNS.slice(2).map((col) => (
             <div key={col.title}>
               <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-white">
                 <span className="size-1.5 rounded-full" style={{ backgroundColor: col.color }} /> {col.title}
               </p>
-              <ul className="mt-4 space-y-2.5 text-sm">
+              <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-[13px] lg:mt-4 lg:block lg:space-y-2.5 lg:text-sm">
                 {col.links.map((l) => (
                   <li key={l.label}><Link href={l.href} className="font-medium text-slate-400 transition-colors hover:text-white">{l.label}</Link></li>
                 ))}
