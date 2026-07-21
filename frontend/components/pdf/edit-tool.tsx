@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
 import { takeHandoff } from '@/lib/handoff';
-import { saveSession, loadSessionAsync, clearSession } from '@/lib/editor-session';
+import { saveSession, loadSessionAsync, clearSession, shouldAutoRestore } from '@/lib/editor-session';
 import { setEditorContext, clearEditorContext } from '@/lib/command-registry';
 import { rewritePdf } from '@/lib/pdf-rewrite';
 import { openPdf, renderPage, dprTarget, getPdfjs, type PdfHandle, type RenderedPage } from '@/lib/pdf-render';
@@ -545,14 +545,17 @@ export function EditTool() {
     let alive = true;
     void loadSessionAsync<{ lines: typeof lines; edits: typeof edits; blocks: typeof blocks; blockEdits: typeof blockEdits; blockStyle: typeof blockStyle; blockLayout: typeof blockLayout; markups: typeof markups; images: typeof images; added: typeof added }>('edit').then((sess) => {
       if (!alive || !sess) return;
-      setRestorable({ name: sess.file.name, run: () => {
+      const run = () => {
         setRestorable(null);
         const d = sess.data;
         setLines(d.lines || {}); setEdits(d.edits || {}); setBlocks(d.blocks || {}); setBlockEdits(d.blockEdits || {}); setBlockStyle(d.blockStyle || {}); setBlockLayout(d.blockLayout || {}); setMarkups(d.markups || {}); setImages(d.images || []); setAdded(d.added || []);
         (d.images || []).forEach((im) => { const el = new Image(); el.onload = () => { imgCache.current.set(im.src, el); }; el.src = im.src; });
         setBusy(true);
         void openPdf(sess.file).then((hh) => { setHandle(hh); setPageCount(hh.numPages); setSel(0); setFile(sess.file); }).catch(() => clearSession('edit')).finally(() => setBusy(false));
-      } });
+      };
+      // Silent when the reload wasn't the user's doing (tab discard / fresh work).
+      if (shouldAutoRestore(sess.savedAt)) run();
+      else setRestorable({ name: sess.file.name, run });
     });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -16,7 +16,7 @@ import { PageStrip } from '@/components/pdf/page-strip';
 import { EditorShell } from '@/components/pdf/editor-shell';
 import { loadLibrary, addLibraryItem, removeLibraryItem, newLibraryId, type LibraryItem } from '@/lib/library';
 import { setEditorContext, clearEditorContext } from '@/lib/command-registry';
-import { saveSession, loadSessionAsync, clearSession } from '@/lib/editor-session';
+import { saveSession, loadSessionAsync, clearSession, shouldAutoRestore } from '@/lib/editor-session';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
 import { FAMILIES, type Family } from '@/lib/fonts';
@@ -268,14 +268,17 @@ export function AnnotateTool() {
     let alive = true;
     void loadSessionAsync<{ annos: Record<number, Anno[]>; images: ImageItem[] }>('annotate').then((sess) => {
       if (!alive || !sess) return;
-      setRestorable({ name: sess.file.name, run: () => {
+      const run = () => {
         setRestorable(null);
         setAnnos(sess.data.annos || {});
         setImages(sess.data.images || []);
         (sess.data.images || []).forEach((im) => { const el = new Image(); el.onload = () => { imgCache.current.set(im.src, el); }; el.src = im.src; });
         setBusy(true);
         void openPdf(sess.file).then((hh) => { setHandle(hh); setPageCount(hh.numPages); setSel(0); setFile(sess.file); }).catch(() => clearSession('annotate')).finally(() => setBusy(false));
-      } });
+      };
+      // Silent when the reload wasn't the user's doing (tab discard / fresh work).
+      if (shouldAutoRestore(sess.savedAt)) run();
+      else setRestorable({ name: sess.file.name, run });
     });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps

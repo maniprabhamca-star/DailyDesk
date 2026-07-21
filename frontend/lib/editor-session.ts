@@ -82,6 +82,16 @@ export async function loadSessionAsync<T>(key: string): Promise<EditorSession<T>
   return null;
 }
 
+// True when this page load should silently pick the session back up instead of
+// asking: the browser discarded the tab in the background (Chrome/Edge set
+// `wasDiscarded` on the forced reload) or the work is only minutes old. In both
+// cases the reload wasn't the user's choice — an empty dropzone reads as data
+// loss (owner-reported). Old sessions still get the polite "restore?" prompt.
+export function shouldAutoRestore(savedAt: number): boolean {
+  const discarded = typeof document !== 'undefined' && (document as Document & { wasDiscarded?: boolean }).wasDiscarded === true;
+  return discarded || savedAt > Date.now() - 30 * 60 * 1000;
+}
+
 export function clearSession(key: string): void {
   store.delete(key); fileMeta.delete(key);
   const t = timers.get(key); if (t) { clearTimeout(t); timers.delete(key); }

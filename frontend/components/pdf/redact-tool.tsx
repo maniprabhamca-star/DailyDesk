@@ -14,7 +14,7 @@ import { openPdf, renderPage, dprTarget, getPdfjs, type PdfHandle, type Rendered
 import { PageStrip } from '@/components/pdf/page-strip';
 import { EditorShell } from '@/components/pdf/editor-shell';
 import { setEditorContext, clearEditorContext } from '@/lib/command-registry';
-import { saveSession, loadSessionAsync, clearSession } from '@/lib/editor-session';
+import { saveSession, loadSessionAsync, clearSession, shouldAutoRestore } from '@/lib/editor-session';
 import { Mail, Phone, CreditCard, Hash, Info, History, ChevronDown, ScanFace } from 'lucide-react';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
@@ -129,17 +129,20 @@ export function RedactTool() {
     const h = takeHandoff();
     const pdf = h?.files.find((f) => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
     if (h && pdf) { setHandoffNote(`PDF brought straight over from ${h.from} — no re-upload needed.`); void loadOne(pdf); return; }
-    // No handoff — OFFER the last session as a "pick up where you left off" prompt
-    // on the dropzone, instead of silently reloading the old file.
+    // No handoff — bring the last session back. Silently when the reload wasn't
+    // the user's doing (background-tab discard, fresh work); via the "restore?"
+    // prompt when the session is old enough that they may want a clean start.
     let alive = true;
     void loadSessionAsync<{ boxes: Record<number, Box[]> }>('redact').then((sess) => {
       if (!alive || !sess) return;
-      setRestorable({ name: sess.file.name, run: () => {
+      const run = () => {
         setRestorable(null);
         setBoxes(sess.data.boxes || {});
         setBusy(true);
         void openPdf(sess.file).then((hh) => { setHandle(hh); setPageCount(hh.numPages); setSel(0); setFile(sess.file); }).catch(() => clearSession('redact')).finally(() => setBusy(false));
-      } });
+      };
+      if (shouldAutoRestore(sess.savedAt)) run();
+      else setRestorable({ name: sess.file.name, run });
     });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
