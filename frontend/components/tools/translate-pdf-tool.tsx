@@ -25,7 +25,7 @@ const MAX_PAGES = 30;
 const baseName = (n?: string) => (n || 'document').replace(/\.pdf$/i, '');
 
 export function TranslatePdfTool() {
-  const doc = useAiDoc();
+  const doc = useAiDoc('translate');
   const [to, setTo] = useState('English');
   const [tone, setTone] = useState<'auto' | 'formal' | 'informal'>('auto');
   const [view, setView] = useState<'side' | 'only' | 'inter'>('side');

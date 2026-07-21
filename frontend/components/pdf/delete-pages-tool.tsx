@@ -1,4 +1,5 @@
 'use client';
+import { useFileSession } from '@/lib/editor-session';
 import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 
 import { useEffect, useRef, useState } from 'react';
@@ -88,6 +89,8 @@ export function DeletePagesTool() {
   useEffect(() => () => { setHandle((prev) => { if (prev) void prev.destroy(); return null; }); }, []);
 
   useFileHandoff(loadOne);
+  // Survive a background-tab discard: silently reload the last file.
+  useFileSession('delete-pages', file, loadOne);
   async function loadOne(f?: File) {
     if (!f) return;
     if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) {

@@ -1,4 +1,5 @@
 'use client';
+import { useFileSession } from '@/lib/editor-session';
 import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 
 import { useEffect, useRef, useState } from 'react';
@@ -175,6 +176,8 @@ export function WatermarkTool() {
   useEffect(() => () => { if (previewHandle.current) void previewHandle.current.destroy(); }, []);
 
   useFileHandoff(loadOne);
+  // Survive a background-tab discard: silently reload the last file.
+  useFileSession('watermark', file, loadOne);
   function loadOne(f?: File) {
     if (!f) return;
     if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) {

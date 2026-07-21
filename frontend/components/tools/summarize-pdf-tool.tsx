@@ -23,7 +23,7 @@ type SumResponse = { summary: string; keyPoints: KeyPoint[]; remaining: number |
 const baseName = (n?: string) => (n || 'document').replace(/\.pdf$/i, '');
 
 export function SummarizePdfTool() {
-  const doc = useAiDoc();
+  const doc = useAiDoc('summarize');
   const [length, setLength] = useState<'tldr' | 'standard' | 'detailed'>('standard');
   const [format, setFormat] = useState<'paragraphs' | 'bullets' | 'brief' | 'sections'>('paragraphs');
   const [audience, setAudience] = useState<'general' | 'simple' | 'professional' | 'technical'>('general');

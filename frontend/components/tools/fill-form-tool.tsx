@@ -1,4 +1,5 @@
 'use client';
+import { useFileSession } from '@/lib/editor-session';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useFileHandoff } from '@/lib/file-handoff';
@@ -104,6 +105,8 @@ export function FillFormTool() {
   }, [selKey, pageIdx]);
 
   useFileHandoff(loadFile);
+  // Survive a background-tab discard: silently reload the last file.
+  useFileSession('fill-form', file, loadFile);
   async function loadFile(f?: File) {
     if (!f) return;
     if (f.type !== 'application/pdf' && !/\.pdf$/i.test(f.name)) { setError('Please choose a PDF.'); return; }

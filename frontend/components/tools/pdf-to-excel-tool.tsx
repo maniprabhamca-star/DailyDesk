@@ -1,4 +1,5 @@
 'use client';
+import { useFileSession } from '@/lib/editor-session';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Upload, X, Loader2, Download, FileSpreadsheet, ShieldCheck, AlertTriangle, Trash2, Table2, FileText, Sparkles, Undo2 } from 'lucide-react';
@@ -76,6 +77,8 @@ export function PdfToExcelTool() {
   }, [renderPreview]);
 
   useFileHandoff(loadFile);
+  // Survive a background-tab discard: silently reload the last file.
+  useFileSession('pdf-to-excel', file, loadFile);
 
   useEffect(() => {
     if (handle && tables[active]) void renderPreview(handle, tables[active]);

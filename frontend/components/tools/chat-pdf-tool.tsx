@@ -1,4 +1,5 @@
 'use client';
+import { useFileSession } from '@/lib/editor-session';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Upload, X, Loader2, Send, Sparkles, ShieldCheck, Lock, FileText, AlertTriangle } from 'lucide-react';
@@ -91,6 +92,8 @@ export function ChatPdfTool() {
   }, [showPage]);
 
   useFileHandoff(loadFile);
+  // Survive a background-tab discard: silently reload the last file.
+  useFileSession('chat-pdf', file, loadFile);
 
   const reset = () => {
     handle?.destroy?.();

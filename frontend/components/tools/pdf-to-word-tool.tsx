@@ -1,4 +1,5 @@
 'use client';
+import { useFileSession } from '@/lib/editor-session';
 import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 
 import { formatDuration } from '@/lib/format';
@@ -39,6 +40,8 @@ export function PdfToWordTool() {
   function cancelRun() { xhrRef.current?.abort(); xhrRef.current = null; }
 
   useFileHandoff(loadOne);
+  // Survive a background-tab discard: silently reload the last file.
+  useFileSession('pdf-to-word', file, loadOne);
   function loadOne(f?: File) {
     if (!f) return;
     if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) {

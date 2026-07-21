@@ -1,4 +1,5 @@
 'use client';
+import { useFileSession } from '@/lib/editor-session';
 
 import { useEffect, useRef, useState } from 'react';
 import { useFileHandoff } from '@/lib/file-handoff';
@@ -334,6 +335,8 @@ export function CompressTool() {
   // view stable, and the result renders in place with a persistent Download bar.
 
   useFileHandoff(loadOne);
+  // Survive a background-tab discard: silently reload the last file.
+  useFileSession('compress', file, loadOne);
   function loadOne(f?: File) {
     if (!f) return;
     if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) {

@@ -1,4 +1,5 @@
 'use client';
+import { useFileSession } from '@/lib/editor-session';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Upload, Loader2, Download, FileText, ShieldCheck, AlertTriangle, Check, X, Landmark, Lock } from 'lucide-react';
@@ -67,6 +68,8 @@ export function StatementConverterTool() {
   }, []);
 
   useFileHandoff(load);
+  // Survive a background-tab discard: silently reload the last file.
+  useFileSession('statement', file, load);
   useEffect(() => { if (status === 'idle') { setFile(null); setRes(null); } }, [status]);
 
   const reset = () => { setStatus('idle'); setFile(null); setRes(null); setTxns([]); setError(null); };

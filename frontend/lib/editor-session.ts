@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
+
 // Keep an editor's work alive so you never lose a loaded PDF + your edits.
 // Two layers, both 100% on-device (nothing is ever uploaded):
 //   1. an in-memory module store — instant, survives in-app navigation.
@@ -97,4 +99,47 @@ export function clearSession(key: string): void {
   const t = timers.get(key); if (t) { clearTimeout(t); timers.delete(key); }
   void idbDel(`${key}::file`).catch(() => {});
   void idbDel(`${key}::data`).catch(() => {});
+}
+
+// ---- file-only session for every ordinary tool -----------------------------
+// The editors keep file + edit data; the other tools only need the FILE to
+// survive a background-tab discard (the browser evicting an idle heavy tab —
+// which looked like data loss to the owner). One line per tool:
+//   useFileSession('compress', file, loadFile);
+// Saves the loaded file (≤ MAX_FILE_SESSION bytes) and, on a reload that wasn't
+// the user's choice, silently loads it back. A file arriving via hand-off or a
+// fast user pick wins — restore only fires if nothing is loaded shortly after
+// mount.
+const MAX_FILE_SESSION = 25 * 1024 * 1024;
+
+export function useFileSession(key: string, file: File | null, load: (f: File) => void | Promise<void>): void {
+  const fileRef = useRef<File | null>(file);
+  fileRef.current = file;
+  const loadRef = useRef(load);
+  loadRef.current = load;
+
+  // Save whenever a (reasonably sized) file is loaded; clear on explicit unload.
+  const hadFile = useRef(false);
+  useEffect(() => {
+    if (file) {
+      hadFile.current = true;
+      if (file.size <= MAX_FILE_SESSION) saveSession(key, file, null);
+    } else if (hadFile.current) {
+      hadFile.current = false;
+      clearSession(key); // the user closed the file on purpose — forget it
+    }
+  }, [key, file]);
+
+  // Restore on mount if the reload wasn't the user's doing.
+  useEffect(() => {
+    let alive = true;
+    const t = setTimeout(() => {
+      void loadSessionAsync(key).then((sess) => {
+        if (!alive || !sess || fileRef.current) return;
+        if (shouldAutoRestore(sess.savedAt)) void loadRef.current(sess.file);
+      });
+    }, 250); // let a hand-off or instant user pick win first
+    return () => { alive = false; clearTimeout(t); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
 }

@@ -35,7 +35,7 @@ const baseName = (n?: string) => (n || 'document').replace(/\.pdf$/i, '');
 const answerOf = (q: Q): string => (q.type === 'mcq' && q.options ? q.options[q.answerIndex ?? 0] : q.answer);
 
 export function PdfQuestionGeneratorTool() {
-  const doc = useAiDoc();
+  const doc = useAiDoc('questions');
   const [type, setType] = useState<'mcq' | 'tf' | 'blank' | 'flash' | 'open' | 'mixed'>('mcq');
   const [count, setCount] = useState<'5' | '10' | '20' | '30'>('10');
   const [difficulty, setDifficulty] = useState<'easy' | 'mixed' | 'hard'>('mixed');

@@ -477,6 +477,10 @@ router.post('/redact-scan', guard('/redact-pdf'), async (req, res) => {
     const r = await callClaude(RED_SYSTEM, [{ role: 'user', content: `Document text:\n\n${ctx}` }], 3000);
     if (!r.ok) return res.status(502).json(FAIL);
     const parsed = parseJson(r.text);
+    // Dedupe on (page + normalized quote) — the model sometimes lists a value
+    // once per OCCURRENCE despite the once-per-page instruction, which showed
+    // the owner a list full of repeated names.
+    const seen = new Set();
     const findings = (parsed && Array.isArray(parsed.findings) ? parsed.findings : [])
       .map((f) => ({
         page: Number(f && f.page) || 0,
@@ -484,7 +488,13 @@ router.post('/redact-scan', guard('/redact-pdf'), async (req, res) => {
         type: RED_TYPES.has(f && f.type) ? f.type : 'other',
         reason: String((f && f.reason) || '').slice(0, 120),
       }))
-      .filter((f) => f.page > 0 && f.quote.trim().length >= 2)
+      .filter((f) => {
+        if (!(f.page > 0 && f.quote.trim().length >= 2)) return false;
+        const k = `${f.page}:${f.quote.toLowerCase().replace(/\s+/g, ' ').trim()}`;
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      })
       .slice(0, 80);
     await budget.record(pre.capKey, r.usage.input_tokens || 0, r.usage.output_tokens || 0);
     trackEvent(req, 'ai_redact_scan', { module: '/redact-pdf', userId: pre.who.userId });

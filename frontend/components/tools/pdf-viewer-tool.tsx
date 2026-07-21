@@ -1,4 +1,5 @@
 'use client';
+import { useFileSession } from '@/lib/editor-session';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -83,6 +84,8 @@ export function PdfViewerTool() {
 
   // Receive a file handed off from another tool.
   useFileHandoff(loadFile);
+  // Survive a background-tab discard: silently reload the last file.
+  useFileSession('pdf-viewer', file, loadFile);
 
   // Desktop "Open with" (File Handling API): when the installed PWA is launched
   // to open a .pdf, the OS hands the file in via launchQueue. No service worker

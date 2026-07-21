@@ -1,4 +1,5 @@
 'use client';
+import { useFileSession } from '@/lib/editor-session';
 import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 
 import { useEffect, useRef, useState } from 'react';
@@ -61,6 +62,8 @@ export function SplitTool() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useFileHandoff(loadOne);
+  // Survive a background-tab discard: silently reload the last file.
+  useFileSession('split', file, loadOne);
   async function loadOne(f?: File) {
     if (!f) return;
     if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) {

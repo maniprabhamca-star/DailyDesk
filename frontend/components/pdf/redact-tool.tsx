@@ -101,6 +101,7 @@ export function RedactTool() {
   const [findOpen, setFindOpen] = useState(false); // is the Find & redact toolbar row expanded
   const [aiBusy, setAiBusy] = useState(false);
   const [aiFindings, setAiFindings] = useState<AiFinding[] | null>(null); // review list before boxes are placed
+  const [aiDone, setAiDone] = useState<{ hits: number; unplaced: number } | null>(null); // step-2 banner w/ inline Redact
 
   const isPro = plan === 'pro'; // owner cookie / Pro email resolve to 'pro' via usePlan()
 
@@ -295,7 +296,7 @@ export function RedactTool() {
   // exists until the user approves; the burn is the same on-device engine.
   const aiScan = useCallback(async () => {
     if (!file || aiBusy || scanning) return;
-    setAiBusy(true); setAiFindings(null); setScanNote(null); setError(null);
+    setAiBusy(true); setAiFindings(null); setAiDone(null); setScanNote(null); setError(null);
     try {
       const { chunks, hasText } = await extractChunks(file);
       if (!hasText) {
@@ -358,10 +359,7 @@ export function RedactTool() {
       setBoxes(next);
       if (firstHit >= 0) setSel(firstHit);
       const unplaced = chosen.filter((f) => !located.has(`${f.page - 1}:${normQuote(f.quote)}`)).length;
-      setScanNote(
-        `Step 2 of 2 — ${hits} box${hits === 1 ? ' is' : 'es are'} now covering the pages. Check them, then press the “Redact” button (top right) to permanently remove what’s underneath.` +
-        (unplaced ? ` Note: ${unplaced} finding${unplaced === 1 ? '' : 's'} couldn’t be pinned to the page text — draw ${unplaced === 1 ? 'that box' : 'those boxes'} by hand.` : ''),
-      );
+      setAiDone({ hits, unplaced }); // the step-2 banner carries its own Redact button
       setAiFindings(null);
     } catch {
       setError('Could not place the AI findings on this PDF — draw the boxes by hand instead.');
@@ -498,7 +496,7 @@ export function RedactTool() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [file, pageCount]);
 
-  const removeFile = () => { clearSession('redact'); if (handle) void handle.destroy(); setHandle(null); setFile(null); setDone(null); setError(null); setBoxes({}); };
+  const removeFile = () => { clearSession('redact'); if (handle) void handle.destroy(); setHandle(null); setFile(null); setDone(null); setError(null); setBoxes({}); setAiFindings(null); setAiDone(null); setScanNote(null); };
 
   const brandToggle = (
     <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
@@ -598,6 +596,21 @@ export function RedactTool() {
           {findPresets}
           {scanNote && <span className="flex w-full items-start gap-1.5 text-[11px] text-muted-foreground"><Info className="mt-0.5 size-3 shrink-0 text-amber-500" /> {scanNote}</span>}
           {aiPanel}
+          {aiDone && (
+            <div className="flex w-full flex-wrap items-center gap-3 rounded-xl border border-violet-500/40 bg-violet-500/10 p-3">
+              <p className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5 text-xs">
+                <span className="rounded bg-violet-600 px-1.5 py-px text-[9.5px] font-extrabold uppercase text-white">Step 2 of 2</span>
+                <b>{aiDone.hits} box{aiDone.hits === 1 ? '' : 'es'} placed on the pages below.</b>
+                <span className="text-muted-foreground">Check them (drag more, or Undo), then finish here:</span>
+                {aiDone.unplaced > 0 && <span className="w-full text-[11px] text-amber-700 dark:text-amber-400">⚠ {aiDone.unplaced} finding{aiDone.unplaced === 1 ? '' : 's'} couldn’t be pinned to the page text — draw {aiDone.unplaced === 1 ? 'that box' : 'those boxes'} by hand.</span>}
+              </p>
+              <Button size="sm" onClick={() => { setAiDone(null); void apply(); }} disabled={busy || totalBoxes === 0}
+                className="h-8 shrink-0 bg-violet-600 px-3 text-xs font-bold text-white shadow-sm hover:bg-violet-700">
+                {busy ? <Loader2 className="mr-1 size-3.5 animate-spin" /> : <EyeOff className="mr-1 size-3.5" />}
+                Redact {totalBoxes} area{totalBoxes === 1 ? '' : 's'} &amp; download
+              </Button>
+            </div>
+          )}
         </>
       ) : (
         <div className="min-w-[220px] flex-1">{findUpsell}</div>

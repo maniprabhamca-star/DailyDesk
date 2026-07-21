@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { openPdf, renderPage, dprTarget, getPdfjs, type PdfHandle } from '@/lib/pdf-render';
 import { extractChunks, type Chunk } from '@/lib/pdf-chat';
 import { useFileHandoff } from '@/lib/file-handoff';
+import { useFileSession } from '@/lib/editor-session';
 
 export type AiDocState = {
   file: File | null;
@@ -26,7 +27,7 @@ export type AiDocState = {
   showPage: (idx: number) => void;
 };
 
-export function useAiDoc(): AiDocState {
+export function useAiDoc(sessionKey = 'ai-doc'): AiDocState {
   const [file, setFile] = useState<File | null>(null);
   const [handle, setHandle] = useState<PdfHandle | null>(null);
   const [preview, setPreview] = useState<{ url: string; w: number; h: number } | null>(null);
@@ -72,6 +73,8 @@ export function useAiDoc(): AiDocState {
   }, [paint]);
 
   useFileHandoff(loadFile);
+  // Survive a background-tab discard: silently reload the last file.
+  useFileSession(sessionKey, file, loadFile);
 
   const reset = useCallback(() => {
     handle?.destroy?.();
