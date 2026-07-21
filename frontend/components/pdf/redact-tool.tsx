@@ -230,8 +230,22 @@ export function RedactTool() {
     if (!drawing.current || !live.current) { drawing.current = false; return; }
     const b = live.current;
     live.current = null; drawing.current = false;
-    // ignore accidental taps (too small to be a real box)
-    if (Math.abs(b.b.x - b.a.x) < 0.008 || Math.abs(b.b.y - b.a.y) < 0.008) { repaint(); return; }
+    // A tap (not a drag): if it lands on an existing box, REMOVE that box —
+    // "unselect" for AI/scan-placed boxes the user wants to keep visible.
+    if (Math.abs(b.b.x - b.a.x) < 0.008 || Math.abs(b.b.y - b.a.y) < 0.008) {
+      const p = b.a;
+      const list = boxes[sel] || [];
+      for (let i = list.length - 1; i >= 0; i--) {
+        const bx = list[i];
+        const x0 = Math.min(bx.a.x, bx.b.x), x1 = Math.max(bx.a.x, bx.b.x);
+        const y0 = Math.min(bx.a.y, bx.b.y), y1 = Math.max(bx.a.y, bx.b.y);
+        if (p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1) {
+          setBoxes((s) => ({ ...s, [sel]: (s[sel] || []).filter((_, j) => j !== i) }));
+          return;
+        }
+      }
+      repaint(); return;
+    }
     setBoxes((s) => ({ ...s, [sel]: [...(s[sel] || []), b] }));
   }
 
@@ -331,18 +345,25 @@ export function RedactTool() {
       for (const k of Object.keys(boxes)) next[Number(k)] = [...boxes[Number(k)]];
       let hits = 0; let firstHit = -1;
       const located = new Set<string>();
+      // Match on letters+digits ONLY: statements fragment a value across text
+      // runs and vary punctuation ("IMPS/P2A/9195…" vs "9195…"), which made
+      // real findings report as unplaceable (owner-reported).
+      const alnum = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+      type Run = { it: { str?: string; transform?: number[]; width?: number; height?: number }; key: string };
       for (const [pi, quotes] of Array.from(byPage.entries())) {
         if (pi < 0 || pi >= handle.numPages) continue;
         const page = await handle.doc.getPage(pi + 1);
         const vp = page.getViewport({ scale: 1 });
         const tc = await page.getTextContent();
-        for (const it of tc.items as Array<{ str?: string; transform?: number[]; width?: number; height?: number }>) {
-          const s = it.str;
-          if (!s || !s.trim() || !it.transform) continue;
-          const ns = normQuote(s);
-          const matched = quotes.filter((q) => (ns.length >= 3 && q.includes(ns)) || ns.includes(q));
-          if (!matched.length) continue;
-          const m = pdfjs.Util.transform(vp.transform, it.transform);
+        const runs: Run[] = (tc.items as Run['it'][])
+          .filter((it) => it.str && it.str.trim() && it.transform)
+          .map((it) => ({ it, key: alnum(it.str || '') }));
+        const boxed = new Set<number>();
+        const boxRun = (idx: number) => {
+          if (boxed.has(idx)) return;
+          boxed.add(idx);
+          const it = runs[idx].it;
+          const m = pdfjs.Util.transform(vp.transform, it.transform as number[]);
           const fontH = Math.hypot(m[2], m[3]) || (it.height || 8);
           const w = (it.width || 0) * vp.scale;
           const left = m[4];
@@ -350,10 +371,36 @@ export function RedactTool() {
           const pad = fontH * 0.2;
           const a = { x: Math.max(0, (left - pad) / vp.width), y: Math.max(0, (top - pad) / vp.height) };
           const b = { x: Math.min(1, (left + w + pad) / vp.width), y: Math.min(1, (top + fontH + pad) / vp.height) };
-          if (b.x - a.x < 0.004 || b.y - a.y < 0.004) continue;
+          if (b.x - a.x < 0.004 || b.y - a.y < 0.004) return;
           (next[pi] ||= []).push({ a, b });
           hits++; if (firstHit < 0) firstHit = pi;
-          for (const q of matched) located.add(`${pi}:${q}`);
+        };
+        for (const q of quotes) {
+          const qKey = alnum(q);
+          if (qKey.length < 3) continue;
+          let found = false;
+          // Pass 1 — a single run contains the value, or IS a piece of it.
+          runs.forEach((r, idx) => {
+            if (!r.key) return;
+            if (r.key.includes(qKey) || (r.key.length >= 4 && qKey.includes(r.key))) { boxRun(idx); found = true; }
+          });
+          // Pass 2 — the value spans up to 6 CONSECUTIVE runs (fragmented
+          // account numbers / addresses): box every run in the covering window.
+          if (!found) {
+            for (let s = 0; s < runs.length && !found; s++) {
+              let joined = '';
+              for (let e = s; e < Math.min(s + 6, runs.length); e++) {
+                joined += runs[e].key;
+                if (joined.includes(qKey)) {
+                  for (let j = s; j <= e; j++) if (runs[j].key) boxRun(j);
+                  found = true;
+                  break;
+                }
+                if (joined.length > qKey.length + 60) break;
+              }
+            }
+          }
+          if (found) located.add(`${pi}:${q}`);
         }
       }
       setBoxes(next);
@@ -754,7 +801,7 @@ export function RedactTool() {
                       <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-600/80 dark:text-emerald-400/80">Permanent · on-device</p>
                     </div>
                   </div>
-                  <p className="mt-2 text-[11.5px] leading-relaxed text-muted-foreground">Drag a box over anything sensitive. On export the content underneath is permanently removed — never just covered.</p>
+                  <p className="mt-2 text-[11.5px] leading-relaxed text-muted-foreground">Drag a box over anything sensitive — tap a box to remove it. On export the content underneath is permanently removed — never just covered.</p>
                 </div>
                 {/* Status — a stat when marked, an inviting empty state otherwise. */}
                 {totalBoxes ? (
