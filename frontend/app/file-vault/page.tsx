@@ -5,7 +5,7 @@ import { FileVaultTool } from '@/components/tools/file-vault-tool';
 export const metadata: Metadata = {
   title: 'File Vault — End-to-End Encrypted Storage | DiemDesk',
   description:
-    'Store sensitive documents in a vault encrypted on your device — separate passphrase, recovery key, AES-256. DiemDesk stores sealed boxes it cannot open. Ever.',
+    'Store sensitive documents in a vault encrypted on your device — own passphrase, recovery key, AES-256. We store sealed boxes we cannot open. Ever.',
   alternates: { canonical: '/file-vault' },
   openGraph: { images: ['/og.png'], title: 'File Vault — storage we cannot read', description: 'Encrypted on your device before upload. Even file names are sealed. A vault only you can open.', type: 'website' },
 };

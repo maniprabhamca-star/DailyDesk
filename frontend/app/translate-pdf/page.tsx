@@ -4,7 +4,7 @@ import { TranslatePdfTool } from '@/components/tools/translate-pdf-tool';
 
 export const metadata: Metadata = {
   title: 'Translate PDF with AI — 30+ Languages, Private | DiemDesk',
-  description: 'Translate PDF text into 30+ languages with tone control, a do-not-translate glossary and translator notes. The file never leaves your browser. Export Word or PDF.',
+  description: 'Translate PDF text into 30+ languages with tone control, a glossary and translator notes. The file never leaves your browser. Export Word or PDF.',
   alternates: { canonical: '/translate-pdf' },
   openGraph: { images: ['/og.png'], title: 'Translate PDF — faithful, side-by-side, private', description: 'Clean translated text beside the original, with notes on ambiguous terms. The file never leaves your device.', type: 'website' },
 };

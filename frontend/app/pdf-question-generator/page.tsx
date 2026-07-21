@@ -4,7 +4,7 @@ import { PdfQuestionGeneratorTool } from '@/components/tools/pdf-question-genera
 
 export const metadata: Metadata = {
   title: 'Question Generator from PDF — Quiz, Flashcards | DiemDesk',
-  description: 'Turn any PDF into quiz questions, flashcards or a printable test — with difficulty, thinking-level control and Anki/Moodle export. Private: the file never leaves your browser.',
+  description: 'Turn any PDF into quiz questions, flashcards or a printable test — difficulty and thinking-level control, Anki/Moodle export, fully private.',
   alternates: { canonical: '/pdf-question-generator' },
   openGraph: { images: ['/og.png'], title: 'PDF question generator — quiz, flashcards, exports', description: 'MCQ, true/false, flashcards and more, each citing its page. Export to Anki, Moodle or a printable quiz sheet.', type: 'website' },
 };

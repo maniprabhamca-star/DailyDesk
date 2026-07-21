@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ShieldCheck, Apple, Play, MapPin, Lock, EyeOff } from 'lucide-react';
+import { ShieldCheck, Apple, Play, MapPin, Lock, EyeOff, ArrowUpRight } from 'lucide-react';
 import { BrandMark } from '@/components/app/brand-mark';
 
 // Preview toggle: a server started with NEXT_PUBLIC_FOOTER_WM=mono renders the
@@ -90,7 +90,12 @@ export function SiteFooter() {
                 </p>
                 <ul className="mt-4 space-y-2.5 text-sm">
                   {col.links.map((l) => (
-                    <li key={l.label}><Link href={l.href} className="font-medium text-slate-400 transition-colors hover:text-white">{l.label}</Link></li>
+                    <li key={l.label}>
+                      <Link href={l.href} className="group inline-flex items-center gap-1 font-medium text-slate-400 transition-colors hover:text-white">
+                        {l.label}
+                        <ArrowUpRight className="size-3.5 -translate-x-0.5 opacity-0 transition-all duration-150 group-hover:translate-x-0 group-hover:opacity-100" />
+                      </Link>
+                    </li>
                   ))}
                 </ul>
               </div>
@@ -105,7 +110,12 @@ export function SiteFooter() {
               </p>
               <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-[13px] lg:mt-4 lg:block lg:space-y-2.5 lg:text-sm">
                 {col.links.map((l) => (
-                  <li key={l.label}><Link href={l.href} className="font-medium text-slate-400 transition-colors hover:text-white">{l.label}</Link></li>
+                  <li key={l.label}>
+                    <Link href={l.href} className="group inline-flex items-center gap-1 font-medium text-slate-400 transition-colors hover:text-white">
+                      {l.label}
+                      <ArrowUpRight className="size-3.5 -translate-x-0.5 opacity-0 transition-all duration-150 group-hover:translate-x-0 group-hover:opacity-100" />
+                    </Link>
+                  </li>
                 ))}
               </ul>
             </div>

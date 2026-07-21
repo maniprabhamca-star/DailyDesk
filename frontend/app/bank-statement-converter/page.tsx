@@ -5,8 +5,8 @@ import { StatementConverterTool } from '@/components/tools/statement-converter-t
 // Privacy leads the title and the H1 deliberately: for a bank statement it isn't a
 // bonus feature, it's the reason to choose us — every competitor uploads the file.
 export const metadata: Metadata = {
-  title: 'Bank Statement to Excel — Private, In Your Browser | DiemDesk',
-  description: 'Convert a bank statement PDF to Excel or CSV with every row checked against the running balance. Processed on your device — your statement is never uploaded.',
+  title: 'Bank Statement to Excel — In Your Browser | DiemDesk',
+  description: 'Convert a bank statement PDF to Excel or CSV, every row checked against the running balance. Processed on your device — never uploaded.',
   alternates: { canonical: '/bank-statement-converter' },
   openGraph: {
     images: ['/og.png'],

@@ -10,7 +10,7 @@ import { SiteFooter } from '@/components/app/site-footer';
 export const metadata: Metadata = {
   title: 'Why DiemDesk? The Honest Case for Switching | DiemDesk',
   description:
-    'Your files never leave your device, the free tier is actually free, and we tell you where the big names still beat us. The honest case for switching, tool by tool.',
+    'Your files never leave your device, the free tier is actually free — and we say where the big names still win. The honest case for switching.',
   alternates: { canonical: '/why-diemdesk' },
   openGraph: {
     images: ['/og.png'],
