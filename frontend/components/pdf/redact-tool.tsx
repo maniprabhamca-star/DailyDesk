@@ -111,7 +111,11 @@ export function RedactTool() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
   const live = useRef<Box | null>(null);
-  const hover = useRef(-1); // index of the box under the pointer (removable)
+  const hover = useRef(-1); // index of the box under the pointer
+  // Select-then-remove: tapping a box SELECTS it (red outline + a floating
+  // Remove button) instead of deleting instantly — no accidental deletes, and
+  // no permanent ✕ clutter on every box (owner: page looked broken).
+  const [selBox, setSelBox] = useState(-1);
 
   async function loadOne(f?: File) {
     if (!f) return;
@@ -153,6 +157,21 @@ export function RedactTool() {
   useEffect(() => () => { if (handle) void handle.destroy(); }, [handle]);
   // Persist the redaction session (in-memory) across in-app navigation.
   useEffect(() => { if (file) saveSession('redact', file, { boxes }); }, [file, boxes]);
+  // Selection is per-page and per-file; Delete/Backspace removes the selected box.
+  useEffect(() => { setSelBox(-1); }, [sel, file]);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+      if (selBox < 0) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      e.preventDefault();
+      setBoxes((s) => ({ ...s, [sel]: (s[sel] || []).filter((_, j) => j !== selBox) }));
+      setSelBox(-1);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selBox, sel]);
   // Surface scan results by auto-opening the Find row.
   useEffect(() => { if (scanNote) setFindOpen(true); }, [scanNote]);
 
@@ -186,36 +205,24 @@ export function RedactTool() {
     const list = [...(boxes[sel] || [])];
     if (live.current) list.push(live.current);
     drawBoxes(ctx, c.width, c.height, list, style, labelText);
-    // EVERY box carries a small ✕ badge — the visible "tap to remove" sign
-    // (hover doesn't exist on touch, and a secret gesture isn't a feature).
-    // Hovering a box (desktop) additionally tints it red before the click.
+    // Boxes stay CLEAN by default. Hovering one tints it red (desktop hint);
+    // the SELECTED one gets a red outline — its Remove button is a DOM pill.
     const cur = boxes[sel] || [];
     const hov = live.current ? -1 : hover.current;
-    cur.forEach((bx, i) => {
+    const chosen = selBox >= 0 && selBox < cur.length ? selBox : -1;
+    const mark = (bx: Box, strong: boolean) => {
       const x = Math.min(bx.a.x, bx.b.x) * c.width, y = Math.min(bx.a.y, bx.b.y) * c.height;
       const w = Math.abs(bx.b.x - bx.a.x) * c.width, h = Math.abs(bx.b.y - bx.a.y) * c.height;
       if (w < 2 || h < 2) return;
-      if (i === hov) {
-        ctx.fillStyle = 'rgba(239,68,68,0.30)';
-        ctx.fillRect(x, y, w, h);
-        ctx.strokeStyle = '#ef4444';
-        ctx.lineWidth = Math.max(2, 1.5 * dpr);
-        ctx.strokeRect(x + 1, y + 1, Math.max(0, w - 2), Math.max(0, h - 2));
-      }
-      const r = Math.max(8, 7 * dpr) * (i === hov ? 1.25 : 1);
-      const cx = Math.min(c.width - r - 2, Math.max(r + 2, x + w));
-      const cy = Math.min(c.height - r - 2, Math.max(r + 2, y));
-      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.fillStyle = '#ffffff'; ctx.fill();
-      ctx.strokeStyle = '#ef4444'; ctx.lineWidth = Math.max(1.5, 1.2 * dpr); ctx.stroke();
-      const k = r * 0.42;
-      ctx.beginPath();
+      ctx.fillStyle = strong ? 'rgba(239,68,68,0.30)' : 'rgba(239,68,68,0.18)';
+      ctx.fillRect(x, y, w, h);
       ctx.strokeStyle = '#ef4444';
-      ctx.moveTo(cx - k, cy - k); ctx.lineTo(cx + k, cy + k);
-      ctx.moveTo(cx + k, cy - k); ctx.lineTo(cx - k, cy + k);
-      ctx.lineWidth = Math.max(2, 1.6 * dpr); ctx.stroke();
-    });
-  }, [boxes, sel, style, labelText]);
+      ctx.lineWidth = Math.max(2, (strong ? 2 : 1.3) * dpr);
+      ctx.strokeRect(x + 1, y + 1, Math.max(0, w - 2), Math.max(0, h - 2));
+    };
+    if (hov >= 0 && hov < cur.length && hov !== chosen) mark(cur[hov], false);
+    if (chosen >= 0) mark(cur[chosen], true);
+  }, [boxes, sel, style, labelText, selBox]);
 
   useEffect(() => { repaint(); }, [repaint, preview]);
   useEffect(() => {
@@ -259,7 +266,7 @@ export function RedactTool() {
     if (idx === hover.current) return;
     hover.current = idx;
     const c = canvasRef.current;
-    if (c) { c.style.cursor = idx >= 0 ? 'pointer' : 'crosshair'; c.title = idx >= 0 ? 'Click to remove this box' : ''; }
+    if (c) { c.style.cursor = idx >= 0 ? 'pointer' : 'crosshair'; c.title = idx >= 0 ? 'Click to select this box' : ''; }
     repaint();
   }
   function onDown(e: React.PointerEvent<HTMLCanvasElement>) {
@@ -282,25 +289,23 @@ export function RedactTool() {
     if (!drawing.current || !live.current) { drawing.current = false; return; }
     const b = live.current;
     live.current = null; drawing.current = false;
-    // A tap (not a drag): if it lands on an existing box, REMOVE that box —
-    // "unselect" for AI/scan-placed boxes the user wants to keep visible.
+    // A tap (not a drag) SELECTS the box under it (or deselects on empty space)
+    // — removal is the explicit floating Remove button, never a stray tap.
     if (Math.abs(b.b.x - b.a.x) < 0.008 || Math.abs(b.b.y - b.a.y) < 0.008) {
-      const p = b.a;
-      const list = boxes[sel] || [];
-      for (let i = list.length - 1; i >= 0; i--) {
-        const bx = list[i];
-        const x0 = Math.min(bx.a.x, bx.b.x), x1 = Math.max(bx.a.x, bx.b.x);
-        const y0 = Math.min(bx.a.y, bx.b.y), y1 = Math.max(bx.a.y, bx.b.y);
-        if (p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1) {
-          setBoxes((s) => ({ ...s, [sel]: (s[sel] || []).filter((_, j) => j !== i) }));
-          setHover(-1); // the box under the cursor is gone — back to draw mode
-          return;
-        }
-      }
-      repaint(); return;
+      setSelBox(hitBox(b.a));
+      repaint();
+      return;
     }
+    setSelBox(-1); // drew a new box — drop any selection
     setBoxes((s) => ({ ...s, [sel]: [...(s[sel] || []), b] }));
   }
+
+  const removeSelected = () => {
+    if (selBox < 0) return;
+    setBoxes((s) => ({ ...s, [sel]: (s[sel] || []).filter((_, j) => j !== selBox) }));
+    setSelBox(-1);
+    setHover(-1);
+  };
 
   function undo() { setBoxes((s) => ({ ...s, [sel]: (s[sel] || []).slice(0, -1) })); }
   function clearPage() { setBoxes((s) => ({ ...s, [sel]: [] })); }
@@ -761,6 +766,26 @@ export function RedactTool() {
             className="absolute inset-0 h-full w-full cursor-crosshair touch-none"
             onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerLeave={onLeave}
           />
+          {(() => {
+            // The one explicit Remove control for the selected box — a clear
+            // pill, not a badge on every box.
+            const bx = (boxes[sel] || [])[selBox];
+            if (!bx) return null;
+            const leftPct = ((Math.min(bx.a.x, bx.b.x) + Math.abs(bx.b.x - bx.a.x) / 2)) * 100;
+            const topPct = Math.min(bx.a.y, bx.b.y) * 100;
+            const below = topPct < 8; // box hugs the top edge → pill goes under it
+            const anchor = below ? Math.max(bx.a.y, bx.b.y) * 100 : topPct;
+            return (
+              <button
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={removeSelected}
+                style={{ left: `${Math.min(88, Math.max(12, leftPct))}%`, top: `${anchor}%` }}
+                className={`absolute z-20 -translate-x-1/2 ${below ? 'translate-y-2' : '-translate-y-[calc(100%+8px)]'} whitespace-nowrap rounded-full bg-red-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-lg transition hover:bg-red-700`}
+              >
+                ✕ Remove this box
+              </button>
+            );
+          })()}
         </div>
       ) : (
         <div className="flex h-72 items-center justify-center"><Loader2 className="size-5 animate-spin text-muted-foreground" /></div>
@@ -884,7 +909,7 @@ export function RedactTool() {
                       <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-600/80 dark:text-emerald-400/80">Permanent · on-device</p>
                     </div>
                   </div>
-                  <p className="mt-2 text-[11.5px] leading-relaxed text-muted-foreground">Drag a box over anything sensitive — tap a box to remove it. On export the content underneath is permanently removed — never just covered.</p>
+                  <p className="mt-2 text-[11.5px] leading-relaxed text-muted-foreground">Drag a box over anything sensitive. Tap a box to select it, then hit <b className="text-foreground">Remove</b>. On export the content underneath is permanently removed — never just covered.</p>
                 </div>
                 {/* Status — a stat when marked, an inviting empty state otherwise. */}
                 {totalBoxes ? (
