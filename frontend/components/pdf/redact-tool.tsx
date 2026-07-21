@@ -600,8 +600,8 @@ export function RedactTool() {
             <div className="flex w-full flex-wrap items-center gap-3 rounded-xl border border-violet-500/40 bg-violet-500/10 p-3">
               <p className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5 text-xs">
                 <span className="rounded bg-violet-600 px-1.5 py-px text-[9.5px] font-extrabold uppercase text-white">Step 2 of 2</span>
-                <b>{aiDone.hits} box{aiDone.hits === 1 ? '' : 'es'} placed on the pages below.</b>
-                <span className="text-muted-foreground">Check them (drag more, or Undo), then finish here:</span>
+                <b>{totalBoxes} box{totalBoxes === 1 ? '' : 'es'} on the pages below.</b>
+                <span className="text-muted-foreground">Check them page by page (left strip) — drag more, or ↺ Undo — then finish here:</span>
                 {aiDone.unplaced > 0 && <span className="w-full text-[11px] text-amber-700 dark:text-amber-400">⚠ {aiDone.unplaced} finding{aiDone.unplaced === 1 ? '' : 's'} couldn’t be pinned to the page text — draw {aiDone.unplaced === 1 ? 'that box' : 'those boxes'} by hand.</span>}
               </p>
               <Button size="sm" onClick={() => { setAiDone(null); void apply(); }} disabled={busy || totalBoxes === 0}

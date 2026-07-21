@@ -50,7 +50,7 @@ export function EditorShell({
         <div className="ml-auto flex items-center gap-1.5">
           {(onUndo || onRedo) && (
             <div className="flex items-center overflow-hidden rounded-lg border">
-              {onUndo && <button onClick={onUndo} disabled={!canUndo} aria-label="Undo" title="Undo" className="flex size-8 items-center justify-center text-muted-foreground transition-colors hover:bg-accent disabled:opacity-40"><Undo2 className="size-4" /></button>}
+              {onUndo && <button onClick={onUndo} disabled={!canUndo} aria-label="Undo" title="Undo — removes the last change on this page" className="flex size-8 items-center justify-center text-muted-foreground transition-colors hover:bg-accent disabled:opacity-40"><Undo2 className="size-4" /></button>}
               {onUndo && onRedo && <span className="h-5 w-px bg-border" />}
               {onRedo && <button onClick={onRedo} disabled={!canRedo} aria-label="Redo" title="Redo" className="flex size-8 items-center justify-center text-muted-foreground transition-colors hover:bg-accent disabled:opacity-40"><Redo2 className="size-4" /></button>}
             </div>
