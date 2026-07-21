@@ -33,8 +33,9 @@ type Style = 'black' | 'white' | 'label';
 
 // One AI finding, awaiting the user's yes/no before any box is placed. The AI
 // only POINTS at PII — the boxes come from the page's own text positions, and
-// the burn stays 100% on-device.
-type AiFinding = { page: number; quote: string; type: string; reason: string; checked: boolean };
+// the burn stays 100% on-device. One row per VALUE (the server reports each
+// page it appears on; showing "RADHA U" three times read as a duplicate bug).
+type AiFinding = { pages: number[]; quote: string; type: string; reason: string; checked: boolean };
 const AI_TYPE_LABEL: Record<string, string> = {
   name: 'Name', email: 'Email', phone: 'Phone', address: 'Address', id: 'Gov. ID',
   account: 'Account/card', dob: 'Birth date', credential: 'Credential', other: 'Personal info',
@@ -185,30 +186,35 @@ export function RedactTool() {
     const list = [...(boxes[sel] || [])];
     if (live.current) list.push(live.current);
     drawBoxes(ctx, c.width, c.height, list, style, labelText);
-    // Hovered box → removable: red tint + border + an ✕ badge, so "click to
-    // remove" is visible on the page, not a secret gesture.
+    // EVERY box carries a small ✕ badge — the visible "tap to remove" sign
+    // (hover doesn't exist on touch, and a secret gesture isn't a feature).
+    // Hovering a box (desktop) additionally tints it red before the click.
     const cur = boxes[sel] || [];
-    const hov = hover.current;
-    if (!live.current && hov >= 0 && hov < cur.length) {
-      const bx = cur[hov];
+    const hov = live.current ? -1 : hover.current;
+    cur.forEach((bx, i) => {
       const x = Math.min(bx.a.x, bx.b.x) * c.width, y = Math.min(bx.a.y, bx.b.y) * c.height;
       const w = Math.abs(bx.b.x - bx.a.x) * c.width, h = Math.abs(bx.b.y - bx.a.y) * c.height;
-      ctx.fillStyle = 'rgba(239,68,68,0.30)';
-      ctx.fillRect(x, y, w, h);
-      ctx.strokeStyle = '#ef4444';
-      ctx.lineWidth = Math.max(2, 1.5 * dpr);
-      ctx.strokeRect(x + 1, y + 1, Math.max(0, w - 2), Math.max(0, h - 2));
-      const r = Math.max(9, 8 * dpr);
-      const cx = Math.min(c.width - r - 2, x + w), cy = Math.max(r + 2, y);
+      if (w < 2 || h < 2) return;
+      if (i === hov) {
+        ctx.fillStyle = 'rgba(239,68,68,0.30)';
+        ctx.fillRect(x, y, w, h);
+        ctx.strokeStyle = '#ef4444';
+        ctx.lineWidth = Math.max(2, 1.5 * dpr);
+        ctx.strokeRect(x + 1, y + 1, Math.max(0, w - 2), Math.max(0, h - 2));
+      }
+      const r = Math.max(8, 7 * dpr) * (i === hov ? 1.25 : 1);
+      const cx = Math.min(c.width - r - 2, Math.max(r + 2, x + w));
+      const cy = Math.min(c.height - r - 2, Math.max(r + 2, y));
       ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.fillStyle = '#ef4444'; ctx.fill();
-      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = Math.max(1.5, 1.2 * dpr); ctx.stroke();
+      ctx.fillStyle = '#ffffff'; ctx.fill();
+      ctx.strokeStyle = '#ef4444'; ctx.lineWidth = Math.max(1.5, 1.2 * dpr); ctx.stroke();
       const k = r * 0.42;
       ctx.beginPath();
+      ctx.strokeStyle = '#ef4444';
       ctx.moveTo(cx - k, cy - k); ctx.lineTo(cx + k, cy + k);
       ctx.moveTo(cx + k, cy - k); ctx.lineTo(cx - k, cy + k);
       ctx.lineWidth = Math.max(2, 1.6 * dpr); ctx.stroke();
-    }
+    });
   }, [boxes, sel, style, labelText]);
 
   useEffect(() => { repaint(); }, [repaint, preview]);
@@ -364,10 +370,18 @@ export function RedactTool() {
         setScanNote('This looks like a scanned PDF — it has no selectable text for the AI to read. Draw boxes by hand, or run OCR first.');
         return;
       }
-      const r = await aiPost<{ findings: Array<Omit<AiFinding, 'checked'>> }>('/api/ai/redact-scan', { pages: pagesFromChunks(chunks) });
+      const r = await aiPost<{ findings: Array<{ page: number; quote: string; type: string; reason: string }> }>('/api/ai/redact-scan', { pages: pagesFromChunks(chunks) });
       if (!r.ok || !r.data) { setScanNote(r.message || AI_FALLBACK_MSG); return; }
       if (!r.data.findings.length) { setScanNote('The AI found no personal information in this document’s text.'); return; }
-      setAiFindings(r.data.findings.map((f) => ({ ...f, checked: true })));
+      // Group per VALUE: one review row listing every page it appears on.
+      const grouped = new Map<string, AiFinding>();
+      for (const f of r.data.findings) {
+        const k = `${f.type}:${normQuote(f.quote)}`;
+        const g = grouped.get(k);
+        if (g) { if (!g.pages.includes(f.page)) g.pages.push(f.page); }
+        else grouped.set(k, { pages: [f.page], quote: f.quote, type: f.type, reason: f.reason, checked: true });
+      }
+      setAiFindings(Array.from(grouped.values()));
     } finally {
       setAiBusy(false);
     }
@@ -383,9 +397,11 @@ export function RedactTool() {
     try {
       const byPage = new Map<number, string[]>();
       for (const f of chosen) {
-        const arr = byPage.get(f.page - 1) || [];
-        arr.push(normQuote(f.quote));
-        byPage.set(f.page - 1, arr);
+        for (const pg of f.pages) {
+          const arr = byPage.get(pg - 1) || [];
+          arr.push(normQuote(f.quote));
+          byPage.set(pg - 1, arr);
+        }
       }
       const pdfjs = await getPdfjs();
       const next: Record<number, Box[]> = {};
@@ -426,20 +442,28 @@ export function RedactTool() {
           const qKey = alnum(q);
           if (qKey.length < 3) continue;
           let found = false;
-          // Pass 1 — a single run contains the value, or IS a piece of it.
+          // Pass 1 — a single run CONTAINS the whole value. (Never the reverse:
+          // "run is a piece of the value" boxed innocent cells — on a statement,
+          // an amount fragment like 4034 is a substring of long account numbers,
+          // which exploded 30 findings into 83 boxes. Fragmented values are
+          // pass 2's job, where order and adjacency keep it precise.)
           runs.forEach((r, idx) => {
-            if (!r.key) return;
-            if (r.key.includes(qKey) || (r.key.length >= 4 && qKey.includes(r.key))) { boxRun(idx); found = true; }
+            if (r.key && r.key.includes(qKey)) { boxRun(idx); found = true; }
           });
           // Pass 2 — the value spans up to 6 CONSECUTIVE runs (fragmented
-          // account numbers / addresses): box every run in the covering window.
+          // account numbers): box the MINIMAL covering window. Shrinking from
+          // the left matters — without it a window could drag an innocent
+          // neighbouring cell (an amount) under the box.
           if (!found) {
+            const cat = (s2: number, e2: number) => { let j = ''; for (let k2 = s2; k2 <= e2; k2++) j += runs[k2].key; return j; };
             for (let s = 0; s < runs.length && !found; s++) {
               let joined = '';
               for (let e = s; e < Math.min(s + 6, runs.length); e++) {
                 joined += runs[e].key;
                 if (joined.includes(qKey)) {
-                  for (let j = s; j <= e; j++) if (runs[j].key) boxRun(j);
+                  let s2 = s;
+                  while (s2 < e && cat(s2 + 1, e).includes(qKey)) s2++;
+                  for (let j = s2; j <= e; j++) if (runs[j].key) boxRun(j);
                   found = true;
                   break;
                 }
@@ -447,12 +471,24 @@ export function RedactTool() {
               }
             }
           }
+          // Pass 3 — scattered multi-word values (addresses interleaved with a
+          // second column): box runs containing the value's distinctive words.
+          // Requires 2+ word hits so a lone common word can't trigger it.
+          if (!found) {
+            const words = Array.from(new Set(q.split(/[^a-z0-9]+/i).map(alnum).filter((w) => w.length >= 5)));
+            if (words.length >= 2) {
+              const hitIdx: number[] = [];
+              runs.forEach((r, idx) => { if (r.key && words.some((w) => r.key.includes(w))) hitIdx.push(idx); });
+              const matchedWords = words.filter((w) => hitIdx.some((idx) => runs[idx].key.includes(w)));
+              if (matchedWords.length >= 2) { hitIdx.forEach(boxRun); found = true; }
+            }
+          }
           if (found) located.add(`${pi}:${q}`);
         }
       }
       setBoxes(next);
       if (firstHit >= 0) setSel(firstHit);
-      const unplaced = chosen.filter((f) => !located.has(`${f.page - 1}:${normQuote(f.quote)}`)).length;
+      const unplaced = chosen.filter((f) => !f.pages.some((pg) => located.has(`${pg - 1}:${normQuote(f.quote)}`))).length;
       setAiDone({ hits, unplaced }); // the step-2 banner carries its own Redact button
       setAiFindings(null);
     } catch {
@@ -665,7 +701,7 @@ export function RedactTool() {
               onChange={() => setAiFindings((list) => list && list.map((x, j) => (j === i ? { ...x, checked: !x.checked } : x)))} />
             <span className="rounded bg-violet-500/10 px-1.5 py-px font-bold text-violet-600 dark:text-violet-400">{AI_TYPE_LABEL[f.type] || 'Personal info'}</span>
             <span className="min-w-0 flex-1"><b>&ldquo;{f.quote}&rdquo;</b>{f.reason ? <span className="text-muted-foreground"> — {f.reason}</span> : null}</span>
-            <span className="shrink-0 text-muted-foreground">p.{f.page}</span>
+            <span className="shrink-0 text-muted-foreground">p.{f.pages.join(', p.')}</span>
           </label>
         ))}
       </div>
