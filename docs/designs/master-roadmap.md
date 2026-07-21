@@ -68,7 +68,7 @@ Mostly free/on-device unless marked.
 - [x] 🌓 Translate (`/translate-pdf` — tone, do-not-translate glossary, translator notes, side-by-side; weighted 3× vs the monthly AI cap; 30-page/run cap)
 - [x] 🌓 Auto-redact PII ("AI find personal info" in /redact-pdf — review panel, approve-per-finding, boxes from page text positions, burn stays on-device)
 - [x] 🌓 Question generation (`/pdf-question-generator` — 6 types, Bloom's levels, explanations; Anki CSV + Moodle GIFT + PDF quiz sheet)
-- [ ] ⏳ Natural-language ⌘K (also §2)
+- [x] 🌓 Natural-language ⌘K ("Ask AI" row for phrase queries — resolves to ONE existing command/tool, server-validated, never auto-runs; static commands stay free, semantic = Pro)
 - [x] 🌓 Semantic compare (violet "What changed in meaning" section in /compare-pdf — amounts/dates/obligations, severity-ranked; weighted 2× vs the AI cap)
 - [x] 🌓 PDF→Excel **AI cleanup** (Pro button + undo in /pdf-to-excel — fixes split columns/title rows, never values)
 
