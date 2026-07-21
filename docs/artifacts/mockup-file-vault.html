@@ -1,0 +1,194 @@
+<title>File Vault (E2E) — DiemDesk mockup</title>
+<style>
+  :root{
+    --bg:#f4f5f3;--surface:#fff;--surface-2:#f7f8f6;--border:#e3e5e0;--text:#1a1c19;--muted:#6b7168;--faint:#9aa093;
+    --accent:#2563eb;--accent-weak:#2563eb12;--accent-ring:#2563eb40;
+    --vault:#0d9488;--vault-weak:#0d948812;--vault-ring:#0d948840;
+    --green:#15803d;--green-bg:#16a34a12;--green-border:#16a34a40;--amber:#b45309;--red:#dc2626;
+    --radius:16px;--shadow:0 1px 2px rgba(20,25,18,.04),0 10px 30px rgba(20,25,18,.08);
+    --mono:"SFMono-Regular",ui-monospace,Menlo,monospace;
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --bg:#111311;--surface:#1a1d19;--surface-2:#20241f;--border:#2e332b;--text:#eef0ea;--muted:#a3a99b;--faint:#767c6e;
+    --accent:#60a5fa;--accent-weak:#60a5fa1c;--accent-ring:#60a5fa55;
+    --vault:#2dd4bf;--vault-weak:#2dd4bf1c;--vault-ring:#2dd4bf55;
+    --green:#4ade80;--green-bg:#22c55e18;--green-border:#22c55e44;--amber:#fbbf24;--red:#f87171;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 34px rgba(0,0,0,.4);
+  }}
+  :root[data-theme="light"]{--bg:#f4f5f3;--surface:#fff;--surface-2:#f7f8f6;--border:#e3e5e0;--text:#1a1c19;--muted:#6b7168;--faint:#9aa093;--accent:#2563eb;--accent-weak:#2563eb12;--accent-ring:#2563eb40;--vault:#0d9488;--vault-weak:#0d948812;--vault-ring:#0d948840;--green:#15803d;--green-bg:#16a34a12;--green-border:#16a34a40;--amber:#b45309;--red:#dc2626;--shadow:0 1px 2px rgba(20,25,18,.04),0 10px 30px rgba(20,25,18,.08);}
+  :root[data-theme="dark"]{--bg:#111311;--surface:#1a1d19;--surface-2:#20241f;--border:#2e332b;--text:#eef0ea;--muted:#a3a99b;--faint:#767c6e;--accent:#60a5fa;--accent-weak:#60a5fa1c;--accent-ring:#60a5fa55;--vault:#2dd4bf;--vault-weak:#2dd4bf1c;--vault-ring:#2dd4bf55;--green:#4ade80;--green-bg:#22c55e18;--green-border:#22c55e44;--amber:#fbbf24;--red:#f87171;--shadow:0 1px 2px rgba(0,0,0,.3),0 12px 34px rgba(0,0,0,.4);}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1010px;margin:0 auto;padding:28px 18px 60px;}
+  .review-tag{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-bottom:18px;flex-wrap:wrap;}
+  .review-tag b{color:var(--text);}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--vault);}
+  h1{font-size:22px;font-weight:800;letter-spacing:-.02em;margin:0 0 4px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .pro{display:inline-flex;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:3px 9px;border-radius:999px;background:linear-gradient(90deg,#f59e0b,#f97316);color:#fff;}
+  .lead{font-size:14px;color:var(--muted);margin:0 0 20px;max-width:72ch;}
+  .tabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;}
+  .tab{font-size:13px;font-weight:700;border:1px solid var(--border);background:var(--surface);color:var(--muted);border-radius:999px;padding:8px 16px;cursor:pointer;}
+  .tab.on{background:var(--vault-weak);border-color:var(--vault-ring);color:var(--vault);}
+  section{display:none} section.on{display:block}
+  .panel{border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow);overflow:hidden;}
+
+  /* unlock */
+  .unlock{display:grid;place-items:center;padding:56px 20px;}
+  .lockico{width:64px;height:64px;border-radius:20px;background:var(--vault-weak);border:1px solid var(--vault-ring);display:grid;place-items:center;color:var(--vault);font-size:28px;}
+  .unlock h2{margin:16px 0 4px;font-size:20px;}
+  .unlock p{margin:0 0 18px;font-size:13px;color:var(--muted);max-width:46ch;text-align:center;}
+  .pass{display:flex;gap:8px;width:min(420px,100%);}
+  .pass input{flex:1;border:1px solid var(--border);border-radius:12px;background:var(--surface-2);padding:12px 14px;font:inherit;color:var(--text);outline:none;}
+  .pass input:focus{border-color:var(--vault);box-shadow:0 0 0 3px var(--vault-ring);}
+  .pass button{border:0;border-radius:12px;background:var(--vault);color:#fff;font:inherit;font-weight:700;padding:0 22px;cursor:pointer;}
+  .forgot{margin-top:12px;font-size:12px;color:var(--muted);}
+  .forgot b{color:var(--vault);cursor:pointer;}
+  .e2enote{margin-top:26px;display:flex;gap:8px;font-size:12px;color:var(--green);background:var(--green-bg);border:1px solid var(--green-border);border-radius:10px;padding:10px 12px;max-width:480px;}
+
+  /* vault grid */
+  .vhead{display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);padding:14px 18px;flex-wrap:wrap;}
+  .vhead b{font-size:15px;}
+  .chip{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;border-radius:999px;padding:3px 9px;border:1px solid var(--green-border);background:var(--green-bg);color:var(--green);}
+  .meter{margin-left:auto;display:flex;flex-direction:column;gap:4px;min-width:180px;}
+  .meter .bar{height:6px;border-radius:999px;background:var(--surface-2);border:1px solid var(--border);overflow:hidden;}
+  .meter .fill{width:23%;height:100%;background:var(--vault);}
+  .meter span{font-size:11px;color:var(--muted);}
+  .toolrow{display:flex;gap:8px;border-bottom:1px solid var(--border);background:var(--surface-2);padding:10px 18px;flex-wrap:wrap;align-items:center;}
+  .up{display:inline-flex;align-items:center;gap:7px;border:0;border-radius:10px;background:var(--vault);color:#fff;font:inherit;font-size:13px;font-weight:700;padding:9px 16px;cursor:pointer;}
+  .newf{border:1px solid var(--border);background:var(--surface);border-radius:10px;font:inherit;font-size:13px;font-weight:600;padding:8px 14px;color:var(--text);cursor:pointer;}
+  .search{margin-left:auto;border:1px solid var(--border);border-radius:10px;background:var(--surface);padding:8px 12px;font:inherit;font-size:13px;color:var(--muted);min-width:180px;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;padding:18px;}
+  .file{border:1px solid var(--border);border-radius:12px;background:var(--surface-2);padding:12px;cursor:pointer;transition:all .15s;position:relative;}
+  .file:hover{border-color:var(--vault-ring);transform:translateY(-1px);}
+  .fico{width:38px;height:44px;border-radius:6px;display:grid;place-items:center;font-size:10px;font-weight:800;color:#fff;margin-bottom:8px;}
+  .pdf{background:#dc2626}.img{background:#7c3aed}.doc{background:#2563eb}.zip{background:#64748b}
+  .file b{display:block;font-size:12.5px;line-height:1.3;word-break:break-word;}
+  .file span{font-size:10.5px;color:var(--faint);}
+  .lockchip{position:absolute;top:8px;right:8px;font-size:9px;color:var(--vault);border:1px solid var(--vault-ring);background:var(--vault-weak);border-radius:6px;padding:1px 5px;font-weight:800;}
+  .folder{display:flex;align-items:center;gap:8px;border:1px dashed var(--border);border-radius:12px;padding:12px;font-size:12.5px;font-weight:700;color:var(--muted);}
+
+  /* upload flow */
+  .steps{padding:20px 18px;display:grid;gap:10px;}
+  .step{display:flex;align-items:center;gap:12px;border:1px solid var(--border);border-radius:12px;background:var(--surface-2);padding:12px 14px;font-size:13px;}
+  .snum{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-size:12px;font-weight:800;background:var(--vault-weak);color:var(--vault);border:1px solid var(--vault-ring);flex:none;}
+  .step.done .snum{background:var(--green-bg);border-color:var(--green-border);color:var(--green);}
+  .step .where{margin-left:auto;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;border-radius:6px;padding:2px 7px;}
+  .ondev{background:var(--green-bg);border:1px solid var(--green-border);color:var(--green);}
+  .onsrv{background:var(--surface);border:1px solid var(--border);color:var(--muted);}
+  .prog{height:6px;border-radius:999px;background:var(--surface);border:1px solid var(--border);overflow:hidden;margin-top:6px;}
+  .prog i{display:block;height:100%;width:64%;background:var(--vault);}
+
+  /* recovery */
+  .ceremony{padding:24px 20px;display:grid;gap:14px;max-width:640px;margin:0 auto;}
+  .warn{display:flex;gap:10px;border:1px solid #f59e0b55;background:#f59e0b14;border-radius:12px;padding:12px 14px;font-size:13px;}
+  .rkey{border:1.5px dashed var(--vault-ring);border-radius:12px;background:var(--vault-weak);padding:16px;text-align:center;font-family:var(--mono);font-size:15px;letter-spacing:1.5px;font-weight:700;color:var(--text);}
+  .rbtns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}
+  .rbtns button{border:1px solid var(--border);border-radius:10px;background:var(--surface);font:inherit;font-size:12.5px;font-weight:700;padding:8px 14px;cursor:pointer;color:var(--text);}
+  .rbtns .primary{background:var(--vault);border-color:var(--vault);color:#fff;}
+  .confirm{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--muted);}
+
+  .facts{margin-top:22px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);padding:18px 20px;}
+  .facts h3{margin:0 0 12px;font-size:14px;}
+  .facts ul{margin:0;padding:0;list-style:none;display:grid;gap:9px;}
+  .facts li{display:flex;gap:10px;font-size:12.5px;color:var(--muted);}
+  .facts li b{color:var(--text);}
+  .yes{color:var(--green);font-weight:800;flex:none;}
+  .no{color:var(--red);font-weight:800;flex:none;}
+</style>
+
+<div class="wrap">
+  <div class="review-tag"><span class="dot"></span> <b>Mockup for review</b> — File Vault (Pro) · end-to-end encrypted storage + sync · teal = the Vault's own accent (secure-storage family)</div>
+  <h1>File Vault <span class="pro">✦ Pro</span></h1>
+  <p class="lead">Encrypted on your device <b>before</b> upload, with a vault passphrase we never see. We store sealed boxes we cannot open — that's the whole product. Three screens below: <b>Unlock</b>, the <b>Vault</b>, and the one-time <b>Recovery key</b> ceremony.</p>
+
+  <div class="tabs">
+    <button class="tab on" data-t="unlock">1 · Unlock</button>
+    <button class="tab" data-t="vault">2 · Your vault</button>
+    <button class="tab" data-t="recovery">3 · Recovery key (one-time)</button>
+  </div>
+
+  <section class="on" id="unlock">
+    <div class="panel unlock">
+      <div class="lockico">🔒</div>
+      <h2>Unlock your vault</h2>
+      <p>Your vault passphrase is separate from your login password — it never leaves this device, and we can't reset it (that's what makes the vault yours alone).</p>
+      <div class="pass"><input type="password" placeholder="Vault passphrase" /><button>Unlock</button></div>
+      <p class="forgot">Forgot it? <b>Use your recovery key</b> — the 24-character code from setup. Without either, the files are unrecoverable by design.</p>
+      <div class="e2enote">🛡 <span><b>End-to-end encrypted.</b> Files are sealed on your device with AES-256; the key comes from your passphrase (Argon2). DiemDesk's servers only ever hold ciphertext.</span></div>
+    </div>
+  </section>
+
+  <section id="vault">
+    <div class="panel">
+      <div class="vhead">
+        <b>My vault</b> <span class="chip">🔒 End-to-end encrypted</span>
+        <div class="meter"><div class="bar"><div class="fill"></div></div><span>2.3 GB of 10 GB used</span></div>
+        <button class="newf" style="font-size:12px">Lock vault</button>
+      </div>
+      <div class="toolrow">
+        <button class="up">⬆ Add files</button>
+        <button class="newf">＋ New folder</button>
+        <input class="search" placeholder="Search file names…" />
+      </div>
+      <div class="grid">
+        <div class="folder">📁 Tax 2026 · 8 files</div>
+        <div class="folder">📁 Property · 4 files</div>
+        <div class="file"><span class="lockchip">E2E</span><div class="fico pdf">PDF</div><b>Axis-statement-Q2.pdf</b><span>412 KB · 2 days ago</span></div>
+        <div class="file"><span class="lockchip">E2E</span><div class="fico pdf">PDF</div><b>PAN-card-scan.pdf</b><span>1.2 MB · Jul 12</span></div>
+        <div class="file"><span class="lockchip">E2E</span><div class="fico img">IMG</div><b>passport-photo.jpg</b><span>240 KB · Jul 10</span></div>
+        <div class="file"><span class="lockchip">E2E</span><div class="fico doc">DOC</div><b>rental-agreement.docx</b><span>86 KB · Jul 3</span></div>
+        <div class="file"><span class="lockchip">E2E</span><div class="fico zip">ZIP</div><b>insurance-docs.zip</b><span>9.8 MB · Jun 28</span></div>
+      </div>
+      <div class="steps" style="border-top:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--faint)">Adding “LIC-policy.pdf” — what actually happens</div>
+        <div class="step done"><span class="snum">✓</span> Key derived from your passphrase (Argon2id) <span class="where ondev">On your device</span></div>
+        <div class="step done"><span class="snum">✓</span> File sealed with AES-256-GCM <span class="where ondev">On your device</span></div>
+        <div class="step"><span class="snum">3</span> <div style="flex:1">Uploading the sealed box (we can't open it)<div class="prog"><i></i></div></div> <span class="where onsrv">To storage</span></div>
+        <div class="step" style="opacity:.55"><span class="snum">4</span> Synced — available on your other devices after they unlock <span class="where onsrv">Encrypted at rest</span></div>
+      </div>
+    </div>
+    <div class="facts">
+      <h3>What we can and cannot see (shown in the UI, verbatim)</h3>
+      <ul>
+        <li><span class="yes">✓</span><span><b>We store:</b> the sealed bytes, file size, and when it was uploaded.</span></li>
+        <li><span class="no">✗</span><span><b>We cannot see:</b> the contents — not us, not a breach of our servers, not a subpoena served on us. There is no key on our side.</span></li>
+        <li><span class="no">✗</span><span><b>We cannot reset your passphrase.</b> The recovery key is the only fallback — that's a feature, and the UI says so before you enable the vault.</span></li>
+        <li><span class="yes">✓</span><span><b>File names:</b> encrypted too (the grid decrypts them locally after unlock).</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="recovery">
+    <div class="panel ceremony">
+      <h2 style="margin:6px 0 0;font-size:18px;">One-time setup: your recovery key</h2>
+      <p style="margin:0;font-size:13px;color:var(--muted)">If you ever forget the vault passphrase, this key is the <b>only</b> way back in. We never see it either.</p>
+      <div class="rkey">R7KD-2MXQ-9TFA-HB4N-WSE8-PLC3</div>
+      <div class="rbtns">
+        <button class="primary">⬇ Download as file</button>
+        <button>🖨 Print</button>
+        <button>📋 Copy</button>
+      </div>
+      <div class="warn">⚠ <span><b>Store it offline</b> — a printout in a drawer, a note in a password manager. Anyone with this key AND your account can open the vault; without it and your passphrase, <b>nobody</b> can, including us.</span></div>
+      <label class="confirm"><input type="checkbox" style="margin-top:2px" /> I've saved my recovery key somewhere safe, and I understand DiemDesk cannot recover my files without it.</label>
+      <div class="rbtns" style="justify-content:flex-start"><button class="primary" style="opacity:.5">Create my vault →</button></div>
+    </div>
+    <div class="facts">
+      <h3>Build plan (phased — each phase verified before the next)</h3>
+      <ul>
+        <li><span class="yes">1</span><span><b>Crypto core (on-device):</b> Argon2id key derivation + AES-256-GCM sealing in a worker; unit-tested vectors; file names encrypted.</span></li>
+        <li><span class="yes">2</span><span><b>Storage backend:</b> ciphertext-only chunked upload/download on the VPS (quota per plan), zero knowledge of keys.</span></li>
+        <li><span class="yes">3</span><span><b>Vault UI:</b> the three screens above + folders, search-by-name (local), progress, and the "what we can't see" panel.</span></li>
+        <li><span class="yes">4</span><span><b>Sync + polish:</b> multi-device unlock, conflict-safe versions, soft-delete recycle bin (client-side sealed).</span></li>
+      </ul>
+    </div>
+  </section>
+</div>
+
+<script>
+  document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('on'));
+    document.querySelectorAll('section').forEach(x => x.classList.remove('on'));
+    t.classList.add('on');
+    document.getElementById(t.dataset.t).classList.add('on');
+  }));
+</script>

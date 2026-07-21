@@ -14,10 +14,12 @@ const COLUMNS = [
     { label: 'All tools', href: '/#tools' },
   ] },
   { title: 'Product', color: '#2dd4bf', links: [
+    { label: 'Why DiemDesk?', href: '/why-diemdesk' },
     { label: 'Overview', href: '/overview' },
     { label: 'Free during launch', href: '/free' },
     { label: 'Pricing', href: '/pricing' },
     { label: 'Compare', href: '/compare' },
+    { label: 'Changelog', href: '/changelog' },
     { label: 'Feedback', href: '/feedback' },
     { label: 'Get started', href: '/register' },
     { label: 'Log in', href: '/login' },

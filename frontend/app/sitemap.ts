@@ -59,6 +59,8 @@ const ROUTES: Array<{ path: string; priority: number; changeFrequency: MetadataR
   { path: '/tools', priority: 0.8, changeFrequency: 'weekly' },
   { path: '/pricing', priority: 0.8, changeFrequency: 'monthly' },
   { path: '/overview', priority: 0.7, changeFrequency: 'monthly' },
+  { path: '/why-diemdesk', priority: 0.8, changeFrequency: 'weekly' },
+  { path: '/changelog', priority: 0.6, changeFrequency: 'weekly' },
   { path: '/compare', priority: 0.7, changeFrequency: 'monthly' },
   { path: '/smallpdf-alternative', priority: 0.7, changeFrequency: 'monthly' },
   { path: '/ilovepdf-alternative', priority: 0.7, changeFrequency: 'monthly' },
