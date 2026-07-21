@@ -103,14 +103,14 @@ CREATE INDEX IF NOT EXISTS idx_bio_pages_slug ON bio_pages(slug);
 -- File Vault (Phase 2) — ciphertext-only storage. header/sealed_name/wrapped_fk
 -- are opaque client-encrypted blobs; the server holds no key material, ever.
 CREATE TABLE IF NOT EXISTS vault_config (
-  user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
   header JSONB NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE TABLE IF NOT EXISTS vault_files (
   id UUID PRIMARY KEY,
-  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   parent_id UUID REFERENCES vault_files(id) ON DELETE CASCADE,
   kind TEXT NOT NULL CHECK (kind IN ('file','folder')),
   sealed_name TEXT NOT NULL,
