@@ -45,7 +45,9 @@ const limiter = rateLimit({
   message: { error: 'Too many requests, please try again later.' },
   // Skip analytics beacons (own limiter) and the monitoring canary (health probe,
   // not a user — see utils/canary.js + docs/canary-and-rate-limits.md).
-  skip: (req) => redisDown() || req.originalUrl.startsWith('/api/events') || isCanaryReq(req),
+  // Vault chunk PUTs are also skipped: one big upload is ~60 chunks and would
+  // drain a user's 15-min budget; the vault has its own Pro gate + quota.
+  skip: (req) => redisDown() || req.originalUrl.startsWith('/api/events') || (req.method === 'PUT' && /^\/api\/vault\/files\/[^/]+\/chunk/.test(req.originalUrl)) || isCanaryReq(req),
 });
 app.use('/api/', limiter);
 
@@ -71,6 +73,7 @@ app.use('/api/feedback', require('./routes/feedback'));
 app.use('/api/tools', require('./routes/tools'));
 app.use('/api/stripe', require('./routes/stripe').router);
 app.use('/api/waitlist', require('./routes/waitlist'));
+app.use('/api/vault', require('./routes/vault'));
 
 // 404 handler
 app.use((req, res) => {
