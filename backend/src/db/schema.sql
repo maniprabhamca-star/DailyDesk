@@ -123,3 +123,6 @@ CREATE TABLE IF NOT EXISTS vault_files (
 );
 CREATE INDEX IF NOT EXISTS vault_files_user_idx ON vault_files(user_id);
 CREATE INDEX IF NOT EXISTS vault_files_parent_idx ON vault_files(parent_id);
+
+-- Vault Phase 4: recycle bin (soft delete; blobs purge after VAULT_BIN_DAYS).
+ALTER TABLE vault_files ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;

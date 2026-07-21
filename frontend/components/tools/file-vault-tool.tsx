@@ -10,13 +10,14 @@ import {
   Lock, Unlock, ShieldCheck, FolderLock, Folder, FolderPlus, Upload, Download,
   Trash2, Loader2, KeyRound, Printer, Copy, Check, AlertTriangle, FileText,
   Image as ImageIcon, Archive, File as FileIcon, LogIn, X, ChevronLeft,
+  Recycle, RotateCcw, Pencil,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { downloadBlob } from '@/lib/download';
 import {
-  getVault, createVaultRemote, listFiles, createFolder, deleteEntry, uploadSealed, downloadSealed,
-  isSignedIn, VaultApiError, type VaultFileRow, type VaultStatus,
+  getVault, createVaultRemote, listFiles, createFolder, deleteEntry, restoreEntry, renameEntry,
+  uploadSealed, downloadSealed, isSignedIn, VaultApiError, type VaultFileRow, type VaultStatus,
 } from '@/lib/vault-api';
 import type { VaultHeader } from '@/lib/vault-crypto';
 
@@ -53,6 +54,9 @@ export function FileVaultTool() {
   const [mk, setMk] = useState<CryptoKey | null>(null);
   const [rows, setRows] = useState<Row[]>([]);
   const [folder, setFolder] = useState<Row | null>(null); // current folder (one level, like the mockup)
+  const [binOpen, setBinOpen] = useState(false);
+  const [binRows, setBinRows] = useState<Row[]>([]);
+  const [binDays, setBinDays] = useState(30);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -104,17 +108,31 @@ export function FileVaultTool() {
     return () => { alive = false; };
   }, []);
 
-  const refresh = useCallback(async (key: CryptoKey) => {
-    const [s, l] = await Promise.all([getVault(), listFiles()]);
-    setStatus(s);
+  const decryptNames = useCallback(async (key: CryptoKey, files: VaultFileRow[]): Promise<Row[]> => {
     const v = await crypto2();
-    const withNames = await Promise.all(l.files.map(async (f) => {
+    return Promise.all(files.map(async (f) => {
       let name = '(unreadable)';
       try { name = await v.openName(key, f.sealedName); } catch { /* sealed under another key */ }
       return { ...f, name };
     }));
-    setRows(withNames);
   }, []);
+
+  const refresh = useCallback(async (key: CryptoKey) => {
+    const [s, l, b] = await Promise.all([getVault(), listFiles(), listFiles(true)]);
+    setStatus(s);
+    setBinDays(b.binDays || 30);
+    setRows(await decryptNames(key, l.files));
+    setBinRows(await decryptNames(key, b.files));
+  }, [decryptNames]);
+
+  // Sync polish: re-list when the tab regains focus, so a second device's
+  // changes show up without a manual reload (the vault stays locked-first).
+  useEffect(() => {
+    if (screen !== 'vault' || !mk) return;
+    const onFocus = () => { void refresh(mk).catch(() => {}); };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [screen, mk, refresh]);
 
   // ---- create + ceremony -----------------------------------------------------
   const startCreate = useCallback(async () => {
@@ -222,9 +240,36 @@ export function FileVaultTool() {
 
   const remove = useCallback(async (r: Row) => {
     if (!mk) return;
-    if (!window.confirm(r.kind === 'folder' ? `Delete the folder “${r.name}”? It must be empty.` : `Delete “${r.name}” from your vault? This can’t be undone.`)) return;
+    const msg = r.kind === 'folder'
+      ? `Delete the folder “${r.name}”? It must be empty.`
+      : `Move “${r.name}” to the recycle bin? It stays restorable for ${binDays} days.`;
+    if (!window.confirm(msg)) return;
     try { await deleteEntry(r.id); await refresh(mk); }
     catch (e) { setError(e instanceof VaultApiError && e.code === 'not-empty' ? 'Empty the folder first.' : 'Could not delete — please try again.'); }
+  }, [mk, refresh, binDays]);
+
+  const restore = useCallback(async (r: Row) => {
+    if (!mk) return;
+    try { await restoreEntry(r.id); await refresh(mk); }
+    catch { setError('Could not restore — please try again.'); }
+  }, [mk, refresh]);
+
+  const purge = useCallback(async (r: Row) => {
+    if (!mk) return;
+    if (!window.confirm(`Permanently delete “${r.name}”? This truly cannot be undone.`)) return;
+    try { await deleteEntry(r.id, true); await refresh(mk); }
+    catch { setError('Could not delete — please try again.'); }
+  }, [mk, refresh]);
+
+  const rename = useCallback(async (r: Row) => {
+    if (!mk) return;
+    const name = window.prompt('New name (encrypted like everything else):', r.name);
+    if (!name?.trim() || name.trim() === r.name) return;
+    try {
+      const v = await crypto2();
+      await renameEntry(r.id, await v.sealName(mk, name.trim()));
+      await refresh(mk);
+    } catch { setError('Could not rename — please try again.'); }
   }, [mk, refresh]);
 
   const newFolder = useCallback(async () => {
@@ -380,6 +425,10 @@ export function FileVaultTool() {
               <ChevronLeft className="size-3.5" /> {folder.name}
             </button>
           )}
+          <button onClick={() => setBinOpen((b) => !b)}
+            className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition ${binOpen ? 'border-teal-500/50 bg-teal-500/10 text-teal-700 dark:text-teal-400' : 'bg-card text-muted-foreground hover:text-foreground'}`}>
+            <Recycle className="size-3.5" /> Bin{binRows.length ? ` (${binRows.length})` : ''}
+          </button>
           <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search file names…"
             className="ml-auto min-w-[170px] rounded-lg border bg-card px-3 py-1.5 text-xs outline-none focus:border-teal-500" />
         </div>
@@ -407,6 +456,33 @@ export function FileVaultTool() {
           </div>
         )}
 
+        {/* recycle bin */}
+        {binOpen && (
+          <div className="border-b bg-muted/20 px-5 py-4">
+            <p className="flex items-center gap-2 text-xs font-bold">
+              <Recycle className="size-4 text-teal-600 dark:text-teal-400" /> Recycle bin
+              <span className="font-medium text-muted-foreground">— items restore to the vault root; everything here is purged {binDays} days after deletion and still counts toward your storage.</span>
+            </p>
+            {binRows.length === 0 ? (
+              <p className="mt-3 text-xs text-muted-foreground">The bin is empty.</p>
+            ) : (
+              <div className="mt-3 space-y-1.5">
+                {binRows.map((r) => (
+                  <div key={r.id} className="flex items-center gap-3 rounded-lg border bg-card px-3 py-2 text-xs">
+                    <FileGlyph name={r.name} />
+                    <span className="min-w-0 flex-1">
+                      <b className="block truncate">{r.name}</b>
+                      <span className="text-muted-foreground">{fmtBytes(r.size)} · deleted {r.deletedAt ? new Date(r.deletedAt).toLocaleDateString() : ''}</span>
+                    </span>
+                    <Button size="sm" variant="outline" className="h-7 px-2.5 text-xs" onClick={() => void restore(r)}><RotateCcw className="mr-1 size-3" /> Restore</Button>
+                    <Button size="sm" variant="outline" className="h-7 px-2.5 text-xs text-red-600 hover:bg-red-500/10" onClick={() => void purge(r)}><Trash2 className="mr-1 size-3" /> Delete forever</Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* grid */}
         <div className="grid grid-cols-2 gap-3 p-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
           {visible.length === 0 && !upSteps && (
@@ -430,10 +506,10 @@ export function FileVaultTool() {
                 </button>
               )}
               <span className="absolute right-2 top-2 rounded border border-teal-500/40 bg-teal-500/10 px-1 text-[8.5px] font-extrabold text-teal-600 dark:text-teal-400">E2E</span>
-              <button onClick={() => void remove(r)} title="Delete"
-                className="absolute bottom-2 right-2 hidden rounded-md border bg-card p-1 text-muted-foreground transition hover:text-red-600 group-hover:block">
-                <Trash2 className="size-3.5" />
-              </button>
+              <span className="absolute bottom-2 right-2 hidden gap-1 group-hover:flex">
+                <button onClick={() => void rename(r)} title="Rename" className="rounded-md border bg-card p-1 text-muted-foreground transition hover:text-foreground"><Pencil className="size-3.5" /></button>
+                <button onClick={() => void remove(r)} title={r.kind === 'file' ? 'Move to bin' : 'Delete'} className="rounded-md border bg-card p-1 text-muted-foreground transition hover:text-red-600"><Trash2 className="size-3.5" /></button>
+              </span>
             </div>
           ))}
         </div>

@@ -10,7 +10,12 @@ const COLUMNS = [
   { title: 'Tools', color: '#a78bfa', links: [
     { label: 'Compress PDF', href: '/compress-pdf' },
     { label: 'Merge PDF', href: '/merge-pdf' },
-    { label: 'QR generator', href: '/qr-code-generator' },
+    { label: 'PDF → Excel', href: '/pdf-to-excel' },
+    { label: 'Sign PDF', href: '/sign-pdf' },
+    { label: 'Redact PDF', href: '/redact-pdf' },
+    { label: 'Chat with PDF', href: '/chat-pdf' },
+    { label: 'Summarize PDF', href: '/summarize-pdf' },
+    { label: 'File Vault', href: '/file-vault' },
     { label: 'All tools', href: '/#tools' },
   ] },
   { title: 'Product', color: '#2dd4bf', links: [

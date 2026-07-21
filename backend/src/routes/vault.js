@@ -23,6 +23,7 @@ const db = require('../db');
 const router = express.Router();
 
 const VAULT_DIR = process.env.VAULT_DIR || '/var/lib/dd-vault';
+const BIN_DAYS = Number(process.env.VAULT_BIN_DAYS || 30);
 const QUOTA_BYTES = Number(process.env.VAULT_QUOTA_GB || 10) * 1024 * 1024 * 1024;
 const MAX_FILE = Number(process.env.VAULT_MAX_FILE_MB || 500) * 1024 * 1024;
 const MAX_CHUNK = Number(process.env.VAULT_CHUNK_MB || 8) * 1024 * 1024;
@@ -49,10 +50,23 @@ router.use(requirePro);
 const userDir = (userId) => path.join(VAULT_DIR, String(userId));
 const blobPath = (userId, id) => path.join(userDir(userId), id); // id = server UUID, no traversal possible
 
+// Bin items still count toward quota (the bytes are still stored) — the UI says so.
 async function usedBytes(userId) {
   const { rows } = await db.query(
     "SELECT COALESCE(SUM(size),0) AS used FROM vault_files WHERE user_id = $1 AND kind = 'file'", [userId]);
   return Number(rows[0].used);
+}
+
+// Lazy auto-purge: anything in the bin longer than BIN_DAYS is gone for good.
+// Runs opportunistically on listing — no cron to forget about.
+async function purgeExpired(userId) {
+  try {
+    const { rows } = await db.query(
+      `DELETE FROM vault_files WHERE user_id = $1 AND deleted_at IS NOT NULL
+         AND deleted_at < now() - ($2 || ' days')::interval RETURNING id, kind`,
+      [userId, String(BIN_DAYS)]);
+    for (const r of rows) if (r.kind === 'file') await fsp.rm(blobPath(userId, r.id), { force: true });
+  } catch (e) { console.error('vault purge:', e.message); }
 }
 
 // ---- vault lifecycle --------------------------------------------------------
@@ -99,14 +113,18 @@ router.put('/header', async (req, res) => {
 
 // ---- files & folders ----------------------------------------------------------
 
-// GET /api/vault/files → the full (sealed) listing; the client decrypts names.
+// GET /api/vault/files → the sealed listing (client decrypts names).
+// ?bin=1 lists the recycle bin instead (with when each item expires).
 router.get('/files', async (req, res) => {
   try {
+    await purgeExpired(req.user.userId);
+    const bin = req.query.bin === '1';
     const { rows } = await db.query(
       `SELECT id, parent_id AS "parentId", kind, sealed_name AS "sealedName", wrapped_fk AS "wrappedFk",
-              size, status, created_at AS "createdAt", updated_at AS "updatedAt"
-       FROM vault_files WHERE user_id = $1 ORDER BY created_at DESC`, [req.user.userId]);
-    return res.json({ files: rows });
+              size, status, created_at AS "createdAt", updated_at AS "updatedAt", deleted_at AS "deletedAt"
+       FROM vault_files WHERE user_id = $1 AND deleted_at IS ${bin ? 'NOT NULL' : 'NULL'}
+       ORDER BY ${bin ? 'deleted_at' : 'created_at'} DESC`, [req.user.userId]);
+    return res.json({ files: rows, binDays: BIN_DAYS });
   } catch (e) { console.error('vault list:', e.message); return res.status(500).json({ error: 'server' }); }
 });
 
@@ -192,7 +210,7 @@ router.post('/files/:id/complete', async (req, res) => {
 router.get('/files/:id', async (req, res) => {
   try {
     const { rows } = await db.query(
-      "SELECT size, status FROM vault_files WHERE id = $1 AND user_id = $2 AND kind = 'file'",
+      "SELECT size, status FROM vault_files WHERE id = $1 AND user_id = $2 AND kind = 'file' AND deleted_at IS NULL",
       [req.params.id, req.user.userId]);
     const f = rows[0];
     if (!f) return res.status(404).json({ error: 'not-found' });
@@ -223,27 +241,49 @@ router.patch('/files/:id', async (req, res) => {
          sealed_name = COALESCE($3, sealed_name),
          parent_id = CASE WHEN $4::uuid IS NOT NULL THEN $4::uuid ELSE parent_id END,
          updated_at = now()
-       WHERE id = $1 AND user_id = $2 RETURNING id`,
+       WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL RETURNING id`,
       [req.params.id, req.user.userId, sealedName ?? null, parentId ?? null]);
     if (!rows.length) return res.status(404).json({ error: 'not-found' });
     return res.json({ ok: true });
   } catch (e) { console.error('vault patch:', e.message); return res.status(500).json({ error: 'server' }); }
 });
 
-// DELETE /api/vault/files/:id → blob + row. Folders only when empty (v1).
+// DELETE /api/vault/files/:id → files go to the RECYCLE BIN (soft delete, the
+// blob stays until restore or purge). ?purge=1 — or deleting a bin item —
+// removes it permanently. Folders only when empty (v1) and always hard.
 router.delete('/files/:id', async (req, res) => {
   try {
-    const { rows } = await db.query('SELECT kind FROM vault_files WHERE id = $1 AND user_id = $2', [req.params.id, req.user.userId]);
+    const { rows } = await db.query('SELECT kind, status, deleted_at FROM vault_files WHERE id = $1 AND user_id = $2', [req.params.id, req.user.userId]);
     const f = rows[0];
     if (!f) return res.status(404).json({ error: 'not-found' });
     if (f.kind === 'folder') {
-      const kids = await db.query('SELECT 1 FROM vault_files WHERE parent_id = $1 AND user_id = $2 LIMIT 1', [req.params.id, req.user.userId]);
+      const kids = await db.query('SELECT 1 FROM vault_files WHERE parent_id = $1 AND user_id = $2 AND deleted_at IS NULL LIMIT 1', [req.params.id, req.user.userId]);
       if (kids.rows.length) return res.status(409).json({ error: 'not-empty', message: 'Empty the folder first.' });
+      await db.query('DELETE FROM vault_files WHERE id = $1 AND user_id = $2', [req.params.id, req.user.userId]);
+      return res.json({ ok: true });
     }
-    await db.query('DELETE FROM vault_files WHERE id = $1 AND user_id = $2', [req.params.id, req.user.userId]);
-    if (f.kind === 'file') await fsp.rm(blobPath(req.user.userId, req.params.id), { force: true });
-    return res.json({ ok: true });
+    const hard = req.query.purge === '1' || f.deleted_at != null || f.status !== 'ready';
+    if (hard) {
+      await db.query('DELETE FROM vault_files WHERE id = $1 AND user_id = $2', [req.params.id, req.user.userId]);
+      await fsp.rm(blobPath(req.user.userId, req.params.id), { force: true });
+      return res.json({ ok: true, purged: true });
+    }
+    await db.query('UPDATE vault_files SET deleted_at = now(), updated_at = now() WHERE id = $1 AND user_id = $2', [req.params.id, req.user.userId]);
+    return res.json({ ok: true, binned: true, binDays: BIN_DAYS });
   } catch (e) { console.error('vault delete:', e.message); return res.status(500).json({ error: 'server' }); }
+});
+
+// POST /api/vault/files/:id/restore → back from the bin, into the vault root
+// (its old folder may itself be gone — root is always safe).
+router.post('/files/:id/restore', async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `UPDATE vault_files SET deleted_at = NULL, parent_id = NULL, updated_at = now()
+       WHERE id = $1 AND user_id = $2 AND deleted_at IS NOT NULL RETURNING id`,
+      [req.params.id, req.user.userId]);
+    if (!rows.length) return res.status(404).json({ error: 'not-found' });
+    return res.json({ ok: true });
+  } catch (e) { console.error('vault restore:', e.message); return res.status(500).json({ error: 'server' }); }
 });
 
 module.exports = router;

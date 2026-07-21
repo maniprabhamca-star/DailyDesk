@@ -1,0 +1,104 @@
+<title>Mobile footer — before / after — DiemDesk mockup</title>
+<style>
+  :root{--bg:#f4f5f3;--text:#1a1c19;--muted:#6b7168;--border:#e3e5e0;
+    --fbg:#111827;--fsub:#94a3b8;--flink:#cbd5e1;--radius:16px;
+    --shadow:0 1px 2px rgba(20,25,18,.04),0 10px 30px rgba(20,25,18,.08);}
+  @media (prefers-color-scheme:dark){:root{--bg:#111311;--text:#eef0ea;--muted:#a3a99b;--border:#2e332b;}}
+  :root[data-theme="dark"]{--bg:#111311;--text:#eef0ea;--muted:#a3a99b;--border:#2e332b;}
+  :root[data-theme="light"]{--bg:#f4f5f3;--text:#1a1c19;--muted:#6b7168;--border:#e3e5e0;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;line-height:1.5;}
+  .wrap{max-width:900px;margin:0 auto;padding:28px 18px 60px;}
+  h1{font-size:20px;font-weight:800;margin:0 0 4px;}
+  .lead{font-size:13.5px;color:var(--muted);margin:0 0 22px;max-width:70ch;}
+  .duo{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
+  @media (max-width:760px){.duo{grid-template-columns:1fr;}}
+  .col h2{font-size:13px;margin:0 0 10px;display:flex;gap:8px;align-items:center;}
+  .tag{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;border-radius:999px;padding:2px 8px;}
+  .bad{background:#dc262615;color:#dc2626;border:1px solid #dc262640;}
+  .good{background:#16a34a15;color:#15803d;border:1px solid #16a34a40;}
+  .phone{width:100%;max-width:390px;margin:0 auto;border:10px solid #1f2937;border-radius:34px;overflow:hidden;box-shadow:var(--shadow);background:#fff;}
+  .page{height:120px;background:linear-gradient(#fff,#f1f5f9);display:grid;place-items:center;font-size:11px;color:#94a3b8;}
+  .foot{background:var(--fbg);color:var(--flink);padding:22px 18px 16px;font-size:12.5px;}
+  .brand{display:flex;align-items:center;gap:8px;font-weight:800;color:#fff;font-size:15px;}
+  .mark{width:26px;height:26px;border-radius:8px;background:conic-gradient(from 40deg,#f59e0b,#22c55e,#fb7185,#f59e0b);display:grid;place-items:center;color:#fff;font-size:13px;font-weight:900;}
+  .tgl{font-size:11.5px;color:var(--fsub);margin:6px 0 0;}
+  .h{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;margin:18px 0 8px;}
+  .h.t{color:#a78bfa}.h.p{color:#2dd4bf}.h.l{color:#fbbf24}
+  .foot a{color:var(--flink);text-decoration:none;display:block;padding:4px 0;}
+  /* BEFORE: one long column */
+  .before .foot a{border-bottom:1px dashed #ffffff10;}
+  .scrollnote{margin:10px 0 0;text-align:center;font-size:10.5px;color:#64748b;}
+  /* AFTER: compact */
+  .cols2{display:grid;grid-template-columns:1fr 1fr;gap:0 18px;}
+  .after .foot a{padding:5px 0;font-size:12.5px;}
+  .legalrow{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:6px;}
+  .legalrow a{display:inline;padding:2px 0;font-size:11.5px;color:var(--fsub);}
+  .pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;}
+  .pill{font-size:10px;border:1px solid #ffffff22;border-radius:999px;padding:3px 9px;color:var(--fsub);display:inline-flex;gap:5px;align-items:center;}
+  .stores{display:flex;gap:8px;margin-top:12px;}
+  .store{flex:1;border:1px solid #ffffff22;border-radius:10px;padding:7px 10px;display:flex;flex-direction:column;font-size:8.5px;color:#94a3b8;}
+  .store b{font-size:11.5px;color:#e2e8f0;}
+  .cr{margin-top:16px;padding-top:12px;border-top:1px solid #ffffff14;font-size:10.5px;color:#64748b;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;}
+  .note{margin-top:22px;border:1px solid var(--border);border-radius:var(--radius);background:#ffffff08;padding:14px 16px;font-size:12.5px;color:var(--muted);}
+  .note b{color:var(--text);}
+  .dots{opacity:.45;text-align:center;font-size:10px;padding:4px 0;}
+</style>
+<div class="wrap">
+  <h1>Mobile footer — before / after</h1>
+  <p class="lead">Today every footer column stacks into ONE long vertical on a phone — ~18 links of scrolling before the copyright. The proposal: <b>Tools and Product sit side-by-side as two columns</b> (they're short words — they fit), <b>Legal collapses to an inline row of small links</b>, and the brand/badges/stores compress. Roughly <b>60% less scroll</b>, nothing removed.</p>
+
+  <div class="duo">
+    <div class="col before">
+      <h2><span class="tag bad">Before</span> one endless column</h2>
+      <div class="phone">
+        <div class="page">…page content…</div>
+        <div class="foot">
+          <div class="brand"><span class="mark">D</span> DiemDesk</div>
+          <p class="tgl">Every tool you reach for — private, fast, and free.</p>
+          <div class="h t">Tools</div>
+          <a>Compress PDF</a><a>Merge PDF</a><a>PDF → Excel</a><a>Sign PDF</a>
+          <div class="dots">⋮ 5 more</div>
+          <div class="h p">Product</div>
+          <a>Why DiemDesk?</a><a>Overview</a><a>Pricing</a>
+          <div class="dots">⋮ 6 more</div>
+          <div class="h l">Legal</div>
+          <a>About</a><a>Privacy</a>
+          <div class="dots">⋮ 3 more · then stores · badges · ©</div>
+          <p class="scrollnote">≈ 4–5 screens of thumb-scrolling</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col after">
+      <h2><span class="tag good">After</span> two columns + inline legal</h2>
+      <div class="phone">
+        <div class="page">…page content…</div>
+        <div class="foot">
+          <div class="brand"><span class="mark">D</span> DiemDesk</div>
+          <p class="tgl">Private, fast, free — files never leave your device.</p>
+          <div class="cols2">
+            <div>
+              <div class="h t">Tools</div>
+              <a>Compress PDF</a><a>Merge PDF</a><a>PDF → Excel</a><a>Sign PDF</a><a>Redact PDF</a><a>Chat with PDF</a><a>Summarize PDF</a><a>File Vault</a><a><b style="color:#e2e8f0">All tools →</b></a>
+            </div>
+            <div>
+              <div class="h p">Product</div>
+              <a>Why DiemDesk?</a><a>Overview</a><a>Free during launch</a><a>Pricing</a><a>Compare</a><a>Changelog</a><a>Feedback</a><a>Get started</a><a>Log in</a>
+            </div>
+          </div>
+          <div class="h l">Legal</div>
+          <div class="legalrow"><a>About</a><a>Privacy</a><a>Security</a><a>Terms</a><a>Refunds</a></div>
+          <div class="stores">
+            <div class="store">COMING SOON<b> App Store</b></div>
+            <div class="store">COMING SOON<b>Google Play</b></div>
+          </div>
+          <div class="pills"><span class="pill">🛡 Private by design</span><span class="pill">📍 Made in the USA</span><span class="pill">🔒 AES-256</span><span class="pill">🚫 No tracking</span></div>
+          <div class="cr"><span>© 2026 DiemDesk</span><span>Private preview</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note"><b>Design notes:</b> the two link columns only pair up on phones (desktop keeps the current 4-column spread). Legal moves to an inline row because those five words are recognisable at a glance — they don't need vertical rhythm. Badge pills wrap in one cluster instead of stacking. If a third link column ever appears (e.g. "AI tools"), the same 2-up grid absorbs it as a second row. Alternative considered and rejected: accordions — they hide links behind taps and hurt SEO crawl of footer links.</div>
+</div>

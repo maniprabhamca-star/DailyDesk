@@ -9,7 +9,7 @@ export type VaultStatus = { exists: boolean; header: VaultHeader | null; used: n
 export type VaultFileRow = {
   id: string; parentId: string | null; kind: 'file' | 'folder';
   sealedName: string; wrappedFk: string | null; size: number; status: 'uploading' | 'ready';
-  createdAt: string; updatedAt: string;
+  createdAt: string; updatedAt: string; deletedAt?: string | null;
 };
 
 export class VaultApiError extends Error {
@@ -48,10 +48,12 @@ export const createVaultRemote = (header: VaultHeader) =>
   call<{ ok: true }>('', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ header }) });
 export const updateHeader = (header: VaultHeader) =>
   call<{ ok: true }>('/header', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ header }) });
-export const listFiles = () => call<{ files: VaultFileRow[] }>('/files');
+export const listFiles = (bin = false) => call<{ files: VaultFileRow[]; binDays: number }>(`/files${bin ? '?bin=1' : ''}`);
 export const createFolder = (sealedName: string, parentId: string | null) =>
   call<{ id: string }>('/files', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind: 'folder', sealedName, parentId }) });
-export const deleteEntry = (id: string) => call<{ ok: true }>(`/files/${id}`, { method: 'DELETE' });
+export const deleteEntry = (id: string, purge = false) => call<{ ok: true }>(`/files/${id}${purge ? '?purge=1' : ''}`, { method: 'DELETE' });
+export const restoreEntry = (id: string) =>
+  call<{ ok: true }>(`/files/${id}/restore`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
 export const renameEntry = (id: string, sealedName: string) =>
   call<{ ok: true }>(`/files/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sealedName }) });
 
