@@ -78,6 +78,7 @@ app.use('/api/bio', require('./routes/bio'));
 app.use('/api/notes', require('./routes/notes'));
 app.use('/api/habits', require('./routes/habits'));
 app.use('/api/budget', require('./routes/budget'));
+app.use('/api/receipts', require('./routes/receipts'));
 
 // 404 handler
 app.use((req, res) => {

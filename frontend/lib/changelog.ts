@@ -17,6 +17,14 @@ export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-07-22',
     kind: 'new',
+    title: 'Receipt Scanner — snap a receipt into your budget',
+    detail:
+      'Photograph a receipt and it reads the amount, store and date, then drops the expense straight into your Budget Tracker after you confirm. A Pro tool (launching with Pro); the photo is scanned on our server and deleted immediately.',
+    href: '/receipt-scanner',
+  },
+  {
+    date: '2026-07-22',
+    kind: 'new',
     title: 'Habit Tracker and Budget Tracker',
     detail:
       'Two simple daily tools, synced to your account: build streaks with the Habit Tracker, and see where your money goes with the Budget Tracker’s monthly total and category breakdown. Both free (with generous limits), no ads.',

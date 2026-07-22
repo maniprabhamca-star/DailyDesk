@@ -65,6 +65,7 @@ const ROUTES: Array<{ path: string; priority: number; changeFrequency: MetadataR
   { path: '/notes', priority: 0.8, changeFrequency: 'monthly' },
   { path: '/habits', priority: 0.8, changeFrequency: 'monthly' },
   { path: '/budget', priority: 0.8, changeFrequency: 'monthly' },
+  { path: '/receipt-scanner', priority: 0.8, changeFrequency: 'monthly' },
   { path: '/tools', priority: 0.8, changeFrequency: 'weekly' },
   { path: '/pricing', priority: 0.8, changeFrequency: 'monthly' },
   { path: '/overview', priority: 0.7, changeFrequency: 'monthly' },
