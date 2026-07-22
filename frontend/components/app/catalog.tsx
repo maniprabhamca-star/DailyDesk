@@ -149,8 +149,8 @@ export const catalog: CatGroup[] = [
   {
     label: 'Workspace', color: '#16a34a', tools: [
       { name: 'Smart notes', href: '/notes', icon: NotebookPen, badge: 'account' },
-      { name: 'Habit tracker', icon: Flame, badge: 'account', soon: true },
-      { name: 'Budget tracker', icon: Wallet, badge: 'account', soon: true },
+      { name: 'Habit tracker', href: '/habits', icon: Flame, badge: 'account' },
+      { name: 'Budget tracker', href: '/budget', icon: Wallet, badge: 'account' },
       { name: 'Client packet builder', href: '/client-packet-builder', icon: FolderLock, badge: 'device', soon: true },
       { name: 'File vault', href: '/file-vault', icon: FolderLock, badge: 'encrypted', soon: true },
       { name: 'Link in bio', href: '/link-in-bio', icon: Link2, badge: 'server', soon: true },

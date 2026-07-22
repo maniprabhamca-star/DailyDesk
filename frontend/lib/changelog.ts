@@ -17,6 +17,14 @@ export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-07-22',
     kind: 'new',
+    title: 'Habit Tracker and Budget Tracker',
+    detail:
+      'Two simple daily tools, synced to your account: build streaks with the Habit Tracker, and see where your money goes with the Budget Tracker’s monthly total and category breakdown. Both free (with generous limits), no ads.',
+    href: '/habits',
+  },
+  {
+    date: '2026-07-22',
+    kind: 'new',
     title: 'Smart Notes — quick notes that follow you',
     detail:
       'Fast, clean notes that sync to your account across every device — search across everything, tag to organize, and they save as you type. Free to use (up to 10 notes; Pro for unlimited), no ads.',
