@@ -28,6 +28,8 @@ const THRESHOLD = 2;
 const SOURCE = {
   '/word-to-pdf': 'backend/src/routes/convert.js (soffice --convert-to pdf) + LibreOffice on the VPS',
   '/pdf-to-word': 'backend/src/routes/convert.js (writer_pdf_import) + LibreOffice on the VPS',
+  '/pdf-to-powerpoint': 'backend/src/routes/convert.js (impress_pdf_import) + LibreOffice on the VPS',
+  '/pdf-to-pdfa': 'backend/src/routes/convert.js (Ghostscript -dPDFA) + gs on the VPS',
   '/ocr-pdf': 'backend/src/routes/ocr.js (tesseract) + Tesseract + language packs on the VPS',
   '/rotate-pdf': 'frontend/lib/pdf-rewrite-core.ts (rotate) + pdf-rewrite.ts worker',
   '/delete-pages-from-pdf': 'frontend/lib/pdf-rewrite-core.ts (delete)',
@@ -137,6 +139,21 @@ async function serverChecks() {
     const ok = status === 200 && buf.length > 500 && buf.slice(0, 2).toString() === 'PK';
     await record('/pdf-to-word', ok, ok ? `docx ${buf.length}B` : `HTTP ${status}`, !transientHttp(status));
   } catch (e) { await record('/pdf-to-word', false, e.message); }
+  // PDF → PowerPoint (pptx = a PK zip) and PDF → PDF/A (%PDF-), both reusing the
+  // canary PDF from step 1. Same free-metered endpoints; the canary bypasses the
+  // daily quota via x-canary.
+  if (pdf) {
+    try {
+      const { status, buf } = await convert('/api/convert/pdf-to-powerpoint', pdf, 'canary.pdf', 'application/pdf');
+      const ok = status === 200 && buf.length > 500 && buf.slice(0, 2).toString() === 'PK';
+      await record('/pdf-to-powerpoint', ok, ok ? `pptx ${buf.length}B` : `HTTP ${status}`, !transientHttp(status));
+    } catch (e) { await record('/pdf-to-powerpoint', false, e.message); }
+    try {
+      const { status, buf } = await convert('/api/convert/pdf-to-pdfa', pdf, 'canary.pdf', 'application/pdf');
+      const ok = status === 200 && buf.slice(0, 5).toString() === '%PDF-';
+      await record('/pdf-to-pdfa', ok, ok ? `pdfa ${buf.length}B` : `HTTP ${status}`, !transientHttp(status));
+    } catch (e) { await record('/pdf-to-pdfa', false, e.message); }
+  }
 }
 
 // Run the client tools' CORE logic (the same libs the browser runs) against a
