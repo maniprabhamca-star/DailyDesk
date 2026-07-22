@@ -69,28 +69,9 @@ CREATE TABLE IF NOT EXISTS expenses (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Link in Bio
-CREATE TABLE IF NOT EXISTS bio_pages (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  slug VARCHAR(100) UNIQUE NOT NULL,
-  title VARCHAR(255),
-  bio TEXT,
-  avatar_url VARCHAR(500),
-  theme VARCHAR(50) DEFAULT 'default',
-  is_published BOOLEAN NOT NULL DEFAULT false,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS bio_links (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  page_id UUID NOT NULL REFERENCES bio_pages(id) ON DELETE CASCADE,
-  title VARCHAR(255) NOT NULL,
-  url VARCHAR(1000) NOT NULL,
-  sort_order INT NOT NULL DEFAULT 0,
-  is_active BOOLEAN NOT NULL DEFAULT true
-);
+-- (An earlier abandoned Link-in-Bio scaffold — bio_pages/bio_links with
+-- title/avatar_url columns — was removed here. The authoritative Link in Bio
+-- schema is the "Link in Bio (Pro)" block further down.)
 
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_files_user_id ON files(user_id);
@@ -98,7 +79,6 @@ CREATE INDEX IF NOT EXISTS idx_notes_user_id ON notes(user_id);
 CREATE INDEX IF NOT EXISTS idx_habits_user_id ON habits(user_id);
 CREATE INDEX IF NOT EXISTS idx_habit_logs_habit_id ON habit_logs(habit_id);
 CREATE INDEX IF NOT EXISTS idx_expenses_user_id ON expenses(user_id);
-CREATE INDEX IF NOT EXISTS idx_bio_pages_slug ON bio_pages(slug);
 
 -- File Vault (Phase 2) — ciphertext-only storage. header/sealed_name/wrapped_fk
 -- are opaque client-encrypted blobs; the server holds no key material, ever.
