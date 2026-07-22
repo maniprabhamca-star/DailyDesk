@@ -17,6 +17,14 @@ export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-07-22',
     kind: 'new',
+    title: 'Link in Bio — one page for all your links',
+    detail:
+      'Build a clean, ad-free link page at your own diemdesk.com/u/handle — your photo, a short bio, your links, and a theme. Share the single link everywhere. A Pro feature, launching with Pro.',
+    href: '/link-in-bio',
+  },
+  {
+    date: '2026-07-22',
+    kind: 'new',
     title: 'PDF to PowerPoint and PDF to PDF/A',
     detail:
       'Two new conversions: turn a PDF into an editable PowerPoint deck (each page becomes a slide), or into archival PDF/A for filings and long-term records that must open identically for decades. Three free a day; your file is converted on our server and deleted the instant it downloads.',

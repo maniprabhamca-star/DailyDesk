@@ -126,3 +126,16 @@ CREATE INDEX IF NOT EXISTS vault_files_parent_idx ON vault_files(parent_id);
 
 -- Vault Phase 4: recycle bin (soft delete; blobs purge after VAULT_BIN_DAYS).
 ALTER TABLE vault_files ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+
+-- Link in Bio (Pro) — one public page per account at /u/<slug>. config is a
+-- sanitized JSONB blob (display name, avatar data-URL, bio, theme, links).
+CREATE TABLE IF NOT EXISTS bio_pages (
+  user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  slug TEXT UNIQUE NOT NULL,
+  config JSONB NOT NULL DEFAULT '{}'::jsonb,
+  views BIGINT NOT NULL DEFAULT 0,
+  published BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS bio_pages_slug_idx ON bio_pages(slug);

@@ -16,6 +16,7 @@ const DEFAULT_TOOL_FLAGS: FlagMap = {
   '/translate-pdf': 'coming_soon',
   '/pdf-question-generator': 'coming_soon',
   '/file-vault': 'coming_soon',
+  '/link-in-bio': 'coming_soon',
   // Bank Statement Converter — the paid flagship. Owner-only until it's been
   // validated against real statements and the Statements pricing/quota is live.
   '/bank-statement-converter': 'coming_soon',
