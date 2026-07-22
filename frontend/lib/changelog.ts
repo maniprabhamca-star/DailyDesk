@@ -17,6 +17,14 @@ export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-07-22',
     kind: 'new',
+    title: 'Smart Notes — quick notes that follow you',
+    detail:
+      'Fast, clean notes that sync to your account across every device — search across everything, tag to organize, and they save as you type. Free to use (up to 10 notes; Pro for unlimited), no ads.',
+    href: '/notes',
+  },
+  {
+    date: '2026-07-22',
+    kind: 'new',
     title: 'Link in Bio — one page for all your links',
     detail:
       'Build a clean, ad-free link page at your own diemdesk.com/u/handle — your photo, a short bio, your links, and a theme. Share the single link everywhere. A Pro feature, launching with Pro.',

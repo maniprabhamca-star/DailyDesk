@@ -75,6 +75,7 @@ app.use('/api/stripe', require('./routes/stripe').router);
 app.use('/api/waitlist', require('./routes/waitlist'));
 app.use('/api/vault', require('./routes/vault'));
 app.use('/api/bio', require('./routes/bio'));
+app.use('/api/notes', require('./routes/notes'));
 
 // 404 handler
 app.use((req, res) => {

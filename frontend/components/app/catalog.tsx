@@ -14,7 +14,7 @@ import {
 // badge on the site. Keep it HONEST: only client-side tools get 'device'
 // ("files never uploaded"); anything that reaches a server is 'server', 'ai',
 // or 'encrypted' so no blanket in-browser claim is ever over-applied.
-export type Badge = 'device' | 'server' | 'ai' | 'encrypted';
+export type Badge = 'device' | 'server' | 'ai' | 'encrypted' | 'account';
 export type CatTool = { name: string; href?: string; icon: LucideIcon; badge: Badge; soon?: boolean };
 export type CatGroup = { label: string; color: string; tools: CatTool[] };
 
@@ -23,6 +23,7 @@ export const BADGE: Record<Badge, { icon: LucideIcon; color: string; label: stri
   server: { icon: Cloud, color: '#d97706', label: 'Processed on our servers' },
   ai: { icon: Sparkles, color: '#7c3aed', label: 'AI-powered' },
   encrypted: { icon: KeyRound, color: '#2563eb', label: 'End-to-end encrypted' },
+  account: { icon: Cloud, color: '#0891b2', label: 'Synced to your account' },
 };
 
 // The premium tier — owner-only until Pro launches: the deep editors, OCR and the
@@ -147,9 +148,9 @@ export const catalog: CatGroup[] = [
   },
   {
     label: 'Workspace', color: '#16a34a', tools: [
-      { name: 'Smart notes', icon: NotebookPen, badge: 'device', soon: true },
-      { name: 'Habit tracker', icon: Flame, badge: 'device', soon: true },
-      { name: 'Budget tracker', icon: Wallet, badge: 'device', soon: true },
+      { name: 'Smart notes', href: '/notes', icon: NotebookPen, badge: 'account' },
+      { name: 'Habit tracker', icon: Flame, badge: 'account', soon: true },
+      { name: 'Budget tracker', icon: Wallet, badge: 'account', soon: true },
       { name: 'Client packet builder', href: '/client-packet-builder', icon: FolderLock, badge: 'device', soon: true },
       { name: 'File vault', href: '/file-vault', icon: FolderLock, badge: 'encrypted', soon: true },
       { name: 'Link in bio', href: '/link-in-bio', icon: Link2, badge: 'server', soon: true },

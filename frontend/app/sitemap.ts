@@ -62,6 +62,7 @@ const ROUTES: Array<{ path: string; priority: number; changeFrequency: MetadataR
   { path: '/pdf-question-generator', priority: 0.8, changeFrequency: 'monthly' },
   { path: '/file-vault', priority: 0.8, changeFrequency: 'monthly' },
   { path: '/link-in-bio', priority: 0.8, changeFrequency: 'monthly' },
+  { path: '/notes', priority: 0.8, changeFrequency: 'monthly' },
   { path: '/tools', priority: 0.8, changeFrequency: 'weekly' },
   { path: '/pricing', priority: 0.8, changeFrequency: 'monthly' },
   { path: '/overview', priority: 0.7, changeFrequency: 'monthly' },
