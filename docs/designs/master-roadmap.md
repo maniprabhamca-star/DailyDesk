@@ -36,8 +36,8 @@ Mostly free/on-device unless marked.
 - [ ] ⏳ Request e-signatures (Pro) + **certificate of completion** (audit trail + verification hash)
 - [ ] ⏳ Repair PDF
 - [ ] ⏳ Scan-to-PDF (camera/import → PDF)
-- [ ] ⏳ PDF → PowerPoint (server, like PDF→Word)
-- [ ] ⏳ PDF/A (archival) conversion
+- [x] 🖥 PDF → PowerPoint (`/pdf-to-powerpoint` — server, LibreOffice impress_pdf_import → editable .pptx; 3/day free→Pro; prod e2e: 2-page PDF → 2 slides)
+- [x] 🖥 PDF/A (archival) conversion (`/pdf-to-pdfa` — server, Ghostscript PDF/A-2b; 3/day free→Pro; prod e2e: valid PDF with pdfaid marker)
 - [ ] 💤 Crop PDF (stubbed coming_soon)
 - [ ] 💤 Compare PDF (stubbed) — basic visual/text diff (semantic AI compare is separate, §3)
 - [ ] 💤 Clean scanned PDF (stubbed)
