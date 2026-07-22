@@ -96,7 +96,7 @@ Mostly free/on-device unless marked.
 - [ ] ⏳ Habit Tracker
 - [ ] ⏳ Budget Tracker
 - [ ] ⏳ Receipt scanner
-- [ ] ⏳ Link-in-Bio
+- [x] 🌓 Link-in-Bio (`/link-in-bio` editor + public server-rendered `/u/<handle>` w/ OG tags; sanitized config, reserved handles, 7 themes, views; coming_soon until Pro; prod e2e-verified)
 
 ## 7. Feature-pack polish (enhancements to shipped tools)
 - [ ] ⏳ Edit-PDF: resize grip + right-side properties panel
