@@ -2,7 +2,7 @@ import {
   Combine, Split, Shrink, RotateCw, FileMinus, ListOrdered, Eye,
   FileImage, Image as ImageIcon, FileType, FileType2, Code2, Presentation, FileSpreadsheet, FileCheck,
   PenLine, Highlighter, Stamp, EyeOff, PenTool, Lock, Unlock, Fingerprint, Layers, ScanLine, ShieldCheck,
-  ScanText, MessageSquare, AlignLeft, Languages, HelpCircle,
+  ScanText, MessageSquare, AlignLeft, Languages, HelpCircle, Wrench, Camera,
   QrCode, KeyRound, NotebookPen, Flame, Wallet, FolderLock, Link2,
   ImageDown, Smartphone, Eraser, Film, Clapperboard, ArrowLeftRight, Images, Scaling, Repeat, Crop,
   Ruler, Braces, Palette, CaseSensitive, Crosshair, Contact, SquarePen, ScanFace,
@@ -45,10 +45,12 @@ export const catalog: CatGroup[] = [
       { name: 'Delete pages', href: '/delete-pages-from-pdf', icon: FileMinus, badge: 'device' },
       { name: 'Crop PDF', href: '/crop-pdf', icon: Crop, badge: 'device', soon: true },
       { name: 'Page numbers', href: '/add-page-numbers-to-pdf', icon: ListOrdered, badge: 'device' },
+      { name: 'Repair PDF', href: '/repair-pdf', icon: Wrench, badge: 'device' },
     ],
   },
   {
     label: 'Convert to PDF', color: '#0284c7', tools: [
+      { name: 'Scan to PDF', href: '/scan-to-pdf', icon: Camera, badge: 'device' },
       { name: 'JPG to PDF', href: '/jpg-to-pdf', icon: FileImage, badge: 'device' },
       { name: 'Word to PDF', href: '/word-to-pdf', icon: FileType2, badge: 'server' },
       { name: 'PowerPoint to PDF', href: '/powerpoint-to-pdf', icon: Presentation, badge: 'server' },

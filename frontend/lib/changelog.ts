@@ -16,6 +16,29 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-07-21',
+    kind: 'new',
+    title: 'Scan to PDF — your camera is now a scanner',
+    detail:
+      'Point your phone at a document and capture clean, multi-page PDFs — with a readability boost that makes a photo read like a proper scan. No camera? Add photos you already took. The camera stream and every page stay in your browser; nothing is uploaded.',
+    href: '/scan-to-pdf',
+  },
+  {
+    date: '2026-07-21',
+    kind: 'new',
+    title: 'Repair PDF — fix files that won’t open',
+    detail:
+      'Got a PDF that shows up blank or says “file is corrupt”? Repair PDF rebuilds the page index that’s usually broken and tells you honestly how many pages came back — all on your device, so the damaged file is never uploaded.',
+    href: '/repair-pdf',
+  },
+  {
+    date: '2026-07-21',
+    kind: 'improved',
+    title: 'A calmer, faster home page',
+    detail:
+      'The tools section is no longer a wall of tiles: a quiet category rail lets you focus on one group at a time, and the footer is easier to scan on a phone. Same tools, less clutter.',
+  },
+  {
+    date: '2026-07-21',
     kind: 'improved',
     title: 'Redact: cleaner boxes, smarter AI matching',
     detail:
