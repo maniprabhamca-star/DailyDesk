@@ -59,6 +59,8 @@ Mostly free/on-device unless marked.
 - [ ] ⏳ **PDF → EPUB**
 - [ ] ⏳ **Receipt / invoice / statement → spreadsheet** ⭐ (IDP — the 2026 wave)
 - [ ] ⏳ **e-Invoice** (Factur-X / ZUGFeRD = CII XML in PDF/A-3; EU mandates live: DE, BE Jan 2026, FR Sept 2026)
+- [x] 🌐 **Repair PDF** (`/repair-pdf` — free on-device: tolerant reload+resave rebuilds the broken xref that makes PDFs won't-open; 4/4 headless test)
+- [x] 🌐 **Scan to PDF** (`/scan-to-pdf` — free on-device: phone camera → clean multi-page PDF, readability enhance, add-photos fallback)
 - [ ] ⏳ RFC-3161 trusted timestamp
 - [ ] ⏳ Free **chained "one-drop" workflows** (merge·clean·sign·compress in one drop)
 
