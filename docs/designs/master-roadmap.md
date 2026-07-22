@@ -93,9 +93,9 @@ Mostly free/on-device unless marked.
 
 ## 6. Tier-2 mini-apps (retention, account-based)
 - [x] 🔵 Smart Notes (`/notes` — account-synced CRUD, autosave, search/tags; free ≤10 notes, Pro unlimited; prod e2e incl. cap boundary + Pro bypass)
-- [ ] ⏳ Habit Tracker
-- [ ] ⏳ Budget Tracker
-- [ ] ⏳ Receipt scanner
+- [x] 🔵 Habit Tracker (`/habits` — account-synced, toggle-per-day + server streaks, 21-day grid; free ≤5, Pro unlimited; prod e2e incl. streak=2 + cap)
+- [x] 🔵 Budget Tracker (`/budget` — account-synced expenses, monthly total + category bars, month nav; free ≤50/mo, Pro unlimited; prod e2e incl. totals + validation)
+- [ ] ⏳ Receipt scanner (Pro; NOT built — expenses.receipt_file_id column ready to link one in later)
 - [x] 🌓 Link-in-Bio (`/link-in-bio` editor + public server-rendered `/u/<handle>` w/ OG tags; sanitized config, reserved handles, 7 themes, views; coming_soon until Pro; prod e2e-verified)
 
 ## 7. Feature-pack polish (enhancements to shipped tools)
