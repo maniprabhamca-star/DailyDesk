@@ -15,6 +15,14 @@ export type ChangeEntry = {
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-07-22',
+    kind: 'new',
+    title: 'PDF to PowerPoint and PDF to PDF/A',
+    detail:
+      'Two new conversions: turn a PDF into an editable PowerPoint deck (each page becomes a slide), or into archival PDF/A for filings and long-term records that must open identically for decades. Three free a day; your file is converted on our server and deleted the instant it downloads.',
+    href: '/pdf-to-powerpoint',
+  },
+  {
     date: '2026-07-21',
     kind: 'new',
     title: 'Scan to PDF — your camera is now a scanner',

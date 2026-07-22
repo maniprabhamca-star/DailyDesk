@@ -34,6 +34,8 @@ const ROUTES: Array<{ path: string; priority: number; changeFrequency: MetadataR
   { path: '/flatten-pdf', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/repair-pdf', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/scan-to-pdf', priority: 0.9, changeFrequency: 'monthly' },
+  { path: '/pdf-to-powerpoint', priority: 0.9, changeFrequency: 'monthly' },
+  { path: '/pdf-to-pdfa', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/scan-qr-code', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/reorder-pdf', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/compress-image', priority: 0.9, changeFrequency: 'monthly' },

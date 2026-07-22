@@ -63,10 +63,10 @@ export const catalog: CatGroup[] = [
       { name: 'PDF to JPG', href: '/pdf-to-jpg', icon: ImageIcon, badge: 'device' },
       { name: 'Extract images', href: '/extract-images-from-pdf', icon: Images, badge: 'device' },
       { name: 'PDF to Word', href: '/pdf-to-word', icon: FileType, badge: 'server' },
-      { name: 'PDF to PowerPoint', icon: Presentation, badge: 'server', soon: true },
+      { name: 'PDF to PowerPoint', href: '/pdf-to-powerpoint', icon: Presentation, badge: 'server' },
       { name: 'PDF to Excel', href: '/pdf-to-excel', icon: FileSpreadsheet, badge: 'device' },
       { name: 'Bank statement to Excel', href: '/bank-statement-converter', icon: Landmark, badge: 'device', soon: true },
-      { name: 'PDF to PDF/A', icon: FileCheck, badge: 'server', soon: true },
+      { name: 'PDF to PDF/A', href: '/pdf-to-pdfa', icon: FileCheck, badge: 'server' },
     ],
   },
   {

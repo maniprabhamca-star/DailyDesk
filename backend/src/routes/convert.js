@@ -120,10 +120,14 @@ function cleanup(paths) {
 
 const MIME = {
   docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
   pdf: 'application/pdf',
 };
 
-function convertRoute({ upload, sofficeArgs, outExt, failMessage, slugFor }) {
+// A run recipe: either LibreOffice (sofficeArgs) or a custom engine (buildCmd,
+// e.g. Ghostscript for PDF/A). buildCmd({input, outDir, profile, outName})
+// returns { cmd, args } and MUST write its output into outDir as *.<outExt>.
+function convertRoute({ upload, sofficeArgs, buildCmd, outExt, failMessage, slugFor }) {
   return (req, res) => {
     if (inFlight >= MAX_CONCURRENT) {
       res.status(503).json({ error: 'busy', message: 'The converter is busy right now — try again in a moment.' });
@@ -158,15 +162,15 @@ function convertRoute({ upload, sofficeArgs, outExt, failMessage, slugFor }) {
       const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'ddlo-'));
       const toClean = [input, outDir, profile];
       inFlight++;
+      const run = buildCmd
+        ? buildCmd({ input, outDir, profile, outName: `out.${outExt}` })
+        : {
+            cmd: 'soffice',
+            args: ['--headless', '--norestore', '--nolockcheck', `-env:UserInstallation=file://${profile}`, ...sofficeArgs, '--outdir', outDir, input],
+          };
       execFile(
-        'soffice',
-        [
-          '--headless', '--norestore', '--nolockcheck',
-          `-env:UserInstallation=file://${profile}`,
-          ...sofficeArgs,
-          '--outdir', outDir,
-          input,
-        ],
+        run.cmd,
+        run.args,
         { timeout: TIMEOUT_MS },
         (err) => {
           inFlight--;
@@ -220,6 +224,35 @@ router.post('/office-to-pdf', convertRoute({
   outExt: 'pdf',
   slugFor: officeSlug,
   failMessage: 'Could not convert this document. Password-protected or damaged files can’t be converted.',
+}));
+
+// PDF -> editable PowerPoint. LibreOffice imports each PDF page as a slide via
+// the Impress PDF filter (text/vectors kept as editable objects where it can).
+router.post('/pdf-to-powerpoint', convertRoute({
+  upload: makeUpload('pdf'),
+  sofficeArgs: ['--infilter=impress_pdf_import', '--convert-to', 'pptx:Impress MS PowerPoint 2007 XML'],
+  outExt: 'pptx',
+  slugFor: '/pdf-to-powerpoint',
+  failMessage: 'Could not convert this PDF to PowerPoint. Password-protected or damaged files can’t be converted.',
+}));
+
+// PDF -> PDF/A-2b (archival). Ghostscript is the correct engine; it rewrites the
+// file to the ISO 19005-2 profile so it opens identically for decades. The
+// output lands in outDir as out.pdf so the shared success path picks it up.
+router.post('/pdf-to-pdfa', convertRoute({
+  upload: makeUpload('pdf'),
+  buildCmd: ({ input, outDir, outName }) => ({
+    cmd: 'gs',
+    args: [
+      '-dPDFA=2', '-dBATCH', '-dNOPAUSE', '-dSAFER', '-dQUIET',
+      '-sColorConversionStrategy=RGB', '-sDEVICE=pdfwrite',
+      '-dPDFACompatibilityPolicy=1',
+      `-sOutputFile=${path.join(outDir, outName)}`, input,
+    ],
+  }),
+  outExt: 'pdf',
+  slugFor: '/pdf-to-pdfa',
+  failMessage: 'Could not convert this PDF to PDF/A. Encrypted files must be unlocked first.',
 }));
 
 module.exports = router;
