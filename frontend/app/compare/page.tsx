@@ -44,12 +44,27 @@ const ROWS: { label: string; cells: [Cell, Cell, Cell, Cell]; note?: string }[] 
   { label: 'No ads, no watermarks on free', cells: [true, 'Some limits', 'Ads on free', '—'] },
   { label: 'Combine unlimited files free (merge, images → PDF)', cells: [true, 'Capped / paid', 'Up to 25 files', 'Trial only'] },
   {
-    label: 'Beyond PDF — image, QR, password & video tools',
+    label: 'Beyond PDF — image, QR, dev, notes, budget & video tools',
     cells: [`${liveToolCount}+ tools`, 'PDF-focused', 'PDF-focused', 'PDF-focused'],
   },
   {
     label: 'Redaction that truly removes text',
-    cells: ['Free (coming soon) + Pro search & patterns', 'Limited / paid', 'Paid', 'Paid'],
+    cells: ['Yes + AI finds the personal info', 'Limited / paid', 'Paid', 'Paid'],
+    note: 'DiemDesk rebuilds redacted pages so the text is gone, not just covered — and an AI pass can find names, IDs and account numbers for you to approve.',
+  },
+  {
+    label: 'AI answers & summaries that cite the page',
+    cells: ['Yes — every claim is checkable', 'AI, uncited', 'AI, uncited', 'AI, uncited'],
+    note: 'Chat, summarize, translate and quiz your PDF — and DiemDesk’s AI cites the exact page for every answer, and never uploads the file (only the text it needs).',
+  },
+  {
+    label: 'PDF → Excel, on your device & free',
+    cells: [true, 'Paid / cloud', 'Paid / cloud', 'Paid'],
+  },
+  {
+    label: 'End-to-end encrypted File Vault (we can’t read it)',
+    cells: ['Yes (Pro)', false, false, 'Cloud storage (provider-readable)'],
+    note: 'Files are encrypted on your device before upload — DiemDesk stores sealed boxes it cannot open. Mainstream cloud storage holds the keys.',
   },
   { label: 'Works in any modern browser, nothing to install', cells: [true, true, true, 'Desktop app / online'] },
 ];
@@ -68,7 +83,7 @@ const faqs = [
   },
   {
     q: 'Do my files get uploaded like they do on other sites?',
-    a: 'No. DiemDesk’s in-browser tools open and process your file on your own device, so it never leaves your browser. A few tools genuinely need a server (Office conversions and — later — OCR); for those we’re upfront, process quickly and don’t keep your file.',
+    a: 'No. DiemDesk’s in-browser tools open and process your file on your own device, so it never leaves your browser. A few tools genuinely need a server (Office conversions, OCR, and the AI tools, which send only text — never the file); for those we’re upfront, process quickly and don’t keep your file.',
   },
   {
     q: 'Is it really free?',
