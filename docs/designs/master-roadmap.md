@@ -92,7 +92,7 @@ Mostly free/on-device unless marked.
 - [ ] ⏳ Apple iWork → PDF/Office · Markdown → PDF/Word · mail-merge / doc-assembly
 
 ## 6. Tier-2 mini-apps (retention, account-based)
-- [ ] ⏳ Smart Notes
+- [x] 🔵 Smart Notes (`/notes` — account-synced CRUD, autosave, search/tags; free ≤10 notes, Pro unlimited; prod e2e incl. cap boundary + Pro bypass)
 - [ ] ⏳ Habit Tracker
 - [ ] ⏳ Budget Tracker
 - [ ] ⏳ Receipt scanner
