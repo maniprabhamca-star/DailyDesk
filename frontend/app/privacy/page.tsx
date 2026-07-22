@@ -20,6 +20,8 @@ export const metadata: Metadata = {
 export default function PrivacyPage() {
   return (
     <LegalPage
+      path="/privacy"
+      crumb="Privacy"
       eyebrow="Your data, your rules"
       title="Privacy Policy"
       intro="No legalese maze. Here is what we collect, what we don&rsquo;t, and exactly how your files and AI requests are handled — written so a human can actually understand it."

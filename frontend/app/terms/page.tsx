@@ -21,6 +21,8 @@ export const metadata: Metadata = {
 export default function TermsPage() {
   return (
     <LegalPage
+      path="/terms"
+      crumb="Terms"
       eyebrow="The rules of the road"
       title="Terms of Service"
       intro="These terms are the agreement between you and DiemDesk for using our tools. We&rsquo;ve written them in plain English so you can actually read them. By using DiemDesk, you agree to what&rsquo;s below."

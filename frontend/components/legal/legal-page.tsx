@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { SiteHeader } from '@/components/app/site-header';
 import { SiteFooter } from '@/components/app/site-footer';
+import { PageJsonLd } from '@/components/seo/page-jsonld';
 
 /** Shared chrome (header + footer) for static info pages: /security, /privacy, etc. */
 export function LegalPage({
@@ -9,15 +10,22 @@ export function LegalPage({
   intro,
   updated,
   children,
+  path,
+  crumb,
 }: {
   eyebrow: string;
   title: string;
   intro: string;
   updated: string;
   children: React.ReactNode;
+  /** Canonical path (e.g. "/security") — when set, emits WebPage + breadcrumb JSON-LD. */
+  path?: string;
+  /** Short breadcrumb label; defaults to `eyebrow`. */
+  crumb?: string;
 }) {
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
+      {path && <PageJsonLd name={title} path={path} description={intro} crumb={crumb || eyebrow} />}
       <SiteHeader />
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-12 sm:px-6">

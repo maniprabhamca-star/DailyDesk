@@ -4,6 +4,7 @@ import { Sparkles, Wrench, Rocket, ArrowUpRight, Plus } from 'lucide-react';
 import { SiteHeader } from '@/components/app/site-header';
 import { SiteFooter } from '@/components/app/site-footer';
 import { CHANGELOG, KIND_META, type ChangeKind } from '@/lib/changelog';
+import { PageJsonLd } from '@/components/seo/page-jsonld';
 
 export const metadata: Metadata = {
   title: 'Changelog — What Shipped, When | DiemDesk',
@@ -44,6 +45,7 @@ export default function ChangelogPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
+      <PageJsonLd name="Changelog" path="/changelog" crumb="Changelog" description="Every meaningful DiemDesk release, in plain language: new tools, improvements and fixes." />
       <SiteHeader />
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-12 sm:px-6">
         <div className="text-center">

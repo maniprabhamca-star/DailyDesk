@@ -44,7 +44,7 @@ const stats: { v: string; l: string; note?: string }[] = [
 ];
 
 const steps = [
-  { icon: MousePointerClick, color: '#4f46e5', title: 'Pick a tool', body: 'Choose from 35+ tools and drop your file in — no account, no upload to a server.' },
+  { icon: MousePointerClick, color: '#4f46e5', title: 'Pick a tool', body: `Choose from ${liveToolCount}+ tools and drop your file in — no account, no upload to a server.` },
   { icon: Laptop, color: '#0d9488', title: 'It runs in your browser', body: 'Your own device does the work. The file is opened locally and never sent to us.' },
   { icon: Download, color: '#059669', title: 'Download the result', body: 'Save it straight back to your device. Close the tab and nothing is left anywhere else.' },
 ];

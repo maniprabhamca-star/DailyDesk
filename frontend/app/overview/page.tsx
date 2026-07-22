@@ -7,6 +7,7 @@ import { BrandMark } from '@/components/app/brand-mark';
 import { Button } from '@/components/ui/button';
 import { catalog, PRO_TOOLS, liveToolCount } from '@/components/app/catalog';
 import { PRICING } from '@/lib/pricing';
+import { PageJsonLd } from '@/components/seo/page-jsonld';
 
 export const metadata: Metadata = {
   title: 'The DiemDesk toolkit — private, on-device document tools',
@@ -116,6 +117,7 @@ function runtime(badge: string) {
 export default function OverviewPage() {
   return (
     <>
+      <PageJsonLd name="The DiemDesk toolkit" path="/overview" crumb="Overview" description="Every DiemDesk tool at a glance — what's live, what runs on-device, and what's coming." />
       <SiteHeader />
       <main>
         {/* HERO — committed dark brand band */}

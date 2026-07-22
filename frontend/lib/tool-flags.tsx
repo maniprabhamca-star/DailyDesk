@@ -9,6 +9,11 @@ type FlagMap = Record<string, ToolStatus>;
 
 const DEFAULT_TOOL_FLAGS: FlagMap = {
   '/edit-pdf': 'coming_soon',
+  // Premium editors + OCR: owner-only until Pro launch (they were reachable by
+  // direct URL though the catalog marks them "coming soon" — this closes that gap).
+  '/annotate-pdf': 'coming_soon',
+  '/redact-pdf': 'coming_soon',
+  '/ocr-pdf': 'coming_soon',
   // The AI (Pro) tools ship dark: owner-only until the ANTHROPIC_API_KEY is set
   // + Pro billing goes live, then flip each to 'pro'.
   '/chat-pdf': 'coming_soon',

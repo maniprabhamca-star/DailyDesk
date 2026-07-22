@@ -4,6 +4,7 @@ import { ShieldCheck } from 'lucide-react';
 import { SiteHeader } from '@/components/app/site-header';
 import { SiteFooter } from '@/components/app/site-footer';
 import { DEV_TOOLS, DEV_GROUPS, GROUP_COLOR } from '@/lib/dev-tools';
+import { PageJsonLd } from '@/components/seo/page-jsonld';
 
 export const metadata: Metadata = {
   title: 'Developer & CSV Tools — Free, In Your Browser | DiemDesk',
@@ -17,6 +18,7 @@ const built = DEV_TOOLS.filter((t) => t.built).length;
 export default function DeveloperToolsPage() {
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
+      <PageJsonLd name="Developer &amp; CSV Tools" path="/developer-tools" crumb="Developer tools" description="Free developer utilities — Base64, hash, JWT, UUID, CSV↔JSON, text diff and more." />
       <SiteHeader />
       <main className="mx-auto w-full max-w-[1100px] flex-1 px-4 py-12 sm:px-6">
         <div className="max-w-2xl">

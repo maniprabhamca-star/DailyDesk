@@ -21,6 +21,8 @@ export const metadata: Metadata = {
 export default function RefundPolicyPage() {
   return (
     <LegalPage
+      path="/refund-policy"
+      crumb="Refunds"
       eyebrow="Fair & simple"
       title="Refund Policy"
       intro="We want you to genuinely love DiemDesk Pro — and if you don&rsquo;t, we make getting your money back easy. No hoops, no buried fine print. This page explains exactly when refunds apply, how to request one, and what happens when you cancel."

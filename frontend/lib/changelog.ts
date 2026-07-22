@@ -16,6 +16,14 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-07-22',
+    kind: 'improved',
+    title: 'Stronger protection for your account',
+    detail:
+      'We hardened sign-in against automated password-guessing: repeated login attempts are now rate-limited at the network edge before they ever reach our servers, alongside bot filtering. Normal sign-ins are unaffected — this only slows down attacks.',
+    href: '/security',
+  },
+  {
+    date: '2026-07-22',
     kind: 'new',
     title: 'Receipt Scanner — snap a receipt into your budget',
     detail:

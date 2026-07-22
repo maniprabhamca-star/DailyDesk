@@ -21,6 +21,8 @@ export const metadata: Metadata = {
 export default function SecurityPage() {
   return (
     <LegalPage
+      path="/security"
+      crumb="Security"
       eyebrow="Trust & Safety"
       title="Security at DiemDesk"
       intro="We built DiemDesk around a single idea: your files are yours. Most tools run entirely inside your browser, so your documents never reach our servers in the first place. Here is exactly how everything works — in plain language."

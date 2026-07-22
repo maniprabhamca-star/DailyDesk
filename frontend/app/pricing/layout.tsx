@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { PageJsonLd } from '@/components/seo/page-jsonld';
 
 // The pricing page itself is a client component, so its SEO metadata lives in
 // this segment layout (App Router pattern for 'use client' pages).
@@ -16,5 +17,12 @@ export const metadata: Metadata = {
 };
 
 export default function PricingLayout({ children }: { children: React.ReactNode }) {
-  return children;
+  // WebPage + breadcrumb only — deliberately NO Offer/price schema until the
+  // real Pro prices are locked at the revenue flip (wrong prices in search = bad).
+  return (
+    <>
+      <PageJsonLd name="Pricing" path="/pricing" crumb="Pricing" description="DiemDesk pricing — in-browser tools free forever; Pro adds batch, large files and unlimited conversions." />
+      {children}
+    </>
+  );
 }
