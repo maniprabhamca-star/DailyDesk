@@ -24,6 +24,7 @@ const ROUTES: Array<{ path: string; priority: number; changeFrequency: MetadataR
   { path: '/pdf-to-excel', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/pdf-to-markdown', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/bates-numbering', priority: 0.9, changeFrequency: 'monthly' },
+  { path: '/pdf-to-audio', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/word-to-pdf', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/excel-to-pdf', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/powerpoint-to-pdf', priority: 0.9, changeFrequency: 'monthly' },

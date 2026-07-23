@@ -17,6 +17,14 @@ export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-07-23',
     kind: 'new',
+    title: 'PDF to Audio — have any PDF read aloud',
+    detail:
+      'Listen to a PDF instead of reading it: pick a voice, set the speed and pitch, press Play and follow the highlighted sentence — tap any sentence to jump there. It uses your device’s own voice, so the file never leaves your browser. Free (a downloadable MP3 is coming with Pro).',
+    href: '/pdf-to-audio',
+  },
+  {
+    date: '2026-07-23',
+    kind: 'new',
     title: 'Bates numbering — sequential stamps for legal files',
     detail:
       'Add Bates numbers (like ABC-000001) to your PDFs for legal discovery and case files. Set the prefix, starting number, padding and corner, watch a live preview, and drop several files to number the whole set continuously — file two picks up where file one ended. Runs on your device, never uploaded. Free.',
