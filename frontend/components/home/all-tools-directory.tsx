@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { CSSProperties, useState } from 'react';
-import { Search, Sparkles, MessageSquare, AlignLeft, Languages, HelpCircle, EyeOff, GitCompare, ArrowRight } from 'lucide-react';
+import { CSSProperties, useEffect, useState } from 'react';
+import { Search, Sparkles, MessageSquare, AlignLeft, Languages, HelpCircle, EyeOff, GitCompare, ArrowRight, Rows3, PanelLeft } from 'lucide-react';
 import { catalog, BADGE, type CatTool } from '@/components/app/catalog';
 
 // The AI suite gets its own violet block on the home preview (approved home
@@ -148,12 +148,132 @@ const TOTAL_TOOLS = catalog.reduce((n, g) => n + g.tools.length, 0);
 // Stable anchor per category so "See all →" jumps to THAT section on /tools.
 const groupId = (label: string) => `cat-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;
 
+// Category nav data (label, colour, count) — 'all' first. Counts derive from the
+// catalog so the nav never drifts.
+const NAV_ITEMS = [
+  { label: 'all', title: 'All', color: '', n: TOTAL_TOOLS },
+  ...catalog.map((g) => ({ label: g.label, title: g.label, color: g.color, n: g.tools.length })),
+];
+
+// ⟳ INSTANT REVERT: set USE_LEGACY_NAV = true to restore the previous plain
+// text-tab rail (kept verbatim in LegacyTabRail below). Nothing else to change.
+const USE_LEGACY_NAV = false;
+
+function LegacyTabRail({ cat, setCat }: { cat: string; setCat: (c: string) => void }) {
+  return (
+    <div className="sticky top-14 z-20 -mx-4 mb-7 border-b bg-background/90 px-4 backdrop-blur sm:top-16 sm:-mx-6 sm:px-6">
+      <div className="flex gap-1 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {[{ label: 'all', color: '' }, ...catalog].map((g) => {
+          const isAll = g.label === 'all';
+          const active = cat === g.label;
+          return (
+            <button key={g.label} onClick={() => setCat(g.label)}
+              className={`relative flex-none px-3 py-2.5 text-[13px] font-semibold transition-colors ${active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+              {isAll ? 'All' : g.label}
+              {active && (isAll
+                ? <span className="absolute inset-x-2.5 bottom-0 h-[2.5px] rounded-full bg-primary" />
+                : <span className="absolute inset-x-2.5 bottom-0 h-[2.5px] rounded-full" style={{ backgroundColor: (g as { color: string }).color }} />)}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// Compact desktop-only toggle between the horizontal Tab view and the Left Rail.
+function ViewToggle({ view, setView }: { view: 'tabs' | 'rail'; setView: (v: 'tabs' | 'rail') => void }) {
+  return (
+    <div className="hidden shrink-0 items-center rounded-lg border bg-card p-0.5 md:inline-flex">
+      <button onClick={() => setView('tabs')} aria-label="Tab view" aria-pressed={view === 'tabs'}
+        className={`rounded-md p-1.5 transition ${view === 'tabs' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+        <Rows3 className="size-4" />
+      </button>
+      <button onClick={() => setView('rail')} aria-label="Sidebar view" aria-pressed={view === 'rail'}
+        className={`rounded-md p-1.5 transition ${view === 'rail' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+        <PanelLeft className="size-4" />
+      </button>
+    </div>
+  );
+}
+
+// Tab view — mix of B (count pill + colour bar) and C (tinted chip). One line,
+// never wraps, scrolls sideways on phones.
+function TabNav({ cat, setCat }: { cat: string; setCat: (c: string) => void }) {
+  return (
+    <div className="flex gap-1.5 overflow-x-auto py-1.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {NAV_ITEMS.map((g) => {
+        const active = cat === g.label;
+        const c = g.color;
+        return (
+          <button
+            key={g.label}
+            onClick={() => setCat(g.label)}
+            style={active && c ? ({ backgroundColor: `${c}14` } as CSSProperties) : undefined}
+            className={`relative flex-none inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-2 text-[13px] font-semibold transition-colors ${
+              active ? `text-foreground ${!c ? 'bg-primary/10' : ''}` : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+            }`}
+          >
+            {g.title}
+            <span
+              style={active && c ? ({ backgroundColor: c } as CSSProperties) : undefined}
+              className={`rounded-full px-1.5 text-[10px] font-bold tabular-nums ${
+                active ? (c ? 'text-white' : 'bg-primary text-primary-foreground') : 'bg-muted text-muted-foreground'
+              }`}
+            >
+              {g.n}
+            </span>
+            {active && (
+              <span
+                style={c ? ({ backgroundColor: c } as CSSProperties) : undefined}
+                className={`absolute inset-x-2 bottom-0.5 h-[2.5px] rounded-full ${c ? '' : 'bg-primary'}`}
+              />
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// Left Rail view (desktop) — vertical category list with colour dots + counts.
+function RailNav({ cat, setCat, className = '' }: { cat: string; setCat: (c: string) => void; className?: string }) {
+  return (
+    <nav className={`flex-col gap-0.5 ${className}`}>
+      {NAV_ITEMS.map((g) => {
+        const active = cat === g.label;
+        const c = g.color;
+        return (
+          <button
+            key={g.label}
+            onClick={() => setCat(g.label)}
+            style={active && c ? ({ backgroundColor: `${c}14` } as CSSProperties) : undefined}
+            className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] font-semibold transition-colors ${
+              active ? `text-foreground ${!c ? 'bg-primary/10' : ''}` : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+            }`}
+          >
+            <span className={`size-2 shrink-0 rounded-full ${!c ? 'bg-primary' : ''}`} style={c ? ({ backgroundColor: c } as CSSProperties) : undefined} />
+            <span className="flex-1 truncate">{g.title}</span>
+            <span className="text-[11px] font-bold tabular-nums text-muted-foreground">{g.n}</span>
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+
 export function AllToolsDirectory({ full = false, asPage = false }: { full?: boolean; asPage?: boolean } = {}) {
   const [q, setQ] = useState('');
   // One quiet tab rail instead of a wall of jump-chips: 'all' = the capped
   // preview; picking a category swaps the grid IN PLACE to that one group,
   // fully expanded. One focused view at a time — nothing to scroll past.
   const [cat, setCat] = useState<string>('all');
+  // Tab vs Left-Rail view for the category nav (home preview only, desktop toggle).
+  const [view, setView] = useState<'tabs' | 'rail'>('tabs');
+  useEffect(() => {
+    try { const v = localStorage.getItem('dd-tools-view'); if (v === 'rail' || v === 'tabs') setView(v); } catch { /* ignore */ }
+  }, []);
+  const changeView = (v: 'tabs' | 'rail') => { setView(v); try { localStorage.setItem('dd-tools-view', v); } catch { /* ignore */ } };
   const query = q.trim().toLowerCase();
   const matches = (t: CatTool) =>
     !query || t.name.toLowerCase().includes(query) || (META[t.name]?.desc?.toLowerCase().includes(query) ?? false);
@@ -163,6 +283,7 @@ export function AllToolsDirectory({ full = false, asPage = false }: { full?: boo
   const expanded = !full && !query && cat !== 'all'; // a chosen category shows ALL its tools
 
   const Heading = asPage ? 'h1' : 'h2';
+  const showRail = !full && !query && !USE_LEGACY_NAV && view === 'rail';
 
   return (
     <section id="tools" className="scroll-mt-20 bg-muted/20">
@@ -191,36 +312,27 @@ export function AllToolsDirectory({ full = false, asPage = false }: { full?: boo
           )}
         </div>
 
-        {/* Category tab rail — one quiet row (scrolls sideways on phones, never
-            wraps). Text tabs with a colored underline for the active one; picks
-            filter the grid in place rather than jump-scrolling a long page. */}
-        {!full && !query && (
-          <div className="sticky top-14 z-20 -mx-4 mb-7 border-b bg-background/90 px-4 backdrop-blur sm:top-16 sm:-mx-6 sm:px-6">
-            <div className="flex gap-1 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {[{ label: 'all', color: '' }, ...catalog].map((g) => {
-                const isAll = g.label === 'all';
-                const active = cat === g.label;
-                return (
-                  <button
-                    key={g.label}
-                    onClick={() => setCat(g.label)}
-                    className={`relative flex-none px-3 py-2.5 text-[13px] font-semibold transition-colors ${
-                      active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    {isAll ? 'All' : g.label}
-                    {active && (isAll
-                      ? <span className="absolute inset-x-2.5 bottom-0 h-[2.5px] rounded-full bg-primary" />
-                      : <span className="absolute inset-x-2.5 bottom-0 h-[2.5px] rounded-full" style={{ backgroundColor: g.color }} />)}
-                  </button>
-                );
-              })}
+        {/* Category nav — Tab view (count-pill + colour) or a Left Rail, switchable
+            via the compact desktop toggle. Mobile always uses tabs (single line,
+            never wraps). Set USE_LEGACY_NAV = true to restore the old plain rail. */}
+        {!full && !query && (USE_LEGACY_NAV ? (
+          <LegacyTabRail cat={cat} setCat={setCat} />
+        ) : (
+          <>
+            <div className="mb-3 hidden justify-end md:flex">
+              <ViewToggle view={view} setView={changeView} />
             </div>
-          </div>
-        )}
+            <div className={`sticky top-14 z-20 -mx-4 mb-7 border-b bg-background/90 px-4 backdrop-blur sm:top-16 sm:-mx-6 sm:px-6 ${view === 'rail' ? 'md:hidden' : ''}`}>
+              <TabNav cat={cat} setCat={setCat} />
+            </div>
+          </>
+        ))}
 
-        {/* Grouped tile grids (filtered live) */}
-        <div className="space-y-8">
+        {/* Grouped tile grids (filtered live). Rail view adds a left category
+            sidebar on desktop; the tile grids themselves are unchanged. */}
+        <div className={showRail ? 'md:grid md:grid-cols-[200px_1fr] md:gap-7' : ''}>
+          {showRail && <RailNav cat={cat} setCat={setCat} className="sticky top-16 hidden self-start md:flex" />}
+          <div className="space-y-8">
           {activeGroups.map((g) => {
             const tools = g.tools.filter(matches);
             if (tools.length === 0) return null;
@@ -268,6 +380,7 @@ export function AllToolsDirectory({ full = false, asPage = false }: { full?: boo
           {empty && (
             <p className="py-10 text-center text-sm text-muted-foreground">No tools match &ldquo;{q}&rdquo;.</p>
           )}
+          </div>
         </div>
 
         {/* Browse-all — only on the home preview (not on /tools, not while searching) */}
