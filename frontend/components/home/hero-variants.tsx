@@ -159,7 +159,9 @@ function LiveDemoCluster() {
     { bg: 'bg-rose-600', Icon: Combine, pos: '-right-7 bottom-[12%]', delay: 0.4 },
   ];
   return (
-    <div className="relative mx-auto w-full max-w-[520px] px-2 sm:px-10 md:pt-2">
+    {/* pt matches the left column's md:pt-8 (+a little) so the card sits level
+        with the headline block instead of floating above it. */}
+    <div className="relative mx-auto w-full max-w-[520px] px-2 sm:px-10 md:pt-12">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-4 rounded-[44px]"
