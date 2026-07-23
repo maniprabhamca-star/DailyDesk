@@ -9,6 +9,12 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { liveToolCount } from '@/components/app/catalog';
+import { HeroLiveDemo } from './hero-live-demo';
+
+// ⟳ ONE-WORD REVERT: set to 'classic' to restore the previous cycling product
+// cluster (kept intact below as ProductCluster). 'live' = the working compressor
+// in the hero, wrapped in the same floating brand tiles.
+const HERO_VARIANT: 'live' | 'classic' = 'live';
 
 function TrustChips() {
   const items = [
@@ -140,6 +146,35 @@ function ProductCluster() {
   );
 }
 
+// The live compressor wearing the same brand jewellery as the classic cluster:
+// a soft violet glow for depth + four floating tool tiles. The tiles sit along the
+// LEFT/RIGHT EDGES at staggered heights — deliberately off the card's corners, so
+// they read as hovering companions rather than stickers pinned to the box. Hidden
+// below `sm` so the negative offsets can never cause sideways scroll on phones.
+function LiveDemoCluster() {
+  const tiles = [
+    { bg: 'bg-violet-500', Icon: PenTool, pos: '-left-7 top-[27%]', delay: 0 },
+    { bg: 'bg-amber-500', Icon: ImageIcon, pos: '-right-8 top-[15%]', delay: 0.7 },
+    { bg: 'bg-teal-500', Icon: Shrink, pos: '-left-8 bottom-[25%]', delay: 1.3 },
+    { bg: 'bg-rose-600', Icon: Combine, pos: '-right-7 bottom-[12%]', delay: 0.4 },
+  ];
+  return (
+    <div className="relative mx-auto w-full max-w-[520px] px-2 sm:px-10 md:pt-2">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-4 rounded-[44px]"
+        style={{ background: 'radial-gradient(closest-side, rgba(124,58,237,0.16), transparent)' }}
+      />
+      <div className="relative">
+        <HeroLiveDemo />
+        <span className="hidden sm:block">
+          {tiles.map((t, i) => <FloatTile key={i} {...t} />)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export function HeroHybrid() {
   return (
     <section className="relative overflow-hidden">
@@ -163,7 +198,7 @@ export function HeroHybrid() {
           </div>
           <div className="mt-8"><TrustChips /></div>
         </div>
-        <ProductCluster />
+        {HERO_VARIANT === 'live' ? <LiveDemoCluster /> : <ProductCluster />}
       </div>
     </section>
   );
