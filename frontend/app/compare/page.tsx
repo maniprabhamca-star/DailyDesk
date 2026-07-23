@@ -62,6 +62,21 @@ const ROWS: { label: string; cells: [Cell, Cell, Cell, Cell]; note?: string }[] 
     cells: [true, 'Paid / cloud', 'Paid / cloud', 'Paid'],
   },
   {
+    label: 'PDF → Markdown (for notes & AI prompts)',
+    cells: [true, false, false, false],
+    note: 'Convert a PDF to clean Markdown — headings, lists and tables — on your device. None of the big names offer this; it’s built for the AI era.',
+  },
+  {
+    label: 'Bates numbering for legal discovery, free',
+    cells: [true, false, false, 'Paid (Acrobat Pro)'],
+    note: 'Sequential legal stamps continuous across a whole file set — free and on-device here, a paid desktop feature elsewhere.',
+  },
+  {
+    label: 'Read a PDF aloud (voice, on-device)',
+    cells: [true, false, false, 'Yes (Reader)'],
+    note: 'Listen to any PDF with your device’s own voice, following the highlighted text — no upload. Adobe’s desktop Reader can read aloud; Smallpdf and iLovePDF don’t.',
+  },
+  {
     label: 'End-to-end encrypted File Vault (we can’t read it)',
     cells: ['Yes (Pro)', false, false, 'Cloud storage (provider-readable)'],
     note: 'Files are encrypted on your device before upload — DiemDesk stores sealed boxes it cannot open. Mainstream cloud storage holds the keys.',
