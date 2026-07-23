@@ -116,6 +116,44 @@ const boardCards = groups
   })
   .join('');
 
+// Pro roadmap — TIERED + revenue-safe. Curated here (NOT in the catalog, since
+// these are plans, not shipped tools). Strategy: deterministic features = zero
+// marginal cost (pure margin); server/AI features must be metered + capped so
+// cost never exceeds revenue. Status: 🌓 built-dark (owner-only until launch) ·
+// ◐ partial · ⏳ planned.
+const PRO_ROADMAP = [
+  { tier: 'Tier A — Deterministic (zero cost · pure margin)', color: '#16a34a', items: [
+    ['On-device batch — 100 files, zero uploads', 'partial'],
+    ['Saved workflows + presets', 'planned'],
+    ['Self-destruct encrypted shares', 'planned'],
+    ['Redaction / clean certificate', 'planned'],
+    ['RFC-3161 trusted timestamp', 'planned'],
+    ['Brand kit (logo / watermark presets)', 'planned'],
+  ] },
+  { tier: 'Tier B — Server / AI (metered + capped)', color: '#7c3aed', items: [
+    ['AI document suite (8 tools)', 'dark'],
+    ['Encrypted File Vault', 'dark'],
+    ['Link in Bio', 'dark'],
+    ['Receipt Scanner', 'dark'],
+    ['Bank Statement Converter (flagship)', 'partial'],
+    ['Encrypted "send large file"', 'planned'],
+    ['PDF → Audio MP3 export', 'planned'],
+    ['e-Invoice (Factur-X / ZUGFeRD + GST)', 'planned'],
+  ] },
+  { tier: 'Tier C — Table-stakes Pro', color: '#0891b2', items: [
+    ['OCR', 'dark'],
+    ['Bigger server-tool files', 'planned'],
+    ['Unlimited server conversions', 'planned'],
+    ['Cloud import (Drive / Dropbox)', 'planned'],
+    ['Larger Vault tiers', 'planned'],
+    ['Priority processing', 'planned'],
+  ] },
+];
+const stMark = (s) => (s === 'dark' ? '🌓' : s === 'partial' ? '◐' : '⏳');
+const proSection = `<h2 style="font-size:20px;margin:40px 0 4px">Pro roadmap — tiered &amp; revenue-safe</h2>
+<p class="sub" style="margin-bottom:18px">🌓 built, owner-only until launch · ◐ partly built · ⏳ planned. Deterministic features cost $0 to serve (pure margin); server/AI features are metered so cost never exceeds revenue.</p>
+<div class="grid">${PRO_ROADMAP.map((t) => `<div class="card"><h2><span class="dot" style="background:${t.color}"></span>${esc(t.tier)}</h2><ul>${t.items.map(([n, s]) => `<li>${stMark(s)} ${esc(n)}</li>`).join('')}</ul></div>`).join('')}</div>`;
+
 const board = SHELL(
   'DiemDesk — Status Board',
   `<h1>DiemDesk status board</h1>
@@ -128,7 +166,8 @@ ${statBlock([
     [total, 'Total in catalog'],
   ])}
 <div class="grid">${boardCards}</div>
-<p class="foot">Source of truth: <code>frontend/components/app/catalog.tsx</code> · the live site's <a href="https://diemdesk.com/overview">/overview</a> is authoritative. Regenerate with <code>node frontend/scripts/gen-status-artifacts.mjs</code>.</p>`
+${proSection}
+<p class="foot">Source of truth: <code>frontend/components/app/catalog.tsx</code> (live tools) + the Pro roadmap curated in <code>gen-status-artifacts.mjs</code>. The live site's <a href="https://diemdesk.com/overview">/overview</a> shows only shipped tools. Regenerate with <code>node frontend/scripts/gen-status-artifacts.mjs</code>.</p>`
 );
 
 // --- artifact 2: product overview (prose + category counts) -----------------
