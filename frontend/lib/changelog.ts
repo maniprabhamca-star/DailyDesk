@@ -17,6 +17,14 @@ export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-07-23',
     kind: 'new',
+    title: 'Bates numbering — sequential stamps for legal files',
+    detail:
+      'Add Bates numbers (like ABC-000001) to your PDFs for legal discovery and case files. Set the prefix, starting number, padding and corner, watch a live preview, and drop several files to number the whole set continuously — file two picks up where file one ended. Runs on your device, never uploaded. Free.',
+    href: '/bates-numbering',
+  },
+  {
+    date: '2026-07-23',
+    kind: 'new',
     title: 'PDF to Markdown — clean, editable text from any PDF',
     detail:
       'Convert a PDF into tidy Markdown — headings, lists and tables kept as GitHub-flavoured Markdown — for your notes app, a static site, or pasting into an AI chat. Toggle heading and table detection, preview it rendered or raw, then Copy or download a .md file. Runs entirely in your browser; the file is never uploaded. Free.',

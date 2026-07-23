@@ -76,6 +76,7 @@ export const catalog: CatGroup[] = [
       { name: 'Edit PDF', icon: PenLine, badge: 'device', soon: true },
       { name: 'Annotate', href: '/annotate-pdf', icon: Highlighter, badge: 'device', soon: true },
       { name: 'Watermark', href: '/watermark-pdf', icon: Stamp, badge: 'device' },
+      { name: 'Bates numbering', href: '/bates-numbering', icon: ListOrdered, badge: 'device' },
       { name: 'Remove metadata', href: '/remove-pdf-metadata', icon: Fingerprint, badge: 'device' },
       { name: 'Share-Safe PDF Check', href: '/share-safe-pdf-check', icon: ShieldCheck, badge: 'device', soon: true },
       { name: 'Redact PDF', href: '/redact-pdf', icon: EyeOff, badge: 'device', soon: true },
