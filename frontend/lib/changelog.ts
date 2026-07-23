@@ -15,6 +15,14 @@ export type ChangeEntry = {
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-07-23',
+    kind: 'new',
+    title: 'PDF to Markdown — clean, editable text from any PDF',
+    detail:
+      'Convert a PDF into tidy Markdown — headings, lists and tables kept as GitHub-flavoured Markdown — for your notes app, a static site, or pasting into an AI chat. Toggle heading and table detection, preview it rendered or raw, then Copy or download a .md file. Runs entirely in your browser; the file is never uploaded. Free.',
+    href: '/pdf-to-markdown',
+  },
+  {
     date: '2026-07-22',
     kind: 'improved',
     title: 'Stronger protection for your account',

@@ -66,6 +66,7 @@ export const catalog: CatGroup[] = [
       { name: 'PDF to Word', href: '/pdf-to-word', icon: FileType, badge: 'server' },
       { name: 'PDF to PowerPoint', href: '/pdf-to-powerpoint', icon: Presentation, badge: 'server' },
       { name: 'PDF to Excel', href: '/pdf-to-excel', icon: FileSpreadsheet, badge: 'device' },
+      { name: 'PDF to Markdown', href: '/pdf-to-markdown', icon: Hash, badge: 'device' },
       { name: 'Bank statement to Excel', href: '/bank-statement-converter', icon: Landmark, badge: 'device', soon: true },
       { name: 'PDF to PDF/A', href: '/pdf-to-pdfa', icon: FileCheck, badge: 'server' },
     ],
