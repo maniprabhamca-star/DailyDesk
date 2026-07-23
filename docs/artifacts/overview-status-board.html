@@ -303,19 +303,35 @@
   </div>
 
   <div class="pro-section">
-    <div class="pro-head"><span class="pro-badge-lg">PRO</span><h2>Pro differentiators — the moat rivals can't copy</h2></div>
-    <p class="pro-sub">Genuinely unique to DiemDesk's on-device architecture — planned as the flagship Pro hooks. Server-first competitors (Smallpdf/iLovePDF/Adobe) would have to rebuild their whole stack to match these.</p>
+    <div class="pro-head"><span class="pro-badge-lg">PRO</span><h2>Pro roadmap — tiered &amp; revenue-safe</h2></div>
+    <p class="pro-sub"><b>Deterministic features cost $0 to serve (pure margin) — the priority; server/AI features are metered so cost never exceeds revenue.</b> Status: <span style="font-weight:800;color:#16a34a">BUILT&nbsp;✓</span> = working, owner-gated until launch · <span style="font-weight:800;color:#2563eb">PARTIAL</span> = partly shipped · <span style="font-weight:800;color:#8a8a9a">PLANNED</span> = not built. (Bates numbering shipped FREE — it's no longer a Pro item.)</p>
+
+    <p style="margin:4px 0 9px;font-size:13px;font-weight:750;color:var(--ink)">🟢 Tier 1 — Deterministic (zero cost · build next)</p>
     <div class="pro-grid">
-      <div class="pro-card flag"><div class="pt">On-device batch</div><div class="pw">Process 100 files at once — <b>zero uploads</b>. Their batch = 100 files on their servers; they physically can't match it.</div></div>
-      <div class="pro-card flag"><div class="pt">Redaction certificate</div><div class="pw">Signed, exportable proof a doc was truly scrubbed (0 recoverable chars, metadata stripped) — a legal/compliance wedge.</div></div>
-      <div class="pro-card flag"><div class="pt">Saved workflows</div><div class="pw">One-click document assembly line — merge · clean · sign · share-safe · compress — run on a whole batch.</div></div>
-      <div class="pro-card flag"><div class="pt">Encrypted File Vault</div><div class="pw">Zero-knowledge E2E storage (Argon2 + AES-256) — even we can't read it. Rivals' storage is server-readable.</div></div>
-      <div class="pro-card"><div class="pt">Self-destruct shares</div><div class="pw">Expiring, password-locked share links that DiemDesk itself can't decrypt.</div></div>
-      <div class="pro-card"><div class="pt">Certificate of completion</div><div class="pw">DocuSign-style signed audit trail + verification hash for e-signatures.</div></div>
-      <div class="pro-card"><div class="pt">Bates numbering</div><div class="pw">Legal page-stamping — a standard paid feature that pulls in the legal vertical.</div></div>
-      <div class="pro-card"><div class="pt">Brand kit</div><div class="pw">Save logo / header-footer / watermark once, apply across a whole batch.</div></div>
-      <div class="pro-card"><div class="pt">Offline PWA</div><div class="pw">Install it; works fully offline. Server-first rivals go dark without a connection.</div></div>
-      <div class="pro-card"><div class="pt">True re-encode Edit</div><div class="pw">Higher-fidelity in-place text-editing tier for Pro.</div></div>
+      <div class="pro-card"><div class="pt">Self-destruct encrypted shares <span style="margin-left:auto;font-size:8.5px;font-weight:800;color:#8a8a9a;background:#94a3b81f;padding:1.5px 6px;border-radius:999px;white-space:nowrap">PLANNED</span></div><div class="pw"><b>Best new idea.</b> Expiring, password-locked links DiemDesk can't decrypt — builds on Vault crypto; every recipient sees DiemDesk (viral loop).</div></div>
+      <div class="pro-card"><div class="pt">Saved workflows + presets <span style="margin-left:auto;font-size:8.5px;font-weight:800;color:#8a8a9a;background:#94a3b81f;padding:1.5px 6px;border-radius:999px;white-space:nowrap">PLANNED</span></div><div class="pw">Chain tools (compress → Bates → watermark) + save configs (a Bates scheme, redaction set, compress profile). Pure retention; uses the existing file-handoff plumbing.</div></div>
+      <div class="pro-card"><div class="pt">Trust pack — redaction certificate + RFC-3161 timestamp <span style="margin-left:auto;font-size:8.5px;font-weight:800;color:#8a8a9a;background:#94a3b81f;padding:1.5px 6px;border-radius:999px;white-space:nowrap">PLANNED</span></div><div class="pw">Signed proof a doc was truly scrubbed + cryptographic proof it existed at a time. Legal/finance pay real money for provable actions.</div></div>
+      <div class="pro-card"><div class="pt">On-device batch <span style="margin-left:auto;font-size:8.5px;font-weight:800;color:#2563eb;background:#2563eb22;padding:1.5px 6px;border-radius:999px;white-space:nowrap">PARTIAL</span></div><div class="pw">100 files at once, zero uploads — live on 6 tools already; extend to all. Rivals' batch uploads everything; they can't match it.</div></div>
+      <div class="pro-card"><div class="pt">Certificate of completion (e-sign) <span style="margin-left:auto;font-size:8.5px;font-weight:800;color:#8a8a9a;background:#94a3b81f;padding:1.5px 6px;border-radius:999px;white-space:nowrap">PLANNED</span></div><div class="pw">DocuSign-style signed audit trail + verification hash for signatures.</div></div>
+      <div class="pro-card"><div class="pt">Brand kit <span style="margin-left:auto;font-size:8.5px;font-weight:800;color:#8a8a9a;background:#94a3b81f;padding:1.5px 6px;border-radius:999px;white-space:nowrap">PLANNED</span></div><div class="pw">Save logo / header-footer / watermark once, apply across a whole batch and Link-in-Bio.</div></div>
+    </div>
+
+    <p style="margin:18px 0 9px;font-size:13px;font-weight:750;color:var(--ink)">🟣 Tier 2 — Server / AI (metered + capped)</p>
+    <div class="pro-grid">
+      <div class="pro-card"><div class="pt">AI document suite (8 tools) <span style="margin-left:auto;font-size:8.5px;font-weight:800;color:#16a34a;background:#16a34a22;padding:1.5px 6px;border-radius:999px;white-space:nowrap">BUILT ✓</span></div><div class="pw">Chat / Summarize / Translate / Q-gen / AI-redact / compare / Excel-cleanup / ⌘K. Haiku + per-user cap + $5/day global kill-switch. Gated until launch.</div></div>
+      <div class="pro-card"><div class="pt">Encrypted File Vault <span style="margin-left:auto;font-size:8.5px;font-weight:800;color:#16a34a;background:#16a34a22;padding:1.5px 6px;border-radius:999px;white-space:nowrap">BUILT ✓</span></div><div class="pw">Zero-knowledge E2E storage (Argon2 + AES-256) — even we can't read it. Phases 1–4 shipped dark.</div></div>
+      <div class="pro-card flag"><div class="pt">Bank Statement Converter <span style="margin-left:auto;font-size:8.5px;font-weight:800;color:#2563eb;background:#2563eb22;padding:1.5px 6px;border-radius:999px;white-space:nowrap">PARTIAL</span></div><div class="pw">The paid flagship (~70% built) → Excel/CSV/Tally, India-first. Own metered tier (₹1,499/$19).</div></div>
+      <div class="pro-card"><div class="pt">Encrypted "send large file" <span style="margin-left:auto;font-size:8.5px;font-weight:800;color:#8a8a9a;background:#94a3b81f;padding:1.5px 6px;border-radius:999px;white-space:nowrap">PLANNED</span></div><div class="pw">Privacy-first WeTransfer on Vault storage — quota-capped. Another viral surface.</div></div>
+      <div class="pro-card"><div class="pt">PDF → Audio MP3 export <span style="margin-left:auto;font-size:8.5px;font-weight:800;color:#8a8a9a;background:#94a3b81f;padding:1.5px 6px;border-radius:999px;white-space:nowrap">PLANNED</span></div><div class="pw">Downloadable MP3 via server neural TTS (free read-aloud is already live at <code>/pdf-to-audio</code>).</div></div>
+      <div class="pro-card"><div class="pt">e-Invoice (Factur-X / ZUGFeRD + India GST) <span style="margin-left:auto;font-size:8.5px;font-weight:800;color:#8a8a9a;background:#94a3b81f;padding:1.5px 6px;border-radius:999px;white-space:nowrap">PLANNED</span></div><div class="pw">Regulatory mandates 2026–28 = non-discretionary B2B spend. Save until the flagship proves India B2B appetite.</div></div>
+    </div>
+
+    <p style="margin:18px 0 9px;font-size:13px;font-weight:750;color:var(--ink)">🔵 Tier 3 — Table-stakes Pro (rounds it out)</p>
+    <div class="pro-grid">
+      <div class="pro-card"><div class="pt">OCR <span style="margin-left:auto;font-size:8.5px;font-weight:800;color:#16a34a;background:#16a34a22;padding:1.5px 6px;border-radius:999px;white-space:nowrap">BUILT ✓</span></div><div class="pw">Searchable text from scans — server, gated until launch.</div></div>
+      <div class="pro-card"><div class="pt">Cloud import (Drive / Dropbox) <span style="margin-left:auto;font-size:8.5px;font-weight:800;color:#8a8a9a;background:#94a3b81f;padding:1.5px 6px;border-radius:999px;white-space:nowrap">PLANNED</span></div><div class="pw">Pull a file from cloud storage into any tool.</div></div>
+      <div class="pro-card"><div class="pt">Bigger files · unlimited conversions · larger Vault · priority <span style="margin-left:auto;font-size:8.5px;font-weight:800;color:#8a8a9a;background:#94a3b81f;padding:1.5px 6px;border-radius:999px;white-space:nowrap">PLANNED</span></div><div class="pw">The usual paid-tier scale levers.</div></div>
+      <div class="pro-card"><div class="pt">True re-encode Edit tier <span style="margin-left:auto;font-size:8.5px;font-weight:800;color:#8a8a9a;background:#94a3b81f;padding:1.5px 6px;border-radius:999px;white-space:nowrap">PLANNED</span></div><div class="pw">Higher-fidelity in-place text editing.</div></div>
     </div>
   </div>
 
