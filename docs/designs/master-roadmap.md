@@ -52,9 +52,9 @@ Mostly free/on-device unless marked.
 - [ ] ⏳ **Natural-language ⌘K commands** (semantic tier) — "delete blank pages", "redact emails"
 - [ ] ⏳ **Sanitize / clean PDF** — strip metadata + embedded JS (privacy brand)
 - [ ] ⏳ **Semantic AI compare** — "what actually changed" between two versions (Pro/AI)
-- [ ] ⏳ **PDF → Markdown**
-- [ ] ⏳ **PDF → audio (TTS)** + **speech-to-text** (Web Speech API, free)
-- [ ] ⏳ **Bates numbering** (legal page-stamping, Pro)
+- [x] ✅ **PDF → Markdown** (`/pdf-to-markdown` — free on-device: headings/lists/GFM tables from layout; Rendered/Raw preview + Copy/.md; 11/11 core + 6/6 real-pdf.js tests. v1 has no image extraction — v1.1)
+- [x] ✅ **PDF → audio (TTS)** (`/pdf-to-audio` — free on-device: Web Speech read-aloud, voice/speed/pitch, sentence follow-highlight + tap-to-jump; 7/7 segmentation. **MP3 file export = deliberate future Pro add-on** — free v1 is playback only) · [ ] ⏳ speech-to-text (still pending)
+- [x] ✅ **Bates numbering** (`/bates-numbering` — **FREE** on-device: prefix/start/digits/suffix, 6 corners, page range, **continuous across a whole file set**→PDF/zip, live preview; 23/23 incl. full IO proven w/ real pdf-lib+pdf.js. NOTE: was planned "Pro" — shipped free per gate-scale-not-quality)
 - [ ] ⏳ **Accessibility / PDF-UA auto-tag** ⭐ (EU Accessibility Act enforcement live 28 Jun 2025 — no consumer tool exists)
 - [ ] ⏳ **PDF → EPUB**
 - [ ] ⏳ **Receipt / invoice / statement → spreadsheet** ⭐ (IDP — the 2026 wave)
