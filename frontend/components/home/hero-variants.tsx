@@ -65,7 +65,9 @@ function ToolScene({ Icon, color, name, sub, from, to, result }: (typeof SLIDES)
   );
 }
 
-function FramedSlider() {
+// Exported so the home "Three steps" section can reuse the exact same banner
+// (see components/home/tool-in-action.tsx) — one component, no drift.
+export function FramedSlider() {
   const reduce = useReducedMotion();
   const [i, setI] = useState(0);
   const paused = useRef(false);

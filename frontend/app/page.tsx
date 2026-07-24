@@ -10,6 +10,7 @@ import { SiteHeader } from '@/components/app/site-header';
 import { SiteFooter } from '@/components/app/site-footer';
 import { HeroHybrid } from '@/components/home/hero-variants';
 import { AllToolsDirectory } from '@/components/home/all-tools-directory';
+import { ToolInAction } from '@/components/home/tool-in-action';
 import { JumpBackIn } from '@/components/home/jump-back-in';
 import { ProofStrip } from '@/components/home/proof-strip';
 import { liveToolCount } from '@/components/app/catalog';
@@ -91,6 +92,10 @@ export default function Home() {
 
       {/* All tools — the single canonical tools section */}
       <AllToolsDirectory />
+
+      {/* "Three steps" — reuses the cycling tool banner to show what using any
+          tool actually looks like, right after the grid of what's available. */}
+      <ToolInAction />
 
       {/* Verifiable proof — the documented compress test (our kind of social proof) */}
       <ProofStrip />
