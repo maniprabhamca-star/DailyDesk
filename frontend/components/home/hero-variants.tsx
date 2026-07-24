@@ -167,7 +167,7 @@ function LiveDemoCluster() {
       <div
         aria-hidden
         className="pointer-events-none absolute inset-4 rounded-[44px]"
-        style={{ background: 'radial-gradient(closest-side, rgba(124,58,237,0.16), transparent)' }}
+        style={{ background: 'radial-gradient(closest-side, rgba(5,150,105,0.15), transparent)' }}
       />
       <div className="relative">
         <HeroLiveDemo />
