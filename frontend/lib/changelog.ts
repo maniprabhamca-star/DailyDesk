@@ -16,6 +16,14 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-07-23',
+    kind: 'improved',
+    title: 'Try a tool without leaving the home page',
+    detail:
+      'The home page now opens with a working compressor instead of a picture of one — drop a PDF straight into the hero and watch it shrink on your own device, then carry the same file into the full Compress tool without re-uploading it. Open your browser’s Network tab while it runs: you’ll see nothing leave your machine. Further down, a new section shows what using any tool actually looks like — same three steps, every time.',
+    href: '/',
+  },
+  {
+    date: '2026-07-23',
     kind: 'new',
     title: 'PDF to Audio — have any PDF read aloud',
     detail:
