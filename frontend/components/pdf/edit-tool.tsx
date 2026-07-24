@@ -2,7 +2,7 @@
 import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 
 import React, { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react';
-import { Upload, X, Loader2, Pencil, Undo2, Redo2, Bold, Italic, Trash2, Minus, Plus, Zap, TextCursorInput, Highlighter, Pen, Square, Circle, ArrowUpRight, ChevronDown, Signature as SignatureIcon, ImagePlus, Move, Maximize2, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, Stamp as StampIcon, Link as LinkIcon, RotateCw, History } from 'lucide-react';
+import { Upload, X, Loader2, Pencil, Undo2, Redo2, Bold, Italic, Trash2, Minus, Plus, Zap, TextCursorInput, Highlighter, Pen, Square, Circle, ArrowUpRight, ChevronDown, Signature as SignatureIcon, ImagePlus, Move, Maximize2, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, Stamp as StampIcon, Link as LinkIcon, RotateCw, History, Search } from 'lucide-react';
 import { SignatureMaker } from './signature-maker';
 import { Card, CardContent } from '@/components/ui/card';
 import { downloadBlob as download } from '@/lib/download';
@@ -14,6 +14,7 @@ import { rewritePdf } from '@/lib/pdf-rewrite';
 import { openPdf, renderPage, dprTarget, getPdfjs, type PdfHandle, type RenderedPage } from '@/lib/pdf-render';
 import { PageStrip } from '@/components/pdf/page-strip';
 import { EditorShell } from '@/components/pdf/editor-shell';
+import { EditProperties, type EditSelKind, type EditBox, type EditLayer, type AlignTo } from '@/components/pdf/edit-properties';
 import { FontSelect } from '@/components/app/font-select';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
@@ -445,12 +446,22 @@ export function EditTool() {
   const [hoverStamp, setHoverStamp] = useState<number | null>(null);
   const [linkOpen, setLinkOpen] = useState(false);
   const [linkDraft, setLinkDraft] = useState('');
+  // Find & replace (runs over detected paragraph blocks — see findMatches below).
+  const [findOpen, setFindOpen] = useState(false);
+  const [findText, setFindText] = useState('');
+  const [replaceText, setReplaceText] = useState('');
+  const [findCase, setFindCase] = useState(false);
+  const [findIdx, setFindIdx] = useState(0);
+  const [replacedCount, setReplacedCount] = useState(0);
+  const [scanQueue, setScanQueue] = useState<number[] | null>(null);
+  const scanReturn = useRef<number | null>(null);
   const [sigOpen, setSigOpen] = useState(false);
   // Add-text (new boxes the user places), separate from the PDF's own words.
   const [added, setAdded] = useState<Added[]>([]);
   const [addSel, setAddSel] = useState<string | null>(null); // id being edited
   const [addMode, setAddMode] = useState(false);             // click-to-place armed
   const dragRef = useRef<{ id: string; dx: number; dy: number; moved: boolean } | null>(null);
+  const addResize = useRef<{ id: string; startY: number; startSize: number } | null>(null);
   const addInputRef = useRef<HTMLInputElement>(null);
   const imgCache = useRef<Map<string, HTMLImageElement>>(new Map());
   const imgFileRef = useRef<HTMLInputElement>(null);
@@ -981,6 +992,27 @@ export function EditTool() {
     dragRef.current = null;
     if (selectOnClick && d && !d.moved) { closeWord(); setAddSel(d.id); }
   }
+
+  // Corner grip on a SELECTED added text box — drag to scale its font size, the
+  // same direct-manipulation gesture paragraphs, images and stamps already have.
+  // Vertical travel drives it: an added box has no width of its own (it's as wide
+  // as its text), so only the size is meaningful to drag.
+  function addResizeDown(e: React.PointerEvent<HTMLElement>, a: Added) {
+    e.stopPropagation();
+    e.preventDefault();
+    pushHistory();
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+    addResize.current = { id: a.id, startY: e.clientY, startSize: a.sizeFrac };
+  }
+  function addResizeMove(e: React.PointerEvent<HTMLElement>) {
+    const d = addResize.current;
+    const r = wrapRef.current?.getBoundingClientRect();
+    if (!d || !r || !r.height) return;
+    e.preventDefault();
+    const next = d.startSize + (e.clientY - d.startY) / r.height;
+    setAdded((prev) => prev.map((x) => (x.id === d.id ? { ...x, sizeFrac: Math.max(0.006, Math.min(0.2, next)) } : x)));
+  }
+  function addResizeUp() { addResize.current = null; }
 
   function chooseTool(next: EditorTool) {
     setTool(next);
@@ -1688,6 +1720,271 @@ export function EditTool() {
   const pageStamps = (markups[sel] || [])
     .map((m, index) => ({ m, index }))
     .filter((x): x is { m: StampMarkup; index: number } => x.m.kind === 'stamp');
+  // ---- Find & replace across the document -----------------------------------
+  // Matches are found in the DETECTED paragraph blocks, and every replacement is
+  // written through setBlockEdits — the same path typing in a block already uses.
+  // So export, undo and the on-page redraw need no new code, and a replacement is
+  // indistinguishable from having retyped the paragraph by hand.
+  //
+  // Detection is per-page and costly (render + pixel sample), so only pages the
+  // user has opened are searched until they ask for the rest. The bar says so
+  // rather than quietly under-reporting a count.
+  const detectedPages = Object.keys(blocks).map(Number);
+  const unscannedPages = pageCount ? Array.from({ length: pageCount }, (_, i) => i).filter((i) => !blocks[i]) : [];
+
+  const findMatches = useMemo(() => {
+    const q = findText;
+    const out: { page: number; blockId: string; start: number }[] = [];
+    if (!q) return out;
+    const needle = findCase ? q : q.toLowerCase();
+    const pages = Object.keys(blocks).map(Number).sort((a, b) => a - b);
+    for (const p of pages) {
+      for (const b of blocks[p] || []) {
+        const raw = blockEdits[b.id] ?? b.text;
+        const hay = findCase ? raw : raw.toLowerCase();
+        let at = hay.indexOf(needle);
+        while (at !== -1) {
+          out.push({ page: p, blockId: b.id, start: at });
+          at = hay.indexOf(needle, at + Math.max(1, needle.length));
+        }
+      }
+    }
+    return out;
+  }, [findText, findCase, blocks, blockEdits]);
+
+  const findPages = Array.from(new Set(findMatches.map((m) => m.page + 1)));
+
+  function gotoMatch(i: number) {
+    if (!findMatches.length) return;
+    const n = ((i % findMatches.length) + findMatches.length) % findMatches.length;
+    setFindIdx(n);
+    const m = findMatches[n];
+    if (m.page !== sel) setSel(m.page);
+    const b = (blocks[m.page] || []).find((x) => x.id === m.blockId);
+    if (b) { setAddSel(null); setSelImg(null); setSelStamp(null); openBlock(b); }
+  }
+
+  function replaceOne() {
+    const m = findMatches[findIdx];
+    if (!m || !findText) return;
+    const list = blocks[m.page] || [];
+    const b = list.find((x) => x.id === m.blockId);
+    if (!b) return;
+    const raw = blockEdits[b.id] ?? b.text;
+    const next = raw.slice(0, m.start) + replaceText + raw.slice(m.start + findText.length);
+    pushHistory();
+    setBlockEdits((s) => ({ ...s, [b.id]: next }));
+    setReplacedCount((c) => c + 1);
+    setFindIdx((i) => Math.max(0, Math.min(i, findMatches.length - 2)));
+  }
+
+  function replaceAll() {
+    if (!findText || !findMatches.length) return;
+    const byBlock = new Map<string, { page: number; starts: number[] }>();
+    for (const m of findMatches) {
+      const e = byBlock.get(m.blockId) || { page: m.page, starts: [] };
+      e.starts.push(m.start);
+      byBlock.set(m.blockId, e);
+    }
+    pushHistory();
+    setBlockEdits((s) => {
+      const next = { ...s };
+      for (const [blockId, { page, starts }] of Array.from(byBlock.entries())) {
+        const b = (blocks[page] || []).find((x) => x.id === blockId);
+        if (!b) continue;
+        let raw = next[blockId] ?? b.text;
+        // Right-to-left so earlier offsets stay valid as the string changes length.
+        for (const start of [...starts].sort((a, c) => c - a)) {
+          raw = raw.slice(0, start) + replaceText + raw.slice(start + findText.length);
+        }
+        next[blockId] = raw;
+      }
+      return next;
+    });
+    setReplacedCount((c) => c + findMatches.length);
+    setFindIdx(0);
+  }
+
+  // "Scan the rest" — walks the undetected pages through the existing per-page
+  // detection effect one at a time, then returns to where the user was. Nothing
+  // about detection itself changes; this just visits pages the way a person would.
+  function scanAllPages() {
+    if (!unscannedPages.length) return;
+    scanReturn.current = sel;
+    setScanQueue(unscannedPages);
+  }
+  useEffect(() => {
+    if (!scanQueue) return;
+    if (!scanQueue.length) {
+      const back = scanReturn.current;
+      scanReturn.current = null;
+      setScanQueue(null);
+      if (back !== null) setSel(back);
+      return;
+    }
+    const head = scanQueue[0];
+    if (blocks[head]) { setScanQueue((q) => (q ? q.slice(1) : q)); return; }
+    if (sel !== head) setSel(head);
+  }, [scanQueue, blocks, sel]);
+
+  // ---- Right-hand properties panel ------------------------------------------
+  // Derived only. Every writer below is a function edit-tool already owned, so
+  // the panel can't reach past what dragging on the page could already do.
+  const imgHeightFrac = (im: ImageItem) => im.w * im.aspect * (disp.w / Math.max(1, disp.h));
+  const selKind: EditSelKind =
+    activeImage ? 'image' : activeAdded ? 'text' : activeBlock ? 'paragraph' : activeEdit ? 'word' : 'none';
+
+  let selBox: EditBox | null = null;
+  let onSelBox: ((patch: Partial<EditBox>) => void) | undefined;
+  if (activeBlock) {
+    const l = blockLayoutOf(activeBlock);
+    selBox = { x: l.x, y: l.y, w: l.w, h: l.h };
+    onSelBox = (patch) => {
+      pushHistory();
+      setBlockLayout((s) => ({ ...s, [activeBlock.id]: { ...blockLayoutOf(activeBlock), ...patch } }));
+    };
+  } else if (activeAdded) {
+    // An added box has no rectangle — its height IS its font size.
+    selBox = { x: activeAdded.x, y: activeAdded.y, h: activeAdded.sizeFrac };
+    onSelBox = (patch) => {
+      const { h, ...xy } = patch;
+      patchAdded({ ...xy, ...(h !== undefined ? { sizeFrac: Math.max(0.006, Math.min(0.2, h)) } : {}) });
+    };
+  } else if (activeImage) {
+    selBox = { x: activeImage.x, y: activeImage.y, w: activeImage.w, h: imgHeightFrac(activeImage) };
+    onSelBox = (patch) => {
+      pushHistory();
+      const { h: _h, ...rest } = patch; // height follows the image's aspect — not writable directly
+      setImages((prev) => prev.map((im) => (im.id === activeImage.id ? { ...im, ...rest, changed: true } : im)));
+    };
+  }
+
+  function alignSel(to: AlignTo) {
+    if (!selBox || !onSelBox) return;
+    const w = selBox.w ?? 0;
+    const h = selBox.h ?? 0;
+    const map: Record<AlignTo, Partial<EditBox>> = {
+      left: { x: 0 },
+      hcenter: { x: Math.max(0, (1 - w) / 2) },
+      right: { x: Math.max(0, 1 - w) },
+      top: { y: 0 },
+      vcenter: { y: Math.max(0, (1 - h) / 2) },
+      bottom: { y: Math.max(0, 1 - h) },
+    };
+    onSelBox(map[to]);
+  }
+
+  const selFontBundled = !!FAMILIES[selFamily].files || !!RENDER_CSS[selFamily];
+  const panelLayers: EditLayer[] = [
+    ...pageBlocks
+      .filter((b) => blockChanged(b) || b.id === editingBlock)
+      .map((b) => ({
+        key: `b:${b.id}`,
+        kind: 'paragraph' as const,
+        label: (blockTextOf(b).trim().split(/\s+/).slice(0, 5).join(' ') || 'Paragraph').slice(0, 40),
+        selected: b.id === editingBlock,
+        edited: blockChanged(b),
+        onSelect: () => { setAddSel(null); setSelImg(null); setSelStamp(null); openBlock(b); },
+      })),
+    ...added
+      .filter((a) => a.page === sel)
+      .map((a) => ({
+        key: `a:${a.id}`,
+        kind: 'text' as const,
+        label: (a.text.trim() || 'Empty text box').slice(0, 40),
+        selected: a.id === addSel,
+        edited: true,
+        onSelect: () => { closeWord(); closeBlock(); setSelImg(null); setSelStamp(null); setAddSel(a.id); },
+      })),
+    ...images
+      .filter((im) => im.page === sel && !im.deleted && (im.source !== 'pdf' || im.changed))
+      .map((im) => ({
+        key: `i:${im.id}`,
+        kind: 'image' as const,
+        label: im.source === 'pdf' ? 'Page image (moved)' : 'Image',
+        selected: im.id === selImg,
+        edited: true,
+        onSelect: () => { closeWord(); closeBlock(); setAddSel(null); setSelStamp(null); setSelImg(im.id); },
+      })),
+    ...pageStamps.map(({ m, index }) => ({
+      key: `s:${index}`,
+      kind: 'stamp' as const,
+      label: m.text,
+      selected: index === selStamp,
+      edited: true,
+      onSelect: () => { closeWord(); closeBlock(); setAddSel(null); setSelImg(null); setSelStamp(index); },
+    })),
+  ];
+
+  const findBar = (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-primary">
+        <Search className="size-3.5" /> Find &amp; replace
+      </span>
+      <input
+        value={findText}
+        onChange={(e) => { setFindText(e.target.value); setFindIdx(0); }}
+        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); gotoMatch(e.shiftKey ? findIdx - 1 : findIdx + 1); } }}
+        placeholder="Find in document"
+        aria-label="Find in document"
+        className="h-8 w-44 rounded-md border bg-background px-2 text-sm outline-none focus:border-primary"
+      />
+      <input
+        value={replaceText}
+        onChange={(e) => setReplaceText(e.target.value)}
+        placeholder="Replace with"
+        aria-label="Replace with"
+        className="h-8 w-44 rounded-md border bg-background px-2 text-sm outline-none focus:border-primary"
+      />
+      <button type="button" onClick={() => setFindCase((c) => !c)} aria-pressed={findCase}
+        title="Match case"
+        className={`h-8 rounded-md border px-2 text-xs font-semibold transition-colors ${findCase ? 'border-primary bg-primary text-primary-foreground' : 'hover:bg-accent'}`}>Aa</button>
+
+      <span className="text-xs tabular-nums text-muted-foreground">
+        {findText
+          ? findMatches.length
+            ? <>{findIdx + 1} of {findMatches.length} · page{findPages.length > 1 ? 's' : ''} {findPages.join(', ')}</>
+            : 'No matches'
+          : `${detectedPages.length} of ${pageCount} page${pageCount === 1 ? '' : 's'} scanned`}
+      </span>
+
+      <button type="button" onClick={() => gotoMatch(findIdx - 1)} disabled={!findMatches.length}
+        className="h-8 rounded-md border px-2.5 text-xs font-medium transition-colors hover:bg-accent disabled:opacity-40">Prev</button>
+      <button type="button" onClick={() => gotoMatch(findIdx + 1)} disabled={!findMatches.length}
+        className="h-8 rounded-md border px-2.5 text-xs font-medium transition-colors hover:bg-accent disabled:opacity-40">Next</button>
+      <button type="button" onClick={replaceOne} disabled={!findMatches.length}
+        className="h-8 rounded-md border px-2.5 text-xs font-medium transition-colors hover:bg-accent disabled:opacity-40">Replace</button>
+      <button type="button" onClick={replaceAll} disabled={!findMatches.length}
+        className="h-8 rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40">
+        Replace all{findMatches.length ? ` ${findMatches.length}` : ''}
+      </button>
+
+      {unscannedPages.length > 0 && (
+        <button type="button" onClick={scanAllPages} disabled={!!scanQueue}
+          className="flex h-8 items-center gap-1.5 rounded-md border border-dashed px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent disabled:opacity-60">
+          {scanQueue ? <><Loader2 className="size-3.5 animate-spin" /> Scanning… {pageCount - unscannedPages.length}/{pageCount}</> : <>Scan the other {unscannedPages.length} page{unscannedPages.length === 1 ? '' : 's'}</>}
+        </button>
+      )}
+
+      <button type="button" onClick={() => setFindOpen(false)} aria-label="Close find and replace"
+        className="ml-auto flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
+        <X className="size-3.5" />
+      </button>
+
+      {/* Replacing covers the old glyphs and draws new ones on top — the original
+          words stay in the page's text layer and can still be copied out. That's
+          fine for a typo, and NOT fine for a price or a name, so say so plainly
+          the moment a replacement has actually happened. */}
+      {replacedCount > 0 && (
+        <p className="w-full text-[11.5px] leading-relaxed text-muted-foreground">
+          <span className="font-medium text-foreground">{replacedCount} replaced.</span>{' '}
+          The original words are covered, but still sit in the file’s text layer — anyone can copy them out.
+          To remove text for good, use <a href="/redact-pdf" className="font-medium text-primary underline underline-offset-2">Redact</a>.
+        </p>
+      )}
+    </div>
+  );
+
   const toolButton = (id: EditorTool, icon: React.ReactNode, label: string) => (
     <button type="button" onClick={() => chooseTool(id)} aria-pressed={tool === id} title={label}
       className={`flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium transition-all ${tool === id ? 'bg-primary text-primary-foreground shadow-sm' : 'hover:bg-accent'}`}>
@@ -1797,6 +2094,22 @@ export function EditTool() {
             thumbnails={pageCount > 1 ? (
               <PageStrip orientation="vertical" handle={handle} count={pageCount} selected={sel} onSelect={(i) => { closeWord(); setAddSel(null); setAddMode(false); setEditingBlock(null); setSelImg(null); setSel(i); }} onDelete={deletePage} />
             ) : undefined}
+            contextBar={findOpen ? findBar : undefined}
+            properties={
+              <EditProperties
+                kind={selKind}
+                box={selBox}
+                onBox={onSelBox}
+                sizeLabel={activeAdded ? 'Size' : undefined}
+                pageLabel={`p${sel + 1}`}
+                fontLabel={hasSel ? FAMILIES[selFamily].label : undefined}
+                fontMatch={hasSel ? (selFontBundled ? 'Bundled' : 'System font') : undefined}
+                fontExact={selFontBundled}
+                layers={panelLayers}
+                onAlign={selBox && onSelBox ? alignSel : undefined}
+                onDelete={hasSel || activeImage ? deleteSel : undefined}
+              />
+            }
             toolbar={
               <div className="flex flex-wrap items-center gap-1.5"
                 onMouseDown={(e) => {
@@ -1805,6 +2118,11 @@ export function EditTool() {
                   if (editing || activeAdded || activeBlock) e.preventDefault();
                 }}>
               {toolButton('paragraph', <Pencil className="size-4" />, 'Edit paragraphs')}
+              <button type="button" onClick={() => setFindOpen((o) => !o)} aria-pressed={findOpen}
+                title="Find & replace across the document (Ctrl+F)"
+                className={`flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium transition-all ${findOpen ? 'bg-primary text-primary-foreground shadow-sm' : 'hover:bg-accent'}`}>
+                <Search className="size-4" /> <span className="hidden md:inline">Find</span>
+              </button>
               <button className={`${tbBtn} gap-1.5 w-auto px-2.5 ${addMode ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}`} title="Add a new text box — then click where you want it" aria-pressed={addMode} onClick={() => { if (addMode) chooseTool('paragraph'); else chooseTool('add-text'); }}><TextCursorInput className="size-4" /> <span className="text-xs font-medium">Add text</span></button>
               <span className="mx-0.5 h-6 w-px bg-border/70" />
               {toolButton('highlight', <Highlighter className="size-4" />, 'Highlight')}
@@ -2068,6 +2386,16 @@ export function EditTool() {
                               className="pointer-events-auto absolute -right-2 -top-2 flex size-5 items-center justify-center rounded-full bg-destructive text-white shadow">
                               <X className="size-3" />
                             </button>
+                            <span role="button" tabIndex={0} title="Drag to resize" aria-label="Resize text box"
+                              onPointerDown={(e) => addResizeDown(e, a)} onPointerMove={addResizeMove} onPointerUp={addResizeUp}
+                              onKeyDown={(e) => {
+                                if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                                  e.preventDefault();
+                                  const step = e.key === 'ArrowDown' ? 1.06 : 1 / 1.06;
+                                  patchAdded({ sizeFrac: Math.max(0.006, Math.min(0.2, a.sizeFrac * step)) });
+                                }
+                              }}
+                              className="pointer-events-auto absolute -bottom-1.5 -right-1.5 size-3.5 cursor-nwse-resize touch-none rounded-sm border-2 border-primary bg-white" />
                           </div>
                         </React.Fragment>
                       );
