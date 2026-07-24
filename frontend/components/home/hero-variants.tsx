@@ -152,11 +152,13 @@ function ProductCluster() {
 // they read as hovering companions rather than stickers pinned to the box. Hidden
 // below `sm` so the negative offsets can never cause sideways scroll on phones.
 function LiveDemoCluster() {
+  // Corner placement — the same four offsets the classic ProductCluster used, so
+  // the live demo wears the brand jewellery exactly as the old hero did.
   const tiles = [
-    { bg: 'bg-violet-500', Icon: PenTool, pos: '-left-7 top-[27%]', delay: 0 },
-    { bg: 'bg-amber-500', Icon: ImageIcon, pos: '-right-8 top-[15%]', delay: 0.7 },
-    { bg: 'bg-teal-500', Icon: Shrink, pos: '-left-8 bottom-[25%]', delay: 1.3 },
-    { bg: 'bg-rose-600', Icon: Combine, pos: '-right-7 bottom-[12%]', delay: 0.4 },
+    { bg: 'bg-violet-500', Icon: PenTool, pos: '-left-6 -top-6', delay: 0 },
+    { bg: 'bg-amber-500', Icon: ImageIcon, pos: '-right-7 -top-3', delay: 0.7 },
+    { bg: 'bg-teal-500', Icon: Shrink, pos: '-left-7 -bottom-3', delay: 1.3 },
+    { bg: 'bg-rose-600', Icon: Combine, pos: '-right-6 -bottom-6', delay: 0.4 },
   ];
   return (
     <div className="relative mx-auto w-full max-w-[520px] px-2 sm:px-10 md:pt-12">
