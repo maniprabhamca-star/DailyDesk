@@ -1,0 +1,749 @@
+<title>Edit PDF — properties panel, find & replace, font fidelity · plus tool-page differentiators</title>
+
+<style>
+  :root {
+    --ink:      #14151c;
+    --ink-2:    #4a4d5e;
+    --ink-3:    #7c8095;
+    --paper:    #ffffff;
+    --paper-2:  #f6f6fa;
+    --paper-3:  #eeeef4;
+    --line:     #e3e3ec;
+    --line-2:   #d3d4e0;
+    --indigo:   #4f46e5;
+    --indigo-2: #ecebff;
+    --green:    #15803d;
+    --green-2:  #e6f5ec;
+    --violet:   #7c3aed;
+    --amber:    #b45309;
+    --amber-2:  #fdf1de;
+    --rose:     #be123c;
+
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+    --r: 10px;
+    --shadow: 0 1px 2px rgba(20,21,28,.05), 0 8px 24px -12px rgba(20,21,28,.18);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink:      #e9eaf2;
+      --ink-2:    #a4a8bd;
+      --ink-3:    #767a90;
+      --paper:    #131420;
+      --paper-2:  #1a1c29;
+      --paper-3:  #222536;
+      --line:     #2a2d3e;
+      --line-2:   #3a3e52;
+      --indigo:   #8b83ff;
+      --indigo-2: #22214a;
+      --green:    #4ade80;
+      --green-2:  #16301f;
+      --violet:   #a78bfa;
+      --amber:    #fbbf24;
+      --amber-2:  #33260d;
+      --rose:     #fb7185;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 28px -12px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ink:#e9eaf2; --ink-2:#a4a8bd; --ink-3:#767a90;
+    --paper:#131420; --paper-2:#1a1c29; --paper-3:#222536;
+    --line:#2a2d3e; --line-2:#3a3e52;
+    --indigo:#8b83ff; --indigo-2:#22214a;
+    --green:#4ade80; --green-2:#16301f;
+    --violet:#a78bfa; --amber:#fbbf24; --amber-2:#33260d; --rose:#fb7185;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 28px -12px rgba(0,0,0,.6);
+  }
+  :root[data-theme="light"] {
+    --ink:#14151c; --ink-2:#4a4d5e; --ink-3:#7c8095;
+    --paper:#ffffff; --paper-2:#f6f6fa; --paper-3:#eeeef4;
+    --line:#e3e3ec; --line-2:#d3d4e0;
+    --indigo:#4f46e5; --indigo-2:#ecebff;
+    --green:#15803d; --green-2:#e6f5ec;
+    --violet:#7c3aed; --amber:#b45309; --amber-2:#fdf1de; --rose:#be123c;
+    --shadow: 0 1px 2px rgba(20,21,28,.05), 0 8px 24px -12px rgba(20,21,28,.18);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper-2);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1140px; margin: 0 auto; padding: 40px 20px 80px; }
+
+  /* ---------- masthead ---------- */
+  .masthead { display: flex; flex-direction: column; gap: 14px; padding-bottom: 28px; border-bottom: 1px solid var(--line); }
+  .eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--indigo); font-weight: 600; }
+  h1 { font-size: clamp(28px, 4vw, 38px); line-height: 1.15; margin: 0; letter-spacing: -.02em; text-wrap: balance; font-weight: 700; }
+  .lede { margin: 0; max-width: 68ch; color: var(--ink-2); font-size: 16.5px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+
+  .tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: var(--mono); font-size: 11px; font-weight: 600;
+    padding: 4px 9px; border-radius: 999px;
+    border: 1px solid var(--line-2); color: var(--ink-2); background: var(--paper);
+  }
+  .tag.approved { border-color: color-mix(in srgb, var(--green) 40%, transparent); color: var(--green); background: var(--green-2); }
+  .tag.new { border-color: color-mix(in srgb, var(--indigo) 40%, transparent); color: var(--indigo); background: var(--indigo-2); }
+
+  /* ---------- sections ---------- */
+  section { margin-top: 56px; }
+  .sec-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+  h2 { font-size: 23px; margin: 0; letter-spacing: -.015em; font-weight: 700; }
+  .sec-note { margin: 0 0 22px; color: var(--ink-2); max-width: 70ch; }
+  h3 { font-size: 16px; margin: 0 0 6px; font-weight: 650; letter-spacing: -.005em; }
+
+  /* ---------- editor mockup frame ---------- */
+  .stage { position: relative; }
+  .scroller { overflow-x: auto; padding-bottom: 6px; }
+
+  .editor {
+    min-width: 900px;
+    border: 1px solid var(--line); border-radius: 14px; overflow: hidden;
+    background: var(--paper); box-shadow: var(--shadow);
+  }
+
+  .topbar { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-bottom: 1px solid var(--line); background: var(--paper-2); }
+  .topbar .name { font-weight: 650; font-size: 13.5px; display: flex; align-items: center; gap: 6px; }
+  .topbar .file { font-size: 11.5px; color: var(--ink-3); }
+  .topbar .right { margin-left: auto; display: flex; align-items: center; gap: 7px; }
+
+  .grp { display: flex; align-items: center; border: 1px solid var(--line-2); border-radius: 8px; overflow: hidden; background: var(--paper); }
+  .grp > button { border: 0; background: transparent; }
+  .ib {
+    width: 30px; height: 29px; display: inline-flex; align-items: center; justify-content: center;
+    color: var(--ink-2); font-size: 13px; cursor: default; font-family: var(--sans);
+  }
+  .zoom { display: flex; align-items: center; gap: 2px; border: 1px solid var(--line-2); border-radius: 8px; padding: 0 3px; }
+  .zoom .val { font-family: var(--mono); font-size: 11.5px; color: var(--ink-2); min-width: 4ch; text-align: center; }
+  .save { background: var(--indigo); color: #fff; border: 0; border-radius: 8px; padding: 7px 15px; font-size: 13px; font-weight: 600; font-family: var(--sans); }
+
+  .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; padding: 8px 12px; border-bottom: 1px solid var(--line); background: var(--paper); }
+  .tb { height: 30px; min-width: 30px; padding: 0 8px; border: 0; background: transparent; border-radius: 7px; color: var(--ink-2); font-size: 12.5px; font-family: var(--sans); display: inline-flex; align-items: center; gap: 5px; }
+  .tb.on { background: var(--indigo); color: #fff; font-weight: 600; }
+  .tb.wide { font-weight: 500; }
+  .sep { width: 1px; height: 20px; background: var(--line); margin: 0 3px; }
+  .swatches { display: flex; gap: 4px; padding: 0 4px; }
+  .sw { width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--line-2); }
+  .sw.sel { outline: 2px solid var(--indigo); outline-offset: 1px; }
+
+  /* contextBar */
+  .contextbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 9px 12px; border-bottom: 1px solid var(--line); background: var(--indigo-2); }
+  .cb-label { font-family: var(--mono); font-size: 10.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--indigo); }
+  .field { display: flex; align-items: center; gap: 6px; background: var(--paper); border: 1px solid var(--line-2); border-radius: 7px; padding: 5px 9px; font-size: 12.5px; }
+  .field span.ph { color: var(--ink-3); }
+  .field strong { font-weight: 600; }
+  .count { font-family: var(--mono); font-size: 11.5px; color: var(--ink-2); }
+  .btn-sm { border: 1px solid var(--line-2); background: var(--paper); color: var(--ink); border-radius: 7px; padding: 5px 11px; font-size: 12.5px; font-weight: 550; font-family: var(--sans); }
+  .btn-sm.primary { background: var(--indigo); border-color: var(--indigo); color: #fff; }
+
+  /* body: rail | canvas | panel */
+  .ebody { display: grid; grid-template-columns: 78px minmax(0,1fr) 252px; min-height: 430px; }
+  .rail { border-right: 1px solid var(--line); background: var(--paper-2); padding: 10px 8px; display: flex; flex-direction: column; gap: 8px; }
+  .thumb { aspect-ratio: 3/4; border: 1px solid var(--line-2); border-radius: 5px; background: var(--paper); position: relative; }
+  .thumb.sel { border-color: var(--indigo); box-shadow: 0 0 0 2px var(--indigo-2); }
+  .thumb::after { content: attr(data-n); position: absolute; bottom: 3px; right: 4px; font-family: var(--mono); font-size: 9px; color: var(--ink-3); }
+
+  .canvas { background: var(--paper-3); padding: 20px; display: flex; justify-content: center; align-items: flex-start; }
+  .page { width: 300px; background: #fff; border: 1px solid var(--line-2); border-radius: 3px; padding: 22px 20px; position: relative; box-shadow: 0 3px 14px rgba(20,21,28,.13); }
+  .page .doc-h { font-size: 12px; font-weight: 700; color: #14151c; margin-bottom: 9px; font-family: Georgia, "Times New Roman", serif; }
+  .page .doc-p { font-size: 8.5px; line-height: 1.65; color: #33353f; font-family: Georgia, "Times New Roman", serif; }
+  .page .doc-p + .doc-p { margin-top: 7px; }
+  .hit { background: #fde68a; border-radius: 2px; padding: 0 1px; }
+  .hit.now { background: #fbbf24; outline: 1px solid #b45309; }
+
+  /* selected added-text box with grip */
+  .addbox { position: absolute; left: 22px; bottom: 40px; padding: 3px 6px; font-size: 10px; font-family: var(--sans); color: #1f2340; background: rgba(255,255,255,.75); outline: 2px solid var(--indigo); border-radius: 2px; }
+  .grip { position: absolute; right: -5px; bottom: -5px; width: 11px; height: 11px; background: #fff; border: 2px solid var(--indigo); border-radius: 2px; }
+  .movepill { position: absolute; left: -3px; top: -25px; display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 7px; font-size: 10px; font-weight: 600; color: var(--indigo); background: var(--paper); border: 1px solid var(--line-2); border-radius: 6px; box-shadow: var(--shadow); white-space: nowrap; }
+
+  /* properties panel */
+  .panel { border-left: 1px solid var(--line); background: var(--paper-2); padding: 11px; display: flex; flex-direction: column; gap: 9px; overflow: hidden; }
+  .card { border: 1px solid var(--line); border-radius: var(--r); background: var(--paper); padding: 10px; }
+  .card.hero { border-color: color-mix(in srgb, var(--indigo) 30%, transparent); background: linear-gradient(160deg, var(--indigo-2), var(--paper) 65%); }
+  .card-head { display: flex; align-items: center; gap: 7px; margin-bottom: 8px; }
+  .card-head .ttl { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-3); }
+  .card-head .n { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--ink-3); background: var(--paper-3); border-radius: 999px; padding: 1px 6px; }
+  .obj { display: flex; align-items: center; gap: 9px; }
+  .obj .ic { width: 32px; height: 32px; border-radius: 9px; background: var(--indigo); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 15px; flex: 0 0 auto; }
+  .obj .nm { font-size: 13px; font-weight: 650; line-height: 1.25; }
+  .obj .sub { font-size: 9.5px; font-family: var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--indigo); font-weight: 600; }
+  .hint { margin: 7px 0 0; font-size: 11px; line-height: 1.5; color: var(--ink-2); }
+
+  .xy { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .num { display: flex; align-items: center; gap: 5px; border: 1px solid var(--line-2); border-radius: 6px; padding: 4px 7px; background: var(--paper); }
+  .num label { font-family: var(--mono); font-size: 10px; color: var(--ink-3); font-weight: 600; }
+  .num .v { font-family: var(--mono); font-size: 11.5px; font-variant-numeric: tabular-nums; margin-left: auto; }
+
+  .row { display: flex; align-items: center; gap: 7px; }
+  .row + .row { margin-top: 7px; }
+  .row .lbl { font-size: 11px; color: var(--ink-2); min-width: 44px; }
+  .bar { flex: 1; height: 4px; border-radius: 999px; background: var(--paper-3); position: relative; }
+  .bar i { position: absolute; inset: 0 30% 0 0; background: var(--indigo); border-radius: 999px; }
+  .bar::after { content: ""; position: absolute; top: 50%; left: 70%; width: 10px; height: 10px; margin-top: -5px; margin-left: -5px; border-radius: 50%; background: var(--paper); border: 2px solid var(--indigo); }
+  .pct { font-family: var(--mono); font-size: 10.5px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+
+  .layers { display: flex; flex-direction: column; gap: 2px; }
+  .layer { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 6px; font-size: 11.5px; }
+  .layer.sel { background: var(--indigo-2); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--indigo) 30%, transparent); }
+  .layer .g { color: var(--ink-3); font-size: 11px; }
+  .layer .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .layer .act { color: var(--ink-3); font-size: 10px; }
+
+  .align-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+  .align-grid div { height: 26px; border: 1px solid var(--line-2); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--ink-2); }
+
+  .fontrow { display: flex; align-items: center; gap: 7px; font-size: 11.5px; }
+  .fontrow .chip { font-family: var(--mono); font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 5px; }
+  .chip.ok { background: var(--green-2); color: var(--green); }
+  .chip.warn { background: var(--amber-2); color: var(--amber); }
+
+  /* callout pins */
+  .pin {
+    position: absolute; z-index: 5;
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--indigo); color: #fff;
+    font-family: var(--mono); font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 0 3px var(--paper), 0 3px 8px rgba(79,70,229,.4);
+  }
+
+  /* legend */
+  .legend { margin-top: 22px; display: grid; gap: 10px; }
+  .li { display: grid; grid-template-columns: 26px 1fr; gap: 12px; align-items: start; padding: 13px 15px; border: 1px solid var(--line); border-radius: var(--r); background: var(--paper); }
+  .li .num-b { width: 24px; height: 24px; border-radius: 50%; background: var(--indigo); color: #fff; font-family: var(--mono); font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  .li p { margin: 4px 0 0; color: var(--ink-2); font-size: 13.5px; }
+  .li code { font-family: var(--mono); font-size: 12px; background: var(--paper-3); padding: 1px 5px; border-radius: 4px; color: var(--ink); }
+  .li .why { margin-top: 7px; font-size: 12.5px; color: var(--ink-2); border-left: 2px solid var(--line-2); padding-left: 10px; }
+  .li .why b { color: var(--ink); font-weight: 600; }
+
+  /* controls */
+  .controls { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 14px; }
+  .seg { display: inline-flex; border: 1px solid var(--line-2); border-radius: 9px; overflow: hidden; background: var(--paper); }
+  .seg button { border: 0; background: transparent; padding: 7px 14px; font-size: 12.5px; font-weight: 550; color: var(--ink-2); cursor: pointer; font-family: var(--sans); }
+  .seg button[aria-pressed="true"] { background: var(--indigo); color: #fff; }
+  .seg button:focus-visible { outline: 2px solid var(--indigo); outline-offset: -2px; }
+  .seg button + button { border-left: 1px solid var(--line-2); }
+
+  /* ---------- tool-page differentiator cards ---------- */
+  .diffs { display: grid; gap: 18px; }
+  @media (min-width: 780px) { .diffs { grid-template-columns: 1fr 1fr; } }
+  .diff { border: 1px solid var(--line); border-radius: 13px; background: var(--paper); overflow: hidden; display: flex; flex-direction: column; }
+  .diff-head { padding: 14px 16px 12px; border-bottom: 1px solid var(--line); }
+  .diff-head .rank { font-family: var(--mono); font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--indigo); }
+  .diff-head p { margin: 5px 0 0; font-size: 13px; color: var(--ink-2); }
+  .diff-demo { padding: 16px; background: var(--paper-2); flex: 1; }
+  .diff-foot { padding: 10px 16px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--ink-2); display: flex; gap: 8px; align-items: baseline; }
+  .diff-foot b { color: var(--ink); font-weight: 600; white-space: nowrap; }
+
+  /* demo widgets */
+  .proof { border: 1px solid color-mix(in srgb, var(--green) 35%, transparent); background: var(--green-2); border-radius: 10px; padding: 12px 14px; }
+  .proof .top { display: flex; align-items: center; gap: 8px; }
+  .proof .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex: 0 0 auto; }
+  .proof .big { font-family: var(--mono); font-size: 21px; font-weight: 700; color: var(--green); font-variant-numeric: tabular-nums; line-height: 1; }
+  .proof .cap { font-size: 12px; color: var(--ink-2); margin-top: 7px; line-height: 1.5; }
+  .proof .cap a { color: var(--indigo); text-decoration: underline; text-underline-offset: 2px; }
+
+  .bench { display: flex; flex-direction: column; gap: 9px; }
+  .brow { display: grid; grid-template-columns: 92px 1fr 62px; gap: 9px; align-items: center; font-size: 12px; }
+  .brow .who { color: var(--ink-2); }
+  .brow.us .who { color: var(--ink); font-weight: 650; }
+  .btrack { height: 15px; border-radius: 4px; background: var(--paper-3); overflow: hidden; }
+  .btrack i { display: block; height: 100%; border-radius: 4px; background: var(--line-2); }
+  .brow.us .btrack i { background: var(--indigo); }
+  .bval { font-family: var(--mono); font-size: 11.5px; text-align: right; font-variant-numeric: tabular-nums; color: var(--ink-2); }
+  .brow.us .bval { color: var(--ink); font-weight: 700; }
+
+  .chain { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+  .chain .cur { display: inline-flex; align-items: center; gap: 6px; padding: 6px 11px; border-radius: 8px; background: var(--indigo); color: #fff; font-size: 12px; font-weight: 600; }
+  .chain .arrow { color: var(--ink-3); font-size: 13px; }
+  .chain .nxt { display: inline-flex; align-items: center; gap: 5px; padding: 6px 11px; border-radius: 8px; border: 1px solid var(--line-2); background: var(--paper); font-size: 12px; color: var(--ink); }
+  .chain .nxt.pro { border-color: color-mix(in srgb, var(--violet) 40%, transparent); color: var(--violet); }
+  .chain-note { margin: 10px 0 0; font-size: 12px; color: var(--ink-2); }
+
+  .spec { display: flex; flex-direction: column; gap: 0; font-size: 12.5px; }
+  .spec div { display: grid; grid-template-columns: 1fr auto; gap: 10px; padding: 7px 0; border-bottom: 1px dashed var(--line); }
+  .spec div:last-child { border-bottom: 0; }
+  .spec .k { color: var(--ink-2); }
+  .spec .v { font-family: var(--mono); font-size: 11.5px; text-align: right; }
+  .spec .v.good { color: var(--green); }
+  .spec .v.warn { color: var(--amber); }
+
+  .ship { display: flex; flex-direction: column; gap: 8px; }
+  .ship .item { display: grid; grid-template-columns: 62px 1fr; gap: 11px; font-size: 12.5px; align-items: baseline; }
+  .ship .when { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); text-align: right; }
+  .ship .what { color: var(--ink-2); }
+  .ship .what b { color: var(--ink); font-weight: 600; }
+  .ship .kind { display: inline-block; font-family: var(--mono); font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 1px 5px; border-radius: 4px; margin-right: 6px; }
+  .kind.new { background: var(--indigo-2); color: var(--indigo); }
+  .kind.fix { background: var(--green-2); color: var(--green); }
+
+  .limits { display: flex; flex-direction: column; gap: 9px; }
+  .limit { display: grid; grid-template-columns: 16px 1fr; gap: 9px; font-size: 12.5px; color: var(--ink-2); align-items: start; }
+  .limit .x { color: var(--rose); font-weight: 700; line-height: 1.35; }
+  .limit b { color: var(--ink); font-weight: 600; }
+
+  .drive { display: flex; flex-direction: column; gap: 9px; }
+  .src { display: flex; align-items: center; gap: 9px; padding: 9px 11px; border: 1px solid var(--line-2); border-radius: 9px; background: var(--paper); font-size: 12.5px; }
+  .src .g { width: 24px; height: 24px; border-radius: 6px; background: var(--paper-3); display: flex; align-items: center; justify-content: center; font-size: 12px; flex: 0 0 auto; }
+  .src .tail { margin-left: auto; font-family: var(--mono); font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 5px; background: color-mix(in srgb, var(--violet) 14%, transparent); color: var(--violet); }
+  .src .tail.free { background: var(--green-2); color: var(--green); }
+
+  /* verdict table */
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r); background: var(--paper); }
+  table { border-collapse: collapse; width: 100%; min-width: 620px; font-size: 13.5px; }
+  th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-family: var(--mono); font-size: 10.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-3); font-weight: 700; background: var(--paper-2); }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.eff { font-family: var(--mono); font-size: 12px; color: var(--ink-2); white-space: nowrap; }
+  .yes { color: var(--green); font-weight: 600; }
+  .no { color: var(--ink-3); }
+
+  .callout { margin-top: 22px; border: 1px solid var(--line); border-left: 3px solid var(--indigo); border-radius: var(--r); background: var(--paper); padding: 15px 18px; }
+  .callout h3 { margin-bottom: 4px; }
+  .callout p { margin: 0; color: var(--ink-2); font-size: 13.5px; }
+  .callout p + p { margin-top: 8px; }
+
+  footer { margin-top: 60px; padding-top: 22px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--ink-3); }
+  footer code { font-family: var(--mono); background: var(--paper-3); padding: 1px 5px; border-radius: 4px; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .seg button { transition: background .15s ease, color .15s ease; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <span class="eyebrow">DiemDesk · design spec</span>
+    <h1>Edit PDF: the five approved changes — plus what a tool page can show that nobody else does</h1>
+    <p class="lede">Everything below is additive. The Codex-stabilised editing core in <code style="font-family:var(--mono);font-size:13px">edit-tool.tsx</code> is not touched: the panel and grip are DOM overlays reading selection state that already exists, and find &amp; replace runs on the paragraph blocks the detector already produces.</p>
+    <div class="meta">
+      <span class="tag approved">✓ all 5 approved</span>
+      <span class="tag">Edit PDF · owner-only until Pro</span>
+      <span class="tag new">typecheck clean at time of writing</span>
+    </div>
+  </header>
+
+  <!-- ============ PART A ============ -->
+  <section>
+    <div class="sec-head">
+      <h2>Part A — Edit PDF</h2>
+      <span class="tag">pins map to the list below</span>
+    </div>
+    <p class="sec-note">Edit is the only one of the three editors without a right-hand panel or a context bar — Annotate and Redact both have them. This brings it level, then past them.</p>
+
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Selected object">
+        <button type="button" data-sel="para" aria-pressed="true">Paragraph selected</button>
+        <button type="button" data-sel="text" aria-pressed="false">Text box selected</button>
+        <button type="button" data-sel="image" aria-pressed="false">Image selected</button>
+      </div>
+      <div class="seg" role="group" aria-label="Find and replace bar">
+        <button type="button" id="fr-toggle" aria-pressed="true">Find &amp; replace bar</button>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="scroller">
+        <div class="editor">
+
+          <!-- top bar -->
+          <div class="topbar">
+            <span class="name">✏️ Edit</span>
+            <span class="file">Supplier-Agreement-2026.pdf · 4 pages</span>
+            <div class="right">
+              <div class="grp">
+                <span class="ib">↺</span><span class="ib">↻</span>
+              </div>
+              <div class="zoom" id="pin6-anchor">
+                <span class="ib">−</span><span class="val">100%</span><span class="ib">+</span>
+              </div>
+              <button type="button" class="save">Save</button>
+            </div>
+            <span class="pin" style="top:-9px; left:calc(100% - 148px);">6</span>
+          </div>
+
+          <!-- toolbar (unchanged) -->
+          <div class="toolbar">
+            <span class="tb on">✏️</span>
+            <span class="tb wide">⌶ Add text</span>
+            <span class="sep"></span>
+            <span class="tb">🖍</span><span class="tb">✒️</span>
+            <span class="tb wide">◻ Shapes ⌄</span>
+            <span class="tb wide">◈ Stamp ⌄</span>
+            <span class="tb">✍️</span><span class="tb">🖼</span>
+            <span class="sep"></span>
+            <span class="tb wide" style="border:1px solid var(--line-2); border-radius:7px;">Carlito (Calibri) ⌄</span>
+            <span class="sep"></span>
+            <span class="tb">−</span><span class="count">11</span><span class="tb">+</span>
+            <span class="sep"></span>
+            <span class="tb"><b>B</b></span><span class="tb"><i>I</i></span><span class="tb"><u>U</u></span><span class="tb"><s>S</s></span><span class="tb">🔗</span>
+            <span class="tb">⬅</span><span class="tb">⬌</span><span class="tb">➡</span>
+            <span class="sep"></span>
+            <span class="swatches">
+              <span class="sw sel" style="background:#14151c"></span>
+              <span class="sw" style="background:#be123c"></span>
+              <span class="sw" style="background:#2563eb"></span>
+              <span class="sw" style="background:#15803d"></span>
+              <span class="sw" style="background:#d97706"></span>
+              <span class="sw" style="background:#7c3aed"></span>
+            </span>
+            <span class="sep"></span>
+            <span class="tb" style="color:var(--rose)">🗑</span>
+          </div>
+
+          <!-- contextBar: find & replace -->
+          <div class="contextbar" id="frbar">
+            <span class="cb-label">Find &amp; replace</span>
+            <span class="field"><span class="ph">Find</span> <strong>Net 30</strong></span>
+            <span class="field"><span class="ph">Replace with</span> <strong>Net 45</strong></span>
+            <span class="count">3 of 7 · pages 1, 2, 4</span>
+            <button type="button" class="btn-sm">Prev</button>
+            <button type="button" class="btn-sm">Next</button>
+            <button type="button" class="btn-sm">Replace</button>
+            <button type="button" class="btn-sm primary">Replace all 7</button>
+            <span class="pin" style="top:-10px; left:12px;">5</span>
+            <span class="pin" style="top:-10px; left:44px;">2</span>
+          </div>
+
+          <!-- body -->
+          <div class="ebody">
+            <div class="rail">
+              <div class="thumb sel" data-n="1"></div>
+              <div class="thumb" data-n="2"></div>
+              <div class="thumb" data-n="3"></div>
+              <div class="thumb" data-n="4"></div>
+            </div>
+
+            <div class="canvas">
+              <div class="page">
+                <div class="doc-h">4. Payment terms</div>
+                <p class="doc-p">Invoices issued under this agreement are payable <span class="hit now">Net 30</span> from the date of receipt. Where the Supplier and the Buyer have agreed alternative terms in a signed schedule, those terms prevail over this clause.</p>
+                <p class="doc-p">Late payment beyond <span class="hit">Net 30</span> accrues interest at the statutory rate. The Buyer shall notify the Supplier of any disputed line item within ten business days of receipt, failing which the invoice is deemed accepted in full.</p>
+                <p class="doc-p">All amounts are stated exclusive of tax. Bank charges on cross-border transfers are borne by the remitting party unless the schedule states otherwise.</p>
+
+                <div class="addbox">
+                  Reviewed — J. Ranganathan
+                  <span class="movepill">✥ Move</span>
+                  <span class="grip"></span>
+                </div>
+                <span class="pin" style="left:104px; bottom:31px;">3</span>
+              </div>
+            </div>
+
+            <!-- properties panel -->
+            <aside class="panel" style="position:relative;">
+              <span class="pin" style="top:-10px; left:-11px;">1</span>
+
+              <div class="card hero">
+                <div class="obj">
+                  <span class="ic" id="obj-ic">¶</span>
+                  <div>
+                    <div class="nm" id="obj-nm">Paragraph</div>
+                    <div class="sub">Selected</div>
+                  </div>
+                </div>
+                <p class="hint" id="obj-hint">Type freely — the text wraps and stays in the PDF’s own font. Drag the edges to reflow it.</p>
+              </div>
+
+              <div class="card">
+                <div class="card-head"><span class="ttl">Position &amp; size</span></div>
+                <div class="xy">
+                  <span class="num"><label>X</label><span class="v">62.0</span></span>
+                  <span class="num"><label>Y</label><span class="v">148.5</span></span>
+                  <span class="num"><label>W</label><span class="v">471.0</span></span>
+                  <span class="num"><label>H</label><span class="v">63.2</span></span>
+                </div>
+                <div class="row" style="margin-top:9px;">
+                  <span class="lbl">Opacity</span>
+                  <span class="bar"><i></i></span>
+                  <span class="pct">100%</span>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-head"><span class="ttl">Font match</span></div>
+                <div class="fontrow"><span>Times New Roman</span><span class="chip ok" id="fontchip">Liberation Serif</span></div>
+                <p class="hint">Bundled metric twin — matches what pdf.js drew. <span class="pin" style="position:relative; display:inline-flex; box-shadow:none; vertical-align:-6px; margin-left:2px;">4</span></p>
+              </div>
+
+              <div class="card">
+                <div class="card-head"><span class="ttl">Layers</span><span class="n">5</span></div>
+                <div class="layers">
+                  <div class="layer sel"><span class="g">¶</span><span class="nm">4. Payment terms</span><span class="act">👁</span></div>
+                  <div class="layer"><span class="g">⌶</span><span class="nm">Reviewed — J. Rang…</span><span class="act">👁</span></div>
+                  <div class="layer"><span class="g">◈</span><span class="nm">APPROVED stamp</span><span class="act">👁</span></div>
+                  <div class="layer"><span class="g">🖼</span><span class="nm">Signature.png</span><span class="act">👁</span></div>
+                  <div class="layer"><span class="g">🖍</span><span class="nm">Highlight</span><span class="act">👁</span></div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-head"><span class="ttl">Align to page</span></div>
+                <div class="align-grid">
+                  <div>⌐</div><div>⌶</div><div>¬</div><div>⌂</div><div>≡</div><div>⌂</div>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <div class="li">
+        <span class="num-b">1</span>
+        <div>
+          <h3>Right-hand properties panel</h3>
+          <p>Contextual card stack: active object, numeric X/Y/W/H, opacity, font match, Layers (reorder · hide · delete), align-to-page. Passed through the shell's existing <code>properties</code> prop — the same one Annotate and Redact already use.</p>
+          <p class="why"><b>Why it matters:</b> Smallpdf and iLovePDF give you a floating toolbar and nothing else — no coordinates, no layer list. This is the "design-tool precision" half of the positioning, and it's the single biggest visible gap between Edit and the other two editors.</p>
+        </div>
+      </div>
+      <div class="li">
+        <span class="num-b">2</span>
+        <div>
+          <h3>Context bar row</h3>
+          <p>The shell's <code>contextBar</code> slot, collapsed by default. Find &amp; replace lives here so it never competes with the main toolbar for space.</p>
+          <p class="why"><b>Why it matters:</b> the toolbar already wraps to two rows on a laptop. Anything else added inline makes it worse; the context bar is the pressure valve that already exists.</p>
+        </div>
+      </div>
+      <div class="li">
+        <span class="num-b">3</span>
+        <div>
+          <h3>Resize grip on added text boxes</h3>
+          <p>Bottom-right grip, matching the one paragraphs, images and stamps already have. Drag scales the box; the Move pill stays above so the two never overlap.</p>
+          <p class="why"><b>Why it matters:</b> added text is the only object on the page you can't resize by dragging — you have to find the toolbar's ± buttons. It reads as a missing feature, not a design decision.</p>
+        </div>
+      </div>
+      <div class="li">
+        <span class="num-b">4</span>
+        <div>
+          <h3>Serif &amp; mono font fidelity</h3>
+          <p>Ship Liberation Serif + Liberation Mono TTFs and map them in <code>RENDER_CSS</code>, the way Helvetica already maps to Liberation Sans. Today only <code>helvetica</code> is mapped; <code>times</code> and <code>courier</code> have no bundled files and fall through to whatever the OS has.</p>
+          <p class="why"><b>Why it matters:</b> pdf.js draws standard serif and mono with Foxit <code>.pfb</code> Type 1 files, which a browser can't load as a webfont. So on any Times-set document the edited text is drawn in the visitor's own Times New Roman while everything around it is Foxit Serif — a subtle mismatch that reads as sloppy. Licence check first: Liberation is OFL/GPL+FE.</p>
+        </div>
+      </div>
+      <div class="li">
+        <span class="num-b">5</span>
+        <div>
+          <h3>Find &amp; replace across the document</h3>
+          <p>Runs over the paragraph blocks the detector already builds. Live match count, page chips, prev/next, replace one, replace all. Every replacement goes through the existing block-edit path, so export and undo need no new code.</p>
+          <p class="why"><b>Why it matters:</b> <b>no browser PDF editor has this.</b> Acrobat has it behind a desktop install. It's the clearest "we do something they can't" line on the whole tool, and it's the one people search for.</p>
+        </div>
+      </div>
+      <div class="li">
+        <span class="num-b">6</span>
+        <div>
+          <h3>Zoom controls <span class="tag" style="vertical-align:2px;">bonus</span></h3>
+          <p>The shell already accepts <code>zoomLabel</code> / <code>onZoomIn</code> / <code>onZoomOut</code> and no editor passes them. Wiring it up in Edit costs almost nothing and fixes a real problem on dense contracts.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PART B ============ -->
+  <section>
+    <div class="sec-head">
+      <h2>Part B — what a tool page can show that nobody else does</h2>
+    </div>
+    <p class="sec-note">Today every tool page is title → tool → three how-to steps → FAQ. That's the same page Smallpdf, iLovePDF and TinyWow all ship. Below are six blocks that are only truthful because of how the product is actually built — which is exactly why competitors can't copy them.</p>
+
+    <div class="diffs">
+
+      <article class="diff">
+        <div class="diff-head">
+          <span class="rank">Strongest</span>
+          <h3>Live upload counter</h3>
+          <p>A real counter, wired to PerformanceObserver, showing network requests carrying your file. It stays at zero because it has to.</p>
+        </div>
+        <div class="diff-demo">
+          <div class="proof">
+            <div class="top">
+              <span class="dot"></span>
+              <span class="big">0</span>
+              <span style="font-size:12px;color:var(--ink-2);">bytes of your file left this device</span>
+            </div>
+            <p class="cap">Counted live while you worked, not claimed in marketing copy. <a href="#">Check it yourself in DevTools →</a></p>
+          </div>
+        </div>
+        <div class="diff-foot"><b>Why they can't:</b> <span>their number wouldn't be zero.</span></div>
+      </article>
+
+      <article class="diff">
+        <div class="diff-head">
+          <span class="rank">High trust</span>
+          <h3>Benchmark strip</h3>
+          <p>The actual measured result on a named file against named competitors, with the date and method linked.</p>
+        </div>
+        <div class="diff-demo">
+          <div class="bench">
+            <div class="brow us"><span class="who">DiemDesk</span><span class="btrack"><i style="width:75%"></i></span><span class="bval">−75%</span></div>
+            <div class="brow"><span class="who">iLovePDF</span><span class="btrack"><i style="width:34%"></i></span><span class="bval">−34%</span></div>
+            <div class="brow"><span class="who">Smallpdf</span><span class="btrack"><i style="width:28%"></i></span><span class="bval">−28%</span></div>
+            <div class="brow"><span class="who">Adobe online</span><span class="btrack"><i style="width:1%"></i></span><span class="bval">−1%</span></div>
+          </div>
+          <p class="chain-note">27.4 MB scanned contract → 6.8 MB. Tested 2026‑07‑13, same file, default settings. <a href="#" style="color:var(--indigo)">Method →</a></p>
+        </div>
+        <div class="diff-foot"><b>Why they can't:</b> <span>naming rivals invites a rebuttal they'd lose.</span></div>
+      </article>
+
+      <article class="diff">
+        <div class="diff-head">
+          <span class="rank">Conversion</span>
+          <h3>Keep going — no re-upload</h3>
+          <p>After a run, offer the next tool carrying the same file in memory. The handoff store already exists in the PDF viewer.</p>
+        </div>
+        <div class="diff-demo">
+          <div class="chain">
+            <span class="cur">✓ Compressed</span>
+            <span class="arrow">→</span>
+            <span class="nxt">Sign</span>
+            <span class="nxt">Protect</span>
+            <span class="nxt">Split</span>
+            <span class="nxt pro">Redact ◆</span>
+          </div>
+          <p class="chain-note">The file never leaves the tab, so the next tool starts instantly — no second upload, no second wait.</p>
+        </div>
+        <div class="diff-foot"><b>Why they can't:</b> <span>server tools must re-upload each step.</span></div>
+      </article>
+
+      <article class="diff">
+        <div class="diff-head">
+          <span class="rank">Radical honesty</span>
+          <h3>What this tool does to your file</h3>
+          <p>The exact operations, in plain words. Nobody discloses whether they re-encode, strip metadata, or drop a layer.</p>
+        </div>
+        <div class="diff-demo">
+          <div class="spec">
+            <div><span class="k">Images re-encoded</span><span class="v warn">yes · JPEG q72</span></div>
+            <div><span class="k">Text &amp; vectors</span><span class="v good">untouched</span></div>
+            <div><span class="k">Fonts</span><span class="v good">kept, subset</span></div>
+            <div><span class="k">Metadata &amp; author</span><span class="v good">preserved</span></div>
+            <div><span class="k">Digital signatures</span><span class="v warn">invalidated</span></div>
+            <div><span class="k">Runs on</span><span class="v good">your device</span></div>
+          </div>
+        </div>
+        <div class="diff-foot"><b>Why they can't:</b> <span>"invalidates signatures" is a line legal won't approve.</span></div>
+      </article>
+
+      <article class="diff">
+        <div class="diff-head">
+          <span class="rank">Signals life</span>
+          <h3>Last improved</h3>
+          <p>Pull this tool's entries straight out of the changelog file we already maintain. Competitor tool pages look frozen since 2019.</p>
+        </div>
+        <div class="diff-demo">
+          <div class="ship">
+            <div class="item"><span class="when">2 days ago</span><span class="what"><span class="kind new">New</span><b>Batch mode</b> — drop several files at once</span></div>
+            <div class="item"><span class="when">11 Jul</span><span class="what"><span class="kind fix">Fixed</span>Scanned pages no longer take 3 minutes</span></div>
+            <div class="item"><span class="when">2 Jul</span><span class="what"><span class="kind new">New</span>Target a file size instead of a quality level</span></div>
+          </div>
+        </div>
+        <div class="diff-foot"><b>Why they can't:</b> <span>nothing stops them — they just don't.</span></div>
+      </article>
+
+      <article class="diff">
+        <div class="diff-head">
+          <span class="rank">Disarming</span>
+          <h3>Where this tool won't help</h3>
+          <p>Name the cases we're wrong for, and point at the right tool — ours or theirs. Already the best-received section on <em>/why-diemdesk</em>.</p>
+        </div>
+        <div class="diff-demo">
+          <div class="limits">
+            <div class="limit"><span class="x">✕</span><span><b>Already-compressed PDFs</b> — if it's mostly text, expect a few percent, not 70.</span></div>
+            <div class="limit"><span class="x">✕</span><span><b>Files over 500 MB on a phone</b> — the tab will run out of memory. Use a desktop.</span></div>
+            <div class="limit"><span class="x">✕</span><span><b>Print-shop preflight</b> — you want Acrobat Pro. We don't do PDF/X colour conversion.</span></div>
+          </div>
+        </div>
+        <div class="diff-foot"><b>Why they can't:</b> <span>ad-funded pages can't send you away.</span></div>
+      </article>
+
+    </div>
+
+    <div class="callout">
+      <h3>The Google Drive thing you were trying to remember</h3>
+      <p>It was <b>cloud import — pull a file straight from Google Drive or Dropbox into any tool</b>, filed under Tier C in the Pro differentiator list. Worth being clear about what it is and isn't:</p>
+      <p>It is <b>parity, not differentiation</b>. Smallpdf and iLovePDF both have it. It's also the one feature on this page in real tension with the privacy story — the file would come down through Google's servers, and the OAuth scope alone will make a privacy-minded visitor flinch. If we build it, it belongs behind Pro, with the scope narrowed to a single user-picked file and stated plainly on the page.</p>
+    </div>
+
+    <div class="tablewrap" style="margin-top:22px;">
+      <table>
+        <thead>
+          <tr><th>Block</th><th>Effort</th><th>Applies to</th><th>Competitors have it</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Live upload counter</td><td class="eff">~half a day</td><td>every on-device tool</td><td class="no">none</td></tr>
+          <tr><td>Benchmark strip</td><td class="eff">~1 day + testing</td><td>compress, convert, OCR</td><td class="no">none</td></tr>
+          <tr><td>Keep going — no re-upload</td><td class="eff">~1 day</td><td>every PDF tool</td><td class="no">re-upload required</td></tr>
+          <tr><td>What this tool does</td><td class="eff">~1 day (copy-heavy)</td><td>every tool</td><td class="no">none</td></tr>
+          <tr><td>Last improved</td><td class="eff">~2 hours</td><td>every tool</td><td class="no">none</td></tr>
+          <tr><td>Where it won't help</td><td class="eff">~1 day (copy-heavy)</td><td>every tool</td><td class="no">none</td></tr>
+          <tr><td>Cloud import (Drive/Dropbox)</td><td class="eff">~1 week + OAuth review</td><td>every tool</td><td class="yes">yes — both</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout" style="border-left-color:var(--green);">
+      <h3>If you only do two</h3>
+      <p><b>Last improved</b> (two hours, every page, makes the whole catalogue look alive) and <b>Keep going</b> (the handoff store is already written — it's wiring, and it raises tools-per-visit, which is the number that actually moves revenue).</p>
+    </div>
+  </section>
+
+  <footer>
+    Design spec · committed at <code>docs/designs/edit-pdf-panel-and-tool-page-mockup.html</code>. Part A is approved and queued for build; Part B is a menu, not a commitment. Numbers in the benchmark strip are from the existing benchmark log; every figure shown on a real tool page must be re-measured and dated before it ships.
+  </footer>
+
+</div>
+
+<script>
+  (function () {
+    var STATES = {
+      para:  { ic: "¶",  nm: "Paragraph",  hint: "Type freely — the text wraps and stays in the PDF’s own font. Drag the edges to reflow it.", font: ["Times New Roman", "Liberation Serif", "ok"] },
+      text:  { ic: "⌶", nm: "Text box", hint: "Drag the corner grip to resize, or the pill above to move it. Delete removes the box.", font: ["Carlito", "Calibri twin", "ok"] },
+      image: { ic: "⬚", nm: "Image",    hint: "Drag to move, corner to scale, the handle above to rotate. Double-click for a clean 90°.", font: ["—", "not text", "warn"] }
+    };
+
+    var ic = document.getElementById("obj-ic");
+    var nm = document.getElementById("obj-nm");
+    var hint = document.getElementById("obj-hint");
+    var chip = document.getElementById("fontchip");
+    var fontrow = chip ? chip.parentNode : null;
+
+    var buttons = document.querySelectorAll("[data-sel]");
+    Array.prototype.forEach.call(buttons, function (b) {
+      b.addEventListener("click", function () {
+        Array.prototype.forEach.call(buttons, function (o) { o.setAttribute("aria-pressed", "false"); });
+        b.setAttribute("aria-pressed", "true");
+        var s = STATES[b.getAttribute("data-sel")];
+        if (!s) return;
+        ic.textContent = s.ic;
+        nm.textContent = s.nm;
+        hint.textContent = s.hint;
+        if (fontrow) fontrow.firstElementChild.textContent = s.font[0];
+        chip.textContent = s.font[1];
+        chip.className = "chip " + s.font[2];
+      });
+    });
+
+    var frToggle = document.getElementById("fr-toggle");
+    var frbar = document.getElementById("frbar");
+    if (frToggle && frbar) {
+      frToggle.addEventListener("click", function () {
+        var open = frToggle.getAttribute("aria-pressed") === "true";
+        frToggle.setAttribute("aria-pressed", open ? "false" : "true");
+        frbar.style.display = open ? "none" : "flex";
+      });
+    }
+  })();
+</script>

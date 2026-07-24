@@ -1,0 +1,485 @@
+<title>The tool page, rebuilt — six blocks nobody else ships</title>
+
+<style>
+  :root {
+    --ink:#14151c; --ink-2:#4a4d5e; --ink-3:#7c8095;
+    --paper:#ffffff; --paper-2:#f6f6fa; --paper-3:#eeeef4;
+    --line:#e3e3ec; --line-2:#d3d4e0;
+    --indigo:#4f46e5; --indigo-2:#ecebff;
+    --green:#15803d; --green-2:#e6f5ec;
+    --violet:#7c3aed; --violet-2:#f3edff;
+    --amber:#b45309; --amber-2:#fdf1de;
+    --rose:#be123c;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    --shadow: 0 1px 2px rgba(20,21,28,.05), 0 10px 30px -14px rgba(20,21,28,.22);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink:#e9eaf2; --ink-2:#a4a8bd; --ink-3:#767a90;
+      --paper:#131420; --paper-2:#1a1c29; --paper-3:#222536;
+      --line:#2a2d3e; --line-2:#3a3e52;
+      --indigo:#8b83ff; --indigo-2:#22214a;
+      --green:#4ade80; --green-2:#16301f;
+      --violet:#a78bfa; --violet-2:#251c42;
+      --amber:#fbbf24; --amber-2:#33260d;
+      --rose:#fb7185;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 34px -14px rgba(0,0,0,.65);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ink:#e9eaf2; --ink-2:#a4a8bd; --ink-3:#767a90;
+    --paper:#131420; --paper-2:#1a1c29; --paper-3:#222536;
+    --line:#2a2d3e; --line-2:#3a3e52;
+    --indigo:#8b83ff; --indigo-2:#22214a;
+    --green:#4ade80; --green-2:#16301f;
+    --violet:#a78bfa; --violet-2:#251c42;
+    --amber:#fbbf24; --amber-2:#33260d; --rose:#fb7185;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 34px -14px rgba(0,0,0,.65);
+  }
+  :root[data-theme="light"] {
+    --ink:#14151c; --ink-2:#4a4d5e; --ink-3:#7c8095;
+    --paper:#ffffff; --paper-2:#f6f6fa; --paper-3:#eeeef4;
+    --line:#e3e3ec; --line-2:#d3d4e0;
+    --indigo:#4f46e5; --indigo-2:#ecebff;
+    --green:#15803d; --green-2:#e6f5ec;
+    --violet:#7c3aed; --violet-2:#f3edff;
+    --amber:#b45309; --amber-2:#fdf1de; --rose:#be123c;
+    --shadow: 0 1px 2px rgba(20,21,28,.05), 0 10px 30px -14px rgba(20,21,28,.22);
+  }
+
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--paper-2); color:var(--ink); font-family:var(--sans); font-size:15px; line-height:1.6; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1180px; margin:0 auto; padding:40px 20px 80px; }
+
+  .masthead { padding-bottom:26px; border-bottom:1px solid var(--line); display:flex; flex-direction:column; gap:13px; }
+  .eyebrow { font-family:var(--mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--indigo); font-weight:600; }
+  h1 { font-size:clamp(27px,3.8vw,36px); line-height:1.15; margin:0; letter-spacing:-.02em; font-weight:700; text-wrap:balance; }
+  .lede { margin:0; max-width:68ch; color:var(--ink-2); font-size:16.5px; }
+  .tags { display:flex; gap:8px; flex-wrap:wrap; }
+  .tag { display:inline-flex; align-items:center; gap:6px; font-family:var(--mono); font-size:11px; font-weight:600; padding:4px 9px; border-radius:999px; border:1px solid var(--line-2); color:var(--ink-2); background:var(--paper); }
+  .tag.new { border-color:color-mix(in srgb, var(--indigo) 40%, transparent); color:var(--indigo); background:var(--indigo-2); }
+
+  /* today vs proposed */
+  .compare { margin-top:34px; display:grid; gap:16px; }
+  @media (min-width:760px) { .compare { grid-template-columns:1fr 1fr; } }
+  .col { border:1px solid var(--line); border-radius:12px; background:var(--paper); padding:15px 17px; }
+  .col.now { opacity:.82; }
+  .col h3 { margin:0 0 3px; font-size:14px; font-weight:650; }
+  .col .sub { font-family:var(--mono); font-size:10.5px; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-3); font-weight:700; margin-bottom:11px; }
+  .flow { display:flex; flex-direction:column; gap:5px; }
+  .step { font-size:13px; padding:6px 10px; border-radius:7px; background:var(--paper-3); color:var(--ink-2); }
+  .step.add { background:var(--indigo-2); color:var(--indigo); font-weight:600; border:1px dashed color-mix(in srgb, var(--indigo) 40%, transparent); }
+
+  h2 { font-size:23px; margin:0 0 5px; letter-spacing:-.015em; font-weight:700; }
+  section { margin-top:52px; }
+  .sec-note { margin:0 0 24px; color:var(--ink-2); max-width:70ch; }
+
+  /* ---- page frame ---- */
+  .layout { display:grid; gap:20px; align-items:start; }
+  @media (min-width:1000px) { .layout { grid-template-columns:minmax(0,1fr) 268px; } }
+
+  .browser { border:1px solid var(--line); border-radius:13px; overflow:hidden; background:var(--paper); box-shadow:var(--shadow); }
+  .chrome { display:flex; align-items:center; gap:8px; padding:9px 13px; background:var(--paper-2); border-bottom:1px solid var(--line); }
+  .lights { display:flex; gap:5px; }
+  .lights i { width:9px; height:9px; border-radius:50%; background:var(--line-2); display:block; }
+  .url { flex:1; font-family:var(--mono); font-size:11.5px; color:var(--ink-3); background:var(--paper); border:1px solid var(--line); border-radius:6px; padding:4px 10px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .url b { color:var(--ink-2); font-weight:600; }
+
+  .pagebody { padding:26px 26px 30px; display:flex; flex-direction:column; gap:26px; }
+  @media (max-width:620px) { .pagebody { padding:20px 16px 24px; } }
+
+  .blk { position:relative; }
+  .blk-n { position:absolute; top:-6px; left:-19px; width:21px; height:21px; border-radius:50%; background:var(--indigo); color:#fff; font-family:var(--mono); font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 3px var(--paper); }
+  @media (max-width:700px) { .blk-n { left:auto; right:0; top:-24px; } }
+
+  /* hero */
+  .ph1 { font-size:29px; font-weight:700; letter-spacing:-.02em; margin:0 0 7px; line-height:1.18; }
+  .pdesc { margin:0 0 13px; color:var(--ink-2); font-size:15px; max-width:60ch; }
+  .trust { display:flex; gap:7px; flex-wrap:wrap; }
+  .tchip { display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:600; padding:4px 10px; border-radius:999px; border:1px solid var(--line-2); background:var(--paper); color:var(--ink-2); }
+  .tchip.on { border-color:color-mix(in srgb, var(--green) 38%, transparent); background:var(--green-2); color:var(--green); }
+
+  /* dropzone + counter */
+  .drop { border:2px dashed var(--line-2); border-radius:13px; background:var(--paper-2); padding:30px 20px; text-align:center; }
+  .drop .big { font-size:16px; font-weight:650; margin-bottom:5px; }
+  .drop .sm { font-size:12.5px; color:var(--ink-3); }
+  .cta { margin-top:13px; display:inline-block; background:var(--indigo); color:#fff; border:0; border-radius:9px; padding:10px 22px; font-size:14px; font-weight:600; font-family:var(--sans); }
+  .live { margin-top:13px; display:inline-flex; align-items:center; gap:8px; font-size:12px; color:var(--ink-2); background:var(--paper); border:1px solid var(--line-2); border-radius:999px; padding:5px 13px; }
+  .pulse { width:7px; height:7px; border-radius:50%; background:var(--green); position:relative; flex:0 0 auto; }
+  .pulse::after { content:""; position:absolute; inset:-4px; border-radius:50%; border:1px solid var(--green); opacity:.4; }
+  .live b { font-family:var(--mono); color:var(--green); font-weight:700; }
+
+  /* result + chain */
+  .result { border:1px solid color-mix(in srgb, var(--green) 32%, transparent); background:var(--green-2); border-radius:12px; padding:15px 17px; }
+  .result .top { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
+  .result .head { font-size:15px; font-weight:650; color:var(--ink); }
+  .result .delta { font-family:var(--mono); font-size:13px; font-weight:700; color:var(--green); font-variant-numeric:tabular-nums; }
+  .result .dl { margin-left:auto; background:var(--green); color:#fff; border:0; border-radius:8px; padding:7px 15px; font-size:13px; font-weight:600; font-family:var(--sans); }
+  .proofline { margin-top:11px; padding-top:11px; border-top:1px solid color-mix(in srgb, var(--green) 22%, transparent); display:flex; align-items:center; gap:9px; flex-wrap:wrap; font-size:12.5px; color:var(--ink-2); }
+  .zero { font-family:var(--mono); font-size:19px; font-weight:700; color:var(--green); line-height:1; font-variant-numeric:tabular-nums; }
+  .proofline a { color:var(--indigo); text-decoration:underline; text-underline-offset:2px; }
+
+  .chainwrap { margin-top:13px; padding-top:12px; border-top:1px solid color-mix(in srgb, var(--green) 22%, transparent); }
+  .chain-t { font-family:var(--mono); font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:8px; }
+  .chain { display:flex; gap:7px; flex-wrap:wrap; }
+  .nxt { display:inline-flex; align-items:center; gap:6px; padding:7px 12px; border-radius:8px; border:1px solid var(--line-2); background:var(--paper); font-size:12.5px; font-weight:550; color:var(--ink); }
+  .nxt.pro { border-color:color-mix(in srgb, var(--violet) 40%, transparent); color:var(--violet); background:var(--violet-2); }
+  .chain-note { margin:9px 0 0; font-size:12px; color:var(--ink-2); }
+
+  /* generic block heading */
+  .bh { font-size:17px; font-weight:650; margin:0 0 4px; letter-spacing:-.01em; }
+  .bs { margin:0 0 13px; font-size:13px; color:var(--ink-2); }
+
+  /* benchmark */
+  .bench { display:flex; flex-direction:column; gap:9px; }
+  .brow { display:grid; grid-template-columns:104px 1fr 66px; gap:10px; align-items:center; font-size:12.5px; }
+  .brow .who { color:var(--ink-2); }
+  .brow.us .who { color:var(--ink); font-weight:650; }
+  .btrack { height:17px; border-radius:5px; background:var(--paper-3); overflow:hidden; }
+  .btrack i { display:block; height:100%; border-radius:5px; background:var(--line-2); }
+  .brow.us .btrack i { background:var(--indigo); }
+  .bval { font-family:var(--mono); font-size:12px; text-align:right; font-variant-numeric:tabular-nums; color:var(--ink-2); }
+  .brow.us .bval { color:var(--ink); font-weight:700; }
+  .method { margin:12px 0 0; font-size:12px; color:var(--ink-3); }
+  .method a { color:var(--indigo); }
+
+  /* two-up: spec + limits */
+  .twoup { display:grid; gap:20px; }
+  @media (min-width:700px) { .twoup { grid-template-columns:1fr 1fr; } }
+  .panelcard { border:1px solid var(--line); border-radius:12px; background:var(--paper-2); padding:16px 18px; }
+
+  .spec { display:flex; flex-direction:column; font-size:13px; }
+  .spec div { display:grid; grid-template-columns:1fr auto; gap:12px; padding:8px 0; border-bottom:1px dashed var(--line); }
+  .spec div:last-child { border-bottom:0; }
+  .spec .k { color:var(--ink-2); }
+  .spec .v { font-family:var(--mono); font-size:11.5px; text-align:right; white-space:nowrap; }
+  .spec .v.good { color:var(--green); }
+  .spec .v.warn { color:var(--amber); }
+
+  .limits { display:flex; flex-direction:column; gap:11px; }
+  .limit { display:grid; grid-template-columns:15px 1fr; gap:9px; font-size:13px; color:var(--ink-2); align-items:start; }
+  .limit .x { color:var(--rose); font-weight:700; line-height:1.4; }
+  .limit b { color:var(--ink); font-weight:600; }
+  .limit a { color:var(--indigo); }
+
+  /* existing sections, dimmed to show they stay */
+  .kept { border:1px dashed var(--line-2); border-radius:12px; padding:15px 17px; }
+  .kept .kt { font-family:var(--mono); font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:9px; }
+  .steps3 { display:grid; gap:9px; }
+  @media (min-width:600px) { .steps3 { grid-template-columns:repeat(3,1fr); } }
+  .s3 { background:var(--paper-2); border-radius:9px; padding:11px 13px; font-size:12.5px; color:var(--ink-2); }
+  .s3 b { display:block; color:var(--ink); font-weight:600; margin-bottom:2px; font-size:12px; }
+  .faqrow { padding:9px 0; border-bottom:1px solid var(--line); font-size:13px; color:var(--ink-2); display:flex; justify-content:space-between; gap:12px; }
+  .faqrow:last-child { border-bottom:0; }
+  .faqrow span:last-child { color:var(--ink-3); }
+
+  /* last improved */
+  .ship { display:flex; flex-direction:column; gap:9px; }
+  .item { display:grid; grid-template-columns:74px 1fr; gap:12px; font-size:13px; align-items:baseline; }
+  .when { font-family:var(--mono); font-size:11px; color:var(--ink-3); text-align:right; }
+  .what { color:var(--ink-2); }
+  .what b { color:var(--ink); font-weight:600; }
+  .kind { display:inline-block; font-family:var(--mono); font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; padding:1px 6px; border-radius:4px; margin-right:7px; }
+  .kind.new { background:var(--indigo-2); color:var(--indigo); }
+  .kind.fix { background:var(--green-2); color:var(--green); }
+  .allchanges { margin-top:11px; font-size:12.5px; }
+  .allchanges a { color:var(--indigo); }
+
+  /* annotations rail */
+  .notes { display:flex; flex-direction:column; gap:11px; position:sticky; top:20px; }
+  @media (max-width:999px) { .notes { position:static; } }
+  .note { border:1px solid var(--line); border-radius:11px; background:var(--paper); padding:12px 14px; }
+  .note .h { display:flex; align-items:center; gap:8px; margin-bottom:5px; }
+  .note .n { width:19px; height:19px; border-radius:50%; background:var(--indigo); color:#fff; font-family:var(--mono); font-size:10.5px; font-weight:700; display:flex; align-items:center; justify-content:center; flex:0 0 auto; }
+  .note .t { font-size:12.5px; font-weight:650; }
+  .note p { margin:0; font-size:12px; color:var(--ink-2); line-height:1.5; }
+  .note code { font-family:var(--mono); font-size:11px; background:var(--paper-3); padding:1px 4px; border-radius:3px; }
+  .note .cost { margin-top:7px; font-family:var(--mono); font-size:10.5px; color:var(--ink-3); }
+
+  /* build order */
+  .tablewrap { overflow-x:auto; border:1px solid var(--line); border-radius:11px; background:var(--paper); }
+  table { border-collapse:collapse; width:100%; min-width:640px; font-size:13.5px; }
+  th, td { text-align:left; padding:11px 14px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { font-family:var(--mono); font-size:10.5px; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-3); font-weight:700; background:var(--paper-2); }
+  tbody tr:last-child td { border-bottom:0; }
+  td.n { font-family:var(--mono); color:var(--ink-3); }
+  td.eff { font-family:var(--mono); font-size:12px; color:var(--ink-2); white-space:nowrap; }
+  .w1 { color:var(--green); font-weight:600; }
+  .w2 { color:var(--indigo); font-weight:600; }
+  .w3 { color:var(--ink-3); }
+
+  .callout { margin-top:22px; border:1px solid var(--line); border-left:3px solid var(--indigo); border-radius:11px; background:var(--paper); padding:15px 18px; }
+  .callout.warn { border-left-color:var(--amber); }
+  .callout h3 { margin:0 0 4px; font-size:15px; font-weight:650; }
+  .callout p { margin:0; color:var(--ink-2); font-size:13.5px; }
+  .callout p + p { margin-top:8px; }
+  .callout code { font-family:var(--mono); font-size:12.5px; background:var(--paper-3); padding:1px 5px; border-radius:4px; }
+
+  footer { margin-top:56px; padding-top:22px; border-top:1px solid var(--line); font-size:12.5px; color:var(--ink-3); }
+  footer code { font-family:var(--mono); background:var(--paper-3); padding:1px 5px; border-radius:4px; }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <span class="eyebrow">DiemDesk · design spec · part B</span>
+    <h1>The tool page, rebuilt</h1>
+    <p class="lede">Every tool page today is title → tool → three how-to steps → FAQ. That's the same page Smallpdf, iLovePDF and TinyWow all ship. Here are the six blocks in place on a real page, in the order a visitor meets them.</p>
+    <div class="tags">
+      <span class="tag">shown on /compress-pdf</span>
+      <span class="tag new">6 new blocks · 2 existing kept</span>
+      <span class="tag">template-driven — every tool inherits it</span>
+    </div>
+  </header>
+
+  <div class="compare">
+    <div class="col now">
+      <h3>Today</h3>
+      <div class="sub">every tool, same as rivals</div>
+      <div class="flow">
+        <div class="step">H1 + one-line description</div>
+        <div class="step">The tool</div>
+        <div class="step">How to — 3 steps</div>
+        <div class="step">FAQ</div>
+      </div>
+    </div>
+    <div class="col">
+      <h3>Proposed</h3>
+      <div class="sub">the six additions in page order</div>
+      <div class="flow">
+        <div class="step">H1 + description <em style="color:var(--ink-3);font-style:normal;">+ trust row</em></div>
+        <div class="step add">1 · Live upload counter (in the dropzone)</div>
+        <div class="step">The tool</div>
+        <div class="step add">2 · Result — proof + 3 · Keep going</div>
+        <div class="step add">4 · Benchmark strip</div>
+        <div class="step add">5 · What this does · 6 · Where it won't help</div>
+        <div class="step">How to — 3 steps <em style="color:var(--ink-3);font-style:normal;">(kept)</em></div>
+        <div class="step">FAQ <em style="color:var(--ink-3);font-style:normal;">(kept)</em></div>
+        <div class="step add">7 · Last improved</div>
+      </div>
+    </div>
+  </div>
+
+  <section>
+    <h2>The page</h2>
+    <p class="sec-note">Ordered by intent: people arrive to <em>do the task</em>, so the tool stays at the top and everything else earns its place below it. Nothing pushes the dropzone down.</p>
+
+    <div class="layout">
+      <div class="browser">
+        <div class="chrome">
+          <span class="lights"><i></i><i></i><i></i></span>
+          <span class="url">diemdesk.com/<b>compress-pdf</b></span>
+        </div>
+
+        <div class="pagebody">
+
+          <!-- hero -->
+          <div class="blk">
+            <h2 class="ph1">Compress PDF</h2>
+            <p class="pdesc">Make a PDF smaller without wrecking it. Runs on your device — the file never gets uploaded.</p>
+            <div class="trust">
+              <span class="tchip on">◈ Runs on your device</span>
+              <span class="tchip">No sign-up</span>
+              <span class="tchip">No file size limit</span>
+              <span class="tchip">Free, unlimited</span>
+            </div>
+          </div>
+
+          <!-- dropzone + counter -->
+          <div class="blk">
+            <span class="blk-n">1</span>
+            <div class="drop">
+              <div class="big">Drop a PDF here</div>
+              <div class="sm">or drop several to compress them all at once</div>
+              <button type="button" class="cta">Choose PDF</button>
+              <div class="live"><span class="pulse"></span> Network watch active — <b>0</b> bytes uploaded</div>
+            </div>
+          </div>
+
+          <!-- result + chain -->
+          <div class="blk">
+            <span class="blk-n">2</span>
+            <div class="result">
+              <div class="top">
+                <span class="head">Supplier-Agreement-2026.pdf</span>
+                <span class="delta">27.4 MB → 6.8 MB · −75%</span>
+                <button type="button" class="dl">Download</button>
+              </div>
+
+              <div class="proofline">
+                <span class="zero">0</span>
+                <span>bytes of this file left your device. Counted live, not claimed — <a href="#">open DevTools → Network and check</a>.</span>
+              </div>
+
+              <div class="chainwrap">
+                <div class="chain-t">Keep going — the file is still here</div>
+                <span class="blk-n" style="top:-4px; left:-38px;">3</span>
+                <div class="chain">
+                  <span class="nxt">✍️ Sign it</span>
+                  <span class="nxt">🔒 Protect it</span>
+                  <span class="nxt">✂️ Split it</span>
+                  <span class="nxt">📄 To Word</span>
+                  <span class="nxt pro">◆ Redact it</span>
+                </div>
+                <p class="chain-note">No second upload and no second wait — it's already in this tab.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- benchmark -->
+          <div class="blk">
+            <span class="blk-n">4</span>
+            <h3 class="bh">How much smaller, really</h3>
+            <p class="bs">Same file, same day, default settings on each site.</p>
+            <div class="bench">
+              <div class="brow us"><span class="who">DiemDesk</span><span class="btrack"><i style="width:75%"></i></span><span class="bval">−75%</span></div>
+              <div class="brow"><span class="who">iLovePDF</span><span class="btrack"><i style="width:34%"></i></span><span class="bval">−34%</span></div>
+              <div class="brow"><span class="who">Smallpdf</span><span class="btrack"><i style="width:28%"></i></span><span class="bval">−28%</span></div>
+              <div class="brow"><span class="who">Adobe online</span><span class="btrack"><i style="width:1%"></i></span><span class="bval">−1%</span></div>
+            </div>
+            <p class="method">27.4 MB scanned supplier contract, 48 pages. Tested 13 July 2026. <a href="#">Full method and file →</a></p>
+          </div>
+
+          <!-- spec + limits -->
+          <div class="twoup">
+            <div class="blk">
+              <span class="blk-n">5</span>
+              <div class="panelcard">
+                <h3 class="bh">What this does to your file</h3>
+                <p class="bs">The whole list. No surprises after you download.</p>
+                <div class="spec">
+                  <div><span class="k">Images re-encoded</span><span class="v warn">yes · JPEG q72</span></div>
+                  <div><span class="k">Text and vectors</span><span class="v good">untouched</span></div>
+                  <div><span class="k">Fonts</span><span class="v good">kept, subset</span></div>
+                  <div><span class="k">Metadata and author</span><span class="v good">preserved</span></div>
+                  <div><span class="k">Digital signatures</span><span class="v warn">invalidated</span></div>
+                  <div><span class="k">Runs on</span><span class="v good">your device</span></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="blk">
+              <span class="blk-n">6</span>
+              <div class="panelcard">
+                <h3 class="bh">Where this won't help</h3>
+                <p class="bs">Cases we're the wrong tool for.</p>
+                <div class="limits">
+                  <div class="limit"><span class="x">✕</span><span><b>A PDF that's mostly text.</b> There's little to squeeze — expect a few percent, not 70.</span></div>
+                  <div class="limit"><span class="x">✕</span><span><b>Files over 500 MB on a phone.</b> The tab runs out of memory. Use a desktop.</span></div>
+                  <div class="limit"><span class="x">✕</span><span><b>Print-shop preflight.</b> You want Acrobat Pro — we don't do PDF/X colour conversion.</span></div>
+                  <div class="limit"><span class="x">✕</span><span><b>Hitting an exact size.</b> Use <a href="#">Compress to a size</a> instead.</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- kept sections -->
+          <div class="kept">
+            <div class="kt">Unchanged — stays exactly as it is</div>
+            <div class="steps3">
+              <div class="s3"><b>1 · Drop it in</b>Choose a PDF or drag it onto the page.</div>
+              <div class="s3"><b>2 · Pick a level</b>Smaller, balanced, or best quality.</div>
+              <div class="s3"><b>3 · Download</b>Save the compressed file.</div>
+            </div>
+            <div style="margin-top:15px;">
+              <div class="faqrow"><span>Is my file uploaded anywhere?</span><span>+</span></div>
+              <div class="faqrow"><span>Will compressing lower the quality?</span><span>+</span></div>
+              <div class="faqrow"><span>Is there a file size limit?</span><span>+</span></div>
+            </div>
+          </div>
+
+          <!-- last improved -->
+          <div class="blk">
+            <span class="blk-n">7</span>
+            <h3 class="bh">Last improved</h3>
+            <p class="bs">This tool, not the site.</p>
+            <div class="ship">
+              <div class="item"><span class="when">2 days ago</span><span class="what"><span class="kind new">New</span><b>Batch mode</b> — drop several files and get a zip back</span></div>
+              <div class="item"><span class="when">11 Jul</span><span class="what"><span class="kind fix">Fixed</span>Scanned pages no longer take three minutes</span></div>
+              <div class="item"><span class="when">2 Jul</span><span class="what"><span class="kind new">New</span>Target a file size instead of a quality level</span></div>
+            </div>
+            <p class="allchanges"><a href="#">Everything we've changed →</a></p>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- annotation rail -->
+      <aside class="notes">
+        <div class="note">
+          <div class="h"><span class="n">1</span><span class="t">Live upload counter</span></div>
+          <p>A <code>PerformanceObserver</code> on resource entries, filtered to requests carrying file data. Real number, updating as you work. Nobody else can print this because theirs wouldn't be zero.</p>
+          <p class="cost">~½ day · every on-device tool</p>
+        </div>
+        <div class="note">
+          <div class="h"><span class="n">2</span><span class="t">Proof at the result</span></div>
+          <p>The counter graduates from a quiet chip to the headline the moment there's a result to be proud of. This is where the privacy claim is most persuasive — it just happened.</p>
+          <p class="cost">shares the counter's code</p>
+        </div>
+        <div class="note">
+          <div class="h"><span class="n">3</span><span class="t">Keep going</span></div>
+          <p>Reuses <code>lib/file-handoff.ts</code>, already written for the PDF viewer. Free tools carry the file; Pro chips route without it so a gated click can't strand a stale file.</p>
+          <p class="cost">~1 day · raises tools-per-visit</p>
+        </div>
+        <div class="note">
+          <div class="h"><span class="n">4</span><span class="t">Benchmark strip</span></div>
+          <p>Numbers come from the benchmark log we already keep. Only ships on tools where we've actually re-measured, with the date visible. A stale benchmark is worse than none.</p>
+          <p class="cost">~1 day + re-testing</p>
+        </div>
+        <div class="note">
+          <div class="h"><span class="n">5</span><span class="t">What this does</span></div>
+          <p>Per-tool data in the catalogue, rendered by the shared template. The "invalidates signatures" row is the one competitors won't print — which is exactly why it earns trust.</p>
+          <p class="cost">~1 day · copy-heavy</p>
+        </div>
+        <div class="note">
+          <div class="h"><span class="n">6</span><span class="t">Where it won't help</span></div>
+          <p>Sends people away when we're wrong for them, including to a rival. Already the best-received section on <em>/why-diemdesk</em>. Ad-funded pages structurally can't do this.</p>
+          <p class="cost">~1 day · copy-heavy</p>
+        </div>
+        <div class="note">
+          <div class="h"><span class="n">7</span><span class="t">Last improved</span></div>
+          <p>Filter <code>lib/changelog.ts</code> by tool. The data already exists and is maintained with every ship — this is a query and a list.</p>
+          <p class="cost">~2 hours · every tool</p>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <section>
+    <h2>Build order</h2>
+    <p class="sec-note">Sequenced by return per hour, not by page order. The first two are nearly free and touch every tool in the catalogue.</p>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Wave</th><th>Block</th><th>Effort</th><th>Why here</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="n w1">1</td><td>Last improved</td><td class="eff">~2 hours</td><td>Data already exists. Makes 67 pages look alive in an afternoon.</td></tr>
+          <tr><td class="n w1">1</td><td>Keep going</td><td class="eff">~1 day</td><td>Handoff store already written. Directly raises tools-per-visit.</td></tr>
+          <tr><td class="n w2">2</td><td>Live upload counter</td><td class="eff">~½ day</td><td>The privacy claim stops being a claim. Needs care to never over-report.</td></tr>
+          <tr><td class="n w2">2</td><td>What this does</td><td class="eff">~1 day</td><td>Per-tool copy. Do it once, the template renders it everywhere.</td></tr>
+          <tr><td class="n w3">3</td><td>Where it won't help</td><td class="eff">~1 day</td><td>Same shape as the block above — write both in one sitting.</td></tr>
+          <tr><td class="n w3">3</td><td>Benchmark strip</td><td class="eff">~1 day + re-testing</td><td>Gated on fresh measurements. Ships per tool, not all at once.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout">
+      <h3>What changes in code</h3>
+      <p>All seven are additive props on the shared tool-page template, so a tool opts in by adding data to the catalogue — no per-page work. Rough shape: <code>lastImproved</code> (derived, no input), <code>handoff</code>, <code>fileEffects[]</code>, <code>limits[]</code>, <code>benchmark</code>. Tools that pass nothing render exactly as they do today.</p>
+      <p>The JSON-LD already on these pages gains nothing automatically — but the <em>where it won't help</em> and <em>what this does</em> copy is genuinely new indexable text on 67 pages, which is the kind of depth thin competitor pages don't have.</p>
+    </div>
+
+    <div class="callout warn">
+      <h3>Two things to get right</h3>
+      <p><b>The counter must never lie.</b> If a tool falls back to the server path — Office conversions, OCR, anything AI — the block has to say so plainly rather than quietly disappear. A privacy claim that's wrong once costs more than all six blocks earn.</p>
+      <p><b>Benchmarks need a date and a re-test.</b> Rivals ship changes too. Any figure on a live page gets re-measured before it goes up, and carries the date it was taken — otherwise the most trust-building block on the page becomes the most damaging.</p>
+    </div>
+  </section>
+
+  <footer>
+    Design spec · committed at <code>docs/designs/tool-page-rebuilt-mockup.html</code>. Part A (Edit PDF) is approved and queued. This is Part B for review — layout, order and copy all still open.
+  </footer>
+
+</div>
