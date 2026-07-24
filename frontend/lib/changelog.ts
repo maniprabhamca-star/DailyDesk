@@ -15,6 +15,13 @@ export type ChangeEntry = {
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-07-24',
+    kind: 'new',
+    title: 'Every tool page now shows its own receipts',
+    detail:
+      'Three additions you won’t find on other file sites. A live counter on each tool measures the bytes of your file that actually leave the tab — it reads zero on our in-browser tools because it has to, and on the few tools that use our server it counts up and says so. Under that, “What this does to your file” lists every change in plain words, including the awkward ones like invalidated signatures. And “Where this won’t help” names the cases we’re the wrong tool for, and points you at the right one — sometimes someone else’s.',
+  },
+  {
     date: '2026-07-23',
     kind: 'improved',
     title: 'Try a tool without leaving the home page',

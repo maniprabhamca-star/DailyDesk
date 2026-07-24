@@ -4,6 +4,9 @@ import { SiteFooter } from '@/components/app/site-footer';
 import { ToolGate } from '@/components/app/tool-gate';
 import { UpgradeCard } from '@/components/app/upgrade-card';
 import { EngineWarmup } from '@/components/pdf/engine-warmup';
+import { UploadWatch } from '@/components/app/upload-watch';
+import { ToolFacts } from '@/components/app/tool-facts';
+import { LastImproved } from '@/components/app/last-improved';
 
 export type Faq = { q: string; a: string };
 
@@ -63,6 +66,12 @@ export function PdfToolPage({
         <div className="mt-8"><ToolGate>{children}</ToolGate></div>
 
         <div className={wide ? 'mx-auto w-full max-w-4xl' : ''}>
+        {/* Three blocks every tool inherits. Each reads the current route itself,
+            so adding a tool needs no page edit: the counter measures real bytes,
+            the facts render only where lib/tool-facts has data, and "last
+            improved" only where the changelog mentions this tool. */}
+        <UploadWatch />
+        <ToolFacts />
         <section className="mt-14">
           <h2 className="text-xl font-bold tracking-tight">How it works</h2>
           <ol className="mt-4 grid gap-3 sm:grid-cols-3">
@@ -89,6 +98,8 @@ export function PdfToolPage({
             ))}
           </div>
         </section>
+
+        <LastImproved />
         </div>
       </main>
 
