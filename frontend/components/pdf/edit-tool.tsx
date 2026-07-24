@@ -354,10 +354,25 @@ function measureWidth(text: string, cssFont: string): number {
 // Render the redraw in the SAME font pdf.js draws the page with, so edited text
 // matches the original instead of the browser's Arial. pdf.js renders the
 // standard-14 Helvetica/Arial with LiberationSans (bundled at /pdfjs/standard_fonts/,
-// which we also load as a FontFace below). Times/Courier fall back to their CSS
-// stacks until we add TTF substitutes for those too.
+// which we also load as a FontFace below).
+//
+// Times and Courier are the same story with a catch: pdf.js draws them with
+// FoxitSerif/FoxitFixed, which are Type 1 .pfb files a browser cannot load as a
+// webfont. So we ship Liberation Serif and Mono (SIL OFL, the metric twins of
+// Times New Roman and Courier New) and draw the PREVIEW with those instead of
+// whatever the visitor's OS calls "Times". Export is unaffected — pdf-edit-text
+// embeds the base-14 standard font for these families, which is metric-correct
+// and matches the document's own /Times, so exported files stay tiny.
 const RENDER_CSS: Partial<Record<Family, string>> = {
   helvetica: "'DiemLiberationSans', Helvetica, Arial, sans-serif",
+  times: "'DiemLiberationSerif', 'Times New Roman', Times, serif",
+  courier: "'DiemLiberationMono', 'Courier New', Courier, monospace",
+};
+// Loaded on demand — a sans-only document should never pay for ~2.7MB of serif
+// and mono outlines it will not draw a single glyph with.
+const LAZY_FACES: Partial<Record<Family, { family: string; base: string }>> = {
+  times: { family: 'DiemLiberationSerif', base: '/fonts/liberationserif' },
+  courier: { family: 'DiemLiberationMono', base: '/fonts/liberationmono' },
 };
 function cssFont(family: Family, bold: boolean, italic: boolean, px: number): string {
   const fam = RENDER_CSS[family] ?? FAMILIES[family].css;
@@ -462,6 +477,7 @@ export function EditTool() {
   const [addMode, setAddMode] = useState(false);             // click-to-place armed
   const dragRef = useRef<{ id: string; dx: number; dy: number; moved: boolean } | null>(null);
   const addResize = useRef<{ id: string; startY: number; startSize: number } | null>(null);
+  const lazyFontsLoaded = useRef<Set<Family>>(new Set());
   const addInputRef = useRef<HTMLInputElement>(null);
   const imgCache = useRef<Map<string, HTMLImageElement>>(new Map());
   const imgFileRef = useRef<HTMLInputElement>(null);
@@ -597,6 +613,31 @@ export function EditTool() {
       .then(() => { if (alive) setFontReady((n) => n + 1); });
     return () => { alive = false; };
   }, []);
+
+  // Serif/mono outlines are big, so fetch them only once the page actually
+  // contains text in that family — and only once per family per session.
+  useEffect(() => {
+    if (typeof document === 'undefined' || !('fonts' in document) || typeof FontFace === 'undefined') return;
+    const present = new Set<Family>();
+    for (const l of lines[sel] || []) present.add(l.family);
+    for (const b of blocks[sel] || []) present.add(b.family);
+    const wanted = Array.from(present).filter((f) => LAZY_FACES[f] && !lazyFontsLoaded.current.has(f));
+    if (!wanted.length) return;
+    let alive = true;
+    void Promise.all(wanted.map((fam) => {
+      const spec = LAZY_FACES[fam];
+      if (!spec) return Promise.resolve();
+      lazyFontsLoaded.current.add(fam);
+      const faces = [
+        new FontFace(spec.family, `url(${spec.base}.ttf)`, { weight: '400', style: 'normal' }),
+        new FontFace(spec.family, `url(${spec.base}-bold.ttf)`, { weight: '700', style: 'normal' }),
+        new FontFace(spec.family, `url(${spec.base}-italic.ttf)`, { weight: '400', style: 'italic' }),
+        new FontFace(spec.family, `url(${spec.base}-bolditalic.ttf)`, { weight: '700', style: 'italic' }),
+      ];
+      return Promise.all(faces.map((f) => f.load().then((ff) => document.fonts.add(ff)).catch(() => {})));
+    })).then(() => { if (alive) setFontReady((n) => n + 1); });
+    return () => { alive = false; };
+  }, [lines, blocks, sel]);
 
   // Keep `disp` (the displayed image size) EXACT at all times. A one-shot
   // measure on load reads clientHeight before layout settles (it comes back 0),

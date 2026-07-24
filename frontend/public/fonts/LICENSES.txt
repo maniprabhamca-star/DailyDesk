@@ -1,6 +1,16 @@
 DiemDesk bundled watermark fonts — all licensed under the SIL Open Font License 1.1.
 Sources: Google Fonts (github.com/google/fonts). Copyright notices + full OFL text below.
 
+=== liberationserif / liberationmono ===
+Digitized data copyright (c) 2010 Google Corporation with Reserved Font Arimo, Tinos and Cousine.
+Copyright (c) 2012 Red Hat, Inc. with Reserved Font Name Liberation.
+Source: github.com/liberationfonts/liberation-fonts (release 2.1.5)
+
+This Font Software is licensed under the SIL Open Font License, Version 1.1.
+Used by Edit PDF ONLY to draw the on-screen preview in the same shapes pdf.js
+renders standard Times/Courier with (its own Foxit .pfb files cannot be loaded
+as webfonts). Export still uses the base-14 standard fonts, not these files.
+
 === oswald ===
 Copyright 2016 The Oswald Project Authors (https://github.com/googlefonts/OswaldFont)
 
