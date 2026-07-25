@@ -14,7 +14,10 @@ import { ArrowUpRight, ShieldCheck } from 'lucide-react';
 // Drop-in: <ShowcaseWall /> anywhere in app/page.tsx. Fully self-contained.
 // Toggle with SHOW_SHOWCASE_WALL below if you want to pull it without deleting.
 
-export const SHOW_SHOWCASE_WALL = true;
+// Held OFF in production while the "grand home" direction is being decided
+// (bento hero vs. this masonry — see the dailydesk-home-grand-redesign memory).
+// Flip to true to show it. The component is otherwise fully built and verified.
+export const SHOW_SHOWCASE_WALL = false;
 
 // ---- little poster pieces --------------------------------------------------
 const Bar = ({ w, c = 'rgba(255,255,255,.14)' }: { w: string; c?: string }) => (
