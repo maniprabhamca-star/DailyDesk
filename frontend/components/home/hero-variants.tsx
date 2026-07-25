@@ -23,7 +23,7 @@ function TrustChips() {
     { icon: UserX, t: 'No signup' },
   ];
   return (
-    <div className="flex flex-wrap gap-x-5 gap-y-2">
+    <div className="flex flex-wrap justify-center gap-x-5 gap-y-2 sm:justify-start">
       {items.map((x) => (
         <span key={x.t} className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
           <x.icon className="size-3.5" style={{ color: '#059669' }} strokeWidth={2.25} /> {x.t}

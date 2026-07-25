@@ -368,8 +368,11 @@ export function AllToolsDirectory({ full = false, asPage = false }: { full?: boo
                 <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
                   {shown.map((t) => <Tile key={t.name} t={t} groupColor={g.color} />)}
                   {hidden > 0 && (
+                    // Hidden on mobile: the "See all N →" link in the header already
+                    // covers this, and on a 2-col grid the lone tile leaves an empty
+                    // cell beside it. Kept from sm up, where the denser grid fills in.
                     <button onClick={() => setCat(g.label)}
-                      className="flex min-h-[96px] items-center justify-center gap-1.5 rounded-2xl border border-dashed bg-card/50 p-3.5 text-sm font-semibold text-muted-foreground transition-all hover:-translate-y-0.5 hover:border-primary/60 hover:text-primary">
+                      className="hidden min-h-[96px] items-center justify-center gap-1.5 rounded-2xl border border-dashed bg-card/50 p-3.5 text-sm font-semibold text-muted-foreground transition-all hover:-translate-y-0.5 hover:border-primary/60 hover:text-primary sm:flex">
                       + {hidden} more <ArrowRight className="size-3.5" />
                     </button>
                   )}
