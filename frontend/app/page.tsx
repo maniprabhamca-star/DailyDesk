@@ -15,6 +15,7 @@ import { JumpBackIn } from '@/components/home/jump-back-in';
 import { ProofStrip } from '@/components/home/proof-strip';
 import { liveToolCount } from '@/components/app/catalog';
 import { FeatureSpotlights } from '@/components/home/feature-spotlights';
+import { ShowcaseWall } from '@/components/home/showcase-wall';
 import { PRICING } from '@/lib/pricing';
 
 const fadeUp = {
@@ -86,6 +87,10 @@ export default function Home() {
       <SiteHeader />
 
       <HeroHybrid />
+
+      {/* Grand showcase wall — MailerLite-style masonry of real tool posters on a
+          dark stage. Toggle via SHOW_SHOWCASE_WALL in showcase-wall.tsx. */}
+      <ShowcaseWall />
 
       {/* Returning visitors: their recent tools, one tap away (local-only) */}
       <JumpBackIn />
