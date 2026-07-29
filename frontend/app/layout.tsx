@@ -66,6 +66,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
+        {/* First-visit splash: hide it BEFORE first paint for anyone who has
+            already seen it (or asked for reduced motion), so returning visitors
+            never flash the overlay. The overlay itself is server-rendered on the
+            home page, so a genuine first-timer sees it from the first frame
+            instead of home-then-splash-then-home. Runs before page content parses. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{var s=localStorage.getItem('dd-splash-seen-v1')==='1';var r=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;if(s||r)document.documentElement.classList.add('dd-splash-seen')}catch(e){}",
+          }}
+        />
+        <noscript><style>{`#dd-first-splash{display:none!important}`}</style></noscript>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd) }} />
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
           <AuthProvider>

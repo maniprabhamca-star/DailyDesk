@@ -170,6 +170,11 @@
 /* Header logo delight: the three colour tiles do a soft, staggered bounce every
    ~10s (a brief "dance" at the end of each cycle). Subtle by design; disabled
    when the visitor prefers reduced motion. */
+/* First-visit splash — hidden before first paint for returning / reduced-motion
+   visitors (class set by the inline script in layout) so they go straight to the
+   page with no overlay flash. First-timers see it because the class isn't set. */
+html.dd-splash-seen #dd-first-splash { display: none !important; }
+
 @keyframes dd-tile-dance {
   0%, 86%, 100% { transform: translateY(0) scale(1); }
   90% { transform: translateY(-1.6px) scale(1.1); }

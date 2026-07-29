@@ -31,17 +31,19 @@ const FADE_MS = 420;  // fade-out duration
 
 export function FirstVisitSplash() {
   const reduce = useReducedMotion();
-  const [phase, setPhase] = useState<'hidden' | 'in' | 'out'>('hidden');
+  // Starts 'in' on BOTH server and client so the overlay is in the server HTML and
+  // covers the page from the first paint — no home-then-splash flash. Returning /
+  // reduced-motion visitors are handled two ways that agree: the inline script in
+  // layout hides it via CSS before paint (no flash), and the effect below unmounts
+  // it right after hydration. First-timers keep it and get the animation.
+  const [phase, setPhase] = useState<'hidden' | 'in' | 'out'>('in');
 
-  // Decide on the client only — localStorage isn't available at SSR, and the
-  // overlay must never appear in server HTML or returning visitors would flash it.
   useEffect(() => {
-    if (reduce) return;
     let seen = true;
     try { seen = localStorage.getItem(SEEN_KEY) === '1'; } catch { seen = true; }
-    if (seen) return;
+    if (seen || reduce) { setPhase('hidden'); return; }
     try { localStorage.setItem(SEEN_KEY, '1'); } catch { /* private mode: still show once */ }
-    setPhase('in');
+    // keep phase 'in' — the auto-lift + skip handlers are armed below
   }, [reduce]);
 
   // While shown: arm the auto-lift timer + let any interaction skip it.
@@ -76,6 +78,7 @@ export function FirstVisitSplash() {
 
   return (
     <motion.div
+      id="dd-first-splash"
       className="fixed inset-0 z-[200] flex flex-col items-center justify-center gap-5 bg-background"
       initial={{ opacity: 1 }}
       animate={{ opacity: phase === 'out' ? 0 : 1 }}
