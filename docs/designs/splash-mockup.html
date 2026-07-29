@@ -1,0 +1,230 @@
+<title>DiemDesk — splash & first-visit reveal</title>
+
+<style>
+  :root{
+    --indigo:#5b52f0; --amber:#f5b60b; --green:#16a34a; --coral:#f4674e;
+    --ink:#111725; --ink-2:#4a5266; --ink-3:#818a9e;
+    --paper:#ffffff; --panel:#f4f5fb; --line:#e6e8f1; --stage:#0e1017;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    --shadow:0 1px 2px rgba(17,23,37,.05), 0 22px 50px -24px rgba(17,23,37,.30);
+  }
+  @media (prefers-color-scheme:dark){
+    :root{ --ink:#eef0f8; --ink-2:#a7afc4; --ink-3:#727b92; --paper:#151a26; --panel:#0f131d; --line:#28303f; --shadow:0 1px 2px rgba(0,0,0,.5),0 22px 50px -24px rgba(0,0,0,.7); }
+  }
+  :root[data-theme="dark"]{ --ink:#eef0f8; --ink-2:#a7afc4; --ink-3:#727b92; --paper:#151a26; --panel:#0f131d; --line:#28303f; --shadow:0 1px 2px rgba(0,0,0,.5),0 22px 50px -24px rgba(0,0,0,.7); }
+  :root[data-theme="light"]{ --ink:#111725; --ink-2:#4a5266; --ink-3:#818a9e; --paper:#ffffff; --panel:#f4f5fb; --line:#e6e8f1; --shadow:0 1px 2px rgba(17,23,37,.05),0 22px 50px -24px rgba(17,23,37,.30); }
+
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:var(--sans); background:var(--panel); color:var(--ink); -webkit-font-smoothing:antialiased; font-size:15px; line-height:1.55; }
+  .wrap{ max-width:1080px; margin:0 auto; padding:40px 22px 72px; }
+
+  .eyebrow{ font-family:var(--mono); font-size:11px; letter-spacing:.11em; text-transform:uppercase; color:var(--indigo); font-weight:700; }
+  h1{ font-size:clamp(26px,3.6vw,36px); letter-spacing:-.02em; margin:8px 0 0; font-weight:800; }
+  .lede{ color:var(--ink-2); max-width:64ch; margin:12px 0 0; }
+
+  h2{ font-size:20px; margin:0; font-weight:750; letter-spacing:-.01em; }
+  .row{ display:grid; gap:24px; margin-top:26px; }
+  @media (min-width:820px){ .cols2{ grid-template-columns:1fr 1fr; } }
+
+  .demo{ background:var(--paper); border:1px solid var(--line); border-radius:18px; overflow:hidden; box-shadow:var(--shadow); }
+  .demo .hd{ display:flex; align-items:center; gap:10px; padding:13px 16px; border-bottom:1px solid var(--line); }
+  .demo .hd .t{ font-weight:700; font-size:14.5px; }
+  .demo .hd .meta{ margin-left:auto; font-family:var(--mono); font-size:10.5px; color:var(--ink-3); }
+  .replay{ font-family:var(--sans); font-size:12.5px; font-weight:650; color:#fff; background:var(--indigo); border:0; border-radius:8px; padding:6px 13px; cursor:pointer; }
+  .demo .note{ padding:11px 16px; font-size:12.5px; color:var(--ink-3); border-top:1px solid var(--line); }
+
+  /* browser frame */
+  .browser{ background:var(--paper); }
+  .chrome{ display:flex; align-items:center; gap:7px; padding:9px 13px; background:var(--panel); border-bottom:1px solid var(--line); }
+  .chrome i{ width:9px; height:9px; border-radius:50%; background:var(--line); }
+  .chrome .url{ flex:1; margin-left:8px; font-family:var(--mono); font-size:11px; color:var(--ink-3); background:var(--paper); border:1px solid var(--line); border-radius:6px; padding:3px 10px; }
+  .screen{ position:relative; height:300px; overflow:hidden; background:var(--paper); }
+
+  /* the actual page peeking behind (so the reveal reads as an overlay) */
+  .page-under{ position:absolute; inset:0; padding:22px; opacity:.55; }
+  .page-under .b{ height:12px; border-radius:6px; background:var(--line); }
+  .page-under .b.big{ height:26px; width:60%; }
+  .page-under .grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:18px; }
+  .page-under .grid div{ height:56px; border-radius:12px; background:var(--panel); border:1px solid var(--line); }
+
+  /* the reveal overlay */
+  .overlay{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; background:var(--paper); }
+
+  /* ---- the lifted-D mark ---- */
+  .mark{ position:relative; width:88px; height:88px; border-radius:22px; background:var(--indigo);
+    box-shadow:0 12px 30px -10px rgba(91,82,240,.6); display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:7px; padding:13px; }
+  .mark .tile{ border-radius:7px; }
+  .mark .t-am{ background:var(--amber); }
+  .mark .t-gr{ background:var(--green); }
+  .mark .t-co{ background:var(--coral); }
+  .mark .t-d{ background:#fff; display:flex; align-items:center; justify-content:center; color:var(--indigo); font-weight:900; font-size:19px; font-family:var(--sans); }
+  .wordmark{ font-size:26px; font-weight:800; letter-spacing:-.02em; }
+  .tagline{ font-size:12.5px; color:var(--ink-3); }
+
+  /* ============ MINIMAL animation ============ */
+  .minimal .mark{ opacity:0; transform:scale(.86); }
+  .minimal .wordmark{ opacity:0; transform:translateY(8px); }
+  .minimal .tagline{ opacity:0; }
+  .minimal.run .mark{ animation:m-mark .5s cubic-bezier(.2,.8,.2,1) forwards; }
+  .minimal.run .wordmark{ animation:m-word .5s cubic-bezier(.2,.8,.2,1) .18s forwards; }
+  .minimal.run .tagline{ animation:m-word .5s ease .32s forwards; }
+  .minimal.run .overlay{ animation:fadeout .45s ease 1.15s forwards; }
+  @keyframes m-mark{ to{ opacity:1; transform:scale(1);} }
+  @keyframes m-word{ to{ opacity:1; transform:translateY(0);} }
+
+  /* ============ PLAYFUL animation ============ */
+  .playful .mark{ opacity:0; }
+  .playful .tile{ opacity:0; }
+  .playful .t-am{ transform:translate(-26px,-26px) rotate(-25deg); }
+  .playful .t-co{ transform:translate(26px,-26px) rotate(25deg); }
+  .playful .t-gr{ transform:translate(-26px,26px) rotate(25deg); }
+  .playful .t-d{ transform:scale(.4); }
+  .playful .wordmark{ opacity:0; transform:translateY(8px); }
+  .playful .tagline{ opacity:0; }
+  .playful.run .mark{ animation:m-mark-p .3s ease forwards; }
+  .playful.run .t-am{ animation:fly .5s cubic-bezier(.34,1.56,.64,1) .05s forwards; }
+  .playful.run .t-co{ animation:fly .5s cubic-bezier(.34,1.56,.64,1) .14s forwards; }
+  .playful.run .t-gr{ animation:fly .5s cubic-bezier(.34,1.56,.64,1) .23s forwards; }
+  .playful.run .t-d{ animation:pop .45s cubic-bezier(.34,1.56,.64,1) .4s forwards; }
+  .playful.run .wordmark{ animation:m-word .5s cubic-bezier(.2,.8,.2,1) .7s forwards; }
+  .playful.run .tagline{ animation:m-word .5s ease .85s forwards; }
+  .playful.run .overlay{ animation:fadeout .5s ease 1.75s forwards; }
+  @keyframes m-mark-p{ to{ opacity:1; } }
+  @keyframes fly{ to{ opacity:1; transform:translate(0,0) rotate(0);} }
+  @keyframes pop{ to{ opacity:1; transform:scale(1);} }
+  @keyframes fadeout{ to{ opacity:0; visibility:hidden; } }
+
+  @media (prefers-reduced-motion:reduce){
+    .minimal .mark,.minimal .wordmark,.minimal .tagline,
+    .playful .mark,.playful .tile,.playful .wordmark,.playful .tagline{ opacity:1 !important; transform:none !important; }
+  }
+
+  /* ============ PWA phone splash ============ */
+  .phone-wrap{ display:flex; justify-content:center; padding:22px; background:
+      linear-gradient(0deg,var(--panel),var(--paper)); }
+  .phone{ width:230px; height:470px; border-radius:34px; background:#000; padding:9px; box-shadow:0 24px 60px -20px rgba(0,0,0,.5); }
+  .phone .glass{ position:relative; width:100%; height:100%; border-radius:26px; overflow:hidden; background:var(--indigo); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; }
+  .phone .notch{ position:absolute; top:8px; left:50%; transform:translateX(-50%); width:74px; height:15px; border-radius:99px; background:rgba(0,0,0,.4); }
+  .phone .mark{ background:#fff; box-shadow:0 12px 30px -10px rgba(0,0,0,.4); }
+  .phone .mark .t-d{ background:var(--indigo); color:#fff; }
+  .phone .pw-word{ color:#fff; font-weight:800; font-size:22px; letter-spacing:-.02em; }
+  .phone .pw-foot{ position:absolute; bottom:26px; text-align:center; width:100%; }
+  .phone .pw-foot .fw{ color:rgba(255,255,255,.9); font-weight:700; font-size:13px; }
+  .phone .pw-foot .fs{ color:rgba(255,255,255,.6); font-size:10.5px; margin-top:2px; }
+  .spinner{ position:absolute; bottom:80px; width:22px; height:22px; border:2.5px solid rgba(255,255,255,.25); border-top-color:#fff; border-radius:50%; animation:spin 1s linear infinite; }
+  @keyframes spin{ to{ transform:rotate(360deg);} }
+
+  .specs{ margin-top:14px; display:grid; gap:8px; }
+  .spec{ display:flex; gap:9px; align-items:baseline; font-size:13px; color:var(--ink-2); }
+  .spec b{ color:var(--ink); font-family:var(--mono); font-size:11.5px; background:var(--panel); border:1px solid var(--line); padding:1px 6px; border-radius:5px; }
+
+  .callout{ margin-top:30px; border:1px solid var(--line); border-left:3px solid var(--indigo); border-radius:12px; background:var(--paper); padding:15px 18px; }
+  .callout h3{ margin:0 0 5px; font-size:15px; }
+  .callout p{ margin:0; color:var(--ink-2); font-size:13.5px; }
+  .callout p + p{ margin-top:7px; }
+
+  .foot{ text-align:center; margin-top:30px; color:var(--ink-3); font-size:12px; }
+  .foot code{ font-family:var(--mono); background:var(--panel); border:1px solid var(--line); padding:1px 6px; border-radius:5px; }
+</style>
+
+<div class="wrap">
+  <span class="eyebrow">DiemDesk · brand splash</span>
+  <h1>Two splashes, two right places</h1>
+  <p class="lede">A full-screen splash on every web visit would slow a fast site. These are the two spots where a splash is correct and reads premium: the <b>installed app</b> launch, and a <b>one-time</b> welcome for brand-new web visitors. Hit Replay to watch each.</p>
+
+  <!-- WEB REVEALS -->
+  <div style="margin-top:34px;"><h2>First-visit web reveal <span style="font-weight:500;color:var(--ink-3);font-size:14px">— shown once, then never again</span></h2></div>
+
+  <div class="row cols2">
+    <!-- Minimal -->
+    <div class="demo">
+      <div class="hd"><span class="t">Option A — Minimal &amp; fast</span><span class="meta">~0.9s</span><button class="replay" data-target="minimal">↻ Replay</button></div>
+      <div class="browser">
+        <div class="chrome"><i></i><i></i><i></i><span class="url">diemdesk.com</span></div>
+        <div class="screen">
+          <div class="page-under"><div class="b big"></div><div class="b" style="width:80%;margin-top:10px"></div><div class="grid"><div></div><div></div><div></div><div></div><div></div><div></div></div></div>
+          <div class="overlay minimal run" id="minimal">
+            <div class="mark"><div class="tile t-am"></div><div class="tile t-d">D</div><div class="tile t-gr"></div><div class="tile t-co"></div></div>
+            <div class="wordmark">DiemDesk</div>
+            <div class="tagline">Your files stay yours.</div>
+          </div>
+        </div>
+      </div>
+      <div class="note">Logo eases in, wordmark rises, fades to the page in under a second. Calm, Gmail-like.</div>
+    </div>
+
+    <!-- Playful -->
+    <div class="demo">
+      <div class="hd"><span class="t">Option B — Playful build</span><span class="meta">~1.4s</span><button class="replay" data-target="playful">↻ Replay</button></div>
+      <div class="browser">
+        <div class="chrome"><i></i><i></i><i></i><span class="url">diemdesk.com</span></div>
+        <div class="screen">
+          <div class="page-under"><div class="b big"></div><div class="b" style="width:80%;margin-top:10px"></div><div class="grid"><div></div><div></div><div></div><div></div><div></div><div></div></div></div>
+          <div class="overlay playful run" id="playful">
+            <div class="mark"><div class="tile t-am"></div><div class="tile t-co"></div><div class="tile t-gr"></div><div class="tile t-d">D</div></div>
+            <div class="wordmark">DiemDesk</div>
+            <div class="tagline">Your files stay yours.</div>
+          </div>
+        </div>
+      </div>
+      <div class="note">The coloured tiles fly in and snap together into the mark, the D pops, then the wordmark. More personality.</div>
+    </div>
+  </div>
+
+  <!-- PWA SPLASH -->
+  <div style="margin-top:44px;"><h2>Installed-app splash <span style="font-weight:500;color:var(--ink-3);font-size:14px">— the real Gmail parallel</span></h2></div>
+  <div class="row cols2">
+    <div class="demo">
+      <div class="phone-wrap">
+        <div class="phone">
+          <div class="glass">
+            <div class="notch"></div>
+            <div class="mark"><div class="tile t-am"></div><div class="tile t-d">D</div><div class="tile t-gr"></div><div class="tile t-co"></div></div>
+            <div class="pw-word">DiemDesk</div>
+            <div class="spinner"></div>
+            <div class="pw-foot"><div class="fw">DiemDesk</div><div class="fs">Your files stay yours</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="note">What launching the installed Android/desktop app looks like — exactly Gmail&rsquo;s &ldquo;Google Workspace&rdquo; screen. Driven entirely by the web manifest; web visitors never see it.</div>
+    </div>
+
+    <div class="demo" style="display:flex;flex-direction:column;">
+      <div class="hd"><span class="t">How it&rsquo;s built</span></div>
+      <div style="padding:16px 18px;">
+        <div class="specs">
+          <div class="spec"><b>name</b> DiemDesk</div>
+          <div class="spec"><b>background_color</b> the indigo ground above</div>
+          <div class="spec"><b>theme_color</b> matches the app bar</div>
+          <div class="spec"><b>icons</b> the 512px lifted-D mark, centred by the OS</div>
+        </div>
+        <p style="margin-top:14px;font-size:13px;color:var(--ink-2);">The OS renders this automatically from <code style="font-family:var(--mono);font-size:12px">manifest.webmanifest</code> the moment the app launches — no code, no delay we control, no effect on the website. We already ship a manifest; this is a few fields plus one icon.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <h3>My recommendation</h3>
+    <p><b>Ship the installed-app splash regardless</b> — it&rsquo;s nearly free, it&rsquo;s what big brands do, and it lands exactly when your TWA/Android app ships. Pure upside.</p>
+    <p>For the web, <b>go with Option A (minimal), first-visit-only.</b> It gives the brand a confident hello without ever taxing a returning visitor or a search crawler. Option B is lovely but the extra half-second is a cost every new visitor pays — better saved for a campaign or the app onboarding.</p>
+  </div>
+
+  <div class="callout" style="border-left-color:var(--green);">
+    <h3>The guardrails I&rsquo;d build in</h3>
+    <p><b>Once only</b> (localStorage flag) · <b>skippable</b> (tap/scroll dismisses instantly) · <b>never blocks content</b> (the page is already rendered underneath) · <b>respects reduced-motion</b> (no animation for those who ask) · <b>never on a shared tool link</b> (someone landing on /compress-pdf from Google sees the tool, not a splash).</p>
+  </div>
+
+  <p class="foot">Mockup · <code>docs/designs/splash-mockup.html</code> · toggle your viewer&rsquo;s light/dark switch — both are designed.</p>
+</div>
+
+<script>
+  document.querySelectorAll('.replay').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var el = document.getElementById(btn.getAttribute('data-target'));
+      el.classList.remove('run'); el.style.visibility='visible'; el.style.opacity='';
+      void el.offsetWidth; // reflow to restart the animation
+      el.classList.add('run');
+    });
+  });
+</script>

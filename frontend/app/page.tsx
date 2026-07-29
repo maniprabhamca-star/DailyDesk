@@ -16,6 +16,7 @@ import { ProofStrip } from '@/components/home/proof-strip';
 import { liveToolCount } from '@/components/app/catalog';
 import { FeatureSpotlights } from '@/components/home/feature-spotlights';
 import { ShowcaseWall } from '@/components/home/showcase-wall';
+import { FirstVisitSplash } from '@/components/app/first-visit-splash';
 import { PRICING } from '@/lib/pricing';
 
 const fadeUp = {
@@ -81,6 +82,9 @@ export default function Home() {
       </div>
 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(homeFaqJsonLd) }} />
+
+      {/* One-time brand reveal for brand-new visitors — home only, skippable. */}
+      <FirstVisitSplash />
 
       <LaunchBanner />
 

@@ -15,6 +15,13 @@ export type ChangeEntry = {
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-07-28',
+    kind: 'new',
+    title: 'A proper welcome for first-time visitors',
+    detail:
+      'The very first time you land on the home page, the DiemDesk mark builds itself in and lifts away in about a second — a small hello, shown once and never again. It skips the moment you tap, scroll or press a key, never delays the page (which is already there underneath), and stays out of the way if you land straight on a tool from search. Installed on your phone, the app now opens with a clean branded splash too.',
+  },
+  {
     date: '2026-07-24',
     kind: 'new',
     title: 'Every tool page now shows its own receipts',
