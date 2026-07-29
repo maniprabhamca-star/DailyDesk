@@ -10,6 +10,10 @@ export default defineConfig({
     environment: 'jsdom',
     include: ['tests/unit/**/*.test.{ts,tsx}', 'lib/**/*.test.ts'],
     globals: true,
+    // 'threads' not 'forks': the default forks pool fails to start its worker
+    // when the project path contains a space (e.g. "Mani Documents" on Windows,
+    // where the file:// URL encodes it as %20). threads works everywhere.
+    pool: 'threads',
     coverage: { provider: 'v8', reportsDirectory: 'tests/.coverage', include: ['lib/**', 'components/**'] },
   },
   resolve: { alias: { '@': path.resolve(__dirname, '.') } },
