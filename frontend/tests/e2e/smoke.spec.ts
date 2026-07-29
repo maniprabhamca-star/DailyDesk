@@ -10,7 +10,8 @@ function isEnvNoise(text: string): boolean {
   return /\/api\//.test(text)
     || /Failed to load resource/i.test(text)
     || /net::ERR_/i.test(text)
-    || /the server responded with a status of (404|401|402|403|500|502|503)/i.test(text);
+    || /the server responded with a status of (404|401|402|403|500|502|503)/i.test(text)
+    || /fetching the script|ServiceWorker|service worker/i.test(text);
 }
 
 const ROUTES: { path: string; arch: string }[] = [

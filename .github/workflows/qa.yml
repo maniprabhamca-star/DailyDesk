@@ -68,6 +68,8 @@ jobs:
         with:
           name: next-build
           path: frontend/.next
+      - name: Generate the service worker (lives in public/, not in .next)
+        run: npm run sw
       - name: Install Playwright chromium
         run: npx playwright install --with-deps chromium
       - name: Run E2E (chromium only)

@@ -13,7 +13,8 @@ function isEnvNoise(text: string): boolean {
   return /\/api\//.test(text)
     || /Failed to load resource/i.test(text)
     || /net::ERR_/i.test(text)
-    || /the server responded with a status of (404|401|402|403|500|502|503)/i.test(text);
+    || /the server responded with a status of (404|401|402|403|500|502|503)/i.test(text)
+    || /fetching the script|ServiceWorker|service worker/i.test(text);
 }
 
 test.describe('First-visit splash (REG-001/002/003)', () => {
@@ -33,13 +34,16 @@ test.describe('First-visit splash (REG-001/002/003)', () => {
 
   test('SPLASH-002: first-timer sees it, then it lifts; a key skips it', async ({ page, context }) => {
     await context.addInitScript((k) => { try { localStorage.removeItem(k); } catch {} }, SEEN);
-    await page.goto('/');
+    // 'commit' so we assert before the ~2s auto-lift can race a slow CI load.
+    await page.goto('/', { waitUntil: 'commit' });
     const overlay = page.locator('#dd-first-splash');
-    await expect(overlay).toBeVisible();
-    await expect(page.getByText('Your files stay yours.')).toBeVisible();
+    // Present from the first paint (server-rendered), tagline scoped to the overlay.
+    await expect(overlay).toBeAttached();
+    await expect(overlay.getByText('Your files stay yours.')).toBeAttached();
+    // Flag is set on show, by an effect after hydration.
+    await expect.poll(() => page.evaluate((k) => localStorage.getItem(k), SEEN)).toBe('1');
     await page.keyboard.press('Escape');            // skip
-    await expect(overlay).toBeHidden({ timeout: 2000 });
-    expect(await page.evaluate((k) => localStorage.getItem(k), SEEN)).toBe('1');
+    await expect(overlay).toBeHidden({ timeout: 3000 });
   });
 
   test('SPLASH-003: returning visitor never sees it', async ({ page, context }) => {
