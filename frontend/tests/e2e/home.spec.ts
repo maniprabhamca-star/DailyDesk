@@ -91,8 +91,8 @@ test.describe('Home basics', () => {
   test('no console errors on load', async ({ page }) => {
     const errors: string[] = [];
     page.on('console', (m) => { if (m.type() === 'error' && !isEnvNoise(m.text())) errors.push(m.text()); });
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(1500); // bounded settle, not networkidle (never idles with Stripe/beacons)
     expect(errors, errors.join('\n')).toHaveLength(0);
   });
 

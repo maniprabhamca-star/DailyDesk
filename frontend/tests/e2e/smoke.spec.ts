@@ -45,8 +45,11 @@ for (const { path, arch } of ROUTES) {
     test('XC-002 no console errors', async ({ page }) => {
       const errors: string[] = [];
       page.on('console', (m) => { if (m.type() === 'error' && !isEnvNoise(m.text())) errors.push(m.text()); });
-      await page.goto(path);
-      await page.waitForLoadState('networkidle');
+      await page.goto(path, { waitUntil: 'domcontentloaded' });
+      // NOT networkidle — pages with a persistent connection (Stripe on
+      // /pricing, analytics beacons, retrying /api) never idle in CI. A bounded
+      // settle is enough for load-time console errors to surface.
+      await page.waitForTimeout(1500);
       expect(errors, errors.join('\n')).toHaveLength(0);
     });
 
