@@ -14,6 +14,10 @@
 //   3) Global DAILY budget     (AI_GLOBAL_DAILY_USD) — a hard money backstop while
 //      revenue is still $0 (owner testing / pre-launch), independent of #2.
 //
+// Each ceiling has an optional RUNTIME OVERRIDE in Redis (`ai:cfg:*`) so the owner
+// can tune budgets from the admin console without a backend restart, plus a hard
+// manual kill (`ai:kill` = "1") that pauses the whole assistant instantly.
+//
 // Money is tracked in integer micro-dollars to avoid float drift. Redis outage →
 // the per-user cap fails open (a hiccup shouldn't block a payer), but the bounded
 // max_tokens + the two global budgets still cap the blast radius.
@@ -31,9 +35,37 @@ const PRICE_OUT = Number(process.env.AI_PRICE_OUT_PER_MTOK || 5.0);
 const DAY_TTL = 93600;          // 26h — covers the UTC day + slack
 const MONTH_TTL = 35 * 86400;   // 35d — covers the calendar month + slack
 
+// Runtime-override keys (set from the admin console; unset => fall back to env).
+const CFG_DAILY = 'ai:cfg:global_daily_usd';
+const CFG_MONTHLY = 'ai:cfg:global_monthly_usd';
+const CFG_USER = 'ai:cfg:user_monthly_max';
+const KILL = 'ai:kill'; // "1" => assistant hard-paused for everyone
+
 function day() { return new Date().toISOString().slice(0, 10); }   // YYYY-MM-DD
 function month() { return new Date().toISOString().slice(0, 7); }  // YYYY-MM
 function costUsd(inTok, outTok) { return (inTok / 1e6) * PRICE_IN + (outTok / 1e6) * PRICE_OUT; }
+
+function toNum(v, def) {
+  if (v === null || v === undefined || v === '') return def;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : def;
+}
+
+// Effective ceilings = Redis override if set, else the env default. One MGET.
+async function effLimits() {
+  let vals = [null, null, null];
+  try { vals = await redis.mget(CFG_DAILY, CFG_MONTHLY, CFG_USER); } catch { /* use env */ }
+  return {
+    daily: toNum(vals[0], GLOBAL_DAILY_USD),
+    monthly: toNum(vals[1], GLOBAL_MONTHLY_USD),
+    userMax: toNum(vals[2], USER_MONTHLY_MAX),
+    overrides: { daily: toNum(vals[0], null), monthly: toNum(vals[1], null), userMax: toNum(vals[2], null) },
+  };
+}
+
+async function isKilled() {
+  try { return (await redis.get(KILL)) === '1'; } catch { return false; }
+}
 
 // Call BEFORE a request. Returns { ok, reason, message, remaining, extra }.
 // `weight` = how many actions this request counts as against the user's monthly
@@ -43,24 +75,29 @@ async function check(userId, weight = 1) {
   const d = day();
   const m = month();
   try {
+    // Hard manual kill — the owner paused the whole assistant from admin.
+    if (await isKilled()) {
+      return { ok: false, reason: 'ai-paused', message: 'The AI assistant is temporarily paused. Please check back soon.' };
+    }
+    const lim = await effLimits();
     // Global budgets first — they protect the whole business, not one user.
-    if (GLOBAL_MONTHLY_USD > 0) {
+    if (lim.monthly > 0) {
       const spentMonthMicro = Number(await redis.get(`ai:spend:m:${m}`)) || 0;
-      if (spentMonthMicro / 1e6 >= GLOBAL_MONTHLY_USD) {
+      if (spentMonthMicro / 1e6 >= lim.monthly) {
         return { ok: false, reason: 'ai-budget', message: "The assistant has reached this month's limit — it'll be back next month." };
       }
     }
     const spentDayMicro = Number(await redis.get(`ai:spend:${d}`)) || 0;
-    if (spentDayMicro / 1e6 >= GLOBAL_DAILY_USD) {
+    if (spentDayMicro / 1e6 >= lim.daily) {
       return { ok: false, reason: 'ai-budget', message: "The assistant has hit today's limit — it'll be back tomorrow." };
     }
     // Per-user monthly fair-use cap.
     const uKey = `ai:u:${userId}:${m}`;
     const used = Number(await redis.get(uKey)) || 0;
-    if (used + weight > USER_MONTHLY_MAX) {
-      return { ok: false, reason: 'ai-limit', message: `You've reached this month's limit of ${USER_MONTHLY_MAX} AI actions. It resets next month.`, extra: { limit: USER_MONTHLY_MAX } };
+    if (used + weight > lim.userMax) {
+      return { ok: false, reason: 'ai-limit', message: `You've reached this month's limit of ${lim.userMax} AI actions. It resets next month.`, extra: { limit: lim.userMax } };
     }
-    return { ok: true, remaining: USER_MONTHLY_MAX - used };
+    return { ok: true, remaining: lim.userMax - used };
   } catch {
     return { ok: true, remaining: null }; // fail-open on a Redis error
   }
@@ -98,4 +135,90 @@ async function status() {
   };
 }
 
-module.exports = { check, record, status, costUsd, USER_MONTHLY_MAX, GLOBAL_DAILY_USD, GLOBAL_MONTHLY_USD };
+// Top AI users this month by action count (scan `ai:u:*:${month}`). Returns
+// [{ userId, actions }] sorted desc. Bounded by `limit`. Best-effort — [] if Redis
+// is down. userId is a UUID (no colons) so the key splits cleanly.
+async function topUsers(limit = 10) {
+  const m = month();
+  const match = `ai:u:*:${m}`;
+  const keys = [];
+  try {
+    await new Promise((resolve, reject) => {
+      const stream = redis.scanStream({ match, count: 200 });
+      stream.on('data', (batch) => { for (const k of batch) keys.push(k); });
+      stream.on('end', resolve);
+      stream.on('error', reject);
+    });
+    if (!keys.length) return [];
+    const vals = await redis.mget(...keys);
+    const rows = keys.map((k, i) => {
+      const parts = k.split(':'); // ['ai','u',userId,YYYY-MM]
+      return { userId: parts[2], actions: Number(vals[i]) || 0 };
+    }).filter((r) => r.userId && r.actions > 0);
+    rows.sort((a, b) => b.actions - a.actions);
+    return rows.slice(0, limit);
+  } catch {
+    return [];
+  }
+}
+
+// Full admin surface: live spend, EFFECTIVE ceilings (override or env), which are
+// overridden, kill state, Redis health, and the top users this month.
+async function adminStatus() {
+  const d = day();
+  const m = month();
+  const down = redisDown();
+  let daySpend = 0;
+  let monthSpend = 0;
+  try { daySpend = (Number(await redis.get(`ai:spend:${d}`)) || 0) / 1e6; } catch { /* ignore */ }
+  try { monthSpend = (Number(await redis.get(`ai:spend:m:${m}`)) || 0) / 1e6; } catch { /* ignore */ }
+  const lim = await effLimits();
+  const killed = await isKilled();
+  const users = down ? [] : await topUsers(10);
+  return {
+    redisDown: down,
+    killed,
+    daySpend,
+    monthSpend,
+    dailyBudget: lim.daily,
+    monthlyBudget: lim.monthly || null,
+    userMonthlyMax: lim.userMax,
+    envDefaults: { dailyBudget: GLOBAL_DAILY_USD, monthlyBudget: GLOBAL_MONTHLY_USD || null, userMonthlyMax: USER_MONTHLY_MAX },
+    overrides: lim.overrides,
+    topUsers: users,
+  };
+}
+
+// Admin write path. Body fields (all optional):
+//   kill: boolean                 -> set/clear ai:kill
+//   global_daily_usd:  number|null (>=0, null clears the override)
+//   global_monthly_usd:number|null (>=0, 0/null clears)
+//   user_monthly_max:  number|null (>=1, null clears)
+// Returns the fresh adminStatus().
+async function setConfig(body = {}) {
+  const ops = [];
+  const setNum = (key, v, min) => {
+    if (v === undefined) return; // not provided → leave as-is
+    if (v === null || v === '') { ops.push(['del', key]); return; }
+    const n = Number(v);
+    if (!Number.isFinite(n) || n < min) throw new Error(`Invalid value for ${key}`);
+    ops.push(['set', key, String(n)]);
+  };
+  setNum(CFG_DAILY, body.global_daily_usd, 0);
+  setNum(CFG_MONTHLY, body.global_monthly_usd, 0);
+  setNum(CFG_USER, body.user_monthly_max, 1);
+  if (body.kill !== undefined) {
+    if (body.kill) ops.push(['set', KILL, '1']);
+    else ops.push(['del', KILL]);
+  }
+  for (const op of ops) {
+    if (op[0] === 'del') await redis.del(op[1]);
+    else await redis.set(op[1], op[2]);
+  }
+  return adminStatus();
+}
+
+module.exports = {
+  check, record, status, adminStatus, setConfig, topUsers, costUsd,
+  USER_MONTHLY_MAX, GLOBAL_DAILY_USD, GLOBAL_MONTHLY_USD,
+};

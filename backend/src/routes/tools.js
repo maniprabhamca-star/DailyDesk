@@ -6,6 +6,7 @@
 // Fail-open: any read error returns an empty map so the site never breaks.
 const express = require('express');
 const db = require('../db');
+const budget = require('../utils/aiBudget');
 
 const router = express.Router();
 const STATUSES = new Set(['enabled', 'coming_soon', 'pro', 'disabled']);
@@ -56,6 +57,28 @@ router.put('/flags', async (req, res) => {
   } catch (err) {
     console.error('tool flags write error:', err.message);
     res.status(500).json({ error: 'Could not update' });
+  }
+});
+
+// --- AI cost & budget (admin only; consumed by the admin portal) ---------------
+// GET  /api/tools/ai-budget  — live spend, effective ceilings, kill state, top users
+// PUT  /api/tools/ai-budget  — set runtime budget overrides + kill switch
+router.get('/ai-budget', async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  try {
+    res.json(await budget.adminStatus());
+  } catch (err) {
+    console.error('ai-budget read error:', err.message);
+    res.status(500).json({ error: 'Could not load AI budget' });
+  }
+});
+
+router.put('/ai-budget', async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  try {
+    res.json(await budget.setConfig(req.body || {}));
+  } catch (err) {
+    res.status(400).json({ error: err.message || 'Could not update AI budget' });
   }
 });
 
