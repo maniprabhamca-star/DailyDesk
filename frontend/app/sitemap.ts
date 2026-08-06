@@ -23,8 +23,10 @@ const ROUTES: Array<{ path: string; priority: number; changeFrequency: MetadataR
   { path: '/pdf-to-word', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/pdf-to-excel', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/pdf-to-markdown', priority: 0.9, changeFrequency: 'monthly' },
-  { path: '/pdf-to-epub', priority: 0.9, changeFrequency: 'monthly' },
-  { path: '/html-to-excel', priority: 0.9, changeFrequency: 'monthly' },
+  // /pdf-to-epub · /html-to-excel · /video-to-mp3 · /audio-converter are
+  // deliberately absent: they are coming_soon (owner-only) in lib/tool-flags.tsx,
+  // and a gated route must never be advertised to crawlers. Add them back the
+  // day they un-gate.
   { path: '/bates-numbering', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/pdf-to-audio', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/word-to-pdf', priority: 0.9, changeFrequency: 'monthly' },

@@ -13,31 +13,12 @@ export type ChangeEntry = {
   href?: string; // deep link to the tool/page it concerns
 };
 
+// ⏳ HELD BACK until they un-gate (they are coming_soon / owner-only today, and
+// a "new" entry pointing at a door the reader can't open is worse than silence):
+// PDF to EPUB · HTML to Excel · Video to MP3 + audio converter. Draft copy for
+// all three is in docs/designs/master-roadmap.md §5b — add them the day the
+// flags flip, dated then.
 export const CHANGELOG: ChangeEntry[] = [
-  {
-    date: '2026-08-06',
-    kind: 'new',
-    title: 'Web page tables, straight into Excel',
-    detail:
-      'HTML to Excel pulls every real table off a saved web page and hands you a spreadsheet. The reason to use it rather than copy-paste is merged cells: paste a table with a cell spanning three rows and every row after it quietly shifts a column, so the numbers land under the wrong headings. This lays the cells out the way a browser does and repeats a merged value across the squares it covers, so the export matches what you saw. Several tables on the page become several sheets, each named after its caption or the heading above it, and anything that reads as a number arrives as a number. Drop a saved page, paste the source, or try a URL — the page is parsed in your browser, so nothing is uploaded.',
-    href: '/html-to-excel',
-  },
-  {
-    date: '2026-08-06',
-    kind: 'improved',
-    title: 'PDF to EPUB now carries the pictures — and reads right-to-left',
-    detail:
-      'Two things the first version couldn’t do. Pictures inside the book now come across: each one is lifted off the page in the order it was drawn and put back at the same point in the text, so a diagram still sits with the paragraph about it. Logos and letterheads that repeat on every page are left out, as are rules and bullets too small to be content, and there’s a size cap so an illustrated book doesn’t become an enormous download. Separately, books in Arabic, Hebrew, Urdu and other right-to-left languages are now built properly right-to-left — the text direction, the headings and tables, and the direction you turn the pages.',
-    href: '/pdf-to-epub',
-  },
-  {
-    date: '2026-08-06',
-    kind: 'new',
-    title: 'Turn a PDF into a real e-book',
-    detail:
-      'PDF to EPUB converts a document into something you can actually read on a phone or e-reader: the text reflows to the screen instead of making you pinch and scroll sideways. It builds chapters from the PDF’s own bookmarks where they exist, falls back to the headings it finds, uses page one as the cover, and writes a working contents list. There’s a tidy-up pass too — it drops the running headers and page numbers that repeat on every page and rejoins words hyphenated across a line break, which are the things that make most converted books look photocopied. You can set the title, author and language, see every chapter before you commit, and it all happens in your browser: the file is never uploaded.',
-    href: '/pdf-to-epub',
-  },
   {
     date: '2026-07-28',
     kind: 'new',

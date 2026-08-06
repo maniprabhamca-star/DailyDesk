@@ -35,6 +35,13 @@ const DEFAULT_TOOL_FLAGS: FlagMap = {
   '/client-packet-builder': 'coming_soon',
   '/html-to-pdf': 'coming_soon',
   '/crop-pdf': 'coming_soon',
+  // Shipped 2026-08-06, held owner-only until the owner has click-tested them.
+  // Un-gating is three edits: remove the line here, drop `soon: true` in the
+  // catalog, and add the route back to sitemap.ts (gated routes stay out).
+  '/pdf-to-epub': 'coming_soon',
+  '/html-to-excel': 'coming_soon',
+  '/video-to-mp3': 'coming_soon',
+  '/audio-converter': 'coming_soon',
 };
 
 const Ctx = createContext<FlagMap>(DEFAULT_TOOL_FLAGS);

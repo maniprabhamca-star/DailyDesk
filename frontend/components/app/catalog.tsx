@@ -7,7 +7,7 @@ import {
   ImageDown, Smartphone, Eraser, Film, Clapperboard, ArrowLeftRight, Images, Scaling, Repeat, Crop,
   Ruler, Braces, Palette, CaseSensitive, Crosshair, Contact, SquarePen, ScanFace,
   Binary, Hash, GitCompare, FileJson, Type,
-  Cloud, Sparkles, Landmark, Volume2, BookOpen, Table2, type LucideIcon,
+  Cloud, Sparkles, Landmark, Volume2, BookOpen, Table2, Music, AudioLines, type LucideIcon,
 } from 'lucide-react';
 
 // A tool's "where it runs" tag — the single source of truth for every privacy
@@ -67,7 +67,7 @@ export const catalog: CatGroup[] = [
       { name: 'PDF to PowerPoint', href: '/pdf-to-powerpoint', icon: Presentation, badge: 'server' },
       { name: 'PDF to Excel', href: '/pdf-to-excel', icon: FileSpreadsheet, badge: 'device' },
       { name: 'PDF to Markdown', href: '/pdf-to-markdown', icon: Hash, badge: 'device' },
-      { name: 'PDF to EPUB', href: '/pdf-to-epub', icon: BookOpen, badge: 'device' },
+      { name: 'PDF to EPUB', href: '/pdf-to-epub', icon: BookOpen, badge: 'device' , soon: true },
       { name: 'PDF to Audio', href: '/pdf-to-audio', icon: Volume2, badge: 'device' },
       { name: 'Bank statement to Excel', href: '/bank-statement-converter', icon: Landmark, badge: 'device', soon: true },
       { name: 'PDF to PDF/A', href: '/pdf-to-pdfa', icon: FileCheck, badge: 'server' },
@@ -107,8 +107,10 @@ export const catalog: CatGroup[] = [
     ],
   },
   {
-    // Beyond-PDF differentiators — media tools that competitors only offer
-    // with an upload; ours run on-device (ffmpeg.wasm / codecs in the browser).
+    // Beyond-PDF differentiators — media tools that competitors only offer with
+    // an upload; ours run on-device on the BROWSER's own codecs (WebCodecs,
+    // Web Audio, canvas). Deliberately no ffmpeg.wasm: its useful builds carry
+    // GPL encoders, which we can't ship in a commercial product.
     label: 'Images & media', color: '#ea580c', tools: [
       { name: 'Compress image', href: '/compress-image', icon: ImageDown, badge: 'device' },
       { name: 'Resize image', href: '/resize-image', icon: Scaling, badge: 'device' },
@@ -119,6 +121,8 @@ export const catalog: CatGroup[] = [
       { name: 'Passport & ID photo', href: '/passport-photo', icon: Contact, badge: 'device' },
       { name: 'Blur & remove metadata', href: '/photo-privacy', icon: ScanFace, badge: 'device' },
       { name: 'Compress video', href: '/compress-video', icon: Film, badge: 'device' },
+      { name: 'Video to MP3', href: '/video-to-mp3', icon: Music, badge: 'device' , soon: true },
+      { name: 'Audio converter', href: '/audio-converter', icon: AudioLines, badge: 'device' , soon: true },
       { name: 'Video to GIF', href: '/video-to-gif', icon: Clapperboard, badge: 'device' },
     ],
   },
@@ -139,7 +143,7 @@ export const catalog: CatGroup[] = [
       { name: 'JWT decoder', href: '/jwt-decoder', icon: KeyRound, badge: 'device' },
       { name: 'UUID generator', href: '/uuid-generator', icon: Fingerprint, badge: 'device' },
       { name: 'CSV to JSON', href: '/csv-to-json', icon: FileJson, badge: 'device' },
-      { name: 'HTML to Excel', href: '/html-to-excel', icon: Table2, badge: 'device' },
+      { name: 'HTML to Excel', href: '/html-to-excel', icon: Table2, badge: 'device' , soon: true },
       { name: 'Text diff', href: '/text-diff', icon: GitCompare, badge: 'device' },
       { name: 'Timestamp', href: '/timestamp-converter', icon: Ruler, badge: 'device' },
       { name: 'JSON to YAML', href: '/json-to-yaml', icon: Braces, badge: 'device' },

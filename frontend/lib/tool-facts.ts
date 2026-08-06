@@ -141,6 +141,38 @@ export const TOOL_FACTS: Record<string, ToolFacts> = {
     ],
   },
 
+  '/video-to-mp3': {
+    effects: [
+      { what: 'The soundtrack', value: 'extracted as MP3 or WAV', tone: 'good' },
+      { what: 'Your video file', value: 'untouched, never uploaded', tone: 'good' },
+      { what: 'MP3 output', value: 're-encoded, slightly lossy', tone: 'warn' },
+      { what: 'Sample rate', value: 'set by your device, usually 48 kHz', tone: 'warn' },
+      { what: 'Chapters, tags and album art', value: 'not carried over', tone: 'warn' },
+      { what: 'Runs on', value: 'your device', tone: 'good' },
+    ],
+    limits: [
+      { title: 'Longer than about 90 minutes', detail: 'The whole soundtrack is held in memory while it converts. Trim it into parts first.' },
+      { title: 'A codec the browser cannot play', detail: 'We can only decode what your browser can. A rare codec falls back to a slower play-through capture.' },
+      { title: 'You want the video smaller, not the audio', detail: 'Different job.', href: '/compress-video', hrefLabel: 'Compress video' },
+    ],
+  },
+
+  '/audio-converter': {
+    effects: [
+      { what: 'M4A, AAC, OGG, Opus, FLAC, WAV', value: 'read directly', tone: 'good' },
+      { what: 'Output', value: 'MP3 or WAV', tone: 'good' },
+      { what: 'Converting to MP3', value: 'lossy — a little quality goes', tone: 'warn' },
+      { what: 'Sample rate', value: 'set by your device, usually 48 kHz', tone: 'warn' },
+      { what: 'Tags and cover art', value: 'not carried over', tone: 'warn' },
+      { what: 'Runs on', value: 'your device', tone: 'good' },
+    ],
+    limits: [
+      { title: 'M4A or Opus as the OUTPUT', detail: 'Only MP3 and WAV come out for now — they are the two that open everywhere.' },
+      { title: 'Longer than about 90 minutes', detail: 'Held in memory as raw audio while it converts. Trim it into sections.' },
+      { title: 'Re-encoding an already-lossy file', detail: 'M4A → MP3 loses a little more each time. Convert from the original where you can.' },
+    ],
+  },
+
   '/html-to-excel': {
     effects: [
       { what: 'Every real table on the page', value: 'found and laid out', tone: 'good' },
