@@ -18,6 +18,24 @@ export type EpubMeta = {
 
 export type EpubChapter = { title: string; html: string };
 
+export type EpubImage = { file: string; data: Uint8Array; mime: string };
+
+/** A picture's place in the text is marked with a token while the book is still
+ *  Markdown, so it survives stitching, chapter splitting and rendering. The
+ *  token becomes a real <figure> at the very end. */
+export const imageToken = (n: number) => `[[dd-img-${n}]]`;
+const TOKEN_HTML = /<p>\s*\[\[dd-img-(\d+)\]\]\s*<\/p>/g;
+
+/** Swap the tokens for figures. `src` returns the href to use, or null to drop
+ *  the picture (over the size cap, or the reader turned images off) — a token
+ *  must never survive into the book as visible text. */
+export function replaceImageTokens(html: string, src: (n: number) => string | null): string {
+  return html.replace(TOKEN_HTML, (_m, n) => {
+    const href = src(Number(n));
+    return href ? `<figure><img src="${href}" alt=""/></figure>` : '';
+  });
+}
+
 export type EpubFile = { path: string; data: string | Uint8Array; store?: boolean };
 
 // Control characters are ILLEGAL in XML 1.0, and PDFs are full of them —
@@ -207,15 +225,33 @@ figure{margin:1em 0;text-align:center}
 .cover{margin:0;padding:0;text-align:center}
 .cover img{max-height:100%}`;
 
-const chapterDoc = (lang: string, title: string, body: string) =>
-  `<?xml version="1.0" encoding="utf-8"?>
+// Right-to-left books need the mirrored versions of everything the sheet above
+// pins to the left edge. Appended only for RTL languages so LTR books keep the
+// plain, maximally-compatible rules.
+const CSS_RTL = `
+body{direction:rtl}
+h1,h2,h3,h4{text-align:right}
+th,td{text-align:right}
+ul,ol{margin:.5em 1.2em .9em 0}`;
+
+/** Languages written right-to-left. An EPUB in one of these needs `dir="rtl"`
+ *  on the document and `page-progression-direction="rtl"` on the spine, or the
+ *  reader lays the text out left-to-right and pages the book the wrong way —
+ *  the text is there but the book is unreadable. */
+const RTL = new Set(['ar', 'he', 'fa', 'ur', 'ps', 'sd', 'yi', 'dv', 'ku', 'ckb']);
+export const isRtl = (lang: string): boolean => RTL.has(String(lang).toLowerCase().split('-')[0]);
+
+const chapterDoc = (lang: string, title: string, body: string) => {
+  const dir = isRtl(lang) ? ' dir="rtl"' : '';
+  return `<?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="${esc(lang)}" lang="${esc(lang)}">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="${esc(lang)}" lang="${esc(lang)}"${dir}>
 <head><meta charset="utf-8"/><title>${esc(title)}</title><link rel="stylesheet" type="text/css" href="style.css"/></head>
-<body>
+<body${dir}>
 ${xmlSafe(body)}
 </body>
 </html>`;
+};
 
 const chapterHref = (i: number) => `chapter-${String(i + 1).padStart(3, '0')}.xhtml`;
 
@@ -225,6 +261,7 @@ export function buildEpubFiles(
   meta: EpubMeta,
   chapters: EpubChapter[],
   cover?: { data: Uint8Array; mime: string; ext: string },
+  images: EpubImage[] = [],
 ): EpubFile[] {
   const chs = chapters.length ? chapters : [{ title: meta.title, html: '<p></p>' }];
   const files: EpubFile[] = [
@@ -236,7 +273,7 @@ export function buildEpubFiles(
   <rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles>
 </container>`,
     },
-    { path: 'OEBPS/style.css', data: CSS },
+    { path: 'OEBPS/style.css', data: isRtl(meta.language) ? CSS + CSS_RTL : CSS },
   ];
 
   if (cover) {
@@ -246,6 +283,8 @@ export function buildEpubFiles(
       data: chapterDoc(meta.language, 'Cover', `<div class="cover"><img src="cover.${cover.ext}" alt="${esc(meta.title)}"/></div>`),
     });
   }
+
+  images.forEach((im) => files.push({ path: `OEBPS/${im.file}`, data: im.data }));
 
   chs.forEach((c, i) => {
     files.push({ path: `OEBPS/${chapterHref(i)}`, data: chapterDoc(meta.language, c.title, c.html) });
@@ -261,6 +300,7 @@ export function buildEpubFiles(
           '    <item id="cover" href="cover.xhtml" media-type="application/xhtml+xml"/>',
         ]
       : []),
+    ...images.map((im, i) => `    <item id="img${i + 1}" href="${esc(im.file)}" media-type="${esc(im.mime)}"/>`),
     ...chs.map((_, i) => `    <item id="ch${i + 1}" href="${chapterHref(i)}" media-type="application/xhtml+xml"/>`),
   ].join('\n');
 
@@ -268,6 +308,7 @@ export function buildEpubFiles(
     ...(cover ? ['    <itemref idref="cover"/>'] : []),
     ...chs.map((_, i) => `    <itemref idref="ch${i + 1}"/>`),
   ].join('\n');
+  const progression = isRtl(meta.language) ? ' page-progression-direction="rtl"' : '';
 
   files.push({
     path: 'OEBPS/content.opf',
@@ -284,7 +325,7 @@ ${cover ? '    <meta name="cover" content="cover-image"/>\n' : ''}  </metadata>
   <manifest>
 ${manifest}
   </manifest>
-  <spine toc="ncx">
+  <spine toc="ncx"${progression}>
 ${spine}
   </spine>
 </package>`,

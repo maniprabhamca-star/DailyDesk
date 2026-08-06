@@ -125,8 +125,11 @@ export const TOOL_FACTS: Record<string, ToolFacts> = {
       { what: 'Headings, lists and tables', value: 'rebuilt from the layout', tone: 'good' },
       { what: 'Chapters and contents', value: 'built from bookmarks or headings', tone: 'good' },
       { what: 'Page one', value: 'becomes the cover', tone: 'good' },
+      { what: 'Pictures', value: 'carried across, in place', tone: 'good' },
+      { what: 'Right-to-left languages', value: 'laid out and paged correctly', tone: 'good' },
       { what: 'Running heads and page numbers', value: 'dropped', tone: 'warn' },
-      { what: 'Images inside the book', value: 'not carried across yet', tone: 'warn' },
+      { what: 'Repeated logos and letterheads', value: 'dropped as page furniture', tone: 'warn' },
+      { what: 'Images re-encoded as JPEG', value: 'smaller, slightly lossy', tone: 'warn' },
       { what: 'The original page layout', value: 'not preserved — that is the point', tone: 'warn' },
       { what: 'Runs on', value: 'your device', tone: 'good' },
     ],
@@ -134,7 +137,23 @@ export const TOOL_FACTS: Record<string, ToolFacts> = {
       { title: 'A scanned book', detail: 'There is no selectable text to reflow. Run OCR first, then convert.', href: '/ocr-pdf', hrefLabel: 'OCR a PDF' },
       { title: 'A magazine or heavily designed page', detail: 'Multi-column art direction does not survive reflowing. Read those as a PDF.' },
       { title: 'You need the pages to look identical', detail: 'An EPUB rewraps by design. If the layout matters, keep the PDF and just shrink it.', href: '/compress-pdf', hrefLabel: 'Compress a PDF' },
-      { title: 'A picture book or comic', detail: 'Images are not included yet, so only the text would come across.' },
+      { title: 'A comic or fixed-layout picture book', detail: 'Pictures come across, but each one lands in the text flow rather than on a designed page.' },
+    ],
+  },
+
+  '/html-to-excel': {
+    effects: [
+      { what: 'Every real table on the page', value: 'found and laid out', tone: 'good' },
+      { what: 'Merged cells', value: 'expanded so columns line up', tone: 'good' },
+      { what: 'Numbers', value: 'stay numbers in Excel', tone: 'good' },
+      { what: 'Links, images and styling', value: 'not carried across — text only', tone: 'warn' },
+      { what: 'Runs on', value: 'your device', tone: 'good' },
+    ],
+    limits: [
+      { title: 'A “table” drawn with styled boxes', detail: 'Many dashboards and pricing pages only look like tables. There is no structure to read, so we say so rather than guess.' },
+      { title: 'A URL the site refuses to share', detail: 'Browsers block one page from reading another. Save the page (Ctrl+S) and drop the file — we will not proxy it through a server.' },
+      { title: 'A table inside a PDF', detail: 'Different job, different engine.', href: '/pdf-to-excel', hrefLabel: 'PDF to Excel' },
+      { title: 'A bank statement', detail: 'Statements need balance checking and a bank-specific reader.', href: '/bank-statement-converter', hrefLabel: 'Bank statement converter' },
     ],
   },
 

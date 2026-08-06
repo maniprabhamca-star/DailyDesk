@@ -203,7 +203,8 @@
       <span class="chip live">Live · /pdf-to-epub</span>
       <span class="chip">Free · 100% on-device</span>
       <span class="chip">EPUB 3 + NCX</span>
-      <span class="chip">22 core tests</span>
+      <span class="chip">Pictures + RTL</span>
+      <span class="chip">28 core tests</span>
     </div>
   </header>
 
@@ -325,21 +326,24 @@
     <h2>What shipped, and what didn’t</h2>
     <div class="grid two">
       <div class="card">
-        <h3>In v1</h3>
+        <h3>Shipped</h3>
         <ul class="plain">
           <li>EPUB 3 with an EPUB 2 NCX alongside it — older Kobo and Kindle’s converter still read the NCX</li>
           <li>Cover from page one, editable title, author and language</li>
           <li>Headings, bullet and numbered lists, and tables carried across</li>
           <li>Paragraphs healed where a page break cut them in half</li>
+          <li><b>Pictures</b>, pulled off each page in draw order and placed back at the same point in the text</li>
+          <li><b>Right-to-left books</b> — Arabic, Hebrew, Urdu and the rest get the text direction, the layout and the page-turn direction they should have</li>
           <li>Chapter list and live preview before you commit</li>
         </ul>
       </div>
       <div class="card">
-        <h3>Not in v1</h3>
+        <h3>Still open</h3>
         <ul class="plain">
-          <li>Images inside the book — the cover is the only picture that travels</li>
-          <li>Footnote linking, and multi-column art direction</li>
-          <li>Scanned PDFs, which have no text to reflow — the tool detects this and sends you to OCR</li>
+          <li>Footnotes come through as loose text, not linked notes</li>
+          <li>Multi-column art direction — a magazine spread scrambles when it reflows</li>
+          <li>The cover is always page one; you can’t supply your own</li>
+          <li>Scanned PDFs have no text to reflow — the tool detects this and sends you to OCR</li>
         </ul>
       </div>
     </div>
@@ -363,7 +367,10 @@
           <tr><td>Word hyphenated across a page break</td><td class="pass">Rejoined</td></tr>
           <tr><td>150-page book — read and plan</td><td class="num">6.0s</td></tr>
           <tr><td>150-page book — pack the EPUB</td><td class="num">1.3s → 190 KB</td></tr>
-          <tr><td>Core unit tests</td><td class="num">22 / 22</td></tr>
+          <tr><td>Pictures placed back where they were drawn</td><td class="pass">Pass</td></tr>
+          <tr><td>Repeated letterhead logo across pages</td><td class="pass">Dropped</td></tr>
+          <tr><td>Arabic book — direction and page progression</td><td class="pass">RTL</td></tr>
+          <tr><td>Core unit tests</td><td class="num">28 / 28</td></tr>
           <tr><td>Mobile at 375px — horizontal scroll</td><td class="pass">None</td></tr>
         </tbody>
       </table>

@@ -8,6 +8,7 @@ import { KeepGoing } from '@/components/app/keep-going';
 import { useFileHandoff } from '@/lib/file-handoff';
 import { useFileSession } from '@/lib/editor-session';
 import { renderMarkdown } from '@/lib/md-render';
+import { replaceImageTokens } from '@/lib/epub-core';
 import {
   extractForEpub, planEpub, assembleEpub, DEFAULT_EPUB_OPTIONS,
   type EpubSource, type EpubOptions, type ChapterMode,
@@ -43,6 +44,7 @@ export function PdfToEpubTool() {
   const [tables, setTables] = useState(DEFAULT_EPUB_OPTIONS.tables);
   const [cleanUp, setCleanUp] = useState(DEFAULT_EPUB_OPTIONS.cleanUp);
   const [cover, setCover] = useState(DEFAULT_EPUB_OPTIONS.cover);
+  const [images, setImages] = useState(DEFAULT_EPUB_OPTIONS.images);
   const [chapters, setChapters] = useState<ChapterMode>(DEFAULT_EPUB_OPTIONS.chapters);
   const [pagesPer, setPagesPer] = useState(DEFAULT_EPUB_OPTIONS.pagesPer);
 
@@ -68,18 +70,27 @@ export function PdfToEpubTool() {
   useFileSession('pdf-to-epub', file, run);
 
   const opts: EpubOptions = useMemo(
-    () => ({ title, author, language, headings, tables, cleanUp, cover, chapters, pagesPer }),
-    [title, author, language, headings, tables, cleanUp, cover, chapters, pagesPer],
+    () => ({ title, author, language, headings, tables, cleanUp, cover, images, chapters, pagesPer }),
+    [title, author, language, headings, tables, cleanUp, cover, images, chapters, pagesPer],
   );
 
   // Pure + instant: every toggle re-plans the book without touching the PDF again.
   const plan = useMemo(() => (src ? planEpub(src, opts) : null), [src, opts]);
   useEffect(() => { setPreview(0); }, [plan]);
 
+  // Object URLs for the pictures, so the preview shows the book as it will read
+  // — not a list of placeholder tokens.
+  const imageUrls = useMemo(() => {
+    if (!src || !images) return [];
+    return src.images.map((im) => URL.createObjectURL(new Blob([im.data.slice()], { type: im.mime })));
+  }, [src, images]);
+  useEffect(() => () => { imageUrls.forEach((u) => URL.revokeObjectURL(u)); }, [imageUrls]);
+
   const previewHtml = useMemo(() => {
     const md = plan?.chapters[preview]?.md ?? '';
-    return renderMarkdown(md.length > 12000 ? `${md.slice(0, 12000)}\n\n…` : md);
-  }, [plan, preview]);
+    const html = renderMarkdown(md.length > 12000 ? `${md.slice(0, 12000)}\n\n…` : md);
+    return replaceImageTokens(html, (n) => imageUrls[n] ?? null);
+  }, [plan, preview, imageUrls]);
 
   const coverUrl = useMemo(() => {
     if (!src?.cover || !cover) return null;
@@ -218,7 +229,15 @@ export function PdfToEpubTool() {
                   <Toggle on={tables} onClick={() => setTables((v) => !v)}>Keep tables</Toggle>
                   <Toggle on={cleanUp} onClick={() => setCleanUp((v) => !v)}>Tidy for reading</Toggle>
                   <Toggle on={cover} onClick={() => setCover((v) => !v)}>Cover</Toggle>
+                  <Toggle on={images} onClick={() => setImages((v) => !v)}>
+                    Pictures{src.images.length ? ` (${src.images.length})` : ''}
+                  </Toggle>
                 </div>
+                {images && src.imagesDropped > 0 && (
+                  <p className="mt-2 text-[11px] text-muted-foreground">
+                    {src.imagesDropped} more picture{src.imagesDropped === 1 ? '' : 's'} left out to keep the book a sensible size to download.
+                  </p>
+                )}
                 <p className="mt-2.5 text-[11px] leading-snug text-muted-foreground">
                   <b>Tidy for reading</b> drops running headers and page numbers and rejoins words broken across a line — the three things that make a converted book look photocopied.
                 </p>
@@ -272,6 +291,8 @@ export function PdfToEpubTool() {
         .epub-preview :global(table){border-collapse:collapse;margin:.6em 0;font-size:.9em;display:block;overflow-x:auto}
         .epub-preview :global(th),.epub-preview :global(td){border:1px solid hsl(var(--border));padding:.35em .6em;text-align:left}
         .epub-preview :global(th){background:hsl(var(--muted));font-weight:600}
+        .epub-preview :global(figure){margin:.9em 0;text-align:center}
+        .epub-preview :global(img){max-width:100%;height:auto;border-radius:6px;border:1px solid hsl(var(--border))}
       `}</style>
     </div>
   );

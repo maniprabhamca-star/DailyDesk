@@ -56,8 +56,8 @@ Mostly free/on-device unless marked.
 - [x] ✅ **PDF → audio (TTS)** (`/pdf-to-audio` — free on-device: Web Speech read-aloud, voice/speed/pitch, sentence follow-highlight + tap-to-jump; 7/7 segmentation. **MP3 file export = deliberate future Pro add-on** — free v1 is playback only) · [ ] ⏳ speech-to-text (still pending)
 - [x] ✅ **Bates numbering** (`/bates-numbering` — **FREE** on-device: prefix/start/digits/suffix, 6 corners, page range, **continuous across a whole file set**→PDF/zip, live preview; 23/23 incl. full IO proven w/ real pdf-lib+pdf.js. NOTE: was planned "Pro" — shipped free per gate-scale-not-quality)
 - [ ] ⏳ **Accessibility / PDF-UA auto-tag** ⭐ (EU Accessibility Act enforcement live 28 Jun 2025 — no consumer tool exists)
-- [x] ✅ **PDF → EPUB** (`/pdf-to-epub` — free on-device: reflowable EPUB 3 + NCX, chapters from the PDF's bookmarks → headings → fixed page blocks, page one as cover, editable title/author/language, live chapter preview. "Tidy for reading" drops running heads + page numbers and rejoins hyphens across line AND page breaks. 22/22 core tests; 150-page book = 6.0s read + 1.3s pack → 190KB. v1 has no in-book images — v1.1)
-- [ ] ⏳ **HTML → Excel** (paste a URL or drop an .html file → every `<table>` on the page found, previewed and exported to .xlsx/.CSV. On-device: the HTML is parsed in the browser, so a pasted page is fetched once and never stored. Reuses the PDF→Excel editable grid + `xlsx.ts` writer)
+- [x] ✅ **PDF → EPUB** (`/pdf-to-epub` — free on-device: reflowable EPUB 3 + NCX, chapters from the PDF's bookmarks → headings → fixed page blocks, page one as cover, editable title/author/language, live chapter preview. "Tidy for reading" drops running heads + page numbers and rejoins hyphens across line AND page breaks. **v1.1 shipped same day: in-book pictures** (pdf.js op-list, in draw order, repeated logos + sub-64px junk dropped, capped) **and proper RTL** (Arabic/Hebrew/Urdu → `dir="rtl"` + `page-progression-direction`). 28/28 core tests; 150-page book = 6.0s read + 1.3s pack → 190KB. Remaining: footnote linking, own-cover upload, multi-column reading order)
+- [x] ✅ **HTML → Excel** (`/html-to-excel` — free on-device: drop a saved page, paste source, or try a URL → every real `<table>` found, **colspan/rowspan laid out the way a browser does** (the thing copy-paste gets wrong), named from caption/heading, editable grid → .xlsx one-sheet-per-table or CSV. Numbers coerced. First of the §5b spreadsheet pack)
 - [ ] ⏳ **Receipt / invoice / statement → spreadsheet** ⭐ (IDP — the 2026 wave)
 - [ ] ⏳ **e-Invoice** (Factur-X / ZUGFeRD = CII XML in PDF/A-3; EU mandates live: DE, BE Jan 2026, FR Sept 2026)
 - [x] 🌐 **Repair PDF** (`/repair-pdf` — free on-device: tolerant reload+resave rebuilds the broken xref that makes PDFs won't-open; 4/4 headless test)
@@ -87,10 +87,22 @@ Mostly free/on-device unless marked.
 
 ## 5. Media & beyond-PDF (mostly free, ffmpeg.wasm / browser APIs)
 - [x] ✅ HEIC→JPG · remove-background · video-to-gif · compress-video · compress/convert/resize/crop image
-- [ ] ⏳ AVIF / WebP convert · RAW → JPG
-- [ ] ⏳ Extract audio from video · audio convert / trim
+- [ ] ⏳ AVIF / WebP convert
 - [ ] ⏳ Subtitle editor
-- [ ] ⏳ Apple iWork → PDF/Office · Markdown → PDF/Word · mail-merge / doc-assembly
+- [ ] ⏳ Apple iWork → PDF/Office · mail-merge / doc-assembly
+- ~~RAW → JPG~~ · ~~MOBI/AZW3~~ — **deliberately not building** (heavy decoders; Amazon deprecated MOBI). Anything needing a server round-trip is out too: it breaks the on-device promise.
+
+## 5b. Converter expansion ⭐ (agreed 2026-08-06 — the next build queue, in order)
+Every one is on-device, reuses an engine we already ship, and targets search terms where every current result is an upload site.
+- [ ] ⏳ **1. Video/audio → MP3 + audio converter** ⭐ (extract audio from video; MP3/WAV/M4A/OGG convert + trim) — ffmpeg.wasm already in the stack from Compress video. The largest single gap by search volume, no new infra.
+- [ ] ⏳ **2. Spreadsheet pack** — **Excel ↔ CSV** · **JSON ↔ Excel/CSV** · **XML → Excel**. `xlsx.ts` + the PDF→Excel editable grid already exist; each is roughly a day and they compound as long-tail SEO.
+- [ ] ⏳ **3. SVG → PNG/JPG/PDF** — pure canvas, no new dependency. Constant developer/designer demand, every result today is an upload site.
+- [x] ✅ **HTML → Excel** (see §2) — first of the spreadsheet pack, shipped 2026-08-06.
+- [ ] ⏳ **EPUB → PDF / Word / TXT** — the reverse trip; keeps the funnel PDF→EPUB just opened.
+- [ ] ⏳ **PDF → plain text** — near-free on the PDF→Markdown engine, real volume.
+- [ ] ⏳ **Markdown → PDF / Word** — reuses `md-render` + `docx.ts`.
+- [ ] ⏳ **Subtitles SRT ↔ VTT ↔ TXT** — tiny build, nobody does it privately.
+- [ ] ⏳ **ICO / favicon pack from an image** — small, steady developer demand.
 
 ## 6. Tier-2 mini-apps (retention, account-based)
 - [x] 🔵 Smart Notes (`/notes` — account-synced CRUD, autosave, search/tags; free ≤10 notes, Pro unlimited; prod e2e incl. cap boundary + Pro bypass)

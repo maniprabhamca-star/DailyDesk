@@ -10,14 +10,16 @@
 // the two tools can never disagree about what a page says. Everything runs in
 // the browser: the file is never uploaded.
 
-import { openPdf } from './pdf-render';
+import { getPdfjs, openPdf } from './pdf-render';
 import { pageToItems } from './pdf-markdown';
 import { pdfItemsToMarkdown, type MItem } from './pdf-markdown-core';
 import { renderMarkdown } from './md-render';
 import {
-  buildEpubFiles, dehyphenate, splitByHeadings, splitByOutline, splitByPages, stitchPages, stripRunningHeads,
-  type EpubChapter, type MdChapter,
+  buildEpubFiles, dehyphenate, imageToken, replaceImageTokens, splitByHeadings, splitByOutline, splitByPages,
+  stitchPages, stripRunningHeads,
+  type EpubChapter, type EpubImage, type MdChapter,
 } from './epub-core';
+import { capImages, dropRepeatedImages, imagesOnPage, type ImageCache, type PageImage } from './pdf-page-images';
 
 export type ChapterMode = 'auto' | 'outline' | 'headings' | 'pages' | 'single';
 
@@ -29,6 +31,7 @@ export type EpubOptions = {
   tables: boolean;
   cleanUp: boolean; // de-hyphenate + drop running heads/page numbers
   cover: boolean;
+  images: boolean; // carry the pictures inside the book across
   chapters: ChapterMode;
   pagesPer: number;
 };
@@ -42,6 +45,7 @@ export type EpubResult = {
   hasText: boolean;
   splitBy: 'outline' | 'headings' | 'pages' | 'single';
   coverIncluded: boolean;
+  imagesIncluded: number;
 };
 
 export const DEFAULT_EPUB_OPTIONS: Omit<EpubOptions, 'title' | 'author'> = {
@@ -50,6 +54,7 @@ export const DEFAULT_EPUB_OPTIONS: Omit<EpubOptions, 'title' | 'author'> = {
   tables: true,
   cleanUp: true,
   cover: true,
+  images: true,
   chapters: 'auto',
   pagesPer: 20,
 };
@@ -137,6 +142,10 @@ export type EpubSource = {
   pageItems: MItem[][];
   marks: Array<{ title: string; page: number }>;
   cover: { data: Uint8Array; mime: string; ext: string } | null;
+  /** Pictures found inside the book, in reading order, already de-duplicated
+   *  against page furniture and capped. Index into this array IS the token id. */
+  images: PageImage[];
+  imagesDropped: number;
   numPages: number;
   hasText: boolean;
   title: string;
@@ -153,6 +162,7 @@ export async function extractForEpub(
   bail();
   const handle = await openPdf(file);
   const pageItems: MItem[][] = [];
+  const rawImages: PageImage[] = [];
   let marks: Array<{ title: string; page: number }> = [];
   let cover: Awaited<ReturnType<typeof renderCover>> = null;
   let title = '';
@@ -169,10 +179,15 @@ export async function extractForEpub(
     onProgress?.(0.02, 'Making the cover');
     cover = await renderCover(handle as never);
 
+    const { OPS } = await getPdfjs();
+    const imageCache: ImageCache = new Map();
     for (let i = 0; i < handle.numPages; i++) {
       bail();
       const page = await handle.doc.getPage(i + 1);
       pageItems.push(await pageToItems(page));
+      // Pictures must come off the page BEFORE cleanup() — that's when pdf.js
+      // drops the decoded image objects.
+      rawImages.push(...(await imagesOnPage(page, i, OPS as unknown as Record<string, number>, imageCache)));
       (page as unknown as { cleanup?: () => void }).cleanup?.();
       onProgress?.(((i + 1) / handle.numPages) * 0.9, `Reading page ${i + 1} of ${handle.numPages}`);
     }
@@ -180,10 +195,14 @@ export async function extractForEpub(
   } finally {
     await handle.destroy();
   }
+
+  const { kept, dropped } = capImages(dropRepeatedImages(rawImages, pageItems.length));
   return {
     pageItems,
     marks,
     cover,
+    images: kept,
+    imagesDropped: dropped,
     numPages: pageItems.length,
     hasText: pageItems.some((p) => p.some((it) => it.s.trim())),
     title,
@@ -205,7 +224,16 @@ export async function pdfToEpub(
  *  can update as the reader changes their mind. */
 export function planEpub(src: EpubSource, opts: EpubOptions): { chapters: MdChapter[]; splitBy: EpubResult['splitBy'] } {
   const pageItems = opts.cleanUp ? stripRunningHeads(src.pageItems) : src.pageItems;
-  const pageMd = pageItems.map((items) => pdfItemsToMarkdown([items], { headings: opts.headings, tables: opts.tables }));
+  const pageMd = pageItems.map((items, pageIndex) => {
+    const md = pdfItemsToMarkdown([items], { headings: opts.headings, tables: opts.tables });
+    if (!opts.images) return md;
+    // Pictures ride along as tokens at the end of the page they were drawn on —
+    // that's the only page-accurate anchor left once the text is reflowed.
+    const marks = src.images
+      .map((im, i) => (im.page === pageIndex ? imageToken(i) : ''))
+      .filter(Boolean);
+    return marks.length ? `${md}\n\n${marks.join('\n\n')}` : md;
+  });
 
   // Chapters: bookmarks first (a human chose them), then the document's own
   // headings, then a fixed page split so a long book never becomes one huge file.
@@ -250,9 +278,27 @@ export function planEpub(src: EpubSource, opts: EpubOptions): { chapters: MdChap
 /** The packing half: chapters → a real .epub file. */
 export async function assembleEpub(src: EpubSource, opts: EpubOptions): Promise<EpubResult> {
   const { chapters, splitBy } = planEpub(src, opts);
-  const epubChapters: EpubChapter[] = chapters.map((c) => ({ title: c.title, html: renderMarkdown(c.md) }));
   const cover = opts.cover ? src.cover : null;
   const stem = src.fileName.replace(/\.pdf$/i, '');
+
+  // Only the pictures a chapter actually references get packed — a token that
+  // fell out with its page must not leave a file behind in the manifest.
+  // Keyed by the picture's fingerprint, not its position: the same figure drawn
+  // on two pages is packed once and referenced twice.
+  const used = new Map<string, EpubImage>();
+  const fileFor = (n: number) => {
+    const im = src.images[n];
+    if (!opts.images || !im) return null;
+    const existing = used.get(im.fp);
+    if (existing) return existing.file;
+    const file = `img-${String(used.size + 1).padStart(3, '0')}.${im.ext}`;
+    used.set(im.fp, { file, data: im.data, mime: im.mime });
+    return file;
+  };
+  const epubChapters: EpubChapter[] = chapters.map((c) => ({
+    title: c.title,
+    html: replaceImageTokens(renderMarkdown(c.md), fileFor),
+  }));
 
   const files = buildEpubFiles(
     {
@@ -264,6 +310,7 @@ export async function assembleEpub(src: EpubSource, opts: EpubOptions): Promise<
     },
     epubChapters,
     cover ?? undefined,
+    Array.from(used.values()),
   );
 
   const JSZip = (await import('jszip')).default;
@@ -282,6 +329,7 @@ export async function assembleEpub(src: EpubSource, opts: EpubOptions): Promise<
     hasText: src.hasText,
     splitBy,
     coverIncluded: !!cover,
+    imagesIncluded: used.size,
   };
 }
 

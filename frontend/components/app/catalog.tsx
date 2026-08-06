@@ -7,7 +7,7 @@ import {
   ImageDown, Smartphone, Eraser, Film, Clapperboard, ArrowLeftRight, Images, Scaling, Repeat, Crop,
   Ruler, Braces, Palette, CaseSensitive, Crosshair, Contact, SquarePen, ScanFace,
   Binary, Hash, GitCompare, FileJson, Type,
-  Cloud, Sparkles, Landmark, Volume2, BookOpen, type LucideIcon,
+  Cloud, Sparkles, Landmark, Volume2, BookOpen, Table2, type LucideIcon,
 } from 'lucide-react';
 
 // A tool's "where it runs" tag — the single source of truth for every privacy
@@ -139,6 +139,7 @@ export const catalog: CatGroup[] = [
       { name: 'JWT decoder', href: '/jwt-decoder', icon: KeyRound, badge: 'device' },
       { name: 'UUID generator', href: '/uuid-generator', icon: Fingerprint, badge: 'device' },
       { name: 'CSV to JSON', href: '/csv-to-json', icon: FileJson, badge: 'device' },
+      { name: 'HTML to Excel', href: '/html-to-excel', icon: Table2, badge: 'device' },
       { name: 'Text diff', href: '/text-diff', icon: GitCompare, badge: 'device' },
       { name: 'Timestamp', href: '/timestamp-converter', icon: Ruler, badge: 'device' },
       { name: 'JSON to YAML', href: '/json-to-yaml', icon: Braces, badge: 'device' },

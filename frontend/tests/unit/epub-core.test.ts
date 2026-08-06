@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
-  buildEpubFiles, dehyphenate, splitByHeadings, splitByOutline, splitByPages, stitchPages, stripRunningHeads,
+  buildEpubFiles, dehyphenate, imageToken, isRtl, replaceImageTokens, splitByHeadings, splitByOutline,
+  splitByPages, stitchPages, stripRunningHeads,
 } from '@/lib/epub-core';
 import type { MItem } from '@/lib/pdf-markdown-core';
 
@@ -96,6 +97,23 @@ describe('chapter splitting', () => {
   });
 });
 
+describe('image tokens', () => {
+  const html = `<p>before</p>\n<p>${imageToken(0)}</p>\n<p>after</p>\n<p>${imageToken(1)}</p>`;
+
+  it('becomes a figure where the picture was drawn', () => {
+    const out = replaceImageTokens(html, (n) => `img-00${n + 1}.jpg`);
+    expect(out).toContain('<figure><img src="img-001.jpg" alt=""/></figure>');
+    expect(out).toContain('<figure><img src="img-002.jpg" alt=""/></figure>');
+    expect(out.indexOf('before')).toBeLessThan(out.indexOf('img-001'));
+  });
+
+  it('never leaves a token visible when a picture is dropped', () => {
+    const out = replaceImageTokens(html, () => null);
+    expect(out).not.toContain('dd-img');
+    expect(out).toContain('<p>after</p>');
+  });
+});
+
 describe('buildEpubFiles', () => {
   const files = buildEpubFiles(meta, [{ title: 'One', html: '<p>hello</p>' }, { title: 'Two', html: '<p>world</p>' }]);
   const at = (p: string) => files.find((f) => f.path === p);
@@ -151,6 +169,36 @@ describe('buildEpubFiles', () => {
   it('never produces an empty book', () => {
     const empty = buildEpubFiles(meta, []);
     expect(empty.find((f) => f.path === 'OEBPS/chapter-001.xhtml')).toBeTruthy();
+  });
+
+  it('lays a right-to-left book out right-to-left', () => {
+    const ar = buildEpubFiles({ ...meta, language: 'ar' }, [{ title: 'فصل', html: '<p>نص</p>' }]);
+    const opf = String(ar.find((f) => f.path === 'OEBPS/content.opf')!.data);
+    const ch = String(ar.find((f) => f.path === 'OEBPS/chapter-001.xhtml')!.data);
+    const css = String(ar.find((f) => f.path === 'OEBPS/style.css')!.data);
+    expect(opf).toContain('page-progression-direction="rtl"');
+    expect(ch).toContain('dir="rtl"');
+    expect(css).toContain('direction:rtl');
+  });
+
+  it('leaves a left-to-right book alone', () => {
+    const opf = String(at('OEBPS/content.opf')!.data);
+    expect(opf).not.toContain('page-progression-direction');
+    expect(String(at('OEBPS/chapter-001.xhtml')!.data)).not.toContain('dir="rtl"');
+    expect(String(at('OEBPS/style.css')!.data)).not.toContain('direction:rtl');
+  });
+
+  it('knows which languages read right-to-left', () => {
+    expect(['ar', 'he', 'fa', 'ur', 'ar-EG'].every(isRtl)).toBe(true);
+    expect(['en', 'hi', 'ta', 'de', ''].some(isRtl)).toBe(false);
+  });
+
+  it('packs only the pictures a chapter actually uses', () => {
+    const withImg = buildEpubFiles(meta, [{ title: 'One', html: '<p>x</p><figure><img src="img-001.jpg" alt=""/></figure>' }],
+      undefined, [{ file: 'img-001.jpg', data: new Uint8Array([9, 9]), mime: 'image/jpeg' }]);
+    const opf = String(withImg.find((f) => f.path === 'OEBPS/content.opf')!.data);
+    expect(opf).toContain('href="img-001.jpg" media-type="image/jpeg"');
+    expect(withImg.find((f) => f.path === 'OEBPS/img-001.jpg')).toBeTruthy();
   });
 
   it('writes well-formed XML declarations everywhere', () => {
