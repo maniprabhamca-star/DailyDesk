@@ -6,6 +6,9 @@ export const metadata: Metadata = {
   title: 'HTML to Excel — Web Page Tables to .xlsx | DiemDesk',
   description: 'Pull every table out of a web page into Excel or CSV — merged cells handled properly. Runs in your browser, nothing uploaded. Free.',
   alternates: { canonical: '/html-to-excel' },
+  // Gated (coming_soon): keep a thin "coming soon" page out of the index. Remove
+  // this line the day the tool un-gates — everything else is already in place.
+  robots: { index: false, follow: true },
   openGraph: {
     images: ['/og.png'],
     title: 'HTML to Excel — private, in your browser',

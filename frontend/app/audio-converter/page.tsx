@@ -6,6 +6,9 @@ export const metadata: Metadata = {
   title: 'Audio Converter — M4A, AAC, OGG, FLAC to MP3 | DiemDesk',
   description: 'Convert audio to MP3 or WAV in your browser — M4A, AAC, OGG, FLAC, WAV and more. Nothing uploaded. Free, no signup.',
   alternates: { canonical: '/audio-converter' },
+  // Gated (coming_soon): keep a thin "coming soon" page out of the index. Remove
+  // this line the day the tool un-gates — everything else is already in place.
+  robots: { index: false, follow: true },
   openGraph: {
     images: ['/og.png'],
     title: 'Audio converter — private, in your browser',

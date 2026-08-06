@@ -42,6 +42,11 @@ const DEFAULT_TOOL_FLAGS: FlagMap = {
   '/html-to-excel': 'coming_soon',
   '/video-to-mp3': 'coming_soon',
   '/audio-converter': 'coming_soon',
+  // The spreadsheet pack.
+  '/excel-to-csv': 'coming_soon',
+  '/csv-to-excel': 'coming_soon',
+  '/json-to-excel': 'coming_soon',
+  '/xml-to-excel': 'coming_soon',
 };
 
 const Ctx = createContext<FlagMap>(DEFAULT_TOOL_FLAGS);

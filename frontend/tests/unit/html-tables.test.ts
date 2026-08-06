@@ -96,6 +96,8 @@ describe('sheetName', () => {
   });
 
   it('falls back when the name is empty', () => {
-    expect(sheetName('', new Set())).toBe('Table');
+    // Shared with the rest of the spreadsheet pack (lib/sheet-io), so the
+    // fallback is the generic "Sheet". In practice a table always arrives named.
+    expect(sheetName('', new Set())).toBe('Sheet');
   });
 });

@@ -115,16 +115,6 @@ export function tablesFromHtml(html: string, opts: ParseOptions = {}): HtmlTable
   return out;
 }
 
-/** Excel sheet names: 31 chars, no []:*?/\ and no duplicates. */
-export function sheetName(raw: string, taken: Set<string>): string {
-  let base = (raw || 'Table').replace(/[[\]:*?/\\]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 31) || 'Table';
-  let name = base;
-  let n = 2;
-  while (taken.has(name.toLowerCase())) {
-    const suffix = ` (${n++})`;
-    base = base.slice(0, 31 - suffix.length);
-    name = base + suffix;
-  }
-  taken.add(name.toLowerCase());
-  return name;
-}
+// Sheet naming is shared with the rest of the spreadsheet pack — one set of
+// Excel's rules, in one place.
+export { sheetName } from './sheet-io';

@@ -6,6 +6,9 @@ export const metadata: Metadata = {
   title: 'PDF to EPUB — Convert in Your Browser | DiemDesk',
   description: 'Turn a PDF into a real EPUB e-book — chapters, contents, cover and text that reflows on any e-reader. Runs on your device, never uploaded. Free.',
   alternates: { canonical: '/pdf-to-epub' },
+  // Gated (coming_soon): keep a thin "coming soon" page out of the index. Remove
+  // this line the day the tool un-gates — everything else is already in place.
+  robots: { index: false, follow: true },
   openGraph: {
     images: ['/og.png'],
     title: 'PDF to EPUB — private, in your browser',

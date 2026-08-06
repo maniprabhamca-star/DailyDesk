@@ -6,6 +6,9 @@ export const metadata: Metadata = {
   title: 'Video to MP3 — Extract Audio in Your Browser | DiemDesk',
   description: 'Pull the audio out of a video and save it as MP3 or WAV. Runs on your device — the video is never uploaded. Free, no signup.',
   alternates: { canonical: '/video-to-mp3' },
+  // Gated (coming_soon): keep a thin "coming soon" page out of the index. Remove
+  // this line the day the tool un-gates — everything else is already in place.
+  robots: { index: false, follow: true },
   openGraph: {
     images: ['/og.png'],
     title: 'Video to MP3 — private, in your browser',

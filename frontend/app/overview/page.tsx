@@ -81,7 +81,7 @@ const BEYOND: { name: string; desc: string; status: 'live' | 'soon'; tier: 'free
   { name: 'EPUB → PDF / Word', desc: 'The return trip, for when you need the fixed page back.', status: 'soon', tier: 'free' },
   { name: 'HTML → Excel', desc: 'Every table on a web page into a spreadsheet — merged cells handled, which is what copy-paste gets wrong.', status: 'soon', tier: 'free' },
   { name: 'Video → MP3 · audio converter', desc: 'Pull the soundtrack out of a video, or convert M4A, OGG and FLAC to MP3 — in the browser, where other converters upload.', status: 'soon', tier: 'free' },
-  { name: 'Excel ↔ CSV · JSON ↔ Excel', desc: 'The everyday spreadsheet conversions, done on your device instead of an upload site.', status: 'soon', tier: 'free' },
+  { name: 'Excel ↔ CSV · JSON → Excel · XML → Excel', desc: 'The everyday spreadsheet conversions, on your device instead of an upload site — separators detected, dates readable, nested fields flattened.', status: 'soon', tier: 'free' },
   { name: 'SVG → PNG / JPG / PDF', desc: 'Vector artwork out to the formats everything else accepts.', status: 'soon', tier: 'free' },
   { name: 'PDF → plain text', desc: 'Just the words, for search, scripts and pipelines.', status: 'soon', tier: 'free' },
   { name: 'PDF → audio (read aloud)', desc: 'Listen to any document — accessibility and hands-free.', status: 'live', tier: 'free' },

@@ -141,6 +141,65 @@ export const TOOL_FACTS: Record<string, ToolFacts> = {
     ],
   },
 
+  '/excel-to-csv': {
+    effects: [
+      { what: 'Every sheet', value: 'read, each as its own tab', tone: 'good' },
+      { what: 'Dates', value: 'written as dates, not day numbers', tone: 'good' },
+      { what: 'Formulas', value: 'replaced by the value they produced', tone: 'warn' },
+      { what: 'Formatting, colours and merged cells', value: 'not kept — CSV has none', tone: 'warn' },
+      { what: 'Runs on', value: 'your device', tone: 'good' },
+    ],
+    limits: [
+      { title: 'You need the formulas kept', detail: 'CSV holds values only. Keep the .xlsx for anything that has to recalculate.' },
+      { title: 'Charts, pivot tables or macros', detail: 'None of these survive a conversion to CSV, by definition of the format.' },
+      { title: 'A password-protected workbook', detail: 'An encrypted .xlsx cannot be unzipped without the password. Open it in Excel and save a copy first.' },
+    ],
+  },
+
+  '/csv-to-excel': {
+    effects: [
+      { what: 'Separator', value: 'detected — comma, semicolon or tab', tone: 'good' },
+      { what: 'Quoted fields with commas inside', value: 'kept in one cell', tone: 'good' },
+      { what: 'Numbers', value: 'written as numbers, not text', tone: 'good' },
+      { what: 'Leading zeros', value: 'lost where a value reads as a number', tone: 'warn' },
+      { what: 'Runs on', value: 'your device', tone: 'good' },
+    ],
+    limits: [
+      { title: 'Product codes or IDs with leading zeros', detail: 'Anything that reads as a number becomes one, so 007 becomes 7. Edit the cell to add an apostrophe before it, or keep the CSV.' },
+      { title: 'A file with several tables in it', detail: 'One CSV becomes one sheet. Split it first, or clean it up.', href: '/csv-cleaner', hrefLabel: 'CSV cleaner' },
+    ],
+  },
+
+  '/json-to-excel': {
+    effects: [
+      { what: 'An array of records', value: 'becomes rows', tone: 'good' },
+      { what: 'Nested objects', value: 'flattened to dotted columns', tone: 'good' },
+      { what: 'Fields missing on some records', value: 'left blank, never dropped', tone: 'good' },
+      { what: 'Arrays of objects inside a record', value: 'kept as JSON text in the cell', tone: 'warn' },
+      { what: 'Runs on', value: 'your device', tone: 'good' },
+    ],
+    limits: [
+      { title: 'JSON that is not a list', detail: 'A single object has one row in it. There is nothing to lay out as a table.' },
+      { title: 'Deeply nested API responses', detail: 'Flattening produces a lot of columns. Pick out the part you want first.' },
+      { title: 'NDJSON / JSON Lines', detail: 'One object per line is a different format — wrap the lines in an array first.' },
+    ],
+  },
+
+  '/xml-to-excel': {
+    effects: [
+      { what: 'The repeating element', value: 'becomes the rows', tone: 'good' },
+      { what: 'Attributes', value: 'become @-prefixed columns', tone: 'good' },
+      { what: 'Namespace prefixes', value: 'kept, so fields do not merge', tone: 'good' },
+      { what: 'Mixed content and comments', value: 'not carried across', tone: 'warn' },
+      { what: 'Runs on', value: 'your device', tone: 'good' },
+    ],
+    limits: [
+      { title: 'Document-shaped XML', detail: 'An article with markup through it has no repeating record, so there are no rows to build. We say so rather than guess.' },
+      { title: 'e-invoice XML (Factur-X, ZUGFeRD)', detail: 'It reads as a single record. Proper e-invoice handling is a separate job on our roadmap.' },
+      { title: 'Very deep hierarchies', detail: 'Only one level below the record is expanded into columns; deeper nesting is summarised.' },
+    ],
+  },
+
   '/video-to-mp3': {
     effects: [
       { what: 'The soundtrack', value: 'extracted as MP3 or WAV', tone: 'good' },
