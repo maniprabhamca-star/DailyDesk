@@ -9,6 +9,8 @@ type FlagMap = Record<string, ToolStatus>;
 
 const DEFAULT_TOOL_FLAGS: FlagMap = {
   '/edit-pdf': 'coming_soon',
+  // Saved Workflows — Pro, owner-only until Pro launch.
+  '/workflows': 'coming_soon',
   // Premium editors + OCR: owner-only until Pro launch (they were reachable by
   // direct URL though the catalog marks them "coming soon" — this closes that gap).
   '/annotate-pdf': 'coming_soon',

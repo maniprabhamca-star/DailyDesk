@@ -3,7 +3,7 @@ import {
   FileImage, Image as ImageIcon, FileType, FileType2, Code2, Presentation, FileSpreadsheet, FileCheck,
   PenLine, Highlighter, Stamp, EyeOff, PenTool, Lock, Unlock, Fingerprint, Layers, ScanLine, ShieldCheck,
   ScanText, MessageSquare, AlignLeft, Languages, HelpCircle, Wrench, Camera, ReceiptText,
-  QrCode, KeyRound, NotebookPen, Flame, Wallet, FolderLock, Link2,
+  QrCode, KeyRound, NotebookPen, Flame, Wallet, FolderLock, Link2, Workflow,
   ImageDown, Smartphone, Eraser, Film, Clapperboard, ArrowLeftRight, Images, Scaling, Repeat, Crop,
   Ruler, Braces, Palette, CaseSensitive, Crosshair, Contact, SquarePen, ScanFace,
   Binary, Hash, GitCompare, FileJson, Type,
@@ -30,7 +30,7 @@ export const BADGE: Record<Badge, { icon: LucideIcon; color: string; label: stri
 // AI tools. Search surfaces (⌘K palette, header search) badge these "Pro" and send
 // free users to pricing instead of a dead end. Keep in sync with the pro-launch
 // checklist. Matched by tool name.
-export const PRO_TOOLS = new Set(['Edit PDF', 'Redact PDF', 'OCR', 'Chat with PDF', 'Summarize', 'Translate', 'Question generator', 'File vault', 'Link in bio', 'Receipt scanner']);
+export const PRO_TOOLS = new Set(['Edit PDF', 'Redact PDF', 'OCR', 'Chat with PDF', 'Summarize', 'Translate', 'Question generator', 'File vault', 'Link in bio', 'Receipt scanner', 'Workflows']);
 
 export const catalog: CatGroup[] = [
   {
@@ -155,6 +155,7 @@ export const catalog: CatGroup[] = [
       { name: 'Habit tracker', href: '/habits', icon: Flame, badge: 'account' },
       { name: 'Budget tracker', href: '/budget', icon: Wallet, badge: 'account' },
       { name: 'Receipt scanner', href: '/receipt-scanner', icon: ReceiptText, badge: 'server', soon: true },
+      { name: 'Workflows', href: '/workflows', icon: Workflow, badge: 'device', soon: true },
       { name: 'Client packet builder', href: '/client-packet-builder', icon: FolderLock, badge: 'device', soon: true },
       { name: 'File vault', href: '/file-vault', icon: FolderLock, badge: 'encrypted', soon: true },
       { name: 'Link in bio', href: '/link-in-bio', icon: Link2, badge: 'server', soon: true },
