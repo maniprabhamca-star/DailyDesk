@@ -1,0 +1,368 @@
+<title>DiemDesk — Saved Workflows</title>
+
+<style>
+  :root{
+    --indigo:#5b52f0; --indigo-2:#eceafe;
+    --green:#16a34a;  --green-2:#e4f6ea;
+    --amber:#f59e0b;  --amber-2:#fdf2dd;
+    --coral:#f4674e;  --coral-2:#fde8e3;
+    --cyan:#0891b2;   --cyan-2:#e0f4fa;
+    --violet:#7c3aed; --violet-2:#f1ebfe;
+    --rose:#e11d48;
+    --ink:#111725; --ink-2:#4a5164; --ink-3:#828aa0;
+    --paper:#ffffff; --panel:#f5f6fb; --line:#e6e8f1;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+    --shadow:0 1px 2px rgba(17,23,37,.05),0 16px 40px -20px rgba(17,23,37,.28);
+    --shadow-sm:0 1px 2px rgba(17,23,37,.05),0 6px 16px -8px rgba(17,23,37,.16);
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --indigo:#8b83ff;--indigo-2:#211f45;--green:#4ade80;--green-2:#12301e;
+    --amber:#fbbf24;--amber-2:#33260d;--coral:#fb8a76;--coral-2:#331d18;
+    --cyan:#38bdf8;--cyan-2:#0e2a38;--violet:#a78bfa;--violet-2:#251c42;--rose:#fb7185;
+    --ink:#eef0f8;--ink-2:#a7afc4;--ink-3:#727b92;--paper:#141824;--panel:#0f131d;--line:#28303f;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 18px 44px -20px rgba(0,0,0,.66);--shadow-sm:0 1px 2px rgba(0,0,0,.4),0 6px 16px -8px rgba(0,0,0,.6);
+  }}
+  :root[data-theme="dark"]{
+    --indigo:#8b83ff;--indigo-2:#211f45;--green:#4ade80;--green-2:#12301e;
+    --amber:#fbbf24;--amber-2:#33260d;--coral:#fb8a76;--coral-2:#331d18;
+    --cyan:#38bdf8;--cyan-2:#0e2a38;--violet:#a78bfa;--violet-2:#251c42;--rose:#fb7185;
+    --ink:#eef0f8;--ink-2:#a7afc4;--ink-3:#727b92;--paper:#141824;--panel:#0f131d;--line:#28303f;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 18px 44px -20px rgba(0,0,0,.66);--shadow-sm:0 1px 2px rgba(0,0,0,.4),0 6px 16px -8px rgba(0,0,0,.6);
+  }
+  :root[data-theme="light"]{
+    --indigo:#5b52f0;--indigo-2:#eceafe;--green:#16a34a;--green-2:#e4f6ea;
+    --amber:#f59e0b;--amber-2:#fdf2dd;--coral:#f4674e;--coral-2:#fde8e3;
+    --cyan:#0891b2;--cyan-2:#e0f4fa;--violet:#7c3aed;--violet-2:#f1ebfe;--rose:#e11d48;
+    --ink:#111725;--ink-2:#4a5164;--ink-3:#828aa0;--paper:#fff;--panel:#f5f6fb;--line:#e6e8f1;
+    --shadow:0 1px 2px rgba(17,23,37,.05),0 16px 40px -20px rgba(17,23,37,.28);--shadow-sm:0 1px 2px rgba(17,23,37,.05),0 6px 16px -8px rgba(17,23,37,.16);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:var(--sans);background:var(--panel);color:var(--ink);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1120px;margin:0 auto;padding:34px 22px 72px;}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.11em;text-transform:uppercase;color:var(--violet);font-weight:700;}
+  h1{font-size:clamp(28px,4vw,42px);letter-spacing:-.025em;margin:8px 0 0;font-weight:820;line-height:1.08;}
+  .lede{color:var(--ink-2);max-width:66ch;margin:12px 0 0;font-size:16.5px;}
+  .pro{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:3px 9px;border-radius:999px;background:linear-gradient(120deg,var(--violet),var(--indigo));color:#fff;}
+  .ondevice{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:650;color:var(--green);background:var(--green-2);border:1px solid color-mix(in srgb,var(--green) 30%,transparent);border-radius:999px;padding:4px 10px;}
+  .tags{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px;align-items:center;}
+
+  h2{font-size:21px;letter-spacing:-.01em;margin:0;font-weight:760;}
+  section{margin-top:46px;}
+  .sec-head{display:flex;align-items:baseline;gap:10px;margin-bottom:8px;flex-wrap:wrap;}
+  .sec-head .n{font-family:var(--mono);font-size:12px;color:var(--ink-3);}
+  .sub{color:var(--ink-2);margin:0 0 18px;font-size:14.5px;max-width:70ch;}
+
+  /* templates */
+  .tpls{display:grid;gap:14px;grid-template-columns:1fr;}
+  @media(min-width:680px){.tpls{grid-template-columns:repeat(2,1fr);}}
+  @media(min-width:980px){.tpls{grid-template-columns:repeat(3,1fr);}}
+  .tpl{border:1px solid var(--line);border-radius:15px;background:var(--paper);padding:15px 16px;box-shadow:var(--shadow-sm);cursor:pointer;transition:transform .15s ease,border-color .15s ease;text-align:left;font-family:inherit;}
+  .tpl:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--indigo) 45%,transparent);}
+  .tpl.active{border-color:var(--indigo);box-shadow:0 0 0 2px color-mix(in srgb,var(--indigo) 25%,transparent),var(--shadow-sm);}
+  .tpl .ic{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;color:#fff;margin-bottom:10px;}
+  .tpl h3{margin:0;font-size:15px;font-weight:680;}
+  .tpl p{margin:5px 0 0;font-size:12.5px;color:var(--ink-2);}
+  .tpl .flow{margin-top:10px;display:flex;flex-wrap:wrap;gap:4px;align-items:center;}
+  .mini{font-size:10px;font-weight:600;padding:2px 7px;border-radius:999px;background:var(--panel);border:1px solid var(--line);color:var(--ink-2);}
+  .arw{color:var(--ink-3);font-size:10px;}
+
+  /* builder */
+  .builder{border:1px solid var(--line);border-radius:18px;background:var(--paper);box-shadow:var(--shadow);overflow:hidden;}
+  .bhead{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap;}
+  .bhead .name{font-weight:700;font-size:15px;display:flex;align-items:center;gap:8px;}
+  .bhead .name .dot{width:9px;height:9px;border-radius:3px;}
+  .bhead .right{margin-left:auto;display:flex;gap:8px;align-items:center;}
+  .btn{font-family:var(--sans);font-size:12.5px;font-weight:650;border-radius:9px;padding:7px 13px;border:1px solid var(--line-2,var(--line));background:var(--paper);color:var(--ink);cursor:pointer;}
+  .btn.pri{background:var(--indigo);color:#fff;border-color:var(--indigo);}
+  .bbody{display:grid;grid-template-columns:1fr;gap:0;}
+  @media(min-width:820px){.bbody{grid-template-columns:1fr 250px;}}
+
+  /* pipeline canvas */
+  .canvas{padding:20px;}
+  .pipe{display:flex;flex-direction:column;gap:0;}
+  .node{display:flex;align-items:center;gap:12px;}
+  .node .step{flex:1;display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:12px;background:var(--paper);padding:11px 13px;box-shadow:var(--shadow-sm);position:relative;transition:border-color .2s,box-shadow .2s;}
+  .node .step .si{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;flex:0 0 auto;}
+  .node .step .st{min-width:0;}
+  .node .step .st b{font-size:14px;font-weight:640;display:block;}
+  .node .step .st span{font-size:11.5px;color:var(--ink-3);}
+  .node .step .grip{margin-left:auto;color:var(--ink-3);font-size:15px;cursor:grab;}
+  .node .step.running{border-color:var(--indigo);box-shadow:0 0 0 3px color-mix(in srgb,var(--indigo) 20%,transparent);}
+  .node .step.done{border-color:color-mix(in srgb,var(--green) 45%,transparent);}
+  .node .step .check{margin-left:auto;color:var(--green);font-weight:800;opacity:0;transition:opacity .2s;}
+  .node .step.done .check{opacity:1;}
+  .node .step.done .grip{display:none;}
+  .connector{width:2px;height:16px;background:var(--line);margin-left:34px;}
+  .connector.live{background:linear-gradient(var(--indigo),var(--green));}
+  .addstep{margin-top:14px;display:flex;align-items:center;gap:8px;border:1px dashed var(--line);border-radius:11px;padding:10px 13px;color:var(--ink-2);font-size:13px;font-weight:600;justify-content:center;background:var(--panel);cursor:pointer;}
+
+  /* palette */
+  .palette{border-left:1px solid var(--line);background:var(--panel);padding:16px;}
+  @media(max-width:819px){.palette{border-left:0;border-top:1px solid var(--line);}}
+  .palette .pt{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);margin-bottom:10px;}
+  .chips{display:flex;flex-wrap:wrap;gap:7px;}
+  .chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:6px 10px;border-radius:9px;background:var(--paper);border:1px solid var(--line);cursor:grab;}
+  .chip .cd{width:8px;height:8px;border-radius:3px;}
+
+  /* run bar */
+  .runbar{display:flex;align-items:center;gap:12px;padding:14px 16px;border-top:1px solid var(--line);background:var(--panel);flex-wrap:wrap;}
+  .drop{flex:1;min-width:200px;display:flex;align-items:center;gap:10px;border:1.5px dashed color-mix(in srgb,var(--indigo) 45%,transparent);border-radius:11px;padding:10px 13px;background:var(--indigo-2);font-size:13px;color:var(--ink-2);}
+  .drop b{color:var(--ink);}
+  .run{background:linear-gradient(120deg,var(--violet),var(--indigo));color:#fff;border:0;border-radius:11px;padding:11px 20px;font-size:14px;font-weight:750;cursor:pointer;font-family:var(--sans);display:inline-flex;align-items:center;gap:8px;}
+  .batch{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-2);}
+  .switch{width:34px;height:19px;border-radius:999px;background:var(--indigo);position:relative;}
+  .switch::after{content:"";position:absolute;top:2px;right:2px;width:15px;height:15px;border-radius:50%;background:#fff;}
+
+  .result{margin-top:14px;border:1px solid color-mix(in srgb,var(--green) 32%,transparent);background:var(--green-2);border-radius:13px;padding:14px 16px;display:none;align-items:center;gap:12px;}
+  .result.show{display:flex;}
+  .result .big{font-family:var(--mono);font-weight:800;color:var(--green);}
+  .result .dl{margin-left:auto;background:var(--green);color:#fff;border:0;border-radius:9px;padding:8px 15px;font-weight:650;font-size:13px;font-family:var(--sans);}
+
+  /* annotations */
+  .grid3{display:grid;gap:14px;}
+  @media(min-width:760px){.grid3{grid-template-columns:repeat(3,1fr);}}
+  .card{border:1px solid var(--line);border-radius:14px;background:var(--paper);padding:15px 16px;box-shadow:var(--shadow-sm);}
+  .card .tag{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:2px 8px;border-radius:999px;}
+  .t-reuse{background:var(--green-2);color:var(--green);}
+  .t-moat{background:var(--violet-2);color:var(--violet);}
+  .t-gate{background:var(--amber-2);color:var(--amber);}
+  .card h3{margin:9px 0 5px;font-size:15px;}
+  .card p{margin:0;font-size:13px;color:var(--ink-2);}
+  .card ul{margin:8px 0 0;padding-left:18px;font-size:12.5px;color:var(--ink-2);}
+  .card li{margin:3px 0;}
+
+  .callout{margin-top:24px;border:1px solid var(--line);border-left:3px solid var(--violet);border-radius:12px;background:var(--paper);padding:15px 18px;}
+  .callout h3{margin:0 0 5px;font-size:15px;}
+  .callout p{margin:0;color:var(--ink-2);font-size:13.5px;}
+  .callout p+p{margin-top:8px;}
+  .callout code{font-family:var(--mono);font-size:12.5px;background:var(--panel);border:1px solid var(--line);padding:1px 6px;border-radius:5px;}
+  .foot{margin-top:32px;color:var(--ink-3);font-size:12px;}
+  .foot code{font-family:var(--mono);background:var(--panel);border:1px solid var(--line);padding:1px 6px;border-radius:5px;}
+</style>
+
+<div class="wrap">
+  <span class="eyebrow">DiemDesk · Pro · design spec</span>
+  <h1>Saved Workflows — chain your tools, drop once</h1>
+  <p class="lede">Build a document assembly line — <b>merge · clean · sign · share-safe · compress</b> — save it, then run the whole chain on a file (or a whole batch) in one drop. Every step runs on your device, so the file never leaves the browser between steps — something upload-based tools structurally can&rsquo;t do.</p>
+  <div class="tags">
+    <span class="pro">◆ Pro</span>
+    <span class="ondevice">◈ Runs on your device — nothing uploaded, ever</span>
+  </div>
+
+  <!-- TEMPLATES -->
+  <section>
+    <div class="sec-head"><span class="n">01</span><h2>Start from a template</h2></div>
+    <p class="sub">Curated starter chains for the jobs people repeat. Click one to load it into the builder below.</p>
+    <div class="tpls" id="tpls">
+      <button class="tpl active" data-tpl="packet">
+        <span class="ic" style="background:var(--indigo)">🗂️</span>
+        <h3>Client packet</h3>
+        <p>Assemble a deliverable and make it safe to send.</p>
+        <div class="flow"><span class="mini">Merge</span><span class="arw">→</span><span class="mini">Clean pages</span><span class="arw">→</span><span class="mini">Sign</span><span class="arw">→</span><span class="mini">Share-safe</span><span class="arw">→</span><span class="mini">Compress</span></div>
+      </button>
+      <button class="tpl" data-tpl="sendsafe">
+        <span class="ic" style="background:var(--coral)">🛡️</span>
+        <h3>Send-safe</h3>
+        <p>Strip hidden data and shrink before emailing out.</p>
+        <div class="flow"><span class="mini">Remove metadata</span><span class="arw">→</span><span class="mini">Share-safe</span><span class="arw">→</span><span class="mini">Compress</span></div>
+      </button>
+      <button class="tpl" data-tpl="scan">
+        <span class="ic" style="background:var(--cyan)">📷</span>
+        <h3>Scan cleanup</h3>
+        <p>Turn phone photos into one clean, small PDF.</p>
+        <div class="flow"><span class="mini">Images → PDF</span><span class="arw">→</span><span class="mini">Clean scanned</span><span class="arw">→</span><span class="mini">Compress</span></div>
+      </button>
+      <button class="tpl" data-tpl="watermark">
+        <span class="ic" style="background:var(--amber)">💧</span>
+        <h3>Brand &amp; protect</h3>
+        <p>Watermark, number pages and lock with a password.</p>
+        <div class="flow"><span class="mini">Watermark</span><span class="arw">→</span><span class="mini">Page numbers</span><span class="arw">→</span><span class="mini">Protect</span></div>
+      </button>
+      <button class="tpl" data-tpl="email">
+        <span class="ic" style="background:var(--green)">✉️</span>
+        <h3>Email-ready</h3>
+        <p>Get any PDF under the mailbox limit, fast.</p>
+        <div class="flow"><span class="mini">Flatten</span><span class="arw">→</span><span class="mini">Compress to size</span></div>
+      </button>
+      <button class="tpl" data-tpl="blank">
+        <span class="ic" style="background:var(--violet)">✨</span>
+        <h3>Build your own</h3>
+        <p>Start blank and drag steps from the palette.</p>
+        <div class="flow"><span class="mini">+ add steps</span></div>
+      </button>
+    </div>
+  </section>
+
+  <!-- BUILDER -->
+  <section>
+    <div class="sec-head"><span class="n">02</span><h2>The builder</h2></div>
+    <p class="sub">Order the steps, tune each one, name it, save. Reorder by dragging; drop steps in from the palette.</p>
+
+    <div class="builder">
+      <div class="bhead">
+        <span class="name"><span class="dot" style="background:var(--indigo)"></span> <span id="wf-name">Client packet</span></span>
+        <span class="right">
+          <button class="btn">Rename</button>
+          <button class="btn">Duplicate</button>
+          <button class="btn pri">Save workflow</button>
+        </span>
+      </div>
+      <div class="bbody">
+        <div class="canvas">
+          <div class="pipe" id="pipe"><!-- steps injected --></div>
+          <div class="addstep">＋ Add a step</div>
+        </div>
+        <aside class="palette">
+          <div class="pt">Drag a step in</div>
+          <div class="chips">
+            <span class="chip"><span class="cd" style="background:var(--indigo)"></span>Merge</span>
+            <span class="chip"><span class="cd" style="background:var(--rose)"></span>Split</span>
+            <span class="chip"><span class="cd" style="background:var(--indigo)"></span>Delete pages</span>
+            <span class="chip"><span class="cd" style="background:var(--green)"></span>Remove metadata</span>
+            <span class="chip"><span class="cd" style="background:var(--cyan)"></span>Clean scanned</span>
+            <span class="chip"><span class="cd" style="background:var(--coral)"></span>Sign</span>
+            <span class="chip"><span class="cd" style="background:var(--amber)"></span>Watermark</span>
+            <span class="chip"><span class="cd" style="background:var(--violet)"></span>Page numbers</span>
+            <span class="chip"><span class="cd" style="background:var(--coral)"></span>Share-safe check</span>
+            <span class="chip"><span class="cd" style="background:var(--rose)"></span>Protect</span>
+            <span class="chip"><span class="cd" style="background:var(--green)"></span>Compress</span>
+            <span class="chip"><span class="cd" style="background:var(--green)"></span>Compress to size</span>
+            <span class="chip"><span class="cd" style="background:var(--indigo)"></span>Rotate</span>
+            <span class="chip"><span class="cd" style="background:var(--cyan)"></span>Flatten</span>
+          </div>
+          <p style="margin-top:14px;font-size:11.5px;color:var(--ink-3)">Only on-device steps can be chained — so the whole run stays in your browser.</p>
+        </aside>
+      </div>
+
+      <!-- RUN -->
+      <div class="runbar">
+        <div class="drop">📎 <span><b>Drop a PDF</b> — or several to run the batch</span></div>
+        <span class="batch"><span class="switch"></span> Batch (Pro)</span>
+        <button class="run" id="runBtn">▶ Run workflow</button>
+      </div>
+      <div style="padding:0 16px 16px;">
+        <div class="result" id="result">
+          <span>✓ <b>Ran 5 steps</b> on <span class="big">1 file</span> · <span class="big">14.2 MB → 3.1 MB</span></span>
+          <button class="dl">Download result</button>
+        </div>
+      </div>
+    </div>
+    <p class="sub" style="margin-top:10px">▶ Press <b>Run workflow</b> above to watch the pipeline execute step by step.</p>
+  </section>
+
+  <!-- WHY / REUSE / GATE -->
+  <section>
+    <div class="sec-head"><span class="n">03</span><h2>What it is, and why it&rsquo;s ours</h2></div>
+    <div class="grid3">
+      <div class="card">
+        <span class="tag t-moat">The moat</span>
+        <h3>On-device chaining</h3>
+        <p>Because every step runs in your browser, one tool hands the file to the next with <b>zero re-upload</b>. Server tools (iLovePDF, Smallpdf) must send your file up and pull it down at every step — they can&rsquo;t chain seamlessly, and they can&rsquo;t promise privacy through the chain. We can.</p>
+      </div>
+      <div class="card">
+        <span class="tag t-reuse">Reuses what exists</span>
+        <h3>Not new engines</h3>
+        <p>It orchestrates the tools you already have, headlessly:</p>
+        <ul>
+          <li>the same compress / merge / sign / redact-clean engines</li>
+          <li>the <code style="font-size:11px">batch-runner</code> for multi-file</li>
+          <li>the <code style="font-size:11px">file-handoff</code> store for passing files between steps</li>
+        </ul>
+        <p style="margin-top:8px">So it&rsquo;s mostly a builder UI + a sequencer, not fresh algorithms.</p>
+      </div>
+      <div class="card">
+        <span class="tag t-gate">Gating</span>
+        <h3>Pro — dark until launch</h3>
+        <p>Ships <code style="font-size:11px">coming_soon</code> (owner-only) like the AI suite, so you can use it now and it stays hidden from the public until Pro launch. Free users see it in the catalog with a Pro badge and land on the pricing page.</p>
+      </div>
+    </div>
+
+    <div class="callout">
+      <h3>How it maps to your existing promise</h3>
+      <p>Your copy already sells this — <em>&ldquo;one-click document assembly line — merge · clean · sign · share-safe · compress&rdquo;</em> on <code>/overview</code>, a Pro line on <code>/pricing</code>, and the <code>client-packet-builder</code> is the static, click-each-step precursor. This turns that promise into a real, running pipeline: define once, drop, done.</p>
+      <p><b>Scope for v1:</b> on-device PDF steps only (the list in the palette), sequential run, per-step progress, single output (or a zip for batch). Saved locally on-device; synced across devices is a fast-follow once accounts carry it.</p>
+    </div>
+
+    <div class="callout" style="border-left-color:var(--green);">
+      <h3>Free vs Pro line</h3>
+      <p>To match how you gate <em>scale, not quality</em>: a couple of built-in templates could run <b>free on a single file</b> (a taste), while <b>saving your own workflows + batch + more than N steps</b> is Pro. Final call is yours — the mockup shows everything as Pro since that&rsquo;s the launch plan.</p>
+    </div>
+  </section>
+
+  <p class="foot">Mockup · <code>docs/designs/workflows-mockup.html</code> · the Run button animates the pipeline. Toggle your viewer&rsquo;s light/dark switch — both are designed.</p>
+</div>
+
+<script>
+  (function(){
+    var TPLS = {
+      packet: { name:'Client packet', steps:[
+        ['🗂️','var(--indigo)','Merge','Combine the source files, in order'],
+        ['🧹','var(--green)','Clean pages','Delete blank / accidental pages'],
+        ['✍️','var(--coral)','Sign','Place signature + date'],
+        ['🛡️','var(--coral)','Share-safe check','Flag metadata, hidden text, links'],
+        ['🗜️','var(--green)','Compress','Shrink for delivery'] ] },
+      sendsafe:{ name:'Send-safe', steps:[
+        ['🧽','var(--green)','Remove metadata','Strip author, history, hidden data'],
+        ['🛡️','var(--coral)','Share-safe check','Report anything risky left'],
+        ['🗜️','var(--green)','Compress','Get it email-ready'] ] },
+      scan:{ name:'Scan cleanup', steps:[
+        ['🖼️','var(--indigo)','Images → PDF','Assemble the photos into one PDF'],
+        ['📷','var(--cyan)','Clean scanned','Deskew + de-speckle the pages'],
+        ['🗜️','var(--green)','Compress','Small, still readable'] ] },
+      watermark:{ name:'Brand & protect', steps:[
+        ['💧','var(--amber)','Watermark','Stamp your brand / DRAFT'],
+        ['#️⃣','var(--violet)','Page numbers','Number every page'],
+        ['🔒','var(--rose)','Protect','Lock with a password'] ] },
+      email:{ name:'Email-ready', steps:[
+        ['🧾','var(--cyan)','Flatten','Bake in annotations & forms'],
+        ['🎯','var(--green)','Compress to size','Hit an exact MB target'] ] },
+      blank:{ name:'Untitled workflow', steps:[
+        ['➕','var(--violet)','Add your first step','Drag one in from the palette →'] ] }
+    };
+    var pipe = document.getElementById('pipe');
+    var wfName = document.getElementById('wf-name');
+    var result = document.getElementById('result');
+
+    function render(key){
+      var t = TPLS[key]; if(!t) return;
+      wfName.textContent = t.name;
+      result.classList.remove('show');
+      pipe.innerHTML = t.steps.map(function(s,i){
+        var connector = i < t.steps.length-1 ? '<div class="connector" data-c="'+i+'"></div>' : '';
+        return '<div class="node"><div class="step" data-s="'+i+'">'
+          + '<span class="si" style="background:'+s[1]+'">'+s[0]+'</span>'
+          + '<span class="st"><b>'+s[2]+'</b><span>'+s[3]+'</span></span>'
+          + '<span class="grip">⋮⋮</span><span class="check">✓</span></div></div>'
+          + connector;
+      }).join('');
+    }
+
+    document.querySelectorAll('.tpl').forEach(function(b){
+      b.addEventListener('click', function(){
+        document.querySelectorAll('.tpl').forEach(function(x){x.classList.remove('active');});
+        b.classList.add('active');
+        render(b.getAttribute('data-tpl'));
+      });
+    });
+
+    document.getElementById('runBtn').addEventListener('click', function(){
+      var steps = Array.prototype.slice.call(pipe.querySelectorAll('.step'));
+      var conns = Array.prototype.slice.call(pipe.querySelectorAll('.connector'));
+      steps.forEach(function(s){s.classList.remove('running','done');});
+      conns.forEach(function(c){c.classList.remove('live');});
+      result.classList.remove('show');
+      var i = 0;
+      function next(){
+        if(i>0){ steps[i-1].classList.remove('running'); steps[i-1].classList.add('done'); if(conns[i-1]) conns[i-1].classList.add('live'); }
+        if(i>=steps.length){ result.classList.add('show'); return; }
+        steps[i].classList.add('running');
+        i++;
+        setTimeout(next, 650);
+      }
+      next();
+    });
+
+    render('packet');
+  })();
+</script>
