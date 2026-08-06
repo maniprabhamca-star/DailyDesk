@@ -119,6 +119,25 @@ export const TOOL_FACTS: Record<string, ToolFacts> = {
     ],
   },
 
+  '/pdf-to-epub': {
+    effects: [
+      { what: 'Text', value: 'reflows to any screen', tone: 'good' },
+      { what: 'Headings, lists and tables', value: 'rebuilt from the layout', tone: 'good' },
+      { what: 'Chapters and contents', value: 'built from bookmarks or headings', tone: 'good' },
+      { what: 'Page one', value: 'becomes the cover', tone: 'good' },
+      { what: 'Running heads and page numbers', value: 'dropped', tone: 'warn' },
+      { what: 'Images inside the book', value: 'not carried across yet', tone: 'warn' },
+      { what: 'The original page layout', value: 'not preserved — that is the point', tone: 'warn' },
+      { what: 'Runs on', value: 'your device', tone: 'good' },
+    ],
+    limits: [
+      { title: 'A scanned book', detail: 'There is no selectable text to reflow. Run OCR first, then convert.', href: '/ocr-pdf', hrefLabel: 'OCR a PDF' },
+      { title: 'A magazine or heavily designed page', detail: 'Multi-column art direction does not survive reflowing. Read those as a PDF.' },
+      { title: 'You need the pages to look identical', detail: 'An EPUB rewraps by design. If the layout matters, keep the PDF and just shrink it.', href: '/compress-pdf', hrefLabel: 'Compress a PDF' },
+      { title: 'A picture book or comic', detail: 'Images are not included yet, so only the text would come across.' },
+    ],
+  },
+
   '/unlock-pdf': {
     effects: [
       { what: 'Owner password', value: 'removed', tone: 'good' },

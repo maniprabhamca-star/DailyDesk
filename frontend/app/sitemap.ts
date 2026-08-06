@@ -23,6 +23,7 @@ const ROUTES: Array<{ path: string; priority: number; changeFrequency: MetadataR
   { path: '/pdf-to-word', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/pdf-to-excel', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/pdf-to-markdown', priority: 0.9, changeFrequency: 'monthly' },
+  { path: '/pdf-to-epub', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/bates-numbering', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/pdf-to-audio', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/word-to-pdf', priority: 0.9, changeFrequency: 'monthly' },

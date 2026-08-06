@@ -56,7 +56,8 @@ Mostly free/on-device unless marked.
 - [x] ✅ **PDF → audio (TTS)** (`/pdf-to-audio` — free on-device: Web Speech read-aloud, voice/speed/pitch, sentence follow-highlight + tap-to-jump; 7/7 segmentation. **MP3 file export = deliberate future Pro add-on** — free v1 is playback only) · [ ] ⏳ speech-to-text (still pending)
 - [x] ✅ **Bates numbering** (`/bates-numbering` — **FREE** on-device: prefix/start/digits/suffix, 6 corners, page range, **continuous across a whole file set**→PDF/zip, live preview; 23/23 incl. full IO proven w/ real pdf-lib+pdf.js. NOTE: was planned "Pro" — shipped free per gate-scale-not-quality)
 - [ ] ⏳ **Accessibility / PDF-UA auto-tag** ⭐ (EU Accessibility Act enforcement live 28 Jun 2025 — no consumer tool exists)
-- [ ] ⏳ **PDF → EPUB**
+- [x] ✅ **PDF → EPUB** (`/pdf-to-epub` — free on-device: reflowable EPUB 3 + NCX, chapters from the PDF's bookmarks → headings → fixed page blocks, page one as cover, editable title/author/language, live chapter preview. "Tidy for reading" drops running heads + page numbers and rejoins hyphens across line AND page breaks. 22/22 core tests; 150-page book = 6.0s read + 1.3s pack → 190KB. v1 has no in-book images — v1.1)
+- [ ] ⏳ **HTML → Excel** (paste a URL or drop an .html file → every `<table>` on the page found, previewed and exported to .xlsx/.CSV. On-device: the HTML is parsed in the browser, so a pasted page is fetched once and never stored. Reuses the PDF→Excel editable grid + `xlsx.ts` writer)
 - [ ] ⏳ **Receipt / invoice / statement → spreadsheet** ⭐ (IDP — the 2026 wave)
 - [ ] ⏳ **e-Invoice** (Factur-X / ZUGFeRD = CII XML in PDF/A-3; EU mandates live: DE, BE Jan 2026, FR Sept 2026)
 - [x] 🌐 **Repair PDF** (`/repair-pdf` — free on-device: tolerant reload+resave rebuilds the broken xref that makes PDFs won't-open; 4/4 headless test)

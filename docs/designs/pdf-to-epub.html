@@ -1,0 +1,378 @@
+<title>PDF to EPUB — design record</title>
+<style>
+  :root {
+    --paper: #f6f5f2;
+    --card: #ffffff;
+    --ink: #1a1917;
+    --ink-2: #56534c;
+    --ink-3: #85817a;
+    --rule: #e2ded6;
+    --amber: #b45309;
+    --green: #15803d;
+    --coral: #c2410c;
+    --shadow: 0 1px 2px rgba(26, 25, 23, .05), 0 8px 24px -12px rgba(26, 25, 23, .18);
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --sans: ui-sans-serif, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", "Cascadia Mono", "Segoe UI Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #14140f;
+      --card: #1c1c17;
+      --ink: #f0ede6;
+      --ink-2: #b3aea3;
+      --ink-3: #837e74;
+      --rule: #33322b;
+      --amber: #f0a12e;
+      --green: #4ade80;
+      --coral: #fb8b62;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 10px 30px -14px rgba(0, 0, 0, .8);
+    }
+  }
+  :root[data-theme="light"] {
+    --paper: #f6f5f2; --card: #ffffff; --ink: #1a1917; --ink-2: #56534c; --ink-3: #85817a;
+    --rule: #e2ded6; --amber: #b45309; --green: #15803d; --coral: #c2410c;
+    --shadow: 0 1px 2px rgba(26, 25, 23, .05), 0 8px 24px -12px rgba(26, 25, 23, .18);
+  }
+  :root[data-theme="dark"] {
+    --paper: #14140f; --card: #1c1c17; --ink: #f0ede6; --ink-2: #b3aea3; --ink-3: #837e74;
+    --rule: #33322b; --amber: #f0a12e; --green: #4ade80; --coral: #fb8b62;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 10px 30px -14px rgba(0, 0, 0, .8);
+  }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 60rem; margin: 0 auto; padding: 3.5rem 1.5rem 6rem; }
+
+  .eyebrow {
+    font-size: .72rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--amber); margin: 0 0 .6rem;
+  }
+  h1 {
+    font-family: var(--serif); font-weight: 600; font-size: clamp(2.1rem, 5vw, 3rem);
+    line-height: 1.08; margin: 0 0 .75rem; text-wrap: balance; letter-spacing: -.01em;
+  }
+  .lede { font-size: 1.075rem; color: var(--ink-2); max-width: 40rem; margin: 0; }
+  h2 {
+    font-family: var(--serif); font-weight: 600; font-size: 1.5rem; line-height: 1.2;
+    margin: 0 0 1rem; text-wrap: balance;
+  }
+  h3 { font-size: .95rem; font-weight: 700; margin: 0 0 .35rem; }
+  p { margin: 0 0 1rem; max-width: 42rem; }
+  p:last-child { margin-bottom: 0; }
+  a { color: var(--amber); }
+  code { font-family: var(--mono); font-size: .87em; color: var(--ink-2); }
+
+  .meta {
+    display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1.75rem;
+  }
+  .chip {
+    font-size: .75rem; font-weight: 600; padding: .28rem .6rem; border-radius: 999px;
+    border: 1px solid var(--rule); color: var(--ink-2); background: var(--card);
+  }
+  .chip.live { color: var(--green); border-color: color-mix(in srgb, var(--green) 40%, var(--rule)); }
+
+  section { margin-top: 3.25rem; }
+  .rule { height: 1px; background: var(--rule); border: 0; margin: 3.25rem 0 0; }
+
+  .grid { display: grid; gap: 1rem; }
+  @media (min-width: 46rem) { .grid.two { grid-template-columns: 1fr 1fr; } }
+
+  .card {
+    background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+    padding: 1.1rem 1.2rem; box-shadow: var(--shadow);
+  }
+  .card p { color: var(--ink-2); font-size: .92rem; margin: 0; }
+
+  /* Decision ladder — genuinely ordered: each rung only runs if the one above found nothing. */
+  ol.ladder { list-style: none; counter-reset: rung; margin: 0; padding: 0; display: grid; gap: .6rem; }
+  ol.ladder li {
+    counter-increment: rung; display: grid; grid-template-columns: 2rem 1fr; gap: .9rem;
+    align-items: start; background: var(--card); border: 1px solid var(--rule);
+    border-radius: 10px; padding: .85rem 1rem;
+  }
+  ol.ladder li::before {
+    content: counter(rung); font-family: var(--mono); font-size: .8rem; font-weight: 600;
+    color: var(--amber); border: 1px solid var(--rule); border-radius: 6px;
+    width: 1.75rem; height: 1.75rem; display: grid; place-items: center;
+  }
+  ol.ladder p { font-size: .9rem; color: var(--ink-2); margin: 0; }
+
+  /* Before / after specimen — the whole point of the tidy-up pass, shown not told. */
+  .specimen { display: grid; gap: 1rem; }
+  @media (min-width: 46rem) { .specimen { grid-template-columns: 1fr 1fr; } }
+  .page {
+    font-family: var(--serif); font-size: .93rem; line-height: 1.65;
+    background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+    padding: 1.1rem 1.2rem; box-shadow: var(--shadow);
+  }
+  .page .tag {
+    font-family: var(--sans); font-size: .68rem; font-weight: 700; letter-spacing: .12em;
+    text-transform: uppercase; margin-bottom: .8rem;
+  }
+  .page.before .tag { color: var(--coral); }
+  .page.after .tag { color: var(--green); }
+  .furniture { color: var(--coral); background: color-mix(in srgb, var(--coral) 12%, transparent); }
+  .runhead, .folio {
+    font-family: var(--sans); font-size: .7rem; color: var(--ink-3);
+    display: block; letter-spacing: .04em;
+  }
+  .folio { text-align: center; margin-top: .8rem; }
+
+  /* UI mock of the tool's finished state. */
+  .mock {
+    background: var(--card); border: 1px solid var(--rule); border-radius: 12px;
+    box-shadow: var(--shadow); overflow: hidden; font-size: .84rem;
+  }
+  .mock-bar {
+    display: flex; align-items: center; gap: .6rem; padding: .7rem .9rem;
+    border-bottom: 1px solid var(--rule); font-weight: 600;
+  }
+  .mock-bar .dim { margin-left: auto; font-weight: 500; color: var(--ink-3); font-size: .78rem; }
+  .mock-body { display: grid; gap: 1rem; padding: .9rem; }
+  @media (min-width: 52rem) { .mock-body { grid-template-columns: 17rem 1fr; } }
+  .panel { border: 1px solid var(--rule); border-radius: 9px; padding: .8rem; display: grid; gap: .55rem; }
+  .panel .label {
+    font-size: .65rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3);
+  }
+  .field { display: grid; gap: .2rem; }
+  .field span { font-size: .68rem; color: var(--ink-3); }
+  .field b {
+    font-weight: 500; border: 1px solid var(--rule); border-radius: 6px; padding: .32rem .5rem; color: var(--ink);
+  }
+  .toggles { display: flex; flex-wrap: wrap; gap: .35rem; }
+  .toggle {
+    font-size: .7rem; font-weight: 600; border-radius: 7px; padding: .25rem .5rem;
+    border: 1px solid color-mix(in srgb, var(--amber) 35%, var(--rule));
+    color: var(--amber); background: color-mix(in srgb, var(--amber) 10%, transparent);
+  }
+  .chapters { display: flex; flex-wrap: wrap; gap: .35rem; margin-bottom: .6rem; }
+  .tab {
+    font-size: .72rem; font-weight: 600; border: 1px solid var(--rule); border-radius: 7px;
+    padding: .22rem .5rem; color: var(--ink-3);
+  }
+  .tab.on { border-color: color-mix(in srgb, var(--amber) 45%, var(--rule)); color: var(--amber); background: color-mix(in srgb, var(--amber) 10%, transparent); }
+  .stat { font-size: .72rem; color: var(--ink-3); margin-bottom: .5rem; }
+  .stat b { color: var(--ink); }
+  .reader {
+    border: 1px solid var(--rule); border-radius: 9px; padding: .9rem 1rem;
+    font-family: var(--serif); line-height: 1.6; font-size: .87rem;
+  }
+  .reader h4 { font-family: var(--serif); font-size: 1.05rem; margin: 0 0 .4rem; font-weight: 600; }
+  .btn {
+    justify-self: end; margin-top: .7rem; font-family: var(--sans); font-size: .78rem; font-weight: 700;
+    background: var(--amber); color: var(--paper); border-radius: 7px; padding: .42rem .8rem; display: inline-block;
+  }
+  .cover-strip { display: flex; gap: .6rem; align-items: center; }
+  .cover {
+    width: 3rem; height: 4.2rem; border: 1px solid var(--rule); border-radius: 3px;
+    background: linear-gradient(160deg, color-mix(in srgb, var(--amber) 18%, var(--card)), var(--card));
+    display: grid; place-items: center; font-family: var(--serif); font-size: .55rem;
+    color: var(--ink-2); text-align: center; padding: .2rem;
+  }
+
+  .tbl-wrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: .88rem; min-width: 34rem; }
+  th, td { text-align: left; padding: .55rem .7rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th { font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); font-weight: 700; }
+  td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .pass { color: var(--green); font-weight: 600; }
+
+  ul.plain { margin: 0; padding-left: 1.1rem; color: var(--ink-2); font-size: .92rem; }
+  ul.plain li { margin: .3rem 0; }
+  footer { margin-top: 3rem; color: var(--ink-3); font-size: .8rem; }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">DiemDesk · design record</p>
+    <h1>PDF to EPUB</h1>
+    <p class="lede">
+      A PDF is a fixed page. An EPUB is a river of text that reflows to whatever screen it lands on.
+      So this tool isn’t a re-wrap — the layout has to be read back into structure, and the page’s
+      furniture has to be thrown away, or the book reads like a photocopy.
+    </p>
+    <div class="meta">
+      <span class="chip live">Live · /pdf-to-epub</span>
+      <span class="chip">Free · 100% on-device</span>
+      <span class="chip">EPUB 3 + NCX</span>
+      <span class="chip">22 core tests</span>
+    </div>
+  </header>
+
+  <hr class="rule" />
+
+  <section>
+    <h2>The finished tool</h2>
+    <p>
+      One drop reads the PDF once; every control after that re-plans the book instantly, without
+      touching the file again. Nothing is uploaded at any point.
+    </p>
+
+    <div class="mock">
+      <div class="mock-bar">
+        <span>annual-report.pdf</span>
+        <span class="dim">12 pages</span>
+      </div>
+      <div class="mock-body">
+        <div style="display:grid; gap:.7rem">
+          <div class="panel">
+            <span class="label">Book details</span>
+            <div class="field"><span>Title</span><b>The Annual Report</b></div>
+            <div class="field"><span>Author</span><b>Jane Tester</b></div>
+            <div class="field"><span>Language</span><b>English</b></div>
+            <div class="cover-strip">
+              <div class="cover">The Annual Report</div>
+              <p style="font-size:.72rem">Page one becomes the cover, so it looks like a book on your shelf.</p>
+            </div>
+          </div>
+          <div class="panel">
+            <span class="label">How it converts</span>
+            <div class="field"><span>Chapters</span><b>Automatic (best available)</b></div>
+            <div class="toggles">
+              <span class="toggle">Detect headings</span>
+              <span class="toggle">Keep tables</span>
+              <span class="toggle">Tidy for reading</span>
+              <span class="toggle">Cover</span>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="stat"><b>4 chapters</b> · <b>589 words</b> · split at the PDF’s own bookmarks</div>
+          <div class="chapters">
+            <span class="tab on">1. Front matter</span>
+            <span class="tab">2. Chapter One — Beginnings</span>
+            <span class="tab">3. Chapter Two — The Middle</span>
+            <span class="tab">4. Chapter Three — After</span>
+          </div>
+          <div class="reader">
+            <h4>The Annual Report</h4>
+            <p style="margin:0">
+              The board reviewed the results for the period and agreed that the figures presented a fair
+              view of the position of the company. Further detail on each division follows in the sections
+              below, together with the usual commentary from the divisional managers and their teams.
+            </p>
+          </div>
+          <span class="btn">Download .epub</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="rule" />
+
+  <section>
+    <h2>Tidy for reading</h2>
+    <p>
+      Three artefacts make almost every converted e-book look photocopied. They all come from the same
+      source: page furniture that only made sense when the page was fixed. Turning the option off leaves
+      the text exactly as the PDF had it.
+    </p>
+    <div class="specimen">
+      <div class="page before">
+        <p class="tag">Straight conversion</p>
+        <span class="runhead furniture">The Annual Report</span>
+        <p style="margin:.5rem 0 0">
+          Every division supplied its own <span class="furniture">opera- tional</span> summary before the
+          deadline was reached. The board reviewed the results for the period and agreed that the figures
+          presented a fair view.
+        </p>
+        <span class="folio furniture">4</span>
+      </div>
+      <div class="page after">
+        <p class="tag">Tidied</p>
+        <p style="margin:0">
+          Every division supplied its own operational summary before the deadline was reached. The board
+          reviewed the results for the period and agreed that the figures presented a fair view.
+        </p>
+      </div>
+    </div>
+    <div class="grid two" style="margin-top:1rem">
+      <div class="card">
+        <h3>Running heads and folios</h3>
+        <p>A line that sits at the same edge on half the pages or more is furniture. Documents under four pages are left alone — too little evidence, and a false positive costs a real heading.</p>
+      </div>
+      <div class="card">
+        <h3>Hyphens at the break</h3>
+        <p>Rejoined after the pages are stitched, not before: a word is just as likely to break across a page turn as across a line, and only the joined text shows both halves.</p>
+      </div>
+    </div>
+  </section>
+
+  <hr class="rule" />
+
+  <section>
+    <h2>How chapters are decided</h2>
+    <p>Each rung is tried only when the one above finds nothing usable. The reader can override the whole ladder from the Chapters menu.</p>
+    <ol class="ladder">
+      <li><div><h3>The PDF’s own bookmarks</h3><p>The best source there is: a person chose those divisions. Text before the first bookmark is kept as front matter rather than dropped.</p></div></li>
+      <li><div><h3>The headings we detect</h3><p>Falls to the shallowest heading level that yields a sensible count, so a book with parts breaks at the parts and a report that only uses one level still breaks.</p></div></li>
+      <li><div><h3>Fixed page blocks</h3><p>A safety net for long documents. One 300-page XHTML file makes cheap e-reader hardware crawl, so anything past 40 pages is split even in single-chapter mode.</p></div></li>
+    </ol>
+  </section>
+
+  <hr class="rule" />
+
+  <section>
+    <h2>What shipped, and what didn’t</h2>
+    <div class="grid two">
+      <div class="card">
+        <h3>In v1</h3>
+        <ul class="plain">
+          <li>EPUB 3 with an EPUB 2 NCX alongside it — older Kobo and Kindle’s converter still read the NCX</li>
+          <li>Cover from page one, editable title, author and language</li>
+          <li>Headings, bullet and numbered lists, and tables carried across</li>
+          <li>Paragraphs healed where a page break cut them in half</li>
+          <li>Chapter list and live preview before you commit</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Not in v1</h3>
+        <ul class="plain">
+          <li>Images inside the book — the cover is the only picture that travels</li>
+          <li>Footnote linking, and multi-column art direction</li>
+          <li>Scanned PDFs, which have no text to reflow — the tool detects this and sends you to OCR</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <hr class="rule" />
+
+  <section>
+    <h2>Proof</h2>
+    <p>Measured on a production build, converting a bookmarked 12-page report and a 150-page book.</p>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>Check</th><th>Result</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Archive shape — <code>mimetype</code> first, stored uncompressed</td><td class="pass">Pass</td></tr>
+          <tr><td>Every XHTML, OPF and NCX parsed as XML</td><td class="pass">0 errors</td></tr>
+          <tr><td>Control characters from bookmark titles (illegal in XML)</td><td class="pass">Stripped</td></tr>
+          <tr><td>Running head and page numbers in the output</td><td class="pass">None</td></tr>
+          <tr><td>Word hyphenated across a page break</td><td class="pass">Rejoined</td></tr>
+          <tr><td>150-page book — read and plan</td><td class="num">6.0s</td></tr>
+          <tr><td>150-page book — pack the EPUB</td><td class="num">1.3s → 190 KB</td></tr>
+          <tr><td>Core unit tests</td><td class="num">22 / 22</td></tr>
+          <tr><td>Mobile at 375px — horizontal scroll</td><td class="pass">None</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    Engine: <code>lib/epub-core.ts</code> (pure, testable) · <code>lib/pdf-epub.ts</code> (pdf.js + zip) ·
+    <code>components/tools/pdf-to-epub-tool.tsx</code>. Text extraction shares the layout model behind PDF&nbsp;to&nbsp;Markdown,
+    so the two tools can never disagree about what a page says.
+  </footer>
+</div>

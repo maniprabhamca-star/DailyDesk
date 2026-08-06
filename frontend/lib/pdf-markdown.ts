@@ -13,6 +13,36 @@ export type { MdOptions } from './pdf-markdown-core';
 export type MarkdownResult = { markdown: string; numPages: number; hasText: boolean };
 export type ExtractedPages = { pages: MItem[][]; numPages: number; hasText: boolean };
 
+/** One pdf.js page → positioned text items. Shared by every consumer of the
+ *  layout model (Markdown here, EPUB in lib/pdf-epub.ts) so they can never
+ *  disagree about what the page says.
+ *
+ *  Bold is best-effort: pdf.js exposes only a generic family, so we also sniff
+ *  the internal font name. Used lightly (a bold, short, isolated line reads as a
+ *  heading) — never to emit **bold** runs, which would misfire. */
+export async function pageToItems(page: { getTextContent: () => Promise<unknown> }): Promise<MItem[]> {
+  const tc = (await page.getTextContent()) as {
+    items: unknown[];
+    styles?: Record<string, { fontFamily?: string }>;
+  };
+  const styles = tc.styles || {};
+  return tc.items
+    .filter((it): it is { str: string } => !!it && typeof it === 'object' && 'str' in (it as object))
+    .map((raw) => {
+      const it = raw as unknown as { str: string; width: number; height: number; transform: number[]; fontName?: string };
+      const fam = (it.fontName && styles[it.fontName]?.fontFamily) || '';
+      const bold = /bold|black|heavy|semibold|extrabold/i.test(fam) || /bold|bd\b|-b\b/i.test(it.fontName || '');
+      return {
+        x: it.transform[4],
+        y: it.transform[5],
+        w: it.width,
+        h: Math.abs(it.transform[3]) || it.height || 10,
+        s: it.str,
+        bold,
+      };
+    });
+}
+
 // Extract the positioned text once (the slow pdf.js step). The component caches
 // this so toggling Headings/Tables re-runs only the pure, instant core.
 export async function extractPages(
@@ -25,23 +55,7 @@ export async function extractPages(
   try {
     for (let i = 0; i < handle.numPages; i++) {
       const page = await handle.doc.getPage(i + 1);
-      const tc = await page.getTextContent();
-      const styles = (tc as { styles?: Record<string, { fontFamily?: string }> }).styles || {};
-      const items: MItem[] = tc.items
-        .filter((it) => 'str' in it)
-        .map((raw) => {
-          const it = raw as { str: string; width: number; height: number; transform: number[]; fontName?: string };
-          const fam = (it.fontName && styles[it.fontName]?.fontFamily) || '';
-          const bold = /bold|black|heavy|semibold|extrabold/i.test(fam) || /bold|bd\b|-b\b/i.test(it.fontName || '');
-          return {
-            x: it.transform[4],
-            y: it.transform[5],
-            w: it.width,
-            h: Math.abs(it.transform[3]) || it.height || 10,
-            s: it.str,
-            bold,
-          };
-        });
+      const items = await pageToItems(page);
       if (items.some((it) => it.s.trim())) anyText = true;
       pages.push(items);
       (page as unknown as { cleanup?: () => void }).cleanup?.();
@@ -64,26 +78,7 @@ export async function pdfToMarkdown(
   try {
     for (let i = 0; i < handle.numPages; i++) {
       const page = await handle.doc.getPage(i + 1);
-      const tc = await page.getTextContent();
-      const styles = (tc as { styles?: Record<string, { fontFamily?: string }> }).styles || {};
-      const items: MItem[] = tc.items
-        .filter((it) => 'str' in it)
-        .map((raw) => {
-          const it = raw as { str: string; width: number; height: number; transform: number[]; fontName?: string };
-          const fam = (it.fontName && styles[it.fontName]?.fontFamily) || '';
-          // Bold is best-effort: pdf.js exposes only a generic family, so we also
-          // sniff the internal font name. Used lightly (a bold, short, isolated line
-          // reads as a heading) — never to emit **bold** runs, which would misfire.
-          const bold = /bold|black|heavy|semibold|extrabold/i.test(fam) || /bold|bd\b|-b\b/i.test(it.fontName || '');
-          return {
-            x: it.transform[4],
-            y: it.transform[5],
-            w: it.width,
-            h: Math.abs(it.transform[3]) || it.height || 10,
-            s: it.str,
-            bold,
-          };
-        });
+      const items = await pageToItems(page);
       if (items.some((it) => it.s.trim())) anyText = true;
       pages.push(items);
       (page as unknown as { cleanup?: () => void }).cleanup?.();

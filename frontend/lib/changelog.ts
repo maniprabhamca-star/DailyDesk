@@ -15,6 +15,14 @@ export type ChangeEntry = {
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-08-06',
+    kind: 'new',
+    title: 'Turn a PDF into a real e-book',
+    detail:
+      'PDF to EPUB converts a document into something you can actually read on a phone or e-reader: the text reflows to the screen instead of making you pinch and scroll sideways. It builds chapters from the PDF’s own bookmarks where they exist, falls back to the headings it finds, uses page one as the cover, and writes a working contents list. There’s a tidy-up pass too — it drops the running headers and page numbers that repeat on every page and rejoins words hyphenated across a line break, which are the things that make most converted books look photocopied. You can set the title, author and language, see every chapter before you commit, and it all happens in your browser: the file is never uploaded.',
+    href: '/pdf-to-epub',
+  },
+  {
     date: '2026-07-28',
     kind: 'new',
     title: 'A proper welcome for first-time visitors',
