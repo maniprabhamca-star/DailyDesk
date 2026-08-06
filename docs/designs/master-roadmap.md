@@ -62,7 +62,7 @@ Mostly free/on-device unless marked.
 - [x] 🌐 **Repair PDF** (`/repair-pdf` — free on-device: tolerant reload+resave rebuilds the broken xref that makes PDFs won't-open; 4/4 headless test)
 - [x] 🌐 **Scan to PDF** (`/scan-to-pdf` — free on-device: phone camera → clean multi-page PDF, readability enhance, add-photos fallback)
 - [ ] ⏳ RFC-3161 trusted timestamp
-- [ ] ⏳ Free **chained "one-drop" workflows** (merge·clean·sign·compress in one drop)
+- [x] 🌓 Free **chained "one-drop" workflows** (merge·clean·sign·compress in one drop — see §4 Saved workflows)
 
 ## 3. AI layer (Pro — needs the Anthropic key, now live)
 - [x] 🌓 Chat with PDF
@@ -78,7 +78,7 @@ Mostly free/on-device unless marked.
 - [ ] ⏳ **On-device batch** ⭐ flagship — "100 files at once, zero uploads"
 - [x] 🌓 **Encrypted File Vault** ⭐ — phases 1-3 SHIPPED dark at `/file-vault` (crypto core 9/9 unit tests · ciphertext-only backend 9/9 prod e2e · UI to the approved mockup: ceremony/unlock/grid + visible encrypt-steps + 15-min auto-lock). Phase 4 remains: sync polish, recycle bin, rename UI. Quota currently 10GB Pro (env-tunable; revisit free/paid split vs economics at launch)
 - [ ] ⏳ **Redaction / clean certificate** ⭐ — signed proof "0 recoverable chars, metadata stripped"
-- [ ] ⏳ **Saved workflows** ⭐ — one-click document assembly line over a batch
+- [x] 🌓 **Saved workflows** ⭐ — one-click document assembly line over a batch (`/workflows`, dark until Pro launch: 12 on-device steps — merge · delete · rotate · clean scan · watermark · page numbers · sign · flatten · remove metadata · share-safe clean · protect · compress-to-size — 7 templates, batch→zip, saved on-device. Remaining: account sync)
 - [ ] ⏳ Self-destruct encrypted shares (expiring password-locked links we can't decrypt)
 - [ ] ⏳ Brand kit (logo/header/footer/watermark presets across a batch)
 - [ ] ⏳ True re-encode Edit tier (higher-fidelity in-place edit — see docs/edit-pdf-approach.md)

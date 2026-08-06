@@ -9,8 +9,9 @@ import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
 import { BeforeAfter } from '@/components/pdf/before-after';
 import { openPdf, renderPage, dprTarget, type PdfHandle, type RenderedPage } from '@/lib/pdf-render';
+import { applyCleanPixels, cleanScanToPdf, type CleanMode } from '@/lib/clean-scan-core';
 
-type Mode = 'clean' | 'bw';
+type Mode = CleanMode;
 
 function fmt(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -35,54 +36,10 @@ async function cleanRenderedPage(rp: RenderedPage, mode: Mode, contrast: number)
   ctx.drawImage(bitmap, 0, 0);
   bitmap.close();
   const img = ctx.getImageData(0, 0, rp.w, rp.h);
-  const d = img.data;
-  const boost = 1 + contrast / 60;
-  for (let p = 0; p < d.length; p += 4) {
-    const gray = 0.299 * d[p] + 0.587 * d[p + 1] + 0.114 * d[p + 2];
-    let v = (gray - 128) * boost + 128;
-    if (mode === 'bw') v = v > 178 ? 255 : 0;
-    else v = Math.max(0, Math.min(255, v + 8));
-    d[p] = v; d[p + 1] = v; d[p + 2] = v;
-  }
+  applyCleanPixels(img.data, mode, contrast);
   ctx.putImageData(img, 0, 0);
   const cleaned = await blobFromCanvas(canvas, 'image/jpeg', mode === 'bw' ? 0.86 : 0.9);
   return { blob: cleaned, page: { url: URL.createObjectURL(cleaned), w: rp.w, h: rp.h } satisfies RenderedPage };
-}
-
-// Export-path renderer: render a pdf.js page STRAIGHT to a canvas, clean the
-// pixels, and encode ONE JPEG. Avoids the preview path's extra JPEG encode +
-// fetch + createImageBitmap decode per page (roughly halves the work), and
-// returns the page's point size so the output page matches the original.
-async function renderCleanToJpeg(handle: PdfHandle, index: number, mode: Mode, contrast: number, targetLong: number) {
-  const page = await handle.doc.getPage(index + 1);
-  const base = page.getViewport({ scale: 1 });
-  const scale = targetLong / Math.max(base.width, base.height);
-  const viewport = page.getViewport({ scale });
-  const canvas = document.createElement('canvas');
-  canvas.width = Math.ceil(viewport.width);
-  canvas.height = Math.ceil(viewport.height);
-  const ctx = canvas.getContext('2d', { willReadFrequently: true });
-  if (!ctx) throw new Error('No canvas context.');
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  await page.render({ canvas, viewport, background: 'rgba(255,255,255,1)', intent: 'print' }).promise;
-  const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const d = imgData.data;
-  const boost = 1 + contrast / 60;
-  for (let p = 0; p < d.length; p += 4) {
-    const gray = 0.299 * d[p] + 0.587 * d[p + 1] + 0.114 * d[p + 2];
-    let v = (gray - 128) * boost + 128;
-    if (mode === 'bw') v = v > 178 ? 255 : 0;
-    else v = Math.max(0, Math.min(255, v + 8));
-    d[p] = v; d[p + 1] = v; d[p + 2] = v;
-  }
-  ctx.putImageData(imgData, 0, 0);
-  const jpeg = await new Promise<ArrayBuffer>((resolve, reject) =>
-    canvas.toBlob((b) => (b ? b.arrayBuffer().then(resolve) : reject(new Error('Could not encode page image.'))), 'image/jpeg', mode === 'bw' ? 0.85 : 0.88),
-  );
-  canvas.width = 0;
-  canvas.height = 0;
-  return { jpeg, w: base.width, h: base.height };
 }
 
 export function CleanScannedPdfTool() {
@@ -92,7 +49,7 @@ export function CleanScannedPdfTool() {
   const [contrast, setContrast] = useState(18);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState('');
-  const cancelRef = useRef(false);
+  const abortRef = useRef<AbortController | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ blob: Blob; name: string; secs: number } | null>(null);
   const [previewBusy, setPreviewBusy] = useState(false);
@@ -205,44 +162,18 @@ export function CleanScannedPdfTool() {
   }, [beforePreview, mode, contrast]);
 
   function cancelRun() {
-    cancelRef.current = true; // the batch loop bails on its next iteration
+    abortRef.current?.abort(); // the batch loop bails on its next iteration
   }
   async function run() {
     if (!file) return;
-    cancelRef.current = false;
+    const ac = new AbortController();
+    abortRef.current = ac;
     setBusy(true);
     setError(null);
     setDone(null);
     const t0 = performance.now();
-    let handle: PdfHandle | null = null;
     try {
-      const { PDFDocument } = await import('pdf-lib');
-      const out = await PDFDocument.create();
-      handle = await openPdf(file);
-      const total = handle.numPages;
-      // Scanned pages don't need huge rasters to stay readable; a lower long
-      // edge cuts render + encode time a lot. B&W keeps a touch more for edges.
-      const targetLong = mode === 'bw' ? 1650 : 1500;
-      // Render a few pages at once (pdf.js decode + JPEG encode overlap), but
-      // embed them in order so peak memory stays at ~`conc` pages — safe for
-      // documents of any length.
-      const cores = typeof navigator !== 'undefined' ? navigator.hardwareConcurrency || 4 : 4;
-      const conc = Math.max(2, Math.min(4, cores));
-      let processed = 0;
-      for (let start = 0; start < total; start += conc) {
-        if (cancelRef.current) throw new DOMException('Cancelled', 'AbortError');
-        const batch: number[] = [];
-        for (let i = start; i < Math.min(start + conc, total); i++) batch.push(i);
-        const results = await Promise.all(batch.map((i) => renderCleanToJpeg(handle as PdfHandle, i, mode, contrast, targetLong)));
-        for (const r of results) {
-          const img = await out.embedJpg(r.jpeg);
-          const page = out.addPage([r.w, r.h]);
-          page.drawImage(img, { x: 0, y: 0, width: r.w, height: r.h });
-          processed++;
-        }
-        setProgress(`Cleaning page ${Math.min(processed, total)} of ${total}`);
-      }
-      const bytes = await out.save();
+      const bytes = await cleanScanToPdf(file, { mode, contrast, signal: ac.signal, onMsg: setProgress });
       const blob = new Blob([new Uint8Array(bytes)], { type: 'application/pdf' });
       const name = `${file.name.replace(/\.pdf$/i, '')}-clean-scan.pdf`;
       download(blob, name);
@@ -251,7 +182,7 @@ export function CleanScannedPdfTool() {
       if (e instanceof DOMException && e.name === 'AbortError') { /* cancelled — quiet */ }
       else setError(e instanceof Error ? e.message : 'Could not clean this PDF.');
     } finally {
-      if (handle) void handle.destroy();
+      abortRef.current = null;
       setProgress('');
       setBusy(false);
     }

@@ -27,7 +27,8 @@ const faqs = [
   { q: 'Do my files get uploaded between steps?', a: 'No. Every step runs on your own device, so the file is handed from one tool to the next entirely in your browser. Server-based tools can’t do this — they re-upload at each step.' },
   { q: 'Can I run a whole batch?', a: 'Yes. Drop several PDFs and the workflow runs on each, then hands you a zip of the results.' },
   { q: 'Are my saved workflows private?', a: 'Yes — they’re stored on your device. Syncing them across devices with your account is coming.' },
-  { q: 'Which steps are available?', a: 'Merge, delete pages, rotate, remove metadata, page numbers, flatten, password-protect and compress-to-size run today. Sign, watermark, share-safe check and scan cleanup are coming to workflows next.' },
+  { q: 'Which steps are available?', a: 'Merge, delete pages, rotate, clean a scan, watermark, page numbers, sign, flatten, remove metadata, share-safe clean, password-protect and compress-to-size — all twelve run on your device.' },
+  { q: 'Where is my signature kept?', a: 'On this device only. Draw it once in the Sign step and it stays in this browser — it is never uploaded, and it is never part of a saved workflow, so syncing workflows later will not carry it. “Forget” removes it.' },
 ];
 
 export default function WorkflowsPage() {

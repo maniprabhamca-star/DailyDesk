@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Upload, Play, Plus, X, ArrowUp, ArrowDown, Save, Trash2, Download, Loader2, Check, ShieldCheck, GripVertical } from 'lucide-react';
 import { downloadBlob } from '@/lib/download';
+import { SignaturePad } from '@/components/tools/signature-pad';
 import {
   STEPS, STEP_ORDER, TEMPLATES, runWorkflow, runnableSteps, loadWorkflows, upsertWorkflow, deleteWorkflow, newWorkflowId,
   type Workflow, type WorkflowStep, type StepId, type StepState, type StepConfig, type StepField,
@@ -16,6 +17,13 @@ const HEX: Record<string, string> = {
 const colorOf = (id: StepId) => HEX[STEPS[id].color] ?? '#4f46e5';
 
 function ConfigField({ field, value, onChange }: { field: StepField; value: string | number | undefined; onChange: (v: string | number) => void }) {
+  if (field.type === 'signature') {
+    return (
+      <div className="w-full max-w-sm">
+        <SignaturePad />
+      </div>
+    );
+  }
   if (field.type === 'select') {
     return (
       <label className="flex items-center gap-2 text-xs text-muted-foreground">

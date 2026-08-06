@@ -5,10 +5,10 @@
 // the File(s) from one step into the next, entirely in the browser — nothing is
 // uploaded between steps, which is the whole point (server tools can't do this).
 //
-// v1 wires the steps whose engines run cleanly headless-in-worker with no extra
-// assets. Steps that need interactive input (a drawn signature) or heavier
-// assets (watermark fonts, scan cleanup) are declared with `soon: true` so the
-// builder shows the full vision while only the wired ones execute.
+// Every step here executes. Steps that need something from the user beyond a
+// text field (Sign needs a signature) collect it in the builder and keep it on
+// the device — a `soon: true` step would still be skipped by the runner rather
+// than breaking the chain.
 
 import { mergePdfs, rewritePdf } from '@/lib/pdf-rewrite';
 import { runQpdf } from '@/lib/qpdf';
@@ -26,7 +26,10 @@ export type WorkflowStep = { id: StepId; config?: StepConfig };
 export type StepField =
   | { key: string; label: string; type: 'text'; placeholder?: string; default?: string }
   | { key: string; label: string; type: 'number'; suffix?: string; default: number; min?: number; max?: number }
-  | { key: string; label: string; type: 'select'; options: { value: string; label: string }[]; default: string };
+  | { key: string; label: string; type: 'select'; options: { value: string; label: string }[]; default: string }
+  /** Renders the signature pad. The signature itself never enters the workflow
+   *  config — it stays in this device's localStorage (see ./signature). */
+  | { key: string; label: string; type: 'signature' };
 
 export type StepDef = {
   id: StepId;
@@ -165,14 +168,154 @@ export const STEPS: Record<StepId, StepDef> = {
     }),
   },
 
-  // ---- declared, not yet wired (palette shows them disabled) ----
-  sign: { id: 'sign', label: 'Sign', blurb: 'Place a saved signature', color: '--coral', glyph: '✍️', soon: true },
-  watermark: { id: 'watermark', label: 'Watermark', blurb: 'Stamp text across pages', color: '--amber', glyph: '💧', soon: true },
-  'share-safe': { id: 'share-safe', label: 'Share-safe check', blurb: 'Report risky hidden data', color: '--coral', glyph: '🛡️', soon: true },
-  'clean-scanned': { id: 'clean-scanned', label: 'Clean scanned', blurb: 'Deskew & de-speckle scans', color: '--cyan', glyph: '📷', soon: true },
+  sign: {
+    id: 'sign', label: 'Sign', blurb: 'Stamp your saved signature', color: '--coral', glyph: '✍️',
+    fields: [
+      { key: 'sig', label: 'Signature', type: 'signature' },
+      { key: 'page', label: 'On', type: 'select', default: 'last', options: [
+        { value: 'first', label: 'First page' }, { value: 'last', label: 'Last page' }, { value: 'all', label: 'Every page' }] },
+      { key: 'pos', label: 'Position', type: 'select', default: 'br', options: [
+        { value: 'br', label: 'Bottom right' }, { value: 'bc', label: 'Bottom centre' }, { value: 'bl', label: 'Bottom left' },
+        { value: 'tr', label: 'Top right' }, { value: 'tl', label: 'Top left' }] },
+      { key: 'widthPct', label: 'Width', type: 'number', suffix: '% of page', default: 22, min: 5, max: 60 },
+    ],
+    run: perFile(async (f, cfg, _signal, onMsg) => {
+      const { loadSignature, signatureBytes } = await import('./signature');
+      const sig = loadSignature();
+      if (!sig) { onMsg?.('No signature saved on this device — Sign step skipped'); return f; }
+      const { PDFDocument } = await import('pdf-lib');
+      const doc = await PDFDocument.load(await f.arrayBuffer(), { ignoreEncryption: true, updateMetadata: false });
+      const bytes = signatureBytes(sig);
+      const img = sig.isPng ? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
+      const pages = doc.getPages();
+      const which = String(cfg.page ?? 'last');
+      const targets = which === 'all' ? pages : which === 'first' ? [pages[0]] : [pages[pages.length - 1]];
+      const wPct = Math.min(60, Math.max(5, Number(cfg.widthPct ?? 22))) / 100;
+      const pos = String(cfg.pos ?? 'br');
+      const M = 28; // pt from the page edges
+      for (const page of targets) {
+        if (!page) continue;
+        const { width: W, height: H } = page.getSize();
+        const w = W * wPct;
+        const h = w * (sig.h / sig.w);
+        const x = pos.endsWith('l') ? M : pos.endsWith('c') ? (W - w) / 2 : W - w - M;
+        const y = pos.startsWith('t') ? H - h - M : M;
+        page.drawImage(img, { x, y, width: w, height: h });
+      }
+      const out = await doc.save({ useObjectStreams: true });
+      return asFile(out, `${stem(f.name)}-signed.pdf`);
+    }),
+  },
+
+  watermark: {
+    id: 'watermark', label: 'Watermark', blurb: 'Stamp text across every page', color: '--amber', glyph: '💧',
+    fields: [
+      { key: 'text', label: 'Text', type: 'text', default: 'CONFIDENTIAL', placeholder: 'CONFIDENTIAL' },
+      { key: 'pos', label: 'Position', type: 'select', default: 'tiled', options: [
+        { value: 'tiled', label: 'Tiled across the page' }, { value: 'mc', label: 'Centre' },
+        { value: 'bc', label: 'Bottom centre' }, { value: 'tc', label: 'Top centre' },
+        { value: 'br', label: 'Bottom right' }, { value: 'tr', label: 'Top right' }] },
+      { key: 'angle', label: 'Angle', type: 'select', default: '-30', options: [
+        { value: '-30', label: 'Diagonal' }, { value: '0', label: 'Straight' }, { value: '-90', label: 'Sideways' }] },
+      { key: 'sizePct', label: 'Size', type: 'number', suffix: '%', default: 8, min: 2, max: 30 },
+      { key: 'opacityPct', label: 'Opacity', type: 'number', suffix: '%', default: 18, min: 3, max: 100 },
+      { key: 'layer', label: 'Layer', type: 'select', default: 'over', options: [
+        { value: 'over', label: 'Over the content' }, { value: 'under', label: 'Behind the content' }] },
+    ],
+    run: perFile(async (f, cfg, signal) => {
+      const bytes = await rewritePdf(f, { type: 'watermark', opts: {
+        mode: 'text',
+        text: String(cfg.text ?? '').trim() || 'CONFIDENTIAL',
+        colorRgb: [0.45, 0.45, 0.5],
+        sizeFrac: Math.min(0.3, Math.max(0.02, Number(cfg.sizePct ?? 8) / 100)),
+        opacity: Math.min(1, Math.max(0.03, Number(cfg.opacityPct ?? 18) / 100)),
+        position: String(cfg.pos ?? 'tiled'),
+        rotation: Number(cfg.angle ?? -30),
+        imageScale: 0.3,
+        layer: String(cfg.layer ?? 'over') === 'under' ? 'under' : 'over',
+        range: '', // every page
+        standardFont: 'Helvetica',
+      } }, { signal });
+      return asFile(bytes, `${stem(f.name)}-watermarked.pdf`);
+    }),
+  },
+
+  // Non-interactive sibling of the Share-safe PDF check: it removes the hidden
+  // data that leaks when a file is forwarded. It deliberately does NOT redact
+  // visible text — that needs a human eye, so the full tool keeps that job.
+  'share-safe': {
+    id: 'share-safe', label: 'Share-safe clean', blurb: 'Strip hidden data, scripts & links', color: '--coral', glyph: '🛡️',
+    fields: [{ key: 'links', label: 'Clickable links', type: 'select', default: 'remove', options: [
+      { value: 'remove', label: 'Remove' }, { value: 'keep', label: 'Keep' }] }],
+    run: perFile(async (f, cfg, _signal, onMsg) => {
+      const { PDFDocument, PDFName, PDFDict } = await import('pdf-lib');
+      const { scanDocMetadata, stripDocMetadata } = await import('@/lib/pdf-sanitize');
+      const doc = await PDFDocument.load(await f.arrayBuffer(), { ignoreEncryption: true });
+      const ctx = doc.context;
+      const scan = await scanDocMetadata(doc);
+      const metaRemoved = await stripDocMetadata(doc);
+
+      // Document-level scripts & attachments.
+      let scripts = 0;
+      let attachments = 0;
+      const names = ctx.lookup(doc.catalog.get(PDFName.of('Names')));
+      if (names instanceof PDFDict) {
+        if (names.has(PDFName.of('JavaScript'))) { names.delete(PDFName.of('JavaScript')); scripts++; }
+        if (names.has(PDFName.of('EmbeddedFiles'))) { names.delete(PDFName.of('EmbeddedFiles')); attachments++; }
+      }
+      for (const key of ['OpenAction', 'AA'] as const) {
+        if (doc.catalog.has(PDFName.of(key))) { doc.catalog.delete(PDFName.of(key)); scripts++; }
+      }
+
+      // Per-page: link annotations + page-open actions.
+      let links = 0;
+      const dropLinks = String(cfg.links ?? 'remove') !== 'keep';
+      for (const page of doc.getPages()) {
+        if (page.node.has(PDFName.of('AA'))) { page.node.delete(PDFName.of('AA')); scripts++; }
+        const annots = page.node.Annots();
+        if (!annots || !dropLinks) continue;
+        for (let i = annots.size() - 1; i >= 0; i--) {
+          const a = ctx.lookup(annots.get(i));
+          if (a instanceof PDFDict && String(ctx.lookup(a.get(PDFName.of('Subtype')))) === '/Link') { annots.remove(i); links++; }
+        }
+      }
+
+      const parts = [
+        metaRemoved ? `${metaRemoved} metadata item${metaRemoved > 1 ? 's' : ''}` : '',
+        scan.xmpBytes ? 'XMP block' : '',
+        links ? `${links} link${links > 1 ? 's' : ''}` : '',
+        scripts ? 'scripts' : '',
+        attachments ? 'attachments' : '',
+      ].filter(Boolean);
+      onMsg?.(parts.length ? `Share-safe: removed ${parts.join(', ')}` : 'Share-safe: nothing hidden found');
+
+      const out = await doc.save({ useObjectStreams: true });
+      return asFile(out, `${stem(f.name)}-share-safe.pdf`);
+    }),
+  },
+
+  'clean-scanned': {
+    id: 'clean-scanned', label: 'Clean scanned', blurb: 'Whiten & sharpen a scan or photo', color: '--cyan', glyph: '📷',
+    fields: [
+      { key: 'mode', label: 'Look', type: 'select', default: 'clean', options: [
+        { value: 'clean', label: 'Clean grey' }, { value: 'bw', label: 'Pure black & white' }] },
+      { key: 'contrast', label: 'Contrast', type: 'number', default: 18, min: 0, max: 60 },
+    ],
+    run: perFile(async (f, cfg, signal, onMsg) => {
+      const { cleanScanToPdf } = await import('@/lib/clean-scan-core');
+      const bytes = await cleanScanToPdf(f, {
+        mode: String(cfg.mode ?? 'clean') === 'bw' ? 'bw' : 'clean',
+        contrast: Math.min(60, Math.max(0, Number(cfg.contrast ?? 18))),
+        signal, onMsg,
+      });
+      return asFile(bytes, `${stem(f.name)}-clean-scan.pdf`);
+    }),
+  },
 };
 
+// Palette order — roughly the order these make sense in a real pipeline.
 export const STEP_ORDER: StepId[] = [
-  'merge', 'delete', 'rotate', 'remove-metadata', 'page-numbers', 'flatten', 'protect', 'compress-size',
-  'sign', 'watermark', 'share-safe', 'clean-scanned',
+  'merge', 'delete', 'rotate', 'clean-scanned',
+  'watermark', 'page-numbers', 'sign', 'flatten',
+  'remove-metadata', 'share-safe', 'protect', 'compress-size',
 ];

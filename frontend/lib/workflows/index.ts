@@ -33,16 +33,23 @@ export function runnableSteps(steps: WorkflowStep[]): WorkflowStep[] {
   return steps.filter((s) => !STEPS[s.id]?.soon);
 }
 
-// ---- starter templates (wired steps only) ----------------------------------
+// ---- starter templates -----------------------------------------------------
 export const TEMPLATES: Workflow[] = [
   { id: 'tpl-sendsafe', name: 'Send-safe', steps: [
-    { id: 'remove-metadata' }, { id: 'compress-size', config: { targetMb: 2 } } ] },
+    { id: 'share-safe', config: { links: 'remove' } }, { id: 'compress-size', config: { targetMb: 2 } } ] },
   { id: 'tpl-email', name: 'Email-ready', steps: [
     { id: 'flatten' }, { id: 'compress-size', config: { targetMb: 5 } } ] },
   { id: 'tpl-packet', name: 'Client packet', steps: [
     { id: 'merge' }, { id: 'delete', config: { pages: '' } }, { id: 'compress-size', config: { targetMb: 3 } } ] },
   { id: 'tpl-number', name: 'Number & lock', steps: [
     { id: 'page-numbers', config: { template: '{n}', pos: 'bc' } }, { id: 'protect', config: { password: '' } } ] },
+  { id: 'tpl-scan', name: 'Scan cleanup', steps: [
+    { id: 'clean-scanned', config: { mode: 'clean', contrast: 18 } }, { id: 'compress-size', config: { targetMb: 2 } } ] },
+  { id: 'tpl-sign', name: 'Sign & send', steps: [
+    { id: 'sign', config: { page: 'last', pos: 'br', widthPct: 22 } }, { id: 'flatten' }, { id: 'share-safe', config: { links: 'keep' } } ] },
+  { id: 'tpl-draft', name: 'Confidential draft', steps: [
+    { id: 'watermark', config: { text: 'CONFIDENTIAL', pos: 'tiled', angle: '-30', sizePct: 8, opacityPct: 18, layer: 'over' } },
+    { id: 'remove-metadata' } ] },
 ];
 
 // ---- local persistence (on-device; account sync is a fast-follow) ----------
