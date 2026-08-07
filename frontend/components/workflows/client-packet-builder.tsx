@@ -124,7 +124,7 @@ export function ClientPacketBuilder() {
   return (
     <Card>
       <CardContent className="p-5">
-        <input ref={inputRef} type="file" accept="application/pdf,.pdf" multiple className="dd-file-input" onChange={(e) => { addFiles(e.target.files); e.currentTarget.value = ''; }} />
+        <input ref={inputRef} type="file" accept="application/pdf,.pdf" multiple aria-label="Choose a PDF file" className="dd-file-input" onChange={(e) => { addFiles(e.target.files); e.currentTarget.value = ''; }} />
 
         <div className="rounded-2xl border bg-gradient-to-br from-primary/10 to-background p-4">
           <div className="flex flex-wrap items-center gap-3">

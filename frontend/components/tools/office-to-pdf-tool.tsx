@@ -181,7 +181,7 @@ export function OfficeToPdfTool({ kindId }: { kindId: OfficeKindId }) {
           </span>
         </p>
 
-        <input ref={inputRef} type="file" accept={kind.accept} className="dd-file-input" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
+        <input ref={inputRef} type="file" accept={kind.accept} aria-label="Choose a file" className="dd-file-input" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
         {!file ? (
           <div
             onDragOver={(e) => e.preventDefault()}

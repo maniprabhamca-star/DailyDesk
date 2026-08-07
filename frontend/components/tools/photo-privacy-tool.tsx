@@ -87,7 +87,7 @@ export function PhotoPrivacyTool() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <input ref={inputRef} type="file" accept="image/*" className="dd-file-input" onChange={(e) => loadFile(e.target.files?.[0])} />
+      <input ref={inputRef} type="file" accept="image/*" aria-label="Choose an image file" className="dd-file-input" onChange={(e) => loadFile(e.target.files?.[0])} />
 
       {!file ? (
         <button type="button" onClick={() => inputRef.current?.click()} onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); loadFile(e.dataTransfer.files?.[0]); }}

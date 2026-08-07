@@ -194,7 +194,7 @@ export function HtmlToExcelTool() {
           </div>
         )}
 
-        <input ref={inputRef} type="file" accept=".html,.htm,.xhtml,text/html" className="dd-file-input"
+        <input ref={inputRef} type="file" accept=".html,.htm,.xhtml,text/html" aria-label="Choose an HTML file" className="dd-file-input"
           onChange={(e) => { void pickFile(e.target.files?.[0]); e.target.value = ''; }} />
 
         {error && (
@@ -264,8 +264,8 @@ export function HtmlToExcelTool() {
 
         <div className="flex flex-wrap items-center gap-3 border-t bg-muted/20 px-4 py-3">
           <div className="inline-flex overflow-hidden rounded-lg border">
-            <button onClick={() => setFmt('xlsx')} className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold ${fmt === 'xlsx' ? 'bg-emerald-600 text-white' : 'text-muted-foreground'}`}><FileSpreadsheet className="size-3.5" /> Excel .xlsx</button>
-            <button onClick={() => setFmt('csv')} className={`px-3 py-1.5 text-xs font-semibold ${fmt === 'csv' ? 'bg-emerald-600 text-white' : 'text-muted-foreground'}`}>.csv</button>
+            <button onClick={() => setFmt('xlsx')} className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold ${fmt === 'xlsx' ? 'bg-emerald-700 text-white' : 'text-muted-foreground'}`}><FileSpreadsheet className="size-3.5" /> Excel .xlsx</button>
+            <button onClick={() => setFmt('csv')} className={`px-3 py-1.5 text-xs font-semibold ${fmt === 'csv' ? 'bg-emerald-700 text-white' : 'text-muted-foreground'}`}>.csv</button>
           </div>
           {tables.length > 1 && (
             <select value={layout} onChange={(e) => setLayout(e.target.value as Layout)} className="rounded-lg border bg-card px-2.5 py-1.5 text-xs">
@@ -278,7 +278,7 @@ export function HtmlToExcelTool() {
             First row is a header
           </label>
           <button onClick={() => void doExport()} disabled={exporting}
-            className="ml-auto inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50">
+            className="ml-auto inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50">
             {exporting ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
             Download {fmt === 'xlsx' ? 'spreadsheet' : 'CSV'}
           </button>

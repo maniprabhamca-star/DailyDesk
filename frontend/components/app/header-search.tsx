@@ -19,6 +19,9 @@ type Tool = CatTool & { color: string; group: string };
 
 const ALL: Tool[] = catalog.flatMap((g) => g.tools.map((t) => ({ ...t, color: g.color, group: g.label })));
 const MAX_RESULTS = 7;
+// Stable id so the input can point aria-controls / aria-activedescendant at the
+// results list — a combobox that does not name its listbox is only half declared.
+const LIST_ID = 'dd-header-search-results';
 
 function openCommand() {
   window.dispatchEvent(new Event('dd-command-open'));
@@ -109,7 +112,15 @@ export function HeaderSearch({ visible }: { visible: boolean }) {
           onKeyDown={onKey}
           placeholder="Search or jump to any tool…"
           aria-label="Search or jump to any tool"
+          // This is a combobox, and it was only half-declared: aria-expanded on
+          // a plain textbox is not a supported attribute, so assistive tech got
+          // an attribute it is entitled to ignore and no idea a list had opened.
+          // XC-007 flagged it as critical.
+          role="combobox"
+          aria-autocomplete="list"
           aria-expanded={open}
+          aria-controls={LIST_ID}
+          aria-activedescendant={open && active >= 0 ? `${LIST_ID}-opt-${active}` : undefined}
           className="w-full bg-transparent outline-none placeholder:text-foreground/60"
         />
         <button onClick={openCommand} aria-label="Open command palette" className="ml-auto shrink-0 whitespace-nowrap rounded border px-1.5 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-accent">{modKey}</button>
@@ -124,10 +135,13 @@ export function HeaderSearch({ visible }: { visible: boolean }) {
             {results.label}
             {!query && recent.length > 0 && <History className="ml-1.5 inline size-3 -translate-y-px" />}
           </p>
-          <div className="p-1.5 pt-0.5">
-            {results.items.length === 0 && (
-              <p className="px-3 py-5 text-center text-sm text-muted-foreground">No tools match “{query}”.</p>
-            )}
+          {results.items.length === 0 && (
+            <p className="px-3 py-5 text-center text-sm text-muted-foreground">No tools match “{query}”.</p>
+          )}
+          {/* The listbox wraps ONLY the options. The heading and the empty-state
+              message are siblings — a listbox whose children are not options is
+              its own axe violation, and swapping one for another is no fix. */}
+          <div id={LIST_ID} role="listbox" aria-label="Tool search results" className="p-1.5 pt-0.5">
             {results.items.map((t) => {
               const Icon = t.icon;
               const idx = navigable.indexOf(t);
@@ -137,6 +151,9 @@ export function HeaderSearch({ visible }: { visible: boolean }) {
               return (
                 <button
                   key={`${t.group}-${t.name}`}
+                  id={idx >= 0 ? `${LIST_ID}-opt-${idx}` : undefined}
+                  role="option"
+                  aria-selected={isActive}
                   disabled={soon}
                   onMouseEnter={() => { if (idx >= 0) setActive(idx); }}
                   onClick={() => go(t)}

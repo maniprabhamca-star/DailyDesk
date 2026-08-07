@@ -8,17 +8,20 @@ export function Switch({
   onCheckedChange,
   id,
   disabled,
+  'aria-label': ariaLabel,
 }: {
   checked: boolean;
   onCheckedChange: (v: boolean) => void;
   id?: string;
   disabled?: boolean;
+  'aria-label'?: string;
 }) {
   return (
     <button
       type="button"
       role="switch"
       id={id}
+      aria-label={ariaLabel}
       aria-checked={checked}
       disabled={disabled}
       onClick={() => onCheckedChange(!checked)}

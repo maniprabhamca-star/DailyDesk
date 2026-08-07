@@ -15,7 +15,15 @@ Priority: **P0** blocker / promise-guard · **P1** core · **P2** edge/polish.
 > catalog, so the route list can never drift from the app. Engine journeys are
 > in `engines.spec.ts` (real files via `_fixtures.ts`); the file-picker
 > regressions are in `file-picker.spec.ts`. XC-006 (theme contrast), XC-007
-> (axe) and XC-008 (reduced motion) are still to write.
+> (axe, focus, Escape) and XC-008 (reduced motion) are in `xc-a11y.spec.ts`,
+> written 2026-08-07 — they found REG-023…REG-027 on their first run.
+>
+> ⚠ Two traps that made early versions of that spec lie:
+> `test.use({ reducedMotion: 'reduce' })` does **not** take effect here —
+> `matchMedia` still reports no-preference, so the assertions were meaningless.
+> Use `page.emulateMedia({ reducedMotion: 'reduce' })`. And next-themes with
+> `attribute="class"` adds `dark` but adds **nothing** for light, so light must
+> be asserted as the absence of `dark`, not the presence of a class.
 
 ## Part 1 — Cross-cutting scenarios (run against EVERY route)
 

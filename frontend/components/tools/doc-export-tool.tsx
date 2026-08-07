@@ -168,7 +168,7 @@ export function DocExportTool({
           </div>
         )}
 
-        <input ref={inputRef} type="file" accept={ACCEPT[source]} className="dd-file-input" onChange={(e) => { void load(e.target.files?.[0]); e.target.value = ''; }} />
+        <input ref={inputRef} type="file" accept={ACCEPT[source]} aria-label="Choose a file" className="dd-file-input" onChange={(e) => { void load(e.target.files?.[0]); e.target.value = ''; }} />
 
         {error && (
           <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm">

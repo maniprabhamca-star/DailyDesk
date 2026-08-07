@@ -67,7 +67,7 @@ export function PdfToMarkdownTool() {
           <span className="mt-1 text-sm text-muted-foreground">headings, lists and tables preserved — converted on your device, never uploaded</span>
           <span className="mt-4 inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm">Choose PDF</span>
         </button>
-        <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="dd-file-input" onChange={(e) => { void run(e.target.files?.[0]); e.target.value = ''; }} />
+        <input ref={inputRef} type="file" accept="application/pdf,.pdf" aria-label="Choose a PDF file" className="dd-file-input" onChange={(e) => { void run(e.target.files?.[0]); e.target.value = ''; }} />
         {error && <p className="mt-3 text-center text-sm text-destructive">{error}</p>}
       </div>
     );

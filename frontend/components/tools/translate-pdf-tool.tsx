@@ -128,7 +128,7 @@ export function TranslatePdfTool() {
               <Ctl label="Don't translate these (names, brands, terms)" uniq>
                 <input value={glossary} onChange={(e) => setGlossary(e.target.value)} disabled={busy} maxLength={300}
                   placeholder="e.g. DiemDesk, Herr Schmidt, FOB, Anlage A"
-                  className="w-full rounded-lg border bg-card px-2.5 py-1.5 text-xs outline-none placeholder:text-muted-foreground/50 focus:border-violet-500" />
+                  className="w-full rounded-lg border bg-card px-2.5 py-1.5 text-xs outline-none placeholder:text-muted-foreground focus:border-violet-500" />
               </Ctl>
             </div>
             <Ctl label="Translator notes" uniq>
@@ -160,7 +160,7 @@ export function TranslatePdfTool() {
             )}
             {result && result.pages.map((p) => (
               <div key={p.page} className="space-y-2">
-                <div className="flex items-center gap-2 text-[11px] font-bold text-muted-foreground/70">
+                <div className="flex items-center gap-2 text-[11px] font-bold text-muted-foreground">
                   <span className="h-px flex-1 bg-border" /> Page {p.page} <span className="h-px flex-1 bg-border" />
                 </div>
                 {view === 'side' ? (
@@ -198,7 +198,7 @@ export function TranslatePdfTool() {
 
           {result && (
             <div className="flex flex-wrap items-center gap-2 border-t px-4 py-3">
-              <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-muted-foreground/70">Export</span>
+              <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-muted-foreground">Export</span>
               <Button size="sm" onClick={() => void exportPdf()} className="bg-violet-600 text-white hover:bg-violet-700"><Download className="mr-1 size-3.5" /> PDF</Button>
               <Button size="sm" variant="outline" onClick={() => void exportDocx(false)}>Word</Button>
               <Button size="sm" variant="outline" onClick={() => void exportDocx(true)}>Side-by-side Word</Button>

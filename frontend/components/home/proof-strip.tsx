@@ -23,12 +23,12 @@ export function ProofStrip() {
         </div>
         <div className="shrink-0 text-center sm:border-l sm:border-white/10 sm:pl-8">
           <p className="flex items-baseline justify-center gap-2.5">
-            <span className="text-sm text-slate-500 line-through">27.1 MB</span>
-            <ArrowRight className="size-4 self-center text-slate-500" />
+            <span className="text-sm text-slate-400 line-through">27.1 MB</span>
+            <ArrowRight className="size-4 self-center text-slate-400" />
             <span className="text-4xl font-bold tracking-tight text-emerald-400">6.8 MB</span>
           </p>
           <p className="mt-1.5 text-sm font-semibold text-emerald-300">75% saved</p>
-          <p className="mt-1 flex items-center justify-center gap-1.5 text-xs text-slate-500">
+          <p className="mt-1 flex items-center justify-center gap-1.5 text-xs text-slate-400">
             <ShieldCheck className="size-3.5" /> Verify in your Network tab
           </p>
         </div>

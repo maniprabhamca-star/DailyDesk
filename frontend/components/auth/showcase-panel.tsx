@@ -71,7 +71,7 @@ function Preview({ tool }: { tool: ToolKey }) {
               <span className="h-2 w-[80%] rounded bg-slate-100" />
             </div>
           </div>
-          <p className="text-[11px] text-slate-500">3 files · 12 pages</p>
+          <p className="text-[11px] text-slate-400">3 files · 12 pages</p>
           <div className="flex flex-wrap gap-1.5">
             {['Merge', 'Split', 'Sign'].map((t) => (
               <span key={t} className="rounded-md bg-primary/10 px-2 py-1 text-[11px] font-medium text-primary">{t}</span>
@@ -109,7 +109,7 @@ function Preview({ tool }: { tool: ToolKey }) {
           <Copy className="size-3.5 text-primary" />
         </div>
         <div className="flex items-center justify-between text-[11px]">
-          <span className="text-slate-500">Strength</span>
+          <span className="text-slate-400">Strength</span>
           <span className="font-medium text-emerald-600">Strong · 92 bits</span>
         </div>
         <div className="h-1.5 rounded-full bg-slate-200">

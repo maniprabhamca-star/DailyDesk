@@ -165,7 +165,7 @@ export default function Home() {
             <div key={s.l} className="border-border px-4 text-center sm:border-l sm:first:border-l-0">
               <p className="text-3xl font-bold tracking-tight text-primary sm:text-4xl">{s.v}</p>
               <p className="mt-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">{s.l}</p>
-              {s.note && <p className="mt-0.5 text-[10px] text-muted-foreground/70">{s.note}</p>}
+              {s.note && <p className="mt-0.5 text-[10px] text-muted-foreground">{s.note}</p>}
             </div>
           ))}
         </div>

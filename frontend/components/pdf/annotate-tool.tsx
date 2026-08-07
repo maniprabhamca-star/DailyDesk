@@ -1125,8 +1125,8 @@ export function AnnotateTool() {
 
   return (
     <>
-      <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="dd-file-input" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
-      <input ref={imgFileRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="dd-file-input" onChange={(e) => { pickImageFile(e.target.files); e.currentTarget.value = ''; }} />
+      <input ref={inputRef} type="file" accept="application/pdf,.pdf" aria-label="Choose a PDF file" className="dd-file-input" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
+      <input ref={imgFileRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" aria-label="Choose an image file" className="dd-file-input" onChange={(e) => { pickImageFile(e.target.files); e.currentTarget.value = ''; }} />
       {sigOpen && <SignatureMaker onClose={() => setSigOpen(false)} onCreate={(url, aspect) => addImageSrc(url, aspect)} />}
 
       {tooBig ? (

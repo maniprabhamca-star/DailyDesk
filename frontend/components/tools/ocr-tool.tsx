@@ -307,7 +307,7 @@ export function OcrTool() {
           </span>
         </p>
 
-        <input ref={inputRef} type="file" accept="application/pdf,image/*" className="dd-file-input" onChange={(e) => { loadOne(e.target.files?.[0]); e.currentTarget.value = ''; }} />
+        <input ref={inputRef} type="file" accept="application/pdf,image/*" aria-label="Choose a PDF file" className="dd-file-input" onChange={(e) => { loadOne(e.target.files?.[0]); e.currentTarget.value = ''; }} />
         {tooBig ? (
           <UpgradeNotice fileName={tooBig.name} sizeText={fmt(tooBig.size)} limitText="20 MB" onReset={() => { setTooBig(null); inputRef.current?.click(); }} />
         ) : !file ? (

@@ -216,7 +216,7 @@ export function PdfQuestionGeneratorTool() {
 
           {result && (
             <div className="flex flex-wrap items-center gap-2 border-t px-4 py-3">
-              <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-muted-foreground/70">Export</span>
+              <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-muted-foreground">Export</span>
               <Button size="sm" onClick={() => void exportPdf()} className="bg-violet-600 text-white hover:bg-violet-700"><Download className="mr-1 size-3.5" /> Quiz sheet (PDF)</Button>
               <Button size="sm" variant="outline" onClick={() => void exportDocx()}>Word</Button>
               <Button size="sm" variant="outline" onClick={() => void exportAnki()}>Anki / Quizlet</Button>

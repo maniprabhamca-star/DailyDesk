@@ -267,7 +267,7 @@ export function WorkflowsTool() {
               <b>Done</b> — {result.files.length} file{result.files.length > 1 ? 's' : ''} ·{' '}
               <span className="font-mono text-emerald-700 dark:text-emerald-400">{fmt(result.from)} → {fmt(result.to)}</span>
             </span>
-            <button onClick={downloadResult} className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white">
+            <button onClick={downloadResult} className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">
               <Download className="size-4" /> Download {result.files.length > 1 ? 'zip' : 'result'}
             </button>
           </div>

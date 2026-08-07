@@ -228,7 +228,7 @@ export default function PricingPage() {
                 <th className="pb-3 text-left text-sm font-semibold"> </th>
                 <th className="w-44 pb-3 text-center align-bottom text-sm font-semibold text-muted-foreground">
                   Competitors
-                  <span className="block text-[11px] font-normal text-muted-foreground/70">typical free plan</span>
+                  <span className="block text-[11px] font-normal text-muted-foreground">typical free plan</span>
                 </th>
                 <th className="w-28 pb-3 text-center align-bottom text-sm font-semibold">DiemDesk<span className="block text-[11px] font-normal text-muted-foreground">Free</span></th>
                 <th className="w-36 rounded-t-xl bg-primary/5 px-2 pb-3 pt-3 text-center align-bottom text-sm font-bold text-primary">DiemDesk<span className="block text-[11px] font-semibold">Pro</span></th>

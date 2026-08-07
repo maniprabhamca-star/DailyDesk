@@ -202,7 +202,7 @@ export function StatementConverterTool() {
             It’s read <b className="text-foreground">on your device</b> — never uploaded. Every row is checked against the running balance before you export.
           </span>
         </button>
-        <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="dd-file-input"
+        <input ref={inputRef} type="file" accept="application/pdf,.pdf" aria-label="Choose a PDF file" className="dd-file-input"
           onChange={(e) => { void load(e.target.files?.[0]); e.target.value = ''; }} />
         {error && <p className="mt-3 text-center text-sm text-destructive">{error}</p>}
         <Notes />
@@ -271,7 +271,7 @@ export function StatementConverterTool() {
 
         {/* THE TRUST BAR — the whole product's credibility */}
         <div className={`flex items-center gap-3 border-b px-4 py-3.5 ${allOk ? 'bg-emerald-500/10' : 'bg-amber-500/10'}`}>
-          <span className={`flex size-8 shrink-0 items-center justify-center rounded-full text-white ${allOk ? 'bg-emerald-600' : 'bg-amber-500'}`}>
+          <span className={`flex size-8 shrink-0 items-center justify-center rounded-full text-white ${allOk ? 'bg-emerald-700' : 'bg-amber-500'}`}>
             {allOk ? <Check className="size-4" /> : <AlertTriangle className="size-4" />}
           </span>
           <span className="min-w-0">
@@ -346,9 +346,9 @@ export function StatementConverterTool() {
         {/* export */}
         <div className="flex flex-wrap items-center gap-3 border-t bg-muted/20 px-4 py-3">
           <div className="inline-flex overflow-hidden rounded-lg border">
-            <button onClick={() => setFmt('xlsx')} className={`px-3 py-1.5 text-xs font-bold ${fmt === 'xlsx' ? 'bg-emerald-600 text-white' : 'text-muted-foreground'}`}>Excel .xlsx</button>
-            <button onClick={() => setFmt('csv')} className={`px-3 py-1.5 text-xs font-bold ${fmt === 'csv' ? 'bg-emerald-600 text-white' : 'text-muted-foreground'}`}>.csv</button>
-            <button onClick={() => setFmt('tally')} className={`border-l px-3 py-1.5 text-xs font-bold ${fmt === 'tally' ? 'bg-emerald-600 text-white' : 'text-emerald-700 dark:text-emerald-400'}`}>★ Tally XML</button>
+            <button onClick={() => setFmt('xlsx')} className={`px-3 py-1.5 text-xs font-bold ${fmt === 'xlsx' ? 'bg-emerald-700 text-white' : 'text-muted-foreground'}`}>Excel .xlsx</button>
+            <button onClick={() => setFmt('csv')} className={`px-3 py-1.5 text-xs font-bold ${fmt === 'csv' ? 'bg-emerald-700 text-white' : 'text-muted-foreground'}`}>.csv</button>
+            <button onClick={() => setFmt('tally')} className={`border-l px-3 py-1.5 text-xs font-bold ${fmt === 'tally' ? 'bg-emerald-700 text-white' : 'text-emerald-700 dark:text-emerald-400'}`}>★ Tally XML</button>
           </div>
           <span className="text-[11px] text-muted-foreground">
             {quota?.pro || quota?.unlimited ? (
@@ -362,7 +362,7 @@ export function StatementConverterTool() {
           <div className="ml-auto flex items-center gap-2">
             <ShareButton size="sm" title="Bank statement export" label="Share" get={() => (shareCache.current ? [shareCache.current] : [])} />
             <button onClick={() => void doExport()} disabled={exporting}
-              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50">
+              className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50">
               {exporting ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />} Export {v.total} transactions
             </button>
           </div>
@@ -408,7 +408,7 @@ function Chip({ children }: { children: React.ReactNode }) {
 function Stat({ k, v, tone }: { k: string; v: string; tone?: 'dr' | 'cr' }) {
   return (
     <div className="border-r px-4 py-2.5 last:border-r-0">
-      <div className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground/70">{k}</div>
+      <div className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{k}</div>
       <div className={`mt-0.5 font-mono text-sm font-bold tabular-nums ${tone === 'dr' ? 'text-red-600 dark:text-red-400' : tone === 'cr' ? 'text-emerald-600 dark:text-emerald-400' : ''}`}>{v}</div>
     </div>
   );

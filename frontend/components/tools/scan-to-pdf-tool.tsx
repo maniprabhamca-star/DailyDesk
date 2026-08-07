@@ -102,7 +102,7 @@ export function ScanToPdfTool() {
               <Button size="sm" onClick={() => void startCam()} className="bg-primary text-primary-foreground"><Camera className="mr-1 size-4" /> Use camera</Button>
             )}
             <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()}><ImagePlus className="mr-1 size-4" /> Add photos</Button>
-            <input ref={fileRef} type="file" accept="image/*" multiple capture="environment" className="dd-file-input" onChange={(e) => { void addPhotos(e.target.files); e.target.value = ''; }} />
+            <input ref={fileRef} type="file" accept="image/*" multiple capture="environment" aria-label="Choose an image file" className="dd-file-input" onChange={(e) => { void addPhotos(e.target.files); e.target.value = ''; }} />
             <label className="ml-auto flex cursor-pointer items-center gap-2 text-xs font-medium">
               <input type="checkbox" checked={enhance} onChange={(e) => setEnhance(e.target.checked)} className="size-4 accent-[hsl(var(--primary))]" />
               Enhance for readability

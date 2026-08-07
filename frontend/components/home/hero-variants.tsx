@@ -55,7 +55,7 @@ function ToolScene({ Icon, color, name, sub, from, to, result }: (typeof SLIDES)
       <div className="flex flex-1 items-center justify-center gap-3">
         <span className="rounded-lg bg-muted px-3 py-2 text-sm font-medium text-muted-foreground">{from}</span>
         <ArrowRight className="size-5 shrink-0 text-muted-foreground" />
-        <span className="rounded-lg px-3 py-2 text-sm font-medium" style={{ backgroundColor: `${color}14`, color }}>{to}</span>
+        <span className="dd-accent-text rounded-lg px-3 py-2 text-sm font-medium" style={{ backgroundColor: `${color}14`, ["--accent-hex" as string]: color }}>{to}</span>
       </div>
       <div className="flex items-center justify-between rounded-lg bg-emerald-500/10 px-3 py-2">
         <span className="flex items-center gap-1.5 text-[12px] font-medium text-emerald-700 dark:text-emerald-400"><Check className="size-3.5" /> {result}</span>

@@ -91,7 +91,7 @@ export function SubtitleTool() {
           </div>
         )}
 
-        <input ref={inputRef} type="file" accept=".srt,.vtt,.sbv,text/vtt,text/plain" className="dd-file-input" onChange={(e) => { void pick(e.target.files?.[0]); e.target.value = ''; }} />
+        <input ref={inputRef} type="file" accept=".srt,.vtt,.sbv,text/vtt,text/plain" aria-label="Choose a subtitle file" className="dd-file-input" onChange={(e) => { void pick(e.target.files?.[0]); e.target.value = ''; }} />
 
         {error && (
           <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm">

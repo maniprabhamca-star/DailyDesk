@@ -21,6 +21,13 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-08-07',
+    kind: 'improved',
+    title: 'Easier to read, and usable with a screen reader or keyboard',
+    detail:
+      'We ran the whole site through an accessibility audit and fixed what it found. Text that was slightly too faint to read comfortably — badges, captions, the small print in the footer, section headings in dark mode — is now properly legible in both themes. Every file picker, slider, colour control and switch has a proper name, so a screen reader says what it is instead of announcing an unlabelled button; the search box now behaves like a real combobox as you arrow through results. Links inside paragraphs are underlined rather than only colour-coded. And if you have "reduce motion" turned on in your system settings, nothing on the site loops or pulses any more — that setting is now respected everywhere rather than in a few hand-picked places.',
+  },
+  {
+    date: '2026-08-07',
     kind: 'fixed',
     title: 'A button near the bottom of the screen no longer ignores you on a phone',
     detail:

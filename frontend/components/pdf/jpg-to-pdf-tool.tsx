@@ -240,7 +240,7 @@ export function JpgToPdfTool() {
           <p className="mt-2 text-sm font-medium">Drop JPG or PNG images here, or click to choose</p>
           <p className="text-xs text-muted-foreground">Add one or more — drag to set the order</p>
           <span className="mt-4 inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm">Choose images</span>
-          <input ref={inputRef} type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" multiple className="dd-file-input" onChange={(e) => { addFiles(e.target.files); e.currentTarget.value = ''; }} />
+          <input ref={inputRef} type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" multiple aria-label="Choose an image file" className="dd-file-input" onChange={(e) => { addFiles(e.target.files); e.currentTarget.value = ''; }} />
         </div>
 
         <div className="mt-4 rounded-xl border bg-muted/30 p-3">

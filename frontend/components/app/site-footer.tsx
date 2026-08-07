@@ -135,7 +135,8 @@ export function SiteFooter() {
         <div aria-hidden className={`pointer-events-none absolute -bottom-14 -right-10 -z-10 hidden lg:block ${FOOTER_WM_MONO ? 'opacity-[0.10] grayscale' : 'opacity-[0.08]'}`}>
           <BrandMark className="size-[320px]" />
         </div>
-        <div className="mt-7 flex flex-col items-center justify-between gap-3 border-t border-white/10 pt-6 text-xs text-slate-500 sm:flex-row">
+        {/* slate-500 on the slate-900 bar was 3.75:1 — under AA, on every page. */}
+        <div className="mt-7 flex flex-col items-center justify-between gap-3 border-t border-white/10 pt-6 text-xs text-slate-400 sm:flex-row">
           <p>© {new Date().getFullYear()} DiemDesk · Private preview</p>
           <p className="flex items-center gap-2 text-emerald-300">
             <span className="relative flex size-2"><span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-60" /><span className="relative inline-flex size-2 rounded-full bg-emerald-400" /></span>

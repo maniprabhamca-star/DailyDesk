@@ -145,7 +145,7 @@ export function LinkInBioTool() {
               : <span className="flex size-full items-center justify-center text-muted-foreground"><ImagePlus className="size-5" /></span>}
             <span className="absolute inset-0 hidden items-center justify-center bg-black/40 text-[10px] font-semibold text-white group-hover:flex">Change</span>
           </button>
-          <input ref={avatarRef} type="file" accept="image/*" className="dd-file-input" onChange={(e) => { void onAvatar(e.target.files?.[0]); e.target.value = ''; }} />
+          <input ref={avatarRef} type="file" accept="image/*" aria-label="Choose an image file" className="dd-file-input" onChange={(e) => { void onAvatar(e.target.files?.[0]); e.target.value = ''; }} />
           <div className="min-w-0 flex-1 space-y-2">
             <input value={config.displayName} onChange={(e) => patch({ displayName: e.target.value })} maxLength={60} placeholder="Display name"
               className="w-full rounded-lg border bg-background px-3 py-2 text-sm font-semibold outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20" />

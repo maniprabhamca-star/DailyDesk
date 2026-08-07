@@ -103,7 +103,7 @@ export function ServerConvertTool(props: ServerConvertProps) {
           </span>
         </p>
 
-        <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="dd-file-input" onChange={(e) => { loadOne(e.target.files?.[0]); e.currentTarget.value = ''; }} />
+        <input ref={inputRef} type="file" accept="application/pdf,.pdf" aria-label="Choose a PDF file" className="dd-file-input" onChange={(e) => { loadOne(e.target.files?.[0]); e.currentTarget.value = ''; }} />
         {!file ? (
           <div
             onDragOver={(e) => e.preventDefault()}

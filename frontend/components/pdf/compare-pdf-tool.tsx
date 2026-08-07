@@ -221,7 +221,7 @@ export function ComparePdfTool() {
       onClick={() => input.current?.click()}
       className="min-h-48 cursor-pointer rounded-xl border-2 border-dashed border-border bg-muted/20 p-4 transition-colors hover:border-primary/50 hover:bg-accent/40"
     >
-      <input ref={input} type="file" accept="application/pdf,.pdf" className="dd-file-input" onChange={(e) => { void pick(side, e.target.files?.[0]); e.currentTarget.value = ''; }} />
+      <input ref={input} type="file" accept="application/pdf,.pdf" aria-label="Choose a PDF file" className="dd-file-input" onChange={(e) => { void pick(side, e.target.files?.[0]); e.currentTarget.value = ''; }} />
       {summary ? (
         <div className="flex gap-3">
           {summary.thumb ? (

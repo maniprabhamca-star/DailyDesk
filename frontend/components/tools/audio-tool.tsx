@@ -119,7 +119,7 @@ export function AudioTool({ mode }: { mode: Mode }) {
           </span>
           <span className="mt-4 inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm">Choose file</span>
         </button>
-        <input ref={inputRef} type="file" accept={ACCEPT} className="dd-file-input" onChange={(e) => { void load(e.target.files?.[0]); e.target.value = ''; }} />
+        <input ref={inputRef} type="file" accept={ACCEPT} aria-label="Choose a file" className="dd-file-input" onChange={(e) => { void load(e.target.files?.[0]); e.target.value = ''; }} />
         {status === 'failed' && error && (
           <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
             <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
@@ -175,7 +175,7 @@ export function AudioTool({ mode }: { mode: Mode }) {
 
           <div className="rounded-xl border bg-background p-3.5">
             <p className="mb-2.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              <Scissors className="size-3.5" /> Trim <span className="normal-case tracking-normal text-muted-foreground/70">(optional)</span>
+              <Scissors className="size-3.5" /> Trim <span className="normal-case tracking-normal text-muted-foreground">(optional)</span>
             </p>
             <div className="flex flex-wrap items-end gap-2">
               <label className="block">
@@ -226,7 +226,7 @@ export function AudioTool({ mode }: { mode: Mode }) {
               <b>{result.name}</b> — {clock(result.seconds)} · {fmt(result.blob.size)} · {result.channels === 1 ? 'mono' : 'stereo'} {Math.round(result.sampleRate / 100) / 10} kHz
             </span>
             <button onClick={() => downloadBlob(result.blob, result.name)}
-              className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white">
+              className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">
               <Download className="size-4" /> Download again
             </button>
           </div>

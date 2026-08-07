@@ -87,8 +87,8 @@ export function HeroLiveDemo() {
               <Upload className="size-7 text-emerald-600 dark:text-emerald-400" />
               <p className="mt-2 text-sm font-semibold">Drop a PDF to compress it</p>
               <p className="mt-0.5 text-xs text-muted-foreground">It runs in this tab — your file never uploads.</p>
-              <span className="mt-4 inline-flex h-9 items-center justify-center rounded-md bg-emerald-600 px-4 text-sm font-medium text-white shadow-sm">Choose a PDF</span>
-              <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="dd-file-input" onChange={(e) => { handle(e.target.files?.[0]); e.currentTarget.value = ''; }} />
+              <span className="mt-4 inline-flex h-9 items-center justify-center rounded-md bg-emerald-700 px-4 text-sm font-medium text-white shadow-sm">Choose a PDF</span>
+              <input ref={inputRef} type="file" accept="application/pdf,.pdf" aria-label="Choose a PDF file" className="dd-file-input" onChange={(e) => { handle(e.target.files?.[0]); e.currentTarget.value = ''; }} />
               {err && <p className="mt-3 text-xs font-medium text-amber-600">{err}</p>}
             </div>
           ) : phase === 'working' ? (
@@ -116,9 +116,9 @@ export function HeroLiveDemo() {
 
               <div className="mt-3 grid grid-cols-2 gap-2">
                 {done.savedPct > 0 ? (
-                  <Button size="sm" className="bg-emerald-600 text-white hover:bg-emerald-600/90" onClick={() => downloadBlob(done.blob, done.name.replace(/\.pdf$/i, '') + '-compressed.pdf')}><Download className="size-4" /> Download</Button>
+                  <Button size="sm" className="bg-emerald-700 text-white hover:bg-emerald-700/90" onClick={() => downloadBlob(done.blob, done.name.replace(/\.pdf$/i, '') + '-compressed.pdf')}><Download className="size-4" /> Download</Button>
                 ) : (
-                  <Button size="sm" asChild className="bg-emerald-600 text-white hover:bg-emerald-600/90"><Link href="/compress-pdf" onClick={toCompress}>Full compressor <ArrowRight className="size-4" /></Link></Button>
+                  <Button size="sm" asChild className="bg-emerald-700 text-white hover:bg-emerald-700/90"><Link href="/compress-pdf" onClick={toCompress}>Full compressor <ArrowRight className="size-4" /></Link></Button>
                 )}
                 <Button size="sm" variant="outline" asChild><Link href="/compress-pdf" onClick={toCompress}>Open in Compress <ArrowRight className="size-4" /></Link></Button>
               </div>

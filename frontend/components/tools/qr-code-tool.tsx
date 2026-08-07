@@ -276,7 +276,7 @@ export function QrCodeTool({ initialType = 'link', excludeFromRail = '/qr-code-g
                       </div>
                       <div className={inputCls}>
                         <Label>Security</Label>
-                        <Select value={fields.wifi.security} onChange={(e) => patch('wifi', { ...fields.wifi, security: e.target.value as 'WPA' | 'WEP' | 'nopass' })}>
+                        <Select aria-label="Wi-Fi security type" value={fields.wifi.security} onChange={(e) => patch('wifi', { ...fields.wifi, security: e.target.value as 'WPA' | 'WEP' | 'nopass' })}>
                           <option value="WPA">WPA / WPA2 / WPA3</option>
                           <option value="WEP">WEP (legacy)</option>
                           <option value="nopass">Open — no password</option>
@@ -384,14 +384,14 @@ export function QrCodeTool({ initialType = 'link', excludeFromRail = '/qr-code-g
               <div className="space-y-2">
                 <Label>Foreground</Label>
                 <div className="flex items-center gap-2 rounded-md border border-input p-1.5">
-                  <input type="color" value={fg} onChange={(e) => setFg(e.target.value)} className="size-8 cursor-pointer rounded border-0 bg-transparent p-0" />
+                  <input type="color" value={fg} onChange={(e) => setFg(e.target.value)} aria-label="Foreground colour" className="size-8 cursor-pointer rounded border-0 bg-transparent p-0" />
                   <span className="font-mono text-xs uppercase text-muted-foreground">{fg}</span>
                 </div>
               </div>
               <div className="space-y-2">
                 <Label>Background</Label>
                 <div className="flex items-center gap-2 rounded-md border border-input p-1.5">
-                  <input type="color" value={bg} onChange={(e) => setBg(e.target.value)} className="size-8 cursor-pointer rounded border-0 bg-transparent p-0" />
+                  <input type="color" value={bg} onChange={(e) => setBg(e.target.value)} aria-label="Background colour" className="size-8 cursor-pointer rounded border-0 bg-transparent p-0" />
                   <span className="font-mono text-xs uppercase text-muted-foreground">{bg}</span>
                 </div>
               </div>
@@ -441,24 +441,24 @@ export function QrCodeTool({ initialType = 'link', excludeFromRail = '/qr-code-g
                       <span className="pr-1 font-mono text-[10px] uppercase text-muted-foreground">{fg2}</span>
                     </span>
                   )}
-                  <Switch id="qr-grad" checked={gradientOn} onCheckedChange={setGradientOn} />
+                  <Switch id="qr-grad" aria-label="Use a gradient" checked={gradientOn} onCheckedChange={setGradientOn} />
                 </div>
               </div>
             </div>
 
             <div className="space-y-2">
               <Label>Size · {size}px</Label>
-              <input type="range" min={128} max={2048} step={32} value={size} onChange={(e) => setSize(Number(e.target.value))} className="dd-range" />
+              <input type="range" aria-label="QR code size in pixels" min={128} max={2048} step={32} value={size} onChange={(e) => setSize(Number(e.target.value))} className="dd-range" />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Quiet zone · {margin}</Label>
-                <input type="range" min={0} max={8} value={margin} onChange={(e) => setMargin(Number(e.target.value))} className="dd-range" />
+                <input type="range" aria-label="Quiet zone margin" min={0} max={8} value={margin} onChange={(e) => setMargin(Number(e.target.value))} className="dd-range" />
               </div>
               <div className="space-y-2">
                 <Label>Error correction</Label>
-                <Select value={effectiveEc} disabled={!!logo} onChange={(e) => setEc(e.target.value as ECLevel)}>
+                <Select aria-label="Error correction level" value={effectiveEc} disabled={!!logo} onChange={(e) => setEc(e.target.value as ECLevel)}>
                   <option value="L">L — 7%</option>
                   <option value="M">M — 15%</option>
                   <option value="Q">Q — 25%</option>
@@ -471,6 +471,7 @@ export function QrCodeTool({ initialType = 'link', excludeFromRail = '/qr-code-g
               <Label className="mb-2 block">Center logo (optional)</Label>
               <input
                 type="file"
+                aria-label="Choose a logo image"
                 accept="image/*"
                 onChange={(e) => { onLogoUpload(e); e.currentTarget.value = ''; }}
                 className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary/10 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-primary hover:file:bg-primary/20"
@@ -478,7 +479,7 @@ export function QrCodeTool({ initialType = 'link', excludeFromRail = '/qr-code-g
               {logo && (
                 <div className="mt-3 space-y-2">
                   <Label className="text-xs text-muted-foreground">Logo size · {Math.round(logoScale * 100)}%</Label>
-                  <input type="range" min={0.1} max={0.35} step={0.01} value={logoScale} onChange={(e) => setLogoScale(Number(e.target.value))} className="dd-range" />
+                  <input type="range" aria-label="Logo size" min={0.1} max={0.35} step={0.01} value={logoScale} onChange={(e) => setLogoScale(Number(e.target.value))} className="dd-range" />
                   <button onClick={() => { setLogo(null); setLogoDataUrl(null); }} className="inline-flex items-center gap-1 text-xs font-medium text-destructive hover:underline">
                     <X className="size-3" /> Remove logo
                   </button>

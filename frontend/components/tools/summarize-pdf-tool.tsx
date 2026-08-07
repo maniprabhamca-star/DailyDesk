@@ -130,7 +130,7 @@ export function SummarizePdfTool() {
               <Ctl label="Focus on… (optional)" uniq>
                 <input value={focus} onChange={(e) => setFocus(e.target.value)} disabled={busy} maxLength={200}
                   placeholder="e.g. financial risks, deadlines, what changed"
-                  className="w-full rounded-lg border bg-card px-2.5 py-1.5 text-xs outline-none placeholder:text-muted-foreground/50 focus:border-violet-500" />
+                  className="w-full rounded-lg border bg-card px-2.5 py-1.5 text-xs outline-none placeholder:text-muted-foreground focus:border-violet-500" />
               </Ctl>
             </div>
             <Button onClick={() => void run()} disabled={doc.status !== 'ready' || doc.noText || busy}
@@ -159,7 +159,7 @@ export function SummarizePdfTool() {
                   </div>
                 )}
                 <div className="rounded-xl border bg-muted/30 p-4">
-                  <h4 className="mb-2 text-[11px] font-extrabold uppercase tracking-wide text-muted-foreground/70">Summary</h4>
+                  <h4 className="mb-2 text-[11px] font-extrabold uppercase tracking-wide text-muted-foreground">Summary</h4>
                   <div className="space-y-2.5 text-sm leading-relaxed">
                     {result.summary.split(/\n+/).filter(Boolean).map((p, i) => {
                       const m = p.match(/^\s*[-•]\s+(.*)$/);
@@ -176,7 +176,7 @@ export function SummarizePdfTool() {
                 </div>
                 {result.keyPoints.length > 0 && (
                   <div className="rounded-xl border bg-muted/30 p-4">
-                    <h4 className="mb-2 text-[11px] font-extrabold uppercase tracking-wide text-muted-foreground/70">Key points</h4>
+                    <h4 className="mb-2 text-[11px] font-extrabold uppercase tracking-wide text-muted-foreground">Key points</h4>
                     <ul className="space-y-1.5 text-sm">
                       {result.keyPoints.map((k, i) => (
                         <li key={i} className="flex gap-2">
@@ -204,7 +204,7 @@ export function SummarizePdfTool() {
 
           {result && (
             <div className="flex flex-wrap items-center gap-2 border-t px-4 py-3">
-              <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-muted-foreground/70">Export</span>
+              <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-muted-foreground">Export</span>
               <Button size="sm" onClick={() => void exportPdf()} className="bg-violet-600 text-white hover:bg-violet-700"><Download className="mr-1 size-3.5" /> PDF</Button>
               <Button size="sm" variant="outline" onClick={() => void exportDocx()}>Word</Button>
               <Button size="sm" variant="outline" onClick={() => downloadText(asMarkdown(), `${baseName(doc.file?.name)}-summary.md`, 'text/markdown')}>Markdown</Button>

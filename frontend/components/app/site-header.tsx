@@ -78,6 +78,16 @@ export function SiteHeader({ heroSearchRef }: { heroSearchRef?: React.RefObject<
     return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
   }, [menuOpen]);
 
+  // The mobile nav needs the same courtesy. It didn't have it: Escape closed the
+  // mega-menu and left the mobile sheet open, so a keyboard user had to find the
+  // X. Caught by XC-007.
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMobileOpen(false); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [mobileOpen]);
+
   return (
     <header className="sticky top-0 z-40 border-b-2 border-border bg-background/85 shadow-[0_1px_8px_rgba(15,23,42,0.08)] backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-[1400px] items-center gap-5 px-4 sm:px-6">

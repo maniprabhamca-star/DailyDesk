@@ -24,7 +24,10 @@ function Row({
     >
       <div className="w-full md:w-1/2">{children}</div>
       <div className="w-full md:w-1/2">
-        <p className="text-sm font-bold uppercase tracking-wider" style={{ color: eyebrowColor }}>{eyebrow}</p>
+        {/* These accents were picked against a white page and used unchanged on
+            the dark one, where they fell to 3.0–4.0:1. The CSS variable carries
+            the light value and .dd-eyebrow lightens it in dark mode. XC-006. */}
+        <p className="dd-eyebrow text-sm font-bold uppercase tracking-wider" style={{ ["--eyebrow" as string]: eyebrowColor, color: eyebrowColor }}>{eyebrow}</p>
         <h2 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">{title}</h2>
         <p className="mt-3 text-muted-foreground">{body}</p>
         <Link href={href} className="mt-5 inline-flex items-center gap-1.5 font-semibold text-primary hover:gap-2.5 transition-all">
@@ -79,8 +82,8 @@ export function FeatureSpotlights() {
               <div className="mb-3 flex items-center gap-2"><span className="flex size-7 items-center justify-center rounded-md bg-red-100 text-red-600"><FileText className="size-4" /></span><span className="text-xs font-semibold">document.pdf</span></div>
               <div className="space-y-1.5"><div className="h-1.5 w-[90%] rounded bg-muted" /><div className="h-1.5 w-[75%] rounded bg-muted" /><div className="h-1.5 w-[85%] rounded bg-muted" /><div className="h-1.5 w-[60%] rounded bg-muted" /></div>
             </div>
-            <span className="absolute -right-1 top-6 flex size-10 items-center justify-center rounded-xl bg-blue-500 text-white shadow-lift"><span className="text-[10px] font-bold">DOC</span></span>
-            <span className="absolute -right-2 top-24 flex size-10 items-center justify-center rounded-xl bg-amber-500 text-white shadow-lift"><span className="text-[10px] font-bold">JPG</span></span>
+            <span className="absolute -right-1 top-6 flex size-10 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lift"><span className="text-[10px] font-bold">DOC</span></span>
+            <span className="absolute -right-2 top-24 flex size-10 items-center justify-center rounded-xl bg-amber-500 text-slate-900 shadow-lift"><span className="text-[10px] font-bold">JPG</span></span>
             <span className="absolute bottom-2 left-2 flex size-10 items-center justify-center rounded-xl bg-violet-500 text-white shadow-lift"><Scissors className="size-5" /></span>
             <span className="absolute bottom-3 right-10 flex size-10 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-lift"><Combine className="size-5" /></span>
           </div>

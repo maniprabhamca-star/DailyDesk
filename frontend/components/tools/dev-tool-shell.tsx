@@ -130,13 +130,13 @@ function OutputPane({ label, onCopy, copied, res }: { label: string; onCopy: () 
         {res.error ? (
           <p className="flex items-start gap-2 text-amber-600 dark:text-amber-400"><AlertCircle className="mt-0.5 size-3.5 shrink-0" /> {res.error}</p>
         ) : res.diff ? (
-          res.diff.length === 0 ? <span className="text-muted-foreground/60">Identical.</span> : res.diff.map((d, i) => (
+          res.diff.length === 0 ? <span className="text-muted-foreground">Identical.</span> : res.diff.map((d, i) => (
             <span key={i} className={`block whitespace-pre-wrap break-words rounded px-1 ${d.t === 'add' ? 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-400' : d.t === 'del' ? 'bg-rose-500/12 text-rose-600 dark:text-rose-400 line-through decoration-rose-400/50' : ''}`}>{(d.t === 'add' ? '+ ' : d.t === 'del' ? '− ' : '  ') + (d.s || ' ')}</span>
           ))
         ) : has ? (
           <pre className="whitespace-pre-wrap break-words text-foreground">{res.text}</pre>
         ) : (
-          <span className="text-muted-foreground/60">Output appears here…</span>
+          <span className="text-muted-foreground">Output appears here…</span>
         )}
       </div>
     </div>

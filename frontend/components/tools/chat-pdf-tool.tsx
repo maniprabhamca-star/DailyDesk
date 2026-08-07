@@ -149,7 +149,7 @@ export function ChatPdfTool() {
           <span className="mt-4 text-base font-semibold">Drop a PDF to chat with it</span>
           <span className="mt-1 text-sm text-muted-foreground">or click to choose — it opens on your device, never uploaded</span>
         </button>
-        <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="dd-file-input"
+        <input ref={inputRef} type="file" accept="application/pdf,.pdf" aria-label="Choose a PDF file" className="dd-file-input"
           onChange={(e) => { void loadFile(e.target.files?.[0]); e.target.value = ''; }} />
         {error && <p className="mt-3 text-center text-sm text-destructive">{error}</p>}
         <PrivacyNote />

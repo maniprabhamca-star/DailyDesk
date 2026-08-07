@@ -131,7 +131,7 @@ export function NotesTool() {
                 className={`mb-1 w-full rounded-lg px-3 py-2 text-left transition ${n.id === activeId ? 'bg-cyan-500/10 ring-1 ring-cyan-500/30' : 'hover:bg-muted/50'}`}>
                 <p className="truncate text-sm font-semibold">{n.title || 'Untitled'}</p>
                 <p className="truncate text-xs text-muted-foreground">{n.content.replace(/\s+/g, ' ').trim() || 'No text'}</p>
-                <p className="mt-0.5 text-[10.5px] text-muted-foreground/70">{fmtWhen(n.updatedAt)}</p>
+                <p className="mt-0.5 text-[10.5px] text-muted-foreground">{fmtWhen(n.updatedAt)}</p>
               </button>
             ))}
           </div>
@@ -161,7 +161,7 @@ export function NotesTool() {
             <>
               <div className="flex items-center gap-2">
                 <input value={active.title} onChange={(e) => edit({ title: e.target.value })} maxLength={255} placeholder="Title"
-                  className="flex-1 bg-transparent text-lg font-bold outline-none placeholder:text-muted-foreground/50" />
+                  className="flex-1 bg-transparent text-lg font-bold outline-none placeholder:text-muted-foreground" />
                 <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
                   {saving ? <><Loader2 className="size-3 animate-spin" /> Saving</> : <><Check className="size-3 text-emerald-500" /> Saved</>}
                 </span>

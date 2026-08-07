@@ -234,7 +234,7 @@ export function FillFormTool() {
 
   return (
     <div className="mx-auto max-w-4xl">
-      <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="dd-file-input" onChange={(e) => loadFile(e.target.files?.[0])} />
+      <input ref={inputRef} type="file" accept="application/pdf,.pdf" aria-label="Choose a PDF file" className="dd-file-input" onChange={(e) => loadFile(e.target.files?.[0])} />
 
       {!file ? (
         <button type="button" onClick={() => inputRef.current?.click()}

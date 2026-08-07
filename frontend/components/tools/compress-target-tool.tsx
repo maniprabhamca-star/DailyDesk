@@ -152,7 +152,7 @@ export function CompressTargetTool() {
         ref={inputRef}
         type="file"
         accept={kind === 'pdf' ? 'application/pdf,image/*' : 'image/*,application/pdf'}
-        className="dd-file-input"
+        aria-label="Choose a file" className="dd-file-input"
         onChange={(e) => loadFile(e.target.files?.[0])}
       />
 

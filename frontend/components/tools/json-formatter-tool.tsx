@@ -146,7 +146,7 @@ export function JsonFormatterTool() {
             />
             <div className="mt-2 flex flex-wrap gap-2">
               <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()}><Upload className="size-4" /> Open .json</Button>
-              <input ref={fileRef} type="file" accept=".json,application/json" className="dd-file-input" onChange={(e) => { upload(e.target.files); e.currentTarget.value = ''; }} />
+              <input ref={fileRef} type="file" accept=".json,application/json" aria-label="Choose a JSON file" className="dd-file-input" onChange={(e) => { upload(e.target.files); e.currentTarget.value = ''; }} />
               <Button size="sm" variant="ghost" onClick={() => setInput(SAMPLE)}>Sample</Button>
               <Button size="sm" variant="ghost" onClick={() => { setInput(''); setOutput(''); setError(null); setStats(null); }} disabled={!input}><Eraser className="size-4" /> Clear</Button>
             </div>

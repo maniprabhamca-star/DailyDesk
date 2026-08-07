@@ -118,7 +118,7 @@ export function PdfToAudioTool() {
           <span className="mt-1 text-sm text-muted-foreground">pick a voice and pace, follow the highlight — all in your browser, never uploaded</span>
           <span className="mt-4 inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm">Choose PDF</span>
         </button>
-        <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="dd-file-input" onChange={(e) => { void run(e.target.files?.[0]); e.target.value = ''; }} />
+        <input ref={inputRef} type="file" accept="application/pdf,.pdf" aria-label="Choose a PDF file" className="dd-file-input" onChange={(e) => { void run(e.target.files?.[0]); e.target.value = ''; }} />
         {error && error !== 'scanned' && error !== 'read' && <p className="mt-3 text-center text-sm text-destructive">{error}</p>}
         {!supported && <p className="mt-3 text-center text-sm text-amber-600 dark:text-amber-400">Your browser doesn’t support read-aloud. Try the latest Chrome, Edge or Safari.</p>}
       </div>

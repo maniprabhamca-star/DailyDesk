@@ -182,7 +182,7 @@ export default function WhyDiemDeskPage() {
               <div key={p.title} className={`rounded-2xl border p-6 shadow-soft transition-shadow hover:shadow-md ${p.bg}`}>
                 <p.icon className={`size-6 ${p.color}`} />
                 <h3 className="mt-3 text-base font-bold">{p.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{p.body}</p>
+                <p className="mt-2 text-sm leading-relaxed text-foreground/80">{p.body}</p>
               </div>
             ))}
           </div>
@@ -239,7 +239,7 @@ export default function WhyDiemDeskPage() {
           <p className="mx-auto mt-6 max-w-3xl text-center text-xs leading-relaxed text-muted-foreground">
             Statements about other products describe their <strong>online tools</strong> as published by each company as of{' '}
             <strong>July 2026</strong> and may change — verify at the source, and see the{' '}
-            <Link href="/compare" className="text-primary hover:underline">side-by-side table with sources</Link>. Our speed figures
+            <Link href="/compare" className="text-primary underline underline-offset-2">side-by-side table with sources</Link>. Our speed figures
             are from our own benchmarks on our test files; your files and hardware will vary — every tool is free to try, so the
             best benchmark is yours. Adobe, Acrobat, iLovePDF and Smallpdf are trademarks of their respective owners; DiemDesk is
             not affiliated with them. Spot something outdated or unfair? <Link href="/feedback" className="text-primary hover:underline">Tell us</Link> — we&rsquo;ll fix it.

@@ -142,7 +142,7 @@ export function FlattenTool() {
             <Button size="icon" variant="ghost" aria-label="Remove" onClick={() => { setFile(null); setScan(null); setDone(null); setError(null); }}><X className="size-4" /></Button>
           </div>
         )}
-        <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="dd-file-input" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
+        <input ref={inputRef} type="file" accept="application/pdf,.pdf" aria-label="Choose a PDF file" className="dd-file-input" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
 
         {file && scan?.encrypted && (
           <p className="mt-4 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2.5 text-sm">

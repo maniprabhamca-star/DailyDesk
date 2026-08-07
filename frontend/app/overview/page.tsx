@@ -237,7 +237,7 @@ export default function OverviewPage() {
                   <span className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${tierTag[b.tier].cls}`}>{tierTag[b.tier].label}</span>
                 </div>
                 <p className="mt-1.5 text-[12px] leading-relaxed text-muted-foreground">{b.desc}</p>
-                <p className="mt-2 text-[9.5px] font-bold uppercase tracking-wide text-muted-foreground/70">{b.status === 'live' ? 'Live now' : 'On the roadmap'}</p>
+                <p className="mt-2 text-[9.5px] font-bold uppercase tracking-wide text-muted-foreground">{b.status === 'live' ? 'Live now' : 'On the roadmap'}</p>
               </div>
             ))}
           </div>
@@ -291,7 +291,7 @@ export default function OverviewPage() {
                     {d.flag && <span className="ml-auto shrink-0 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">★ flagship</span>}
                   </div>
                   <p className="mt-1.5 text-[12px] leading-relaxed text-muted-foreground">{d.desc}</p>
-                  <p className="mt-2 text-[9.5px] font-bold uppercase tracking-wide text-muted-foreground/70">{d.moat}</p>
+                  <p className="mt-2 text-[9.5px] font-bold uppercase tracking-wide text-muted-foreground">{d.moat}</p>
                 </div>
               ))}
             </div>

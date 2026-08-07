@@ -15,7 +15,9 @@
     --secondary: 240 5% 96%;
     --secondary-foreground: 222 47% 11%;
     --muted: 240 5% 96%;
-    --muted-foreground: 240 4% 46%;
+    /* 46% put muted text at 4.4:1 on --muted chips — just under AA, site-wide.
+       44% clears it without changing the character of the grey. XC-006. */
+    --muted-foreground: 240 4% 44%;
     --accent: 240 5% 96%;
     --accent-foreground: 222 47% 11%;
     --destructive: 0 72% 51%;
@@ -35,8 +37,15 @@
     --card-foreground: 210 20% 96%;
     --popover: 222 40% 10%;
     --popover-foreground: 210 20% 96%;
-    --primary: 243 75% 66%;
+    /* One indigo cannot do both jobs in dark mode. As a BACKGROUND it needs to be
+       dark enough for white to read on it; as LINK TEXT it needs to be light
+       enough to read on a near-black page. At 66% it was 4.39:1 under white and
+       4.15:1 as text — both just under AA, which is the worst kind of miss.
+       So: --primary stays the surface colour (nudged down for the button label),
+       and --primary-text is the same hue pitched for reading. XC-006. */
+    --primary: 243 75% 62%;
     --primary-foreground: 0 0% 100%;
+    --primary-text: 243 90% 78%;
     --secondary: 222 30% 16%;
     --secondary-foreground: 210 20% 96%;
     --muted: 222 30% 16%;
@@ -191,6 +200,52 @@ html.dd-splash-seen #dd-first-splash { display: none !important; }
 }
 .dd-d { transform-box: fill-box; transform-origin: center; animation: dd-d-dance 10s ease-in-out infinite; animation-delay: 0.36s; }
 @media (prefers-reduced-motion: reduce) { .dd-d { animation: none; transform: rotate(9deg); } }
+
+/* Contrast corrections found by XC-006. All three are shades that look fine in a
+   palette swatch and fail as small text against what is actually behind them.
+   Fixed centrally rather than at ~190 call sites, so a new usage inherits the
+   readable value instead of repeating the mistake. */
+
+/* Section eyebrows carry a per-section accent chosen for a white page. On the
+   dark ground the same hex reads at 3.0–4.0:1, so lift it there. color-mix keeps
+   the hue and only raises the lightness — the accent stays recognisable. */
+.dark .dd-eyebrow { color: color-mix(in srgb, var(--eyebrow) 55%, white) !important; }
+
+/* A per-tool accent used as text on an 8% tint of itself is unreadable for the
+   lighter hues (amber was the worst). Mixing the accent toward the current
+   foreground keeps the hue recognisable and lands on the right side of AA in
+   both themes, because --foreground flips with the theme. */
+.dd-accent-text { color: color-mix(in srgb, var(--accent-hex) 55%, hsl(var(--foreground))); }
+
+/* WCAG 1.4.1 — a link inside running text cannot be identified by colour alone,
+   so the underline has to be there before the pointer arrives. Scoped to text
+   blocks: standalone nav and button links are distinguishable by shape. */
+p a.text-primary, li a.text-primary { text-decoration: underline; text-underline-offset: 2px; }
+
+/* Link-coloured text in dark mode uses the reading pitch, not the surface one. */
+.dark .text-primary { color: hsl(var(--primary-text)); }
+
+/* Tailwind's emerald-600 (3.77:1) and amber-600 (3.19:1) both fail AA as small
+   text on white; their -700 shades pass at 5.5:1 and 5.1:1. Light mode only —
+   the dark: variants sit on dark grounds and are already fine. */
+:root:not(.dark) .text-emerald-600 { color: rgb(4 120 87); }
+:root:not(.dark) .text-amber-600 { color: rgb(180 83 9); }
+
+/* Reduced motion, applied once instead of animation-by-animation.
+   We had hand-written exemptions for .dd-tile and .dd-d, which meant every new
+   looping animation shipped unguarded — Tailwind's animate-ping was running
+   forever on the home page for someone who had asked the whole system to stop
+   moving. A looping animation is the specific thing that makes people ill, so
+   endless ones stop outright; one-shot transitions are merely shortened, since
+   killing those tends to break state that depends on transitionend firing. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-iteration-count: 1 !important;
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
 
 /* The consent banner is `position: fixed` at the bottom of the viewport, so on a
    phone it sits on top of roughly the last 250px of every page — and anything

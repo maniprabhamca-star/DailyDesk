@@ -193,7 +193,7 @@ export function SheetConvertTool({
           </div>
         )}
 
-        <input ref={inputRef} type="file" accept={ACCEPT[from]} className="dd-file-input" onChange={(e) => { void pickFile(e.target.files?.[0]); e.target.value = ''; }} />
+        <input ref={inputRef} type="file" accept={ACCEPT[from]} aria-label="Choose a file" className="dd-file-input" onChange={(e) => { void pickFile(e.target.files?.[0]); e.target.value = ''; }} />
 
         {error && (
           <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
@@ -267,7 +267,7 @@ export function SheetConvertTool({
             <div className="inline-flex overflow-hidden rounded-lg border">
               {to.map((f) => (
                 <button key={f} onClick={() => setFmt(f)}
-                  className={`px-3 py-1.5 text-xs font-semibold ${fmt === f ? 'bg-emerald-600 text-white' : 'text-muted-foreground'}`}>
+                  className={`px-3 py-1.5 text-xs font-semibold ${fmt === f ? 'bg-emerald-700 text-white' : 'text-muted-foreground'}`}>
                   {LABEL[f]}
                 </button>
               ))}
@@ -290,7 +290,7 @@ export function SheetConvertTool({
               </button>
             )}
             <button onClick={() => void doExport()} disabled={exporting}
-              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50">
+              className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50">
               {exporting ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
               Download {LABEL[fmt]}
             </button>

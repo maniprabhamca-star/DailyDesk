@@ -109,7 +109,7 @@ function Tile({ t, groupColor }: { t: CatTool; groupColor: string }) {
     <div
       style={{ ['--tool' as string]: color } as CSSProperties}
       className={`group relative h-full rounded-2xl border bg-card p-3.5 shadow-soft transition-all ${
-        t.soon ? 'opacity-80' : 'hover:-translate-y-0.5 hover:border-[color:var(--tool)] hover:shadow-md'
+        t.soon ? '' : 'hover:-translate-y-0.5 hover:border-[color:var(--tool)] hover:shadow-md'
       }`}
     >
       {/* privacy signal — our identity, tucked top-right */}
@@ -124,7 +124,7 @@ function Tile({ t, groupColor }: { t: CatTool; groupColor: string }) {
 
       <p className="flex items-center gap-1.5 text-sm font-semibold leading-tight text-foreground">
         {t.name}
-        {t.soon && <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">soon</span>}
+        {t.soon && <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-foreground/75">soon</span>}
       </p>
       {desc && <p className="mt-0.5 text-xs text-muted-foreground">{desc}</p>}
     </div>
@@ -359,7 +359,7 @@ export function AllToolsDirectory({ full = false, asPage = false }: { full?: boo
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                     <span className="size-2 rounded-full" style={{ backgroundColor: g.color }} /> {g.label}
-                    <span className="font-medium normal-case tracking-normal text-muted-foreground/60">· {tools.length}</span>
+                    <span className="font-medium normal-case tracking-normal text-muted-foreground">· {tools.length}</span>
                   </p>
                   {hidden > 0 && (
                     <Link href={`/tools#${groupId(g.label)}`} className="shrink-0 text-xs font-semibold text-primary hover:underline">See all {tools.length} &rarr;</Link>
