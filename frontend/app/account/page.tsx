@@ -14,7 +14,7 @@ import { usePlan } from '@/lib/plan';
 import { SubscriptionManager } from '@/components/app/subscription-manager';
 
 export default function AccountPage() {
-  const { user, loading, logout, refreshUser } = useAuth();
+  const { user, loading, expired, logout, refreshUser } = useAuth();
   const plan = usePlan();
   const router = useRouter();
   const [portalBusy, setPortalBusy] = useState(false);
@@ -31,8 +31,29 @@ export default function AccountPage() {
     if (loading || user) return;
     let signedOut = false;
     try { signedOut = sessionStorage.getItem('dd_signed_out') === '1'; } catch { /* ignore */ }
-    if (!signedOut) router.replace('/login');
-  }, [loading, user, router]);
+    // An expired session gets told what happened below, rather than being
+    // bounced to a bare login form with no explanation.
+    if (!signedOut && !expired) router.replace('/login');
+  }, [loading, user, expired, router]);
+
+  // Sessions last 7 days. When one lapses you used to be left on a page that
+  // still showed your name and your PRO badge while every control on it failed
+  // against a dead token — including a subscription panel that span forever.
+  if (expired && !user) {
+    return (
+      <>
+        <SiteHeader />
+        <main className="mx-auto max-w-md px-4 py-24 text-center">
+          <h1 className="text-2xl font-bold tracking-tight">Your session has expired</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            You’ve been signed out for security after a period away. Sign in again and you’ll come
+            straight back here — nothing has changed on your account.
+          </p>
+          <Button className="mt-6" onClick={() => router.replace('/login?next=/account')}>Sign in again</Button>
+        </main>
+      </>
+    );
+  }
 
   if (loading || !user) {
     return (

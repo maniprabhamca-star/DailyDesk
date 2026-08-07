@@ -2,6 +2,22 @@
 // to the backend. Override with NEXT_PUBLIC_API_URL for split-origin setups.
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
+// The status used to be thrown away, which made "your session has expired" look
+// exactly like "the network hiccupped" — so callers treated a dead session as a
+// transient failure and carried on showing a signed-in page whose every control
+// silently failed. Callers need to be able to tell the two apart.
+export class ApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
+/** A 401 means the session is over — not that something went briefly wrong. */
+export const isAuthError = (e: unknown): boolean => e instanceof ApiError && e.status === 401;
+
 async function apiFetch(path: string, options: RequestInit = {}) {
   const token = typeof window !== 'undefined' ? localStorage.getItem('dd_token') : null;
 
@@ -16,7 +32,7 @@ async function apiFetch(path: string, options: RequestInit = {}) {
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || 'Request failed');
+    throw new ApiError(err.error || 'Request failed', res.status);
   }
 
   return res.json();

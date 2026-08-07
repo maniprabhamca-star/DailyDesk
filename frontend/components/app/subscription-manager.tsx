@@ -66,7 +66,13 @@ export function SubscriptionManager({ onChanged }: { onChanged?: () => void }) {
     try {
       const res = await fetch(`${API}/api/stripe/subscription`, { headers: authHeaders() });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) { setError(data.error || 'Could not read your subscription.'); return; }
+      if (!res.ok) {
+        // A 401 is a lapsed session, not a billing problem — say the useful thing.
+        setError(res.status === 401
+          ? 'Your session has expired. Sign in again to manage your subscription.'
+          : (data.error || 'Could not read your subscription.'));
+        return;
+      }
       setConfigured(data.configured !== false);
       setSubs(data.subscriptions || []);
     } catch {
@@ -88,6 +94,22 @@ export function SubscriptionManager({ onChanged }: { onChanged?: () => void }) {
   }
 
   if (!configured) return null;
+
+  // An error must win over the spinner, whatever else is true. It used to be
+  // checked AFTER the loading guard, so any failure left `subs` null and the
+  // thing span forever — which is exactly what a real user saw on /account with
+  // a lapsed token. Order matters here; do not move this below.
+  if (error) {
+    return (
+      <div className="rounded-xl border border-destructive/40 bg-destructive/[0.06] p-4">
+        <p className="text-sm font-medium text-destructive">{error}</p>
+        <button onClick={() => { setError(null); void load(); }} className="mt-2 text-xs font-semibold underline underline-offset-2">
+          Try again
+        </button>
+      </div>
+    );
+  }
+
   if (subs === null) {
     return <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" /> Checking your subscription…</p>;
   }

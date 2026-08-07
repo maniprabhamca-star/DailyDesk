@@ -21,6 +21,14 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-08-07',
+    kind: 'fixed',
+    title: 'Your account page no longer gets stuck when your session runs out',
+    detail:
+      'Signing in lasts about a week. When it ran out, the account page didn’t say so — it still showed your name and your plan while the subscription section span forever and the billing button showed a technical error message that meant nothing to anyone. It now tells you plainly that your session has expired and offers to sign you back in, and any billing hiccup shows a real message with a Try again button instead of an endless spinner.',
+    href: '/account',
+  },
+  {
+    date: '2026-08-07',
     kind: 'improved',
     title: 'Easier to read, and usable with a screen reader or keyboard',
     detail:
