@@ -37,6 +37,9 @@ export default defineConfig({
     { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
     { name: 'webkit', use: { ...devices['Desktop Safari'] } },
     { name: 'mobile', use: { ...devices['Pixel 7'] } },
+    // Edge is Chromium underneath but ships its own build, and a real slice of
+    // Windows users never leave it — worth proving rather than assuming.
+    { name: 'edge', use: { ...devices['Desktop Edge'], channel: 'msedge' } },
     // Throttled project for tests/e2e/throttle.spec.ts (Slow-3G + CPU 4×, applied in-test via CDP).
     { name: 'chromium-slow', use: { ...devices['Desktop Chrome'] } },
   ],
