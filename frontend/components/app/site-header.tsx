@@ -81,7 +81,7 @@ export function SiteHeader({ heroSearchRef }: { heroSearchRef?: React.RefObject<
   return (
     <header className="sticky top-0 z-40 border-b-2 border-border bg-background/85 shadow-[0_1px_8px_rgba(15,23,42,0.08)] backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-[1400px] items-center gap-5 px-4 sm:px-6">
-        <Link href="/" className="flex items-center gap-2.5">
+        <Link href="/" className="flex shrink-0 items-center gap-2.5">
           <BrandMark className="size-9" animate />
           <span className="text-xl font-semibold tracking-tight">DiemDesk</span>
         </Link>
@@ -128,11 +128,11 @@ export function SiteHeader({ heroSearchRef }: { heroSearchRef?: React.RefObject<
             A real input: results drop down inline as you type (HeaderSearch); ⌘K still
             opens the full palette. On home it fades in on scroll (see heroSearchRef);
             elsewhere it's always visible. */}
-        <div className="flex flex-1 justify-center px-2 sm:px-4">
+        <div className="flex min-w-0 flex-1 justify-center px-2 sm:px-4">
           <HeaderSearch visible={showHeaderSearch} />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           {/* Mobile: a search icon that opens the ⌘K palette (the pill is desktop-only). */}
           <button onClick={openCommand} aria-label="Search" className="flex size-9 items-center justify-center rounded-lg border text-foreground/80 sm:hidden">
             <Search className="size-5" />
