@@ -12,6 +12,7 @@ import { ProCheckout } from '@/components/app/pro-checkout';
 import { useAuth } from '@/lib/auth';
 import { usePlan } from '@/lib/plan';
 import { SubscriptionManager } from '@/components/app/subscription-manager';
+import { AccountData, SyncedTools } from '@/components/app/account-data';
 
 export default function AccountPage() {
   const { user, loading, expired, logout, refreshUser } = useAuth();
@@ -19,6 +20,10 @@ export default function AccountPage() {
   const router = useRouter();
   const [portalBusy, setPortalBusy] = useState(false);
   const [portalErr, setPortalErr] = useState<string | null>(null);
+  // Pro can be real without a Stripe subscription (owner + comped accounts), so
+  // the badge must not claim “Active” beside a panel saying there is nothing to
+  // bill. Null until the subscription panel has actually reported.
+  const [subCount, setSubCount] = useState<number | null>(null);
 
   // Re-check the plan with the server on load, so an upgrade that happened
   // elsewhere (or a webhook that just landed) is reflected here without re-login.
@@ -118,7 +123,7 @@ export default function AccountPage() {
             </div>
             {isPro ? (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-400/15 px-3 py-1 text-sm font-medium text-amber-700 dark:text-amber-400">
-                <ShieldCheck className="size-4" /> Active
+                <ShieldCheck className="size-4" /> {subCount === 0 ? 'Included' : 'Active'}
               </span>
             ) : (
               <ProCheckout size="lg" />
@@ -132,7 +137,7 @@ export default function AccountPage() {
               {/* Every paid subscription on the account — Pro, and the Statements
                   tier when it lands — each with its own renewal date, refund
                   window and cancel button. */}
-              <SubscriptionManager onChanged={() => void refreshUser()} />
+              <SubscriptionManager onChanged={() => void refreshUser()} onCount={setSubCount} />
 
               <div className="border-t pt-3">
                 <Button variant="outline" onClick={openPortal} disabled={portalBusy}>
@@ -153,6 +158,14 @@ export default function AccountPage() {
             </>
           )}
         </section>
+
+        <div className="mt-4 space-y-4">
+          <SyncedTools />
+          {/* The ledger, the export and the danger zone. These are the reason
+              the page exists for a product whose pitch is "we don't have your
+              files" — see docs/designs/account-page.md. */}
+          <AccountData email={user.email} onDeleted={() => router.replace('/account-deleted')} />
+        </div>
 
         <div className="mt-6">
           <Button variant="outline" onClick={logout}><LogOut className="size-4" /> Log out</Button>

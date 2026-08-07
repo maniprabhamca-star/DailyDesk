@@ -9,6 +9,9 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash VARCHAR(255) NOT NULL,
   plan VARCHAR(10) NOT NULL DEFAULT 'free' CHECK (plan IN ('free', 'pro')),
   storage_used_bytes BIGINT NOT NULL DEFAULT 0,
+  -- false for Google sign-ups, who never chose one: the account page offers to
+  -- SET a password rather than asking for a current one they cannot know.
+  has_password BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

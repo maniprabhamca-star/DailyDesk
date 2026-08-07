@@ -55,7 +55,7 @@ const authHeaders = (): HeadersInit => {
 const longDate = (iso: string | null) =>
   iso ? new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' }) : '—';
 
-export function SubscriptionManager({ onChanged }: { onChanged?: () => void }) {
+export function SubscriptionManager({ onChanged, onCount }: { onChanged?: () => void; onCount?: (n: number) => void }) {
   const [subs, setSubs] = useState<Subscription[] | null>(null);
   const [configured, setConfigured] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -74,11 +74,13 @@ export function SubscriptionManager({ onChanged }: { onChanged?: () => void }) {
         return;
       }
       setConfigured(data.configured !== false);
-      setSubs(data.subscriptions || []);
+      const list = data.subscriptions || [];
+      setSubs(list);
+      onCount?.(list.length);
     } catch {
       setError('Could not reach billing just now.');
     }
-  }, []);
+  }, [onCount]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -129,7 +131,10 @@ export function SubscriptionManager({ onChanged }: { onChanged?: () => void }) {
   }
 
   if (!subs.length) {
-    return <p className="text-sm text-muted-foreground">No paid subscription on this account.</p>;
+    // Pro without a Stripe subscription is real (owner and comped accounts) —
+    // the page used to show an "Active" badge beside this line and say nothing
+    // about why, which reads as a bug rather than an explanation.
+    return <p className="text-sm text-muted-foreground">No paid subscription on this account — your Pro access doesn’t come from a card, so there’s nothing to bill or cancel.</p>;
   }
 
   return (

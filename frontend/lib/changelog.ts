@@ -21,6 +21,14 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-08-07',
+    kind: 'new',
+    title: 'Your account page now shows exactly what we hold — and lets you take it or delete it',
+    detail:
+      'The account page used to show your name and your plan and little else. It now lists everything of yours that sits on our servers, counted, including the lines that read none — because for most people almost every line reads none, and that is the whole point: files you put through the in-browser tools never reach us, so there is nothing to list. Under that, two buttons we should have had from the start. Download everything gives you one JSON file with every row in that list, immediately, with no request form and no waiting. And you can delete your account outright: it takes your email and your password to confirm, then removes everything straight away — no thirty-day grace period, no copy kept, because deleted should mean deleted. You can also set or change your password there, and if you signed up with Google it offers to set one rather than asking for a password you never chose.',
+    href: '/account',
+  },
+  {
+    date: '2026-08-07',
     kind: 'improved',
     title: 'You stay signed in for longer, and properly',
     detail:

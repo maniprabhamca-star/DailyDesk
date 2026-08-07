@@ -93,7 +93,12 @@ export function SiteHeader({ heroSearchRef }: { heroSearchRef?: React.RefObject<
       <div className="mx-auto flex h-16 max-w-[1400px] items-center gap-5 px-4 sm:px-6">
         <Link href="/" className="flex shrink-0 items-center gap-2.5">
           <BrandMark className="size-9" animate />
-          <span className="text-xl font-semibold tracking-tight">DiemDesk</span>
+          {/* The wordmark goes below 400px. Signed IN, the right-hand cluster
+              gains an avatar the signed-out header doesn't have, and at 375 that
+              pushed the row 29px past the viewport — every page, but only for
+              people with an account, which is why nothing caught it: the E2E
+              suite browses signed out. The mark alone still reads as us. */}
+          <span className="hidden text-xl font-semibold tracking-tight min-[400px]:inline">DiemDesk</span>
         </Link>
         <div ref={toolsRef} className="relative hidden sm:block">
           <button onClick={() => setMenuOpen((o) => !o)} className="flex items-center gap-1 text-sm font-medium text-foreground/80 hover:text-foreground">

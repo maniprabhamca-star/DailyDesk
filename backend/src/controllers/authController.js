@@ -161,8 +161,11 @@ exports.googleLogin = async (req, res) => {
       // OAuth account: no usable password → a random hash satisfies the NOT NULL
       // column, and they can set a real password later via Forgot password.
       const randomHash = await bcrypt.hash(crypto.randomBytes(24).toString('hex'), 12);
+      // has_password=false so the account page never asks for a "current
+      // password" they have never had — it offers to set one instead.
+      await db.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS has_password BOOLEAN NOT NULL DEFAULT true").catch(() => {});
       const ins = await db.query(
-        'INSERT INTO users (name, email, password_hash, plan) VALUES ($1, $2, $3, $4) RETURNING id, name, email, plan, status',
+        'INSERT INTO users (name, email, password_hash, plan, has_password) VALUES ($1, $2, $3, $4, false) RETURNING id, name, email, plan, status',
         [g.name, g.email, randomHash, 'free']
       );
       user = ins.rows[0];
