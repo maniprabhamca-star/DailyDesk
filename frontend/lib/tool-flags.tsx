@@ -47,6 +47,14 @@ const DEFAULT_TOOL_FLAGS: FlagMap = {
   '/csv-to-excel': 'coming_soon',
   '/json-to-excel': 'coming_soon',
   '/xml-to-excel': 'coming_soon',
+  // The rest of the converter queue.
+  '/svg-to-png': 'coming_soon',
+  '/svg-to-pdf': 'coming_soon',
+  '/epub-to-pdf': 'coming_soon',
+  '/pdf-to-text': 'coming_soon',
+  '/markdown-to-pdf': 'coming_soon',
+  '/subtitle-converter': 'coming_soon',
+  '/favicon-generator': 'coming_soon',
 };
 
 const Ctx = createContext<FlagMap>(DEFAULT_TOOL_FLAGS);

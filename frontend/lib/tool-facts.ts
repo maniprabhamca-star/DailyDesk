@@ -141,6 +141,109 @@ export const TOOL_FACTS: Record<string, ToolFacts> = {
     ],
   },
 
+  '/svg-to-png': {
+    effects: [
+      { what: 'Any output size', value: 'from the vector, always sharp', tone: 'good' },
+      { what: 'Transparency', value: 'kept in PNG', tone: 'good' },
+      { what: 'The result', value: 'a fixed-size picture, not a vector', tone: 'warn' },
+      { what: 'External fonts and images', value: 'not loaded — browsers block them', tone: 'warn' },
+      { what: 'Runs on', value: 'your device', tone: 'good' },
+    ],
+    limits: [
+      { title: 'An SVG that links to a font or image', detail: 'Nothing outside the file can load. Convert text to outlines or embed the image first.' },
+      { title: 'You need it to stay scalable', detail: 'Keep the .svg as your master — a PNG is fixed at the size you export.' },
+      { title: 'Transparency in a JPG', detail: 'JPG has none, so see-through areas fill white. Use PNG.' },
+    ],
+  },
+
+  '/svg-to-pdf': {
+    effects: [
+      { what: 'The page', value: 'sized to the drawing, not A4', tone: 'good' },
+      { what: 'The artwork', value: 'embedded as a high-resolution image', tone: 'warn' },
+      { what: 'Text in the drawing', value: 'becomes part of the picture', tone: 'warn' },
+      { what: 'Runs on', value: 'your device', tone: 'good' },
+    ],
+    limits: [
+      { title: 'You need selectable text in the PDF', detail: 'The drawing is rasterised, so its text is not searchable. Place the SVG in a layout tool instead.' },
+      { title: 'True vector output', detail: 'Shapes are not translated into PDF drawing commands. For press work, hand the printer the .svg or an EPS.' },
+    ],
+  },
+
+  '/epub-to-pdf': {
+    effects: [
+      { what: 'Chapters', value: 'in the book’s own reading order', tone: 'good' },
+      { what: 'Headings, paragraphs and lists', value: 'kept', tone: 'good' },
+      { what: 'The publisher’s design', value: 'not reproduced', tone: 'warn' },
+      { what: 'Pictures in the book', value: 'not carried across yet', tone: 'warn' },
+      { what: 'Runs on', value: 'your device', tone: 'good' },
+    ],
+    limits: [
+      { title: 'A comic or fixed-layout book', detail: 'Those pages are images, so there is no text to lay out.' },
+      { title: 'Non-Latin text in the PDF', detail: 'The built-in PDF fonts are Latin-only. Choose Word or plain text and every character survives.' },
+      { title: 'You want it to reflow', detail: 'Then keep the EPUB — a PDF is a fixed page by design.' },
+    ],
+  },
+
+  '/pdf-to-text': {
+    effects: [
+      { what: 'Text', value: 'extracted in reading order', tone: 'good' },
+      { what: 'Running heads and page numbers', value: 'dropped', tone: 'good' },
+      { what: 'Words hyphenated across a line', value: 'rejoined', tone: 'good' },
+      { what: 'Columns, tables and layout', value: 'flattened away', tone: 'warn' },
+      { what: 'Runs on', value: 'your device', tone: 'good' },
+    ],
+    limits: [
+      { title: 'A scanned PDF', detail: 'No text layer to extract. Run OCR first.', href: '/ocr-pdf', hrefLabel: 'OCR a PDF' },
+      { title: 'You need the tables', detail: 'Plain text loses the grid.', href: '/pdf-to-excel', hrefLabel: 'PDF to Excel' },
+      { title: 'You want headings and lists kept', detail: 'Markdown keeps the structure.', href: '/pdf-to-markdown', hrefLabel: 'PDF to Markdown' },
+    ],
+  },
+
+  '/markdown-to-pdf': {
+    effects: [
+      { what: 'Headings, lists, quotes and code', value: 'laid out for reading', tone: 'good' },
+      { what: 'Tables', value: 'kept in Word; flattened to lines in PDF', tone: 'warn' },
+      { what: 'Bold, links and inline code', value: 'flattened to plain text', tone: 'warn' },
+      { what: 'Images', value: 'alt text only, not the picture', tone: 'warn' },
+      { what: 'Runs on', value: 'your device', tone: 'good' },
+    ],
+    limits: [
+      { title: 'Typeset output', detail: 'This is built for readable documents, not for design. Use a real typesetting tool for a book.' },
+      { title: 'Non-Latin text in the PDF', detail: 'Latin-only fonts are built in. Word or plain text keeps every character.' },
+      { title: 'Raw HTML in your Markdown', detail: 'It is treated as text, not rendered.' },
+    ],
+  },
+
+  '/subtitle-converter': {
+    effects: [
+      { what: 'SRT and VTT', value: 'properly rewritten, not renamed', tone: 'good' },
+      { what: 'Timing', value: 'shiftable by any offset', tone: 'good' },
+      { what: 'Transcript option', value: 'timings and tags stripped', tone: 'good' },
+      { what: 'Positioning and styling blocks', value: 'dropped', tone: 'warn' },
+      { what: 'Runs on', value: 'your device', tone: 'good' },
+    ],
+    limits: [
+      { title: 'ASS/SSA with heavy styling', detail: 'Karaoke effects and positioning have no equivalent here.' },
+      { title: 'Burning subtitles into a video', detail: 'That needs a video encoder — different job entirely.' },
+      { title: 'Translating the subtitles', detail: 'This converts the format, not the language.', href: '/translate-pdf', hrefLabel: 'Translate a document' },
+    ],
+  },
+
+  '/favicon-generator': {
+    effects: [
+      { what: 'Six PNG sizes', value: 'the ones browsers ask for', tone: 'good' },
+      { what: 'favicon.ico', value: 'a real multi-size icon, not a renamed PNG', tone: 'good' },
+      { what: 'Web manifest and HTML', value: 'included, ready to paste', tone: 'good' },
+      { what: 'Non-square images', value: 'fitted and centred, never cropped', tone: 'good' },
+      { what: 'Runs on', value: 'your device', tone: 'good' },
+    ],
+    limits: [
+      { title: 'A detailed logo at 16px', detail: 'Fine detail disappears at tab size. Check the previews — a simplified mark often reads better.' },
+      { title: 'Light and dark variants', detail: 'One icon is generated. Browsers do not switch favicons by theme.' },
+      { title: 'You need the source redrawn', detail: 'This resizes what you give it; it does not redesign the mark.' },
+    ],
+  },
+
   '/excel-to-csv': {
     effects: [
       { what: 'Every sheet', value: 'read, each as its own tab', tone: 'good' },

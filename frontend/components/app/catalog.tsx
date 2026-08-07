@@ -7,7 +7,7 @@ import {
   ImageDown, Smartphone, Eraser, Film, Clapperboard, ArrowLeftRight, Images, Scaling, Repeat, Crop,
   Ruler, Braces, Palette, CaseSensitive, Crosshair, Contact, SquarePen, ScanFace,
   Binary, Hash, GitCompare, FileJson, Type,
-  Cloud, Sparkles, Landmark, Volume2, BookOpen, Table2, Music, AudioLines, type LucideIcon,
+  Cloud, Sparkles, Landmark, Volume2, BookOpen, Table2, Music, AudioLines, Shapes, Captions, type LucideIcon,
 } from 'lucide-react';
 
 // A tool's "where it runs" tag — the single source of truth for every privacy
@@ -57,6 +57,9 @@ export const catalog: CatGroup[] = [
       { name: 'PowerPoint to PDF', href: '/powerpoint-to-pdf', icon: Presentation, badge: 'server' },
       { name: 'Excel to PDF', href: '/excel-to-pdf', icon: FileSpreadsheet, badge: 'server' },
       { name: 'HTML to PDF', href: '/html-to-pdf', icon: Code2, badge: 'server', soon: true },
+      { name: 'EPUB to PDF', href: '/epub-to-pdf', icon: BookOpen, badge: 'device', soon: true },
+      { name: 'Markdown to PDF', href: '/markdown-to-pdf', icon: Hash, badge: 'device', soon: true },
+      { name: 'SVG to PDF', href: '/svg-to-pdf', icon: Shapes, badge: 'device', soon: true },
     ],
   },
   {
@@ -68,6 +71,7 @@ export const catalog: CatGroup[] = [
       { name: 'PDF to Excel', href: '/pdf-to-excel', icon: FileSpreadsheet, badge: 'device' },
       { name: 'PDF to Markdown', href: '/pdf-to-markdown', icon: Hash, badge: 'device' },
       { name: 'PDF to EPUB', href: '/pdf-to-epub', icon: BookOpen, badge: 'device' , soon: true },
+      { name: 'PDF to Text', href: '/pdf-to-text', icon: AlignLeft, badge: 'device', soon: true },
       { name: 'PDF to Audio', href: '/pdf-to-audio', icon: Volume2, badge: 'device' },
       { name: 'Bank statement to Excel', href: '/bank-statement-converter', icon: Landmark, badge: 'device', soon: true },
       { name: 'PDF to PDF/A', href: '/pdf-to-pdfa', icon: FileCheck, badge: 'server' },
@@ -123,6 +127,9 @@ export const catalog: CatGroup[] = [
       { name: 'Compress video', href: '/compress-video', icon: Film, badge: 'device' },
       { name: 'Video to MP3', href: '/video-to-mp3', icon: Music, badge: 'device' , soon: true },
       { name: 'Audio converter', href: '/audio-converter', icon: AudioLines, badge: 'device' , soon: true },
+      { name: 'SVG to PNG', href: '/svg-to-png', icon: Shapes, badge: 'device', soon: true },
+      { name: 'Subtitle converter', href: '/subtitle-converter', icon: Captions, badge: 'device', soon: true },
+      { name: 'Favicon generator', href: '/favicon-generator', icon: Sparkles, badge: 'device', soon: true },
       { name: 'Video to GIF', href: '/video-to-gif', icon: Clapperboard, badge: 'device' },
     ],
   },

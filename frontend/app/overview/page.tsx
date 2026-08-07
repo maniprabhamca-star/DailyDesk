@@ -76,14 +76,16 @@ const BEYOND: { name: string; desc: string; status: 'live' | 'soon'; tier: 'free
   { name: 'Sanitize / clean PDF', desc: 'Strip hidden metadata + embedded scripts, entirely on your device.', status: 'soon', tier: 'free' },
   { name: 'Semantic compare', desc: 'What actually changed between two versions — meaning, not pixels.', status: 'soon', tier: 'ai' },
   { name: 'PDF → Markdown', desc: 'Clean Markdown out of a PDF — for devs, notes and AI pipelines.', status: 'live', tier: 'free' },
-  { name: 'Markdown → PDF', desc: 'The other direction: a Markdown file into a polished PDF or Word doc.', status: 'soon', tier: 'free' },
+  { name: 'Markdown → PDF / Word', desc: 'A Markdown file into a polished PDF or Word document — headings, lists and tables kept.', status: 'soon', tier: 'free' },
   { name: 'PDF → EPUB', desc: 'A real e-reader book out of a fixed-layout PDF — chapters, cover, pictures in place, and right-to-left languages laid out properly.', status: 'soon', tier: 'free' },
-  { name: 'EPUB → PDF / Word', desc: 'The return trip, for when you need the fixed page back.', status: 'soon', tier: 'free' },
+  { name: 'EPUB → PDF / Word / text', desc: 'The return trip, with the chapters in the order the book itself declares.', status: 'soon', tier: 'free' },
   { name: 'HTML → Excel', desc: 'Every table on a web page into a spreadsheet — merged cells handled, which is what copy-paste gets wrong.', status: 'soon', tier: 'free' },
   { name: 'Video → MP3 · audio converter', desc: 'Pull the soundtrack out of a video, or convert M4A, OGG and FLAC to MP3 — in the browser, where other converters upload.', status: 'soon', tier: 'free' },
   { name: 'Excel ↔ CSV · JSON → Excel · XML → Excel', desc: 'The everyday spreadsheet conversions, on your device instead of an upload site — separators detected, dates readable, nested fields flattened.', status: 'soon', tier: 'free' },
-  { name: 'SVG → PNG / JPG / PDF', desc: 'Vector artwork out to the formats everything else accepts.', status: 'soon', tier: 'free' },
-  { name: 'PDF → plain text', desc: 'Just the words, for search, scripts and pipelines.', status: 'soon', tier: 'free' },
+  { name: 'SVG → PNG / JPG / PDF', desc: 'Vector artwork out to the formats everything else accepts — at any size, transparency kept.', status: 'soon', tier: 'free' },
+  { name: 'PDF → plain text', desc: 'Just the words — running heads, page numbers and hyphen breaks cleaned up on the way out.', status: 'soon', tier: 'free' },
+  { name: 'Subtitles SRT ↔ VTT', desc: 'A real rewrite rather than a renamed file, with a timing shift and a clean transcript option.', status: 'soon', tier: 'free' },
+  { name: 'Favicon pack', desc: 'One logo into every icon a site needs — including a genuine multi-size .ico.', status: 'soon', tier: 'free' },
   { name: 'PDF → audio (read aloud)', desc: 'Listen to any document — accessibility and hands-free.', status: 'live', tier: 'free' },
   { name: 'Speech → text', desc: 'Dictate or transcribe, right in the browser.', status: 'soon', tier: 'free' },
   { name: 'Bates numbering', desc: 'Legal page-stamping for discovery and case files.', status: 'live', tier: 'free' },
@@ -94,9 +96,7 @@ const BEYOND: { name: string; desc: string; status: 'live' | 'soon'; tier: 'free
   { name: 'One-drop workflows', desc: 'Merge · clean · sign · compress in a single drop.', status: 'soon', tier: 'free' },
   { name: 'Mail-merge', desc: 'One template + a CSV → many personalised PDFs.', status: 'soon', tier: 'pro' },
   { name: 'AVIF / WebP convert', desc: 'The newer image formats, converted on your device.', status: 'soon', tier: 'free' },
-  { name: 'Subtitle editor · SRT ↔ VTT', desc: 'Edit, re-time and convert subtitle tracks in the browser.', status: 'soon', tier: 'free' },
-  { name: 'Favicon pack from an image', desc: 'One picture in, every icon size a site needs out.', status: 'soon', tier: 'free' },
-];
+    ];
 
 // Where DiemDesk runs — web today, native apps next.
 const PLATFORMS: { icon: typeof Globe; name: string; status: 'live' | 'soon'; desc: string }[] = [
