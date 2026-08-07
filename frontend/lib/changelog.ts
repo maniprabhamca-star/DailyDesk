@@ -21,6 +21,13 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-08-07',
+    kind: 'fixed',
+    title: 'A button near the bottom of the screen no longer ignores you on a phone',
+    detail:
+      'The privacy notice that appears on your first visit sits at the bottom of the screen, and on a small screen it was covering the last part of the page. Anything underneath looked completely normal and simply did nothing when you tapped it — on the favicon generator, that was the Download button. The page now leaves room for the notice, so you can always scroll past it and reach whatever is down there. If you ever tapped something and nothing happened, this may well have been why.',
+  },
+  {
+    date: '2026-08-07',
     kind: 'improved',
     title: 'Cancel your subscription yourself, in two clicks',
     detail:

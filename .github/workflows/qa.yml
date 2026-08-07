@@ -83,7 +83,9 @@ jobs:
       - name: Generate the service worker (lives in public/, not in .next)
         run: npm run sw
       - name: Install the browser for this project
-        run: npx playwright install --with-deps ${{ matrix.project == 'mobile' && 'chromium' || matrix.project }}
+        # 'mobile' is Chromium device-emulation, and 'edge' installs under the
+        # channel name 'msedge' — neither project name is a valid install target.
+        run: npx playwright install --with-deps ${{ matrix.project == 'mobile' && 'chromium' || matrix.project == 'edge' && 'msedge' || matrix.project }}
       - name: Run E2E
         run: npx playwright test --project=${{ matrix.project }}
       - name: Upload Playwright report

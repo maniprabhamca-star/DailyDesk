@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   FileText, ArrowRight, Laptop, Lock, ShieldCheck, CloudOff, EyeOff, Ban,
@@ -16,8 +16,15 @@ function Chip({ icon: Icon, label }: { icon: typeof CloudOff; label: string }) {
   );
 }
 
+/* Height of the banner, published to CSS so the page can reserve room for it —
+   see the --dd-banner-h note in globals.css. It changes with the viewport (the
+   chips wrap, the layout goes column on mobile), so it is observed, not measured
+   once. */
+const BANNER_H = '--dd-banner-h';
+
 export function CookieBanner() {
   const [show, setShow] = useState(false);
+  const boxRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     try {
@@ -28,6 +35,36 @@ export function CookieBanner() {
     }
   }, []);
 
+  const publishHeight = useCallback(() => {
+    const el = boxRef.current;
+    const root = document.documentElement;
+    if (!el) {
+      root.style.removeProperty(BANNER_H);
+      return;
+    }
+    // +12px for the bottom-3 offset, so the reserved space clears the gap too.
+    root.style.setProperty(BANNER_H, `${Math.ceil(el.getBoundingClientRect().height) + 12}px`);
+  }, []);
+
+  useEffect(() => {
+    if (!show) {
+      document.documentElement.style.removeProperty(BANNER_H);
+      return;
+    }
+    publishHeight();
+    const el = boxRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', publishHeight);
+      return () => window.removeEventListener('resize', publishHeight);
+    }
+    const ro = new ResizeObserver(publishHeight);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      document.documentElement.style.removeProperty(BANNER_H);
+    };
+  }, [show, publishHeight]);
+
   if (!show) return null;
 
   const dismiss = () => {
@@ -36,11 +73,12 @@ export function CookieBanner() {
     } catch {
       /* ignore */
     }
+    document.documentElement.style.removeProperty(BANNER_H);
     setShow(false);
   };
 
   return (
-    <div className="fixed inset-x-3 bottom-3 z-50 mx-auto max-w-3xl">
+    <div ref={boxRef} className="fixed inset-x-3 bottom-3 z-50 mx-auto max-w-3xl">
       <div className="overflow-hidden rounded-2xl border bg-card shadow-lift">
         <div className="flex flex-col md:flex-row md:items-stretch">
           {/* File → device → lock flow */}

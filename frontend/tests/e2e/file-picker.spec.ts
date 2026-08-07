@@ -141,3 +141,45 @@ test.describe('the catalog never links somewhere broken', () => {
     expect(broken, 'catalog entries pointing at missing pages').toEqual([]);
   });
 });
+
+// REG-022 — the consent banner covered the page and made real buttons dead.
+//
+// It is `position: fixed` at the bottom, so on a phone it sits over roughly the
+// last 250px of every page. Anything under it looks perfectly normal and simply
+// does not respond to a tap — the same silent failure as REG-015/016, and it hit
+// the favicon pack's "Download the pack" button on a Pixel 7 in CI. The fix is
+// that the banner publishes its height and the document reserves that much room.
+test.describe('REG-022 — nothing hides underneath the consent banner', () => {
+  test('the page reserves room for the banner while it is showing', async ({ page }) => {
+    await page.goto('/favicon-generator', { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => (window as unknown as { __ddHydrated?: boolean }).__ddHydrated === true);
+
+    const banner = page.locator('a[href="/privacy"]').locator('xpath=ancestor::div[contains(@class,"fixed")]').first();
+    await expect(banner, 'a fresh visitor should see the consent banner').toBeVisible();
+
+    const gap = await page.evaluate(() => {
+      const reserved = getComputedStyle(document.body).paddingBottom;
+      return parseFloat(reserved || '0');
+    });
+    const bannerHeight = (await banner.boundingBox())?.height ?? 0;
+    expect(bannerHeight, 'banner should have a real height').toBeGreaterThan(0);
+    expect(gap, 'the document must reserve at least the banner height').toBeGreaterThanOrEqual(bannerHeight);
+  });
+
+  test('the last control on a tool page is reachable, not buried', async ({ page }) => {
+    await page.goto('/favicon-generator', { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => (window as unknown as { __ddHydrated?: boolean }).__ddHydrated === true);
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+
+    // Whatever is at the very bottom of the document must not be the banner
+    // sitting on top of page content: the footer's own last link is the probe.
+    const probe = page.locator('footer a').last();
+    await probe.scrollIntoViewIfNeeded();
+    const covered = await probe.evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return hit ? !el.contains(hit) && hit !== el : true;
+    });
+    expect(covered, 'the bottom of the page must not sit under the banner').toBe(false);
+  });
+});

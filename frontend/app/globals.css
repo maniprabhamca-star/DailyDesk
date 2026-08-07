@@ -192,6 +192,25 @@ html.dd-splash-seen #dd-first-splash { display: none !important; }
 .dd-d { transform-box: fill-box; transform-origin: center; animation: dd-d-dance 10s ease-in-out infinite; animation-delay: 0.36s; }
 @media (prefers-reduced-motion: reduce) { .dd-d { animation: none; transform: rotate(9deg); } }
 
+/* The consent banner is `position: fixed` at the bottom of the viewport, so on a
+   phone it sits on top of roughly the last 250px of every page — and anything
+   under it is not just hidden but UNTAPPABLE, silently, exactly like the file
+   picker was. Our own E2E suite caught it covering the favicon pack's download
+   button on a Pixel 7. The banner measures itself into --dd-banner-h while it is
+   on screen; reserving that much room at the end of the document means the page
+   can always be scrolled clear of it. Zero when the banner is gone.
+
+   scroll-padding-top keeps the sticky 64px header from doing the same thing at
+   the other end whenever anything scrolls an element into view. */
+html {
+  scroll-padding-top: 5rem;
+  scroll-padding-bottom: var(--dd-banner-h, 0px);
+}
+
+body {
+  padding-bottom: var(--dd-banner-h, 0px);
+}
+
 /* File inputs: hidden from view, but STILL RENDERED.
    `display:none` (Tailwind's .hidden) is the documented reason a file picker
    silently refuses to open on iOS Safari — the input isn't laid out, so the tap
