@@ -119,3 +119,23 @@ CREATE TABLE IF NOT EXISTS bio_pages (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS bio_pages_slug_idx ON bio_pages(slug);
+
+-- Why people leave. Written by POST /api/stripe/cancel; created on demand there
+-- too, so a fresh environment doesn't need this file to have been run first.
+CREATE TABLE IF NOT EXISTS subscription_cancellations (
+  id BIGSERIAL PRIMARY KEY,
+  user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  subscription_id VARCHAR(64) NOT NULL,
+  plan_name        VARCHAR(120),
+  billing_interval VARCHAR(10),
+  reason           VARCHAR(60),
+  comment          TEXT,
+  days_since_start INTEGER,
+  refund_requested BOOLEAN NOT NULL DEFAULT false,
+  refund_granted   BOOLEAN NOT NULL DEFAULT false,
+  refund_amount    INTEGER,
+  refund_currency  VARCHAR(10),
+  ends_at          TIMESTAMPTZ,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_cancellations_created ON subscription_cancellations(created_at DESC);

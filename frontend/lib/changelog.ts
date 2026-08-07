@@ -20,6 +20,14 @@ export type ChangeEntry = {
 // flags flip, dated then.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-08-07',
+    kind: 'improved',
+    title: 'Cancel your subscription yourself, in two clicks',
+    detail:
+      'Your account page now lists every paid subscription you have — monthly or annual — with what it costs, when it renews, and a Cancel button that actually cancels. No email, no support ticket, no hunting for a link. If you’re still inside the 14-day money-back window, the page tells you the exact date it closes and offers to refund your last payment on the spot; the money goes back to your card immediately rather than after somebody reads a message. Past that date you can still cancel any time — you simply keep what you’ve paid for until the period ends, and we say so plainly instead of leaving you guessing. Changed your mind before it lapses? There’s a button to keep it. We also ask why you’re leaving, and we do read the answers.',
+    href: '/account',
+  },
+  {
     date: '2026-07-28',
     kind: 'new',
     title: 'A proper welcome for first-time visitors',

@@ -2,6 +2,7 @@ const express = require('express');
 const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
 const { notifyOwner } = require('../utils/notify');
+const { REFUND_WINDOW_DAYS, refundStatus, describe } = require('../utils/subscriptions');
 
 // Stripe subscription billing for DiemDesk Pro. Everything here is ENV-GATED:
 // if STRIPE_SECRET_KEY isn't set, the endpoints report "not configured" and the
@@ -89,6 +90,213 @@ router.post('/portal', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('Stripe portal error:', err.message);
     res.status(500).json({ error: 'Could not open the billing portal — please try again.' });
+  }
+});
+
+// ── Subscriptions: see them, cancel them, tell us why ───────────────────────
+//
+// The Stripe portal still handles cards and invoices, but cancelling happens
+// here so we can (a) apply the 14-day refund rule ourselves, from Stripe's own
+// timestamps, and (b) actually record why people leave. A cancellation we never
+// hear the reason for is a lost lesson.
+
+let cancelTableReady = null;
+function ensureCancelTable() {
+  if (!cancelTableReady) {
+    cancelTableReady = db.query(`
+      CREATE TABLE IF NOT EXISTS subscription_cancellations (
+        id BIGSERIAL PRIMARY KEY,
+        user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+        subscription_id VARCHAR(64) NOT NULL,
+        plan_name       VARCHAR(120),
+        billing_interval VARCHAR(10),
+        reason          VARCHAR(60),
+        comment         TEXT,
+        days_since_start INTEGER,
+        refund_requested BOOLEAN NOT NULL DEFAULT false,
+        refund_granted   BOOLEAN NOT NULL DEFAULT false,
+        refund_amount    INTEGER,
+        refund_currency  VARCHAR(10),
+        ends_at         TIMESTAMPTZ,
+        created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
+      CREATE INDEX IF NOT EXISTS idx_cancellations_created ON subscription_cancellations(created_at DESC);
+    `).catch((e) => { cancelTableReady = null; throw e; });
+  }
+  return cancelTableReady;
+}
+
+// The reasons we offer. Anything else is stored as 'other' with the comment —
+// a free-text-only field would give us noise we can't count.
+const REASONS = new Set(['too_expensive', 'not_using', 'missing_feature', 'found_alternative', 'temporary', 'technical', 'other']);
+
+async function customerFor(userId) {
+  const { rows } = await db.query('SELECT stripe_customer_id FROM users WHERE id = $1', [userId]);
+  return (rows[0] && rows[0].stripe_customer_id) || null;
+}
+
+/** Every live subscription on the account — Pro today, Statements tomorrow. */
+router.get('/subscription', requireAuth, async (req, res) => {
+  const s = getStripe();
+  if (!s) return res.json({ configured: false, subscriptions: [] });
+  try {
+    const customer = await customerFor(req.user.userId);
+    if (!customer) return res.json({ configured: true, subscriptions: [] });
+    const list = await s.subscriptions.list({
+      customer,
+      status: 'all',
+      limit: 10,
+      expand: ['data.items.data.price.product'],
+    });
+    const live = list.data
+      .filter((sub) => ['active', 'trialing', 'past_due', 'unpaid'].includes(sub.status))
+      .map((sub) => describe(sub));
+    res.json({ configured: true, refundWindowDays: REFUND_WINDOW_DAYS, subscriptions: live });
+  } catch (err) {
+    console.error('Stripe subscription list error:', err.message);
+    res.status(500).json({ error: 'Could not read your subscription — please try again.' });
+  }
+});
+
+/** Cancel. Always permitted; a refund only inside the window, checked here. */
+router.post('/cancel', requireAuth, async (req, res) => {
+  const s = getStripe();
+  if (!s) return res.status(503).json({ error: 'Billing isn’t set up yet.' });
+
+  const body = req.body || {};
+  const subscriptionId = typeof body.subscriptionId === 'string' ? body.subscriptionId : '';
+  const reason = REASONS.has(body.reason) ? body.reason : 'other';
+  const comment = typeof body.comment === 'string' ? body.comment.trim().slice(0, 1000) : '';
+  const wantsRefund = body.requestRefund === true;
+  if (!subscriptionId) return res.status(400).json({ error: 'Which subscription?' });
+
+  try {
+    const customer = await customerFor(req.user.userId);
+    if (!customer) return res.status(400).json({ error: 'No subscription to cancel.' });
+
+    // Never trust an id from the browser: re-read it and confirm it is theirs.
+    const sub = await s.subscriptions.retrieve(subscriptionId, { expand: ['items.data.price.product', 'latest_invoice'] });
+    if (!sub || sub.customer !== customer) return res.status(403).json({ error: 'That subscription isn’t on your account.' });
+    if (['canceled', 'incomplete_expired'].includes(sub.status)) {
+      return res.status(400).json({ error: 'That subscription has already ended.' });
+    }
+
+    const info = describe(sub);
+    const refund = refundStatus(sub);
+
+    // The published policy calls it a ONE-TIME guarantee: refund once, and a
+    // later subscription doesn't get a fresh window. Without this check a
+    // subscribe → refund → subscribe loop is free forever.
+    let alreadyRefunded = false;
+    try {
+      await ensureCancelTable();
+      const prior = await db.query(
+        'SELECT 1 FROM subscription_cancellations WHERE user_id = $1 AND refund_granted = true LIMIT 1',
+        [req.user.userId],
+      );
+      alreadyRefunded = prior.rowCount > 0;
+    } catch (e) {
+      console.error('refund-history check failed:', e.message);
+    }
+
+    // STRICT: eligibility comes from Stripe's start_date, not from the request.
+    const grantRefund = wantsRefund && refund.eligible && !alreadyRefunded;
+
+    let updated;
+    let refundResult = null;
+
+    if (grantRefund) {
+      // Inside the window: end it now and give the money back, because keeping
+      // someone on a service they've asked to leave and paid for is the thing
+      // people hate about subscriptions.
+      const invoice = sub.latest_invoice && typeof sub.latest_invoice === 'object'
+        ? sub.latest_invoice
+        : sub.latest_invoice ? await s.invoices.retrieve(sub.latest_invoice) : null;
+      const paymentIntent = invoice && invoice.payment_intent;
+      if (paymentIntent) {
+        refundResult = await s.refunds.create({
+          payment_intent: typeof paymentIntent === 'string' ? paymentIntent : paymentIntent.id,
+          reason: 'requested_by_customer',
+          metadata: { userId: String(req.user.userId), subscriptionId, cancelReason: reason },
+        });
+      }
+      updated = await s.subscriptions.cancel(subscriptionId);
+      await db.query("UPDATE users SET plan = 'free', updated_at = now() WHERE id = $1", [req.user.userId]);
+    } else {
+      // Outside the window (or no refund asked for): they keep what they paid
+      // for until the period ends. The subscription.deleted webhook flips the
+      // plan when it actually lapses.
+      updated = await s.subscriptions.update(subscriptionId, {
+        cancel_at_period_end: true,
+        cancellation_details: { comment: comment || undefined, feedback: undefined },
+      });
+    }
+
+    const endsAt = grantRefund
+      ? new Date()
+      : updated.current_period_end ? new Date(updated.current_period_end * 1000) : null;
+
+    try {
+      await ensureCancelTable();
+      await db.query(
+        `INSERT INTO subscription_cancellations
+           (user_id, subscription_id, plan_name, billing_interval, reason, comment,
+            days_since_start, refund_requested, refund_granted, refund_amount, refund_currency, ends_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+        [req.user.userId, subscriptionId, info.name, info.interval, reason, comment || null,
+         refund.daysSinceStart, wantsRefund, grantRefund,
+         refundResult ? refundResult.amount : null, refundResult ? refundResult.currency : null, endsAt],
+      );
+    } catch (e) {
+      // Losing the feedback must never break the cancellation itself.
+      console.error('cancellation log failed:', e.message);
+    }
+
+    void notifyOwner(
+      `Subscription cancelled — ${info.name} (${info.intervalLabel})`,
+      `Reason: ${reason}\nComment: ${comment || '—'}\nDay ${refund.daysSinceStart} of the subscription\n` +
+      `Refund requested: ${wantsRefund ? 'yes' : 'no'} · granted: ${grantRefund ? 'yes' : 'no'}\n` +
+      `Ends: ${endsAt ? endsAt.toISOString() : 'unknown'}`,
+    );
+
+    res.json({
+      ok: true,
+      immediate: grantRefund,
+      endsAt: endsAt ? endsAt.toISOString() : null,
+      refunded: grantRefund,
+      refundAmount: refundResult ? (refundResult.amount / 100).toFixed(2) : null,
+      refundCurrency: refundResult ? refundResult.currency.toUpperCase() : null,
+      refundWindowDays: REFUND_WINDOW_DAYS,
+      refundEligible: refund.eligible,
+      // Told plainly rather than silently ignored, so nobody is left wondering
+      // where their refund went.
+      refundDeclinedReason: wantsRefund && !grantRefund
+        ? (alreadyRefunded ? 'guarantee_already_used' : 'window_closed')
+        : null,
+    });
+  } catch (err) {
+    console.error('Stripe cancel error:', err.message);
+    void notifyOwner('Subscription cancel FAILED', `A cancellation attempt errored: ${err.message}`);
+    res.status(500).json({ error: 'Could not cancel just now — nothing has changed. Please try again, or email support@diemdesk.com.' });
+  }
+});
+
+/** Changed their mind before the period ends. */
+router.post('/resume', requireAuth, async (req, res) => {
+  const s = getStripe();
+  if (!s) return res.status(503).json({ error: 'Billing isn’t set up yet.' });
+  const subscriptionId = req.body && typeof req.body.subscriptionId === 'string' ? req.body.subscriptionId : '';
+  if (!subscriptionId) return res.status(400).json({ error: 'Which subscription?' });
+  try {
+    const customer = await customerFor(req.user.userId);
+    const sub = await s.subscriptions.retrieve(subscriptionId);
+    if (!customer || !sub || sub.customer !== customer) return res.status(403).json({ error: 'That subscription isn’t on your account.' });
+    if (sub.status === 'canceled') return res.status(400).json({ error: 'That subscription has already ended — start a new one from Pricing.' });
+    const updated = await s.subscriptions.update(subscriptionId, { cancel_at_period_end: false });
+    res.json({ ok: true, renewsAt: updated.current_period_end ? new Date(updated.current_period_end * 1000).toISOString() : null });
+  } catch (err) {
+    console.error('Stripe resume error:', err.message);
+    res.status(500).json({ error: 'Could not restart it just now — please try again.' });
   }
 });
 

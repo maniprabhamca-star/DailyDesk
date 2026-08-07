@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
-    "build": "echo 'No build step for backend'"
+    "build": "echo 'No build step for backend'",
+    "test:subs": "node scripts/test-subscriptions.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

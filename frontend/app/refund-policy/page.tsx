@@ -8,7 +8,7 @@ import { LegalPage, Section, Callout, FlowStep } from '@/components/legal/legal-
 export const metadata: Metadata = {
   title: 'Refund Policy — Money-Back Guarantee | DiemDesk',
   description:
-    'DiemDesk Pro comes with a 14-day money-back guarantee on any plan. Not happy? Email us for a full refund — no hoops, no fine print.',
+    'DiemDesk Pro comes with a 14-day money-back guarantee on any plan. Cancel and refund yourself from your account page — no email, no hoops.',
   alternates: { canonical: '/refund-policy' },
   openGraph: {
     images: ['/og.png'],
@@ -110,9 +110,9 @@ export default function RefundPolicyPage() {
       {/* How to request */}
       <Section id="how" title="How to request a refund">
         <ol className="space-y-4">
-          <FlowStep n={1} title="Email us">Write to <a href="mailto:support@diemdesk.com" className="font-semibold text-primary hover:underline">support@diemdesk.com</a> from the email address on your account, with the subject &ldquo;Refund request.&rdquo;</FlowStep>
-          <FlowStep n={2} title="Share a couple of details">Include your account email and roughly when you subscribed. You don&rsquo;t need to justify your reason — we won&rsquo;t ask you to jump through hoops.</FlowStep>
-          <FlowStep n={3} title="We confirm and refund">We&rsquo;ll reply to confirm and send the refund to your original payment method. Refunds are typically issued within <strong>5&ndash;10 business days</strong>; how quickly it lands depends on your bank or card provider.</FlowStep>
+          <FlowStep n={1} title="Open your account page">Go to <a href="/account" className="font-semibold text-primary hover:underline">your account</a>. Each subscription shows its renewal date and, if you&rsquo;re still inside the window, the exact date your guarantee runs out.</FlowStep>
+          <FlowStep n={2} title="Cancel, and tick the refund box">Press Cancel, tell us why if you feel like it, and leave &ldquo;Refund my last payment&rdquo; ticked. You don&rsquo;t need to justify anything — &ldquo;it&rsquo;s not for me&rdquo; is a complete answer.</FlowStep>
+          <FlowStep n={3} title="It happens immediately">The refund goes back to your original card straight away — no waiting for us to read an email. It typically shows up within <strong>5&ndash;10 business days</strong>, depending on your bank. Outside the window, or if you&rsquo;d rather a human handled it, <a href="mailto:support@diemdesk.com" className="font-semibold text-primary hover:underline">email us</a> and we&rsquo;ll look at it properly.</FlowStep>
         </ol>
         <Callout tone="default" icon={<Clock className="size-5" />}>
           <p>

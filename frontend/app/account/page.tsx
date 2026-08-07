@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { ProCheckout } from '@/components/app/pro-checkout';
 import { useAuth } from '@/lib/auth';
 import { usePlan } from '@/lib/plan';
+import { SubscriptionManager } from '@/components/app/subscription-manager';
 
 export default function AccountPage() {
   const { user, loading, logout, refreshUser } = useAuth();
@@ -104,13 +105,21 @@ export default function AccountPage() {
           </div>
 
           {isPro ? (
-            <div className="mt-4 space-y-3">
+            <div className="mt-4 space-y-4">
               <p className="text-sm text-muted-foreground">You have unlimited file sizes, batch processing, and every Pro tool.</p>
-              <Button variant="outline" onClick={openPortal} disabled={portalBusy}>
-                <CreditCard className="size-4" /> {portalBusy ? 'Opening…' : 'Manage subscription'}
-              </Button>
-              <p className="text-xs text-muted-foreground">Update your card, view invoices, or cancel — handled securely by Stripe. Cancelling keeps Pro until your paid period ends.</p>
-              {portalErr && <p className="text-xs text-destructive">{portalErr}</p>}
+
+              {/* Every paid subscription on the account — Pro, and the Statements
+                  tier when it lands — each with its own renewal date, refund
+                  window and cancel button. */}
+              <SubscriptionManager onChanged={() => void refreshUser()} />
+
+              <div className="border-t pt-3">
+                <Button variant="outline" onClick={openPortal} disabled={portalBusy}>
+                  <CreditCard className="size-4" /> {portalBusy ? 'Opening…' : 'Card & invoices'}
+                </Button>
+                <p className="mt-1.5 text-xs text-muted-foreground">Update your card or download invoices — handled securely by Stripe.</p>
+                {portalErr && <p className="text-xs text-destructive">{portalErr}</p>}
+              </div>
             </div>
           ) : (
             <>
