@@ -21,6 +21,13 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-08-07',
+    kind: 'improved',
+    title: 'You stay signed in for longer, and properly',
+    detail:
+      'Signing in now lasts a month instead of a week, and it renews itself whenever you come back — so using DiemDesk regularly keeps you signed in indefinitely, rather than logging you out on a fixed schedule no matter how often you visit. When a session genuinely does run out, the whole site now agrees about it at once: you get told plainly and offered a way back in, instead of one page saying “please sign in” while the rest still shows you as logged in.',
+  },
+  {
+    date: '2026-08-07',
     kind: 'fixed',
     title: 'Your account page no longer gets stuck when your session runs out',
     detail:

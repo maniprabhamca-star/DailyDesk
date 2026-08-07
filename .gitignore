@@ -5,9 +5,21 @@ node_modules/
 
 # Build outputs
 .next/
+# Side-by-side builds from design/QA experiments — .next-brand-A, .next-v2,
+# .next-3004 and friends. Untracked but not ignored, they were sixteen
+# directories deep enough to make `git add -A` stage a few thousand build
+# artefacts by accident.
+.next-*/
 out/
 dist/
 build/
+
+# Credential files kept locally for reference. These are untracked but were not
+# ignored, which is only ever one careless `git add -A` away from a public repo
+# holding a live OAuth secret.
+*ClientID-Secret*
+*client_secret*.json
+*credentials*.json
 
 # Environment files
 .env

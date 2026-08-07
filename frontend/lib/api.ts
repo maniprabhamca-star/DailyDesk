@@ -1,5 +1,7 @@
 // Empty default = same-origin: requests go to /api/... and nginx proxies them
 // to the backend. Override with NEXT_PUBLIC_API_URL for split-origin setups.
+import { isAuthEndpoint, reportSessionExpired } from './session';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 // The status used to be thrown away, which made "your session has expired" look
@@ -32,6 +34,8 @@ async function apiFetch(path: string, options: RequestInit = {}) {
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
+    // A 401 from sign-in means "wrong password" — don't treat it as an expiry.
+    if (res.status === 401 && !isAuthEndpoint(path)) reportSessionExpired();
     throw new ApiError(err.error || 'Request failed', res.status);
   }
 

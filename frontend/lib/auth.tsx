@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, isAuthError } from './api';
+import { SESSION_EXPIRED_EVENT } from './session';
 
 export type User = { id: string; name: string; email: string; plan: string };
 
@@ -36,6 +37,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     setLoading(false);
   }, []);
+
+  // A 401 from ANY api helper — notes, habits, budget, bio, billing — means the
+  // session is over, not that one feature is unhappy. They all report it here so
+  // the whole app agrees, instead of each showing its own polite message while
+  // the header carries on claiming you are signed in.
+  useEffect(() => {
+    const onExpired = () => { setUser(null); setExpired(true); };
+    window.addEventListener(SESSION_EXPIRED_EVENT, onExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onExpired);
+  }, []);
+
 
   // Stable identities: these are consumed inside effect dependency lists
   // (e.g. the account page's refreshUser-on-load), so a fresh reference every
@@ -98,6 +110,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       /* anything else is transient — leave the cached user as-is */
     }
   }, [persist]);
+
+  // Renew the session on arrival, once per tab.
+  //
+  // /api/user/me mints a fresh token, but it was only ever called from /account
+  // and after a Stripe upgrade — so a token was never renewed by ordinary use.
+  // You could use the site every day and still be signed out on day eight, which
+  // is exactly how the owner hit REG-034. Touching it here makes the window
+  // genuinely sliding, and surfaces a dead session on arrival rather than at the
+  // moment you try to do something with it.
+  useEffect(() => {
+    if (loading) return;
+    let token: string | null = null;
+    let alreadyDone = false;
+    try {
+      token = localStorage.getItem('dd_token');
+      alreadyDone = sessionStorage.getItem('dd_refreshed') === '1';
+    } catch {
+      return; // private mode — skip rather than retry on every render
+    }
+    if (!token || alreadyDone) return;
+    try { sessionStorage.setItem('dd_refreshed', '1'); } catch { /* ignore */ }
+    void refreshUser();
+  }, [loading, refreshUser]);
 
   return (
     <AuthContext.Provider value={{ user, loading, expired, login, register, loginWithGoogle, logout, refreshUser }}>

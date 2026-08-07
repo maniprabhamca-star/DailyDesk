@@ -1,3 +1,4 @@
+import { reportSessionExpired } from './session';
 import type { BioConfig } from './bio-themes';
 
 const API = process.env.NEXT_PUBLIC_API_URL || '';
@@ -21,6 +22,9 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     const code = String(data.error || res.status);
+    // A 401 here is not a per-feature problem: the session is over, and the
+    // auth layer has to hear about it or the app keeps looking signed in.
+    if (res.status === 401) reportSessionExpired();
     const message =
       code === 'pro-required' ? 'Link in Bio is a Pro feature.'
       : res.status === 401 ? 'Please sign in to build your page.'
