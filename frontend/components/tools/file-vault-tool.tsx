@@ -418,7 +418,7 @@ export function FileVaultTool() {
         {/* toolbar */}
         <div className="flex flex-wrap items-center gap-2 border-b bg-muted/30 px-5 py-2.5">
           <Button size="sm" onClick={() => fileInput.current?.click()} className="bg-teal-600 text-white hover:bg-teal-700"><Upload className="mr-1 size-3.5" /> Add files</Button>
-          <input ref={fileInput} type="file" multiple className="hidden" onChange={(e) => { if (e.target.files?.length) void addFiles(e.target.files); e.target.value = ''; }} />
+          <input ref={fileInput} type="file" multiple className="dd-file-input" onChange={(e) => { if (e.target.files?.length) void addFiles(e.target.files); e.target.value = ''; }} />
           <Button size="sm" variant="outline" onClick={() => void newFolder()}><FolderPlus className="mr-1 size-3.5" /> New folder</Button>
           {folder && (
             <button onClick={() => setFolder(null)} className="inline-flex items-center gap-1 rounded-lg border bg-card px-2.5 py-1.5 text-xs font-semibold">

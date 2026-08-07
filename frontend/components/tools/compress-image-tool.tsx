@@ -243,7 +243,7 @@ export function CompressImageTool() {
       <Card>
         <CardContent className="p-5">
           {/* value reset: browsers only fire change when the selection differs */}
-          <input ref={inputRef} type="file" multiple accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" className="hidden" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
+          <input ref={inputRef} type="file" multiple accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" className="dd-file-input" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
           {file && <BigFileHint bytes={file.size} threshold={500 * 1024 * 1024} />}
 
           {tooBig ? (

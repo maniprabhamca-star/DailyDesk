@@ -191,3 +191,18 @@ html.dd-splash-seen #dd-first-splash { display: none !important; }
 }
 .dd-d { transform-box: fill-box; transform-origin: center; animation: dd-d-dance 10s ease-in-out infinite; animation-delay: 0.36s; }
 @media (prefers-reduced-motion: reduce) { .dd-d { animation: none; transform: rotate(9deg); } }
+
+/* File inputs: hidden from view, but STILL RENDERED.
+   `display:none` (Tailwind's .hidden) is the documented reason a file picker
+   silently refuses to open on iOS Safari — the input isn't laid out, so the tap
+   that JavaScript forwards to it goes nowhere. Taking it off-screen instead
+   keeps it a real, clickable, focusable control in every browser, and costs no
+   layout because it is fixed-positioned. */
+.dd-file-input {
+  position: fixed;
+  left: -9999px;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}

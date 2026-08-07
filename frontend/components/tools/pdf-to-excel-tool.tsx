@@ -182,7 +182,7 @@ export function PdfToExcelTool() {
           <span className="mt-4 text-base font-semibold">Drop a PDF with tables</span>
           <span className="mt-1 text-sm text-muted-foreground">bank statements, invoices, reports — converted on your device, never uploaded</span>
         </button>
-        <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="hidden"
+        <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="dd-file-input"
           onChange={(e) => { void loadFile(e.target.files?.[0]); e.target.value = ''; }} />
         {error && error !== 'scanned' && <p className="mt-3 text-center text-sm text-destructive">{error}</p>}
         <PrivacyNote />

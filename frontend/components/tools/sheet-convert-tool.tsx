@@ -193,7 +193,7 @@ export function SheetConvertTool({
           </div>
         )}
 
-        <input ref={inputRef} type="file" accept={ACCEPT[from]} className="hidden" onChange={(e) => { void pickFile(e.target.files?.[0]); e.target.value = ''; }} />
+        <input ref={inputRef} type="file" accept={ACCEPT[from]} className="dd-file-input" onChange={(e) => { void pickFile(e.target.files?.[0]); e.target.value = ''; }} />
 
         {error && (
           <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm">

@@ -212,7 +212,7 @@ export function PassportPhotoTool() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={(e) => loadFile(e.target.files?.[0])} />
+      <input ref={inputRef} type="file" accept="image/*" className="dd-file-input" onChange={(e) => loadFile(e.target.files?.[0])} />
 
       {/* Country / document */}
       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Country &amp; document</p>

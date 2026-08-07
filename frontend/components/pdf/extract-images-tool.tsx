@@ -474,7 +474,7 @@ export function ExtractImagesTool() {
           </div>
         )}
         {/* Input stays mounted so the upgrade notice's "choose another" works. */}
-        <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
+        <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="dd-file-input" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
 
         {empty && (
           <p className="mt-4 flex items-start gap-2 rounded-md bg-sky-500/10 px-3 py-2 text-sm text-sky-700 dark:text-sky-300">

@@ -78,7 +78,7 @@ export function SvgConvertTool({ defaultFormat = 'png' }: { defaultFormat?: SvgF
           </span>
           <span className="mt-4 inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm">Choose SVG</span>
         </button>
-        <input ref={inputRef} type="file" accept=".svg,image/svg+xml" className="hidden" onChange={(e) => { void load(e.target.files?.[0]); e.target.value = ''; }} />
+        <input ref={inputRef} type="file" accept=".svg,image/svg+xml" className="dd-file-input" onChange={(e) => { void load(e.target.files?.[0]); e.target.value = ''; }} />
         {error && (
           <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
             <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />

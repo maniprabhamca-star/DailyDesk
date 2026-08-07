@@ -88,7 +88,7 @@ export function HeroLiveDemo() {
               <p className="mt-2 text-sm font-semibold">Drop a PDF to compress it</p>
               <p className="mt-0.5 text-xs text-muted-foreground">It runs in this tab — your file never uploads.</p>
               <span className="mt-4 inline-flex h-9 items-center justify-center rounded-md bg-emerald-600 px-4 text-sm font-medium text-white shadow-sm">Choose a PDF</span>
-              <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => { handle(e.target.files?.[0]); e.currentTarget.value = ''; }} />
+              <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="dd-file-input" onChange={(e) => { handle(e.target.files?.[0]); e.currentTarget.value = ''; }} />
               {err && <p className="mt-3 text-xs font-medium text-amber-600">{err}</p>}
             </div>
           ) : phase === 'working' ? (

@@ -116,7 +116,7 @@ export function ReceiptScannerTool() {
             {camOn ? <Button size="sm" variant="outline" onClick={stopCam}><CameraOff className="mr-1 size-4" /> Stop camera</Button>
               : <Button size="sm" onClick={() => void startCam()} className="bg-primary text-primary-foreground"><Camera className="mr-1 size-4" /> Use camera</Button>}
             <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()}><ImagePlus className="mr-1 size-4" /> Upload photo</Button>
-            <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void scanBlob(f); e.target.value = ''; }} />
+            <input ref={fileRef} type="file" accept="image/*" capture="environment" className="dd-file-input" onChange={(e) => { const f = e.target.files?.[0]; if (f) void scanBlob(f); e.target.value = ''; }} />
           </div>
         </div>
       )}

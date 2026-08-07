@@ -286,8 +286,8 @@ export function WatermarkTool() {
   return (
     <Card>
       <CardContent className="p-5">
-        <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
-        <input ref={logoRef} type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg" className="hidden" onChange={(e) => { pickLogo(e.target.files); e.currentTarget.value = ''; }} />
+        <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="dd-file-input" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
+        <input ref={logoRef} type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg" className="dd-file-input" onChange={(e) => { pickLogo(e.target.files); e.currentTarget.value = ''; }} />
         {handoffNote && (
           <p className="mb-3 flex items-center gap-2 rounded-lg border border-primary/25 bg-primary/[0.06] px-3 py-2 text-sm text-foreground">
             <Zap className="size-4 shrink-0 text-primary" /> {handoffNote}

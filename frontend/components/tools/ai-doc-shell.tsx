@@ -107,7 +107,7 @@ export function AiDropzone({ doc, prompt, hint }: { doc: AiDocState; prompt: str
         <span className="mt-1 text-sm text-muted-foreground">{hint || 'it opens on your device — never uploaded'}</span>
         <span className="mt-4 inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm">Choose PDF</span>
       </button>
-      <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="hidden"
+      <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="dd-file-input"
         onChange={(e) => { void doc.loadFile(e.target.files?.[0]); e.target.value = ''; }} />
       {doc.error && <p className="mt-3 text-center text-sm text-destructive">{doc.error}</p>}
       <AiPrivacyNote />

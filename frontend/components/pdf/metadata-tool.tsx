@@ -191,7 +191,7 @@ export function MetadataTool() {
             <Button size="icon" variant="ghost" aria-label="Remove" onClick={clear}><X className="size-4" /></Button>
           </div>
         )}
-        <input ref={inputRef} type="file" accept="application/pdf,.pdf" multiple className="hidden" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
+        <input ref={inputRef} type="file" accept="application/pdf,.pdf" multiple className="dd-file-input" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
 
         {/* Scan result — what this PDF quietly says about you */}
         {scan && !done && (

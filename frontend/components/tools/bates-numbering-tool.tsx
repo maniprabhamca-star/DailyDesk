@@ -80,7 +80,7 @@ export function BatesNumberingTool() {
           <span className="mt-1 text-sm text-muted-foreground">drop several — numbering runs continuously across the whole set, on your device</span>
           <span className="mt-4 inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm">Choose PDFs</span>
         </button>
-        <input ref={inputRef} type="file" accept="application/pdf,.pdf" multiple className="hidden" onChange={(e) => { addFiles(e.target.files); e.target.value = ''; }} />
+        <input ref={inputRef} type="file" accept="application/pdf,.pdf" multiple className="dd-file-input" onChange={(e) => { addFiles(e.target.files); e.target.value = ''; }} />
         {error && <p className="mt-3 text-center text-sm text-destructive">{error}</p>}
       </div>
     );
@@ -161,7 +161,7 @@ export function BatesNumberingTool() {
         <div className="mb-2 flex items-center justify-between">
           <span className="text-sm font-semibold">{files.length} file{files.length === 1 ? '' : 's'} · stamped in this order</span>
           <button onClick={() => inputRef.current?.click()} className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"><Plus className="size-3.5" /> Add more</button>
-          <input ref={inputRef} type="file" accept="application/pdf,.pdf" multiple className="hidden" onChange={(e) => { addFiles(e.target.files); e.target.value = ''; }} />
+          <input ref={inputRef} type="file" accept="application/pdf,.pdf" multiple className="dd-file-input" onChange={(e) => { addFiles(e.target.files); e.target.value = ''; }} />
         </div>
         <ul className="divide-y">
           {files.map((f, i) => (

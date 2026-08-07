@@ -12,6 +12,8 @@ import { CloudflareAnalytics } from '@/components/cloudflare-analytics';
 import { RecordRecent } from '@/components/app/record-recent';
 import { UsageBeacon } from '@/components/app/usage-beacon';
 import { ErrorBeacon } from '@/components/app/error-beacon';
+import { FilePickerRescue } from '@/components/app/file-picker-rescue';
+import { FILE_PICKER_RESCUE } from '@/lib/file-picker-rescue';
 import { SITE_URL, SITE_NAME } from '@/lib/site';
 import { faviconDataUri, isBrandVariant } from '@/components/app/brand-variants';
 
@@ -78,6 +80,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
         <noscript><style>{`#dd-first-splash{display:none!important}`}</style></noscript>
+        {/* Makes "Choose file" work in the window between the page painting and
+            React hydrating — until now a tap in there did nothing at all, with
+            no error to show for it. Must be inline and early to beat the gap. */}
+        <script dangerouslySetInnerHTML={{ __html: FILE_PICKER_RESCUE }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd) }} />
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
           <AuthProvider>
@@ -91,6 +97,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <RecordRecent />
             <UsageBeacon />
             <ErrorBeacon />
+            <FilePickerRescue />
           </AuthProvider>
           <CloudflareAnalytics />
         </ThemeProvider>

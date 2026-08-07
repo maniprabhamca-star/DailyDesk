@@ -123,7 +123,7 @@ export function CompressVideoTool() {
             )}
           </>
         )}
-        <input ref={inputRef} type="file" accept="video/*,.mp4,.webm,.mov,.m4v,.avi,.mkv,.ogg" className="hidden"
+        <input ref={inputRef} type="file" accept="video/*,.mp4,.webm,.mov,.m4v,.avi,.mkv,.ogg" className="dd-file-input"
           onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
 
         {file && <BigFileHint bytes={file.size} threshold={150 * 1024 * 1024} />}

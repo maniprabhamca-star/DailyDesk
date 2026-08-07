@@ -202,7 +202,7 @@ export function StatementConverterTool() {
             It’s read <b className="text-foreground">on your device</b> — never uploaded. Every row is checked against the running balance before you export.
           </span>
         </button>
-        <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="hidden"
+        <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="dd-file-input"
           onChange={(e) => { void load(e.target.files?.[0]); e.target.value = ''; }} />
         {error && <p className="mt-3 text-center text-sm text-destructive">{error}</p>}
         <Notes />

@@ -258,7 +258,7 @@ export function RotateTool() {
             <p className="text-xs text-muted-foreground">See every page and rotate them visually</p>
             <span className="mt-4 inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm">Choose PDF</span>
             <p className="mt-3 flex items-center gap-1.5 text-[11px] text-muted-foreground"><Sparkles className="size-3 text-amber-500" /> Drop <b className="font-semibold text-foreground">several at once</b> to rotate them together — on your device <span className="rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-1.5 py-px text-[9px] font-bold uppercase text-white">Pro</span></p>
-            <input ref={inputRef} type="file" accept="application/pdf,.pdf" multiple className="hidden" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
+            <input ref={inputRef} type="file" accept="application/pdf,.pdf" multiple className="dd-file-input" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
           </div>
         ) : (
           <>

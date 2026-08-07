@@ -106,7 +106,7 @@ export function WordCounterTool() {
             />
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()}><Upload className="size-4" /> Open .txt</Button>
-              <input ref={fileRef} type="file" accept=".txt,text/plain" className="hidden" onChange={(e) => { uploadTxt(e.target.files); e.currentTarget.value = ''; }} />
+              <input ref={fileRef} type="file" accept=".txt,text/plain" className="dd-file-input" onChange={(e) => { uploadTxt(e.target.files); e.currentTarget.value = ''; }} />
               <Button size="sm" variant="outline" onClick={copyText} disabled={!text}>{copied ? <Check className="size-4" /> : <Copy className="size-4" />} Copy</Button>
               <Button size="sm" variant="outline" onClick={() => setText('')} disabled={!text}><Eraser className="size-4" /> Clear</Button>
               <span className="mx-1 hidden h-5 w-px bg-border sm:block" />

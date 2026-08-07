@@ -194,7 +194,7 @@ export function HtmlToExcelTool() {
           </div>
         )}
 
-        <input ref={inputRef} type="file" accept=".html,.htm,.xhtml,text/html" className="hidden"
+        <input ref={inputRef} type="file" accept=".html,.htm,.xhtml,text/html" className="dd-file-input"
           onChange={(e) => { void pickFile(e.target.files?.[0]); e.target.value = ''; }} />
 
         {error && (

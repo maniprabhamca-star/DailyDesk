@@ -128,7 +128,7 @@ export function SignatureMaker({ onClose, onCreate }: { onClose: () => void; onC
           <h3 className="text-base font-semibold">Add a signature</h3>
           <button onClick={onClose} aria-label="Close" className="text-muted-foreground hover:text-foreground"><X className="size-5" /></button>
         </div>
-        <input ref={uploadRef} type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg" className="hidden" onChange={(e) => { useUpload(e.target.files); e.currentTarget.value = ''; }} />
+        <input ref={uploadRef} type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg" className="dd-file-input" onChange={(e) => { useUpload(e.target.files); e.currentTarget.value = ''; }} />
         <div className="grid grid-cols-3 gap-2">
           {tab('draw', <PenTool className="size-4" />, 'Draw')}
           {tab('type', <TypeIcon className="size-4" />, 'Type')}

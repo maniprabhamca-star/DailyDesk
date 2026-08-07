@@ -127,14 +127,14 @@ export function ScanQrTool() {
           <p className="text-xs text-muted-foreground">Tip: you can also just press Ctrl+V (⌘+V) to paste a screenshot</p>
           <span className="mt-4 inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm">Choose image</span>
         </div>
-        <input ref={inputRef} type="file" accept="image/*,.png,.jpg,.jpeg,.webp,.gif,.bmp" className="hidden"
+        <input ref={inputRef} type="file" accept="image/*,.png,.jpg,.jpeg,.webp,.gif,.bmp" className="dd-file-input"
           onChange={(e) => { void scan(e.target.files?.[0]); e.currentTarget.value = ''; }} />
         {touch && (
           <>
             <Button variant="outline" className="mt-3 w-full" onClick={() => cameraRef.current?.click()}>
               <Camera className="size-4" /> Take a photo of the code
             </Button>
-            <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden"
+            <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="dd-file-input"
               onChange={(e) => { void scan(e.target.files?.[0]); e.currentTarget.value = ''; }} />
           </>
         )}
