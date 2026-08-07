@@ -9,6 +9,14 @@ Priority: **P0** blocker / promise-guard · **P1** core · **P2** edge/polish.
 
 ---
 
+> **Implemented (2026-08-06):** XC-001 → XC-005 and the SEO/sitemap cases are
+> live in `frontend/tests/e2e/xc-crosscutting.spec.ts`, driven by
+> `_routes.ts` — which reads `app/sitemap.ts`, `DEFAULT_TOOL_FLAGS` and the
+> catalog, so the route list can never drift from the app. Engine journeys are
+> in `engines.spec.ts` (real files via `_fixtures.ts`); the file-picker
+> regressions are in `file-picker.spec.ts`. XC-006 (theme contrast), XC-007
+> (axe) and XC-008 (reduced motion) are still to write.
+
 ## Part 1 — Cross-cutting scenarios (run against EVERY route)
 
 Data-driven: one spec iterates the full route list. `XC-*` cases.

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useClientCapability } from '@/lib/use-client-capability';
 import { Copy, Check, Pipette } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -71,7 +72,8 @@ export function ColorPickerTool() {
   const [typed, setTyped] = useState('#7c3aed');
   const rgb = hexToRgb(hex)!;
   const hsl = rgbToHsl(rgb);
-  const canEyedrop = typeof window !== 'undefined' && 'EyeDropper' in window;
+  // Detected after mount so the server and the first client render agree.
+  const canEyedrop = useClientCapability(() => 'EyeDropper' in window) === true;
 
   function setColor(h: string) {
     setHex(h);

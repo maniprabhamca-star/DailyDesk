@@ -6,6 +6,10 @@ export const metadata: Metadata = {
   title: 'Receipt Scanner — Snap to Budget | DiemDesk',
   description: 'Photograph a receipt and it reads the amount, store and date — then saves straight to your budget. A Pro tool; the photo is scanned and deleted.',
   alternates: { canonical: '/receipt-scanner' },
+  // Gated (coming_soon): a thin "coming soon" page must not be indexed — it
+  // would rank, convert nobody, and have to earn its way back after launch.
+  // Remove this line the day the tool un-gates.
+  robots: { index: false, follow: true },
   openGraph: { images: ['/og.png'], title: 'Receipt Scanner — snap a receipt into your budget', description: 'Reads the amount, store and date from a receipt photo and saves it to your budget. The photo is never kept.', type: 'website' },
 };
 

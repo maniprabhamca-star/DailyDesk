@@ -23,6 +23,8 @@ const ROUTES: Array<{ path: string; priority: number; changeFrequency: MetadataR
   { path: '/pdf-to-word', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/pdf-to-excel', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/pdf-to-markdown', priority: 0.9, changeFrequency: 'monthly' },
+  // Gated tools are deliberately absent — a coming-soon page in the sitemap
+  // tells crawlers to index a locked door, and contradicts its own noindex.
   // /pdf-to-epub · /html-to-excel · /video-to-mp3 · /audio-converter are
   // deliberately absent: they are coming_soon (owner-only) in lib/tool-flags.tsx,
   // and a gated route must never be advertised to crawlers. Add them back the
@@ -63,16 +65,9 @@ const ROUTES: Array<{ path: string; priority: number; changeFrequency: MetadataR
   { path: '/wifi-qr-code', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/vcard-qr-code', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/password-generator', priority: 0.9, changeFrequency: 'monthly' },
-  { path: '/chat-pdf', priority: 0.8, changeFrequency: 'monthly' },
-  { path: '/summarize-pdf', priority: 0.8, changeFrequency: 'monthly' },
-  { path: '/translate-pdf', priority: 0.8, changeFrequency: 'monthly' },
-  { path: '/pdf-question-generator', priority: 0.8, changeFrequency: 'monthly' },
-  { path: '/file-vault', priority: 0.8, changeFrequency: 'monthly' },
-  { path: '/link-in-bio', priority: 0.8, changeFrequency: 'monthly' },
   { path: '/notes', priority: 0.8, changeFrequency: 'monthly' },
   { path: '/habits', priority: 0.8, changeFrequency: 'monthly' },
   { path: '/budget', priority: 0.8, changeFrequency: 'monthly' },
-  { path: '/receipt-scanner', priority: 0.8, changeFrequency: 'monthly' },
   { path: '/tools', priority: 0.8, changeFrequency: 'weekly' },
   { path: '/pricing', priority: 0.8, changeFrequency: 'monthly' },
   { path: '/overview', priority: 0.7, changeFrequency: 'monthly' },

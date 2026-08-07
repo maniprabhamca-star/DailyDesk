@@ -4,7 +4,7 @@ import { PdfToAudioTool } from '@/components/tools/pdf-to-audio-tool';
 
 export const metadata: Metadata = {
   title: 'PDF to Audio — Read PDFs Aloud Free | DiemDesk',
-  description: 'Listen to any PDF read aloud — pick a voice, set the pace, follow the highlighted text. Runs in your browser with your device’s own voice; nothing uploaded.',
+  description: 'Listen to any PDF read aloud — pick a voice, set the pace, follow the text. Runs in your browser with your device’s own voice; nothing uploaded.',
   alternates: { canonical: '/pdf-to-audio' },
   openGraph: {
     images: ['/og.png'],

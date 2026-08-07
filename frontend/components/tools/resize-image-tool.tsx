@@ -1,6 +1,7 @@
 'use client';
 
 import { formatDuration } from '@/lib/format';
+import { useClientCapability } from '@/lib/use-client-capability';
 import { useEffect, useRef, useState } from 'react';
 import { Upload, X, Download, Loader2, ImageIcon, CheckCircle2, RotateCcw, Link2, Unlink2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -43,7 +44,7 @@ export function ResizeImageTool() {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ blob: Blob; name: string; url: string; w: number; h: number; secs: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const webpOk = typeof window !== 'undefined' && canEncodeWebp();
+  const webpOk = useClientCapability(canEncodeWebp) === true;
 
   useEffect(() => () => { if (srcUrl) URL.revokeObjectURL(srcUrl); if (done) URL.revokeObjectURL(done.url); }, [srcUrl, done]);
 

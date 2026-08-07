@@ -6,6 +6,9 @@ export const metadata: Metadata = {
   title: "Client Packet Builder — Document Workflow | DiemDesk",
   description: 'Build polished client document packets with a guided workflow for merge, cleanup, signing, share-safe checks, and compression.',
   alternates: { canonical: '/client-packet-builder' },
+  // Gated (coming_soon): a thin "coming soon" page must not be indexed.
+  // Remove this line the day the tool un-gates.
+  robots: { index: false, follow: true },
 };
 
 const steps = [

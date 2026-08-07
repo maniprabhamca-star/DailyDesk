@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useClientCapability } from '@/lib/use-client-capability';
 import { Upload, FileText, Loader2, Play, Pause, Square, X, Volume2, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { extractSpeechText } from '@/lib/pdf-speech';
@@ -25,7 +26,10 @@ export function PdfToAudioTool() {
   const stopRef = useRef(false);
   const activeRef = useRef<HTMLSpanElement | null>(null);
 
-  const supported = typeof window !== 'undefined' && 'speechSynthesis' in window;
+  // undefined until detected: assume read-aloud works rather than flashing a
+  // 'not supported' warning at everyone for one frame.
+  const detected = useClientCapability(() => 'speechSynthesis' in window);
+  const supported = detected !== false;
 
   // Load the browser's voices (populated asynchronously in some browsers).
   useEffect(() => {

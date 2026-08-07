@@ -7,7 +7,9 @@ import { api } from './api';
 export type ToolStatus = 'enabled' | 'coming_soon' | 'pro' | 'disabled';
 type FlagMap = Record<string, ToolStatus>;
 
-const DEFAULT_TOOL_FLAGS: FlagMap = {
+// Exported so the E2E suite can derive the gated-route list from the app itself
+// rather than a hand-maintained copy that drifts (see REG-111).
+export const DEFAULT_TOOL_FLAGS: FlagMap = {
   '/edit-pdf': 'coming_soon',
   // Saved Workflows — Pro, owner-only until Pro launch.
   '/workflows': 'coming_soon',

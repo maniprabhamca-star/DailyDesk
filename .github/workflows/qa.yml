@@ -1,10 +1,13 @@
 name: QA
 
 # DiemDesk quality gate — see docs/qa/qa-master-plan.md §6.
-# Phase 1: typecheck + unit + prod build are the BLOCKING gate (no backend
-# needed). E2E runs best-effort (uploads a report, doesn't block) until a
-# backend/mock is wired into CI — the frontend calls a separate Express API that
-# isn't present here, so backend-dependent journeys can't be gated yet.
+#
+# Blocking: typecheck + unit + service-worker + production build.
+# Blocking: the E2E suite on chromium — it needs no backend (every journey it
+#   covers is on-device), so there is no excuse for it to be advisory.
+# Advisory: firefox and webkit, which catch engine differences (REG-015, the
+#   iOS file-picker bug, is exactly this class) but occasionally flake on the
+#   runner. Promote to blocking once they've been quiet for a fortnight.
 
 on:
   push:
@@ -13,6 +16,10 @@ on:
   pull_request:
     paths: ['frontend/**', '.github/workflows/qa.yml']
   workflow_dispatch: {}
+  schedule:
+    # Nightly full run: every browser, plus the throttled pass. Catches the
+    # slow-device failures nobody reproduces on a laptop.
+    - cron: '0 3 * * *'
 
 defaults:
   run:
@@ -51,10 +58,15 @@ jobs:
           include-hidden-files: true
 
   e2e:
-    name: E2E (best-effort, chromium)
+    name: E2E — ${{ matrix.project }}
     runs-on: ubuntu-latest
     needs: quality
-    continue-on-error: true   # informational until a backend/mock lands in CI
+    # chromium blocks the build; the other engines report but don't block yet.
+    continue-on-error: ${{ matrix.project != 'chromium' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [chromium, firefox, webkit, mobile]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -70,14 +82,43 @@ jobs:
           path: frontend/.next
       - name: Generate the service worker (lives in public/, not in .next)
         run: npm run sw
-      - name: Install Playwright chromium
-        run: npx playwright install --with-deps chromium
-      - name: Run E2E (chromium only)
-        run: npx playwright test --project=chromium
+      - name: Install the browser for this project
+        run: npx playwright install --with-deps ${{ matrix.project == 'mobile' && 'chromium' || matrix.project }}
+      - name: Run E2E
+        run: npx playwright test --project=${{ matrix.project }}
       - name: Upload Playwright report
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.project }}
+          path: frontend/playwright-report
+          retention-days: 7
+
+  throttled:
+    name: E2E — slow device (nightly)
+    runs-on: ubuntu-latest
+    needs: quality
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: next-build
+          path: frontend/.next
+      - run: npm run sw
+      - run: npx playwright install --with-deps chromium
+      - name: Slow-3G + 4× CPU
+        run: npx playwright test --project=chromium-slow
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report-slow
           path: frontend/playwright-report
           retention-days: 7

@@ -7,6 +7,10 @@ export const metadata: Metadata = {
   description:
     "Convert an HTML page, text file, RTF or ODT to PDF free — layout and fonts preserved. Sent encrypted, converted and deleted from our server at once.",
   alternates: { canonical: '/html-to-pdf' },
+  // Gated (coming_soon): a thin "coming soon" page must not be indexed — it
+  // would rank, convert nobody, and have to earn its way back after launch.
+  // Remove this line the day the tool un-gates.
+  robots: { index: false, follow: true },
   openGraph: {
     images: ['/og.png'],
     title: 'HTML to PDF — Convert HTML, TXT, RTF & ODT to PDF Free | DiemDesk',

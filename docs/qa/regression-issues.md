@@ -28,6 +28,18 @@ Status: 🔴 test not written · 🟡 test written, not in CI · 🟢 guarded in
 | REG-013 | **Recurring: dev service-worker serves stale home shell** (cost time ×3 this session) | `XC-013` + a dev-checklist doc note; SW `test:sw` (17/17); prod SSR asserted fresh | mixed | 🟡 |
 | REG-014 | Showcase-wall shipped but **must stay off in prod** pending decision | `HOME-003`: with `SHOW_SHOWCASE_WALL=false`, wall not in prod HTML | E2E/SSR assert | 🟢 (verified on prod) |
 
+## Live-user reports (2026-08-06)
+
+| ID | Issue (owner-raised / found) | Guarding test | Layer | Status |
+|---|---|---|---|---|
+| REG-015 | **File picker never opened for a real user.** The input was `display:none` (Tailwind `.hidden`) — the documented reason iOS Safari refuses to open a picker: the element isn't laid out, so the forwarded tap goes nowhere. Failed consistently for some browsers, never for others. | `file-picker.spec.ts` → *no file input is display:none* (per tool page) + *does not reintroduce `.hidden`* — **runs on WebKit**, the engine that punishes it | E2E ×4 engines | 🟢 |
+| REG-016 | **Dead window before hydration.** Every dropzone opened the picker from a React `onClick` and the served HTML has no `<label for>`, so a tap between first paint and hydration did **nothing** — silently, with no error for the beacon to catch. | `file-picker.spec.ts` → *rescue script is served, parses, and is early* (also asserts **no `//` comments**, after a one-line minified version commented out the whole script) + *a click in the dead window opens the picker, and only once* | E2E | 🟢 |
+| REG-017 | **Hydration mismatch on `/color-picker` + `/pdf-to-audio`** (React #418/#423). Capability checks (`'EyeDropper' in window`, `'speechSynthesis' in window`) ran during render, so the server said false and the browser said true. React then discarded the server DOM and re-rendered — which *lengthens* the REG-016 dead window. **Found by the new suite, not by a user.** | `xc-crosscutting.spec.ts` → XC-002 console-error assertion on every route; fixed with `lib/use-client-capability.ts` | E2E, all routes | 🟢 |
+| REG-018 | **Titles over 60 characters** get truncated in search results (silent click-through loss). `/bates-numbering` was 61. | `xc-crosscutting.spec.ts` → XC-003 title ≤60 / description ≤155 on **every** route | E2E, all routes | 🟢 |
+| REG-019 | A public tool **missing from the sitemap** is invisible to search; a gated tool **present** in it advertises a locked door. | `xc-crosscutting.spec.ts` → *no gated route is advertised* + *every public route is advertised* + *every advertised URL is real and indexable* | E2E | 🟢 |
+| REG-020 | A catalog tile pointing at a **missing page** (404) — the kind of thing a rename leaves behind. | `file-picker.spec.ts` → *every tool tile points at a real page* | E2E | 🟢 |
+| REG-021 | **Every pre-existing gated tool was still `index, follow`** — `/chat-pdf`, `/ocr-pdf`, `/redact-pdf`, `/file-vault`, `/workflows` and 9 more were serving a "coming soon" panel to Google. Found by the suite, not by a person; 14 pages fixed. | `xc-crosscutting.spec.ts` → XC-004 *gated ⇒ noindex* on every route | E2E, all routes | 🟢 |
+
 ## Historical (from project memory — seed the suite)
 
 | ID | Issue | Guarding test | Status |

@@ -8,6 +8,10 @@ export const metadata: Metadata = {
   title: 'Bank Statement to Excel — In Your Browser | DiemDesk',
   description: 'Convert a bank statement PDF to Excel or CSV, every row checked against the running balance. Processed on your device — never uploaded.',
   alternates: { canonical: '/bank-statement-converter' },
+  // Gated (coming_soon): a thin "coming soon" page must not be indexed — it
+  // would rank, convert nobody, and have to earn its way back after launch.
+  // Remove this line the day the tool un-gates.
+  robots: { index: false, follow: true },
   openGraph: {
     images: ['/og.png'],
     title: 'Bank Statement Converter — never uploaded',

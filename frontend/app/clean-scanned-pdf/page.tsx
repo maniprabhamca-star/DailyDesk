@@ -6,6 +6,9 @@ export const metadata: Metadata = {
   title: 'Clean Scanned PDF - Improve Scan Readability | DiemDesk',
   description: 'Clean scanned PDFs in your browser with grayscale, contrast, and black-and-white modes. Your file stays on your device.',
   alternates: { canonical: '/clean-scanned-pdf' },
+  // Gated (coming_soon): a thin "coming soon" page must not be indexed.
+  // Remove this line the day the tool un-gates.
+  robots: { index: false, follow: true },
 };
 
 const steps = [

@@ -6,6 +6,10 @@ export const metadata: Metadata = {
   title: 'Translate PDF with AI — 30+ Languages, Private | DiemDesk',
   description: 'Translate PDF text into 30+ languages with tone control, a glossary and translator notes. The file never leaves your browser. Export Word or PDF.',
   alternates: { canonical: '/translate-pdf' },
+  // Gated (coming_soon): a thin "coming soon" page must not be indexed — it
+  // would rank, convert nobody, and have to earn its way back after launch.
+  // Remove this line the day the tool un-gates.
+  robots: { index: false, follow: true },
   openGraph: { images: ['/og.png'], title: 'Translate PDF — faithful, side-by-side, private', description: 'Clean translated text beside the original, with notes on ambiguous terms. The file never leaves your device.', type: 'website' },
 };
 

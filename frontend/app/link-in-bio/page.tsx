@@ -6,6 +6,10 @@ export const metadata: Metadata = {
   title: 'Link in Bio — One Page for All Your Links | DiemDesk',
   description: 'Build a clean link-in-bio page at your own diemdesk.com/u/handle — links, avatar, themes. A Pro feature, with no ads on your page.',
   alternates: { canonical: '/link-in-bio' },
+  // Gated (coming_soon): a thin "coming soon" page must not be indexed — it
+  // would rank, convert nobody, and have to earn its way back after launch.
+  // Remove this line the day the tool un-gates.
+  robots: { index: false, follow: true },
   openGraph: { images: ['/og.png'], title: 'Link in Bio — one page for all your links', description: 'A clean, ad-free link page at diemdesk.com/u/your-handle.', type: 'website' },
 };
 

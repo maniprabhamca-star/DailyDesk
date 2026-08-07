@@ -7,6 +7,10 @@ export const metadata: Metadata = {
   description:
     'Store sensitive documents in a vault encrypted on your device — own passphrase, recovery key, AES-256. We store sealed boxes we cannot open. Ever.',
   alternates: { canonical: '/file-vault' },
+  // Gated (coming_soon): a thin "coming soon" page must not be indexed — it
+  // would rank, convert nobody, and have to earn its way back after launch.
+  // Remove this line the day the tool un-gates.
+  robots: { index: false, follow: true },
   openGraph: { images: ['/og.png'], title: 'File Vault — storage we cannot read', description: 'Encrypted on your device before upload. Even file names are sealed. A vault only you can open.', type: 'website' },
 };
 

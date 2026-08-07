@@ -1,5 +1,15 @@
 # DiemDesk — QA Master Plan
 
+> **Phase 1 is built (2026-08-06).** `frontend/tests/e2e/` now holds a real
+> multi-browser suite: `_routes.ts` (route list derived from the app itself),
+> `_fixtures.ts` (real files generated per run), `xc-crosscutting.spec.ts`,
+> `file-picker.spec.ts`, `engines.spec.ts`, plus the existing home/smoke/throttle
+> specs. Run it with `npm run test:e2e` (chromium) or `npm run test:e2e:all`
+> (chromium + firefox + webkit + mobile). CI gates on chromium; the other engines
+> report. It found four real defects on its first run — see
+> [`regression-issues.md`](regression-issues.md) REG-017 → REG-020.
+
+
 The single source of truth for how DiemDesk is tested. Paired with
 [`test-catalog.md`](test-catalog.md) (every scenario, page by page) and
 [`regression-issues.md`](regression-issues.md) (every issue we've hit → the test that

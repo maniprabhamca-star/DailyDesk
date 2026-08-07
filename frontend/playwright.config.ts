@@ -18,8 +18,13 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
-  timeout: 60_000,
-  expect: { timeout: 10_000 },
+  // Generous on purpose: these journeys run real engines (pdf.js, WASM, canvas)
+  // on a cold cache, and a laptop mid-build is slower than CI.
+  timeout: 90_000,
+  expect: { timeout: 15_000 },
+  // One worker locally — several headless Chromes each decoding a PDF is what
+  // turns a real pass into a flaky one on a developer machine.
+  workers: process.env.CI ? 2 : 1,
   use: {
     baseURL: BASE,
     trace: 'on-first-retry',
@@ -36,12 +41,17 @@ export default defineConfig({
     { name: 'chromium-slow', use: { ...devices['Desktop Chrome'] } },
   ],
   // CI builds then serves the prod bundle; locally reuse an already-running :3100.
+  //
+  // ⚠ `reuseExistingServer` will happily reuse a server started from an OLDER
+  // build — `next start` serves whatever .next held when it booted, so a rebuild
+  // does not reach it. If a fix "doesn't take", kill the process on :3100 and
+  // rerun; set E2E_FRESH_SERVER=1 to force a new one.
   webServer: process.env.E2E_NO_SERVER
     ? undefined
     : {
         command: 'npm run start -- -p ' + PORT,
         url: BASE,
-        reuseExistingServer: !process.env.CI,
+        reuseExistingServer: !process.env.CI && !process.env.E2E_FRESH_SERVER,
         timeout: 120_000,
       },
 });

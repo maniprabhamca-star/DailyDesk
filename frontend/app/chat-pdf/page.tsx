@@ -6,6 +6,10 @@ export const metadata: Metadata = {
   title: 'Chat with PDF — Ask Your Document, Private | DiemDesk',
   description: 'Ask any PDF questions and get answers with the exact page — the file never leaves your browser. Only relevant snippets go to the AI. Private by design.',
   alternates: { canonical: '/chat-pdf' },
+  // Gated (coming_soon): a thin "coming soon" page must not be indexed — it
+  // would rank, convert nobody, and have to earn its way back after launch.
+  // Remove this line the day the tool un-gates.
+  robots: { index: false, follow: true },
   openGraph: { images: ['/og.png'], title: 'Chat with PDF — private, cited answers', description: 'Ask your PDF and get answers with the page they came from. The file never leaves your device.', type: 'website' },
 };
 

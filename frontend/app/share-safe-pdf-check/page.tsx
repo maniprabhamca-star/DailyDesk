@@ -6,6 +6,9 @@ export const metadata: Metadata = {
   title: 'Share-Safe PDF Check - Private PDF Risk Checker | DiemDesk',
   description: 'Check a PDF for hidden metadata, risky visible text, links, and annotations before sharing. Runs privately in your browser.',
   alternates: { canonical: '/share-safe-pdf-check' },
+  // Gated (coming_soon): a thin "coming soon" page must not be indexed.
+  // Remove this line the day the tool un-gates.
+  robots: { index: false, follow: true },
 };
 
 const steps = [

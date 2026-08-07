@@ -6,6 +6,9 @@ export const metadata: Metadata = {
   title: 'Compare PDF - Find PDF Changes Privately | DiemDesk',
   description: 'Compare two PDFs in your browser. See page changes, added words, removed words, and a private on-device comparison report.',
   alternates: { canonical: '/compare-pdf' },
+  // Gated (coming_soon): a thin "coming soon" page must not be indexed.
+  // Remove this line the day the tool un-gates.
+  robots: { index: false, follow: true },
 };
 
 const steps = [

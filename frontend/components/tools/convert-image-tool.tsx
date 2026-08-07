@@ -1,6 +1,7 @@
 'use client';
 
 import { formatDuration } from '@/lib/format';
+import { useClientCapability } from '@/lib/use-client-capability';
 import { useEffect, useRef, useState } from 'react';
 import { Upload, X, Download, Loader2, Repeat, CheckCircle2, RotateCcw, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -38,7 +39,7 @@ export function ConvertImageTool() {
   const [beforePrev, setBeforePrev] = useState<{ url: string; w: number; h: number } | null>(null);
   const prevCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const webpOk = typeof window !== 'undefined' && canEncodeWebp();
+  const webpOk = useClientCapability(canEncodeWebp) === true;
 
   useEffect(() => () => { if (done) URL.revokeObjectURL(done.url); }, [done]);
   useEffect(() => () => { setBeforePrev((p) => { if (p) URL.revokeObjectURL(p.url); return null; }); }, []);

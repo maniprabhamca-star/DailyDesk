@@ -6,6 +6,10 @@ export const metadata: Metadata = {
   title: 'Summarize PDF with AI — Page-Cited, Private | DiemDesk',
   description: 'AI PDF summarizer with page citations you can check. Pick length, format, audience and language — the file never leaves your browser. Export PDF or Word.',
   alternates: { canonical: '/summarize-pdf' },
+  // Gated (coming_soon): a thin "coming soon" page must not be indexed — it
+  // would rank, convert nobody, and have to earn its way back after launch.
+  // Remove this line the day the tool un-gates.
+  robots: { index: false, follow: true },
   openGraph: { images: ['/og.png'], title: 'Summarize PDF — cited, checkable, private', description: 'Every claim in the summary carries the page it came from. The file never leaves your device.', type: 'website' },
 };
 

@@ -3,8 +3,8 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { BatesNumberingTool } from '@/components/tools/bates-numbering-tool';
 
 export const metadata: Metadata = {
-  title: 'Bates Numbering — Stamp PDFs Free, In Your Browser | DiemDesk',
-  description: 'Add sequential Bates numbers to PDFs for legal discovery — prefix, start number, padding and position, continuous across many files. On-device, never uploaded.',
+  title: 'Bates Numbering — Stamp PDFs in Your Browser | DiemDesk',
+  description: 'Add sequential Bates numbers to PDFs for legal discovery — prefix, start, padding, position, continuous across files. On-device, never uploaded.',
   alternates: { canonical: '/bates-numbering' },
   openGraph: {
     images: ['/og.png'],

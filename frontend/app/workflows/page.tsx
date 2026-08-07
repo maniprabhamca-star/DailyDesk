@@ -5,7 +5,7 @@ import { WorkflowsTool } from '@/components/tools/workflows-tool';
 export const metadata: Metadata = {
   title: 'Workflows — Chain PDF Tools Into One Drop | DiemDesk',
   description:
-    'Build a document assembly line — merge, clean, number, protect, compress — save it, then run the whole chain on a file in one drop. Every step on your device.',
+    'Build a document assembly line — merge, clean, number, protect, compress — save it, then run the chain in one drop. Every step on your device.',
   alternates: { canonical: '/workflows' },
   robots: { index: false, follow: false },
   openGraph: {

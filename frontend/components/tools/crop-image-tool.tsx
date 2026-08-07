@@ -1,6 +1,7 @@
 'use client';
 
 import { formatDuration } from '@/lib/format';
+import { useClientCapability } from '@/lib/use-client-capability';
 import { useEffect, useRef, useState } from 'react';
 import { Upload, X, Download, Loader2, Crop, CheckCircle2, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -43,7 +44,7 @@ export function CropImageTool() {
   const inputRef = useRef<HTMLInputElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const gesture = useRef<{ mode: 'move' | 'resize'; dx: number; dy: number } | null>(null);
-  const webpOk = typeof window !== 'undefined' && canEncodeWebp();
+  const webpOk = useClientCapability(canEncodeWebp) === true;
 
   useEffect(() => () => { if (srcUrl) URL.revokeObjectURL(srcUrl); if (done) URL.revokeObjectURL(done.url); }, [srcUrl, done]);
 

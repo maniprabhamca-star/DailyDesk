@@ -7,6 +7,10 @@ export const metadata: Metadata = {
   description:
     "Turn a scanned PDF or image into a searchable PDF and pull out the text with OCR — free. Pages recognised securely and deleted immediately.",
   alternates: { canonical: '/ocr-pdf' },
+  // Gated (coming_soon): a thin "coming soon" page must not be indexed — it
+  // would rank, convert nobody, and have to earn its way back after launch.
+  // Remove this line the day the tool un-gates.
+  robots: { index: false, follow: true },
   openGraph: {
     images: ['/og.png'],
     title: 'OCR PDF — Make Scanned PDFs Searchable & Extract Text Free | DiemDesk',
