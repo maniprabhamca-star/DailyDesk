@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-08-08T22:29:56.491Z",
+  "generatedAt": "2026-08-08T23:37:49.686Z",
   "totals": {
-    "e2e": 384,
-    "e2ePassed": 382,
-    "e2eFailed": 2,
+    "e2e": 381,
+    "e2ePassed": 381,
+    "e2eFailed": 0,
     "unit": 127,
     "unitPassed": 127,
     "unitFailed": 0
@@ -11,11 +11,11 @@
   "projects": [
     {
       "project": "chromium",
-      "total": 384,
-      "passed": 382,
-      "failed": 2,
+      "total": 381,
+      "passed": 381,
+      "failed": 0,
       "skipped": 0,
-      "durationMs": 2456335,
+      "durationMs": 559432,
       "scenarios": [
         {
           "file": "account.spec.ts",
@@ -23,7 +23,7 @@
           "title": "the subscription panel never spins forever on an error",
           "ok": true,
           "status": "passed",
-          "ms": 3348
+          "ms": 2325
         },
         {
           "file": "account.spec.ts",
@@ -31,7 +31,7 @@
           "title": "a raw backend error is never shown to a person",
           "ok": true,
           "status": "passed",
-          "ms": 2526
+          "ms": 1662
         },
         {
           "file": "account.spec.ts",
@@ -39,7 +39,7 @@
           "title": "an expired token signs you out and explains why",
           "ok": true,
           "status": "passed",
-          "ms": 2638
+          "ms": 837
         },
         {
           "file": "account.spec.ts",
@@ -47,7 +47,7 @@
           "title": "the ledger lists the empty rows too",
           "ok": true,
           "status": "passed",
-          "ms": 2661
+          "ms": 792
         },
         {
           "file": "account.spec.ts",
@@ -55,7 +55,7 @@
           "title": "both GDPR exits are present",
           "ok": true,
           "status": "passed",
-          "ms": 2640
+          "ms": 723
         },
         {
           "file": "account.spec.ts",
@@ -63,7 +63,7 @@
           "title": "deleting needs the email typed, not just a click",
           "ok": true,
           "status": "passed",
-          "ms": 2991
+          "ms": 1128
         },
         {
           "file": "account.spec.ts",
@@ -71,7 +71,7 @@
           "title": "the plan badge does not claim Active with nothing to bill",
           "ok": true,
           "status": "passed",
-          "ms": 2892
+          "ms": 848
         },
         {
           "file": "account.spec.ts",
@@ -79,7 +79,7 @@
           "title": "/ does not scroll sideways at 375 when signed in",
           "ok": true,
           "status": "passed",
-          "ms": 4668
+          "ms": 1281
         },
         {
           "file": "account.spec.ts",
@@ -87,7 +87,7 @@
           "title": "/account does not scroll sideways at 375 when signed in",
           "ok": true,
           "status": "passed",
-          "ms": 2349
+          "ms": 776
         },
         {
           "file": "account.spec.ts",
@@ -95,7 +95,7 @@
           "title": "/compress-pdf does not scroll sideways at 375 when signed in",
           "ok": true,
           "status": "passed",
-          "ms": 2511
+          "ms": 1067
         },
         {
           "file": "engines.spec.ts",
@@ -103,7 +103,7 @@
           "title": "CSV → Excel: separator sniffed, quoted separator kept in one cell",
           "ok": true,
           "status": "passed",
-          "ms": 10010
+          "ms": 4453
         },
         {
           "file": "engines.spec.ts",
@@ -111,7 +111,7 @@
           "title": "Excel → CSV round-trips what CSV → Excel wrote",
           "ok": true,
           "status": "passed",
-          "ms": 9495
+          "ms": 3032
         },
         {
           "file": "engines.spec.ts",
@@ -119,7 +119,7 @@
           "title": "JSON → Excel flattens nesting and unions fields",
           "ok": true,
           "status": "passed",
-          "ms": 4836
+          "ms": 1410
         },
         {
           "file": "engines.spec.ts",
@@ -127,7 +127,7 @@
           "title": "XML → Excel makes the repeating element the rows",
           "ok": true,
           "status": "passed",
-          "ms": 5440
+          "ms": 1576
         },
         {
           "file": "engines.spec.ts",
@@ -135,7 +135,7 @@
           "title": "PDF → text drops the running head and rejoins the hyphen",
           "ok": true,
           "status": "passed",
-          "ms": 18414
+          "ms": 2470
         },
         {
           "file": "engines.spec.ts",
@@ -143,7 +143,7 @@
           "title": "Markdown → PDF keeps the maths and drops the asterisks",
           "ok": true,
           "status": "passed",
-          "ms": 9751
+          "ms": 1832
         },
         {
           "file": "engines.spec.ts",
@@ -151,7 +151,7 @@
           "title": "subtitles: SRT → VTT is a real rewrite, not a rename",
           "ok": true,
           "status": "passed",
-          "ms": 4360
+          "ms": 1127
         },
         {
           "file": "engines.spec.ts",
@@ -159,7 +159,7 @@
           "title": "SVG → PNG renders a viewBox-only file at the size asked for",
           "ok": true,
           "status": "passed",
-          "ms": 10657
+          "ms": 1643
         },
         {
           "file": "engines.spec.ts",
@@ -167,7 +167,7 @@
           "title": "favicon pack ships a genuine multi-image .ico",
           "ok": true,
           "status": "passed",
-          "ms": 5295
+          "ms": 1909
         },
         {
           "file": "engines.spec.ts",
@@ -175,7 +175,7 @@
           "title": "a scan-shaped PDF sends you to OCR rather than producing nothing",
           "ok": true,
           "status": "passed",
-          "ms": 5704
+          "ms": 1445
         },
         {
           "file": "engines.spec.ts",
@@ -183,7 +183,7 @@
           "title": "the wrong file type is refused with a readable message",
           "ok": true,
           "status": "passed",
-          "ms": 3453
+          "ms": 1256
         },
         {
           "file": "file-picker.spec.ts",
@@ -191,7 +191,7 @@
           "title": "/compress-pdf: no file input is display:none",
           "ok": true,
           "status": "passed",
-          "ms": 3513
+          "ms": 1063
         },
         {
           "file": "file-picker.spec.ts",
@@ -199,7 +199,7 @@
           "title": "/merge-pdf: no file input is display:none",
           "ok": true,
           "status": "passed",
-          "ms": 3012
+          "ms": 1219
         },
         {
           "file": "file-picker.spec.ts",
@@ -207,7 +207,7 @@
           "title": "/jpg-to-pdf: no file input is display:none",
           "ok": true,
           "status": "passed",
-          "ms": 2537
+          "ms": 1287
         },
         {
           "file": "file-picker.spec.ts",
@@ -215,7 +215,7 @@
           "title": "/compress-image: no file input is display:none",
           "ok": true,
           "status": "passed",
-          "ms": 3791
+          "ms": 1376
         },
         {
           "file": "file-picker.spec.ts",
@@ -223,7 +223,7 @@
           "title": "/qr-code-generator: no file input is display:none",
           "ok": true,
           "status": "passed",
-          "ms": 8315
+          "ms": 1270
         },
         {
           "file": "file-picker.spec.ts",
@@ -231,7 +231,7 @@
           "title": "the codebase does not reintroduce .hidden on a file input",
           "ok": true,
           "status": "passed",
-          "ms": 28793
+          "ms": 4640
         },
         {
           "file": "file-picker.spec.ts",
@@ -239,7 +239,7 @@
           "title": "the rescue script is served, parses, and is early",
           "ok": true,
           "status": "passed",
-          "ms": 2527
+          "ms": 322
         },
         {
           "file": "file-picker.spec.ts",
@@ -247,7 +247,7 @@
           "title": "a click in the dead window opens the picker, and only once",
           "ok": true,
           "status": "passed",
-          "ms": 4218
+          "ms": 1209
         },
         {
           "file": "file-picker.spec.ts",
@@ -255,7 +255,7 @@
           "title": "every dropzone can actually receive a file",
           "ok": true,
           "status": "passed",
-          "ms": 4390
+          "ms": 1238
         },
         {
           "file": "file-picker.spec.ts",
@@ -263,7 +263,7 @@
           "title": "every tool tile points at a real page",
           "ok": true,
           "status": "passed",
-          "ms": 12210
+          "ms": 3220
         },
         {
           "file": "file-picker.spec.ts",
@@ -271,7 +271,7 @@
           "title": "the page reserves room for the banner while it is showing",
           "ok": true,
           "status": "passed",
-          "ms": 3309
+          "ms": 989
         },
         {
           "file": "file-picker.spec.ts",
@@ -279,7 +279,7 @@
           "title": "the last control on a tool page is reachable, not buried",
           "ok": true,
           "status": "passed",
-          "ms": 4059
+          "ms": 1436
         },
         {
           "file": "home.spec.ts",
@@ -287,7 +287,7 @@
           "title": "SPLASH-001: overlay is in the home HTML so it covers from the first paint",
           "ok": true,
           "status": "passed",
-          "ms": 4556
+          "ms": 1664
         },
         {
           "file": "home.spec.ts",
@@ -295,7 +295,7 @@
           "title": "SPLASH-001b: overlay is NOT present on a tool page (home only)",
           "ok": true,
           "status": "passed",
-          "ms": 3351
+          "ms": 1010
         },
         {
           "file": "home.spec.ts",
@@ -303,7 +303,7 @@
           "title": "SPLASH-002: first-timer sees it, then it lifts; a key skips it",
           "ok": true,
           "status": "passed",
-          "ms": 7609
+          "ms": 2150
         },
         {
           "file": "home.spec.ts",
@@ -311,7 +311,7 @@
           "title": "SPLASH-003: returning visitor never sees it",
           "ok": true,
           "status": "passed",
-          "ms": 5261
+          "ms": 1677
         },
         {
           "file": "home.spec.ts",
@@ -319,7 +319,7 @@
           "title": "SPLASH-003b: reduced-motion visitor never sees it",
           "ok": true,
           "status": "passed",
-          "ms": 6688
+          "ms": 1751
         },
         {
           "file": "home.spec.ts",
@@ -327,7 +327,7 @@
           "title": "HOME-M-001: trust chips are centered on mobile",
           "ok": true,
           "status": "passed",
-          "ms": 4424
+          "ms": 1621
         },
         {
           "file": "home.spec.ts",
@@ -335,7 +335,7 @@
           "title": "HOME-M-002: no \"+N more\" tile on mobile",
           "ok": true,
           "status": "passed",
-          "ms": 3929
+          "ms": 1512
         },
         {
           "file": "home.spec.ts",
@@ -343,7 +343,7 @@
           "title": "no console errors on load",
           "ok": true,
           "status": "passed",
-          "ms": 6023
+          "ms": 2729
         },
         {
           "file": "home.spec.ts",
@@ -351,7 +351,7 @@
           "title": "hero + primary CTA present",
           "ok": true,
           "status": "passed",
-          "ms": 6269
+          "ms": 1524
         },
         {
           "file": "nav.spec.ts",
@@ -359,7 +359,7 @@
           "title": "at 1280×800: full width, no inner scrollbar, aligned to the logo",
           "ok": true,
           "status": "passed",
-          "ms": 13017
+          "ms": 5227
         },
         {
           "file": "nav.spec.ts",
@@ -367,7 +367,7 @@
           "title": "at 1440×900: full width, no inner scrollbar, aligned to the logo",
           "ok": true,
           "status": "passed",
-          "ms": 11470
+          "ms": 5329
         },
         {
           "file": "nav.spec.ts",
@@ -375,7 +375,7 @@
           "title": "at 1920×1080: full width, no inner scrollbar, aligned to the logo",
           "ok": true,
           "status": "passed",
-          "ms": 11801
+          "ms": 4771
         },
         {
           "file": "nav.spec.ts",
@@ -383,7 +383,7 @@
           "title": "the X closes it, and so does Escape",
           "ok": true,
           "status": "passed",
-          "ms": 18447
+          "ms": 5712
         },
         {
           "file": "nav.spec.ts",
@@ -391,7 +391,7 @@
           "title": "clicking a tool inside the panel navigates rather than closing it dead",
           "ok": true,
           "status": "passed",
-          "ms": 12138
+          "ms": 5668
         },
         {
           "file": "nav.spec.ts",
@@ -399,7 +399,7 @@
           "title": "/for/legal lists its toolkit and every entry opens",
           "ok": true,
           "status": "passed",
-          "ms": 6460
+          "ms": 1240
         },
         {
           "file": "nav.spec.ts",
@@ -407,7 +407,7 @@
           "title": "/for/accountants lists its toolkit and every entry opens",
           "ok": true,
           "status": "passed",
-          "ms": 5617
+          "ms": 1155
         },
         {
           "file": "nav.spec.ts",
@@ -415,7 +415,7 @@
           "title": "/for/healthcare lists its toolkit and every entry opens",
           "ok": true,
           "status": "passed",
-          "ms": 6041
+          "ms": 1201
         },
         {
           "file": "nav.spec.ts",
@@ -423,7 +423,7 @@
           "title": "/for/schools lists its toolkit and every entry opens",
           "ok": true,
           "status": "passed",
-          "ms": 6214
+          "ms": 1075
         },
         {
           "file": "nav.spec.ts",
@@ -431,7 +431,7 @@
           "title": "the main CTA opens a tool, not the whole catalogue",
           "ok": true,
           "status": "passed",
-          "ms": 6564
+          "ms": 1479
         },
         {
           "file": "smoke.spec.ts",
@@ -439,7 +439,7 @@
           "title": "XC-001 loads with an h1, no error boundary",
           "ok": true,
           "status": "passed",
-          "ms": 5336
+          "ms": 1482
         },
         {
           "file": "smoke.spec.ts",
@@ -447,7 +447,7 @@
           "title": "XC-002 no console errors",
           "ok": true,
           "status": "passed",
-          "ms": 11289
+          "ms": 2275
         },
         {
           "file": "smoke.spec.ts",
@@ -455,7 +455,7 @@
           "title": "XC-003 SEO meta present & within limits",
           "ok": true,
           "status": "passed",
-          "ms": 5856
+          "ms": 1448
         },
         {
           "file": "smoke.spec.ts",
@@ -463,7 +463,7 @@
           "title": "XC-005 no horizontal scroll at 375 and 1280",
           "ok": true,
           "status": "passed",
-          "ms": 11308
+          "ms": 1616
         },
         {
           "file": "smoke.spec.ts",
@@ -471,7 +471,7 @@
           "title": "XC-001 loads with an h1, no error boundary",
           "ok": true,
           "status": "passed",
-          "ms": 4832
+          "ms": 995
         },
         {
           "file": "smoke.spec.ts",
@@ -479,7 +479,7 @@
           "title": "XC-002 no console errors",
           "ok": true,
           "status": "passed",
-          "ms": 5358
+          "ms": 2224
         },
         {
           "file": "smoke.spec.ts",
@@ -487,7 +487,7 @@
           "title": "XC-003 SEO meta present & within limits",
           "ok": true,
           "status": "passed",
-          "ms": 4660
+          "ms": 993
         },
         {
           "file": "smoke.spec.ts",
@@ -495,7 +495,7 @@
           "title": "XC-005 no horizontal scroll at 375 and 1280",
           "ok": true,
           "status": "passed",
-          "ms": 7053
+          "ms": 1386
         },
         {
           "file": "smoke.spec.ts",
@@ -503,7 +503,7 @@
           "title": "XC-001 loads with an h1, no error boundary",
           "ok": true,
           "status": "passed",
-          "ms": 3049
+          "ms": 989
         },
         {
           "file": "smoke.spec.ts",
@@ -511,7 +511,7 @@
           "title": "XC-002 no console errors",
           "ok": true,
           "status": "passed",
-          "ms": 4920
+          "ms": 1831
         },
         {
           "file": "smoke.spec.ts",
@@ -519,7 +519,7 @@
           "title": "XC-003 SEO meta present & within limits",
           "ok": true,
           "status": "passed",
-          "ms": 3732
+          "ms": 822
         },
         {
           "file": "smoke.spec.ts",
@@ -527,7 +527,7 @@
           "title": "XC-005 no horizontal scroll at 375 and 1280",
           "ok": true,
           "status": "passed",
-          "ms": 5869
+          "ms": 1162
         },
         {
           "file": "smoke.spec.ts",
@@ -535,7 +535,7 @@
           "title": "XC-001 loads with an h1, no error boundary",
           "ok": true,
           "status": "passed",
-          "ms": 3220
+          "ms": 902
         },
         {
           "file": "smoke.spec.ts",
@@ -543,7 +543,7 @@
           "title": "XC-002 no console errors",
           "ok": true,
           "status": "passed",
-          "ms": 5690
+          "ms": 2170
         },
         {
           "file": "smoke.spec.ts",
@@ -551,7 +551,7 @@
           "title": "XC-003 SEO meta present & within limits",
           "ok": true,
           "status": "passed",
-          "ms": 4287
+          "ms": 718
         },
         {
           "file": "smoke.spec.ts",
@@ -559,7 +559,7 @@
           "title": "XC-005 no horizontal scroll at 375 and 1280",
           "ok": true,
           "status": "passed",
-          "ms": 9288
+          "ms": 977
         },
         {
           "file": "smoke.spec.ts",
@@ -567,7 +567,7 @@
           "title": "XC-001 loads with an h1, no error boundary",
           "ok": true,
           "status": "passed",
-          "ms": 3129
+          "ms": 928
         },
         {
           "file": "smoke.spec.ts",
@@ -575,7 +575,7 @@
           "title": "XC-002 no console errors",
           "ok": true,
           "status": "passed",
-          "ms": 5897
+          "ms": 1848
         },
         {
           "file": "smoke.spec.ts",
@@ -583,7 +583,7 @@
           "title": "XC-003 SEO meta present & within limits",
           "ok": true,
           "status": "passed",
-          "ms": 2605
+          "ms": 855
         },
         {
           "file": "smoke.spec.ts",
@@ -591,7 +591,7 @@
           "title": "XC-005 no horizontal scroll at 375 and 1280",
           "ok": true,
           "status": "passed",
-          "ms": 7774
+          "ms": 1047
         },
         {
           "file": "smoke.spec.ts",
@@ -599,7 +599,7 @@
           "title": "XC-001 loads with an h1, no error boundary",
           "ok": true,
           "status": "passed",
-          "ms": 2769
+          "ms": 768
         },
         {
           "file": "smoke.spec.ts",
@@ -607,7 +607,7 @@
           "title": "XC-002 no console errors",
           "ok": true,
           "status": "passed",
-          "ms": 3203
+          "ms": 2056
         },
         {
           "file": "smoke.spec.ts",
@@ -615,7 +615,7 @@
           "title": "XC-003 SEO meta present & within limits",
           "ok": true,
           "status": "passed",
-          "ms": 4307
+          "ms": 728
         },
         {
           "file": "smoke.spec.ts",
@@ -623,7 +623,7 @@
           "title": "XC-005 no horizontal scroll at 375 and 1280",
           "ok": true,
           "status": "passed",
-          "ms": 4893
+          "ms": 1054
         },
         {
           "file": "smoke.spec.ts",
@@ -631,7 +631,7 @@
           "title": "XC-001 loads with an h1, no error boundary",
           "ok": true,
           "status": "passed",
-          "ms": 3519
+          "ms": 715
         },
         {
           "file": "smoke.spec.ts",
@@ -639,7 +639,7 @@
           "title": "XC-002 no console errors",
           "ok": true,
           "status": "passed",
-          "ms": 3696
+          "ms": 1808
         },
         {
           "file": "smoke.spec.ts",
@@ -647,7 +647,7 @@
           "title": "XC-003 SEO meta present & within limits",
           "ok": true,
           "status": "passed",
-          "ms": 2876
+          "ms": 840
         },
         {
           "file": "smoke.spec.ts",
@@ -655,7 +655,7 @@
           "title": "XC-005 no horizontal scroll at 375 and 1280",
           "ok": true,
           "status": "passed",
-          "ms": 2756
+          "ms": 948
         },
         {
           "file": "smoke.spec.ts",
@@ -663,7 +663,7 @@
           "title": "XC-001 loads with an h1, no error boundary",
           "ok": true,
           "status": "passed",
-          "ms": 2871
+          "ms": 890
         },
         {
           "file": "smoke.spec.ts",
@@ -671,7 +671,7 @@
           "title": "XC-002 no console errors",
           "ok": true,
           "status": "passed",
-          "ms": 4738
+          "ms": 2124
         },
         {
           "file": "smoke.spec.ts",
@@ -679,7 +679,7 @@
           "title": "XC-003 SEO meta present & within limits",
           "ok": true,
           "status": "passed",
-          "ms": 4163
+          "ms": 752
         },
         {
           "file": "smoke.spec.ts",
@@ -687,7 +687,7 @@
           "title": "XC-005 no horizontal scroll at 375 and 1280",
           "ok": true,
           "status": "passed",
-          "ms": 4079
+          "ms": 947
         },
         {
           "file": "smoke.spec.ts",
@@ -695,7 +695,7 @@
           "title": "XC-001 loads with an h1, no error boundary",
           "ok": true,
           "status": "passed",
-          "ms": 3569
+          "ms": 943
         },
         {
           "file": "smoke.spec.ts",
@@ -703,7 +703,7 @@
           "title": "XC-002 no console errors",
           "ok": true,
           "status": "passed",
-          "ms": 5223
+          "ms": 2117
         },
         {
           "file": "smoke.spec.ts",
@@ -711,7 +711,7 @@
           "title": "XC-003 SEO meta present & within limits",
           "ok": true,
           "status": "passed",
-          "ms": 3508
+          "ms": 870
         },
         {
           "file": "smoke.spec.ts",
@@ -719,7 +719,7 @@
           "title": "XC-005 no horizontal scroll at 375 and 1280",
           "ok": true,
           "status": "passed",
-          "ms": 4621
+          "ms": 1032
         },
         {
           "file": "smoke.spec.ts",
@@ -727,7 +727,7 @@
           "title": "XC-001 loads with an h1, no error boundary",
           "ok": true,
           "status": "passed",
-          "ms": 2917
+          "ms": 1264
         },
         {
           "file": "smoke.spec.ts",
@@ -735,7 +735,7 @@
           "title": "XC-002 no console errors",
           "ok": true,
           "status": "passed",
-          "ms": 3467
+          "ms": 2174
         },
         {
           "file": "smoke.spec.ts",
@@ -743,7 +743,7 @@
           "title": "XC-003 SEO meta present & within limits",
           "ok": true,
           "status": "passed",
-          "ms": 5761
+          "ms": 826
         },
         {
           "file": "smoke.spec.ts",
@@ -751,7 +751,7 @@
           "title": "XC-005 no horizontal scroll at 375 and 1280",
           "ok": true,
           "status": "passed",
-          "ms": 6096
+          "ms": 1094
         },
         {
           "file": "smoke.spec.ts",
@@ -759,7 +759,7 @@
           "title": "XC-001 loads with an h1, no error boundary",
           "ok": true,
           "status": "passed",
-          "ms": 4548
+          "ms": 923
         },
         {
           "file": "smoke.spec.ts",
@@ -767,7 +767,7 @@
           "title": "XC-002 no console errors",
           "ok": true,
           "status": "passed",
-          "ms": 4556
+          "ms": 2187
         },
         {
           "file": "smoke.spec.ts",
@@ -775,7 +775,7 @@
           "title": "XC-003 SEO meta present & within limits",
           "ok": true,
           "status": "passed",
-          "ms": 4136
+          "ms": 758
         },
         {
           "file": "smoke.spec.ts",
@@ -783,7 +783,7 @@
           "title": "XC-005 no horizontal scroll at 375 and 1280",
           "ok": true,
           "status": "passed",
-          "ms": 3941
+          "ms": 1060
         },
         {
           "file": "smoke.spec.ts",
@@ -791,7 +791,7 @@
           "title": "XC-001 loads with an h1, no error boundary",
           "ok": true,
           "status": "passed",
-          "ms": 2863
+          "ms": 839
         },
         {
           "file": "smoke.spec.ts",
@@ -799,7 +799,7 @@
           "title": "XC-002 no console errors",
           "ok": true,
           "status": "passed",
-          "ms": 3619
+          "ms": 1793
         },
         {
           "file": "smoke.spec.ts",
@@ -807,7 +807,7 @@
           "title": "XC-003 SEO meta present & within limits",
           "ok": true,
           "status": "passed",
-          "ms": 3933
+          "ms": 861
         },
         {
           "file": "smoke.spec.ts",
@@ -815,7 +815,7 @@
           "title": "XC-005 no horizontal scroll at 375 and 1280",
           "ok": true,
           "status": "passed",
-          "ms": 4181
+          "ms": 1105
         },
         {
           "file": "smoke.spec.ts",
@@ -823,7 +823,7 @@
           "title": "XC-001 loads with an h1, no error boundary",
           "ok": true,
           "status": "passed",
-          "ms": 3687
+          "ms": 752
         },
         {
           "file": "smoke.spec.ts",
@@ -831,7 +831,7 @@
           "title": "XC-002 no console errors",
           "ok": true,
           "status": "passed",
-          "ms": 4616
+          "ms": 1875
         },
         {
           "file": "smoke.spec.ts",
@@ -839,7 +839,7 @@
           "title": "XC-003 SEO meta present & within limits",
           "ok": true,
           "status": "passed",
-          "ms": 2774
+          "ms": 883
         },
         {
           "file": "smoke.spec.ts",
@@ -847,7 +847,7 @@
           "title": "XC-005 no horizontal scroll at 375 and 1280",
           "ok": true,
           "status": "passed",
-          "ms": 3812
+          "ms": 1024
         },
         {
           "file": "smoke.spec.ts",
@@ -855,7 +855,7 @@
           "title": "XC-001 loads with an h1, no error boundary",
           "ok": true,
           "status": "passed",
-          "ms": 4064
+          "ms": 873
         },
         {
           "file": "smoke.spec.ts",
@@ -863,7 +863,7 @@
           "title": "XC-002 no console errors",
           "ok": true,
           "status": "passed",
-          "ms": 4262
+          "ms": 2017
         },
         {
           "file": "smoke.spec.ts",
@@ -871,7 +871,7 @@
           "title": "XC-003 SEO meta present & within limits",
           "ok": true,
           "status": "passed",
-          "ms": 5206
+          "ms": 738
         },
         {
           "file": "smoke.spec.ts",
@@ -879,7 +879,7 @@
           "title": "XC-005 no horizontal scroll at 375 and 1280",
           "ok": true,
           "status": "passed",
-          "ms": 5155
+          "ms": 794
         },
         {
           "file": "smoke.spec.ts",
@@ -887,7 +887,7 @@
           "title": "XC-001 loads with an h1, no error boundary",
           "ok": true,
           "status": "passed",
-          "ms": 5475
+          "ms": 845
         },
         {
           "file": "smoke.spec.ts",
@@ -895,7 +895,7 @@
           "title": "XC-002 no console errors",
           "ok": true,
           "status": "passed",
-          "ms": 6073
+          "ms": 2103
         },
         {
           "file": "smoke.spec.ts",
@@ -903,7 +903,7 @@
           "title": "XC-003 SEO meta present & within limits",
           "ok": true,
           "status": "passed",
-          "ms": 5399
+          "ms": 998
         },
         {
           "file": "smoke.spec.ts",
@@ -911,7 +911,7 @@
           "title": "XC-005 no horizontal scroll at 375 and 1280",
           "ok": true,
           "status": "passed",
-          "ms": 5114
+          "ms": 954
         },
         {
           "file": "smoke.spec.ts",
@@ -919,7 +919,7 @@
           "title": "XC-001 loads with an h1, no error boundary",
           "ok": true,
           "status": "passed",
-          "ms": 4599
+          "ms": 638
         },
         {
           "file": "smoke.spec.ts",
@@ -927,7 +927,7 @@
           "title": "XC-002 no console errors",
           "ok": true,
           "status": "passed",
-          "ms": 6937
+          "ms": 1877
         },
         {
           "file": "smoke.spec.ts",
@@ -935,7 +935,7 @@
           "title": "XC-003 SEO meta present & within limits",
           "ok": true,
           "status": "passed",
-          "ms": 21793
+          "ms": 678
         },
         {
           "file": "smoke.spec.ts",
@@ -943,31 +943,7 @@
           "title": "XC-005 no horizontal scroll at 375 and 1280",
           "ok": true,
           "status": "passed",
-          "ms": 2868
-        },
-        {
-          "file": "throttle.spec.ts",
-          "group": "Throttle — Slow 3G + CPU 4× (NF-THR)",
-          "title": "NF-THR / stays interactive under throttle",
-          "ok": false,
-          "status": "failed",
-          "ms": 90765
-        },
-        {
-          "file": "throttle.spec.ts",
-          "group": "Throttle — Slow 3G + CPU 4× (NF-THR)",
-          "title": "NF-THR /compress-pdf stays interactive under throttle",
-          "ok": false,
-          "status": "failed",
-          "ms": 33871
-        },
-        {
-          "file": "throttle.spec.ts",
-          "group": "Throttle — Slow 3G + CPU 4× (NF-THR)",
-          "title": "NF-THR /edit-pdf stays interactive under throttle",
-          "ok": true,
-          "status": "passed",
-          "ms": 11061
+          "ms": 853
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -975,7 +951,7 @@
           "title": "/ [home] has readable contrast in light",
           "ok": true,
           "status": "passed",
-          "ms": 3477
+          "ms": 1339
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -983,7 +959,7 @@
           "title": "/tools [directory] has readable contrast in light",
           "ok": true,
           "status": "passed",
-          "ms": 3200
+          "ms": 1396
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -991,7 +967,7 @@
           "title": "/compress-pdf [client-tool-pdf] has readable contrast in light",
           "ok": true,
           "status": "passed",
-          "ms": 2397
+          "ms": 1147
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -999,7 +975,7 @@
           "title": "/compress-image [client-tool-image] has readable contrast in light",
           "ok": true,
           "status": "passed",
-          "ms": 2653
+          "ms": 956
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1007,7 +983,7 @@
           "title": "/word-to-pdf [server-tool] has readable contrast in light",
           "ok": true,
           "status": "passed",
-          "ms": 2451
+          "ms": 1218
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1015,7 +991,7 @@
           "title": "/json-formatter [micro-utility] has readable contrast in light",
           "ok": true,
           "status": "passed",
-          "ms": 2197
+          "ms": 994
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1023,7 +999,7 @@
           "title": "/qr-code-generator [generator] has readable contrast in light",
           "ok": true,
           "status": "passed",
-          "ms": 1888
+          "ms": 1080
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1031,7 +1007,7 @@
           "title": "/why-diemdesk [landing] has readable contrast in light",
           "ok": true,
           "status": "passed",
-          "ms": 2141
+          "ms": 1103
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1039,7 +1015,7 @@
           "title": "/pricing [commerce] has readable contrast in light",
           "ok": true,
           "status": "passed",
-          "ms": 2618
+          "ms": 851
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1047,7 +1023,7 @@
           "title": "/security [legal] has readable contrast in light",
           "ok": true,
           "status": "passed",
-          "ms": 2292
+          "ms": 1033
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1055,7 +1031,7 @@
           "title": "/changelog [content] has readable contrast in light",
           "ok": true,
           "status": "passed",
-          "ms": 2570
+          "ms": 981
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1063,7 +1039,7 @@
           "title": "/ [home] has readable contrast in dark",
           "ok": true,
           "status": "passed",
-          "ms": 3352
+          "ms": 1573
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1071,7 +1047,7 @@
           "title": "/tools [directory] has readable contrast in dark",
           "ok": true,
           "status": "passed",
-          "ms": 2480
+          "ms": 1206
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1079,7 +1055,7 @@
           "title": "/compress-pdf [client-tool-pdf] has readable contrast in dark",
           "ok": true,
           "status": "passed",
-          "ms": 2061
+          "ms": 1338
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1087,7 +1063,7 @@
           "title": "/compress-image [client-tool-image] has readable contrast in dark",
           "ok": true,
           "status": "passed",
-          "ms": 2102
+          "ms": 1403
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1095,7 +1071,7 @@
           "title": "/word-to-pdf [server-tool] has readable contrast in dark",
           "ok": true,
           "status": "passed",
-          "ms": 2079
+          "ms": 1278
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1103,7 +1079,7 @@
           "title": "/json-formatter [micro-utility] has readable contrast in dark",
           "ok": true,
           "status": "passed",
-          "ms": 2143
+          "ms": 1410
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1111,7 +1087,7 @@
           "title": "/qr-code-generator [generator] has readable contrast in dark",
           "ok": true,
           "status": "passed",
-          "ms": 2238
+          "ms": 1763
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1119,7 +1095,7 @@
           "title": "/why-diemdesk [landing] has readable contrast in dark",
           "ok": true,
           "status": "passed",
-          "ms": 2220
+          "ms": 1659
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1127,7 +1103,7 @@
           "title": "/pricing [commerce] has readable contrast in dark",
           "ok": true,
           "status": "passed",
-          "ms": 2334
+          "ms": 1474
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1135,7 +1111,7 @@
           "title": "/security [legal] has readable contrast in dark",
           "ok": true,
           "status": "passed",
-          "ms": 2296
+          "ms": 1229
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1143,7 +1119,7 @@
           "title": "/changelog [content] has readable contrast in dark",
           "ok": true,
           "status": "passed",
-          "ms": 1987
+          "ms": 1402
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1151,7 +1127,7 @@
           "title": "/ [home] never paints text in its own background colour",
           "ok": true,
           "status": "passed",
-          "ms": 2854
+          "ms": 2106
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1159,7 +1135,7 @@
           "title": "/tools [directory] never paints text in its own background colour",
           "ok": true,
           "status": "passed",
-          "ms": 2361
+          "ms": 1968
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1167,7 +1143,7 @@
           "title": "/compress-pdf [client-tool-pdf] never paints text in its own background colour",
           "ok": true,
           "status": "passed",
-          "ms": 2085
+          "ms": 1779
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1175,7 +1151,7 @@
           "title": "/compress-image [client-tool-image] never paints text in its own background colour",
           "ok": true,
           "status": "passed",
-          "ms": 2248
+          "ms": 1487
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1183,7 +1159,7 @@
           "title": "/word-to-pdf [server-tool] never paints text in its own background colour",
           "ok": true,
           "status": "passed",
-          "ms": 2362
+          "ms": 1326
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1191,7 +1167,7 @@
           "title": "/json-formatter [micro-utility] never paints text in its own background colour",
           "ok": true,
           "status": "passed",
-          "ms": 2140
+          "ms": 1569
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1199,7 +1175,7 @@
           "title": "/qr-code-generator [generator] never paints text in its own background colour",
           "ok": true,
           "status": "passed",
-          "ms": 2119
+          "ms": 1182
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1207,7 +1183,7 @@
           "title": "/why-diemdesk [landing] never paints text in its own background colour",
           "ok": true,
           "status": "passed",
-          "ms": 2673
+          "ms": 1053
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1215,7 +1191,7 @@
           "title": "/pricing [commerce] never paints text in its own background colour",
           "ok": true,
           "status": "passed",
-          "ms": 3731
+          "ms": 1194
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1223,7 +1199,7 @@
           "title": "/security [legal] never paints text in its own background colour",
           "ok": true,
           "status": "passed",
-          "ms": 2990
+          "ms": 1004
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1231,7 +1207,7 @@
           "title": "/changelog [content] never paints text in its own background colour",
           "ok": true,
           "status": "passed",
-          "ms": 4776
+          "ms": 1066
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1239,7 +1215,7 @@
           "title": "/ [home] has no serious or critical axe violation",
           "ok": true,
           "status": "passed",
-          "ms": 21934
+          "ms": 4720
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1247,7 +1223,7 @@
           "title": "/tools [directory] has no serious or critical axe violation",
           "ok": true,
           "status": "passed",
-          "ms": 22453
+          "ms": 5273
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1255,7 +1231,7 @@
           "title": "/compress-pdf [client-tool-pdf] has no serious or critical axe violation",
           "ok": true,
           "status": "passed",
-          "ms": 15790
+          "ms": 2408
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1263,7 +1239,7 @@
           "title": "/compress-image [client-tool-image] has no serious or critical axe violation",
           "ok": true,
           "status": "passed",
-          "ms": 22889
+          "ms": 2333
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1271,7 +1247,7 @@
           "title": "/word-to-pdf [server-tool] has no serious or critical axe violation",
           "ok": true,
           "status": "passed",
-          "ms": 11737
+          "ms": 2268
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1279,7 +1255,7 @@
           "title": "/json-formatter [micro-utility] has no serious or critical axe violation",
           "ok": true,
           "status": "passed",
-          "ms": 10247
+          "ms": 2439
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1287,7 +1263,7 @@
           "title": "/qr-code-generator [generator] has no serious or critical axe violation",
           "ok": true,
           "status": "passed",
-          "ms": 14463
+          "ms": 2806
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1295,7 +1271,7 @@
           "title": "/why-diemdesk [landing] has no serious or critical axe violation",
           "ok": true,
           "status": "passed",
-          "ms": 19036
+          "ms": 2305
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1303,7 +1279,7 @@
           "title": "/pricing [commerce] has no serious or critical axe violation",
           "ok": true,
           "status": "passed",
-          "ms": 20064
+          "ms": 2895
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1311,7 +1287,7 @@
           "title": "/security [legal] has no serious or critical axe violation",
           "ok": true,
           "status": "passed",
-          "ms": 15940
+          "ms": 2971
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1319,7 +1295,7 @@
           "title": "/changelog [content] has no serious or critical axe violation",
           "ok": true,
           "status": "passed",
-          "ms": 11475
+          "ms": 3378
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1327,7 +1303,7 @@
           "title": "keyboard focus is always visible",
           "ok": true,
           "status": "passed",
-          "ms": 8436
+          "ms": 2150
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1335,7 +1311,7 @@
           "title": "Escape closes the command palette",
           "ok": true,
           "status": "passed",
-          "ms": 13248
+          "ms": 2402
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1343,7 +1319,7 @@
           "title": "Escape closes the mobile menu",
           "ok": true,
           "status": "passed",
-          "ms": 9101
+          "ms": 4363
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1351,7 +1327,7 @@
           "title": "every page can be reached by keyboard from the top",
           "ok": true,
           "status": "passed",
-          "ms": 4114
+          "ms": 804
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1359,7 +1335,7 @@
           "title": "/ [home] runs no looping animation when motion is reduced",
           "ok": true,
           "status": "passed",
-          "ms": 6799
+          "ms": 1579
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1367,7 +1343,7 @@
           "title": "/tools [directory] runs no looping animation when motion is reduced",
           "ok": true,
           "status": "passed",
-          "ms": 6124
+          "ms": 1381
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1375,7 +1351,7 @@
           "title": "/compress-pdf [client-tool-pdf] runs no looping animation when motion is reduced",
           "ok": true,
           "status": "passed",
-          "ms": 4633
+          "ms": 1435
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1383,7 +1359,7 @@
           "title": "/compress-image [client-tool-image] runs no looping animation when motion is reduced",
           "ok": true,
           "status": "passed",
-          "ms": 20837
+          "ms": 1244
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1391,7 +1367,7 @@
           "title": "/word-to-pdf [server-tool] runs no looping animation when motion is reduced",
           "ok": true,
           "status": "passed",
-          "ms": 3612
+          "ms": 1178
         },
         {
           "file": "xc-a11y.spec.ts",
@@ -1399,7 +1375,7 @@
           "title": "the first-visit splash does not animate when motion is reduced",
           "ok": true,
           "status": "passed",
-          "ms": 5380
+          "ms": 1722
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1407,7 +1383,7 @@
           "title": "XC / [public]",
           "ok": true,
           "status": "passed",
-          "ms": 7350
+          "ms": 2016
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1415,7 +1391,7 @@
           "title": "XC /developers [public]",
           "ok": true,
           "status": "passed",
-          "ms": 4303
+          "ms": 1162
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1423,7 +1399,7 @@
           "title": "XC /verify-redaction [public]",
           "ok": true,
           "status": "passed",
-          "ms": 3269
+          "ms": 1263
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1431,7 +1407,7 @@
           "title": "XC /pdf-viewer [public]",
           "ok": true,
           "status": "passed",
-          "ms": 3637
+          "ms": 1353
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1439,7 +1415,7 @@
           "title": "XC /merge-pdf [public]",
           "ok": true,
           "status": "passed",
-          "ms": 3686
+          "ms": 1513
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1447,7 +1423,7 @@
           "title": "XC /split-pdf [public]",
           "ok": true,
           "status": "passed",
-          "ms": 4841
+          "ms": 1432
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1455,7 +1431,7 @@
           "title": "XC /compress-pdf [public]",
           "ok": true,
           "status": "passed",
-          "ms": 3521
+          "ms": 1011
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1463,7 +1439,7 @@
           "title": "XC /compress-to-size [public]",
           "ok": true,
           "status": "passed",
-          "ms": 3299
+          "ms": 1000
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1471,7 +1447,7 @@
           "title": "XC /fill-pdf-form [public]",
           "ok": true,
           "status": "passed",
-          "ms": 2929
+          "ms": 1044
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1479,7 +1455,7 @@
           "title": "XC /rotate-pdf [public]",
           "ok": true,
           "status": "passed",
-          "ms": 2037
+          "ms": 928
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1487,7 +1463,7 @@
           "title": "XC /delete-pages-from-pdf [public]",
           "ok": true,
           "status": "passed",
-          "ms": 2688
+          "ms": 963
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1495,7 +1471,7 @@
           "title": "XC /add-page-numbers-to-pdf [public]",
           "ok": true,
           "status": "passed",
-          "ms": 4756
+          "ms": 868
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1503,7 +1479,7 @@
           "title": "XC /jpg-to-pdf [public]",
           "ok": true,
           "status": "passed",
-          "ms": 4007
+          "ms": 976
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1511,7 +1487,7 @@
           "title": "XC /pdf-to-jpg [public]",
           "ok": true,
           "status": "passed",
-          "ms": 4265
+          "ms": 994
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1519,7 +1495,7 @@
           "title": "XC /pdf-to-word [public]",
           "ok": true,
           "status": "passed",
-          "ms": 5476
+          "ms": 961
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1527,7 +1503,7 @@
           "title": "XC /pdf-to-excel [public]",
           "ok": true,
           "status": "passed",
-          "ms": 6546
+          "ms": 1097
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1535,7 +1511,7 @@
           "title": "XC /pdf-to-markdown [public]",
           "ok": true,
           "status": "passed",
-          "ms": 7200
+          "ms": 1136
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1543,7 +1519,7 @@
           "title": "XC /bates-numbering [public]",
           "ok": true,
           "status": "passed",
-          "ms": 6375
+          "ms": 1322
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1551,7 +1527,7 @@
           "title": "XC /pdf-to-audio [public]",
           "ok": true,
           "status": "passed",
-          "ms": 5398
+          "ms": 1405
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1559,7 +1535,7 @@
           "title": "XC /word-to-pdf [public]",
           "ok": true,
           "status": "passed",
-          "ms": 6608
+          "ms": 1236
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1567,7 +1543,7 @@
           "title": "XC /excel-to-pdf [public]",
           "ok": true,
           "status": "passed",
-          "ms": 4024
+          "ms": 1202
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1575,7 +1551,7 @@
           "title": "XC /powerpoint-to-pdf [public]",
           "ok": true,
           "status": "passed",
-          "ms": 7123
+          "ms": 1173
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1583,7 +1559,7 @@
           "title": "XC /extract-images-from-pdf [public]",
           "ok": true,
           "status": "passed",
-          "ms": 6289
+          "ms": 1098
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1591,7 +1567,7 @@
           "title": "XC /remove-pdf-metadata [public]",
           "ok": true,
           "status": "passed",
-          "ms": 5553
+          "ms": 1122
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1599,7 +1575,7 @@
           "title": "XC /sign-pdf [public]",
           "ok": true,
           "status": "passed",
-          "ms": 5040
+          "ms": 1173
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1607,7 +1583,7 @@
           "title": "XC /protect-pdf [public]",
           "ok": true,
           "status": "passed",
-          "ms": 7282
+          "ms": 1306
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1615,7 +1591,7 @@
           "title": "XC /unlock-pdf [public]",
           "ok": true,
           "status": "passed",
-          "ms": 9425
+          "ms": 1165
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1623,7 +1599,7 @@
           "title": "XC /watermark-pdf [public]",
           "ok": true,
           "status": "passed",
-          "ms": 5615
+          "ms": 1134
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1631,7 +1607,7 @@
           "title": "XC /flatten-pdf [public]",
           "ok": true,
           "status": "passed",
-          "ms": 7417
+          "ms": 1076
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1639,7 +1615,7 @@
           "title": "XC /repair-pdf [public]",
           "ok": true,
           "status": "passed",
-          "ms": 4642
+          "ms": 1333
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1647,7 +1623,7 @@
           "title": "XC /scan-to-pdf [public]",
           "ok": true,
           "status": "passed",
-          "ms": 5930
+          "ms": 1352
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1655,7 +1631,7 @@
           "title": "XC /pdf-to-powerpoint [public]",
           "ok": true,
           "status": "passed",
-          "ms": 5356
+          "ms": 1423
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1663,7 +1639,7 @@
           "title": "XC /pdf-to-pdfa [public]",
           "ok": true,
           "status": "passed",
-          "ms": 3878
+          "ms": 1120
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1671,7 +1647,7 @@
           "title": "XC /scan-qr-code [public]",
           "ok": true,
           "status": "passed",
-          "ms": 5797
+          "ms": 1101
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1679,7 +1655,7 @@
           "title": "XC /reorder-pdf [public]",
           "ok": true,
           "status": "passed",
-          "ms": 6088
+          "ms": 1160
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1687,7 +1663,7 @@
           "title": "XC /compress-image [public]",
           "ok": true,
           "status": "passed",
-          "ms": 6745
+          "ms": 1186
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1695,7 +1671,7 @@
           "title": "XC /heic-to-jpg [public]",
           "ok": true,
           "status": "passed",
-          "ms": 7402
+          "ms": 1241
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1703,7 +1679,7 @@
           "title": "XC /resize-image [public]",
           "ok": true,
           "status": "passed",
-          "ms": 6288
+          "ms": 1785
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1711,7 +1687,7 @@
           "title": "XC /crop-image [public]",
           "ok": true,
           "status": "passed",
-          "ms": 5971
+          "ms": 2477
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1719,7 +1695,7 @@
           "title": "XC /convert-image [public]",
           "ok": true,
           "status": "passed",
-          "ms": 7146
+          "ms": 1533
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1727,7 +1703,7 @@
           "title": "XC /passport-photo [public]",
           "ok": true,
           "status": "passed",
-          "ms": 5757
+          "ms": 1339
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1735,7 +1711,7 @@
           "title": "XC /photo-privacy [public]",
           "ok": true,
           "status": "passed",
-          "ms": 3816
+          "ms": 1420
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1743,7 +1719,7 @@
           "title": "XC /remove-background [public]",
           "ok": true,
           "status": "passed",
-          "ms": 2329
+          "ms": 2414
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1751,7 +1727,7 @@
           "title": "XC /video-to-gif [public]",
           "ok": true,
           "status": "passed",
-          "ms": 2201
+          "ms": 1759
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1759,7 +1735,7 @@
           "title": "XC /compress-video [public]",
           "ok": true,
           "status": "passed",
-          "ms": 2390
+          "ms": 1257
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1767,7 +1743,7 @@
           "title": "XC /word-counter [public]",
           "ok": true,
           "status": "passed",
-          "ms": 1961
+          "ms": 1253
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1775,7 +1751,7 @@
           "title": "XC /json-formatter [public]",
           "ok": true,
           "status": "passed",
-          "ms": 2135
+          "ms": 1564
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1783,7 +1759,7 @@
           "title": "XC /unit-converter [public]",
           "ok": true,
           "status": "passed",
-          "ms": 2598
+          "ms": 1624
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1791,7 +1767,7 @@
           "title": "XC /color-picker [public]",
           "ok": true,
           "status": "passed",
-          "ms": 2410
+          "ms": 1779
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1799,7 +1775,7 @@
           "title": "XC /qr-code-generator [public]",
           "ok": true,
           "status": "passed",
-          "ms": 2949
+          "ms": 1128
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1807,7 +1783,7 @@
           "title": "XC /wifi-qr-code [public]",
           "ok": true,
           "status": "passed",
-          "ms": 3559
+          "ms": 1297
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1815,7 +1791,7 @@
           "title": "XC /vcard-qr-code [public]",
           "ok": true,
           "status": "passed",
-          "ms": 3925
+          "ms": 1390
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1823,7 +1799,7 @@
           "title": "XC /password-generator [public]",
           "ok": true,
           "status": "passed",
-          "ms": 3754
+          "ms": 1113
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1831,7 +1807,7 @@
           "title": "XC /notes [public]",
           "ok": true,
           "status": "passed",
-          "ms": 3415
+          "ms": 1519
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1839,7 +1815,7 @@
           "title": "XC /habits [public]",
           "ok": true,
           "status": "passed",
-          "ms": 3863
+          "ms": 1291
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1847,7 +1823,7 @@
           "title": "XC /budget [public]",
           "ok": true,
           "status": "passed",
-          "ms": 4612
+          "ms": 1306
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1855,7 +1831,7 @@
           "title": "XC /tools [public]",
           "ok": true,
           "status": "passed",
-          "ms": 7860
+          "ms": 1755
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1863,7 +1839,7 @@
           "title": "XC /pricing [public]",
           "ok": true,
           "status": "passed",
-          "ms": 4728
+          "ms": 1439
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1871,7 +1847,7 @@
           "title": "XC /overview [public]",
           "ok": true,
           "status": "passed",
-          "ms": 6409
+          "ms": 1846
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1879,7 +1855,7 @@
           "title": "XC /why-diemdesk [public]",
           "ok": true,
           "status": "passed",
-          "ms": 4990
+          "ms": 1296
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1887,7 +1863,7 @@
           "title": "XC /changelog [public]",
           "ok": true,
           "status": "passed",
-          "ms": 5245
+          "ms": 1317
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1895,7 +1871,7 @@
           "title": "XC /compare [public]",
           "ok": true,
           "status": "passed",
-          "ms": 6049
+          "ms": 1181
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1903,7 +1879,7 @@
           "title": "XC /smallpdf-alternative [public]",
           "ok": true,
           "status": "passed",
-          "ms": 7022
+          "ms": 1729
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1911,7 +1887,7 @@
           "title": "XC /ilovepdf-alternative [public]",
           "ok": true,
           "status": "passed",
-          "ms": 5506
+          "ms": 1974
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1919,7 +1895,7 @@
           "title": "XC /sejda-alternative [public]",
           "ok": true,
           "status": "passed",
-          "ms": 6779
+          "ms": 1647
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1927,7 +1903,7 @@
           "title": "XC /adobe-acrobat-alternative [public]",
           "ok": true,
           "status": "passed",
-          "ms": 7737
+          "ms": 1263
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1935,7 +1911,7 @@
           "title": "XC /free [public]",
           "ok": true,
           "status": "passed",
-          "ms": 5633
+          "ms": 1241
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1943,7 +1919,7 @@
           "title": "XC /about [public]",
           "ok": true,
           "status": "passed",
-          "ms": 5078
+          "ms": 1182
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1951,7 +1927,7 @@
           "title": "XC /feedback [public]",
           "ok": true,
           "status": "passed",
-          "ms": 4929
+          "ms": 942
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1959,7 +1935,7 @@
           "title": "XC /security [public]",
           "ok": true,
           "status": "passed",
-          "ms": 5109
+          "ms": 1098
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1967,7 +1943,7 @@
           "title": "XC /privacy [public]",
           "ok": true,
           "status": "passed",
-          "ms": 4318
+          "ms": 1018
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1975,7 +1951,7 @@
           "title": "XC /terms [public]",
           "ok": true,
           "status": "passed",
-          "ms": 5315
+          "ms": 1100
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1983,7 +1959,7 @@
           "title": "XC /refund-policy [public]",
           "ok": true,
           "status": "passed",
-          "ms": 5315
+          "ms": 1136
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1991,7 +1967,7 @@
           "title": "XC /compress-pdf-to-100kb [public]",
           "ok": true,
           "status": "passed",
-          "ms": 5352
+          "ms": 1279
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -1999,7 +1975,7 @@
           "title": "XC /us-visa-photo [public]",
           "ok": true,
           "status": "passed",
-          "ms": 6707
+          "ms": 1385
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2007,7 +1983,7 @@
           "title": "XC /remove-exif [public]",
           "ok": true,
           "status": "passed",
-          "ms": 6388
+          "ms": 1056
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2015,7 +1991,7 @@
           "title": "XC /blur-image [public]",
           "ok": true,
           "status": "passed",
-          "ms": 6021
+          "ms": 1073
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2023,7 +1999,7 @@
           "title": "XC /fill-pdf-form-online [public]",
           "ok": true,
           "status": "passed",
-          "ms": 1825
+          "ms": 1139
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2031,7 +2007,7 @@
           "title": "XC /developer-tools [public]",
           "ok": true,
           "status": "passed",
-          "ms": 1729
+          "ms": 1132
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2039,7 +2015,7 @@
           "title": "XC /base64 [public]",
           "ok": true,
           "status": "passed",
-          "ms": 1714
+          "ms": 1061
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2047,7 +2023,7 @@
           "title": "XC /url-encode [public]",
           "ok": true,
           "status": "passed",
-          "ms": 2580
+          "ms": 1404
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2055,7 +2031,7 @@
           "title": "XC /html-entities [public]",
           "ok": true,
           "status": "passed",
-          "ms": 2241
+          "ms": 1103
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2063,7 +2039,7 @@
           "title": "XC /hash-generator [public]",
           "ok": true,
           "status": "passed",
-          "ms": 2150
+          "ms": 1301
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2071,7 +2047,7 @@
           "title": "XC /jwt-decoder [public]",
           "ok": true,
           "status": "passed",
-          "ms": 2530
+          "ms": 1155
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2079,7 +2055,7 @@
           "title": "XC /uuid-generator [public]",
           "ok": true,
           "status": "passed",
-          "ms": 2352
+          "ms": 1163
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2087,7 +2063,7 @@
           "title": "XC /csv-to-json [public]",
           "ok": true,
           "status": "passed",
-          "ms": 2732
+          "ms": 1425
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2095,7 +2071,7 @@
           "title": "XC /text-diff [public]",
           "ok": true,
           "status": "passed",
-          "ms": 4144
+          "ms": 1277
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2103,7 +2079,7 @@
           "title": "XC /timestamp-converter [public]",
           "ok": true,
           "status": "passed",
-          "ms": 4691
+          "ms": 1235
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2111,7 +2087,7 @@
           "title": "XC /json-to-yaml [public]",
           "ok": true,
           "status": "passed",
-          "ms": 3976
+          "ms": 1199
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2119,7 +2095,7 @@
           "title": "XC /csv-cleaner [public]",
           "ok": true,
           "status": "passed",
-          "ms": 3208
+          "ms": 1120
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2127,7 +2103,7 @@
           "title": "XC /case-converter [public]",
           "ok": true,
           "status": "passed",
-          "ms": 3368
+          "ms": 1162
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2135,7 +2111,7 @@
           "title": "XC /slugify [public]",
           "ok": true,
           "status": "passed",
-          "ms": 4327
+          "ms": 1228
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2143,7 +2119,7 @@
           "title": "XC /sort-lines [public]",
           "ok": true,
           "status": "passed",
-          "ms": 4871
+          "ms": 1160
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2151,7 +2127,7 @@
           "title": "XC /regex-tester [public]",
           "ok": true,
           "status": "passed",
-          "ms": 5421
+          "ms": 1122
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2159,7 +2135,7 @@
           "title": "XC /lorem-ipsum [public]",
           "ok": true,
           "status": "passed",
-          "ms": 5555
+          "ms": 1332
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2167,7 +2143,7 @@
           "title": "XC /bank-statement-converter/sbi [public]",
           "ok": true,
           "status": "passed",
-          "ms": 6825
+          "ms": 1204
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2175,7 +2151,7 @@
           "title": "XC /bank-statement-converter/hdfc [public]",
           "ok": true,
           "status": "passed",
-          "ms": 5855
+          "ms": 1159
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2183,7 +2159,7 @@
           "title": "XC /bank-statement-converter/icici [public]",
           "ok": true,
           "status": "passed",
-          "ms": 6828
+          "ms": 1184
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2191,7 +2167,7 @@
           "title": "XC /bank-statement-converter/axis [public]",
           "ok": true,
           "status": "passed",
-          "ms": 7096
+          "ms": 1211
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2199,7 +2175,7 @@
           "title": "XC /bank-statement-converter/kotak [public]",
           "ok": true,
           "status": "passed",
-          "ms": 5830
+          "ms": 1244
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2207,7 +2183,7 @@
           "title": "XC /bank-statement-converter/pnb [public]",
           "ok": true,
           "status": "passed",
-          "ms": 5664
+          "ms": 1182
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2215,7 +2191,7 @@
           "title": "XC /bank-statement-converter/bank-of-baroda [public]",
           "ok": true,
           "status": "passed",
-          "ms": 6488
+          "ms": 1160
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2223,7 +2199,7 @@
           "title": "XC /bank-statement-converter/canara [public]",
           "ok": true,
           "status": "passed",
-          "ms": 4542
+          "ms": 1185
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2231,7 +2207,7 @@
           "title": "XC /bank-statement-converter/union-bank [public]",
           "ok": true,
           "status": "passed",
-          "ms": 5197
+          "ms": 1232
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2239,7 +2215,7 @@
           "title": "XC /bank-statement-converter/idfc-first [public]",
           "ok": true,
           "status": "passed",
-          "ms": 11420
+          "ms": 1026
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2247,7 +2223,7 @@
           "title": "XC /bank-statement-converter/yes-bank [public]",
           "ok": true,
           "status": "passed",
-          "ms": 4141
+          "ms": 1304
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2255,7 +2231,7 @@
           "title": "XC /bank-statement-to-tally [public]",
           "ok": true,
           "status": "passed",
-          "ms": 3633
+          "ms": 1085
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2263,7 +2239,7 @@
           "title": "XC /bank-statement-to-quickbooks [public]",
           "ok": true,
           "status": "passed",
-          "ms": 3501
+          "ms": 1215
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2271,7 +2247,7 @@
           "title": "XC /bank-statement-to-csv [public]",
           "ok": true,
           "status": "passed",
-          "ms": 17445
+          "ms": 1383
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2279,7 +2255,7 @@
           "title": "XC /for/legal [public]",
           "ok": true,
           "status": "passed",
-          "ms": 18779
+          "ms": 1197
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2287,7 +2263,7 @@
           "title": "XC /for/accountants [public]",
           "ok": true,
           "status": "passed",
-          "ms": 8331
+          "ms": 1145
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2295,7 +2271,7 @@
           "title": "XC /for/healthcare [public]",
           "ok": true,
           "status": "passed",
-          "ms": 7432
+          "ms": 1250
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2303,7 +2279,7 @@
           "title": "XC /for/schools [public]",
           "ok": true,
           "status": "passed",
-          "ms": 2886
+          "ms": 1197
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2311,7 +2287,7 @@
           "title": "XC /passport-photo/us-visa [public]",
           "ok": true,
           "status": "passed",
-          "ms": 2585
+          "ms": 1065
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2319,7 +2295,7 @@
           "title": "XC /passport-photo/us-passport [public]",
           "ok": true,
           "status": "passed",
-          "ms": 3469
+          "ms": 1037
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2327,7 +2303,7 @@
           "title": "XC /passport-photo/schengen-visa [public]",
           "ok": true,
           "status": "passed",
-          "ms": 4444
+          "ms": 1111
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2335,7 +2311,7 @@
           "title": "XC /passport-photo/uk-passport [public]",
           "ok": true,
           "status": "passed",
-          "ms": 3985
+          "ms": 1209
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2343,7 +2319,7 @@
           "title": "XC /passport-photo/india-passport [public]",
           "ok": true,
           "status": "passed",
-          "ms": 7769
+          "ms": 1141
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2351,7 +2327,7 @@
           "title": "XC /passport-photo/india-evisa [public]",
           "ok": true,
           "status": "passed",
-          "ms": 9513
+          "ms": 1058
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2359,7 +2335,7 @@
           "title": "XC /passport-photo/canada [public]",
           "ok": true,
           "status": "passed",
-          "ms": 4927
+          "ms": 1208
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2367,7 +2343,7 @@
           "title": "XC /passport-photo/australia [public]",
           "ok": true,
           "status": "passed",
-          "ms": 3925
+          "ms": 1084
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2375,7 +2351,7 @@
           "title": "XC /passport-photo/china-visa [public]",
           "ok": true,
           "status": "passed",
-          "ms": 7657
+          "ms": 1101
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2383,7 +2359,7 @@
           "title": "XC /passport-photo/biometric [public]",
           "ok": true,
           "status": "passed",
-          "ms": 5855
+          "ms": 1189
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2391,7 +2367,7 @@
           "title": "XC /passport-photo/brazil [public]",
           "ok": true,
           "status": "passed",
-          "ms": 6592
+          "ms": 1143
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2399,7 +2375,7 @@
           "title": "XC /passport-photo/mexico [public]",
           "ok": true,
           "status": "passed",
-          "ms": 3924
+          "ms": 1223
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2407,7 +2383,7 @@
           "title": "XC /passport-photo/argentina [public]",
           "ok": true,
           "status": "passed",
-          "ms": 5428
+          "ms": 1100
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2415,7 +2391,7 @@
           "title": "XC /passport-photo/chile [public]",
           "ok": true,
           "status": "passed",
-          "ms": 5080
+          "ms": 1164
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2423,7 +2399,7 @@
           "title": "XC /passport-photo/colombia [public]",
           "ok": true,
           "status": "passed",
-          "ms": 7792
+          "ms": 1235
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2431,7 +2407,7 @@
           "title": "XC /passport-photo/germany [public]",
           "ok": true,
           "status": "passed",
-          "ms": 8653
+          "ms": 1146
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2439,7 +2415,7 @@
           "title": "XC /passport-photo/france [public]",
           "ok": true,
           "status": "passed",
-          "ms": 13568
+          "ms": 1245
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2447,7 +2423,7 @@
           "title": "XC /passport-photo/italy [public]",
           "ok": true,
           "status": "passed",
-          "ms": 4702
+          "ms": 1125
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2455,7 +2431,7 @@
           "title": "XC /passport-photo/spain [public]",
           "ok": true,
           "status": "passed",
-          "ms": 4710
+          "ms": 1113
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2463,7 +2439,7 @@
           "title": "XC /passport-photo/netherlands [public]",
           "ok": true,
           "status": "passed",
-          "ms": 7565
+          "ms": 1194
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2471,7 +2447,7 @@
           "title": "XC /passport-photo/portugal [public]",
           "ok": true,
           "status": "passed",
-          "ms": 6768
+          "ms": 1146
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2479,7 +2455,7 @@
           "title": "XC /passport-photo/belgium [public]",
           "ok": true,
           "status": "passed",
-          "ms": 3189
+          "ms": 1221
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2487,7 +2463,7 @@
           "title": "XC /passport-photo/switzerland [public]",
           "ok": true,
           "status": "passed",
-          "ms": 3624
+          "ms": 1185
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2495,7 +2471,7 @@
           "title": "XC /passport-photo/austria [public]",
           "ok": true,
           "status": "passed",
-          "ms": 7567
+          "ms": 1135
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2503,7 +2479,7 @@
           "title": "XC /passport-photo/sweden [public]",
           "ok": true,
           "status": "passed",
-          "ms": 6613
+          "ms": 1185
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2511,7 +2487,7 @@
           "title": "XC /passport-photo/norway [public]",
           "ok": true,
           "status": "passed",
-          "ms": 4917
+          "ms": 1070
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2519,7 +2495,7 @@
           "title": "XC /passport-photo/poland [public]",
           "ok": true,
           "status": "passed",
-          "ms": 4045
+          "ms": 1043
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2527,7 +2503,7 @@
           "title": "XC /passport-photo/greece [public]",
           "ok": true,
           "status": "passed",
-          "ms": 4803
+          "ms": 1234
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2535,7 +2511,7 @@
           "title": "XC /passport-photo/ireland [public]",
           "ok": true,
           "status": "passed",
-          "ms": 11753
+          "ms": 1030
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2543,7 +2519,7 @@
           "title": "XC /passport-photo/japan [public]",
           "ok": true,
           "status": "passed",
-          "ms": 8421
+          "ms": 1306
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2551,7 +2527,7 @@
           "title": "XC /passport-photo/south-korea [public]",
           "ok": true,
           "status": "passed",
-          "ms": 2728
+          "ms": 1248
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2559,7 +2535,7 @@
           "title": "XC /passport-photo/singapore [public]",
           "ok": true,
           "status": "passed",
-          "ms": 3108
+          "ms": 1096
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2567,7 +2543,7 @@
           "title": "XC /passport-photo/malaysia [public]",
           "ok": true,
           "status": "passed",
-          "ms": 3616
+          "ms": 1090
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2575,7 +2551,7 @@
           "title": "XC /passport-photo/philippines [public]",
           "ok": true,
           "status": "passed",
-          "ms": 2892
+          "ms": 1254
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2583,7 +2559,7 @@
           "title": "XC /passport-photo/indonesia [public]",
           "ok": true,
           "status": "passed",
-          "ms": 2584
+          "ms": 1255
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2591,7 +2567,7 @@
           "title": "XC /passport-photo/thailand [public]",
           "ok": true,
           "status": "passed",
-          "ms": 3500
+          "ms": 1053
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2599,7 +2575,7 @@
           "title": "XC /passport-photo/pakistan [public]",
           "ok": true,
           "status": "passed",
-          "ms": 3632
+          "ms": 1152
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2607,7 +2583,7 @@
           "title": "XC /passport-photo/bangladesh [public]",
           "ok": true,
           "status": "passed",
-          "ms": 4038
+          "ms": 1220
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2615,7 +2591,7 @@
           "title": "XC /passport-photo/vietnam [public]",
           "ok": true,
           "status": "passed",
-          "ms": 4681
+          "ms": 1263
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2623,7 +2599,7 @@
           "title": "XC /passport-photo/srilanka [public]",
           "ok": true,
           "status": "passed",
-          "ms": 12540
+          "ms": 1121
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2631,7 +2607,7 @@
           "title": "XC /passport-photo/nepal [public]",
           "ok": true,
           "status": "passed",
-          "ms": 1980
+          "ms": 1117
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2639,7 +2615,7 @@
           "title": "XC /passport-photo/uae [public]",
           "ok": true,
           "status": "passed",
-          "ms": 2113
+          "ms": 1076
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2647,7 +2623,7 @@
           "title": "XC /passport-photo/saudi [public]",
           "ok": true,
           "status": "passed",
-          "ms": 2103
+          "ms": 1201
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2655,7 +2631,7 @@
           "title": "XC /passport-photo/qatar [public]",
           "ok": true,
           "status": "passed",
-          "ms": 3043
+          "ms": 1078
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2663,7 +2639,7 @@
           "title": "XC /passport-photo/turkey [public]",
           "ok": true,
           "status": "passed",
-          "ms": 1899
+          "ms": 1138
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2671,7 +2647,7 @@
           "title": "XC /passport-photo/egypt [public]",
           "ok": true,
           "status": "passed",
-          "ms": 2008
+          "ms": 1208
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2679,7 +2655,7 @@
           "title": "XC /passport-photo/nigeria [public]",
           "ok": true,
           "status": "passed",
-          "ms": 2595
+          "ms": 1015
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2687,7 +2663,7 @@
           "title": "XC /passport-photo/southafrica [public]",
           "ok": true,
           "status": "passed",
-          "ms": 3093
+          "ms": 1124
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2695,7 +2671,7 @@
           "title": "XC /passport-photo/kenya [public]",
           "ok": true,
           "status": "passed",
-          "ms": 2512
+          "ms": 1123
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2703,7 +2679,7 @@
           "title": "XC /passport-photo/newzealand [public]",
           "ok": true,
           "status": "passed",
-          "ms": 3245
+          "ms": 1247
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2711,7 +2687,7 @@
           "title": "XC /edit-pdf [gated]",
           "ok": true,
           "status": "passed",
-          "ms": 2999
+          "ms": 1233
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2719,7 +2695,7 @@
           "title": "XC /workflows [gated]",
           "ok": true,
           "status": "passed",
-          "ms": 4472
+          "ms": 1261
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2727,7 +2703,7 @@
           "title": "XC /annotate-pdf [gated]",
           "ok": true,
           "status": "passed",
-          "ms": 3945
+          "ms": 1163
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2735,7 +2711,7 @@
           "title": "XC /redact-pdf [gated]",
           "ok": true,
           "status": "passed",
-          "ms": 6747
+          "ms": 1296
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2743,7 +2719,7 @@
           "title": "XC /ocr-pdf [gated]",
           "ok": true,
           "status": "passed",
-          "ms": 4473
+          "ms": 1166
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2751,7 +2727,7 @@
           "title": "XC /chat-pdf [gated]",
           "ok": true,
           "status": "passed",
-          "ms": 3928
+          "ms": 1217
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2759,7 +2735,7 @@
           "title": "XC /summarize-pdf [gated]",
           "ok": true,
           "status": "passed",
-          "ms": 4116
+          "ms": 1356
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2767,7 +2743,7 @@
           "title": "XC /translate-pdf [gated]",
           "ok": true,
           "status": "passed",
-          "ms": 8295
+          "ms": 1162
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2775,7 +2751,7 @@
           "title": "XC /pdf-question-generator [gated]",
           "ok": true,
           "status": "passed",
-          "ms": 4750
+          "ms": 1212
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2783,7 +2759,7 @@
           "title": "XC /file-vault [gated]",
           "ok": true,
           "status": "passed",
-          "ms": 3811
+          "ms": 1104
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2791,7 +2767,7 @@
           "title": "XC /link-in-bio [gated]",
           "ok": true,
           "status": "passed",
-          "ms": 3324
+          "ms": 990
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2799,7 +2775,7 @@
           "title": "XC /receipt-scanner [gated]",
           "ok": true,
           "status": "passed",
-          "ms": 3640
+          "ms": 1152
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2807,7 +2783,7 @@
           "title": "XC /bank-statement-converter [gated]",
           "ok": true,
           "status": "passed",
-          "ms": 3242
+          "ms": 1103
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2815,7 +2791,7 @@
           "title": "XC /clean-scanned-pdf [gated]",
           "ok": true,
           "status": "passed",
-          "ms": 3370
+          "ms": 1051
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2823,7 +2799,7 @@
           "title": "XC /share-safe-pdf-check [gated]",
           "ok": true,
           "status": "passed",
-          "ms": 3504
+          "ms": 956
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2831,7 +2807,7 @@
           "title": "XC /compare-pdf [gated]",
           "ok": true,
           "status": "passed",
-          "ms": 4758
+          "ms": 1076
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2839,7 +2815,7 @@
           "title": "XC /client-packet-builder [gated]",
           "ok": true,
           "status": "passed",
-          "ms": 5444
+          "ms": 1122
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2847,7 +2823,7 @@
           "title": "XC /html-to-pdf [gated]",
           "ok": true,
           "status": "passed",
-          "ms": 3480
+          "ms": 924
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2855,7 +2831,7 @@
           "title": "XC /crop-pdf [gated]",
           "ok": true,
           "status": "passed",
-          "ms": 3802
+          "ms": 1130
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2863,7 +2839,7 @@
           "title": "XC /pdf-to-epub [gated]",
           "ok": true,
           "status": "passed",
-          "ms": 3362
+          "ms": 1174
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2871,7 +2847,7 @@
           "title": "XC /html-to-excel [gated]",
           "ok": true,
           "status": "passed",
-          "ms": 4245
+          "ms": 1280
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2879,7 +2855,7 @@
           "title": "XC /video-to-mp3 [gated]",
           "ok": true,
           "status": "passed",
-          "ms": 4383
+          "ms": 1062
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2887,7 +2863,7 @@
           "title": "XC /audio-converter [gated]",
           "ok": true,
           "status": "passed",
-          "ms": 3991
+          "ms": 1121
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2895,7 +2871,7 @@
           "title": "XC /excel-to-csv [gated]",
           "ok": true,
           "status": "passed",
-          "ms": 4214
+          "ms": 1018
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2903,7 +2879,7 @@
           "title": "XC /csv-to-excel [gated]",
           "ok": true,
           "status": "passed",
-          "ms": 3661
+          "ms": 1066
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2911,7 +2887,7 @@
           "title": "XC /json-to-excel [gated]",
           "ok": true,
           "status": "passed",
-          "ms": 4795
+          "ms": 1055
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2919,7 +2895,7 @@
           "title": "XC /xml-to-excel [gated]",
           "ok": true,
           "status": "passed",
-          "ms": 4137
+          "ms": 1152
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2927,7 +2903,7 @@
           "title": "XC /svg-to-png [gated]",
           "ok": true,
           "status": "passed",
-          "ms": 3717
+          "ms": 1255
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2935,7 +2911,7 @@
           "title": "XC /svg-to-pdf [gated]",
           "ok": true,
           "status": "passed",
-          "ms": 3749
+          "ms": 1157
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2943,7 +2919,7 @@
           "title": "XC /epub-to-pdf [gated]",
           "ok": true,
           "status": "passed",
-          "ms": 3615
+          "ms": 1195
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2951,7 +2927,7 @@
           "title": "XC /pdf-to-text [gated]",
           "ok": true,
           "status": "passed",
-          "ms": 3552
+          "ms": 1130
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2959,7 +2935,7 @@
           "title": "XC /markdown-to-pdf [gated]",
           "ok": true,
           "status": "passed",
-          "ms": 3950
+          "ms": 1144
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2967,7 +2943,7 @@
           "title": "XC /subtitle-converter [gated]",
           "ok": true,
           "status": "passed",
-          "ms": 3690
+          "ms": 1080
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2975,7 +2951,7 @@
           "title": "XC /favicon-generator [gated]",
           "ok": true,
           "status": "passed",
-          "ms": 3553
+          "ms": 1222
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2983,7 +2959,7 @@
           "title": "/ [home] fits 375 / 768 / 1280",
           "ok": true,
           "status": "passed",
-          "ms": 11205
+          "ms": 2784
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2991,7 +2967,7 @@
           "title": "/tools [directory] fits 375 / 768 / 1280",
           "ok": true,
           "status": "passed",
-          "ms": 8481
+          "ms": 2386
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -2999,7 +2975,7 @@
           "title": "/compress-pdf [client-tool-pdf] fits 375 / 768 / 1280",
           "ok": true,
           "status": "passed",
-          "ms": 6684
+          "ms": 2164
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -3007,7 +2983,7 @@
           "title": "/compress-image [client-tool-image] fits 375 / 768 / 1280",
           "ok": true,
           "status": "passed",
-          "ms": 6074
+          "ms": 1799
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -3015,7 +2991,7 @@
           "title": "/word-to-pdf [server-tool] fits 375 / 768 / 1280",
           "ok": true,
           "status": "passed",
-          "ms": 20648
+          "ms": 1716
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -3023,7 +2999,7 @@
           "title": "/json-formatter [micro-utility] fits 375 / 768 / 1280",
           "ok": true,
           "status": "passed",
-          "ms": 7214
+          "ms": 1842
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -3031,7 +3007,7 @@
           "title": "/qr-code-generator [generator] fits 375 / 768 / 1280",
           "ok": true,
           "status": "passed",
-          "ms": 6958
+          "ms": 1918
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -3039,7 +3015,7 @@
           "title": "/why-diemdesk [landing] fits 375 / 768 / 1280",
           "ok": true,
           "status": "passed",
-          "ms": 3967
+          "ms": 1900
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -3047,7 +3023,7 @@
           "title": "/pricing [commerce] fits 375 / 768 / 1280",
           "ok": true,
           "status": "passed",
-          "ms": 4365
+          "ms": 1896
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -3055,7 +3031,7 @@
           "title": "/security [legal] fits 375 / 768 / 1280",
           "ok": true,
           "status": "passed",
-          "ms": 6733
+          "ms": 2020
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -3063,7 +3039,7 @@
           "title": "/changelog [content] fits 375 / 768 / 1280",
           "ok": true,
           "status": "passed",
-          "ms": 8414
+          "ms": 2068
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -3071,7 +3047,7 @@
           "title": "every advertised URL is real and indexable",
           "ok": true,
           "status": "passed",
-          "ms": 2170
+          "ms": 1043
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -3079,7 +3055,7 @@
           "title": "no gated route is advertised to crawlers",
           "ok": true,
           "status": "passed",
-          "ms": 86
+          "ms": 31
         },
         {
           "file": "xc-crosscutting.spec.ts",
@@ -3087,7 +3063,7 @@
           "title": "every public route is advertised",
           "ok": true,
           "status": "passed",
-          "ms": 85
+          "ms": 43
         }
       ]
     }
@@ -3096,7 +3072,7 @@
     "total": 127,
     "passed": 127,
     "failed": 0,
-    "durationMs": 9275,
+    "durationMs": 534,
     "scenarios": [
       {
         "file": "audio-convert.test.ts",
@@ -3104,7 +3080,7 @@
         "title": "reads durations the way people write them",
         "ok": true,
         "status": "passed",
-        "ms": 15
+        "ms": 7
       },
       {
         "file": "audio-convert.test.ts",
@@ -3112,7 +3088,7 @@
         "title": "parses what people type",
         "ok": true,
         "status": "passed",
-        "ms": 3
+        "ms": 1
       },
       {
         "file": "audio-convert.test.ts",
@@ -3128,7 +3104,7 @@
         "title": "round-trips",
         "ok": true,
         "status": "passed",
-        "ms": 3
+        "ms": 2
       },
       {
         "file": "audio-convert.test.ts",
@@ -3136,7 +3112,7 @@
         "title": "keeps the whole file when no trim is set",
         "ok": true,
         "status": "passed",
-        "ms": 12
+        "ms": 6
       },
       {
         "file": "audio-convert.test.ts",
@@ -3144,7 +3120,7 @@
         "title": "trims from a start time",
         "ok": true,
         "status": "passed",
-        "ms": 3
+        "ms": 2
       },
       {
         "file": "audio-convert.test.ts",
@@ -3152,7 +3128,7 @@
         "title": "trims to an end time",
         "ok": true,
         "status": "passed",
-        "ms": 4
+        "ms": 2
       },
       {
         "file": "audio-convert.test.ts",
@@ -3160,7 +3136,7 @@
         "title": "never returns an empty or reversed range",
         "ok": true,
         "status": "passed",
-        "ms": 4
+        "ms": 2
       },
       {
         "file": "audio-convert.test.ts",
@@ -3176,7 +3152,7 @@
         "title": "folds to mono by averaging the channels",
         "ok": true,
         "status": "passed",
-        "ms": 14
+        "ms": 3
       },
       {
         "file": "audio-convert.test.ts",
@@ -3184,7 +3160,7 @@
         "title": "copies out of the source buffer so the caller owns the memory",
         "ok": true,
         "status": "passed",
-        "ms": 4
+        "ms": 2
       },
       {
         "file": "audio-convert.test.ts",
@@ -3192,7 +3168,7 @@
         "title": "writes a RIFF/WAVE header a decoder will accept",
         "ok": true,
         "status": "passed",
-        "ms": 10
+        "ms": 4
       },
       {
         "file": "audio-convert.test.ts",
@@ -3200,7 +3176,7 @@
         "title": "sizes the file from the samples, and interleaves stereo",
         "ok": true,
         "status": "passed",
-        "ms": 2
+        "ms": 1
       },
       {
         "file": "audio-convert.test.ts",
@@ -3216,7 +3192,7 @@
         "title": "offers a sane ladder with 192 in it",
         "ok": true,
         "status": "passed",
-        "ms": 10
+        "ms": 2
       },
       {
         "file": "epub-core.test.ts",
@@ -3224,7 +3200,7 @@
         "title": "rejoins a word broken across a line",
         "ok": true,
         "status": "passed",
-        "ms": 18
+        "ms": 3
       },
       {
         "file": "epub-core.test.ts",
@@ -3232,7 +3208,7 @@
         "title": "leaves a real hyphen between words alone",
         "ok": true,
         "status": "passed",
-        "ms": 2
+        "ms": 1
       },
       {
         "file": "epub-core.test.ts",
@@ -3240,7 +3216,7 @@
         "title": "continues a sentence cut by a page break",
         "ok": true,
         "status": "passed",
-        "ms": 6
+        "ms": 1
       },
       {
         "file": "epub-core.test.ts",
@@ -3248,7 +3224,7 @@
         "title": "keeps separate blocks apart when the page ended cleanly",
         "ok": true,
         "status": "passed",
-        "ms": 3
+        "ms": 1
       },
       {
         "file": "epub-core.test.ts",
@@ -3256,7 +3232,7 @@
         "title": "never swallows a heading into the previous paragraph",
         "ok": true,
         "status": "passed",
-        "ms": 17
+        "ms": 1
       },
       {
         "file": "epub-core.test.ts",
@@ -3264,7 +3240,7 @@
         "title": "skips empty pages",
         "ok": true,
         "status": "passed",
-        "ms": 2
+        "ms": 0
       },
       {
         "file": "epub-core.test.ts",
@@ -3272,7 +3248,7 @@
         "title": "drops the repeated header and the page number, keeps the body",
         "ok": true,
         "status": "passed",
-        "ms": 20
+        "ms": 3
       },
       {
         "file": "epub-core.test.ts",
@@ -3280,7 +3256,7 @@
         "title": "leaves short documents alone — too little evidence to be sure",
         "ok": true,
         "status": "passed",
-        "ms": 5
+        "ms": 0
       },
       {
         "file": "epub-core.test.ts",
@@ -3288,7 +3264,7 @@
         "title": "keeps a heading that only appears once",
         "ok": true,
         "status": "passed",
-        "ms": 4
+        "ms": 1
       },
       {
         "file": "epub-core.test.ts",
@@ -3296,7 +3272,7 @@
         "title": "splits at headings and keeps the text before the first one",
         "ok": true,
         "status": "passed",
-        "ms": 53
+        "ms": 2
       },
       {
         "file": "epub-core.test.ts",
@@ -3304,7 +3280,7 @@
         "title": "returns null when there is nothing to split on",
         "ok": true,
         "status": "passed",
-        "ms": 12
+        "ms": 0
       },
       {
         "file": "epub-core.test.ts",
@@ -3312,7 +3288,7 @@
         "title": "splits at bookmarks, with front matter kept",
         "ok": true,
         "status": "passed",
-        "ms": 5
+        "ms": 1
       },
       {
         "file": "epub-core.test.ts",
@@ -3320,7 +3296,7 @@
         "title": "ignores bookmarks that point outside the document",
         "ok": true,
         "status": "passed",
-        "ms": 11
+        "ms": 0
       },
       {
         "file": "epub-core.test.ts",
@@ -3328,7 +3304,7 @@
         "title": "splits by fixed page blocks",
         "ok": true,
         "status": "passed",
-        "ms": 2
+        "ms": 1
       },
       {
         "file": "epub-core.test.ts",
@@ -3336,7 +3312,7 @@
         "title": "becomes a figure where the picture was drawn",
         "ok": true,
         "status": "passed",
-        "ms": 39
+        "ms": 1
       },
       {
         "file": "epub-core.test.ts",
@@ -3344,7 +3320,7 @@
         "title": "never leaves a token visible when a picture is dropped",
         "ok": true,
         "status": "passed",
-        "ms": 25
+        "ms": 0
       },
       {
         "file": "epub-core.test.ts",
@@ -3352,7 +3328,7 @@
         "title": "puts an uncompressed mimetype first",
         "ok": true,
         "status": "passed",
-        "ms": 1
+        "ms": 0
       },
       {
         "file": "epub-core.test.ts",
@@ -3360,7 +3336,7 @@
         "title": "ships the container, package, both tables of contents and every chapter",
         "ok": true,
         "status": "passed",
-        "ms": 9
+        "ms": 1
       },
       {
         "file": "epub-core.test.ts",
@@ -3368,7 +3344,7 @@
         "title": "declares every chapter in the manifest and the spine",
         "ok": true,
         "status": "passed",
-        "ms": 2
+        "ms": 1
       },
       {
         "file": "epub-core.test.ts",
@@ -3376,7 +3352,7 @@
         "title": "escapes metadata that would otherwise break the XML",
         "ok": true,
         "status": "passed",
-        "ms": 2
+        "ms": 1
       },
       {
         "file": "epub-core.test.ts",
@@ -3384,7 +3360,7 @@
         "title": "adds the cover to the manifest and the front of the spine",
         "ok": true,
         "status": "passed",
-        "ms": 2
+        "ms": 1
       },
       {
         "file": "epub-core.test.ts",
@@ -3392,7 +3368,7 @@
         "title": "strips control characters, which XML forbids and PDFs are full of",
         "ok": true,
         "status": "passed",
-        "ms": 2
+        "ms": 1
       },
       {
         "file": "epub-core.test.ts",
@@ -3400,7 +3376,7 @@
         "title": "never produces an empty book",
         "ok": true,
         "status": "passed",
-        "ms": 3
+        "ms": 0
       },
       {
         "file": "epub-core.test.ts",
@@ -3408,7 +3384,7 @@
         "title": "lays a right-to-left book out right-to-left",
         "ok": true,
         "status": "passed",
-        "ms": 5
+        "ms": 1
       },
       {
         "file": "epub-core.test.ts",
@@ -3416,7 +3392,7 @@
         "title": "leaves a left-to-right book alone",
         "ok": true,
         "status": "passed",
-        "ms": 2
+        "ms": 1
       },
       {
         "file": "epub-core.test.ts",
@@ -3424,7 +3400,7 @@
         "title": "knows which languages read right-to-left",
         "ok": true,
         "status": "passed",
-        "ms": 1
+        "ms": 0
       },
       {
         "file": "epub-core.test.ts",
@@ -3432,7 +3408,7 @@
         "title": "packs only the pictures a chapter actually uses",
         "ok": true,
         "status": "passed",
-        "ms": 2
+        "ms": 0
       },
       {
         "file": "epub-core.test.ts",
@@ -3440,7 +3416,7 @@
         "title": "writes well-formed XML declarations everywhere",
         "ok": true,
         "status": "passed",
-        "ms": 2
+        "ms": 0
       },
       {
         "file": "html-tables.test.ts",
@@ -3448,7 +3424,7 @@
         "title": "reads a plain table, header row included",
         "ok": true,
         "status": "passed",
-        "ms": 1385
+        "ms": 91
       },
       {
         "file": "html-tables.test.ts",
@@ -3456,7 +3432,7 @@
         "title": "keeps columns aligned under a rowspan — the thing copy-paste gets wrong",
         "ok": true,
         "status": "passed",
-        "ms": 580
+        "ms": 22
       },
       {
         "file": "html-tables.test.ts",
@@ -3464,7 +3440,7 @@
         "title": "spreads a colspan across the columns it covers",
         "ok": true,
         "status": "passed",
-        "ms": 590
+        "ms": 10
       },
       {
         "file": "html-tables.test.ts",
@@ -3472,7 +3448,7 @@
         "title": "names a table from its caption, then from the heading above it",
         "ok": true,
         "status": "passed",
-        "ms": 890
+        "ms": 22
       },
       {
         "file": "html-tables.test.ts",
@@ -3480,7 +3456,7 @@
         "title": "finds every table on the page",
         "ok": true,
         "status": "passed",
-        "ms": 365
+        "ms": 14
       },
       {
         "file": "html-tables.test.ts",
@@ -3488,7 +3464,7 @@
         "title": "ignores layout shells and keeps the data table inside",
         "ok": true,
         "status": "passed",
-        "ms": 75
+        "ms": 14
       },
       {
         "file": "html-tables.test.ts",
@@ -3496,7 +3472,7 @@
         "title": "skips one-column and near-empty tables",
         "ok": true,
         "status": "passed",
-        "ms": 74
+        "ms": 41
       },
       {
         "file": "html-tables.test.ts",
@@ -3504,7 +3480,7 @@
         "title": "never lets script or style text land in a cell",
         "ok": true,
         "status": "passed",
-        "ms": 127
+        "ms": 37
       },
       {
         "file": "html-tables.test.ts",
@@ -3512,7 +3488,7 @@
         "title": "collapses the whitespace real pages are full of",
         "ok": true,
         "status": "passed",
-        "ms": 40
+        "ms": 15
       },
       {
         "file": "html-tables.test.ts",
@@ -3520,7 +3496,7 @@
         "title": "returns nothing when the page has no tables",
         "ok": true,
         "status": "passed",
-        "ms": 60
+        "ms": 16
       },
       {
         "file": "html-tables.test.ts",
@@ -3528,7 +3504,7 @@
         "title": "strips the characters Excel forbids and trims to 31",
         "ok": true,
         "status": "passed",
-        "ms": 85
+        "ms": 3
       },
       {
         "file": "html-tables.test.ts",
@@ -3536,7 +3512,7 @@
         "title": "never repeats a name",
         "ok": true,
         "status": "passed",
-        "ms": 2
+        "ms": 1
       },
       {
         "file": "html-tables.test.ts",
@@ -3544,7 +3520,7 @@
         "title": "falls back when the name is empty",
         "ok": true,
         "status": "passed",
-        "ms": 2
+        "ms": 0
       },
       {
         "file": "md-blocks.test.ts",
@@ -3552,7 +3528,7 @@
         "title": "unwraps the marks the writers cannot style",
         "ok": true,
         "status": "passed",
-        "ms": 16
+        "ms": 3
       },
       {
         "file": "md-blocks.test.ts",
@@ -3560,7 +3536,7 @@
         "title": "leaves ordinary punctuation and maths alone",
         "ok": true,
         "status": "passed",
-        "ms": 2
+        "ms": 0
       },
       {
         "file": "md-blocks.test.ts",
@@ -3568,7 +3544,7 @@
         "title": "reads headings, both styles",
         "ok": true,
         "status": "passed",
-        "ms": 11
+        "ms": 1
       },
       {
         "file": "md-blocks.test.ts",
@@ -3576,7 +3552,7 @@
         "title": "joins a wrapped paragraph the way Markdown does",
         "ok": true,
         "status": "passed",
-        "ms": 2
+        "ms": 1
       },
       {
         "file": "md-blocks.test.ts",
@@ -3584,7 +3560,7 @@
         "title": "reads both kinds of list",
         "ok": true,
         "status": "passed",
-        "ms": 170
+        "ms": 2
       },
       {
         "file": "md-blocks.test.ts",
@@ -3592,7 +3568,7 @@
         "title": "reads a GFM table with its header",
         "ok": true,
         "status": "passed",
-        "ms": 4
+        "ms": 1
       },
       {
         "file": "md-blocks.test.ts",
@@ -3600,7 +3576,7 @@
         "title": "keeps code lines and drops the fences",
         "ok": true,
         "status": "passed",
-        "ms": 2
+        "ms": 0
       },
       {
         "file": "md-blocks.test.ts",
@@ -3608,7 +3584,7 @@
         "title": "folds a block quote into one note",
         "ok": true,
         "status": "passed",
-        "ms": 1
+        "ms": 0
       },
       {
         "file": "md-blocks.test.ts",
@@ -3616,7 +3592,7 @@
         "title": "drops horizontal rules without swallowing what follows",
         "ok": true,
         "status": "passed",
-        "ms": 2
+        "ms": 1
       },
       {
         "file": "md-blocks.test.ts",
@@ -3624,7 +3600,7 @@
         "title": "flattens tables for the PDF writer, which has no table block",
         "ok": true,
         "status": "passed",
-        "ms": 6
+        "ms": 1
       },
       {
         "file": "md-blocks.test.ts",
@@ -3632,7 +3608,7 @@
         "title": "keeps tables for Word and drops page breaks it cannot express",
         "ok": true,
         "status": "passed",
-        "ms": 2
+        "ms": 0
       },
       {
         "file": "md-blocks.test.ts",
@@ -3640,7 +3616,7 @@
         "title": "writes readable plain text",
         "ok": true,
         "status": "passed",
-        "ms": 3
+        "ms": 1
       },
       {
         "file": "md-blocks.test.ts",
@@ -3648,7 +3624,7 @@
         "title": "reads the size from width/height, else the viewBox",
         "ok": true,
         "status": "passed",
-        "ms": 160
+        "ms": 2
       },
       {
         "file": "md-blocks.test.ts",
@@ -3656,7 +3632,7 @@
         "title": "returns null when there is nothing to size from",
         "ok": true,
         "status": "passed",
-        "ms": 8
+        "ms": 1
       },
       {
         "file": "md-blocks.test.ts",
@@ -3664,7 +3640,7 @@
         "title": "forces explicit dimensions on — the fix for blank exports",
         "ok": true,
         "status": "passed",
-        "ms": 5
+        "ms": 1
       },
       {
         "file": "md-blocks.test.ts",
@@ -3672,7 +3648,7 @@
         "title": "replaces any width/height already there rather than duplicating",
         "ok": true,
         "status": "passed",
-        "ms": 2
+        "ms": 0
       },
       {
         "file": "md-blocks.test.ts",
@@ -3680,7 +3656,7 @@
         "title": "strips scripts and event handlers",
         "ok": true,
         "status": "passed",
-        "ms": 238
+        "ms": 2
       },
       {
         "file": "md-blocks.test.ts",
@@ -3688,7 +3664,7 @@
         "title": "writes a real multi-image icon header",
         "ok": true,
         "status": "passed",
-        "ms": 5
+        "ms": 1
       },
       {
         "file": "md-blocks.test.ts",
@@ -3696,7 +3672,7 @@
         "title": "records each image size, length and offset",
         "ok": true,
         "status": "passed",
-        "ms": 211
+        "ms": 1
       },
       {
         "file": "md-blocks.test.ts",
@@ -3712,7 +3688,7 @@
         "title": "pins the output file by hash",
         "ok": true,
         "status": "passed",
-        "ms": 363
+        "ms": 19
       },
       {
         "file": "redaction-certificate.test.ts",
@@ -3720,7 +3696,7 @@
         "title": "records when text SURVIVED, rather than quietly claiming success",
         "ok": true,
         "status": "passed",
-        "ms": 20
+        "ms": 1
       },
       {
         "file": "redaction-certificate.test.ts",
@@ -3728,7 +3704,7 @@
         "title": "verifies a matching file and rejects a different one",
         "ok": true,
         "status": "passed",
-        "ms": 110
+        "ms": 4
       },
       {
         "file": "redaction-certificate.test.ts",
@@ -3736,7 +3712,7 @@
         "title": "refuses anything that is not one of our certificates",
         "ok": true,
         "status": "passed",
-        "ms": 14
+        "ms": 2
       },
       {
         "file": "redaction-certificate.test.ts",
@@ -3744,7 +3720,7 @@
         "title": "collapses page runs the way a person would read them",
         "ok": true,
         "status": "passed",
-        "ms": 11
+        "ms": 2
       },
       {
         "file": "sheet-io.test.ts",
@@ -3752,7 +3728,7 @@
         "title": "keeps a quoted comma in one cell",
         "ok": true,
         "status": "passed",
-        "ms": 30
+        "ms": 4
       },
       {
         "file": "sheet-io.test.ts",
@@ -3760,7 +3736,7 @@
         "title": "handles doubled quotes and quoted newlines",
         "ok": true,
         "status": "passed",
-        "ms": 184
+        "ms": 1
       },
       {
         "file": "sheet-io.test.ts",
@@ -3768,7 +3744,7 @@
         "title": "strips a BOM so the first header is not corrupted",
         "ok": true,
         "status": "passed",
-        "ms": 3
+        "ms": 2
       },
       {
         "file": "sheet-io.test.ts",
@@ -3776,7 +3752,7 @@
         "title": "copes with CRLF",
         "ok": true,
         "status": "passed",
-        "ms": 556
+        "ms": 0
       },
       {
         "file": "sheet-io.test.ts",
@@ -3784,7 +3760,7 @@
         "title": "drops trailing blank lines but keeps genuinely empty cells",
         "ok": true,
         "status": "passed",
-        "ms": 3
+        "ms": 0
       },
       {
         "file": "sheet-io.test.ts",
@@ -3792,7 +3768,7 @@
         "title": "finds semicolons and tabs, which is what breaks European and pasted files",
         "ok": true,
         "status": "passed",
-        "ms": 316
+        "ms": 1
       },
       {
         "file": "sheet-io.test.ts",
@@ -3800,7 +3776,7 @@
         "title": "ignores separators inside quotes",
         "ok": true,
         "status": "passed",
-        "ms": 2
+        "ms": 1
       },
       {
         "file": "sheet-io.test.ts",
@@ -3808,7 +3784,7 @@
         "title": "falls back to a comma when there is nothing to go on",
         "ok": true,
         "status": "passed",
-        "ms": 1
+        "ms": 0
       },
       {
         "file": "sheet-io.test.ts",
@@ -3816,7 +3792,7 @@
         "title": "drives parseCsv, so a semicolon file is not one column",
         "ok": true,
         "status": "passed",
-        "ms": 9
+        "ms": 1
       },
       {
         "file": "sheet-io.test.ts",
@@ -3824,7 +3800,7 @@
         "title": "maps spreadsheet columns to zero-based indexes",
         "ok": true,
         "status": "passed",
-        "ms": 12
+        "ms": 1
       },
       {
         "file": "sheet-io.test.ts",
@@ -3832,7 +3808,7 @@
         "title": "turns the day count back into a date",
         "ok": true,
         "status": "passed",
-        "ms": 37
+        "ms": 1
       },
       {
         "file": "sheet-io.test.ts",
@@ -3840,7 +3816,7 @@
         "title": "keeps the time when there is a fraction",
         "ok": true,
         "status": "passed",
-        "ms": 2
+        "ms": 0
       },
       {
         "file": "sheet-io.test.ts",
@@ -3848,7 +3824,7 @@
         "title": "turns an array of records into a header row plus rows",
         "ok": true,
         "status": "passed",
-        "ms": 15
+        "ms": 1
       },
       {
         "file": "sheet-io.test.ts",
@@ -3856,7 +3832,7 @@
         "title": "flattens nested objects into dotted columns",
         "ok": true,
         "status": "passed",
-        "ms": 9
+        "ms": 0
       },
       {
         "file": "sheet-io.test.ts",
@@ -3864,7 +3840,7 @@
         "title": "unions the fields so a record missing one is not dropped",
         "ok": true,
         "status": "passed",
-        "ms": 11
+        "ms": 0
       },
       {
         "file": "sheet-io.test.ts",
@@ -3872,7 +3848,7 @@
         "title": "joins scalar arrays and keeps object arrays as JSON rather than losing them",
         "ok": true,
         "status": "passed",
-        "ms": 4
+        "ms": 1
       },
       {
         "file": "sheet-io.test.ts",
@@ -3880,7 +3856,7 @@
         "title": "finds the list inside a typical API response",
         "ok": true,
         "status": "passed",
-        "ms": 9
+        "ms": 2
       },
       {
         "file": "sheet-io.test.ts",
@@ -3888,7 +3864,7 @@
         "title": "writes booleans and nulls in a way a spreadsheet can read",
         "ok": true,
         "status": "passed",
-        "ms": 4
+        "ms": 0
       },
       {
         "file": "sheet-io.test.ts",
@@ -3896,7 +3872,7 @@
         "title": "uses the first row as the keys",
         "ok": true,
         "status": "passed",
-        "ms": 2
+        "ms": 1
       },
       {
         "file": "sheet-io.test.ts",
@@ -3904,7 +3880,7 @@
         "title": "names columns when there is no header row",
         "ok": true,
         "status": "passed",
-        "ms": 1
+        "ms": 0
       },
       {
         "file": "sheet-io.test.ts",
@@ -3912,7 +3888,7 @@
         "title": "never produces a blank key",
         "ok": true,
         "status": "passed",
-        "ms": 1
+        "ms": 0
       },
       {
         "file": "sheet-io.test.ts",
@@ -3920,7 +3896,7 @@
         "title": "makes the repeating element the rows",
         "ok": true,
         "status": "passed",
-        "ms": 273
+        "ms": 32
       },
       {
         "file": "sheet-io.test.ts",
@@ -3928,7 +3904,7 @@
         "title": "expands one level of nesting into dotted columns",
         "ok": true,
         "status": "passed",
-        "ms": 148
+        "ms": 8
       },
       {
         "file": "sheet-io.test.ts",
@@ -3936,7 +3912,7 @@
         "title": "says so rather than guessing when nothing repeats",
         "ok": true,
         "status": "passed",
-        "ms": 130
+        "ms": 8
       },
       {
         "file": "sheet-io.test.ts",
@@ -3944,7 +3920,7 @@
         "title": "refuses malformed XML instead of returning nonsense",
         "ok": true,
         "status": "passed",
-        "ms": 101
+        "ms": 10
       },
       {
         "file": "sheet-io.test.ts",
@@ -3952,7 +3928,7 @@
         "title": "strips what Excel forbids and de-duplicates",
         "ok": true,
         "status": "passed",
-        "ms": 10
+        "ms": 1
       },
       {
         "file": "subtitles.test.ts",
@@ -3960,7 +3936,7 @@
         "title": "reads both separators and optional hours",
         "ok": true,
         "status": "passed",
-        "ms": 16
+        "ms": 4
       },
       {
         "file": "subtitles.test.ts",
@@ -3968,7 +3944,7 @@
         "title": "rejects nonsense rather than guessing",
         "ok": true,
         "status": "passed",
-        "ms": 4
+        "ms": 1
       },
       {
         "file": "subtitles.test.ts",
@@ -3976,7 +3952,7 @@
         "title": "writes the separator each format expects",
         "ok": true,
         "status": "passed",
-        "ms": 5
+        "ms": 1
       },
       {
         "file": "subtitles.test.ts",
@@ -3984,7 +3960,7 @@
         "title": "round-trips",
         "ok": true,
         "status": "passed",
-        "ms": 4
+        "ms": 1
       },
       {
         "file": "subtitles.test.ts",
@@ -3992,7 +3968,7 @@
         "title": "reads SRT, keeping multi-line captions together",
         "ok": true,
         "status": "passed",
-        "ms": 18
+        "ms": 4
       },
       {
         "file": "subtitles.test.ts",
@@ -4000,7 +3976,7 @@
         "title": "reads VTT, skipping the header, NOTE blocks and cue settings",
         "ok": true,
         "status": "passed",
-        "ms": 8
+        "ms": 1
       },
       {
         "file": "subtitles.test.ts",
@@ -4008,7 +3984,7 @@
         "title": "survives CRLF and a BOM",
         "ok": true,
         "status": "passed",
-        "ms": 3
+        "ms": 1
       },
       {
         "file": "subtitles.test.ts",
@@ -4016,7 +3992,7 @@
         "title": "returns nothing for a file with no cues, instead of inventing one",
         "ok": true,
         "status": "passed",
-        "ms": 35
+        "ms": 1
       },
       {
         "file": "subtitles.test.ts",
@@ -4024,7 +4000,7 @@
         "title": "never lets a cue end before it starts",
         "ok": true,
         "status": "passed",
-        "ms": 6
+        "ms": 1
       },
       {
         "file": "subtitles.test.ts",
@@ -4032,7 +4008,7 @@
         "title": "renumbers SRT cues from one",
         "ok": true,
         "status": "passed",
-        "ms": 41
+        "ms": 1
       },
       {
         "file": "subtitles.test.ts",
@@ -4040,7 +4016,7 @@
         "title": "writes a WEBVTT header — the reason a renamed .srt fails",
         "ok": true,
         "status": "passed",
-        "ms": 4
+        "ms": 1
       },
       {
         "file": "subtitles.test.ts",
@@ -4048,7 +4024,7 @@
         "title": "makes a transcript: no timings, tags stripped, sentences joined",
         "ok": true,
         "status": "passed",
-        "ms": 5
+        "ms": 1
       },
       {
         "file": "subtitles.test.ts",
@@ -4056,7 +4032,7 @@
         "title": "moves every cue",
         "ok": true,
         "status": "passed",
-        "ms": 2
+        "ms": 0
       },
       {
         "file": "subtitles.test.ts",
@@ -4064,7 +4040,7 @@
         "title": "clamps at zero instead of going negative",
         "ok": true,
         "status": "passed",
-        "ms": 1
+        "ms": 0
       },
       {
         "file": "subtitles.test.ts",
@@ -4072,7 +4048,7 @@
         "title": "is a no-op at zero",
         "ok": true,
         "status": "passed",
-        "ms": 6
+        "ms": 0
       },
       {
         "file": "subtitles.test.ts",
@@ -4080,7 +4056,7 @@
         "title": "spots VTT by its header or extension",
         "ok": true,
         "status": "passed",
-        "ms": 9
+        "ms": 0
       },
       {
         "file": "tool-facts.test.ts",
@@ -4088,7 +4064,7 @@
         "title": "factsFor returns null for an unknown route",
         "ok": true,
         "status": "passed",
-        "ms": 14
+        "ms": 3
       },
       {
         "file": "tool-facts.test.ts",
@@ -4096,7 +4072,7 @@
         "title": "every effect has a valid tone and non-empty labels",
         "ok": true,
         "status": "passed",
-        "ms": 438
+        "ms": 20
       },
       {
         "file": "tool-facts.test.ts",
@@ -4104,7 +4080,7 @@
         "title": "every limit with an href points somewhere real and has a label",
         "ok": true,
         "status": "passed",
-        "ms": 459
+        "ms": 8
       },
       {
         "file": "tool-facts.test.ts",
@@ -4112,7 +4088,7 @@
         "title": "compress-pdf tells the truth about signatures (promise-guard)",
         "ok": true,
         "status": "passed",
-        "ms": 7
+        "ms": 1
       }
     ]
   },

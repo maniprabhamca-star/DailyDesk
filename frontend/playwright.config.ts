@@ -33,7 +33,12 @@ export default defineConfig({
     storageState: undefined,
   },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    // Throttle tests are excluded here on purpose. They measure wall-clock time
+    // under an artificial CPU throttle, so running them inside a 380-test sweep
+    // measures the MACHINE, not the site: the same page took 24.2s during a full
+    // run and ~11s on an idle box, which produced a bug report (REG-041) about a
+    // problem that did not exist. They belong to chromium-slow, run alone.
+    { name: 'chromium', testIgnore: /throttle.spec.ts/, use: { ...devices['Desktop Chrome'] } },
     { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
     { name: 'webkit', use: { ...devices['Desktop Safari'] } },
     { name: 'mobile', use: { ...devices['Pixel 7'] } },
