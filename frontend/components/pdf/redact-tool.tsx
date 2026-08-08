@@ -8,6 +8,8 @@ import { Upload, Loader2, EyeOff, Trash2, Zap, ShieldCheck, Search, Sparkles, Lo
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { downloadBlob as download } from '@/lib/download';
+import { buildCertificate, type RedactionCertificate } from '@/lib/redaction-certificate';
+import { RedactionCertificatePanel } from '@/components/pdf/redaction-certificate-panel';
 import { PdfDone } from '@/components/app/pdf-done';
 import { takeHandoff } from '@/lib/handoff';
 import { openPdf, renderPage, dprTarget, getPdfjs, type PdfHandle, type RenderedPage } from '@/lib/pdf-render';
@@ -92,7 +94,7 @@ export function RedactTool() {
   const [boxes, setBoxes] = useState<Record<number, Box[]>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState<{ blob: Blob; name: string; secs: number; verified?: { pages: number; beforeChars: number; afterChars: number } } | null>(null);
+  const [done, setDone] = useState<{ blob: Blob; name: string; secs: number; verified?: { pages: number; beforeChars: number; afterChars: number }; cert?: RedactionCertificate } | null>(null);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
   const [brandName, setBrandName] = useState(false); // opt-in "-diemdesk" filename suffix
   const [query, setQuery] = useState('');
@@ -575,7 +577,27 @@ export function RedactTool() {
         await task.destroy();
         verified = { pages: redactedPages.length, beforeChars, afterChars };
       } catch { /* verification is best-effort; never block the download */ }
-      setDone({ blob, name, secs: (performance.now() - t0) / 1000, verified });
+      // The certificate is what makes the redaction defensible to someone who
+      // wasn't in the room: it pins the exact output file by hash, records that
+      // the text layer really went, and states that neither file was uploaded.
+      let cert: RedactionCertificate | undefined;
+      try {
+        cert = await buildCertificate(
+          await file.arrayBuffer(),
+          verifyBytes,
+          name,
+          {
+            sourceName: file.name,
+            sourceBytes: file.size,
+            redactedPages: redactedPages.map((i) => i + 1),
+            areas: totalBoxes,
+            beforeChars: verified?.beforeChars,
+            afterChars: verified?.afterChars,
+          },
+          new Date(),
+        );
+      } catch { /* a certificate is a bonus; never block the download over it */ }
+      setDone({ blob, name, secs: (performance.now() - t0) / 1000, verified, cert });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not redact the PDF.');
     } finally { setBusy(false); }
@@ -846,6 +868,7 @@ export function RedactTool() {
               </p>
             </div>
           )}
+          {done.cert && <RedactionCertificatePanel cert={done.cert} />}
           <PdfDone blob={done.blob} name={done.name} secs={done.secs} currentHref="/redact-pdf" fromLabel="Redact PDF" editAgainLabel="Redact more" onEditAgain={() => setDone(null)} onStartOver={removeFile} />
         </CardContent></Card>
       ) : (

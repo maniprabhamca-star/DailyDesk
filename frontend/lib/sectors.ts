@@ -32,6 +32,12 @@ export type Sector = {
   duty: { label: string; body: string };
   /** Everyday jobs, each with the reason uploading is the wrong answer. */
   jobs: { task: string; why: string; href: string; tool: string }[];
+  /** The sector's working set, beyond the four headline jobs. Names must match
+   *  components/app/catalog.tsx exactly — a curated list is only useful if it
+   *  actually opens the tool. */
+  toolkit: string[];
+  /** The single highest-intent action. The CTA opens THIS, not the catalogue. */
+  primary: { label: string; href: string };
   /** The honest limits. Non-negotiable: every page has real ones. */
   limits: string[];
   /** Closing line for the CTA band. */
@@ -60,6 +66,8 @@ export const SECTORS: Sector[] = [
       { task: 'Combining exhibits', why: 'Assemble an exhibit bundle from a dozen PDFs on your own machine, at whatever size it comes to.', href: '/merge-pdf', tool: 'Merge PDF' },
       { task: 'Stripping metadata before filing', why: 'Author names, revision history and comments travel with a PDF. Remove them before the other side reads them.', href: '/remove-pdf-metadata', tool: 'Remove metadata' },
     ],
+    toolkit: ['Redact PDF', 'Bates numbering', 'Merge PDF', 'Split PDF', 'Remove metadata', 'Share-Safe PDF Check', 'Sign PDF', 'Compare PDF', 'PDF to Text', 'Protect PDF', 'Flatten PDF', 'OCR'],
+    primary: { label: 'Start redacting', href: '/redact-pdf' },
     limits: [
       'We are not a document management system and do not pretend to be one — there is no matter numbering, no conflicts check, no retention schedule.',
       'We cannot certify a redaction as legally sufficient. The tool removes the content; reviewing the result is still your job.',
@@ -88,6 +96,8 @@ export const SECTORS: Sector[] = [
       { task: 'Compressing for e-filing', why: 'Portal size limits are a daily nuisance. Compress to a target size locally, at any starting size.', href: '/compress-to-size', tool: 'Compress to size' },
       { task: 'Cleaning metadata before sending', why: 'Spreadsheet exports carry author and path information that names your client and your folder structure.', href: '/remove-pdf-metadata', tool: 'Remove metadata' },
     ],
+    toolkit: ['PDF to Excel', 'Bank statement to Excel', 'Merge PDF', 'Compress to size', 'Remove metadata', 'Split PDF', 'Excel to PDF', 'PDF to Text', 'Sign PDF', 'Protect PDF', 'Page numbers', 'OCR'],
+    primary: { label: 'Convert a statement', href: '/pdf-to-excel' },
     limits: [
       'We do not do bookkeeping, tax calculation or filing — these are document tools, not an accounting package.',
       'Statement conversion accuracy depends on the statement. Ours checks its own totals against the closing balance and tells you when they disagree, but you should still read the result.',
@@ -116,6 +126,8 @@ export const SECTORS: Sector[] = [
       { task: 'Compressing for a portal', why: 'Meet a portal’s size limit without emailing the file to a compression service first.', href: '/compress-to-size', tool: 'Compress to size' },
       { task: 'Splitting a scanned bundle', why: 'Separate a long scan into per-episode documents on your own machine.', href: '/split-pdf', tool: 'Split PDF' },
     ],
+    toolkit: ['Redact PDF', 'Merge PDF', 'Split PDF', 'Compress to size', 'Remove metadata', 'Scan to PDF', 'Clean scanned PDF', 'Protect PDF', 'Flatten PDF', 'Fill PDF form', 'Sign PDF', 'OCR'],
+    primary: { label: 'Start redacting', href: '/redact-pdf' },
     limits: [
       'This is not legal advice and not a compliance certification. Your privacy officer decides what your organisation may use, and they should read this page before you rely on it.',
       'The reasoning covers our in-browser tools only. Anything that runs on our servers — the AI features, server-side Office conversion, OCR — is a disclosure and is out of scope. Those tools say so on their own pages.',
@@ -144,6 +156,8 @@ export const SECTORS: Sector[] = [
       { task: 'Splitting a scanned register', why: 'Break a long scan into per-pupil documents locally.', href: '/split-pdf', tool: 'Split PDF' },
       { task: 'Removing metadata before sharing', why: 'Strip the author name and file path before a worksheet goes home with a class.', href: '/remove-pdf-metadata', tool: 'Remove metadata' },
     ],
+    toolkit: ['Merge PDF', 'Split PDF', 'Compress to size', 'Remove metadata', 'JPG to PDF', 'Scan to PDF', 'Word to PDF', 'PDF to JPG', 'Page numbers', 'Watermark', 'Fill PDF form', 'QR generator'],
+    primary: { label: 'Merge a class set', href: '/merge-pdf' },
     limits: [
       'We are not a student information system and hold no records.',
       'Tools that run on our servers are a different matter and are labelled as such on their own pages.',

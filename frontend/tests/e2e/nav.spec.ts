@@ -74,3 +74,43 @@ test.describe('the Tools menu shows everything at once', () => {
     await expect(page).toHaveURL(/\/merge-pdf$/);
   });
 });
+
+// The sector pages answer "which of these 102 tools are mine?" — the first
+// version didn't, and sent the reader to the whole catalogue instead. These
+// guard the answer, and the fact that a curated list of names silently drops
+// any entry that stops matching the catalogue.
+const SECTOR_SLUGS = ['legal', 'accountants', 'healthcare', 'schools'];
+
+test.describe('sector pages point at a real, specific toolkit', () => {
+  for (const slug of SECTOR_SLUGS) {
+    test(`/for/${slug} lists its toolkit and every entry opens`, async ({ page, request }) => {
+      await page.goto(`/for/${slug}`, { waitUntil: 'domcontentloaded' });
+      const toolkit = page.locator('section', { has: page.getByRole('heading', { name: 'Your toolkit' }) });
+      await expect(toolkit).toBeVisible();
+
+      // The curated list drops names that no longer match the catalogue, so a
+      // short list is the symptom of drift. Twelve are declared per sector.
+      const entries = toolkit.locator('a, div.cursor-default').filter({ hasNot: page.locator('section') });
+      const count = await toolkit.locator('> div > *').count();
+      expect(count, 'toolkit entries lost to a renamed catalogue tool').toBe(12);
+
+      // Every linked tool must be a real page, not a 404 left by a rename.
+      const hrefs = await toolkit.locator('a[href^="/"]').evaluateAll(
+        (els) => els.map((e) => (e as HTMLAnchorElement).getAttribute('href')!),
+      );
+      expect(hrefs.length, 'no live tools linked').toBeGreaterThan(0);
+      for (const href of hrefs) {
+        const res = await request.get(href, { maxRedirects: 0 });
+        expect(res.status(), `${href} is linked from /for/${slug} but does not resolve`).toBe(200);
+      }
+      void entries;
+    });
+  }
+
+  test('the main CTA opens a tool, not the whole catalogue', async ({ page }) => {
+    await page.goto('/for/legal', { waitUntil: 'domcontentloaded' });
+    // Highest-intent action for this reader, not a shrug at /#tools.
+    await page.getByRole('link', { name: /start redacting/i }).click();
+    await expect(page).toHaveURL(/\/redact-pdf$/);
+  });
+});

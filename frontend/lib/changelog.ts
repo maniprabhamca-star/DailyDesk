@@ -22,6 +22,14 @@ export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-08-08',
     kind: 'new',
+    title: 'A certificate to hand over with a redacted file',
+    detail:
+      'When you redact a PDF you now get a receipt to send alongside it. It records which pages were redacted, how many areas, and — the part that matters — whether any selectable text survived underneath, because a black box drawn over live text is not a redaction. It also carries the fingerprint of that exact file, so whoever receives it can confirm they were sent the document the certificate describes and not a later edit. There is a page at /verify-redaction where anyone can check one: no account, and the comparison happens in their browser. Both the certificate and the check are made on your device, which is also why the certificate is honest about what it cannot prove — it records your computer’s clock, not a notarised timestamp.',
+    href: '/verify-redaction',
+  },
+  {
+    date: '2026-08-08',
+    kind: 'new',
     title: 'Written for the work you actually do',
     detail:
       'Four new pages for the people whose job makes our approach matter rather than merely nice: law firms, accountants, healthcare and schools. Each one names the rule you work under, walks through the everyday jobs it makes awkward — redacting before production, converting a client statement, releasing a record — and says plainly where we are not the right tool. That last part is deliberate. Most online file tools promise to delete your document after an hour, which quietly concedes they received it; ours never does, and these pages explain what that changes for you.',
