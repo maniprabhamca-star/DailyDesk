@@ -1,0 +1,272 @@
+{
+  "generatedAt": "2026-08-08T22:26:03.805Z",
+  "node": "v24.18.0",
+  "platform": "win32 x64",
+  "perf": [
+    {
+      "op": "info",
+      "pages": 10,
+      "inputMb": 0,
+      "ms": 11,
+      "heapDeltaMb": 0.64,
+      "spreadMs": 7.9
+    },
+    {
+      "op": "extract half",
+      "pages": 10,
+      "inputMb": 0,
+      "ms": 100.5,
+      "heapDeltaMb": 0.69,
+      "spreadMs": 87.8
+    },
+    {
+      "op": "delete first page",
+      "pages": 10,
+      "inputMb": 0,
+      "ms": 50,
+      "heapDeltaMb": 0.74,
+      "spreadMs": 148.7
+    },
+    {
+      "op": "rotate all",
+      "pages": 10,
+      "inputMb": 0,
+      "ms": 35.2,
+      "heapDeltaMb": 0.49,
+      "spreadMs": 63.2
+    },
+    {
+      "op": "strip metadata",
+      "pages": 10,
+      "inputMb": 0,
+      "ms": 51.2,
+      "heapDeltaMb": 0.48,
+      "spreadMs": 190.7
+    },
+    {
+      "op": "split every 10",
+      "pages": 10,
+      "inputMb": 0,
+      "ms": 28.6,
+      "heapDeltaMb": 0.75,
+      "spreadMs": 44.4
+    },
+    {
+      "op": "info",
+      "pages": 50,
+      "inputMb": 0.02,
+      "ms": 29.7,
+      "heapDeltaMb": 1.3,
+      "spreadMs": 12.1
+    },
+    {
+      "op": "extract half",
+      "pages": 50,
+      "inputMb": 0.02,
+      "ms": 74.6,
+      "heapDeltaMb": 2.04,
+      "spreadMs": 103.4
+    },
+    {
+      "op": "delete first page",
+      "pages": 50,
+      "inputMb": 0.02,
+      "ms": 384.8,
+      "heapDeltaMb": 2.9,
+      "spreadMs": 95
+    },
+    {
+      "op": "rotate all",
+      "pages": 50,
+      "inputMb": 0.02,
+      "ms": 140.9,
+      "heapDeltaMb": 1.76,
+      "spreadMs": 44.5
+    },
+    {
+      "op": "strip metadata",
+      "pages": 50,
+      "inputMb": 0.02,
+      "ms": 229.7,
+      "heapDeltaMb": 1.66,
+      "spreadMs": 111.6
+    },
+    {
+      "op": "split every 10",
+      "pages": 50,
+      "inputMb": 0.02,
+      "ms": 163.7,
+      "heapDeltaMb": 3.04,
+      "spreadMs": 188.8
+    },
+    {
+      "op": "info",
+      "pages": 200,
+      "inputMb": 0.09,
+      "ms": 474.2,
+      "heapDeltaMb": 5,
+      "spreadMs": 92.1
+    },
+    {
+      "op": "extract half",
+      "pages": 200,
+      "inputMb": 0.09,
+      "ms": 1042.6,
+      "heapDeltaMb": 7.16,
+      "spreadMs": 1028.2
+    },
+    {
+      "op": "delete first page",
+      "pages": 200,
+      "inputMb": 0.09,
+      "ms": 1366.2,
+      "heapDeltaMb": 10.13,
+      "spreadMs": 810
+    },
+    {
+      "op": "rotate all",
+      "pages": 200,
+      "inputMb": 0.09,
+      "ms": 2122.7,
+      "heapDeltaMb": 6.54,
+      "spreadMs": 1050.1
+    },
+    {
+      "op": "strip metadata",
+      "pages": 200,
+      "inputMb": 0.09,
+      "ms": 2471,
+      "heapDeltaMb": 6.14,
+      "spreadMs": 2198.1
+    },
+    {
+      "op": "split every 10",
+      "pages": 200,
+      "inputMb": 0.09,
+      "ms": 1294.1,
+      "heapDeltaMb": 0.11,
+      "spreadMs": 551.4
+    },
+    {
+      "op": "info",
+      "pages": 500,
+      "inputMb": 0.22,
+      "ms": 1969.5,
+      "heapDeltaMb": 11.2,
+      "spreadMs": 609.6
+    },
+    {
+      "op": "extract half",
+      "pages": 500,
+      "inputMb": 0.22,
+      "ms": 2722.2,
+      "heapDeltaMb": 17.2,
+      "spreadMs": 316
+    },
+    {
+      "op": "delete first page",
+      "pages": 500,
+      "inputMb": 0.22,
+      "ms": 3063.2,
+      "heapDeltaMb": 24.56,
+      "spreadMs": 977.4
+    },
+    {
+      "op": "rotate all",
+      "pages": 500,
+      "inputMb": 0.22,
+      "ms": 1498.2,
+      "heapDeltaMb": 15.61,
+      "spreadMs": 670.4
+    },
+    {
+      "op": "strip metadata",
+      "pages": 500,
+      "inputMb": 0.22,
+      "ms": 1109.3,
+      "heapDeltaMb": 14.78,
+      "spreadMs": 199.4
+    },
+    {
+      "op": "split every 10",
+      "pages": 500,
+      "inputMb": 0.22,
+      "ms": 8471.4,
+      "heapDeltaMb": 28.74,
+      "spreadMs": 5541.4
+    }
+  ],
+  "load": {
+    "baselineMs": 1188.7,
+    "rows": [
+      {
+        "concurrency": 1,
+        "totalMs": 1332.3,
+        "perOpMs": 1332.3,
+        "degradation": 1.12
+      },
+      {
+        "concurrency": 4,
+        "totalMs": 2589.8,
+        "perOpMs": 647.5,
+        "degradation": 0.54
+      },
+      {
+        "concurrency": 8,
+        "totalMs": 2217.2,
+        "perOpMs": 277.2,
+        "degradation": 0.23
+      },
+      {
+        "concurrency": 16,
+        "totalMs": 2077.4,
+        "perOpMs": 129.8,
+        "degradation": 0.11
+      },
+      {
+        "concurrency": 32,
+        "totalMs": 5131.6,
+        "perOpMs": 160.4,
+        "degradation": 0.13
+      }
+    ]
+  },
+  "stress": [
+    {
+      "scenario": "1000-page document",
+      "pages": 1000,
+      "inputMb": 0.43,
+      "ms": 8110.8,
+      "heapDeltaMb": 0,
+      "outcome": "ok"
+    },
+    {
+      "scenario": "2500-page document",
+      "pages": 2500,
+      "inputMb": 1.08,
+      "ms": 21683.2,
+      "heapDeltaMb": 21.05,
+      "outcome": "ok"
+    },
+    {
+      "scenario": "5000-page document",
+      "pages": 5000,
+      "inputMb": 2.17,
+      "ms": 26823,
+      "heapDeltaMb": 0,
+      "outcome": "ok"
+    },
+    {
+      "scenario": "merge 50 files × 5 pages",
+      "files": 50,
+      "ms": 1171.2,
+      "outcome": "ok"
+    },
+    {
+      "scenario": "merge 200 files × 5 pages",
+      "files": 200,
+      "ms": 5113.9,
+      "outcome": "ok"
+    }
+  ]
+}

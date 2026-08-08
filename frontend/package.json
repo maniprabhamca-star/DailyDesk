@@ -19,7 +19,12 @@
     "test:e2e:ui": "playwright test --ui",
     "test:throttle": "playwright test tests/e2e/throttle.spec.ts --project=chromium-slow",
     "test:perf": "lhci autorun --config=tests/perf/lighthouserc.json",
-    "test:all": "npm run test:unit && npm run test:sw && npm run build && npm run test:e2e"
+    "test:all": "npm run test:unit && npm run test:sw && npm run build && npm run test:e2e",
+    "qa:bench": "node ../scripts/qa-bench.mjs",
+    "qa:report": "node ../scripts/qa-report.mjs",
+    "qa:all": "npm run qa:e2e:json && npm run qa:unit:json && npm run qa:bench && npm run qa:report",
+    "qa:e2e:json": "playwright test --project=chromium --reporter=json > tests/.reports/e2e-chromium.json",
+    "qa:unit:json": "vitest run --pool=forks --reporter=json --outputFile=tests/.reports/unit.json"
   },
   "dependencies": {
     "@jsquash/jpeg": "^1.6.0",

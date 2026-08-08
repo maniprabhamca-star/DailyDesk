@@ -61,3 +61,8 @@ coverage/
 
 # SDK build output — published from CI, not committed.
 packages/sdk/dist/
+
+# Raw test-runner output. The aggregated report (frontend/lib/qa-report.generated.json)
+# IS committed — it's what the owner dashboard renders.
+frontend/tests/.reports/
+frontend/tests/.fixtures/

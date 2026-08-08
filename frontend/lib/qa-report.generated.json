@@ -1,0 +1,4445 @@
+{
+  "generatedAt": "2026-08-08T22:29:56.491Z",
+  "totals": {
+    "e2e": 384,
+    "e2ePassed": 382,
+    "e2eFailed": 2,
+    "unit": 127,
+    "unitPassed": 127,
+    "unitFailed": 0
+  },
+  "projects": [
+    {
+      "project": "chromium",
+      "total": 384,
+      "passed": 382,
+      "failed": 2,
+      "skipped": 0,
+      "durationMs": 2456335,
+      "scenarios": [
+        {
+          "file": "account.spec.ts",
+          "group": "REG-034 — a lapsed session says so",
+          "title": "the subscription panel never spins forever on an error",
+          "ok": true,
+          "status": "passed",
+          "ms": 3348
+        },
+        {
+          "file": "account.spec.ts",
+          "group": "REG-034 — a lapsed session says so",
+          "title": "a raw backend error is never shown to a person",
+          "ok": true,
+          "status": "passed",
+          "ms": 2526
+        },
+        {
+          "file": "account.spec.ts",
+          "group": "REG-034 — a lapsed session says so",
+          "title": "an expired token signs you out and explains why",
+          "ok": true,
+          "status": "passed",
+          "ms": 2638
+        },
+        {
+          "file": "account.spec.ts",
+          "group": "the account page tells you what we hold",
+          "title": "the ledger lists the empty rows too",
+          "ok": true,
+          "status": "passed",
+          "ms": 2661
+        },
+        {
+          "file": "account.spec.ts",
+          "group": "the account page tells you what we hold",
+          "title": "both GDPR exits are present",
+          "ok": true,
+          "status": "passed",
+          "ms": 2640
+        },
+        {
+          "file": "account.spec.ts",
+          "group": "the account page tells you what we hold",
+          "title": "deleting needs the email typed, not just a click",
+          "ok": true,
+          "status": "passed",
+          "ms": 2991
+        },
+        {
+          "file": "account.spec.ts",
+          "group": "the account page tells you what we hold",
+          "title": "the plan badge does not claim Active with nothing to bill",
+          "ok": true,
+          "status": "passed",
+          "ms": 2892
+        },
+        {
+          "file": "account.spec.ts",
+          "group": "REG-038 — the signed-in header fits a phone",
+          "title": "/ does not scroll sideways at 375 when signed in",
+          "ok": true,
+          "status": "passed",
+          "ms": 4668
+        },
+        {
+          "file": "account.spec.ts",
+          "group": "REG-038 — the signed-in header fits a phone",
+          "title": "/account does not scroll sideways at 375 when signed in",
+          "ok": true,
+          "status": "passed",
+          "ms": 2349
+        },
+        {
+          "file": "account.spec.ts",
+          "group": "REG-038 — the signed-in header fits a phone",
+          "title": "/compress-pdf does not scroll sideways at 375 when signed in",
+          "ok": true,
+          "status": "passed",
+          "ms": 2511
+        },
+        {
+          "file": "engines.spec.ts",
+          "group": "spreadsheet engines",
+          "title": "CSV → Excel: separator sniffed, quoted separator kept in one cell",
+          "ok": true,
+          "status": "passed",
+          "ms": 10010
+        },
+        {
+          "file": "engines.spec.ts",
+          "group": "spreadsheet engines",
+          "title": "Excel → CSV round-trips what CSV → Excel wrote",
+          "ok": true,
+          "status": "passed",
+          "ms": 9495
+        },
+        {
+          "file": "engines.spec.ts",
+          "group": "spreadsheet engines",
+          "title": "JSON → Excel flattens nesting and unions fields",
+          "ok": true,
+          "status": "passed",
+          "ms": 4836
+        },
+        {
+          "file": "engines.spec.ts",
+          "group": "spreadsheet engines",
+          "title": "XML → Excel makes the repeating element the rows",
+          "ok": true,
+          "status": "passed",
+          "ms": 5440
+        },
+        {
+          "file": "engines.spec.ts",
+          "group": "document engines",
+          "title": "PDF → text drops the running head and rejoins the hyphen",
+          "ok": true,
+          "status": "passed",
+          "ms": 18414
+        },
+        {
+          "file": "engines.spec.ts",
+          "group": "document engines",
+          "title": "Markdown → PDF keeps the maths and drops the asterisks",
+          "ok": true,
+          "status": "passed",
+          "ms": 9751
+        },
+        {
+          "file": "engines.spec.ts",
+          "group": "document engines",
+          "title": "subtitles: SRT → VTT is a real rewrite, not a rename",
+          "ok": true,
+          "status": "passed",
+          "ms": 4360
+        },
+        {
+          "file": "engines.spec.ts",
+          "group": "image engines",
+          "title": "SVG → PNG renders a viewBox-only file at the size asked for",
+          "ok": true,
+          "status": "passed",
+          "ms": 10657
+        },
+        {
+          "file": "engines.spec.ts",
+          "group": "image engines",
+          "title": "favicon pack ships a genuine multi-image .ico",
+          "ok": true,
+          "status": "passed",
+          "ms": 5295
+        },
+        {
+          "file": "engines.spec.ts",
+          "group": "the tools tell the truth when they cannot help",
+          "title": "a scan-shaped PDF sends you to OCR rather than producing nothing",
+          "ok": true,
+          "status": "passed",
+          "ms": 5704
+        },
+        {
+          "file": "engines.spec.ts",
+          "group": "the tools tell the truth when they cannot help",
+          "title": "the wrong file type is refused with a readable message",
+          "ok": true,
+          "status": "passed",
+          "ms": 3453
+        },
+        {
+          "file": "file-picker.spec.ts",
+          "group": "REG-015 — file inputs must stay clickable in every engine",
+          "title": "/compress-pdf: no file input is display:none",
+          "ok": true,
+          "status": "passed",
+          "ms": 3513
+        },
+        {
+          "file": "file-picker.spec.ts",
+          "group": "REG-015 — file inputs must stay clickable in every engine",
+          "title": "/merge-pdf: no file input is display:none",
+          "ok": true,
+          "status": "passed",
+          "ms": 3012
+        },
+        {
+          "file": "file-picker.spec.ts",
+          "group": "REG-015 — file inputs must stay clickable in every engine",
+          "title": "/jpg-to-pdf: no file input is display:none",
+          "ok": true,
+          "status": "passed",
+          "ms": 2537
+        },
+        {
+          "file": "file-picker.spec.ts",
+          "group": "REG-015 — file inputs must stay clickable in every engine",
+          "title": "/compress-image: no file input is display:none",
+          "ok": true,
+          "status": "passed",
+          "ms": 3791
+        },
+        {
+          "file": "file-picker.spec.ts",
+          "group": "REG-015 — file inputs must stay clickable in every engine",
+          "title": "/qr-code-generator: no file input is display:none",
+          "ok": true,
+          "status": "passed",
+          "ms": 8315
+        },
+        {
+          "file": "file-picker.spec.ts",
+          "group": "REG-015 — file inputs must stay clickable in every engine",
+          "title": "the codebase does not reintroduce .hidden on a file input",
+          "ok": true,
+          "status": "passed",
+          "ms": 28793
+        },
+        {
+          "file": "file-picker.spec.ts",
+          "group": "REG-016 — the picker works before React hydrates",
+          "title": "the rescue script is served, parses, and is early",
+          "ok": true,
+          "status": "passed",
+          "ms": 2527
+        },
+        {
+          "file": "file-picker.spec.ts",
+          "group": "REG-016 — the picker works before React hydrates",
+          "title": "a click in the dead window opens the picker, and only once",
+          "ok": true,
+          "status": "passed",
+          "ms": 4218
+        },
+        {
+          "file": "file-picker.spec.ts",
+          "group": "REG-016 — the picker works before React hydrates",
+          "title": "every dropzone can actually receive a file",
+          "ok": true,
+          "status": "passed",
+          "ms": 4390
+        },
+        {
+          "file": "file-picker.spec.ts",
+          "group": "the catalog never links somewhere broken",
+          "title": "every tool tile points at a real page",
+          "ok": true,
+          "status": "passed",
+          "ms": 12210
+        },
+        {
+          "file": "file-picker.spec.ts",
+          "group": "REG-022 — nothing hides underneath the consent banner",
+          "title": "the page reserves room for the banner while it is showing",
+          "ok": true,
+          "status": "passed",
+          "ms": 3309
+        },
+        {
+          "file": "file-picker.spec.ts",
+          "group": "REG-022 — nothing hides underneath the consent banner",
+          "title": "the last control on a tool page is reachable, not buried",
+          "ok": true,
+          "status": "passed",
+          "ms": 4059
+        },
+        {
+          "file": "home.spec.ts",
+          "group": "First-visit splash (REG-001/002/003)",
+          "title": "SPLASH-001: overlay is in the home HTML so it covers from the first paint",
+          "ok": true,
+          "status": "passed",
+          "ms": 4556
+        },
+        {
+          "file": "home.spec.ts",
+          "group": "First-visit splash (REG-001/002/003)",
+          "title": "SPLASH-001b: overlay is NOT present on a tool page (home only)",
+          "ok": true,
+          "status": "passed",
+          "ms": 3351
+        },
+        {
+          "file": "home.spec.ts",
+          "group": "First-visit splash (REG-001/002/003)",
+          "title": "SPLASH-002: first-timer sees it, then it lifts; a key skips it",
+          "ok": true,
+          "status": "passed",
+          "ms": 7609
+        },
+        {
+          "file": "home.spec.ts",
+          "group": "First-visit splash (REG-001/002/003)",
+          "title": "SPLASH-003: returning visitor never sees it",
+          "ok": true,
+          "status": "passed",
+          "ms": 5261
+        },
+        {
+          "file": "home.spec.ts",
+          "group": "First-visit splash (REG-001/002/003)",
+          "title": "SPLASH-003b: reduced-motion visitor never sees it",
+          "ok": true,
+          "status": "passed",
+          "ms": 6688
+        },
+        {
+          "file": "home.spec.ts",
+          "group": "Mobile home tweaks (REG-004/005)",
+          "title": "HOME-M-001: trust chips are centered on mobile",
+          "ok": true,
+          "status": "passed",
+          "ms": 4424
+        },
+        {
+          "file": "home.spec.ts",
+          "group": "Mobile home tweaks (REG-004/005)",
+          "title": "HOME-M-002: no \"+N more\" tile on mobile",
+          "ok": true,
+          "status": "passed",
+          "ms": 3929
+        },
+        {
+          "file": "home.spec.ts",
+          "group": "Home basics",
+          "title": "no console errors on load",
+          "ok": true,
+          "status": "passed",
+          "ms": 6023
+        },
+        {
+          "file": "home.spec.ts",
+          "group": "Home basics",
+          "title": "hero + primary CTA present",
+          "ok": true,
+          "status": "passed",
+          "ms": 6269
+        },
+        {
+          "file": "nav.spec.ts",
+          "group": "the Tools menu shows everything at once",
+          "title": "at 1280×800: full width, no inner scrollbar, aligned to the logo",
+          "ok": true,
+          "status": "passed",
+          "ms": 13017
+        },
+        {
+          "file": "nav.spec.ts",
+          "group": "the Tools menu shows everything at once",
+          "title": "at 1440×900: full width, no inner scrollbar, aligned to the logo",
+          "ok": true,
+          "status": "passed",
+          "ms": 11470
+        },
+        {
+          "file": "nav.spec.ts",
+          "group": "the Tools menu shows everything at once",
+          "title": "at 1920×1080: full width, no inner scrollbar, aligned to the logo",
+          "ok": true,
+          "status": "passed",
+          "ms": 11801
+        },
+        {
+          "file": "nav.spec.ts",
+          "group": "the Tools menu shows everything at once",
+          "title": "the X closes it, and so does Escape",
+          "ok": true,
+          "status": "passed",
+          "ms": 18447
+        },
+        {
+          "file": "nav.spec.ts",
+          "group": "the Tools menu shows everything at once",
+          "title": "clicking a tool inside the panel navigates rather than closing it dead",
+          "ok": true,
+          "status": "passed",
+          "ms": 12138
+        },
+        {
+          "file": "nav.spec.ts",
+          "group": "sector pages point at a real, specific toolkit",
+          "title": "/for/legal lists its toolkit and every entry opens",
+          "ok": true,
+          "status": "passed",
+          "ms": 6460
+        },
+        {
+          "file": "nav.spec.ts",
+          "group": "sector pages point at a real, specific toolkit",
+          "title": "/for/accountants lists its toolkit and every entry opens",
+          "ok": true,
+          "status": "passed",
+          "ms": 5617
+        },
+        {
+          "file": "nav.spec.ts",
+          "group": "sector pages point at a real, specific toolkit",
+          "title": "/for/healthcare lists its toolkit and every entry opens",
+          "ok": true,
+          "status": "passed",
+          "ms": 6041
+        },
+        {
+          "file": "nav.spec.ts",
+          "group": "sector pages point at a real, specific toolkit",
+          "title": "/for/schools lists its toolkit and every entry opens",
+          "ok": true,
+          "status": "passed",
+          "ms": 6214
+        },
+        {
+          "file": "nav.spec.ts",
+          "group": "sector pages point at a real, specific toolkit",
+          "title": "the main CTA opens a tool, not the whole catalogue",
+          "ok": true,
+          "status": "passed",
+          "ms": 6564
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC / [home]",
+          "title": "XC-001 loads with an h1, no error boundary",
+          "ok": true,
+          "status": "passed",
+          "ms": 5336
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC / [home]",
+          "title": "XC-002 no console errors",
+          "ok": true,
+          "status": "passed",
+          "ms": 11289
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC / [home]",
+          "title": "XC-003 SEO meta present & within limits",
+          "ok": true,
+          "status": "passed",
+          "ms": 5856
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC / [home]",
+          "title": "XC-005 no horizontal scroll at 375 and 1280",
+          "ok": true,
+          "status": "passed",
+          "ms": 11308
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /tools [directory]",
+          "title": "XC-001 loads with an h1, no error boundary",
+          "ok": true,
+          "status": "passed",
+          "ms": 4832
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /tools [directory]",
+          "title": "XC-002 no console errors",
+          "ok": true,
+          "status": "passed",
+          "ms": 5358
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /tools [directory]",
+          "title": "XC-003 SEO meta present & within limits",
+          "ok": true,
+          "status": "passed",
+          "ms": 4660
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /tools [directory]",
+          "title": "XC-005 no horizontal scroll at 375 and 1280",
+          "ok": true,
+          "status": "passed",
+          "ms": 7053
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /compress-pdf [client-tool]",
+          "title": "XC-001 loads with an h1, no error boundary",
+          "ok": true,
+          "status": "passed",
+          "ms": 3049
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /compress-pdf [client-tool]",
+          "title": "XC-002 no console errors",
+          "ok": true,
+          "status": "passed",
+          "ms": 4920
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /compress-pdf [client-tool]",
+          "title": "XC-003 SEO meta present & within limits",
+          "ok": true,
+          "status": "passed",
+          "ms": 3732
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /compress-pdf [client-tool]",
+          "title": "XC-005 no horizontal scroll at 375 and 1280",
+          "ok": true,
+          "status": "passed",
+          "ms": 5869
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /merge-pdf [client-tool]",
+          "title": "XC-001 loads with an h1, no error boundary",
+          "ok": true,
+          "status": "passed",
+          "ms": 3220
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /merge-pdf [client-tool]",
+          "title": "XC-002 no console errors",
+          "ok": true,
+          "status": "passed",
+          "ms": 5690
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /merge-pdf [client-tool]",
+          "title": "XC-003 SEO meta present & within limits",
+          "ok": true,
+          "status": "passed",
+          "ms": 4287
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /merge-pdf [client-tool]",
+          "title": "XC-005 no horizontal scroll at 375 and 1280",
+          "ok": true,
+          "status": "passed",
+          "ms": 9288
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /pdf-to-excel [client-tool]",
+          "title": "XC-001 loads with an h1, no error boundary",
+          "ok": true,
+          "status": "passed",
+          "ms": 3129
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /pdf-to-excel [client-tool]",
+          "title": "XC-002 no console errors",
+          "ok": true,
+          "status": "passed",
+          "ms": 5897
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /pdf-to-excel [client-tool]",
+          "title": "XC-003 SEO meta present & within limits",
+          "ok": true,
+          "status": "passed",
+          "ms": 2605
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /pdf-to-excel [client-tool]",
+          "title": "XC-005 no horizontal scroll at 375 and 1280",
+          "ok": true,
+          "status": "passed",
+          "ms": 7774
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /word-to-pdf [server-tool]",
+          "title": "XC-001 loads with an h1, no error boundary",
+          "ok": true,
+          "status": "passed",
+          "ms": 2769
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /word-to-pdf [server-tool]",
+          "title": "XC-002 no console errors",
+          "ok": true,
+          "status": "passed",
+          "ms": 3203
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /word-to-pdf [server-tool]",
+          "title": "XC-003 SEO meta present & within limits",
+          "ok": true,
+          "status": "passed",
+          "ms": 4307
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /word-to-pdf [server-tool]",
+          "title": "XC-005 no horizontal scroll at 375 and 1280",
+          "ok": true,
+          "status": "passed",
+          "ms": 4893
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /base64 [micro-utility]",
+          "title": "XC-001 loads with an h1, no error boundary",
+          "ok": true,
+          "status": "passed",
+          "ms": 3519
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /base64 [micro-utility]",
+          "title": "XC-002 no console errors",
+          "ok": true,
+          "status": "passed",
+          "ms": 3696
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /base64 [micro-utility]",
+          "title": "XC-003 SEO meta present & within limits",
+          "ok": true,
+          "status": "passed",
+          "ms": 2876
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /base64 [micro-utility]",
+          "title": "XC-005 no horizontal scroll at 375 and 1280",
+          "ok": true,
+          "status": "passed",
+          "ms": 2756
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /json-formatter [micro-utility]",
+          "title": "XC-001 loads with an h1, no error boundary",
+          "ok": true,
+          "status": "passed",
+          "ms": 2871
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /json-formatter [micro-utility]",
+          "title": "XC-002 no console errors",
+          "ok": true,
+          "status": "passed",
+          "ms": 4738
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /json-formatter [micro-utility]",
+          "title": "XC-003 SEO meta present & within limits",
+          "ok": true,
+          "status": "passed",
+          "ms": 4163
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /json-formatter [micro-utility]",
+          "title": "XC-005 no horizontal scroll at 375 and 1280",
+          "ok": true,
+          "status": "passed",
+          "ms": 4079
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /qr-code-generator [micro-utility]",
+          "title": "XC-001 loads with an h1, no error boundary",
+          "ok": true,
+          "status": "passed",
+          "ms": 3569
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /qr-code-generator [micro-utility]",
+          "title": "XC-002 no console errors",
+          "ok": true,
+          "status": "passed",
+          "ms": 5223
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /qr-code-generator [micro-utility]",
+          "title": "XC-003 SEO meta present & within limits",
+          "ok": true,
+          "status": "passed",
+          "ms": 3508
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /qr-code-generator [micro-utility]",
+          "title": "XC-005 no horizontal scroll at 375 and 1280",
+          "ok": true,
+          "status": "passed",
+          "ms": 4621
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /passport-photo [image-tool]",
+          "title": "XC-001 loads with an h1, no error boundary",
+          "ok": true,
+          "status": "passed",
+          "ms": 2917
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /passport-photo [image-tool]",
+          "title": "XC-002 no console errors",
+          "ok": true,
+          "status": "passed",
+          "ms": 3467
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /passport-photo [image-tool]",
+          "title": "XC-003 SEO meta present & within limits",
+          "ok": true,
+          "status": "passed",
+          "ms": 5761
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /passport-photo [image-tool]",
+          "title": "XC-005 no horizontal scroll at 375 and 1280",
+          "ok": true,
+          "status": "passed",
+          "ms": 6096
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /why-diemdesk [landing]",
+          "title": "XC-001 loads with an h1, no error boundary",
+          "ok": true,
+          "status": "passed",
+          "ms": 4548
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /why-diemdesk [landing]",
+          "title": "XC-002 no console errors",
+          "ok": true,
+          "status": "passed",
+          "ms": 4556
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /why-diemdesk [landing]",
+          "title": "XC-003 SEO meta present & within limits",
+          "ok": true,
+          "status": "passed",
+          "ms": 4136
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /why-diemdesk [landing]",
+          "title": "XC-005 no horizontal scroll at 375 and 1280",
+          "ok": true,
+          "status": "passed",
+          "ms": 3941
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /compare [landing]",
+          "title": "XC-001 loads with an h1, no error boundary",
+          "ok": true,
+          "status": "passed",
+          "ms": 2863
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /compare [landing]",
+          "title": "XC-002 no console errors",
+          "ok": true,
+          "status": "passed",
+          "ms": 3619
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /compare [landing]",
+          "title": "XC-003 SEO meta present & within limits",
+          "ok": true,
+          "status": "passed",
+          "ms": 3933
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /compare [landing]",
+          "title": "XC-005 no horizontal scroll at 375 and 1280",
+          "ok": true,
+          "status": "passed",
+          "ms": 4181
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /smallpdf-alternative [landing]",
+          "title": "XC-001 loads with an h1, no error boundary",
+          "ok": true,
+          "status": "passed",
+          "ms": 3687
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /smallpdf-alternative [landing]",
+          "title": "XC-002 no console errors",
+          "ok": true,
+          "status": "passed",
+          "ms": 4616
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /smallpdf-alternative [landing]",
+          "title": "XC-003 SEO meta present & within limits",
+          "ok": true,
+          "status": "passed",
+          "ms": 2774
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /smallpdf-alternative [landing]",
+          "title": "XC-005 no horizontal scroll at 375 and 1280",
+          "ok": true,
+          "status": "passed",
+          "ms": 3812
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /privacy [legal]",
+          "title": "XC-001 loads with an h1, no error boundary",
+          "ok": true,
+          "status": "passed",
+          "ms": 4064
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /privacy [legal]",
+          "title": "XC-002 no console errors",
+          "ok": true,
+          "status": "passed",
+          "ms": 4262
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /privacy [legal]",
+          "title": "XC-003 SEO meta present & within limits",
+          "ok": true,
+          "status": "passed",
+          "ms": 5206
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /privacy [legal]",
+          "title": "XC-005 no horizontal scroll at 375 and 1280",
+          "ok": true,
+          "status": "passed",
+          "ms": 5155
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /pricing [info]",
+          "title": "XC-001 loads with an h1, no error boundary",
+          "ok": true,
+          "status": "passed",
+          "ms": 5475
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /pricing [info]",
+          "title": "XC-002 no console errors",
+          "ok": true,
+          "status": "passed",
+          "ms": 6073
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /pricing [info]",
+          "title": "XC-003 SEO meta present & within limits",
+          "ok": true,
+          "status": "passed",
+          "ms": 5399
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /pricing [info]",
+          "title": "XC-005 no horizontal scroll at 375 and 1280",
+          "ok": true,
+          "status": "passed",
+          "ms": 5114
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /login [auth]",
+          "title": "XC-001 loads with an h1, no error boundary",
+          "ok": true,
+          "status": "passed",
+          "ms": 4599
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /login [auth]",
+          "title": "XC-002 no console errors",
+          "ok": true,
+          "status": "passed",
+          "ms": 6937
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /login [auth]",
+          "title": "XC-003 SEO meta present & within limits",
+          "ok": true,
+          "status": "passed",
+          "ms": 21793
+        },
+        {
+          "file": "smoke.spec.ts",
+          "group": "XC /login [auth]",
+          "title": "XC-005 no horizontal scroll at 375 and 1280",
+          "ok": true,
+          "status": "passed",
+          "ms": 2868
+        },
+        {
+          "file": "throttle.spec.ts",
+          "group": "Throttle — Slow 3G + CPU 4× (NF-THR)",
+          "title": "NF-THR / stays interactive under throttle",
+          "ok": false,
+          "status": "failed",
+          "ms": 90765
+        },
+        {
+          "file": "throttle.spec.ts",
+          "group": "Throttle — Slow 3G + CPU 4× (NF-THR)",
+          "title": "NF-THR /compress-pdf stays interactive under throttle",
+          "ok": false,
+          "status": "failed",
+          "ms": 33871
+        },
+        {
+          "file": "throttle.spec.ts",
+          "group": "Throttle — Slow 3G + CPU 4× (NF-THR)",
+          "title": "NF-THR /edit-pdf stays interactive under throttle",
+          "ok": true,
+          "status": "passed",
+          "ms": 11061
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-006 — light theme is designed, not inherited",
+          "title": "/ [home] has readable contrast in light",
+          "ok": true,
+          "status": "passed",
+          "ms": 3477
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-006 — light theme is designed, not inherited",
+          "title": "/tools [directory] has readable contrast in light",
+          "ok": true,
+          "status": "passed",
+          "ms": 3200
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-006 — light theme is designed, not inherited",
+          "title": "/compress-pdf [client-tool-pdf] has readable contrast in light",
+          "ok": true,
+          "status": "passed",
+          "ms": 2397
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-006 — light theme is designed, not inherited",
+          "title": "/compress-image [client-tool-image] has readable contrast in light",
+          "ok": true,
+          "status": "passed",
+          "ms": 2653
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-006 — light theme is designed, not inherited",
+          "title": "/word-to-pdf [server-tool] has readable contrast in light",
+          "ok": true,
+          "status": "passed",
+          "ms": 2451
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-006 — light theme is designed, not inherited",
+          "title": "/json-formatter [micro-utility] has readable contrast in light",
+          "ok": true,
+          "status": "passed",
+          "ms": 2197
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-006 — light theme is designed, not inherited",
+          "title": "/qr-code-generator [generator] has readable contrast in light",
+          "ok": true,
+          "status": "passed",
+          "ms": 1888
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-006 — light theme is designed, not inherited",
+          "title": "/why-diemdesk [landing] has readable contrast in light",
+          "ok": true,
+          "status": "passed",
+          "ms": 2141
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-006 — light theme is designed, not inherited",
+          "title": "/pricing [commerce] has readable contrast in light",
+          "ok": true,
+          "status": "passed",
+          "ms": 2618
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-006 — light theme is designed, not inherited",
+          "title": "/security [legal] has readable contrast in light",
+          "ok": true,
+          "status": "passed",
+          "ms": 2292
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-006 — light theme is designed, not inherited",
+          "title": "/changelog [content] has readable contrast in light",
+          "ok": true,
+          "status": "passed",
+          "ms": 2570
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-006 — dark theme is designed, not inherited",
+          "title": "/ [home] has readable contrast in dark",
+          "ok": true,
+          "status": "passed",
+          "ms": 3352
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-006 — dark theme is designed, not inherited",
+          "title": "/tools [directory] has readable contrast in dark",
+          "ok": true,
+          "status": "passed",
+          "ms": 2480
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-006 — dark theme is designed, not inherited",
+          "title": "/compress-pdf [client-tool-pdf] has readable contrast in dark",
+          "ok": true,
+          "status": "passed",
+          "ms": 2061
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-006 — dark theme is designed, not inherited",
+          "title": "/compress-image [client-tool-image] has readable contrast in dark",
+          "ok": true,
+          "status": "passed",
+          "ms": 2102
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-006 — dark theme is designed, not inherited",
+          "title": "/word-to-pdf [server-tool] has readable contrast in dark",
+          "ok": true,
+          "status": "passed",
+          "ms": 2079
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-006 — dark theme is designed, not inherited",
+          "title": "/json-formatter [micro-utility] has readable contrast in dark",
+          "ok": true,
+          "status": "passed",
+          "ms": 2143
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-006 — dark theme is designed, not inherited",
+          "title": "/qr-code-generator [generator] has readable contrast in dark",
+          "ok": true,
+          "status": "passed",
+          "ms": 2238
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-006 — dark theme is designed, not inherited",
+          "title": "/why-diemdesk [landing] has readable contrast in dark",
+          "ok": true,
+          "status": "passed",
+          "ms": 2220
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-006 — dark theme is designed, not inherited",
+          "title": "/pricing [commerce] has readable contrast in dark",
+          "ok": true,
+          "status": "passed",
+          "ms": 2334
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-006 — dark theme is designed, not inherited",
+          "title": "/security [legal] has readable contrast in dark",
+          "ok": true,
+          "status": "passed",
+          "ms": 2296
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-006 — dark theme is designed, not inherited",
+          "title": "/changelog [content] has readable contrast in dark",
+          "ok": true,
+          "status": "passed",
+          "ms": 1987
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-006 — no text is invisible",
+          "title": "/ [home] never paints text in its own background colour",
+          "ok": true,
+          "status": "passed",
+          "ms": 2854
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-006 — no text is invisible",
+          "title": "/tools [directory] never paints text in its own background colour",
+          "ok": true,
+          "status": "passed",
+          "ms": 2361
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-006 — no text is invisible",
+          "title": "/compress-pdf [client-tool-pdf] never paints text in its own background colour",
+          "ok": true,
+          "status": "passed",
+          "ms": 2085
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-006 — no text is invisible",
+          "title": "/compress-image [client-tool-image] never paints text in its own background colour",
+          "ok": true,
+          "status": "passed",
+          "ms": 2248
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-006 — no text is invisible",
+          "title": "/word-to-pdf [server-tool] never paints text in its own background colour",
+          "ok": true,
+          "status": "passed",
+          "ms": 2362
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-006 — no text is invisible",
+          "title": "/json-formatter [micro-utility] never paints text in its own background colour",
+          "ok": true,
+          "status": "passed",
+          "ms": 2140
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-006 — no text is invisible",
+          "title": "/qr-code-generator [generator] never paints text in its own background colour",
+          "ok": true,
+          "status": "passed",
+          "ms": 2119
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-006 — no text is invisible",
+          "title": "/why-diemdesk [landing] never paints text in its own background colour",
+          "ok": true,
+          "status": "passed",
+          "ms": 2673
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-006 — no text is invisible",
+          "title": "/pricing [commerce] never paints text in its own background colour",
+          "ok": true,
+          "status": "passed",
+          "ms": 3731
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-006 — no text is invisible",
+          "title": "/security [legal] never paints text in its own background colour",
+          "ok": true,
+          "status": "passed",
+          "ms": 2990
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-006 — no text is invisible",
+          "title": "/changelog [content] never paints text in its own background colour",
+          "ok": true,
+          "status": "passed",
+          "ms": 4776
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-007 — accessibility",
+          "title": "/ [home] has no serious or critical axe violation",
+          "ok": true,
+          "status": "passed",
+          "ms": 21934
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-007 — accessibility",
+          "title": "/tools [directory] has no serious or critical axe violation",
+          "ok": true,
+          "status": "passed",
+          "ms": 22453
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-007 — accessibility",
+          "title": "/compress-pdf [client-tool-pdf] has no serious or critical axe violation",
+          "ok": true,
+          "status": "passed",
+          "ms": 15790
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-007 — accessibility",
+          "title": "/compress-image [client-tool-image] has no serious or critical axe violation",
+          "ok": true,
+          "status": "passed",
+          "ms": 22889
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-007 — accessibility",
+          "title": "/word-to-pdf [server-tool] has no serious or critical axe violation",
+          "ok": true,
+          "status": "passed",
+          "ms": 11737
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-007 — accessibility",
+          "title": "/json-formatter [micro-utility] has no serious or critical axe violation",
+          "ok": true,
+          "status": "passed",
+          "ms": 10247
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-007 — accessibility",
+          "title": "/qr-code-generator [generator] has no serious or critical axe violation",
+          "ok": true,
+          "status": "passed",
+          "ms": 14463
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-007 — accessibility",
+          "title": "/why-diemdesk [landing] has no serious or critical axe violation",
+          "ok": true,
+          "status": "passed",
+          "ms": 19036
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-007 — accessibility",
+          "title": "/pricing [commerce] has no serious or critical axe violation",
+          "ok": true,
+          "status": "passed",
+          "ms": 20064
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-007 — accessibility",
+          "title": "/security [legal] has no serious or critical axe violation",
+          "ok": true,
+          "status": "passed",
+          "ms": 15940
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-007 — accessibility",
+          "title": "/changelog [content] has no serious or critical axe violation",
+          "ok": true,
+          "status": "passed",
+          "ms": 11475
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-007 — accessibility",
+          "title": "keyboard focus is always visible",
+          "ok": true,
+          "status": "passed",
+          "ms": 8436
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-007 — accessibility",
+          "title": "Escape closes the command palette",
+          "ok": true,
+          "status": "passed",
+          "ms": 13248
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-007 — accessibility",
+          "title": "Escape closes the mobile menu",
+          "ok": true,
+          "status": "passed",
+          "ms": 9101
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-007 — accessibility",
+          "title": "every page can be reached by keyboard from the top",
+          "ok": true,
+          "status": "passed",
+          "ms": 4114
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-008 — reduced motion is honoured",
+          "title": "/ [home] runs no looping animation when motion is reduced",
+          "ok": true,
+          "status": "passed",
+          "ms": 6799
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-008 — reduced motion is honoured",
+          "title": "/tools [directory] runs no looping animation when motion is reduced",
+          "ok": true,
+          "status": "passed",
+          "ms": 6124
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-008 — reduced motion is honoured",
+          "title": "/compress-pdf [client-tool-pdf] runs no looping animation when motion is reduced",
+          "ok": true,
+          "status": "passed",
+          "ms": 4633
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-008 — reduced motion is honoured",
+          "title": "/compress-image [client-tool-image] runs no looping animation when motion is reduced",
+          "ok": true,
+          "status": "passed",
+          "ms": 20837
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-008 — reduced motion is honoured",
+          "title": "/word-to-pdf [server-tool] runs no looping animation when motion is reduced",
+          "ok": true,
+          "status": "passed",
+          "ms": 3612
+        },
+        {
+          "file": "xc-a11y.spec.ts",
+          "group": "XC-008 — reduced motion is honoured",
+          "title": "the first-visit splash does not animate when motion is reduced",
+          "ok": true,
+          "status": "passed",
+          "ms": 5380
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC / [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 7350
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /developers [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 4303
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /verify-redaction [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3269
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /pdf-viewer [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3637
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /merge-pdf [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3686
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /split-pdf [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 4841
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /compress-pdf [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3521
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /compress-to-size [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3299
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /fill-pdf-form [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 2929
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /rotate-pdf [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 2037
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /delete-pages-from-pdf [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 2688
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /add-page-numbers-to-pdf [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 4756
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /jpg-to-pdf [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 4007
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /pdf-to-jpg [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 4265
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /pdf-to-word [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 5476
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /pdf-to-excel [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 6546
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /pdf-to-markdown [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 7200
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /bates-numbering [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 6375
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /pdf-to-audio [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 5398
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /word-to-pdf [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 6608
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /excel-to-pdf [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 4024
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /powerpoint-to-pdf [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 7123
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /extract-images-from-pdf [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 6289
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /remove-pdf-metadata [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 5553
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /sign-pdf [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 5040
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /protect-pdf [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 7282
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /unlock-pdf [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 9425
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /watermark-pdf [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 5615
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /flatten-pdf [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 7417
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /repair-pdf [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 4642
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /scan-to-pdf [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 5930
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /pdf-to-powerpoint [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 5356
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /pdf-to-pdfa [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3878
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /scan-qr-code [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 5797
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /reorder-pdf [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 6088
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /compress-image [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 6745
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /heic-to-jpg [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 7402
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /resize-image [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 6288
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /crop-image [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 5971
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /convert-image [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 7146
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 5757
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /photo-privacy [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3816
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /remove-background [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 2329
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /video-to-gif [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 2201
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /compress-video [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 2390
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /word-counter [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 1961
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /json-formatter [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 2135
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /unit-converter [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 2598
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /color-picker [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 2410
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /qr-code-generator [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 2949
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /wifi-qr-code [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3559
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /vcard-qr-code [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3925
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /password-generator [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3754
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /notes [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3415
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /habits [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3863
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /budget [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 4612
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /tools [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 7860
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /pricing [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 4728
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /overview [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 6409
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /why-diemdesk [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 4990
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /changelog [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 5245
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /compare [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 6049
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /smallpdf-alternative [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 7022
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /ilovepdf-alternative [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 5506
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /sejda-alternative [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 6779
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /adobe-acrobat-alternative [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 7737
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /free [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 5633
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /about [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 5078
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /feedback [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 4929
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /security [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 5109
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /privacy [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 4318
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /terms [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 5315
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /refund-policy [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 5315
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /compress-pdf-to-100kb [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 5352
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /us-visa-photo [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 6707
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /remove-exif [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 6388
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /blur-image [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 6021
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /fill-pdf-form-online [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 1825
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /developer-tools [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 1729
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /base64 [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 1714
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /url-encode [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 2580
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /html-entities [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 2241
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /hash-generator [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 2150
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /jwt-decoder [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 2530
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /uuid-generator [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 2352
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /csv-to-json [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 2732
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /text-diff [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 4144
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /timestamp-converter [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 4691
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /json-to-yaml [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3976
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /csv-cleaner [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3208
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /case-converter [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3368
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /slugify [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 4327
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /sort-lines [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 4871
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /regex-tester [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 5421
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /lorem-ipsum [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 5555
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /bank-statement-converter/sbi [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 6825
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /bank-statement-converter/hdfc [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 5855
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /bank-statement-converter/icici [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 6828
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /bank-statement-converter/axis [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 7096
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /bank-statement-converter/kotak [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 5830
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /bank-statement-converter/pnb [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 5664
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /bank-statement-converter/bank-of-baroda [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 6488
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /bank-statement-converter/canara [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 4542
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /bank-statement-converter/union-bank [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 5197
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /bank-statement-converter/idfc-first [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 11420
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /bank-statement-converter/yes-bank [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 4141
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /bank-statement-to-tally [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3633
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /bank-statement-to-quickbooks [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3501
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /bank-statement-to-csv [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 17445
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /for/legal [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 18779
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /for/accountants [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 8331
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /for/healthcare [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 7432
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /for/schools [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 2886
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/us-visa [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 2585
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/us-passport [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3469
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/schengen-visa [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 4444
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/uk-passport [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3985
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/india-passport [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 7769
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/india-evisa [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 9513
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/canada [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 4927
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/australia [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3925
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/china-visa [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 7657
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/biometric [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 5855
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/brazil [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 6592
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/mexico [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3924
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/argentina [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 5428
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/chile [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 5080
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/colombia [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 7792
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/germany [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 8653
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/france [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 13568
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/italy [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 4702
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/spain [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 4710
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/netherlands [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 7565
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/portugal [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 6768
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/belgium [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3189
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/switzerland [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3624
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/austria [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 7567
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/sweden [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 6613
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/norway [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 4917
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/poland [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 4045
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/greece [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 4803
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/ireland [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 11753
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/japan [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 8421
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/south-korea [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 2728
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/singapore [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3108
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/malaysia [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3616
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/philippines [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 2892
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/indonesia [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 2584
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/thailand [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3500
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/pakistan [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3632
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/bangladesh [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 4038
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/vietnam [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 4681
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/srilanka [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 12540
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/nepal [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 1980
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/uae [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 2113
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/saudi [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 2103
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/qatar [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3043
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/turkey [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 1899
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/egypt [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 2008
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/nigeria [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 2595
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/southafrica [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3093
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/kenya [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 2512
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /passport-photo/newzealand [public]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3245
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /edit-pdf [gated]",
+          "ok": true,
+          "status": "passed",
+          "ms": 2999
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /workflows [gated]",
+          "ok": true,
+          "status": "passed",
+          "ms": 4472
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /annotate-pdf [gated]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3945
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /redact-pdf [gated]",
+          "ok": true,
+          "status": "passed",
+          "ms": 6747
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /ocr-pdf [gated]",
+          "ok": true,
+          "status": "passed",
+          "ms": 4473
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /chat-pdf [gated]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3928
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /summarize-pdf [gated]",
+          "ok": true,
+          "status": "passed",
+          "ms": 4116
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /translate-pdf [gated]",
+          "ok": true,
+          "status": "passed",
+          "ms": 8295
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /pdf-question-generator [gated]",
+          "ok": true,
+          "status": "passed",
+          "ms": 4750
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /file-vault [gated]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3811
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /link-in-bio [gated]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3324
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /receipt-scanner [gated]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3640
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /bank-statement-converter [gated]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3242
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /clean-scanned-pdf [gated]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3370
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /share-safe-pdf-check [gated]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3504
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /compare-pdf [gated]",
+          "ok": true,
+          "status": "passed",
+          "ms": 4758
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /client-packet-builder [gated]",
+          "ok": true,
+          "status": "passed",
+          "ms": 5444
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /html-to-pdf [gated]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3480
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /crop-pdf [gated]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3802
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /pdf-to-epub [gated]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3362
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /html-to-excel [gated]",
+          "ok": true,
+          "status": "passed",
+          "ms": 4245
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /video-to-mp3 [gated]",
+          "ok": true,
+          "status": "passed",
+          "ms": 4383
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /audio-converter [gated]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3991
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /excel-to-csv [gated]",
+          "ok": true,
+          "status": "passed",
+          "ms": 4214
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /csv-to-excel [gated]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3661
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /json-to-excel [gated]",
+          "ok": true,
+          "status": "passed",
+          "ms": 4795
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /xml-to-excel [gated]",
+          "ok": true,
+          "status": "passed",
+          "ms": 4137
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /svg-to-png [gated]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3717
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /svg-to-pdf [gated]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3749
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /epub-to-pdf [gated]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3615
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /pdf-to-text [gated]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3552
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /markdown-to-pdf [gated]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3950
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /subtitle-converter [gated]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3690
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC — cross-cutting, every route",
+          "title": "XC /favicon-generator [gated]",
+          "ok": true,
+          "status": "passed",
+          "ms": 3553
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC-005 — responsive, no sideways scroll",
+          "title": "/ [home] fits 375 / 768 / 1280",
+          "ok": true,
+          "status": "passed",
+          "ms": 11205
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC-005 — responsive, no sideways scroll",
+          "title": "/tools [directory] fits 375 / 768 / 1280",
+          "ok": true,
+          "status": "passed",
+          "ms": 8481
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC-005 — responsive, no sideways scroll",
+          "title": "/compress-pdf [client-tool-pdf] fits 375 / 768 / 1280",
+          "ok": true,
+          "status": "passed",
+          "ms": 6684
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC-005 — responsive, no sideways scroll",
+          "title": "/compress-image [client-tool-image] fits 375 / 768 / 1280",
+          "ok": true,
+          "status": "passed",
+          "ms": 6074
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC-005 — responsive, no sideways scroll",
+          "title": "/word-to-pdf [server-tool] fits 375 / 768 / 1280",
+          "ok": true,
+          "status": "passed",
+          "ms": 20648
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC-005 — responsive, no sideways scroll",
+          "title": "/json-formatter [micro-utility] fits 375 / 768 / 1280",
+          "ok": true,
+          "status": "passed",
+          "ms": 7214
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC-005 — responsive, no sideways scroll",
+          "title": "/qr-code-generator [generator] fits 375 / 768 / 1280",
+          "ok": true,
+          "status": "passed",
+          "ms": 6958
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC-005 — responsive, no sideways scroll",
+          "title": "/why-diemdesk [landing] fits 375 / 768 / 1280",
+          "ok": true,
+          "status": "passed",
+          "ms": 3967
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC-005 — responsive, no sideways scroll",
+          "title": "/pricing [commerce] fits 375 / 768 / 1280",
+          "ok": true,
+          "status": "passed",
+          "ms": 4365
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC-005 — responsive, no sideways scroll",
+          "title": "/security [legal] fits 375 / 768 / 1280",
+          "ok": true,
+          "status": "passed",
+          "ms": 6733
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "XC-005 — responsive, no sideways scroll",
+          "title": "/changelog [content] fits 375 / 768 / 1280",
+          "ok": true,
+          "status": "passed",
+          "ms": 8414
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "SEO — the sitemap tells the truth",
+          "title": "every advertised URL is real and indexable",
+          "ok": true,
+          "status": "passed",
+          "ms": 2170
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "SEO — the sitemap tells the truth",
+          "title": "no gated route is advertised to crawlers",
+          "ok": true,
+          "status": "passed",
+          "ms": 86
+        },
+        {
+          "file": "xc-crosscutting.spec.ts",
+          "group": "SEO — the sitemap tells the truth",
+          "title": "every public route is advertised",
+          "ok": true,
+          "status": "passed",
+          "ms": 85
+        }
+      ]
+    }
+  ],
+  "unit": {
+    "total": 127,
+    "passed": 127,
+    "failed": 0,
+    "durationMs": 9275,
+    "scenarios": [
+      {
+        "file": "audio-convert.test.ts",
+        "group": "clock / parseClock",
+        "title": "reads durations the way people write them",
+        "ok": true,
+        "status": "passed",
+        "ms": 15
+      },
+      {
+        "file": "audio-convert.test.ts",
+        "group": "clock / parseClock",
+        "title": "parses what people type",
+        "ok": true,
+        "status": "passed",
+        "ms": 3
+      },
+      {
+        "file": "audio-convert.test.ts",
+        "group": "clock / parseClock",
+        "title": "treats nonsense as zero rather than throwing mid-type",
+        "ok": true,
+        "status": "passed",
+        "ms": 2
+      },
+      {
+        "file": "audio-convert.test.ts",
+        "group": "clock / parseClock",
+        "title": "round-trips",
+        "ok": true,
+        "status": "passed",
+        "ms": 3
+      },
+      {
+        "file": "audio-convert.test.ts",
+        "group": "shapePcm",
+        "title": "keeps the whole file when no trim is set",
+        "ok": true,
+        "status": "passed",
+        "ms": 12
+      },
+      {
+        "file": "audio-convert.test.ts",
+        "group": "shapePcm",
+        "title": "trims from a start time",
+        "ok": true,
+        "status": "passed",
+        "ms": 3
+      },
+      {
+        "file": "audio-convert.test.ts",
+        "group": "shapePcm",
+        "title": "trims to an end time",
+        "ok": true,
+        "status": "passed",
+        "ms": 4
+      },
+      {
+        "file": "audio-convert.test.ts",
+        "group": "shapePcm",
+        "title": "never returns an empty or reversed range",
+        "ok": true,
+        "status": "passed",
+        "ms": 4
+      },
+      {
+        "file": "audio-convert.test.ts",
+        "group": "shapePcm",
+        "title": "clamps an end time past the real duration",
+        "ok": true,
+        "status": "passed",
+        "ms": 2
+      },
+      {
+        "file": "audio-convert.test.ts",
+        "group": "shapePcm",
+        "title": "folds to mono by averaging the channels",
+        "ok": true,
+        "status": "passed",
+        "ms": 14
+      },
+      {
+        "file": "audio-convert.test.ts",
+        "group": "shapePcm",
+        "title": "copies out of the source buffer so the caller owns the memory",
+        "ok": true,
+        "status": "passed",
+        "ms": 4
+      },
+      {
+        "file": "audio-convert.test.ts",
+        "group": "encodeWav",
+        "title": "writes a RIFF/WAVE header a decoder will accept",
+        "ok": true,
+        "status": "passed",
+        "ms": 10
+      },
+      {
+        "file": "audio-convert.test.ts",
+        "group": "encodeWav",
+        "title": "sizes the file from the samples, and interleaves stereo",
+        "ok": true,
+        "status": "passed",
+        "ms": 2
+      },
+      {
+        "file": "audio-convert.test.ts",
+        "group": "encodeWav",
+        "title": "clips instead of wrapping around",
+        "ok": true,
+        "status": "passed",
+        "ms": 1
+      },
+      {
+        "file": "audio-convert.test.ts",
+        "group": "bitrates",
+        "title": "offers a sane ladder with 192 in it",
+        "ok": true,
+        "status": "passed",
+        "ms": 10
+      },
+      {
+        "file": "epub-core.test.ts",
+        "group": "dehyphenate",
+        "title": "rejoins a word broken across a line",
+        "ok": true,
+        "status": "passed",
+        "ms": 18
+      },
+      {
+        "file": "epub-core.test.ts",
+        "group": "dehyphenate",
+        "title": "leaves a real hyphen between words alone",
+        "ok": true,
+        "status": "passed",
+        "ms": 2
+      },
+      {
+        "file": "epub-core.test.ts",
+        "group": "stitchPages",
+        "title": "continues a sentence cut by a page break",
+        "ok": true,
+        "status": "passed",
+        "ms": 6
+      },
+      {
+        "file": "epub-core.test.ts",
+        "group": "stitchPages",
+        "title": "keeps separate blocks apart when the page ended cleanly",
+        "ok": true,
+        "status": "passed",
+        "ms": 3
+      },
+      {
+        "file": "epub-core.test.ts",
+        "group": "stitchPages",
+        "title": "never swallows a heading into the previous paragraph",
+        "ok": true,
+        "status": "passed",
+        "ms": 17
+      },
+      {
+        "file": "epub-core.test.ts",
+        "group": "stitchPages",
+        "title": "skips empty pages",
+        "ok": true,
+        "status": "passed",
+        "ms": 2
+      },
+      {
+        "file": "epub-core.test.ts",
+        "group": "stripRunningHeads",
+        "title": "drops the repeated header and the page number, keeps the body",
+        "ok": true,
+        "status": "passed",
+        "ms": 20
+      },
+      {
+        "file": "epub-core.test.ts",
+        "group": "stripRunningHeads",
+        "title": "leaves short documents alone — too little evidence to be sure",
+        "ok": true,
+        "status": "passed",
+        "ms": 5
+      },
+      {
+        "file": "epub-core.test.ts",
+        "group": "stripRunningHeads",
+        "title": "keeps a heading that only appears once",
+        "ok": true,
+        "status": "passed",
+        "ms": 4
+      },
+      {
+        "file": "epub-core.test.ts",
+        "group": "chapter splitting",
+        "title": "splits at headings and keeps the text before the first one",
+        "ok": true,
+        "status": "passed",
+        "ms": 53
+      },
+      {
+        "file": "epub-core.test.ts",
+        "group": "chapter splitting",
+        "title": "returns null when there is nothing to split on",
+        "ok": true,
+        "status": "passed",
+        "ms": 12
+      },
+      {
+        "file": "epub-core.test.ts",
+        "group": "chapter splitting",
+        "title": "splits at bookmarks, with front matter kept",
+        "ok": true,
+        "status": "passed",
+        "ms": 5
+      },
+      {
+        "file": "epub-core.test.ts",
+        "group": "chapter splitting",
+        "title": "ignores bookmarks that point outside the document",
+        "ok": true,
+        "status": "passed",
+        "ms": 11
+      },
+      {
+        "file": "epub-core.test.ts",
+        "group": "chapter splitting",
+        "title": "splits by fixed page blocks",
+        "ok": true,
+        "status": "passed",
+        "ms": 2
+      },
+      {
+        "file": "epub-core.test.ts",
+        "group": "image tokens",
+        "title": "becomes a figure where the picture was drawn",
+        "ok": true,
+        "status": "passed",
+        "ms": 39
+      },
+      {
+        "file": "epub-core.test.ts",
+        "group": "image tokens",
+        "title": "never leaves a token visible when a picture is dropped",
+        "ok": true,
+        "status": "passed",
+        "ms": 25
+      },
+      {
+        "file": "epub-core.test.ts",
+        "group": "buildEpubFiles",
+        "title": "puts an uncompressed mimetype first",
+        "ok": true,
+        "status": "passed",
+        "ms": 1
+      },
+      {
+        "file": "epub-core.test.ts",
+        "group": "buildEpubFiles",
+        "title": "ships the container, package, both tables of contents and every chapter",
+        "ok": true,
+        "status": "passed",
+        "ms": 9
+      },
+      {
+        "file": "epub-core.test.ts",
+        "group": "buildEpubFiles",
+        "title": "declares every chapter in the manifest and the spine",
+        "ok": true,
+        "status": "passed",
+        "ms": 2
+      },
+      {
+        "file": "epub-core.test.ts",
+        "group": "buildEpubFiles",
+        "title": "escapes metadata that would otherwise break the XML",
+        "ok": true,
+        "status": "passed",
+        "ms": 2
+      },
+      {
+        "file": "epub-core.test.ts",
+        "group": "buildEpubFiles",
+        "title": "adds the cover to the manifest and the front of the spine",
+        "ok": true,
+        "status": "passed",
+        "ms": 2
+      },
+      {
+        "file": "epub-core.test.ts",
+        "group": "buildEpubFiles",
+        "title": "strips control characters, which XML forbids and PDFs are full of",
+        "ok": true,
+        "status": "passed",
+        "ms": 2
+      },
+      {
+        "file": "epub-core.test.ts",
+        "group": "buildEpubFiles",
+        "title": "never produces an empty book",
+        "ok": true,
+        "status": "passed",
+        "ms": 3
+      },
+      {
+        "file": "epub-core.test.ts",
+        "group": "buildEpubFiles",
+        "title": "lays a right-to-left book out right-to-left",
+        "ok": true,
+        "status": "passed",
+        "ms": 5
+      },
+      {
+        "file": "epub-core.test.ts",
+        "group": "buildEpubFiles",
+        "title": "leaves a left-to-right book alone",
+        "ok": true,
+        "status": "passed",
+        "ms": 2
+      },
+      {
+        "file": "epub-core.test.ts",
+        "group": "buildEpubFiles",
+        "title": "knows which languages read right-to-left",
+        "ok": true,
+        "status": "passed",
+        "ms": 1
+      },
+      {
+        "file": "epub-core.test.ts",
+        "group": "buildEpubFiles",
+        "title": "packs only the pictures a chapter actually uses",
+        "ok": true,
+        "status": "passed",
+        "ms": 2
+      },
+      {
+        "file": "epub-core.test.ts",
+        "group": "buildEpubFiles",
+        "title": "writes well-formed XML declarations everywhere",
+        "ok": true,
+        "status": "passed",
+        "ms": 2
+      },
+      {
+        "file": "html-tables.test.ts",
+        "group": "tablesFromHtml",
+        "title": "reads a plain table, header row included",
+        "ok": true,
+        "status": "passed",
+        "ms": 1385
+      },
+      {
+        "file": "html-tables.test.ts",
+        "group": "tablesFromHtml",
+        "title": "keeps columns aligned under a rowspan — the thing copy-paste gets wrong",
+        "ok": true,
+        "status": "passed",
+        "ms": 580
+      },
+      {
+        "file": "html-tables.test.ts",
+        "group": "tablesFromHtml",
+        "title": "spreads a colspan across the columns it covers",
+        "ok": true,
+        "status": "passed",
+        "ms": 590
+      },
+      {
+        "file": "html-tables.test.ts",
+        "group": "tablesFromHtml",
+        "title": "names a table from its caption, then from the heading above it",
+        "ok": true,
+        "status": "passed",
+        "ms": 890
+      },
+      {
+        "file": "html-tables.test.ts",
+        "group": "tablesFromHtml",
+        "title": "finds every table on the page",
+        "ok": true,
+        "status": "passed",
+        "ms": 365
+      },
+      {
+        "file": "html-tables.test.ts",
+        "group": "tablesFromHtml",
+        "title": "ignores layout shells and keeps the data table inside",
+        "ok": true,
+        "status": "passed",
+        "ms": 75
+      },
+      {
+        "file": "html-tables.test.ts",
+        "group": "tablesFromHtml",
+        "title": "skips one-column and near-empty tables",
+        "ok": true,
+        "status": "passed",
+        "ms": 74
+      },
+      {
+        "file": "html-tables.test.ts",
+        "group": "tablesFromHtml",
+        "title": "never lets script or style text land in a cell",
+        "ok": true,
+        "status": "passed",
+        "ms": 127
+      },
+      {
+        "file": "html-tables.test.ts",
+        "group": "tablesFromHtml",
+        "title": "collapses the whitespace real pages are full of",
+        "ok": true,
+        "status": "passed",
+        "ms": 40
+      },
+      {
+        "file": "html-tables.test.ts",
+        "group": "tablesFromHtml",
+        "title": "returns nothing when the page has no tables",
+        "ok": true,
+        "status": "passed",
+        "ms": 60
+      },
+      {
+        "file": "html-tables.test.ts",
+        "group": "sheetName",
+        "title": "strips the characters Excel forbids and trims to 31",
+        "ok": true,
+        "status": "passed",
+        "ms": 85
+      },
+      {
+        "file": "html-tables.test.ts",
+        "group": "sheetName",
+        "title": "never repeats a name",
+        "ok": true,
+        "status": "passed",
+        "ms": 2
+      },
+      {
+        "file": "html-tables.test.ts",
+        "group": "sheetName",
+        "title": "falls back when the name is empty",
+        "ok": true,
+        "status": "passed",
+        "ms": 2
+      },
+      {
+        "file": "md-blocks.test.ts",
+        "group": "stripInline",
+        "title": "unwraps the marks the writers cannot style",
+        "ok": true,
+        "status": "passed",
+        "ms": 16
+      },
+      {
+        "file": "md-blocks.test.ts",
+        "group": "stripInline",
+        "title": "leaves ordinary punctuation and maths alone",
+        "ok": true,
+        "status": "passed",
+        "ms": 2
+      },
+      {
+        "file": "md-blocks.test.ts",
+        "group": "markdownToBlocks",
+        "title": "reads headings, both styles",
+        "ok": true,
+        "status": "passed",
+        "ms": 11
+      },
+      {
+        "file": "md-blocks.test.ts",
+        "group": "markdownToBlocks",
+        "title": "joins a wrapped paragraph the way Markdown does",
+        "ok": true,
+        "status": "passed",
+        "ms": 2
+      },
+      {
+        "file": "md-blocks.test.ts",
+        "group": "markdownToBlocks",
+        "title": "reads both kinds of list",
+        "ok": true,
+        "status": "passed",
+        "ms": 170
+      },
+      {
+        "file": "md-blocks.test.ts",
+        "group": "markdownToBlocks",
+        "title": "reads a GFM table with its header",
+        "ok": true,
+        "status": "passed",
+        "ms": 4
+      },
+      {
+        "file": "md-blocks.test.ts",
+        "group": "markdownToBlocks",
+        "title": "keeps code lines and drops the fences",
+        "ok": true,
+        "status": "passed",
+        "ms": 2
+      },
+      {
+        "file": "md-blocks.test.ts",
+        "group": "markdownToBlocks",
+        "title": "folds a block quote into one note",
+        "ok": true,
+        "status": "passed",
+        "ms": 1
+      },
+      {
+        "file": "md-blocks.test.ts",
+        "group": "markdownToBlocks",
+        "title": "drops horizontal rules without swallowing what follows",
+        "ok": true,
+        "status": "passed",
+        "ms": 2
+      },
+      {
+        "file": "md-blocks.test.ts",
+        "group": "block conversion",
+        "title": "flattens tables for the PDF writer, which has no table block",
+        "ok": true,
+        "status": "passed",
+        "ms": 6
+      },
+      {
+        "file": "md-blocks.test.ts",
+        "group": "block conversion",
+        "title": "keeps tables for Word and drops page breaks it cannot express",
+        "ok": true,
+        "status": "passed",
+        "ms": 2
+      },
+      {
+        "file": "md-blocks.test.ts",
+        "group": "block conversion",
+        "title": "writes readable plain text",
+        "ok": true,
+        "status": "passed",
+        "ms": 3
+      },
+      {
+        "file": "md-blocks.test.ts",
+        "group": "svg helpers",
+        "title": "reads the size from width/height, else the viewBox",
+        "ok": true,
+        "status": "passed",
+        "ms": 160
+      },
+      {
+        "file": "md-blocks.test.ts",
+        "group": "svg helpers",
+        "title": "returns null when there is nothing to size from",
+        "ok": true,
+        "status": "passed",
+        "ms": 8
+      },
+      {
+        "file": "md-blocks.test.ts",
+        "group": "svg helpers",
+        "title": "forces explicit dimensions on — the fix for blank exports",
+        "ok": true,
+        "status": "passed",
+        "ms": 5
+      },
+      {
+        "file": "md-blocks.test.ts",
+        "group": "svg helpers",
+        "title": "replaces any width/height already there rather than duplicating",
+        "ok": true,
+        "status": "passed",
+        "ms": 2
+      },
+      {
+        "file": "md-blocks.test.ts",
+        "group": "svg helpers",
+        "title": "strips scripts and event handlers",
+        "ok": true,
+        "status": "passed",
+        "ms": 238
+      },
+      {
+        "file": "md-blocks.test.ts",
+        "group": "buildIco",
+        "title": "writes a real multi-image icon header",
+        "ok": true,
+        "status": "passed",
+        "ms": 5
+      },
+      {
+        "file": "md-blocks.test.ts",
+        "group": "buildIco",
+        "title": "records each image size, length and offset",
+        "ok": true,
+        "status": "passed",
+        "ms": 211
+      },
+      {
+        "file": "md-blocks.test.ts",
+        "group": "buildIco",
+        "title": "is exactly header + directory + payloads long",
+        "ok": true,
+        "status": "passed",
+        "ms": 1
+      },
+      {
+        "file": "redaction-certificate.test.ts",
+        "group": "redaction certificate",
+        "title": "pins the output file by hash",
+        "ok": true,
+        "status": "passed",
+        "ms": 363
+      },
+      {
+        "file": "redaction-certificate.test.ts",
+        "group": "redaction certificate",
+        "title": "records when text SURVIVED, rather than quietly claiming success",
+        "ok": true,
+        "status": "passed",
+        "ms": 20
+      },
+      {
+        "file": "redaction-certificate.test.ts",
+        "group": "redaction certificate",
+        "title": "verifies a matching file and rejects a different one",
+        "ok": true,
+        "status": "passed",
+        "ms": 110
+      },
+      {
+        "file": "redaction-certificate.test.ts",
+        "group": "redaction certificate",
+        "title": "refuses anything that is not one of our certificates",
+        "ok": true,
+        "status": "passed",
+        "ms": 14
+      },
+      {
+        "file": "redaction-certificate.test.ts",
+        "group": "redaction certificate",
+        "title": "collapses page runs the way a person would read them",
+        "ok": true,
+        "status": "passed",
+        "ms": 11
+      },
+      {
+        "file": "sheet-io.test.ts",
+        "group": "parseCsv",
+        "title": "keeps a quoted comma in one cell",
+        "ok": true,
+        "status": "passed",
+        "ms": 30
+      },
+      {
+        "file": "sheet-io.test.ts",
+        "group": "parseCsv",
+        "title": "handles doubled quotes and quoted newlines",
+        "ok": true,
+        "status": "passed",
+        "ms": 184
+      },
+      {
+        "file": "sheet-io.test.ts",
+        "group": "parseCsv",
+        "title": "strips a BOM so the first header is not corrupted",
+        "ok": true,
+        "status": "passed",
+        "ms": 3
+      },
+      {
+        "file": "sheet-io.test.ts",
+        "group": "parseCsv",
+        "title": "copes with CRLF",
+        "ok": true,
+        "status": "passed",
+        "ms": 556
+      },
+      {
+        "file": "sheet-io.test.ts",
+        "group": "parseCsv",
+        "title": "drops trailing blank lines but keeps genuinely empty cells",
+        "ok": true,
+        "status": "passed",
+        "ms": 3
+      },
+      {
+        "file": "sheet-io.test.ts",
+        "group": "sniffDelimiter",
+        "title": "finds semicolons and tabs, which is what breaks European and pasted files",
+        "ok": true,
+        "status": "passed",
+        "ms": 316
+      },
+      {
+        "file": "sheet-io.test.ts",
+        "group": "sniffDelimiter",
+        "title": "ignores separators inside quotes",
+        "ok": true,
+        "status": "passed",
+        "ms": 2
+      },
+      {
+        "file": "sheet-io.test.ts",
+        "group": "sniffDelimiter",
+        "title": "falls back to a comma when there is nothing to go on",
+        "ok": true,
+        "status": "passed",
+        "ms": 1
+      },
+      {
+        "file": "sheet-io.test.ts",
+        "group": "sniffDelimiter",
+        "title": "drives parseCsv, so a semicolon file is not one column",
+        "ok": true,
+        "status": "passed",
+        "ms": 9
+      },
+      {
+        "file": "sheet-io.test.ts",
+        "group": "colIndex",
+        "title": "maps spreadsheet columns to zero-based indexes",
+        "ok": true,
+        "status": "passed",
+        "ms": 12
+      },
+      {
+        "file": "sheet-io.test.ts",
+        "group": "excelSerialToDate",
+        "title": "turns the day count back into a date",
+        "ok": true,
+        "status": "passed",
+        "ms": 37
+      },
+      {
+        "file": "sheet-io.test.ts",
+        "group": "excelSerialToDate",
+        "title": "keeps the time when there is a fraction",
+        "ok": true,
+        "status": "passed",
+        "ms": 2
+      },
+      {
+        "file": "sheet-io.test.ts",
+        "group": "jsonToSheets",
+        "title": "turns an array of records into a header row plus rows",
+        "ok": true,
+        "status": "passed",
+        "ms": 15
+      },
+      {
+        "file": "sheet-io.test.ts",
+        "group": "jsonToSheets",
+        "title": "flattens nested objects into dotted columns",
+        "ok": true,
+        "status": "passed",
+        "ms": 9
+      },
+      {
+        "file": "sheet-io.test.ts",
+        "group": "jsonToSheets",
+        "title": "unions the fields so a record missing one is not dropped",
+        "ok": true,
+        "status": "passed",
+        "ms": 11
+      },
+      {
+        "file": "sheet-io.test.ts",
+        "group": "jsonToSheets",
+        "title": "joins scalar arrays and keeps object arrays as JSON rather than losing them",
+        "ok": true,
+        "status": "passed",
+        "ms": 4
+      },
+      {
+        "file": "sheet-io.test.ts",
+        "group": "jsonToSheets",
+        "title": "finds the list inside a typical API response",
+        "ok": true,
+        "status": "passed",
+        "ms": 9
+      },
+      {
+        "file": "sheet-io.test.ts",
+        "group": "jsonToSheets",
+        "title": "writes booleans and nulls in a way a spreadsheet can read",
+        "ok": true,
+        "status": "passed",
+        "ms": 4
+      },
+      {
+        "file": "sheet-io.test.ts",
+        "group": "rowsToJson",
+        "title": "uses the first row as the keys",
+        "ok": true,
+        "status": "passed",
+        "ms": 2
+      },
+      {
+        "file": "sheet-io.test.ts",
+        "group": "rowsToJson",
+        "title": "names columns when there is no header row",
+        "ok": true,
+        "status": "passed",
+        "ms": 1
+      },
+      {
+        "file": "sheet-io.test.ts",
+        "group": "rowsToJson",
+        "title": "never produces a blank key",
+        "ok": true,
+        "status": "passed",
+        "ms": 1
+      },
+      {
+        "file": "sheet-io.test.ts",
+        "group": "xmlToSheets",
+        "title": "makes the repeating element the rows",
+        "ok": true,
+        "status": "passed",
+        "ms": 273
+      },
+      {
+        "file": "sheet-io.test.ts",
+        "group": "xmlToSheets",
+        "title": "expands one level of nesting into dotted columns",
+        "ok": true,
+        "status": "passed",
+        "ms": 148
+      },
+      {
+        "file": "sheet-io.test.ts",
+        "group": "xmlToSheets",
+        "title": "says so rather than guessing when nothing repeats",
+        "ok": true,
+        "status": "passed",
+        "ms": 130
+      },
+      {
+        "file": "sheet-io.test.ts",
+        "group": "xmlToSheets",
+        "title": "refuses malformed XML instead of returning nonsense",
+        "ok": true,
+        "status": "passed",
+        "ms": 101
+      },
+      {
+        "file": "sheet-io.test.ts",
+        "group": "sheetName",
+        "title": "strips what Excel forbids and de-duplicates",
+        "ok": true,
+        "status": "passed",
+        "ms": 10
+      },
+      {
+        "file": "subtitles.test.ts",
+        "group": "parseTime / formatTime",
+        "title": "reads both separators and optional hours",
+        "ok": true,
+        "status": "passed",
+        "ms": 16
+      },
+      {
+        "file": "subtitles.test.ts",
+        "group": "parseTime / formatTime",
+        "title": "rejects nonsense rather than guessing",
+        "ok": true,
+        "status": "passed",
+        "ms": 4
+      },
+      {
+        "file": "subtitles.test.ts",
+        "group": "parseTime / formatTime",
+        "title": "writes the separator each format expects",
+        "ok": true,
+        "status": "passed",
+        "ms": 5
+      },
+      {
+        "file": "subtitles.test.ts",
+        "group": "parseTime / formatTime",
+        "title": "round-trips",
+        "ok": true,
+        "status": "passed",
+        "ms": 4
+      },
+      {
+        "file": "subtitles.test.ts",
+        "group": "parseSubtitles",
+        "title": "reads SRT, keeping multi-line captions together",
+        "ok": true,
+        "status": "passed",
+        "ms": 18
+      },
+      {
+        "file": "subtitles.test.ts",
+        "group": "parseSubtitles",
+        "title": "reads VTT, skipping the header, NOTE blocks and cue settings",
+        "ok": true,
+        "status": "passed",
+        "ms": 8
+      },
+      {
+        "file": "subtitles.test.ts",
+        "group": "parseSubtitles",
+        "title": "survives CRLF and a BOM",
+        "ok": true,
+        "status": "passed",
+        "ms": 3
+      },
+      {
+        "file": "subtitles.test.ts",
+        "group": "parseSubtitles",
+        "title": "returns nothing for a file with no cues, instead of inventing one",
+        "ok": true,
+        "status": "passed",
+        "ms": 35
+      },
+      {
+        "file": "subtitles.test.ts",
+        "group": "parseSubtitles",
+        "title": "never lets a cue end before it starts",
+        "ok": true,
+        "status": "passed",
+        "ms": 6
+      },
+      {
+        "file": "subtitles.test.ts",
+        "group": "writers",
+        "title": "renumbers SRT cues from one",
+        "ok": true,
+        "status": "passed",
+        "ms": 41
+      },
+      {
+        "file": "subtitles.test.ts",
+        "group": "writers",
+        "title": "writes a WEBVTT header — the reason a renamed .srt fails",
+        "ok": true,
+        "status": "passed",
+        "ms": 4
+      },
+      {
+        "file": "subtitles.test.ts",
+        "group": "writers",
+        "title": "makes a transcript: no timings, tags stripped, sentences joined",
+        "ok": true,
+        "status": "passed",
+        "ms": 5
+      },
+      {
+        "file": "subtitles.test.ts",
+        "group": "shiftCues",
+        "title": "moves every cue",
+        "ok": true,
+        "status": "passed",
+        "ms": 2
+      },
+      {
+        "file": "subtitles.test.ts",
+        "group": "shiftCues",
+        "title": "clamps at zero instead of going negative",
+        "ok": true,
+        "status": "passed",
+        "ms": 1
+      },
+      {
+        "file": "subtitles.test.ts",
+        "group": "shiftCues",
+        "title": "is a no-op at zero",
+        "ok": true,
+        "status": "passed",
+        "ms": 6
+      },
+      {
+        "file": "subtitles.test.ts",
+        "group": "detectFormat",
+        "title": "spots VTT by its header or extension",
+        "ok": true,
+        "status": "passed",
+        "ms": 9
+      },
+      {
+        "file": "tool-facts.test.ts",
+        "group": "tool-facts data integrity",
+        "title": "factsFor returns null for an unknown route",
+        "ok": true,
+        "status": "passed",
+        "ms": 14
+      },
+      {
+        "file": "tool-facts.test.ts",
+        "group": "tool-facts data integrity",
+        "title": "every effect has a valid tone and non-empty labels",
+        "ok": true,
+        "status": "passed",
+        "ms": 438
+      },
+      {
+        "file": "tool-facts.test.ts",
+        "group": "tool-facts data integrity",
+        "title": "every limit with an href points somewhere real and has a label",
+        "ok": true,
+        "status": "passed",
+        "ms": 459
+      },
+      {
+        "file": "tool-facts.test.ts",
+        "group": "tool-facts data integrity",
+        "title": "compress-pdf tells the truth about signatures (promise-guard)",
+        "ok": true,
+        "status": "passed",
+        "ms": 7
+      }
+    ]
+  },
+  "bench": {
+    "generatedAt": "2026-08-08T22:26:03.805Z",
+    "node": "v24.18.0",
+    "platform": "win32 x64",
+    "perf": [
+      {
+        "op": "info",
+        "pages": 10,
+        "inputMb": 0,
+        "ms": 11,
+        "heapDeltaMb": 0.64,
+        "spreadMs": 7.9
+      },
+      {
+        "op": "extract half",
+        "pages": 10,
+        "inputMb": 0,
+        "ms": 100.5,
+        "heapDeltaMb": 0.69,
+        "spreadMs": 87.8
+      },
+      {
+        "op": "delete first page",
+        "pages": 10,
+        "inputMb": 0,
+        "ms": 50,
+        "heapDeltaMb": 0.74,
+        "spreadMs": 148.7
+      },
+      {
+        "op": "rotate all",
+        "pages": 10,
+        "inputMb": 0,
+        "ms": 35.2,
+        "heapDeltaMb": 0.49,
+        "spreadMs": 63.2
+      },
+      {
+        "op": "strip metadata",
+        "pages": 10,
+        "inputMb": 0,
+        "ms": 51.2,
+        "heapDeltaMb": 0.48,
+        "spreadMs": 190.7
+      },
+      {
+        "op": "split every 10",
+        "pages": 10,
+        "inputMb": 0,
+        "ms": 28.6,
+        "heapDeltaMb": 0.75,
+        "spreadMs": 44.4
+      },
+      {
+        "op": "info",
+        "pages": 50,
+        "inputMb": 0.02,
+        "ms": 29.7,
+        "heapDeltaMb": 1.3,
+        "spreadMs": 12.1
+      },
+      {
+        "op": "extract half",
+        "pages": 50,
+        "inputMb": 0.02,
+        "ms": 74.6,
+        "heapDeltaMb": 2.04,
+        "spreadMs": 103.4
+      },
+      {
+        "op": "delete first page",
+        "pages": 50,
+        "inputMb": 0.02,
+        "ms": 384.8,
+        "heapDeltaMb": 2.9,
+        "spreadMs": 95
+      },
+      {
+        "op": "rotate all",
+        "pages": 50,
+        "inputMb": 0.02,
+        "ms": 140.9,
+        "heapDeltaMb": 1.76,
+        "spreadMs": 44.5
+      },
+      {
+        "op": "strip metadata",
+        "pages": 50,
+        "inputMb": 0.02,
+        "ms": 229.7,
+        "heapDeltaMb": 1.66,
+        "spreadMs": 111.6
+      },
+      {
+        "op": "split every 10",
+        "pages": 50,
+        "inputMb": 0.02,
+        "ms": 163.7,
+        "heapDeltaMb": 3.04,
+        "spreadMs": 188.8
+      },
+      {
+        "op": "info",
+        "pages": 200,
+        "inputMb": 0.09,
+        "ms": 474.2,
+        "heapDeltaMb": 5,
+        "spreadMs": 92.1
+      },
+      {
+        "op": "extract half",
+        "pages": 200,
+        "inputMb": 0.09,
+        "ms": 1042.6,
+        "heapDeltaMb": 7.16,
+        "spreadMs": 1028.2
+      },
+      {
+        "op": "delete first page",
+        "pages": 200,
+        "inputMb": 0.09,
+        "ms": 1366.2,
+        "heapDeltaMb": 10.13,
+        "spreadMs": 810
+      },
+      {
+        "op": "rotate all",
+        "pages": 200,
+        "inputMb": 0.09,
+        "ms": 2122.7,
+        "heapDeltaMb": 6.54,
+        "spreadMs": 1050.1
+      },
+      {
+        "op": "strip metadata",
+        "pages": 200,
+        "inputMb": 0.09,
+        "ms": 2471,
+        "heapDeltaMb": 6.14,
+        "spreadMs": 2198.1
+      },
+      {
+        "op": "split every 10",
+        "pages": 200,
+        "inputMb": 0.09,
+        "ms": 1294.1,
+        "heapDeltaMb": 0.11,
+        "spreadMs": 551.4
+      },
+      {
+        "op": "info",
+        "pages": 500,
+        "inputMb": 0.22,
+        "ms": 1969.5,
+        "heapDeltaMb": 11.2,
+        "spreadMs": 609.6
+      },
+      {
+        "op": "extract half",
+        "pages": 500,
+        "inputMb": 0.22,
+        "ms": 2722.2,
+        "heapDeltaMb": 17.2,
+        "spreadMs": 316
+      },
+      {
+        "op": "delete first page",
+        "pages": 500,
+        "inputMb": 0.22,
+        "ms": 3063.2,
+        "heapDeltaMb": 24.56,
+        "spreadMs": 977.4
+      },
+      {
+        "op": "rotate all",
+        "pages": 500,
+        "inputMb": 0.22,
+        "ms": 1498.2,
+        "heapDeltaMb": 15.61,
+        "spreadMs": 670.4
+      },
+      {
+        "op": "strip metadata",
+        "pages": 500,
+        "inputMb": 0.22,
+        "ms": 1109.3,
+        "heapDeltaMb": 14.78,
+        "spreadMs": 199.4
+      },
+      {
+        "op": "split every 10",
+        "pages": 500,
+        "inputMb": 0.22,
+        "ms": 8471.4,
+        "heapDeltaMb": 28.74,
+        "spreadMs": 5541.4
+      }
+    ],
+    "load": {
+      "baselineMs": 1188.7,
+      "rows": [
+        {
+          "concurrency": 1,
+          "totalMs": 1332.3,
+          "perOpMs": 1332.3,
+          "degradation": 1.12
+        },
+        {
+          "concurrency": 4,
+          "totalMs": 2589.8,
+          "perOpMs": 647.5,
+          "degradation": 0.54
+        },
+        {
+          "concurrency": 8,
+          "totalMs": 2217.2,
+          "perOpMs": 277.2,
+          "degradation": 0.23
+        },
+        {
+          "concurrency": 16,
+          "totalMs": 2077.4,
+          "perOpMs": 129.8,
+          "degradation": 0.11
+        },
+        {
+          "concurrency": 32,
+          "totalMs": 5131.6,
+          "perOpMs": 160.4,
+          "degradation": 0.13
+        }
+      ]
+    },
+    "stress": [
+      {
+        "scenario": "1000-page document",
+        "pages": 1000,
+        "inputMb": 0.43,
+        "ms": 8110.8,
+        "heapDeltaMb": 0,
+        "outcome": "ok"
+      },
+      {
+        "scenario": "2500-page document",
+        "pages": 2500,
+        "inputMb": 1.08,
+        "ms": 21683.2,
+        "heapDeltaMb": 21.05,
+        "outcome": "ok"
+      },
+      {
+        "scenario": "5000-page document",
+        "pages": 5000,
+        "inputMb": 2.17,
+        "ms": 26823,
+        "heapDeltaMb": 0,
+        "outcome": "ok"
+      },
+      {
+        "scenario": "merge 50 files × 5 pages",
+        "files": 50,
+        "ms": 1171.2,
+        "outcome": "ok"
+      },
+      {
+        "scenario": "merge 200 files × 5 pages",
+        "files": 200,
+        "ms": 5113.9,
+        "outcome": "ok"
+      }
+    ]
+  },
+  "areas": [
+    {
+      "id": "seo",
+      "label": "SEO & metadata",
+      "count": 21,
+      "passed": 21,
+      "failed": 0
+    },
+    {
+      "id": "a11y",
+      "label": "Accessibility",
+      "count": 56,
+      "passed": 56,
+      "failed": 0
+    },
+    {
+      "id": "responsive",
+      "label": "Responsive layout",
+      "count": 35,
+      "passed": 35,
+      "failed": 0
+    },
+    {
+      "id": "engines",
+      "label": "Engines — real files in, real bytes out",
+      "count": 30,
+      "passed": 30,
+      "failed": 0
+    },
+    {
+      "id": "regressions",
+      "label": "Named regressions",
+      "count": 24,
+      "passed": 24,
+      "failed": 0
+    },
+    {
+      "id": "account",
+      "label": "Account & billing",
+      "count": 11,
+      "passed": 11,
+      "failed": 0
+    },
+    {
+      "id": "nav",
+      "label": "Navigation & catalogue",
+      "count": 13,
+      "passed": 13,
+      "failed": 0
+    }
+  ],
+  "unitFilesOnDisk": 8,
+  "unitFilesReported": 8,
+  "missing": []
+}
