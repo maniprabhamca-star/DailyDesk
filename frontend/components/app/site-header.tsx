@@ -8,7 +8,7 @@ import {
 import { BrandMark } from '@/components/app/brand-mark';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
-import { catalog, type CatGroup } from '@/components/app/catalog';
+import { catalog } from '@/components/app/catalog';
 import { HeaderSearch } from '@/components/app/header-search';
 import { HeaderUser } from '@/components/app/header-user';
 import { useAuth } from '@/lib/auth';
@@ -17,24 +17,48 @@ function openCommand() {
   window.dispatchEvent(new Event('dd-command-open'));
 }
 
-// Distribute catalog groups into N balanced columns for the Tools mega-menu.
-// Using a real grid of pre-filled columns (not CSS `columns`) means the panel
-// grows DOWNWARD only — it can never spill into extra columns sideways, which
-// was the horizontal-scroll bug. Greedy: each group joins the shortest column,
-// so heights stay even and everything fits on one screen without scrolling.
-// Recomputed once at module load (catalog is static).
-function buildMenuColumns(cols: number): CatGroup[][] {
-  const columns: CatGroup[][] = Array.from({ length: cols }, () => []);
-  const weight = new Array(cols).fill(0);
-  for (const g of catalog) {
-    let shortest = 0;
-    for (let i = 1; i < cols; i++) if (weight[i] < weight[shortest]) shortest = i;
-    columns[shortest].push(g);
-    weight[shortest] += g.tools.length + 1.6; // +header row
-  }
-  return columns;
+
+// How many tools a visitor can actually use today. Derived, never typed — a
+// hand-written count drifts the moment a tool ships (that was REG-111).
+const liveToolCount = catalog.reduce((n, g) => n + g.tools.filter((t) => t.href && !t.soon).length, 0);
+
+/** The whole catalogue, balanced across columns.
+ *
+ *  CSS multi-column rather than a JS-packed grid: it balances the heights
+ *  itself and reflows at each breakpoint from ONE DOM tree, where packed
+ *  columns are fixed at build time and would need a separate copy of the whole
+ *  menu per breakpoint. The old warning about `columns` spilling sideways
+ *  applies to `column-width` (which picks its own count); a fixed `column-count`
+ *  plus break-inside:avoid grows downward only. */
+function MenuGrid({ onPick }: { onPick: () => void }) {
+  return (
+    <div className="columns-3 gap-x-6 lg:columns-5 xl:columns-6 2xl:columns-7">
+      {catalog.map((g) => (
+        <div key={g.label} className="mb-3 break-inside-avoid">
+          <p className="mb-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{g.label}</p>
+          <div className="space-y-px">
+            {g.tools.map((t) => {
+              const Icon = t.icon;
+              const row = (
+                <div className="flex items-center gap-2 rounded-md px-2 py-[3px] hover:bg-accent">
+                  <Icon className="size-4 shrink-0" style={{ color: g.color }} strokeWidth={2.25} />
+                  <span className="truncate text-[13px] font-medium">{t.name}</span>
+                  {t.soon && <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">soon</span>}
+                </div>
+              );
+              // "soon" tools (incl. owner-only-until-Pro: Annotate/Redact/Edit)
+              // show but are NOT clickable for the public — only the owner reaches
+              // them by URL, where the gate serves the real tool.
+              return t.href && !t.soon
+                ? <Link key={t.name} href={t.href} onClick={onPick}>{row}</Link>
+                : <div key={t.name} className="cursor-default opacity-70">{row}</div>;
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
-const MENU_COLUMNS = buildMenuColumns(4);
 
 /**
  * Shared site header (home + tool pages + pricing + legal pages).
@@ -47,6 +71,10 @@ export function SiteHeader({ heroSearchRef }: { heroSearchRef?: React.RefObject<
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showHeaderSearch, setShowHeaderSearch] = useState(!heroSearchRef);
   const toolsRef = useRef<HTMLDivElement>(null);
+  // The panel is no longer a child of the button’s wrapper — it spans the header —
+  // so an outside-click check against the button alone would close it the instant
+  // you clicked a tool inside it.
+  const panelRef = useRef<HTMLDivElement>(null);
   const { user, logout } = useAuth();
 
   // Home only: reveal the header search once the hero search scrolls up behind the sticky
@@ -71,7 +99,11 @@ export function SiteHeader({ heroSearchRef }: { heroSearchRef?: React.RefObject<
   // is trapped inside the header instead of the viewport.)
   useEffect(() => {
     if (!menuOpen) return;
-    const onDown = (e: MouseEvent) => { if (toolsRef.current && !toolsRef.current.contains(e.target as Node)) setMenuOpen(false); };
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as Node;
+      const inside = toolsRef.current?.contains(t) || panelRef.current?.contains(t);
+      if (!inside) setMenuOpen(false);
+    };
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpen(false); };
     document.addEventListener('mousedown', onDown);
     document.addEventListener('keydown', onKey);
@@ -100,41 +132,15 @@ export function SiteHeader({ heroSearchRef }: { heroSearchRef?: React.RefObject<
               suite browses signed out. The mark alone still reads as us. */}
           <span className="hidden text-xl font-semibold tracking-tight min-[400px]:inline">DiemDesk</span>
         </Link>
-        <div ref={toolsRef} className="relative hidden sm:block">
-          <button onClick={() => setMenuOpen((o) => !o)} className="flex items-center gap-1 text-sm font-medium text-foreground/80 hover:text-foreground">
+        <div ref={toolsRef} className="hidden sm:block">
+          <button
+            onClick={() => setMenuOpen((o) => !o)}
+            aria-expanded={menuOpen}
+            aria-controls="dd-tools-menu"
+            className="flex items-center gap-1 text-sm font-medium text-foreground/80 hover:text-foreground"
+          >
             Tools <ChevronDown className={`size-4 transition-transform ${menuOpen ? 'rotate-180' : ''}`} />
           </button>
-          {menuOpen && (
-            <div className="absolute left-0 top-8 z-40 w-[min(920px,calc(100vw-2rem))] max-h-[calc(100vh-5.5rem)] overflow-y-auto overflow-x-hidden overscroll-contain rounded-xl border bg-popover p-4 shadow-lift">
-              <div className="grid grid-cols-2 gap-x-5 lg:grid-cols-4">
-                {MENU_COLUMNS.map((col, i) => (
-                  <div key={i} className="min-w-0">
-                    {col.map((g) => (
-                      <div key={g.label} className="mb-3">
-                        <p className="mb-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">{g.label}</p>
-                        <div className="space-y-px">
-                          {g.tools.map((t) => {
-                            const Icon = t.icon;
-                            const row = (
-                              <div className="flex items-center gap-2 rounded-md px-2 py-1 hover:bg-accent">
-                                <Icon className="size-4 shrink-0" style={{ color: g.color }} strokeWidth={2.25} />
-                                <span className="truncate text-[13px] font-medium">{t.name}</span>
-                                {t.soon && <span className="ml-auto text-[10px] text-muted-foreground">soon</span>}
-                              </div>
-                            );
-                            // "soon" tools (incl. owner-only-until-Pro: Annotate/Redact/Edit)
-                            // show but are NOT clickable for the public — only the owner reaches
-                            // them by URL, where the gate serves the real tool.
-                            return t.href && !t.soon ? <Link key={t.name} href={t.href} onClick={() => setMenuOpen(false)}>{row}</Link> : <div key={t.name} className="cursor-default opacity-70">{row}</div>;
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
         <Link href="/pricing" className="hidden text-sm font-medium text-foreground/80 hover:text-foreground sm:block">Pricing</Link>
         <Link href="/feedback" className="hidden text-sm font-medium text-foreground/80 hover:text-foreground sm:block">Feedback</Link>
@@ -163,6 +169,40 @@ export function SiteHeader({ heroSearchRef }: { heroSearchRef?: React.RefObject<
           </button>
         </div>
       </div>
+      {/* Tools mega-menu — FULL WIDTH, deliberately.
+          It used to be a 920px dropdown anchored to the button, which meant 67
+          tools in four narrow columns with an inner scrollbar: you had to scroll
+          a menu to find out what the product does. Spanning the header's whole
+          width buys enough columns to show the entire catalogue at once, which
+          is the only version of this that answers "what can I do here?".
+          The inner container matches the header's own (max-w-[1400px], same
+          padding), so the first column lines up under the logo instead of
+          starting hard against the viewport edge. */}
+      {menuOpen && (
+        <div
+          id="dd-tools-menu"
+          ref={panelRef}
+          className="absolute inset-x-0 top-full z-40 hidden max-h-[calc(100vh-4rem)] overflow-y-auto overscroll-contain border-b-2 border-border bg-popover shadow-lift sm:block"
+        >
+          <div className="mx-auto max-w-[1400px] px-4 py-4 sm:px-6">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Every tool — {liveToolCount} ready now
+              </p>
+              <button
+                onClick={() => setMenuOpen(false)}
+                aria-label="Close the tools menu"
+                className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            <MenuGrid onPick={() => setMenuOpen(false)} />
+          </div>
+        </div>
+      )}
+
       {/* Mobile menu */}
       {mobileOpen && (
         <div className="border-t sm:hidden">

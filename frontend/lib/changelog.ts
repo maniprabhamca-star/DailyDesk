@@ -20,6 +20,13 @@ export type ChangeEntry = {
 // flags flip, dated then.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-08-08',
+    kind: 'improved',
+    title: 'The Tools menu now shows everything at once',
+    detail:
+      'Opening Tools used to give you a narrow dropdown with the whole catalogue squeezed into four columns behind a scrollbar — you had to scroll a menu to find out what was in it. It now opens across the full width of the page, so every tool is on screen together, grouped and readable at a glance, with a close button in the corner. Escape closes it too.',
+  },
+  {
     date: '2026-08-07',
     kind: 'new',
     title: 'Your account page now shows exactly what we hold — and lets you take it or delete it',
