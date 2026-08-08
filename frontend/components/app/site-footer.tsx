@@ -29,6 +29,12 @@ const COLUMNS = [
     { label: 'Get started', href: '/register' },
     { label: 'Log in', href: '/login' },
   ] },
+  { title: 'Built for', color: '#f472b6', links: [
+    { label: 'Law firms', href: '/for/legal' },
+    { label: 'Accountants', href: '/for/accountants' },
+    { label: 'Healthcare', href: '/for/healthcare' },
+    { label: 'Schools', href: '/for/schools' },
+  ] },
   { title: 'Legal', color: '#fbbf24', links: [
     { label: 'About', href: '/about' },
     { label: 'Privacy', href: '/privacy' },
@@ -48,11 +54,11 @@ const PILLS = [
 export function SiteFooter() {
   return (
     <footer className="relative overflow-hidden border-t border-white/10 bg-[#0f172a] text-slate-300">
-      <div className="relative z-10 mx-auto max-w-[1400px] px-4 pb-5 pt-9 sm:px-6">
+      <div className="relative z-10 mx-auto max-w-[1400px] px-4 pb-5 pt-9 sm:px-6 lg:px-10">
         {/* Mobile (approved mockup): Tools+Product sit side-by-side and Legal
             collapses to an inline link row — ~60% less scroll. Desktop (lg+)
             keeps the original four-column spread untouched. */}
-        <div className="grid gap-8 lg:grid-cols-[1.6fr_1fr_1fr_1fr]">
+        <div className="grid gap-8 lg:grid-cols-[1.6fr_1fr_1fr_1fr_1fr]">
           <div>
             <Link href="/" className="flex items-center gap-2.5">
               <BrandMark className="size-8" />

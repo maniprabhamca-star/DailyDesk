@@ -14,7 +14,7 @@ const STEPS = [
 export function ToolInAction() {
   return (
     <section className="border-y bg-muted/20">
-      <div className="mx-auto grid max-w-[1400px] items-center gap-10 px-4 py-14 sm:px-6 md:grid-cols-2 lg:gap-16">
+      <div className="mx-auto grid max-w-[1400px] items-center gap-10 px-4 py-14 sm:px-6 lg:px-10 md:grid-cols-2 lg:gap-16">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">The same, every time</p>
           <h2 className="mt-3 text-3xl font-bold leading-[1.12] tracking-tight text-balance sm:text-[2rem]">

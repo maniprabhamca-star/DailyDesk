@@ -21,6 +21,14 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-08-08',
+    kind: 'new',
+    title: 'Written for the work you actually do',
+    detail:
+      'Four new pages for the people whose job makes our approach matter rather than merely nice: law firms, accountants, healthcare and schools. Each one names the rule you work under, walks through the everyday jobs it makes awkward — redacting before production, converting a client statement, releasing a record — and says plainly where we are not the right tool. That last part is deliberate. Most online file tools promise to delete your document after an hour, which quietly concedes they received it; ours never does, and these pages explain what that changes for you.',
+    href: '/for/legal',
+  },
+  {
+    date: '2026-08-08',
     kind: 'improved',
     title: 'The Tools menu now shows everything at once',
     detail:

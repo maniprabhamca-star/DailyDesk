@@ -4,6 +4,7 @@ import { PASSPORT_SPECS } from '@/lib/passport-specs';
 import { DEV_TOOLS } from '@/lib/dev-tools';
 import { BANK_PAGES } from '@/lib/bank-statements';
 import { WORKFLOWS } from '@/lib/statement-workflows';
+import { SECTORS } from '@/lib/sectors';
 
 // Every indexable route. Add new tool pages here when they ship (part of the
 // per-task SEO checklist). /login and /register are noindex → not listed.
@@ -124,6 +125,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
     changeFrequency: 'monthly' as const,
     priority: 0.8,
   }));
+  // Sector pages — the "your file never leaves the device" argument written for
+  // the readers whose professional duty makes it decisive.
+  const sectorRoutes = SECTORS.map((x) => ({
+    url: `${SITE_URL}/for/${x.slug}`,
+    lastModified,
+    changeFrequency: 'monthly' as const,
+    priority: 0.8,
+  }));
   // Per-country passport/visa photo landing pages (one per spec).
   const countryRoutes = PASSPORT_SPECS.map((s) => ({
     url: `${SITE_URL}/passport-photo/${s.id}`,
@@ -131,5 +140,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     changeFrequency: 'monthly' as const,
     priority: 0.7,
   }));
-  return [...staticRoutes, ...devRoutes, ...bankRoutes, ...workflowRoutes, ...countryRoutes];
+  return [...staticRoutes, ...devRoutes, ...bankRoutes, ...workflowRoutes, ...sectorRoutes, ...countryRoutes];
 }

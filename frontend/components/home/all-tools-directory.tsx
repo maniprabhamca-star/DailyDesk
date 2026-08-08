@@ -287,7 +287,7 @@ export function AllToolsDirectory({ full = false, asPage = false }: { full?: boo
 
   return (
     <section id="tools" className="scroll-mt-20 bg-muted/20">
-      <div className="mx-auto max-w-[1400px] px-4 pb-10 pt-9 sm:px-6">
+      <div className="mx-auto max-w-[1400px] px-4 pb-10 pt-9 sm:px-6 lg:px-10">
         {/* Heading. The live filter input renders ONLY on /tools (65+ tools need
             narrowing there); on home it duplicated the header's ⌘K search that
             sits inches above — one search box per viewport. */}

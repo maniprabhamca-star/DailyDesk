@@ -122,7 +122,7 @@ export function SiteHeader({ heroSearchRef }: { heroSearchRef?: React.RefObject<
 
   return (
     <header className="sticky top-0 z-40 border-b-2 border-border bg-background/85 shadow-[0_1px_8px_rgba(15,23,42,0.08)] backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-[1400px] items-center gap-5 px-4 sm:px-6">
+      <div className="mx-auto flex h-16 max-w-[1400px] items-center gap-5 px-4 sm:px-6 lg:px-10">
         <Link href="/" className="flex shrink-0 items-center gap-2.5">
           <BrandMark className="size-9" animate />
           {/* The wordmark goes below 400px. Signed IN, the right-hand cluster
@@ -184,7 +184,7 @@ export function SiteHeader({ heroSearchRef }: { heroSearchRef?: React.RefObject<
           ref={panelRef}
           className="absolute inset-x-0 top-full z-40 hidden max-h-[calc(100vh-4rem)] overflow-y-auto overscroll-contain border-b-2 border-border bg-popover shadow-lift sm:block"
         >
-          <div className="mx-auto max-w-[1400px] px-4 py-4 sm:px-6">
+          <div className="mx-auto max-w-[1400px] px-4 py-4 sm:px-6 lg:px-10">
             <div className="mb-3 flex items-center justify-between">
               <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 Every tool — {liveToolCount} ready now

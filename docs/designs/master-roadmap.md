@@ -65,6 +65,42 @@ Mostly free/on-device unless marked.
 - [ ] ⏳ RFC-3161 trusted timestamp
 - [x] 🌓 Free **chained "one-drop" workflows** (merge·clean·sign·compress in one drop — see §4 Saved workflows)
 
+## 2b. Competitor-research findings ⭐ (2026-08-08 — what rivals structurally CANNOT copy)
+
+Grounded in an actual read of sejda.com, ilovepdf.com and tinywow.com, not assumption.
+
+**What they have that we do not:** Sejda 25+ languages, desktop app, dev docs, and
+**4.5★ / 1,874 Google reviews on the homepage**. iLovePDF 23 languages, ISO27001 badge,
+desktop + mobile, Workflows, batch, iLoveAPI, sibling brands. TinyWow 200+ tools,
+ad-funded, $9/mo to remove ads.
+
+**The finding that matters:** every rival's privacy claim is a RETENTION promise —
+"all files deleted after 1 hour" (TinyWow), ISO27001 (iLovePDF), a policy page (Sejda).
+Every one of those concedes **they received the file**. Ours is a different category of
+claim, and we currently undersell it as a feature bullet.
+
+| # | Item | Status | Why rivals can't follow |
+|---|---|---|---|
+| 1 | **Sector pages** `/for/legal`, `/for/accountants`, `/for/healthcare`, `/for/schools` | ✅ **SHIPPED 2026-08-08** | "The file never leaves your device" is the sentence that clears a compliance review. A product that uploads cannot write it. |
+| 2 | Drop the practical file-size cap | ⏳ not started | Everyone caps free tiers because bandwidth costs *them*. Ours costs nothing. |
+| 3 | Reframe the pitch against retention promises (on `/compare`) | ⏳ not started | "They delete your file after an hour. We never receive it." |
+| 4 | Offline PWA done properly | ⚠️ **partial — see note** | iLovePDF *charges* for offline (Premium = "work offline with Desktop"). Ours could be free. |
+| 5 | **Redaction certificate** | 🎯 **APPROVED — build** | A signed receipt of what was removed + that it never left the device. A cloud tool cannot attest to this. |
+| 6 | **Client-side SDK** (npm, runs in the developer's users' browsers) | 🎯 **APPROVED — build** | The unoccupied quadrant: iLoveAPI is server-side and cheap; Nutrient/Apryse are client-side and enterprise-priced. Nobody is cheap + client-side + *operations*. Our engines are already client-side modules — packaging, not R&D. Zero compute cost to us; licence pricing, not metered. |
+| — | Social proof (we show none; Sejda shows 1,874 reviews) | ⏳ gap to close before the revenue flip | — |
+| — | Languages (we have **zero**; rivals have 23–25) | ⏳ post-revenue | Machine translation ranks badly; do 3 properly or none. |
+
+⚠️ **Note on #4 (offline).** Half-true today, and the half matters. `public/sw.js` +
+`manifest.webmanifest` exist and the app is installable, but **there is no precache** —
+it was deliberately disabled after the stale-shell incident (REG-013), so offline only
+covers pages already in the runtime cache. Do not put "works offline" in marketing copy
+until precache is back and tested. Pairs with the existing offline-wording tripwire.
+
+**The through-line:** on-device is not a privacy feature, it is an **economic** one. It
+makes unlimited size, unlimited batch, offline and SDK licensing structurally cheaper for
+us than for anyone with a server in the path. Rivals can copy any single tool in a week;
+they cannot copy that without rewriting their business.
+
 ## 3. AI layer (Pro — needs the Anthropic key, now live)
 - [x] 🌓 Chat with PDF
 - [x] 🌓 Summarize (`/summarize-pdf` — page-cited, audience/language/focus controls; PDF/DOCX/MD/TXT export on-device)
