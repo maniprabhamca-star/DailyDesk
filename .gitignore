@@ -58,3 +58,6 @@ minio-data/
 # Misc
 .vercel
 coverage/
+
+# SDK build output — published from CI, not committed.
+packages/sdk/dist/

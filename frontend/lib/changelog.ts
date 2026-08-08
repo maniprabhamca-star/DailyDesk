@@ -22,6 +22,14 @@ export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-08-08',
     kind: 'new',
+    title: 'For developers: our engines, running in your users’ browser',
+    detail:
+      'If you build software that handles other people’s documents, there is now a way to use what powers these tools inside your own app. Every other PDF service works by taking a copy of the file onto their servers; this one runs in the browser tab, so the document never goes anywhere — which means no vendor for your customers to vet, nothing to add to a data-processing agreement, and no bill that grows with usage, because the work happens on the computer in front of them. It handles the page work: merging, splitting, extracting, deleting, rotating and clearing metadata. It is deliberately clear about what it will not do, including the things that would need a server. Details at /developers.',
+    href: '/developers',
+  },
+  {
+    date: '2026-08-08',
+    kind: 'new',
     title: 'A certificate to hand over with a redacted file',
     detail:
       'When you redact a PDF you now get a receipt to send alongside it. It records which pages were redacted, how many areas, and — the part that matters — whether any selectable text survived underneath, because a black box drawn over live text is not a redaction. It also carries the fingerprint of that exact file, so whoever receives it can confirm they were sent the document the certificate describes and not a later edit. There is a page at /verify-redaction where anyone can check one: no account, and the comparison happens in their browser. Both the certificate and the check are made on your device, which is also why the certificate is honest about what it cannot prove — it records your computer’s clock, not a notarised timestamp.',

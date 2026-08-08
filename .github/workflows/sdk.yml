@@ -1,0 +1,34 @@
+name: SDK
+
+# The SDK is a separate publishable package, so it gets its own gate. It must
+# build and pass its own tests on every change — a package that only works
+# inside this repo is not a package.
+
+on:
+  push:
+    branches: [main]
+    paths: ['packages/sdk/**', '.github/workflows/sdk.yml']
+  pull_request:
+    paths: ['packages/sdk/**', '.github/workflows/sdk.yml']
+  workflow_dispatch: {}
+
+defaults:
+  run:
+    working-directory: packages/sdk
+
+jobs:
+  build:
+    name: Build + test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - name: Typecheck + emit types
+        run: npm run build
+      - name: Tests
+        run: npx vitest run
+      - name: Pack (proves the published tarball is complete)
+        run: npm pack --dry-run

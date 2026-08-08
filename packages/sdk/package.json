@@ -1,0 +1,33 @@
+{
+  "name": "@diemdesk/pdf",
+  "version": "0.1.0",
+  "description": "PDF operations that run in your users' browser. The file never reaches a server — not ours, not yours.",
+  "keywords": ["pdf", "browser", "client-side", "privacy", "merge", "split", "rotate", "gdpr", "hipaa"],
+  "license": "SEE LICENSE IN LICENSE",
+  "homepage": "https://diemdesk.com/developers",
+  "repository": { "type": "git", "url": "https://github.com/maniprabhamca-star/DailyDesk", "directory": "packages/sdk" },
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" }
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "sideEffects": false,
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "peerDependencies": {
+    "pdf-lib": "^1.17.1"
+  },
+  "devDependencies": {
+    "pdf-lib": "^1.17.1",
+    "typescript": "^5.4.0",
+    "vitest": "^4.1.10"
+  },
+  "publishConfig": { "access": "public" }
+}

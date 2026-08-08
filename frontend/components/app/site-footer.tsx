@@ -24,6 +24,7 @@ const COLUMNS = [
     { label: 'Free during launch', href: '/free' },
     { label: 'Pricing', href: '/pricing' },
     { label: 'Compare', href: '/compare' },
+    { label: 'Developers', href: '/developers' },
     { label: 'Changelog', href: '/changelog' },
     { label: 'Feedback', href: '/feedback' },
     { label: 'Get started', href: '/register' },

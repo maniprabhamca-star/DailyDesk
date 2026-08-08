@@ -1,0 +1,279 @@
+<title>DiemDesk — hero bento</title>
+
+<style>
+  :root {
+    --indigo:#5b52f0; --indigo-2:#efeeff;
+    --green:#15a34a;  --green-2:#e5f7ec;
+    --amber:#f59e0b;  --amber-2:#fdf3df;
+    --coral:#f4674e;  --coral-2:#fdeae6;
+    --cyan:#0891b2;   --cyan-2:#e2f5fa;
+    --violet:#7c3aed; --violet-2:#f2ecfe;
+
+    --ink:#111725; --ink-2:#4a5266; --ink-3:#818a9e;
+    --paper:#ffffff; --panel:#f7f8fc; --line:#e7e9f2;
+    --grid:rgba(17,23,37,.04);
+
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    --shadow-sm: 0 1px 2px rgba(17,23,37,.05), 0 4px 12px -6px rgba(17,23,37,.12);
+    --shadow: 0 1px 2px rgba(17,23,37,.05), 0 20px 44px -22px rgba(17,23,37,.28);
+    --r:18px;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --ink:#eef0f8; --ink-2:#a7afc4; --ink-3:#727b92;
+      --paper:#141824; --panel:#1b2030; --line:#2a3142; --grid:rgba(255,255,255,.035);
+      --indigo:#8b83ff; --indigo-2:#20204a;
+      --green:#4ade80; --green-2:#123023;
+      --amber:#fbbf24; --amber-2:#2f2510;
+      --coral:#fb8a76; --coral-2:#331d18;
+      --cyan:#38bdf8; --cyan-2:#0e2a38;
+      --violet:#a78bfa; --violet-2:#241a40;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,.4), 0 6px 16px -8px rgba(0,0,0,.6);
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 22px 48px -22px rgba(0,0,0,.7);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ink:#eef0f8; --ink-2:#a7afc4; --ink-3:#727b92;
+    --paper:#141824; --panel:#1b2030; --line:#2a3142; --grid:rgba(255,255,255,.035);
+    --indigo:#8b83ff; --indigo-2:#20204a; --green:#4ade80; --green-2:#123023;
+    --amber:#fbbf24; --amber-2:#2f2510; --coral:#fb8a76; --coral-2:#331d18;
+    --cyan:#38bdf8; --cyan-2:#0e2a38; --violet:#a78bfa; --violet-2:#241a40;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,.4), 0 6px 16px -8px rgba(0,0,0,.6);
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 22px 48px -22px rgba(0,0,0,.7);
+  }
+  :root[data-theme="light"]{
+    --ink:#111725; --ink-2:#4a5266; --ink-3:#818a9e;
+    --paper:#ffffff; --panel:#f7f8fc; --line:#e7e9f2; --grid:rgba(17,23,37,.04);
+    --indigo:#5b52f0; --indigo-2:#efeeff; --green:#15a34a; --green-2:#e5f7ec;
+    --amber:#f59e0b; --amber-2:#fdf3df; --coral:#f4674e; --coral-2:#fdeae6;
+    --cyan:#0891b2; --cyan-2:#e2f5fa; --violet:#7c3aed; --violet-2:#f2ecfe;
+    --shadow-sm: 0 1px 2px rgba(17,23,37,.05), 0 4px 12px -6px rgba(17,23,37,.12);
+    --shadow: 0 1px 2px rgba(17,23,37,.05), 0 20px 44px -22px rgba(17,23,37,.28);
+  }
+
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:var(--sans); color:var(--ink); background:var(--panel);
+    background-image:linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size:34px 34px; -webkit-font-smoothing:antialiased; font-size:15px; line-height:1.55; }
+  .wrap{ max-width:1180px; margin:0 auto; padding:26px 22px 70px; }
+
+  /* faux nav */
+  .nav{ display:flex; align-items:center; gap:24px; }
+  .brand{ display:flex; align-items:center; gap:9px; font-weight:750; font-size:18px; letter-spacing:-.01em; }
+  .brand .m{ width:28px; height:28px; border-radius:8px; background:conic-gradient(from 210deg, var(--amber), var(--coral), var(--green), var(--amber)); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:15px; box-shadow:var(--shadow-sm); }
+  .nav .lk{ display:flex; gap:20px; color:var(--ink-2); font-size:14px; font-weight:500; }
+  .nav .rt{ margin-left:auto; display:flex; align-items:center; gap:12px; }
+  .pill{ display:inline-flex; align-items:center; gap:6px; font-size:12.5px; font-weight:600; color:var(--green); background:var(--green-2); border:1px solid color-mix(in srgb,var(--green) 30%,transparent); border-radius:999px; padding:5px 11px; }
+  .link{ font-size:14px; font-weight:600; color:var(--ink-2); }
+  .go{ background:var(--indigo); color:#fff; border:0; border-radius:10px; padding:9px 16px; font-size:14px; font-weight:650; font-family:var(--sans); }
+  @media (max-width:720px){ .nav .lk{ display:none; } }
+
+  /* hero head */
+  .head{ text-align:center; padding:40px 0 6px; }
+  h1{ font-size:clamp(30px,5vw,52px); line-height:1.06; letter-spacing:-.03em; font-weight:820; margin:0 auto; max-width:16ch; text-wrap:balance; }
+  h1 .g{ background:linear-gradient(96deg, var(--coral), var(--amber) 40%, var(--indigo)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .sub{ margin:16px auto 0; max-width:52ch; color:var(--ink-2); font-size:clamp(15px,1.7vw,18px); }
+  .cta{ display:flex; gap:11px; justify-content:center; flex-wrap:wrap; margin-top:22px; }
+  .cta button{ font-family:var(--sans); font-weight:700; border-radius:11px; font-size:15px; padding:12px 22px; cursor:pointer; }
+  .cta .primary{ background:var(--indigo); color:#fff; border:0; box-shadow:0 8px 22px -8px color-mix(in srgb,var(--indigo) 75%,transparent); }
+  .cta .ghost{ background:var(--paper); color:var(--ink); border:1px solid var(--line); }
+  .ticks{ display:flex; gap:18px; justify-content:center; flex-wrap:wrap; margin-top:16px; color:var(--ink-3); font-size:12.5px; }
+  .ticks span{ display:inline-flex; align-items:center; gap:6px; }
+  .ticks b{ color:var(--green); }
+
+  /* ============ BENTO ============ */
+  .bento{ margin-top:34px; display:grid; grid-template-columns:repeat(6,1fr); gap:16px; }
+  .card{ background:var(--paper); border:1px solid var(--line); border-radius:var(--r); padding:18px; box-shadow:var(--shadow); position:relative; overflow:hidden; }
+  .card .ct{ display:flex; align-items:center; gap:8px; }
+  .card .dot{ width:8px; height:8px; border-radius:50%; }
+  .card .tt{ font-weight:700; font-size:14.5px; letter-spacing:-.01em; }
+  .card .badge{ margin-left:auto; font-family:var(--mono); font-size:9.5px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; padding:3px 8px; border-radius:999px; }
+  .card .desc{ color:var(--ink-3); font-size:12px; margin:3px 0 0; }
+
+  .big{ grid-column:span 4; grid-row:span 2; }
+  .col2{ grid-column:span 2; }
+  .col3{ grid-column:span 3; }
+  @media (max-width:880px){ .bento{ grid-template-columns:repeat(2,1fr); } .big{ grid-column:span 2; grid-row:auto; } .col2,.col3{ grid-column:span 1; } }
+  @media (max-width:520px){ .bento{ grid-template-columns:1fr; } .big,.col2,.col3{ grid-column:span 1; } }
+
+  /* histogram card */
+  .badge.live{ color:var(--green); background:var(--green-2); }
+  .hist{ display:flex; align-items:flex-end; gap:10px; height:170px; margin-top:20px; padding-bottom:26px; position:relative; }
+  .hist .col{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap:7px; cursor:pointer; height:100%; }
+  .hist .bar{ width:100%; max-width:52px; border-radius:8px 8px 3px 3px; transition:transform .16s ease, filter .16s ease; position:relative; }
+  .hist .col:hover .bar{ transform:scaleY(1.03); filter:brightness(1.08); transform-origin:bottom; }
+  .hist .col.active .bar{ box-shadow:0 0 0 3px color-mix(in srgb,var(--indigo) 30%,transparent); }
+  .hist .val{ font-family:var(--mono); font-size:12px; font-weight:800; }
+  .hist .lab{ position:absolute; bottom:0; font-size:10.5px; color:var(--ink-3); text-align:center; }
+  .strip{ margin-top:6px; border-top:1px dashed var(--line); padding-top:12px; }
+  .strip .sh{ display:flex; justify-content:space-between; align-items:center; font-size:11.5px; color:var(--ink-3); }
+  .strip .sh b{ color:var(--ink); }
+  .strip .rows{ margin-top:9px; display:grid; grid-template-columns:1fr 1fr; gap:6px 20px; }
+  .strip .row{ display:flex; justify-content:space-between; font-size:12.5px; }
+  .strip .row .k{ color:var(--ink-2); }
+  .strip .row .v{ font-family:var(--mono); color:var(--ink-3); }
+
+  /* gauge (semicircle) */
+  .gauge-wrap{ display:flex; flex-direction:column; align-items:center; margin-top:6px; }
+  .gnum{ font-family:var(--mono); font-weight:820; font-size:34px; line-height:1; margin-top:-30px; }
+  .gsmall{ font-size:16px; }
+  .gcap{ color:var(--ink-2); font-size:12.5px; text-align:center; margin-top:6px; }
+
+  /* ring */
+  .ring-wrap{ display:flex; align-items:center; gap:14px; margin-top:14px; }
+  .ring-num{ font-family:var(--mono); font-weight:820; }
+
+  /* compare bars */
+  .cmp{ margin-top:14px; display:flex; flex-direction:column; gap:11px; }
+  .crow{ display:grid; grid-template-columns:96px 1fr 52px; gap:10px; align-items:center; font-size:12.5px; }
+  .crow .who{ color:var(--ink-2); }
+  .crow.us .who{ color:var(--ink); font-weight:750; }
+  .track{ height:16px; border-radius:6px; background:var(--panel); overflow:hidden; }
+  .track i{ display:block; height:100%; border-radius:6px; background:var(--line); }
+  .crow.us .track i{ background:linear-gradient(90deg,var(--green),#0f8a3d); }
+  .cval{ font-family:var(--mono); font-size:12px; text-align:right; color:var(--ink-3); }
+  .crow.us .cval{ color:var(--green); font-weight:800; }
+
+  /* big number */
+  .price{ background:linear-gradient(160deg,var(--amber-2),var(--paper) 70%); }
+  .price .num{ font-family:var(--mono); font-weight:820; font-size:44px; letter-spacing:-.02em; line-height:1; margin-top:12px; }
+  .price .num small{ font-size:19px; color:var(--ink-3); }
+  .price .meta{ display:inline-flex; align-items:center; gap:6px; margin-top:10px; font-size:12px; font-weight:700; color:var(--green); background:var(--green-2); padding:3px 9px; border-radius:999px; }
+
+  .foot{ text-align:center; margin-top:34px; color:var(--ink-3); font-size:12.5px; }
+  .foot code{ font-family:var(--mono); background:var(--panel); border:1px solid var(--line); padding:1px 6px; border-radius:5px; }
+</style>
+
+<div class="wrap">
+
+  <nav class="nav">
+    <span class="brand"><span class="m">D</span> DiemDesk</span>
+    <span class="lk"><span>Tools</span><span>Why DiemDesk</span><span>Compare</span><span>Pricing</span></span>
+    <span class="rt"><span class="pill">◈ On your device</span><span class="link">Log in</span><button class="go">Open a tool</button></span>
+  </nav>
+
+  <div class="head">
+    <h1>Every file job, done <span class="g">without the upload.</span></h1>
+    <p class="sub">67 tools that run inside your browser — compress, convert, sign, edit, redact. No account, no watermark, no daily cap, and nothing ever sent to a server.</p>
+    <div class="cta">
+      <button class="primary">Start free &rarr;</button>
+      <button class="ghost">See a 27 MB file shrink live</button>
+    </div>
+    <div class="ticks">
+      <span><b>✓</b> 67 tools live</span>
+      <span><b>✓</b> $0 — no card</span>
+      <span><b>✓</b> 100% your own device</span>
+      <span><b>✓</b> Open-source engines</span>
+    </div>
+  </div>
+
+  <div class="bento">
+
+    <!-- BIG: histogram with live hover strip -->
+    <div class="card big">
+      <div class="ct">
+        <span class="dot" style="background:var(--green)"></span>
+        <span class="tt">Where your megabytes go</span>
+        <span class="badge live">● Live</span>
+      </div>
+      <p class="desc">A 27 MB scanned contract, broken down by what&rsquo;s inside — hover a bar to see what we compressed.</p>
+
+      <div class="hist" id="hist">
+        <div class="col active" data-k="scans"><span class="val">18.4</span><div class="bar" style="height:82%; background:linear-gradient(180deg,#34d17f,#15a34a)"></div><span class="lab">Scanned<br>images</span></div>
+        <div class="col" data-k="photos"><span class="val">5.1</span><div class="bar" style="height:34%; background:linear-gradient(180deg,#7b73ff,#5b52f0)"></div><span class="lab">Photos</span></div>
+        <div class="col" data-k="fonts"><span class="val">2.3</span><div class="bar" style="height:20%; background:linear-gradient(180deg,#fbbf5a,#f59e0b)"></div><span class="lab">Fonts</span></div>
+        <div class="col" data-k="text"><span class="val">0.9</span><div class="bar" style="height:11%; background:linear-gradient(180deg,#57c7e6,#0891b2)"></div><span class="lab">Text</span></div>
+        <div class="col" data-k="meta"><span class="val">0.4</span><div class="bar" style="height:7%; background:linear-gradient(180deg,#fb8f7c,#f4674e)"></div><span class="lab">Metadata</span></div>
+      </div>
+
+      <div class="strip">
+        <div class="sh"><span id="sh-title"><b>Scanned images</b> · 18.4 MB &rarr; 4.9 MB</span><span>hover any bar to preview &rarr;</span></div>
+        <div class="rows" id="sh-rows">
+          <div class="row"><span class="k">page 3 — statement scan</span><span class="v">3.1 → 0.8 MB</span></div>
+          <div class="row"><span class="k">page 7 — signature page</span><span class="v">2.4 → 0.6 MB</span></div>
+          <div class="row"><span class="k">page 12 — appendix</span><span class="v">2.9 → 0.7 MB</span></div>
+          <div class="row"><span class="k">+ 41 more pages</span><span class="v">10.0 → 2.8 MB</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- gauge: on device -->
+    <div class="card col2">
+      <div class="ct"><span class="dot" style="background:var(--indigo)"></span><span class="tt">Stays on your device</span><span class="badge" style="color:var(--indigo);background:var(--indigo-2)">Only here</span></div>
+      <div class="gauge-wrap">
+        <svg width="150" height="90" viewBox="0 0 150 90">
+          <path d="M12 84 A63 63 0 0 1 138 84" fill="none" stroke="var(--panel)" stroke-width="13" stroke-linecap="round"/>
+          <path d="M12 84 A63 63 0 0 1 138 84" fill="none" stroke="url(#gg)" stroke-width="13" stroke-linecap="round" stroke-dasharray="198" stroke-dashoffset="2"/>
+          <defs><linearGradient id="gg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#7b73ff"/><stop offset="1" stop-color="#5b52f0"/></linearGradient></defs>
+        </svg>
+        <div class="gnum" style="color:var(--indigo)">0<span class="gsmall"> bytes</span></div>
+        <div class="gcap">left your browser. Watched live in this tab — not promised in a footer.</div>
+      </div>
+    </div>
+
+    <!-- ring: compression -->
+    <div class="card col2">
+      <div class="ct"><span class="dot" style="background:var(--green)"></span><span class="tt">Compression power</span></div>
+      <div class="ring-wrap">
+        <svg width="88" height="88" viewBox="0 0 88 88">
+          <circle cx="44" cy="44" r="36" fill="none" stroke="var(--panel)" stroke-width="11"/>
+          <circle cx="44" cy="44" r="36" fill="none" stroke="var(--green)" stroke-width="11" stroke-linecap="round"
+            stroke-dasharray="226" stroke-dashoffset="56" transform="rotate(-90 44 44)"/>
+          <text x="44" y="49" text-anchor="middle" font-family="var(--mono)" font-weight="800" font-size="21" fill="var(--ink)">75%</text>
+        </svg>
+        <div>
+          <div class="ring-num" style="font-size:20px; color:var(--green)">−20.3 MB</div>
+          <p class="desc" style="margin-top:4px">smaller on that scan, still crisp and readable.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- compare -->
+    <div class="card col3">
+      <div class="ct"><span class="dot" style="background:var(--coral)"></span><span class="tt">Same file, vs the big names</span><span class="badge" style="color:var(--coral);background:var(--coral-2)">Measured</span></div>
+      <div class="cmp">
+        <div class="crow us"><span class="who">DiemDesk</span><span class="track"><i style="width:75%"></i></span><span class="cval">−75%</span></div>
+        <div class="crow"><span class="who">iLovePDF</span><span class="track"><i style="width:34%"></i></span><span class="cval">−34%</span></div>
+        <div class="crow"><span class="who">Smallpdf</span><span class="track"><i style="width:28%"></i></span><span class="cval">−28%</span></div>
+        <div class="crow"><span class="who">Adobe online</span><span class="track"><i style="width:2%"></i></span><span class="cval">−1%</span></div>
+      </div>
+    </div>
+
+    <!-- big number: price -->
+    <div class="card col3 price">
+      <div class="ct"><span class="dot" style="background:var(--amber)"></span><span class="tt">What it costs you</span></div>
+      <div class="num" style="color:var(--ink)">$0<small> /forever</small></div>
+      <span class="meta">▲ 67 tools · no daily cap · no card</span>
+      <p class="desc" style="margin-top:10px">Every in-browser tool is free and unlimited. Pro only unlocks the few things that use our servers.</p>
+    </div>
+
+  </div>
+
+  <p class="foot">Mockup · <code>docs/designs/home-hero-bento.html</code> — the hover on the histogram is real. Toggle the theme with your viewer&rsquo;s light/dark switch.</p>
+</div>
+
+<script>
+  (function(){
+    var data = {
+      scans:  { title:'<b>Scanned images</b> · 18.4 MB &rarr; 4.9 MB', rows:[['page 3 — statement scan','3.1 → 0.8 MB'],['page 7 — signature page','2.4 → 0.6 MB'],['page 12 — appendix','2.9 → 0.7 MB'],['+ 41 more pages','10.0 → 2.8 MB']] },
+      photos: { title:'<b>Photos</b> · 5.1 MB &rarr; 1.4 MB', rows:[['cover image','1.8 → 0.5 MB'],['logo block','0.4 → 0.1 MB'],['chart on p.9','1.5 → 0.4 MB'],['+ 6 more','1.4 → 0.4 MB']] },
+      fonts:  { title:'<b>Fonts</b> · 2.3 MB &rarr; 0.6 MB', rows:[['embedded Calibri','0.9 → 0.2 MB'],['Times subset','0.7 → 0.2 MB'],['Courier subset','0.4 → 0.1 MB'],['duplicates merged','0.3 → 0.1 MB']] },
+      text:   { title:'<b>Text &amp; vectors</b> · 0.9 MB &rarr; 0.9 MB', rows:[['body text','kept as-is'],['tables','kept as-is'],['links','kept as-is'],['nothing re-encoded','lossless']] },
+      meta:   { title:'<b>Metadata</b> · 0.4 MB &rarr; 0 MB', rows:[['author & producer','stripped'],['edit history','stripped'],['thumbnails','stripped'],['XMP packet','stripped']] }
+    };
+    var hist = document.getElementById('hist');
+    var shTitle = document.getElementById('sh-title');
+    var shRows = document.getElementById('sh-rows');
+    function show(k){
+      var d = data[k]; if(!d) return;
+      shTitle.innerHTML = d.title;
+      shRows.innerHTML = d.rows.map(function(r){ return '<div class="row"><span class="k">'+r[0]+'</span><span class="v">'+r[1]+'</span></div>'; }).join('');
+      Array.prototype.forEach.call(hist.children, function(c){ c.classList.toggle('active', c.getAttribute('data-k')===k); });
+    }
+    Array.prototype.forEach.call(hist.children, function(c){
+      c.addEventListener('mouseenter', function(){ show(c.getAttribute('data-k')); });
+      c.addEventListener('click', function(){ show(c.getAttribute('data-k')); });
+    });
+  })();
+</script>

@@ -85,8 +85,8 @@ claim, and we currently undersell it as a feature bullet.
 | 2 | Drop the practical file-size cap | ⏳ not started | Everyone caps free tiers because bandwidth costs *them*. Ours costs nothing. |
 | 3 | Reframe the pitch against retention promises (on `/compare`) | ⏳ not started | "They delete your file after an hour. We never receive it." |
 | 4 | Offline PWA done properly | ⚠️ **partial — see note** | iLovePDF *charges* for offline (Premium = "work offline with Desktop"). Ours could be free. |
-| 5 | **Redaction certificate** | 🎯 **APPROVED — build** | A signed receipt of what was removed + that it never left the device. A cloud tool cannot attest to this. |
-| 6 | **Client-side SDK** (npm, runs in the developer's users' browsers) | 🎯 **APPROVED — build** | The unoccupied quadrant: iLoveAPI is server-side and cheap; Nutrient/Apryse are client-side and enterprise-priced. Nobody is cheap + client-side + *operations*. Our engines are already client-side modules — packaging, not R&D. Zero compute cost to us; licence pricing, not metered. |
+| 5 | **Redaction certificate** | ✅ **SHIPPED 2026-08-08** — certificate + /verify-redaction | A signed receipt of what was removed + that it never left the device. A cloud tool cannot attest to this. |
+| 6 | **Client-side SDK** (npm, runs in the developer's users' browsers) | ✅ **BUILT 2026-08-08** — `packages/sdk`, 11 tests green, docs at /developers. ⚠️ **NOT PUBLISHED**: the licence is a placeholder and needs a decision + legal review first (see packages/sdk/LICENSE). | The unoccupied quadrant: iLoveAPI is server-side and cheap; Nutrient/Apryse are client-side and enterprise-priced. Nobody is cheap + client-side + *operations*. Our engines are already client-side modules — packaging, not R&D. Zero compute cost to us; licence pricing, not metered. |
 | — | Social proof (we show none; Sejda shows 1,874 reviews) | ⏳ gap to close before the revenue flip | — |
 | — | Languages (we have **zero**; rivals have 23–25) | ⏳ post-revenue | Machine translation ranks badly; do 3 properly or none. |
 

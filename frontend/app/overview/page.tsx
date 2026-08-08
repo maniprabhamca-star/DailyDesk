@@ -317,6 +317,34 @@ export default function OverviewPage() {
           </div>
         </section>
 
+        {/* BUILT FOR / DEVELOPERS — the two audiences the architecture wins
+            outright, added 2026-08-08. Both live behind the same fact: a file
+            that is never transmitted has no vendor to vet and no meter to run. */}
+        <section className="border-y bg-muted/20">
+          <div className="mx-auto max-w-[1400px] px-5 py-14">
+            <p className="text-[11.5px] font-bold uppercase tracking-[0.14em] text-primary">Where it matters most</p>
+            <h2 className="mt-2 text-2xl font-extrabold tracking-tight sm:text-[26px]">Written for the people who can’t upload the file</h2>
+            <p className="mt-2 max-w-[62ch] text-sm text-muted-foreground">
+              Rivals promise to delete your document after an hour — which concedes they received it.
+              For some readers that difference is the whole decision.
+            </p>
+            <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              {[
+                { href: '/for/legal', name: 'Law firms', desc: 'Redact and Bates-number without a privileged exhibit leaving the desk.' },
+                { href: '/for/accountants', name: 'Accountants', desc: 'Convert client statements without handing over the ledger.' },
+                { href: '/for/healthcare', name: 'Healthcare', desc: 'No transmission means no disclosure to evaluate.' },
+                { href: '/for/schools', name: 'Schools', desc: 'No ads, no account, no student record sent anywhere.' },
+                { href: '/developers', name: 'Developers', desc: 'An SDK that runs in your users’ browser — no endpoint to declare.' },
+              ].map((c) => (
+                <a key={c.href} href={c.href} className="group rounded-xl border bg-card p-4 shadow-soft transition-colors hover:border-primary/50">
+                  <span className="text-sm font-semibold">{c.name}</span>
+                  <p className="mt-1.5 text-[12px] leading-relaxed text-muted-foreground">{c.desc}</p>
+                </a>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* END TO END */}
         <section className="mx-auto max-w-[1400px] px-5 py-14">
           <p className="text-[11.5px] font-bold uppercase tracking-[0.14em] text-primary">End to end</p>

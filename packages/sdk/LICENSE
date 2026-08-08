@@ -1,0 +1,57 @@
+DiemDesk SDK Licence (DRAFT — NOT YET APPROVED FOR PUBLICATION)
+Copyright (c) 2026 DiemDesk
+
+⚠️  THIS LICENCE IS A PLACEHOLDER.
+
+    It has not been reviewed by a lawyer, and the commercial terms below are a
+    starting point for that conversation rather than a decision. Do not publish
+    this package to npm until the licence has been settled — a licence is very
+    hard to tighten after the fact, because every existing user keeps the terms
+    they downloaded under.
+
+    The choice to make is roughly:
+
+      (a) MIT / Apache-2.0 — maximum adoption, no licence revenue, and the SDK
+          becomes a distribution channel for the hosted product rather than a
+          product itself.
+      (b) Source-available with a paid commercial tier (the shape drafted
+          below) — revenue per commercial user, slower adoption, and an
+          enforcement burden you have to be willing to carry.
+      (c) Dual licence — free for open-source projects, paid for closed ones.
+
+    (b) is drafted here only because it matches the revenue reasoning that put
+    the SDK on the roadmap. It is not a recommendation.
+
+-------------------------------------------------------------------------------
+
+1. EVALUATION AND NON-COMMERCIAL USE
+
+   You may use, copy and modify this software free of charge for evaluation,
+   personal projects, education, research, and non-commercial open-source work.
+
+2. COMMERCIAL USE
+
+   Use of this software in or alongside a product or service that you charge
+   for, or that is used in the internal operations of a business, requires a
+   valid commercial licence from DiemDesk.
+
+3. REDISTRIBUTION
+
+   You may redistribute this software as part of your own application, provided
+   this licence text is retained and you hold a commercial licence where clause
+   2 applies.
+
+4. NO WARRANTY
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+   SOFTWARE.
+
+5. THIRD-PARTY COMPONENTS
+
+   This package depends on pdf-lib (MIT), which carries its own licence and is
+   not covered by these terms.
