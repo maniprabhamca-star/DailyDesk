@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description:
     'Annotate a PDF in your browser: highlight text, draw freehand, add text and boxes, then download. Private by design — your file never leaves your device.',
   alternates: { canonical: '/annotate-pdf' },
-  robots: { index: false, follow: false },
+  robots: { index: false, follow: true },
   openGraph: {
     images: ['/og.png'],
     title: 'Annotate PDF — DiemDesk',

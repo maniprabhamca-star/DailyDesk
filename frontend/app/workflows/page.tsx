@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description:
     'Build a document assembly line — merge, clean, number, protect, compress — save it, then run the chain in one drop. Every step on your device.',
   alternates: { canonical: '/workflows' },
-  robots: { index: false, follow: false },
+  robots: { index: false, follow: true },
   openGraph: {
     images: ['/og.png'],
     title: 'Saved Workflows — DiemDesk',

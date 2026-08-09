@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description:
     'Edit PDF paragraph blocks, add text, highlight, draw, sign, and place images right in your browser. Your file stays on your device.',
   alternates: { canonical: '/edit-pdf' },
-  robots: { index: false, follow: false },
+  robots: { index: false, follow: true },
   openGraph: {
     images: ['/og.png'],
     title: 'Edit PDF - DiemDesk',

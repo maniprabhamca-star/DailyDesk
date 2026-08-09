@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description:
     "Redact a PDF in your browser: black out sensitive text and the content underneath is permanently removed — not just covered. Private, never uploaded.",
   alternates: { canonical: '/redact-pdf' },
-  robots: { index: false, follow: false },
+  robots: { index: false, follow: true },
   openGraph: {
     images: ['/og.png'],
     title: 'Redact PDF — DiemDesk',

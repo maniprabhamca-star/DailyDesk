@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description:
     'Crop a PDF in your browser: drag a box to trim white margins or crop every page to the same area. Lossless, private, and never uploaded.',
   alternates: { canonical: '/crop-pdf' },
-  robots: { index: false, follow: false },
+  robots: { index: false, follow: true },
   openGraph: {
     images: ['/og.png'],
     title: 'Crop PDF — DiemDesk',
