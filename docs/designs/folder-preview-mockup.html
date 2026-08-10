@@ -1,0 +1,577 @@
+<title>Folder Preview — mockup</title>
+
+<style>
+  :root {
+    --bg: #ffffff;
+    --card: #ffffff;
+    --ink: #0f172a;
+    --ink-2: #475569;
+    --muted: #64748b;
+    --line: #e2e8f0;
+    --sunk: #f8fafc;
+    --primary: #4f46e5;
+    --primary-soft: #eef2ff;
+    --danger: #dc2626;
+    --danger-soft: #fef2f2;
+    --ok: #047857;
+    --warn: #b45309;
+    --warn-soft: #fffbeb;
+    --shadow: 0 1px 2px rgb(15 23 42 / .04), 0 4px 12px rgb(15 23 42 / .05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0b1120; --card: #111827; --ink: #e2e8f0; --ink-2: #94a3b8;
+      --muted: #7c8persist9a; --muted: #94a3b8; --line: #1e293b; --sunk: #0f172a;
+      --primary: #818cf8; --primary-soft: #1e1b4b;
+      --danger: #f87171; --danger-soft: #2a1416;
+      --ok: #34d399; --warn: #fbbf24; --warn-soft: #292214;
+      --shadow: 0 1px 2px rgb(0 0 0 / .3), 0 4px 14px rgb(0 0 0 / .35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0b1120; --card: #111827; --ink: #e2e8f0; --ink-2: #94a3b8;
+    --muted: #94a3b8; --line: #1e293b; --sunk: #0f172a;
+    --primary: #818cf8; --primary-soft: #1e1b4b;
+    --danger: #f87171; --danger-soft: #2a1416;
+    --ok: #34d399; --warn: #fbbf24; --warn-soft: #292214;
+    --shadow: 0 1px 2px rgb(0 0 0 / .3), 0 4px 14px rgb(0 0 0 / .35);
+  }
+  :root[data-theme="light"] {
+    --bg: #ffffff; --card: #ffffff; --ink: #0f172a; --ink-2: #475569;
+    --muted: #64748b; --line: #e2e8f0; --sunk: #f8fafc;
+    --primary: #4f46e5; --primary-soft: #eef2ff;
+    --danger: #dc2626; --danger-soft: #fef2f2;
+    --ok: #047857; --warn: #b45309; --warn-soft: #fffbeb;
+    --shadow: 0 1px 2px rgb(15 23 42 / .04), 0 4px 12px rgb(15 23 42 / .05);
+  }
+
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 40px 24px 80px; }
+  h1 { font-size: 28px; font-weight: 800; letter-spacing: -.02em; margin: 0 0 6px; text-wrap: balance; }
+  h2 { font-size: 19px; font-weight: 700; letter-spacing: -.01em; margin: 0 0 4px; }
+  .lede { color: var(--ink-2); max-width: 68ch; margin: 0; }
+  .eyebrow { font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  .note { font-size: 13px; color: var(--muted); max-width: 74ch; margin: 6px 0 0; }
+  section { margin-top: 52px; }
+  .sec-head { border-top: 1px solid var(--line); padding-top: 18px; margin-bottom: 16px; }
+
+  /* ---------- the app frame ---------- */
+  .app { border: 1px solid var(--line); border-radius: 16px; background: var(--card); box-shadow: var(--shadow); overflow: hidden; }
+  .bar {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+    padding: 12px 14px; border-bottom: 1px solid var(--line); background: var(--sunk);
+  }
+  .folder {
+    display: inline-flex; align-items: center; gap: 8px; min-width: 0;
+    border: 1px solid var(--line); background: var(--card); border-radius: 10px;
+    padding: 7px 11px; font-size: 13px; font-weight: 600;
+  }
+  .folder .path { color: var(--ink-2); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 260px; }
+  .count { font-size: 13px; color: var(--muted); }
+  .spacer { flex: 1 1 auto; }
+  .field {
+    border: 1px solid var(--line); background: var(--card); border-radius: 10px;
+    padding: 7px 11px; font-size: 13px; color: var(--ink); min-width: 150px;
+  }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--card); }
+  .seg button {
+    border: 0; background: transparent; color: var(--ink-2); font: inherit; font-size: 12.5px; font-weight: 600;
+    padding: 7px 12px; cursor: pointer;
+  }
+  .seg button[aria-pressed="true"] { background: var(--primary); color: #fff; }
+
+  /* ---------- grid ---------- */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(228px, 1fr)); gap: 14px; padding: 16px; }
+  .card {
+    border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--card);
+    display: flex; flex-direction: column; transition: border-color .12s, transform .12s, box-shadow .12s;
+    cursor: pointer; position: relative;
+  }
+  .card:hover { border-color: color-mix(in srgb, var(--primary) 55%, var(--line)); transform: translateY(-1px); box-shadow: var(--shadow); }
+  .card[data-sel="1"] { border-color: var(--primary); box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 30%, transparent); }
+  .shot { height: 152px; background: var(--sunk); overflow: hidden; position: relative; border-bottom: 1px solid var(--line); }
+  .meta { padding: 9px 11px 11px; }
+  .fname { font-size: 12.5px; font-weight: 700; word-break: break-word; line-height: 1.25; }
+  .fsub { margin-top: 3px; font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .chip {
+    font-size: 9.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+    padding: 2px 5px; border-radius: 4px; color: #fff;
+  }
+  .tick {
+    position: absolute; top: 8px; left: 8px; width: 19px; height: 19px; border-radius: 5px;
+    border: 1.5px solid var(--line); background: color-mix(in srgb, var(--card) 85%, transparent);
+    display: grid; place-items: center; font-size: 12px; color: transparent; font-weight: 800;
+  }
+  .card[data-sel="1"] .tick { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+  /* ---------- fake previews ---------- */
+  .pv { padding: 10px 11px; font-size: 6.5px; line-height: 1.5; color: var(--ink); }
+  .pv .h { font-size: 9px; font-weight: 800; margin-bottom: 4px; }
+  .pv .l { height: 3.5px; background: color-mix(in srgb, var(--ink) 22%, transparent); border-radius: 2px; margin: 3.5px 0; }
+  .pv .l.s { width: 62%; } .pv .l.m { width: 84%; } .pv .l.x { width: 40%; }
+  table.mini { width: 100%; border-collapse: collapse; font-size: 6px; }
+  table.mini td, table.mini th { border: .5px solid var(--line); padding: 2.5px 3px; text-align: left; }
+  table.mini th { background: var(--sunk); font-weight: 700; }
+  .codeln { display: flex; gap: 6px; font: 6.5px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .codeln i { color: var(--muted); font-style: normal; width: 10px; text-align: right; flex: none; }
+  .kw { color: #7c3aed; } .str { color: #047857; } .cm { color: var(--muted); }
+  :root[data-theme="dark"] .kw, @media (prefers-color-scheme: dark) { }
+  .checker {
+    height: 100%; display: grid; place-items: center;
+    background-image: linear-gradient(45deg, var(--line) 25%, transparent 25%), linear-gradient(-45deg, var(--line) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, var(--line) 75%), linear-gradient(-45deg, transparent 75%, var(--line) 75%);
+    background-size: 12px 12px; background-position: 0 0, 0 6px, 6px -6px, -6px 0;
+  }
+  .pdfpage {
+    margin: 9px auto 0; width: 78px; height: 134px; background: #fff; border: 1px solid var(--line);
+    box-shadow: 0 1px 4px rgb(15 23 42 / .12); padding: 7px 6px;
+  }
+  .pdfpage .l { background: rgb(15 23 42 / .28); }
+  .specimen { display: grid; place-items: center; height: 100%; }
+  .specimen b { font-size: 30px; font-weight: 800; letter-spacing: -.02em; }
+  .specimen span { font-size: 7px; color: var(--muted); letter-spacing: .04em; }
+  .nope {
+    height: 100%; display: grid; place-content: center; justify-items: center; gap: 5px;
+    padding: 10px; text-align: center;
+  }
+  .nope b { font-size: 11px; }
+  .nope span { font-size: 9.5px; color: var(--muted); line-height: 1.35; }
+  .ph { position: absolute; inset: 0; display: grid; place-items: center; }
+  .ph i {
+    width: 22px; height: 22px; border: 2.5px solid var(--line); border-top-color: var(--primary);
+    border-radius: 50%; display: block; animation: sp .8s linear infinite;
+  }
+  @keyframes sp { to { transform: rotate(360deg) } }
+  @media (prefers-reduced-motion: reduce) { .ph i { animation: none } }
+
+  /* ---------- states ---------- */
+  .empty { padding: 54px 24px; text-align: center; }
+  .drop {
+    max-width: 560px; margin: 0 auto; border: 2px dashed color-mix(in srgb, var(--primary) 40%, var(--line));
+    border-radius: 14px; padding: 34px 22px; background: color-mix(in srgb, var(--primary) 4%, transparent);
+  }
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px; border: 0; border-radius: 9px;
+    background: var(--primary); color: #fff; font: inherit; font-size: 13.5px; font-weight: 650;
+    padding: 9px 17px; cursor: pointer;
+  }
+  .btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+  .btn.danger { background: var(--danger); }
+  .banner {
+    display: flex; gap: 9px; padding: 11px 13px; border-radius: 10px; font-size: 12.5px; line-height: 1.5;
+    background: var(--warn-soft); border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent); color: var(--ink);
+  }
+  .banner b { color: var(--warn); }
+  .triagebar {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+    padding: 11px 14px; border-top: 1px solid var(--line); background: var(--sunk);
+  }
+  .strong { font-size: 13px; font-weight: 700; }
+  .quiet { font-size: 12px; color: var(--muted); }
+  .zero { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--ok); font-weight: 600; }
+
+  .callout { border: 1px solid var(--line); border-left: 3px solid var(--primary); border-radius: 0 10px 10px 0; padding: 12px 14px; background: var(--sunk); font-size: 13.5px; line-height: 1.55; }
+  .q { color: var(--muted); font-size: 12.5px; }
+  ul.tight { margin: 8px 0 0; padding-left: 18px; }
+  ul.tight li { margin: 4px 0; font-size: 13.5px; color: var(--ink-2); }
+  .toggle { position: fixed; top: 14px; right: 14px; z-index: 9; }
+</style>
+
+<div class="toggle">
+  <button class="btn ghost" onclick="
+    var r=document.documentElement;
+    var d=r.getAttribute('data-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');
+    r.setAttribute('data-theme', d==='dark'?'light':'dark');
+  ">Theme</button>
+</div>
+
+<div class="wrap">
+
+  <p class="eyebrow">DiemDesk · mockup, not built</p>
+  <h1>Folder Preview</h1>
+  <p class="lede">
+    Windows gives you a thumbnail for pictures and videos, and an identical grey icon for
+    everything else. This shows what a folder would look like if every file previewed itself.
+    Click cards to try selection — the counts are live.
+  </p>
+
+  <!-- ============================================ 1. entry -->
+  <section>
+    <div class="sec-head">
+      <p class="eyebrow">State 1</p>
+      <h2>Before a folder is picked</h2>
+      <p class="note">
+        The claim has to be made here, before anyone commits. A folder is a far bigger ask
+        than a single file, so the reassurance sits inside the drop zone rather than in
+        small print underneath.
+      </p>
+    </div>
+
+    <div class="app">
+      <div class="empty">
+        <div class="drop">
+          <p style="font-size:16px;font-weight:700;margin:0 0 5px">Pick a folder to look inside</p>
+          <p style="font-size:13.5px;color:var(--ink-2);margin:0 0 18px;line-height:1.5">
+            Every file previews itself — PDFs, spreadsheets, markdown, code, fonts, SVGs.
+            Nothing is uploaded and nothing is stored.
+          </p>
+          <button class="btn">Choose a folder</button>
+          <p class="quiet" style="margin:14px 0 0">
+            or drop one here · we read only the folder you pick
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================ 2. the grid -->
+  <section>
+    <div class="sec-head">
+      <p class="eyebrow">State 2 · the whole point</p>
+      <h2>77 files, all previewing themselves</h2>
+      <p class="note">
+        Mixed kinds on purpose — this is the test. If you can spot the file you want
+        without reading a single filename, the tool works. If you're still reading names,
+        it doesn't.
+      </p>
+    </div>
+
+    <div class="app">
+      <div class="bar">
+        <span class="folder">
+          📁 <span class="path">Documents\Client work\2026</span> ▾
+        </span>
+        <span class="count"><b>77</b> of 77 files</span>
+        <span class="spacer"></span>
+        <input class="field" placeholder="Filter by name…" aria-label="Filter by name">
+        <select class="field" aria-label="Type filter">
+          <option>All types (77)</option>
+          <option>PDF (18)</option>
+          <option>Spreadsheets (12)</option>
+        </select>
+        <span class="seg">
+          <button aria-pressed="false">S</button>
+          <button aria-pressed="true">M</button>
+          <button aria-pressed="false">L</button>
+        </span>
+      </div>
+
+      <div class="grid" id="grid">
+        <!-- markdown -->
+        <div class="card" onclick="sel(this)"><span class="tick">✓</span>
+          <div class="shot"><div class="pv">
+            <div class="h">Q3 handover notes</div>
+            <div class="l m"></div><div class="l"></div><div class="l s"></div>
+            <div class="l m"></div><div class="l x"></div>
+            <div class="h" style="margin-top:7px;font-size:8px">Open items</div>
+            <div class="l s"></div><div class="l"></div><div class="l m"></div>
+          </div></div>
+          <div class="meta">
+            <div class="fname">q3-handover.md</div>
+            <div class="fsub"><span class="chip" style="background:#2563eb">MD</span> 14 KB · 9 Aug</div>
+          </div>
+        </div>
+
+        <!-- csv -->
+        <div class="card" onclick="sel(this)"><span class="tick">✓</span>
+          <div class="shot"><div class="pv">
+            <table class="mini">
+              <tr><th>Date</th><th>Ref</th><th>Amount</th><th>Bal</th></tr>
+              <tr><td>01 Jul</td><td>DD-4471</td><td>−82.10</td><td>4,118</td></tr>
+              <tr><td>02 Jul</td><td>SO-1180</td><td>−1,250</td><td>2,868</td></tr>
+              <tr><td>04 Jul</td><td>CR-0092</td><td>+3,400</td><td>6,268</td></tr>
+              <tr><td>07 Jul</td><td>DD-4472</td><td>−82.10</td><td>6,186</td></tr>
+              <tr><td>09 Jul</td><td>PY-7731</td><td>−940.00</td><td>5,246</td></tr>
+              <tr><td>11 Jul</td><td>DD-4473</td><td>−36.99</td><td>5,209</td></tr>
+            </table>
+            <div class="q" style="font-size:6px;margin-top:4px">first 20 of 1,847 rows</div>
+          </div></div>
+          <div class="meta">
+            <div class="fname">statement-jul.csv</div>
+            <div class="fsub"><span class="chip" style="background:#047857">CSV</span> 210 KB · 8 Aug</div>
+          </div>
+        </div>
+
+        <!-- pdf -->
+        <div class="card" onclick="sel(this)"><span class="tick">✓</span>
+          <div class="shot">
+            <div class="pdfpage">
+              <div class="l m"></div><div class="l"></div><div class="l s"></div>
+              <div style="height:6px"></div>
+              <div class="l"></div><div class="l m"></div><div class="l"></div><div class="l x"></div>
+              <div style="height:6px"></div>
+              <div class="l m"></div><div class="l"></div><div class="l s"></div><div class="l"></div>
+            </div>
+          </div>
+          <div class="meta">
+            <div class="fname">supply-agreement-v4.pdf</div>
+            <div class="fsub"><span class="chip" style="background:#dc2626">PDF</span> 1.2 MB · 12 pages</div>
+          </div>
+        </div>
+
+        <!-- svg -->
+        <div class="card" onclick="sel(this)"><span class="tick">✓</span>
+          <div class="shot"><div class="checker">
+            <svg width="86" height="86" viewBox="0 0 100 100" aria-hidden="true">
+              <rect x="12" y="12" width="34" height="34" rx="7" fill="#4f46e5"/>
+              <rect x="54" y="12" width="34" height="34" rx="7" fill="#f59e0b"/>
+              <rect x="12" y="54" width="34" height="34" rx="7" fill="#10b981"/>
+              <rect x="54" y="54" width="34" height="34" rx="7" fill="#ef4444"/>
+            </svg>
+          </div></div>
+          <div class="meta">
+            <div class="fname">logo-marks.svg</div>
+            <div class="fsub"><span class="chip" style="background:#7c3aed">SVG</span> 4 KB · 9 Aug</div>
+          </div>
+        </div>
+
+        <!-- code -->
+        <div class="card" onclick="sel(this)"><span class="tick">✓</span>
+          <div class="shot"><div class="pv">
+            <div class="codeln"><i>1</i><span class="cm">// pricing rules</span></div>
+            <div class="codeln"><i>2</i><span><span class="kw">export</span> <span class="kw">function</span> tier(n) {</span></div>
+            <div class="codeln"><i>3</i><span>&nbsp;&nbsp;<span class="kw">if</span> (n &lt; 5) <span class="kw">return</span> <span class="str">'free'</span>;</span></div>
+            <div class="codeln"><i>4</i><span>&nbsp;&nbsp;<span class="kw">if</span> (n &lt; 50) <span class="kw">return</span> <span class="str">'pro'</span>;</span></div>
+            <div class="codeln"><i>5</i><span>&nbsp;&nbsp;<span class="kw">return</span> <span class="str">'team'</span>;</span></div>
+            <div class="codeln"><i>6</i><span>}</span></div>
+            <div class="codeln"><i>7</i><span></span></div>
+            <div class="codeln"><i>8</i><span class="cm">// TODO: annual discount</span></div>
+          </div></div>
+          <div class="meta">
+            <div class="fname">pricing.ts</div>
+            <div class="fsub"><span class="chip" style="background:#475569">TS</span> 3 KB · 7 Aug</div>
+          </div>
+        </div>
+
+        <!-- font -->
+        <div class="card" onclick="sel(this)"><span class="tick">✓</span>
+          <div class="shot"><div class="specimen">
+            <b>Aa Bb Cc</b>
+            <span>THE QUICK BROWN FOX · 0123456789</span>
+          </div></div>
+          <div class="meta">
+            <div class="fname">Inter-SemiBold.woff2</div>
+            <div class="fsub"><span class="chip" style="background:#b45309">FONT</span> 96 KB · 2 Aug</div>
+          </div>
+        </div>
+
+        <!-- image -->
+        <div class="card" onclick="sel(this)"><span class="tick">✓</span>
+          <div class="shot"><div class="checker">
+            <svg width="150" height="100" viewBox="0 0 150 100" aria-hidden="true">
+              <rect width="150" height="100" fill="#0f172a"/>
+              <circle cx="112" cy="26" r="13" fill="#fbbf24"/>
+              <path d="M0 76 L38 44 L70 72 L98 52 L150 92 L150 100 L0 100 Z" fill="#334155"/>
+              <path d="M0 88 L44 62 L86 92 L150 66 L150 100 L0 100 Z" fill="#1e293b"/>
+            </svg>
+          </div></div>
+          <div class="meta">
+            <div class="fname">warehouse-hero.png</div>
+            <div class="fsub"><span class="chip" style="background:#db2777">PNG</span> 2.4 MB · 1600×900</div>
+          </div>
+        </div>
+
+        <!-- loading -->
+        <div class="card">
+          <div class="shot"><div class="ph"><i></i></div></div>
+          <div class="meta">
+            <div class="fname">annual-report-2025.pdf</div>
+            <div class="fsub"><span class="chip" style="background:#dc2626">PDF</span> 18 MB · rendering…</div>
+          </div>
+        </div>
+
+        <!-- unsupported -->
+        <div class="card" onclick="sel(this)"><span class="tick">✓</span>
+          <div class="shot"><div class="nope">
+            <b>No preview</b>
+            <span>Photoshop files need rasterising, which we can't do in the browser.</span>
+          </div></div>
+          <div class="meta">
+            <div class="fname">campaign-artwork.psd</div>
+            <div class="fsub"><span class="chip" style="background:#94a3b8">PSD</span> 240 MB · 4 Aug</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="triagebar">
+        <span class="zero">✓ 0 bytes uploaded — check your Network tab</span>
+        <span class="spacer"></span>
+        <span class="quiet">Reading 77 files · 9 shown while you scroll</span>
+      </div>
+    </div>
+
+    <p class="note" style="margin-top:12px">
+      The card that matters most is the ninth one. A `.psd` says <em>why</em> it can't be
+      previewed rather than vanishing — the alternative made folders look emptier than they
+      were, which is the mistake the local tool made first and fixed.
+    </p>
+  </section>
+
+  <!-- ============================================ 3. triage -->
+  <section>
+    <div class="sec-head">
+      <p class="eyebrow">State 3</p>
+      <h2>Selection and triage</h2>
+      <p class="note">
+        Looking is half the job. The reason you're staring at a folder is usually to decide
+        what to throw away — so selection is a first-class mode, with the size total visible
+        because that's the number people are actually chasing.
+      </p>
+    </div>
+
+    <div class="app">
+      <div class="bar">
+        <span class="folder">📁 <span class="path">Documents\Client work\2026</span> ▾</span>
+        <span class="count" id="selcount"><b>3</b> selected · 244 MB</span>
+        <span class="spacer"></span>
+        <button class="btn ghost" style="font-size:12.5px;padding:7px 12px">Select all</button>
+        <button class="btn danger" style="font-size:12.5px;padding:7px 12px">Move 3 to trash</button>
+      </div>
+
+      <div class="grid">
+        <div class="card" data-sel="1" onclick="sel(this)"><span class="tick">✓</span>
+          <div class="shot"><div class="nope"><b>No preview</b><span>Photoshop — needs rasterising</span></div></div>
+          <div class="meta"><div class="fname">campaign-artwork.psd</div>
+            <div class="fsub"><span class="chip" style="background:#94a3b8">PSD</span> 240 MB</div></div>
+        </div>
+        <div class="card" data-sel="1" onclick="sel(this)"><span class="tick">✓</span>
+          <div class="shot"><div class="checker">
+            <svg width="150" height="100" viewBox="0 0 150 100" aria-hidden="true">
+              <rect width="150" height="100" fill="#1e293b"/><circle cx="75" cy="50" r="20" fill="#475569"/>
+            </svg></div></div>
+          <div class="meta"><div class="fname">IMG_4471 (copy).png</div>
+            <div class="fsub"><span class="chip" style="background:#db2777">PNG</span> 3.1 MB</div></div>
+        </div>
+        <div class="card" data-sel="1" onclick="sel(this)"><span class="tick">✓</span>
+          <div class="shot"><div class="pv">
+            <div class="l"></div><div class="l m"></div><div class="l s"></div><div class="l"></div>
+          </div></div>
+          <div class="meta"><div class="fname">untitled-2.txt</div>
+            <div class="fsub"><span class="chip" style="background:#475569">TXT</span> 1 KB</div></div>
+        </div>
+        <div class="card" onclick="sel(this)"><span class="tick">✓</span>
+          <div class="shot"><div class="pdfpage">
+            <div class="l m"></div><div class="l"></div><div class="l s"></div>
+            <div style="height:6px"></div><div class="l"></div><div class="l m"></div>
+          </div></div>
+          <div class="meta"><div class="fname">supply-agreement-v4.pdf</div>
+            <div class="fsub"><span class="chip" style="background:#dc2626">PDF</span> 1.2 MB</div></div>
+        </div>
+      </div>
+
+      <div class="triagebar">
+        <span class="strong">Trash (30)</span>
+        <span class="quiet">Moved to a <code>_trash</code> folder inside the one you picked — not deleted. Empty it when you're sure.</span>
+        <span class="spacer"></span>
+        <button class="btn ghost" style="font-size:12.5px;padding:7px 12px">Undo</button>
+      </div>
+    </div>
+
+    <p class="note" style="margin-top:12px">
+      Nothing is permanently destroyed. Files move to a <code>_trash</code> folder inside the
+      one you picked, which is exactly what the local tool does. A web page deleting
+      somebody's files outright, with no undo, isn't defensible however good the confirm
+      dialog is.
+    </p>
+  </section>
+
+  <!-- ============================================ 4. fallback -->
+  <section>
+    <div class="sec-head">
+      <p class="eyebrow">State 4 · the honest one</p>
+      <h2>Safari and Firefox</h2>
+      <p class="note">
+        Previewing works everywhere. Deleting needs a browser API only Chrome and Edge have.
+        Rather than showing a button that fails, the tool says so and stays useful.
+      </p>
+    </div>
+
+    <div class="app">
+      <div class="bar">
+        <span class="folder">📁 <span class="path">Documents\Client work\2026</span></span>
+        <span class="count"><b>77</b> of 77 files</span>
+        <span class="spacer"></span>
+        <span class="seg"><button aria-pressed="true">M</button></span>
+      </div>
+      <div style="padding:14px 16px 0">
+        <div class="banner">
+          <span>⚠</span>
+          <span>
+            <b>Previews work; tidying doesn't.</b> Moving files to trash needs a folder
+            permission your browser doesn't offer yet. Everything else here is unaffected —
+            or open this in Chrome or Edge to tidy as well as look.
+          </span>
+        </div>
+      </div>
+      <div class="grid" style="padding-top:14px">
+        <div class="card"><div class="shot"><div class="pv">
+          <div class="h">Q3 handover notes</div><div class="l m"></div><div class="l"></div><div class="l s"></div>
+        </div></div><div class="meta"><div class="fname">q3-handover.md</div>
+          <div class="fsub"><span class="chip" style="background:#2563eb">MD</span> 14 KB</div></div></div>
+        <div class="card"><div class="shot"><div class="pdfpage">
+          <div class="l m"></div><div class="l"></div><div class="l s"></div>
+        </div></div><div class="meta"><div class="fname">supply-agreement-v4.pdf</div>
+          <div class="fsub"><span class="chip" style="background:#dc2626">PDF</span> 1.2 MB</div></div></div>
+        <div class="card"><div class="shot"><div class="checker">
+          <svg width="76" height="76" viewBox="0 0 100 100" aria-hidden="true">
+            <rect x="12" y="12" width="34" height="34" rx="7" fill="#4f46e5"/>
+            <rect x="54" y="54" width="34" height="34" rx="7" fill="#10b981"/>
+          </svg></div></div><div class="meta"><div class="fname">logo-marks.svg</div>
+          <div class="fsub"><span class="chip" style="background:#7c3aed">SVG</span> 4 KB</div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================ decisions -->
+  <section>
+    <div class="sec-head">
+      <p class="eyebrow">Worth deciding before I build</p>
+      <h2>Three open questions</h2>
+    </div>
+
+    <div style="display:grid;gap:12px">
+      <div class="callout">
+        <b>1. Does the grid actually beat filenames?</b>
+        <p style="margin:5px 0 0;color:var(--ink-2)">
+          That's the whole bet. State 2 is the test — if you find yourself reading names
+          rather than looking at pictures, the previews aren't earning their weight and the
+          honest move is to stop after step 3 of the build.
+        </p>
+      </div>
+      <div class="callout">
+        <b>2. Is triage in scope for v1, or does it ship as a viewer?</b>
+        <p style="margin:5px 0 0;color:var(--ink-2)">
+          Deleting is the reason people open a folder, but it's also the part that only
+          works in two browsers and carries real risk. A viewer-only v1 ships sooner and
+          is defensible on its own.
+        </p>
+      </div>
+      <div class="callout">
+        <b>3. How deep do we go into subfolders?</b>
+        <p style="margin:5px 0 0;color:var(--ink-2)">
+          The local tool has a Subfolders switch. On the web, someone picks a folder with
+          <code>node_modules</code> in it and we try to preview 40,000 files. I'd cap depth
+          and show the count before rendering — but the ceiling is a real decision, not a
+          detail.
+        </p>
+      </div>
+    </div>
+
+    <p class="note" style="margin-top:18px">
+      Nothing here is built. Spec at <code>docs/designs/folder-preview-tool.md</code>;
+      this mockup is committed beside it.
+    </p>
+  </section>
+</div>
+
+<script>
+  function sel(el) {
+    el.dataset.sel = el.dataset.sel === '1' ? '0' : '1';
+    var n = document.querySelectorAll('.card[data-sel="1"]').length;
+    var c = document.getElementById('selcount');
+    if (c) c.innerHTML = '<b>' + n + '</b> selected';
+  }
+</script>
