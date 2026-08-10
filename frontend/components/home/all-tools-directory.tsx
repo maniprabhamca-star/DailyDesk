@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { CSSProperties, useEffect, useState } from 'react';
 import { Search, Sparkles, MessageSquare, AlignLeft, Languages, HelpCircle, EyeOff, GitCompare, ArrowRight, Rows3, PanelLeft } from 'lucide-react';
-import { catalog, BADGE, type CatTool } from '@/components/app/catalog';
+import { catalog, BADGE, type CatTool , isNewTool } from '@/components/app/catalog';
 
 // The AI suite gets its own violet block on the home preview (approved home
 // de-clutter mockup): one honest "Launching with Pro" badge instead of six
@@ -124,6 +124,7 @@ function Tile({ t, groupColor }: { t: CatTool; groupColor: string }) {
 
       <p className="flex items-center gap-1.5 text-sm font-semibold leading-tight text-foreground">
         {t.name}
+        {isNewTool(t) && <span className="rounded bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">New</span>}
         {t.soon && <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-foreground/75">soon</span>}
       </p>
       {desc && <p className="mt-0.5 text-xs text-muted-foreground">{desc}</p>}

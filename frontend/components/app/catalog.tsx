@@ -15,8 +15,19 @@ import { FolderOpen,
 // ("files never uploaded"); anything that reaches a server is 'server', 'ai',
 // or 'encrypted' so no blanket in-browser claim is ever over-applied.
 export type Badge = 'device' | 'server' | 'ai' | 'encrypted' | 'account';
-export type CatTool = { name: string; href?: string; icon: LucideIcon; badge: Badge; soon?: boolean };
+export type CatTool = { name: string; href?: string; icon: LucideIcon; badge: Badge; soon?: boolean; newUntil?: string };
+
 export type CatGroup = { label: string; color: string; tools: CatTool[] };
+
+/**
+ * Is this tool still worth flagging as new?
+ *
+ * Date-based on purpose. A "New!" chip added by hand is a chip somebody has to
+ * remember to remove, and nobody ever does — so it quietly becomes furniture and
+ * stops meaning anything. Set `newUntil` when a tool ships and it retires itself.
+ */
+export const isNewTool = (t: CatTool): boolean =>
+  !!t.newUntil && new Date(t.newUntil).getTime() > Date.now();
 
 export const BADGE: Record<Badge, { icon: LucideIcon; color: string; label: string }> = {
   device: { icon: Lock, color: '#16a34a', label: 'Runs in your browser' },
@@ -135,7 +146,7 @@ export const catalog: CatGroup[] = [
   },
   {
     label: 'Everyday utilities', color: '#0d9488', tools: [
-      { name: 'Folder preview', href: '/folder-preview', icon: FolderOpen, badge: 'device', soon: true },
+      { name: 'Folder preview', href: '/folder-preview', icon: FolderOpen, badge: 'device', soon: true, newUntil: '2026-08-24' },
       { name: 'Word counter', href: '/word-counter', icon: CaseSensitive, badge: 'device' },
       { name: 'Unit converter', href: '/unit-converter', icon: Ruler, badge: 'device' },
       { name: 'JSON formatter', href: '/json-formatter', icon: Braces, badge: 'device' },
