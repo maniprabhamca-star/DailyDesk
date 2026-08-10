@@ -25,7 +25,7 @@ const openDemoFolder = async (page: import('@playwright/test').Page) => {
   await expect(page.getByRole('heading', { name: /see every file in a folder/i })).toBeVisible({ timeout: 20_000 });
   await page.locator('input[type=file]').first()
     .setInputFiles(path.join(process.cwd(), 'tests/.fixtures/demo-folder'));
-  await expect(page.getByText(/of 7 files/)).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText(/of 8 files/)).toBeVisible({ timeout: 20_000 });
   await page.waitForTimeout(2000); // let the render queue drain
 };
 
@@ -118,4 +118,39 @@ test.describe('gated tools open for the owner', () => {
     const href = await tile.evaluate((n) => (n as HTMLElement).closest('a')?.getAttribute('href') ?? null);
     expect(href, 'the owner should reach a gated tool from the tile').toBe('/folder-preview');
   });
+});
+
+// The rAF hang, tested where it actually happens.
+//
+// `pdf-render.ts` paces on requestAnimationFrame unless given `intent: 'print'`,
+// and rAF does not fire in a backgrounded tab — so the render promise never
+// settles and the card spins forever. A grid renders many PDFs at once while
+// someone flicks to another tab, so this is the tool's most likely way to die.
+//
+// dev-harness/folder-pdf-volume.mjs cannot cover it: Node has no rAF for pdf.js
+// to pace against, and that harness passes even with intent:'print' deleted —
+// verified, not assumed. This is the test that would actually fail.
+test('PDF previews still finish when the tab is backgrounded', async ({ page, context }) => {
+  await asOwner(page);
+  await page.goto('/folder-preview', { waitUntil: 'domcontentloaded' });
+  await expect(page.getByRole('heading', { name: /see every file in a folder/i })).toBeVisible({ timeout: 20_000 });
+  await page.locator('input[type=file]').first()
+    .setInputFiles(path.join(process.cwd(), 'tests/.fixtures/demo-folder'));
+  await expect(page.getByText(/of 8 files/)).toBeVisible({ timeout: 20_000 });
+
+  // Front a second tab. The grid keeps working in the background — or it hangs.
+  const other = await context.newPage();
+  await other.goto('about:blank');
+  await other.bringToFront();
+  await page.waitForTimeout(6000);
+  await other.close();
+  await page.bringToFront();
+
+  // Every card must have settled. A spinner here is the hang.
+  await expect
+    .poll(async () => page.locator('.animate-spin').count(), { timeout: 20_000 })
+    .toBe(0);
+
+  const body = await page.locator('main').innerText();
+  expect(body, 'the PDF should be listed').toContain('contract.pdf');
 });

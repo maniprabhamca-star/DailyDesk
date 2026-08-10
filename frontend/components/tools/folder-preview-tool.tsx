@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  FolderOpen, X, Trash2, ExternalLink, ChevronLeft, ChevronRight, ArrowRight,
+  FolderOpen, Trash2, ExternalLink, ChevronLeft, ChevronRight, ChevronDown,
   ShieldCheck, TriangleAlert, Undo2, Search,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -43,6 +43,7 @@ type Rendered =
   | { state: 'idle' }
   | { state: 'loading' }
   | { state: 'text'; body: string }
+  | { state: 'html'; body: string }
   | { state: 'table'; rows: string[][]; total: number }
   | { state: 'url'; url: string }
   | { state: 'font'; url: string }
@@ -172,6 +173,10 @@ export function FolderPreviewTool() {
           const lines = text.split(/\r?\n/).filter(Boolean);
           const sep = (lines[0]?.match(/\t/g)?.length ?? 0) > (lines[0]?.match(/,/g)?.length ?? 0) ? '\t' : ',';
           set({ state: 'table', rows: lines.slice(0, 14).map((l) => splitRow(l, sep)), total: lines.length });
+        } else if (f.kind === 'markdown') {
+          const { renderMarkdown } = await import('@/lib/md-render');
+          // Cap first: rendering 256KB of markdown for a 150px card is waste.
+          set({ state: 'html', body: renderMarkdown(text.split(/\r?\n/).slice(0, 80).join('\n')) });
         } else {
           set({ state: 'text', body: text.split(/\r?\n/).slice(0, 60).join('\n') });
         }
@@ -300,10 +305,15 @@ export function FolderPreviewTool() {
     <div className="overflow-hidden rounded-2xl border bg-card">
       {/* ------------------------------------------------------------ bar */}
       <div className="flex flex-wrap items-center gap-2 border-b bg-muted/30 p-3">
-        <span className="inline-flex min-w-0 items-center gap-2 rounded-lg border bg-background px-3 py-1.5 text-[13px] font-semibold">
+        <button
+          onClick={() => (canPickDirectory() ? void openPicker() : inputRef.current?.click())}
+          title="Change folder"
+          className="inline-flex min-w-0 items-center gap-2 rounded-lg border bg-background px-3 py-1.5 text-[13px] font-semibold transition-colors hover:border-primary/50 hover:bg-accent"
+        >
           <FolderOpen className="size-4 shrink-0 text-primary" />
           <span className="truncate max-w-[220px] font-medium text-muted-foreground">{folder.name}</span>
-        </span>
+          <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
+        </button>
         <span className="text-[13px] text-muted-foreground">
           <b className="text-foreground">{visible.length}</b> of {files.length} files
         </span>
@@ -380,6 +390,13 @@ export function FolderPreviewTool() {
           </p>
         )}
       </div>
+
+      <input
+        ref={inputRef} type="file" className="dd-file-input" aria-label="Change folder"
+        {...({ webkitdirectory: '', directory: '' } as Record<string, string>)}
+        multiple
+        onChange={(e) => { onInput(e.target.files); e.currentTarget.value = ''; }}
+      />
 
       {/* ---------------------------------------------------------- footer */}
       <div className="flex flex-wrap items-center gap-3 border-t bg-muted/30 px-4 py-3">
@@ -552,6 +569,14 @@ function Thumb({ file, r }: { file: PickedFile; r: Rendered }) {
       </div>
     );
   }
+  if (r.state === 'html') {
+    return (
+      <div
+        className="dd-md-thumb h-full overflow-hidden p-2 text-[6.5px] leading-[1.5]"
+        dangerouslySetInnerHTML={{ __html: r.body }}
+      />
+    );
+  }
   return (
     <pre className="h-full overflow-hidden whitespace-pre-wrap p-2 font-mono text-[6.5px] leading-[1.5] text-foreground/80">
       {r.body}
@@ -623,6 +648,14 @@ function Full({ file, r, onNeed }: { file: PickedFile; r: Rendered; onNeed: () =
         <p style={{ fontFamily: `dd-f-${cssId(file.id)}` }} className="text-2xl">The quick brown fox jumps over the lazy dog.</p>
         <p style={{ fontFamily: `dd-f-${cssId(file.id)}` }} className="text-lg tracking-wide">0123456789 &amp; ! ? @ # % — “quotes”</p>
       </div>
+    );
+  }
+  if (r.state === 'html') {
+    return (
+      <div
+        className="dd-md prose-none mx-auto max-w-3xl p-8 text-[15px] leading-relaxed"
+        dangerouslySetInnerHTML={{ __html: r.body }}
+      />
     );
   }
   return <pre className="whitespace-pre-wrap p-6 font-mono text-[13px] leading-relaxed">{r.body}</pre>;

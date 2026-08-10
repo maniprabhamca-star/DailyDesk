@@ -231,6 +231,28 @@ p a.text-primary, li a.text-primary { text-decoration: underline; text-underline
 :root:not(.dark) .text-emerald-600 { color: rgb(4 120 87); }
 :root:not(.dark) .text-amber-600 { color: rgb(180 83 9); }
 
+/* Rendered markdown inside a 150px card. Real headings and tables are far
+   easier to recognise at thumbnail size than raw `# text`, but the renderer
+   emits full-size type, so it is scaled down here rather than in the renderer —
+   which other tools share. */
+.dd-md-thumb :is(h1,h2,h3) { font-size: 9px; font-weight: 800; margin: 0 0 3px; }
+.dd-md-thumb p, .dd-md-thumb li { margin: 0 0 2px; }
+.dd-md-thumb ul, .dd-md-thumb ol { padding-left: 10px; margin: 0 0 3px; }
+.dd-md-thumb table { width: 100%; border-collapse: collapse; font-size: 5.5px; }
+.dd-md-thumb :is(td,th) { border: .5px solid hsl(var(--border)); padding: 1px 2px; }
+.dd-md-thumb pre, .dd-md-thumb code { font-size: 5.5px; }
+
+/* The same markdown at full size in the viewer. */
+.dd-md :is(h1,h2,h3) { font-weight: 700; margin: 1.2em 0 .4em; line-height: 1.25; }
+.dd-md h1 { font-size: 1.7em; } .dd-md h2 { font-size: 1.35em; } .dd-md h3 { font-size: 1.15em; }
+.dd-md p, .dd-md li { margin: 0 0 .6em; }
+.dd-md ul, .dd-md ol { padding-left: 1.3em; margin: 0 0 .8em; }
+.dd-md table { width: 100%; border-collapse: collapse; margin: 0 0 1em; }
+.dd-md :is(td,th) { border: 1px solid hsl(var(--border)); padding: 6px 9px; text-align: left; }
+.dd-md th { background: hsl(var(--muted)); font-weight: 600; }
+.dd-md pre { background: hsl(var(--muted)); padding: 10px 12px; border-radius: 8px; overflow-x: auto; }
+.dd-md code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9em; }
+
 /* Transparency checkerboard behind images and SVGs, so a white logo on a
    transparent background is visible rather than invisible. */
 .dd-checker {

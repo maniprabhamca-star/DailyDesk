@@ -125,12 +125,20 @@ Shipped:
 client-side tool costs nothing per use, so the free tier must be genuinely
 useful and the cap should bite only on real bulk.
 
-⚠️ Before un-gating:
-1. Markdown thumbnails show raw source; `renderMarkdown()` exists and should be used.
-2. No HTML or PDF file has been through the grid at volume. **The PDF path is the
-   hang risk** — `intent:'print'` is set, but verify with the Node harness.
-3. The directory-picker path cannot be driven by a test — needs one manual pass
-   in Chrome, including a real move-to-trash.
+✅ The three pre-launch gaps are closed (2026-08-10):
+1. Markdown now renders through `renderMarkdown()` — real headings and GFM tables
+   at thumbnail size, scaled in CSS so the shared renderer stays untouched.
+2. The PDF path is covered two ways. `dev-harness/folder-pdf-volume.mjs` proves it
+   renders real ink at volume (12/12, ~150ms each). **It does NOT prove the rAF
+   hang** — re-run with `intent:'print' deleted, it still passed, because Node has
+   no rAF to pace against. The hang is covered by an E2E test that genuinely
+   backgrounds the tab via a second page.
+3. Reachability fixed: the folder chip is now a button, so changing folder no
+   longer means hunting for a control at the bottom of the grid.
+
+⚠️ Still needs ONE manual pass: the directory-picker path (Chrome/Edge only)
+cannot be driven by Playwright, so `moveToTrash` has never actually moved a real
+file. Do that before un-gating.
 
 ## 3. AI layer (Pro — needs the Anthropic key, now live)
 - [x] 🌓 Chat with PDF
