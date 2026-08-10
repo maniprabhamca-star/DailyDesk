@@ -22,7 +22,7 @@ const asOwner = async (page: import('@playwright/test').Page) => {
 
 const openDemoFolder = async (page: import('@playwright/test').Page) => {
   await page.goto('/folder-preview', { waitUntil: 'domcontentloaded' });
-  await expect(page.getByRole('heading', { name: /see every file in a folder/i })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole('heading', { name: /preview every file in a folder/i })).toBeVisible({ timeout: 20_000 });
   await page.locator('input[type=file]').first()
     .setInputFiles(path.join(process.cwd(), 'tests/.fixtures/demo-folder'));
   await expect(page.getByText(/of 8 files/)).toBeVisible({ timeout: 20_000 });
@@ -133,7 +133,7 @@ test.describe('gated tools open for the owner', () => {
 test('PDF previews still finish when the tab is backgrounded', async ({ page, context }) => {
   await asOwner(page);
   await page.goto('/folder-preview', { waitUntil: 'domcontentloaded' });
-  await expect(page.getByRole('heading', { name: /see every file in a folder/i })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole('heading', { name: /preview every file in a folder/i })).toBeVisible({ timeout: 20_000 });
   await page.locator('input[type=file]').first()
     .setInputFiles(path.join(process.cwd(), 'tests/.fixtures/demo-folder'));
   await expect(page.getByText(/of 8 files/)).toBeVisible({ timeout: 20_000 });

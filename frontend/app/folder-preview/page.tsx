@@ -6,14 +6,14 @@ import { ToolGate } from '@/components/app/tool-gate';
 import { FolderPreviewTool } from '@/components/tools/folder-preview-tool';
 
 export const metadata: Metadata = {
-  title: 'Folder Preview — See Every File at Once | DiemDesk',
+  title: 'Preview Every File in a Folder — Free | DiemDesk',
   description:
     'Preview every file in a folder — PDFs, spreadsheets, markdown, code, fonts, SVGs. Runs in your browser; the folder is never uploaded.',
   alternates: { canonical: '/folder-preview' },
   robots: { index: false, follow: true },
   openGraph: {
     images: ['/og.png'],
-    title: 'Folder Preview — see every file at once',
+    title: 'Preview every file in a folder',
     description: 'Windows thumbnails pictures and videos. This previews everything else too, without uploading a thing.',
     type: 'website',
   },
@@ -52,13 +52,14 @@ export default function FolderPreviewPage() {
             <FolderOpen className="size-3.5" /> On your device
           </span>
           <h1 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">
-            See every file in a folder
+            Preview every file in a folder
           </h1>
           <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted-foreground">
-            Windows gives you a thumbnail for pictures and videos, and the same grey icon for
-            everything else. This previews the rest too — PDFs, spreadsheets, markdown, code,
-            fonts and vectors — so you can find what you want by looking instead of opening
-            forty files one at a time.
+            Your file explorer lists them; this shows you what is inside them. Windows draws a
+            thumbnail for pictures and videos and gives everything else the same grey icon, so
+            a folder of PDFs, spreadsheets, markdown and code is a wall of identical rectangles.
+            Here each one previews itself, and you find what you want by looking rather than by
+            opening forty files one at a time.
           </p>
         </div>
 

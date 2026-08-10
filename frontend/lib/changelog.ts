@@ -22,7 +22,7 @@ export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-08-10',
     kind: 'new',
-    title: 'Coming soon: see every file in a folder at once',
+    title: 'Coming soon: preview every file in a folder',
     detail:
       'Windows shows you a thumbnail for pictures and videos, and the same grey icon for everything else — so a folder of forty PDFs, spreadsheets and notes is forty identical rectangles, and the only way to find the one you want is to open them one at a time. Folder Preview draws the rest of them too: the first page of each PDF, the top rows of each spreadsheet, your markdown, your code, your fonts and your vectors, all on one screen. Files it genuinely cannot draw — Photoshop, Word, archives — are still listed, with the reason, because hiding them would make your folder look emptier than it is. It only exists because nothing is uploaded: handing your whole folder to a website is not something you would sensibly do, and here you are not doing it. It is being tested now and will open shortly.',
     href: '/folder-preview',
