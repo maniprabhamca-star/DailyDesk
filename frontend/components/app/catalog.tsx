@@ -1,4 +1,4 @@
-import {
+import { FolderOpen,
   Combine, Split, Shrink, RotateCw, FileMinus, ListOrdered, Eye,
   FileImage, Image as ImageIcon, FileType, FileType2, Code2, Presentation, FileSpreadsheet, FileCheck,
   PenLine, Highlighter, Stamp, EyeOff, PenTool, Lock, Unlock, Fingerprint, Layers, ScanLine, ShieldCheck,
@@ -135,6 +135,7 @@ export const catalog: CatGroup[] = [
   },
   {
     label: 'Everyday utilities', color: '#0d9488', tools: [
+      { name: 'Folder preview', href: '/folder-preview', icon: FolderOpen, badge: 'device', soon: true },
       { name: 'Word counter', href: '/word-counter', icon: CaseSensitive, badge: 'device' },
       { name: 'Unit converter', href: '/unit-converter', icon: Ruler, badge: 'device' },
       { name: 'JSON formatter', href: '/json-formatter', icon: Braces, badge: 'device' },

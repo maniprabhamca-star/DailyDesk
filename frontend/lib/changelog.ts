@@ -15,7 +15,8 @@ export type ChangeEntry = {
 
 // ⏳ HELD BACK until they un-gate (they are coming_soon / owner-only today, and
 // a "new" entry pointing at a door the reader can't open is worse than silence):
-// PDF to EPUB · HTML to Excel · Video to MP3 + audio converter. Draft copy for
+// Folder Preview (/folder-preview) · PDF to EPUB · HTML to Excel · Video to MP3 +
+// audio converter. Draft copy for
 // all three is in docs/designs/master-roadmap.md §5b — add them the day the
 // flags flip, dated then.
 export const CHANGELOG: ChangeEntry[] = [

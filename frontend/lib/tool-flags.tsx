@@ -16,6 +16,7 @@ export const DEFAULT_TOOL_FLAGS: FlagMap = {
   // Premium editors + OCR: owner-only until Pro launch (they were reachable by
   // direct URL though the catalog marks them "coming soon" — this closes that gap).
   '/annotate-pdf': 'coming_soon',
+  '/folder-preview': 'coming_soon',
   '/redact-pdf': 'coming_soon',
   '/ocr-pdf': 'coming_soon',
   // The AI (Pro) tools ship dark: owner-only until the ANTHROPIC_API_KEY is set

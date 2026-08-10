@@ -231,6 +231,18 @@ p a.text-primary, li a.text-primary { text-decoration: underline; text-underline
 :root:not(.dark) .text-emerald-600 { color: rgb(4 120 87); }
 :root:not(.dark) .text-amber-600 { color: rgb(180 83 9); }
 
+/* Transparency checkerboard behind images and SVGs, so a white logo on a
+   transparent background is visible rather than invisible. */
+.dd-checker {
+  background-image:
+    linear-gradient(45deg, hsl(var(--muted)) 25%, transparent 25%),
+    linear-gradient(-45deg, hsl(var(--muted)) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, hsl(var(--muted)) 75%),
+    linear-gradient(-45deg, transparent 75%, hsl(var(--muted)) 75%);
+  background-size: 14px 14px;
+  background-position: 0 0, 0 7px, 7px -7px, -7px 0;
+}
+
 /* Reduced motion, applied once instead of animation-by-animation.
    We had hand-written exemptions for .dd-tile and .dd-d, which meant every new
    looping animation shipped unguarded — Tailwind's animate-ping was running

@@ -101,6 +101,37 @@ makes unlimited size, unlimited batch, offline and SDK licensing structurally ch
 us than for anyone with a server in the path. Rivals can copy any single tool in a week;
 they cannot copy that without rewriting their business.
 
+## 2c. Folder Preview ⭐ BUILT 2026-08-10 (gated, owner-only)
+
+`/folder-preview` — the multi-file preview grid, built standalone rather than
+straight into File Vault. Spec: [folder-preview-tool.md](folder-preview-tool.md),
+mockup beside it.
+
+The owner's observation is the product case: **Windows thumbnails pictures and
+videos and gives everything else an identical grey icon**, so a folder of forty
+PDFs and spreadsheets is forty indistinguishable rectangles. Nobody solves this
+on the web, because solving it means reading someone's whole folder — exactly
+what you would never do with a site that uploads.
+
+Shipped:
+- `lib/file-classify.ts` — three-way classify: render it / say why we can't / ignore it
+- `lib/folder-read.ts` — webkitdirectory everywhere + the Chrome-only directory
+  picker; deleting moves to `_trash` rather than destroying
+- `lib/folder-pdf-thumb.ts` — page-one canvas via our own pdf.js
+- The grid, and the **review queue** viewer: ←/→ to step, D to trash, Esc to leave
+- 3 E2E tests driving a real mixed folder through the fallback path
+
+**Free caps at 30 files; Pro removes it.** Gates scale, not quality — a purely
+client-side tool costs nothing per use, so the free tier must be genuinely
+useful and the cap should bite only on real bulk.
+
+⚠️ Before un-gating:
+1. Markdown thumbnails show raw source; `renderMarkdown()` exists and should be used.
+2. No HTML or PDF file has been through the grid at volume. **The PDF path is the
+   hang risk** — `intent:'print'` is set, but verify with the Node harness.
+3. The directory-picker path cannot be driven by a test — needs one manual pass
+   in Chrome, including a real move-to-trash.
+
 ## 3. AI layer (Pro — needs the Anthropic key, now live)
 - [x] 🌓 Chat with PDF
 - [x] 🌓 Summarize (`/summarize-pdf` — page-cited, audience/language/focus controls; PDF/DOCX/MD/TXT export on-device)
