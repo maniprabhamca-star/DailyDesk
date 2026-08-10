@@ -12,6 +12,7 @@ import { catalog , isNewTool } from '@/components/app/catalog';
 import { HeaderSearch } from '@/components/app/header-search';
 import { HeaderUser } from '@/components/app/header-user';
 import { useAuth } from '@/lib/auth';
+import { useIsOwner } from '@/lib/plan';
 
 function openCommand() {
   window.dispatchEvent(new Event('dd-command-open'));
@@ -31,6 +32,8 @@ const liveToolCount = catalog.reduce((n, g) => n + g.tools.filter((t) => t.href 
  *  applies to `column-width` (which picks its own count); a fixed `column-count`
  *  plus break-inside:avoid grows downward only. */
 function MenuGrid({ onPick }: { onPick: () => void }) {
+  // Same rule as the home grid: the owner can open a gated tool from the menu.
+  const owner = useIsOwner();
   return (
     <div className="columns-3 gap-x-6 lg:columns-5 xl:columns-6 2xl:columns-7">
       {catalog.map((g) => (
@@ -50,7 +53,7 @@ function MenuGrid({ onPick }: { onPick: () => void }) {
               // "soon" tools (incl. owner-only-until-Pro: Annotate/Redact/Edit)
               // show but are NOT clickable for the public — only the owner reaches
               // them by URL, where the gate serves the real tool.
-              return t.href && !t.soon
+              return t.href && (!t.soon || owner)
                 ? <Link key={t.name} href={t.href} onClick={onPick}>{row}</Link>
                 : <div key={t.name} className="cursor-default opacity-70">{row}</div>;
             })}

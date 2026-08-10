@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { CSSProperties, useEffect, useState } from 'react';
 import { Search, Sparkles, MessageSquare, AlignLeft, Languages, HelpCircle, EyeOff, GitCompare, ArrowRight, Rows3, PanelLeft } from 'lucide-react';
 import { catalog, BADGE, type CatTool , isNewTool } from '@/components/app/catalog';
+import { useIsOwner } from '@/lib/plan';
 
 // The AI suite gets its own violet block on the home preview (approved home
 // de-clutter mockup): one honest "Launching with Pro" badge instead of six
@@ -100,6 +101,7 @@ const META: Record<string, { color: string; desc: string }> = {
 };
 
 function Tile({ t, groupColor }: { t: CatTool; groupColor: string }) {
+  const owner = useIsOwner();
   const Icon = t.icon;
   const B = BADGE[t.badge];
   const color = META[t.name]?.color ?? groupColor;
@@ -131,9 +133,11 @@ function Tile({ t, groupColor }: { t: CatTool; groupColor: string }) {
     </div>
   );
 
-  // "soon" tools show but aren't clickable for the public (owner-only-until-Pro
-  // tools like Annotate/Redact/Edit reach the real tool only by URL, via the gate).
-  return t.href && !t.soon ? (
+  // "soon" tools aren't clickable for the public — but they ARE for the owner,
+  // who is the only person who needs to open one. Expecting the owner to type the
+  // URL of every tool they are testing was friction with no upside; the gate on
+  // the page already serves the public a coming-soon panel either way.
+  return t.href && (!t.soon || owner) ? (
     <Link href={t.href} className="block">{inner}</Link>
   ) : (
     <div className="cursor-default">{inner}</div>

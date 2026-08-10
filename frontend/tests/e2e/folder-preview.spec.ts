@@ -94,3 +94,28 @@ test.describe('Folder Preview', () => {
     await expect(page.getByText(/we read only the folder you pick/i)).toBeVisible({ timeout: 20_000 });
   });
 });
+
+// A gated tool's tile was non-clickable for EVERYONE — including the owner, who
+// was expected to type the URL of every tool they were testing. The owner is the
+// one person who needs to open it, so the tile is now a link for them.
+//
+// ⚠️ Only the OWNER half is asserted here, deliberately. `lib/plan.ts` grants the
+// owner bypass on localhost, so under test everybody is the owner and a "the
+// public cannot click it" assertion would pass no matter what the code did. An
+// earlier version of this file had exactly that test, and it passed for the wrong
+// reason — the locator was finding nothing at all. A test that cannot fail is
+// worse than no test, because it is read as coverage. The public half needs a
+// non-local hostname; it is tracked as the known gap in docs/qa/.
+test.describe('gated tools open for the owner', () => {
+  test('the owner can click a coming-soon tile', async ({ page }) => {
+    await asOwner(page);
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    // Settle FIRST: the tile is a <div> until auth restores and then becomes an
+    // <a>, so grabbing it too early gets a node React is about to replace.
+    await page.waitForTimeout(2500);
+    const tile = page.getByText('Folder preview').first();
+    await tile.scrollIntoViewIfNeeded();
+    const href = await tile.evaluate((n) => (n as HTMLElement).closest('a')?.getAttribute('href') ?? null);
+    expect(href, 'the owner should reach a gated tool from the tile').toBe('/folder-preview');
+  });
+});
