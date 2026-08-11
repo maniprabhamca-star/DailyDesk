@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   FolderOpen, Trash2, ExternalLink, ChevronLeft, ChevronRight, ChevronDown,
-  ShieldCheck, TriangleAlert, Undo2, Search,
+  ShieldCheck, TriangleAlert, Undo2, Search, Check,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePlan } from '@/lib/plan';
@@ -89,6 +89,9 @@ export function FolderPreviewTool() {
   const [size, setSize] = useState<'s' | 'm' | 'l'>('m');
   const [viewer, setViewer] = useState<number | null>(null);
   const [trashed, setTrashed] = useState<PickedFile[]>([]);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  // Anchor for shift-click. Selecting 40 files one at a time is not triage.
+  const lastPicked = useRef<number | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -125,7 +128,7 @@ export function FolderPreviewTool() {
     try {
       const res = await pickDirectory({ maxFiles: cap });
       if (res) {
-        setFolder(res); setTruncated(res.truncated); setRendered({}); setTrashed([]);
+        setFolder(res); setTruncated(res.truncated); setRendered({}); setTrashed([]); setSelected(new Set());
       }
     } catch (e) {
       setNote(e instanceof Error ? e.message : 'Could not read that folder.');
@@ -137,7 +140,7 @@ export function FolderPreviewTool() {
     setBusy(true); setNote(null);
     try {
       const res = readFileList(list, { maxFiles: cap });
-      setFolder(res); setTruncated(res.truncated); setRendered({}); setTrashed([]);
+      setFolder(res); setTruncated(res.truncated); setRendered({}); setTrashed([]); setSelected(new Set());
     } finally { setBusy(false); }
   }, [cap]);
 
@@ -218,6 +221,44 @@ export function FolderPreviewTool() {
     pump();
   }, [pump]);
 
+  /* ---------------------------------------------------------- selection */
+
+  const toggle = useCallback((index: number, shift: boolean) => {
+    // Read the anchor BEFORE moving it, and capture it for the updater.
+    //
+    // setSelected(fn) is lazy: React calls fn during render, by which time a
+    // `lastPicked.current = index` written after this line has already landed —
+    // so the updater saw the NEW anchor, the range collapsed to one item, and
+    // shift-click behaved like an ordinary click. Second time a ref read inside
+    // a lazy updater has bitten this file; the first was the render queue.
+    const from = shift && lastPicked.current !== null ? lastPicked.current : index;
+    lastPicked.current = index;
+    setSelected((prev) => {
+      const next = new Set(prev);
+      const [a, b] = from <= index ? [from, index] : [index, from];
+      // A shift-click SETS the range rather than toggling each item in it —
+      // toggling a range you can already see half-selected is unpredictable.
+      const turningOn = !prev.has(visible[index]?.id ?? '');
+      for (let i = a; i <= b; i += 1) {
+        const id = visible[i]?.id;
+        if (!id) continue;
+        if (turningOn) next.add(id); else next.delete(id);
+      }
+      return next;
+    });
+  }, [visible]);
+
+  const clearSelection = useCallback(() => { setSelected(new Set()); lastPicked.current = null; }, []);
+
+  const selectedFiles = useMemo(
+    () => visible.filter((f) => selected.has(f.id)),
+    [visible, selected],
+  );
+  const selectedBytes = useMemo(
+    () => selectedFiles.reduce((n, f) => n + f.size, 0),
+    [selectedFiles],
+  );
+
   /* ------------------------------------------------------------- triage */
 
   const remove = useCallback(async (f: PickedFile) => {
@@ -232,6 +273,30 @@ export function FolderPreviewTool() {
     }
   }, [folder]);
 
+  const removeSelected = useCallback(async () => {
+    if (!folder?.canWrite || !folder.handle || selectedFiles.length === 0) return;
+    setBusy(true);
+    const done: PickedFile[] = [];
+    const failed: string[] = [];
+    // One at a time and keep going on failure. A half-finished bulk delete that
+    // stops at the first locked file, without saying which, is worse than one
+    // that finishes and reports.
+    for (const f of selectedFiles) {
+      try { await moveToTrash(folder.handle, f); done.push(f); }
+      catch { failed.push(f.name); }
+    }
+    const movedIds = new Set(done.map((f) => f.id));
+    setFolder((prev) => (prev ? { ...prev, files: prev.files.filter((f) => !movedIds.has(f.id)) } : prev));
+    setTrashed((prev) => [...done, ...prev]);
+    clearSelection();
+    setBusy(false);
+    setNote(
+      failed.length
+        ? `Moved ${done.length} to ${TRASH_DIR}. Could not move: ${failed.slice(0, 3).join(', ')}${failed.length > 3 ? ` and ${failed.length - 3} more` : ''}.`
+        : `Moved ${done.length} file${done.length === 1 ? '' : 's'} to ${TRASH_DIR} — still on disk.`,
+    );
+  }, [folder, selectedFiles, clearSelection]);
+
   /* ------------------------------------------------------- viewer keys */
 
   const step = useCallback((d: number) => {
@@ -242,6 +307,23 @@ export function FolderPreviewTool() {
       return n;
     });
   }, [visible.length]);
+
+  // Grid-level keys, only while the viewer is closed.
+  useEffect(() => {
+    if (viewer !== null || !folder) return;
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement;
+      if (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA') return;
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        setSelected(new Set(visible.map((f) => f.id)));
+      } else if (e.key === 'Escape' && selected.size) {
+        clearSelection();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [viewer, folder, visible, selected.size, clearSelection]);
 
   useEffect(() => {
     if (viewer === null) return;
@@ -314,9 +396,15 @@ export function FolderPreviewTool() {
           <span className="truncate max-w-[220px] font-medium text-muted-foreground">{folder.name}</span>
           <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
         </button>
-        <span className="text-[13px] text-muted-foreground">
-          <b className="text-foreground">{visible.length}</b> of {files.length} files
-        </span>
+        {selected.size > 0 ? (
+          <span className="text-[13px]">
+            <b className="text-foreground">{selected.size}</b> selected · {fmtBytes(selectedBytes)}
+          </span>
+        ) : (
+          <span className="text-[13px] text-muted-foreground">
+            <b className="text-foreground">{visible.length}</b> of {files.length} files
+          </span>
+        )}
         <span className="flex-1" />
         <label className="relative">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -333,6 +421,24 @@ export function FolderPreviewTool() {
           <option value="">All types ({files.length})</option>
           {kindCounts.map(([k, n]) => <option key={k} value={k}>{KIND_GROUP[k]} ({n})</option>)}
         </select>
+        {selected.size > 0 && (
+          <>
+            <Button variant="outline" size="sm" onClick={clearSelection}>Clear</Button>
+            {folder.canWrite && (
+              <Button
+                size="sm" disabled={busy} onClick={() => void removeSelected()}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                <Trash2 className="size-4" /> Move {selected.size} to trash
+              </Button>
+            )}
+          </>
+        )}
+        {selected.size === 0 && visible.length > 0 && (
+          <Button variant="outline" size="sm" onClick={() => setSelected(new Set(visible.map((f) => f.id)))}>
+            Select all
+          </Button>
+        )}
         <div className="inline-flex overflow-hidden rounded-lg border">
           {(['s', 'm', 'l'] as const).map((s) => (
             <button
@@ -379,8 +485,11 @@ export function FolderPreviewTool() {
         {visible.map((f, i) => (
           <Card
             key={f.id} file={f} r={rendered[f.id] ?? { state: 'idle' }}
+            selected={selected.has(f.id)}
+            anySelected={selected.size > 0}
             onVisible={() => request(f)}
             onOpen={() => setViewer(i)}
+            onToggle={(shift) => toggle(i, shift)}
             onDelete={folder.canWrite ? () => void remove(f) : undefined}
           />
         ))}
@@ -470,8 +579,9 @@ export function FolderPreviewTool() {
 
 /* --------------------------------------------------------------- card */
 
-function Card({ file, r, onVisible, onOpen, onDelete }: {
-  file: PickedFile; r: Rendered; onVisible: () => void; onOpen: () => void; onDelete?: () => void;
+function Card({ file, r, selected, anySelected, onVisible, onOpen, onToggle, onDelete }: {
+  file: PickedFile; r: Rendered; selected: boolean; anySelected: boolean;
+  onVisible: () => void; onOpen: () => void; onToggle: (shift: boolean) => void; onDelete?: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const meta = KIND_META[file.kind];
@@ -488,8 +598,19 @@ function Card({ file, r, onVisible, onOpen, onDelete }: {
   }, [r.state, onVisible]);
 
   return (
-    <div ref={ref} className="group relative overflow-hidden rounded-xl border bg-card transition-all hover:-translate-y-px hover:border-primary/50 hover:shadow-md">
-      <button onClick={onOpen} className="block w-full text-left" title="Open full size">
+    <div
+      ref={ref}
+      className={`group relative overflow-hidden rounded-xl border bg-card transition-all hover:-translate-y-px hover:shadow-md ${
+        selected ? 'border-primary ring-2 ring-primary/30' : 'hover:border-primary/50'
+      }`}
+    >
+      {/* Once anything is selected the whole card toggles, so building a
+          selection doesn't mean hunting for a 19px checkbox forty times. */}
+      <button
+        onClick={(e) => (anySelected ? onToggle(e.shiftKey) : onOpen())}
+        className="block w-full text-left"
+        title={anySelected ? 'Select / deselect' : 'Open full size'}
+      >
         <div className="relative h-[150px] overflow-hidden border-b bg-muted/30">
           <Thumb file={file} r={r} />
         </div>
@@ -503,7 +624,21 @@ function Card({ file, r, onVisible, onOpen, onDelete }: {
           </p>
         </div>
       </button>
-      {onDelete && (
+      {/* The tick is always live: it's how you START a selection, and it must not
+          depend on hover — that would strand touch users entirely. */}
+      <button
+        onClick={(e) => { e.stopPropagation(); onToggle(e.shiftKey); }}
+        aria-pressed={selected}
+        aria-label={`Select ${file.name}`}
+        title="Select (shift-click for a range)"
+        className={`absolute left-2 top-2 grid size-5 place-items-center rounded border transition ${
+          selected
+            ? 'border-primary bg-primary text-primary-foreground'
+            : 'border-border bg-card/90 text-transparent hover:border-primary/60 group-hover:text-muted-foreground'
+        }`}
+      ><Check className="size-3.5" strokeWidth={3} /></button>
+
+      {onDelete && !anySelected && (
         <button
           onClick={onDelete} title="Move to trash"
           className="absolute right-2 top-2 hidden rounded-lg border bg-card p-1.5 text-muted-foreground shadow-sm transition hover:text-destructive group-hover:block"

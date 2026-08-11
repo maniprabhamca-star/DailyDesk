@@ -154,3 +154,56 @@ test('PDF previews still finish when the tab is backgrounded', async ({ page, co
   const body = await page.locator('main').innerText();
   expect(body, 'the PDF should be listed').toContain('contract.pdf');
 });
+
+// Multi-select. Triage is the reason people open a folder, and selecting forty
+// files one at a time is not triage — so the range and the select-all matter as
+// much as the checkbox does.
+test.describe('selection', () => {
+  const open = async (page: import('@playwright/test').Page) => {
+    await asOwner(page);
+    await openDemoFolder(page);
+  };
+  const ticks = (page: import('@playwright/test').Page) => page.locator('button[aria-label^="Select "]');
+
+  test('a tick selects, and the bar switches to the selection', async ({ page }) => {
+    await open(page);
+    await ticks(page).first().click();
+    await expect(page.getByText(/1 selected ·/)).toBeVisible();
+    // Size is shown because "how much will this free up" is the actual question.
+    await expect(page.getByText(/selected · \d/)).toBeVisible();
+    await expect(page.getByRole('button', { name: /^Clear$/ })).toBeVisible();
+  });
+
+  test('shift-click takes the whole range', async ({ page }) => {
+    await open(page);
+    await ticks(page).nth(1).click();
+    await ticks(page).nth(5).click({ modifiers: ['Shift'] });
+    // 1..5 inclusive.
+    await expect(page.getByText(/5 selected ·/)).toBeVisible();
+  });
+
+  test('select all, then Escape clears', async ({ page }) => {
+    await open(page);
+    await page.getByRole('button', { name: /select all/i }).click();
+    await expect(page.getByText(/8 selected ·/)).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByText(/of 8 files/)).toBeVisible();
+  });
+
+  test('with a selection open, clicking a card selects instead of opening it', async ({ page }) => {
+    await open(page);
+    await ticks(page).first().click();
+    await page.locator('button[title="Select / deselect"]').nth(1).click();
+    await expect(page.getByText(/2 selected ·/)).toBeVisible();
+    // Crucially it did NOT open the viewer.
+    await expect(page.getByRole('button', { name: /back to grid/i })).toHaveCount(0);
+  });
+
+  test('the trash button is absent when the browser cannot write', async ({ page }) => {
+    // webkitdirectory path = no folder handle = no writes. It must not offer
+    // a button that cannot work.
+    await open(page);
+    await ticks(page).first().click();
+    await expect(page.getByRole('button', { name: /move 1 to trash/i })).toHaveCount(0);
+  });
+});
