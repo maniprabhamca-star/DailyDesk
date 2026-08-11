@@ -136,9 +136,16 @@ useful and the cap should bite only on real bulk.
 3. Reachability fixed: the folder chip is now a button, so changing folder no
    longer means hunting for a control at the bottom of the grid.
 
-⚠️ Still needs ONE manual pass: the directory-picker path (Chrome/Edge only)
-cannot be driven by Playwright, so `moveToTrash` has never actually moved a real
-file. Do that before un-gating.
+✅ **Manual pass done (owner, Chrome, 2026-08-11):** the directory-picker path and
+`moveToTrash` verified against real files. That was the last thing Playwright
+could not cover, so nothing is now unverified.
+
+**Ready to un-gate.** Five edits when you want it public:
+1. `lib/tool-flags.tsx` — drop the `'/folder-preview': 'coming_soon'` line
+2. `components/app/catalog.tsx` — drop `soon: true` (keep `newUntil`)
+3. `app/sitemap.ts` — add `/folder-preview`
+4. `app/folder-preview/page.tsx` — drop `robots: { index: false }`
+5. `lib/changelog.ts` — retitle from "Coming soon:" to shipped wording
 
 ## 3. AI layer (Pro — needs the Anthropic key, now live)
 - [x] 🌓 Chat with PDF
