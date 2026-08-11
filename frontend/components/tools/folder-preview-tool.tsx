@@ -422,7 +422,7 @@ export function FolderPreviewTool() {
 
       {/* --------------------------------------------------------- viewer */}
       {current && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-background/98 backdrop-blur">
+        <div className="fixed inset-0 z-50 flex flex-col bg-background">
           <div className="flex flex-wrap items-center gap-2 border-b p-3">
             <Button variant="outline" size="sm" onClick={() => setViewer(null)}>
               <ChevronLeft className="size-4" /> Back to grid
