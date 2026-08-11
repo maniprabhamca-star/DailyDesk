@@ -53,11 +53,24 @@ test.describe('Folder Preview', () => {
     // test lacked: the previews must have RENDERED. Listing filenames passed
     // happily while every card sat on its spinner forever — a stale ref meant the
     // queue dropped every item. Prove the content is on screen.
-    expect(body, 'the CSV preview should show its row count').toMatch(/first \d+ of \d+ rows/);
-    expect(body, 'the markdown preview should show its content').toMatch(/Q3 handover/);
-    expect(body, 'the code preview should show its content').toMatch(/tier/);
-    const spinners = await page.locator('.animate-spin').count();
-    expect(spinners, 'no card should still be loading after the queue drains').toBe(0);
+    // Scroll each card in before asserting its preview. Previews load lazily, so
+    // on a phone viewport the later cards genuinely have not rendered yet — that
+    // is the feature working. The earlier version of this only passed because a
+    // wide desktop grid happened to fit all nine above the fold, and it failed
+    // every mobile run in CI.
+    const seen = async (name: string, pattern: RegExp, why: string) => {
+      await page.getByText(name, { exact: true }).first().scrollIntoViewIfNeeded();
+      await expect(async () => {
+        expect(await page.locator('main').innerText(), why).toMatch(pattern);
+      }).toPass({ timeout: 15_000 });
+    };
+    await seen('statement.csv', /first \d+ of \d+ rows/, 'the CSV preview should show its row count');
+    await seen('notes.md', /Q3 handover/, 'the markdown preview should show its content');
+    await seen('pricing.ts', /tier/, 'the code preview should show its content');
+
+    await expect(async () => {
+      expect(await page.locator('.animate-spin').count(), 'nothing scrolled-to should still be loading').toBe(0);
+    }).toPass({ timeout: 15_000 });
 
     expect(errs, 'console errors while previewing').toEqual([]);
   });
@@ -137,7 +150,13 @@ test('PDF previews still finish when the tab is backgrounded', async ({ page, co
     .setInputFiles(await demoFolder());
   await expect(page.getByText(/of 9 files/)).toBeVisible({ timeout: 20_000 });
 
-  // Front a second tab. The grid keeps working in the background — or it hangs.
+  // Bring the PDF on screen so it is actually queued before we walk away —
+  // otherwise on a phone viewport it is below the fold, never starts, and the
+  // test proves nothing while looking like it passed.
+  const pdfCard = page.getByText('contract.pdf', { exact: true }).first();
+  await pdfCard.scrollIntoViewIfNeeded();
+
+  // Front a second tab. The PDF keeps rendering in the background — or it hangs.
   const other = await context.newPage();
   await other.goto('about:blank');
   await other.bringToFront();
@@ -145,9 +164,12 @@ test('PDF previews still finish when the tab is backgrounded', async ({ page, co
   await other.close();
   await page.bringToFront();
 
-  // Every card must have settled. A spinner here is the hang.
+  // Assert the PDF's OWN card settled, not the whole grid. Cards further down
+  // are still spinning by design — that is lazy loading, not a hang, and asking
+  // for zero spinners page-wide failed every mobile run for that reason.
+  const pdfTile = pdfCard.locator('xpath=ancestor::div[contains(@class,"rounded-xl")][1]');
   await expect
-    .poll(async () => page.locator('.animate-spin').count(), { timeout: 20_000 })
+    .poll(async () => pdfTile.locator('.animate-spin').count(), { timeout: 20_000 })
     .toBe(0);
 
   const body = await page.locator('main').innerText();
