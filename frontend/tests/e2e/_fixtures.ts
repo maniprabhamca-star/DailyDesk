@@ -118,3 +118,32 @@ export async function ensureFixtures(): Promise<void> {
 }
 
 export const fixture = (name: string) => file(name);
+
+/**
+ * A folder holding one file of every render kind, for Folder Preview.
+ *
+ * Generated like everything else here rather than committed. The first version
+ * of this WAS committed by hand into tests/.fixtures/ — which is gitignored, so
+ * it existed on my machine and nowhere else, and every browser job in CI failed
+ * with ENOENT while the local run stayed green. Fixtures belong in code.
+ */
+export async function demoFolder(): Promise<string> {
+  const dir = path.join(FIXTURE_DIR, 'demo-folder');
+  mkdirSync(dir, { recursive: true });
+  const put = (name: string, body: string | Buffer) => writeFileSync(path.join(dir, name), body);
+
+  put('notes.md', '# Q3 handover\n\nLiving log of decisions.\n\n| Date | Change |\n| --- | --- |\n| 1 Jul | shipped |\n');
+  put('statement.csv', 'Date,Ref,Amount,Balance\n01 Jul,DD-4471,-82.10,4118\n02 Jul,SO-1180,-1250.00,2868\n04 Jul,CR-0092,+3400.00,6268\n');
+  put('config.json', '{"name":"diemdesk","tools":67,"private":true}\n');
+  put('pricing.ts', 'export function tier(n) {\n  if (n < 5) return "free";\n  return "pro";\n}\n');
+  put('logo.svg', '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" rx="12" fill="#4f46e5"/></svg>');
+  put('readme.txt', 'plain text file\nsecond line\n');
+  // Listed with a reason, never rendered — the honesty case.
+  put('artwork.psd', 'not really a psd, and it never gets parsed');
+  put('page.html', '<!doctype html><meta charset="utf-8"><h1>Hello</h1><p>A tiny page.</p>');
+  // A real multi-page PDF: page-one canvas rendering is the preview path most
+  // likely to break, so it must be in the folder the suite actually opens.
+  put('contract.pdf', await makePdf(3));
+
+  return dir;
+}

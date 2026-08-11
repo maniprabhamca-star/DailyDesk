@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
-import path from 'node:path';
 import { isEnvNoise } from './_routes';
+import { demoFolder } from './_fixtures';
 
 // Folder Preview — driven through the webkitdirectory path, which is what every
 // browser gets. The directory-picker path is Chrome-only and cannot be driven
@@ -23,9 +23,8 @@ const asOwner = async (page: import('@playwright/test').Page) => {
 const openDemoFolder = async (page: import('@playwright/test').Page) => {
   await page.goto('/folder-preview', { waitUntil: 'domcontentloaded' });
   await expect(page.getByRole('heading', { name: /preview every file in a folder/i })).toBeVisible({ timeout: 20_000 });
-  await page.locator('input[type=file]').first()
-    .setInputFiles(path.join(process.cwd(), 'tests/.fixtures/demo-folder'));
-  await expect(page.getByText(/of 8 files/)).toBeVisible({ timeout: 20_000 });
+  await page.locator('input[type=file]').first().setInputFiles(await demoFolder());
+  await expect(page.getByText(/of 9 files/)).toBeVisible({ timeout: 20_000 });
   await page.waitForTimeout(2000); // let the render queue drain
 };
 
@@ -135,8 +134,8 @@ test('PDF previews still finish when the tab is backgrounded', async ({ page, co
   await page.goto('/folder-preview', { waitUntil: 'domcontentloaded' });
   await expect(page.getByRole('heading', { name: /preview every file in a folder/i })).toBeVisible({ timeout: 20_000 });
   await page.locator('input[type=file]').first()
-    .setInputFiles(path.join(process.cwd(), 'tests/.fixtures/demo-folder'));
-  await expect(page.getByText(/of 8 files/)).toBeVisible({ timeout: 20_000 });
+    .setInputFiles(await demoFolder());
+  await expect(page.getByText(/of 9 files/)).toBeVisible({ timeout: 20_000 });
 
   // Front a second tab. The grid keeps working in the background — or it hangs.
   const other = await context.newPage();
@@ -185,9 +184,9 @@ test.describe('selection', () => {
   test('select all, then Escape clears', async ({ page }) => {
     await open(page);
     await page.getByRole('button', { name: /select all/i }).click();
-    await expect(page.getByText(/8 selected ·/)).toBeVisible();
+    await expect(page.getByText(/9 selected ·/)).toBeVisible();
     await page.keyboard.press('Escape');
-    await expect(page.getByText(/of 8 files/)).toBeVisible();
+    await expect(page.getByText(/of 9 files/)).toBeVisible();
   });
 
   test('with a selection open, clicking a card selects instead of opening it', async ({ page }) => {
