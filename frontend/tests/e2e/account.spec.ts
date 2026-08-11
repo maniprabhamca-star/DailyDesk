@@ -45,8 +45,14 @@ test.describe('REG-034 — a lapsed session says so', () => {
 
     await expect(page.getByText(/session has expired/i).first()).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText('Checking your subscription')).toHaveCount(0);
-    // And a way out, not a dead end.
-    await expect(page.getByRole('button', { name: /try again/i })).toBeVisible();
+    // And a way out, not a dead end — scoped to the SUBSCRIPTION panel.
+    //
+    // Page-wide this now matches twice: the ledger below it also fails on a dead
+    // session and also offers a retry. Both are correct — every panel that cannot
+    // load says so and offers a way back — so the fix is to aim the assertion,
+    // not to remove the second button.
+    const panel = page.locator('div').filter({ hasText: /session has expired/i }).last();
+    await expect(panel.getByRole('button', { name: /try again/i })).toBeVisible();
   });
 
   test('a raw backend error is never shown to a person', async ({ page }) => {
