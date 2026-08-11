@@ -259,3 +259,129 @@ test.describe('confirmation and undo', () => {
     await expect(page.getByText(/Chrome or Edge/i)).toBeVisible();
   });
 });
+
+// The write path, which had no coverage at all until it broke in the owner's
+// hands: they selected 24 files, pressed Move to trash, and saw nothing happen.
+//
+// It could not be tested because showDirectoryPicker cannot be driven from
+// Playwright — so we replace it with an in-memory folder. That is enough to
+// exercise every line that matters: the confirm dialog, the progress, the
+// result, Undo, and the permission failure that caused the original report.
+type FakeOpts = { permission?: PermissionState; files?: Record<string, string> };
+
+const withFakeFolder = async (page: import('@playwright/test').Page, opts: FakeOpts = {}) => {
+  await page.addInitScript((o: Required<FakeOpts>) => {
+    type Store = { files: Map<string, string>; dirs: Map<string, Store> };
+
+    const makeFile = (name: string, store: Map<string, string>) => ({
+      kind: 'file' as const,
+      name,
+      async getFile() {
+        return new File([store.get(name) ?? ''], name, { lastModified: 1_700_000_000_000 });
+      },
+      async createWritable() {
+        // The real API throws here when the grant has lapsed — the exact failure
+        // the person hit, and the one that used to be swallowed silently.
+        if (o.permission !== 'granted') throw new DOMException('not allowed', 'NotAllowedError');
+        let buf = '';
+        return {
+          async write(d: ArrayBuffer | string) {
+            buf = typeof d === 'string' ? d : new TextDecoder().decode(d);
+          },
+          async close() { store.set(name, buf); },
+        };
+      },
+    });
+
+    const makeDir = (name: string, s: Store): FileSystemDirectoryHandle => ({
+      kind: 'directory' as const,
+      name,
+      async queryPermission() { return o.permission; },
+      async requestPermission() { return o.permission; },
+      async *values() {
+        for (const n of Array.from(s.files.keys())) yield makeFile(n, s.files);
+        for (const dn of Array.from(s.dirs.keys())) yield makeDir(dn, s.dirs.get(dn)!);
+      },
+      async getDirectoryHandle(n: string, opt?: { create?: boolean }) {
+        if (!s.dirs.has(n)) {
+          if (!opt?.create) throw new DOMException('no dir', 'NotFoundError');
+          s.dirs.set(n, { files: new Map(), dirs: new Map() });
+        }
+        return makeDir(n, s.dirs.get(n)!);
+      },
+      async getFileHandle(n: string, opt?: { create?: boolean }) {
+        if (!s.files.has(n)) {
+          if (!opt?.create) throw new DOMException('no file', 'NotFoundError');
+          s.files.set(n, '');
+        }
+        return makeFile(n, s.files);
+      },
+      async removeEntry(n: string) { s.files.delete(n); },
+    } as unknown as FileSystemDirectoryHandle);
+
+    const root: Store = { files: new Map(Object.entries(o.files)), dirs: new Map() };
+    (window as unknown as { showDirectoryPicker: () => Promise<FileSystemDirectoryHandle> })
+      .showDirectoryPicker = async () => makeDir('Demo folder', root);
+  }, {
+    permission: opts.permission ?? 'granted',
+    files: opts.files ?? {
+      'notes.md': '# One\n', 'readme.txt': 'two\n', 'config.json': '{"a":1}\n',
+    },
+  } as Required<FakeOpts>);
+};
+
+const openFakeFolder = async (page: import('@playwright/test').Page) => {
+  await page.goto('/folder-preview', { waitUntil: 'domcontentloaded' });
+  await page.getByRole('button', { name: /choose a folder/i }).first().click();
+  await expect(page.getByText(/of 3 files/)).toBeVisible({ timeout: 20_000 });
+};
+
+test.describe('moving files to trash', () => {
+  test('confirm, progress, result and undo are all reachable', async ({ page }) => {
+    await asOwner(page);
+    await withFakeFolder(page);
+    await openFakeFolder(page);
+
+    await page.getByRole('button', { name: /select all/i }).click();
+    await page.getByRole('button', { name: /move 3 to trash/i }).click();
+
+    // Bulk asks first, and names the cost in files and bytes.
+    await expect(page.getByText(/move 3 files to trash\?/i)).toBeVisible();
+    await page.getByRole('button', { name: /^move to trash$/i }).click();
+
+    // The result must be VISIBLE. It used to render below the whole grid, which
+    // is why the owner reported "no messages and nothing" — the confirmation
+    // and the Undo button were both screens below the fold.
+    const dock = page.getByText(/moved 3 files to _trash/i);
+    await expect(dock).toBeInViewport({ timeout: 20_000 });
+    await expect(page.getByText(/of 0 files/)).toBeVisible();
+
+    // And undo has to actually put them back.
+    await page.getByRole('button', { name: /^undo/i }).click();
+    await expect(page.getByText(/put 3 files back/i)).toBeInViewport({ timeout: 20_000 });
+    await expect(page.getByText(/of 3 files/)).toBeVisible();
+  });
+
+  test('a lapsed folder permission says so instead of doing nothing', async ({ page }) => {
+    // THE reported bug. Chrome downgrades a readwrite grant to 'prompt' on its
+    // own, every write then threw, the error was swallowed, and the message that
+    // did get set rendered off-screen. The button looked dead.
+    await asOwner(page);
+    await withFakeFolder(page, { permission: 'prompt' });
+    await openFakeFolder(page);
+
+    await page.getByRole('button', { name: /select all/i }).click();
+    await page.getByRole('button', { name: /move 3 to trash/i }).click();
+    await page.getByRole('button', { name: /^move to trash$/i }).click();
+
+    await expect(page.getByText(/no longer has permission/i)).toBeInViewport({ timeout: 20_000 });
+    // Nothing was destroyed on the way to that message, and the selection is
+    // deliberately kept — the person can grant permission and press it again
+    // without re-picking 24 files. (So the bar still reads "3 selected", not
+    // "3 of 3 files"; asserting the latter is what failed here first.)
+    for (const n of ['notes.md', 'readme.txt', 'config.json']) {
+      await expect(page.getByText(n, { exact: true })).toBeVisible();
+    }
+    await expect(page.getByText(/3 selected ·/)).toBeVisible();
+  });
+});

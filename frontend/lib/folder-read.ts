@@ -148,6 +148,34 @@ export function readFileList(
 }
 
 /**
+ * Make sure we may actually write, and say so plainly when we may not.
+ *
+ * `showDirectoryPicker({ mode: 'readwrite' })` grants permission at pick time,
+ * but that grant is not permanent: Chrome downgrades it to 'prompt' when the
+ * tab has been open a while, when the folder is a sensitive one, and whenever
+ * the person picked with the "View files" option instead of "Edit files".
+ *
+ * Without this check every write throws a bare NotAllowedError deep inside the
+ * loop, where it was caught and reported as an unexplained "could not move" —
+ * which is indistinguishable from a bug, and is exactly how this surfaced.
+ *
+ * requestPermission() must be called while a user gesture is still in play, so
+ * this belongs at the top of a click handler and nowhere else.
+ */
+export async function ensureWritable(root: FileSystemDirectoryHandle): Promise<void> {
+  const h = root as FileSystemDirectoryHandle & {
+    queryPermission?: (d: { mode: string }) => Promise<PermissionState>;
+    requestPermission?: (d: { mode: string }) => Promise<PermissionState>;
+  };
+  if (!h.queryPermission) return; // older engine; let the write itself fail
+  if (await h.queryPermission({ mode: 'readwrite' }) === 'granted') return;
+  if (await h.requestPermission?.({ mode: 'readwrite' }) === 'granted') return;
+  throw new Error(
+    'This browser tab no longer has permission to change that folder. Pick the folder again and choose “Edit files”.',
+  );
+}
+
+/**
  * Move a file into `_trash` inside the picked folder.
  *
  * Copy-then-remove rather than a rename, because the File System Access API has

@@ -12,7 +12,7 @@ import {
   type FileKind,
 } from '@/lib/file-classify';
 import {
-  canPickDirectory, pickDirectory, readFileList, moveToTrash, restoreFromTrash, TRASH_DIR,
+  canPickDirectory, pickDirectory, readFileList, moveToTrash, restoreFromTrash, ensureWritable, TRASH_DIR,
   type Folder, type PickedFile,
 } from '@/lib/folder-read';
 
@@ -97,6 +97,9 @@ export function FolderPreviewTool() {
   // Anchor for shift-click. Selecting 40 files one at a time is not triage.
   const lastPicked = useRef<number | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  // Moving 40 files is not instant, and a bulk action with no progress reads as
+  // a frozen page — the toolbar still says "40 selected" the whole time.
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [rendered, setRendered] = useState<Record<string, Rendered>>({});
@@ -268,6 +271,7 @@ export function FolderPreviewTool() {
   const remove = useCallback(async (f: PickedFile) => {
     if (!folder?.canWrite || !folder.handle) return;
     try {
+      await ensureWritable(folder.handle);
       const trashName = await moveToTrash(folder.handle, f);
       const entry = { file: f, trashName };
       setFolder((p) => (p ? { ...p, files: p.files.filter((x) => x.id !== f.id) } : p));
@@ -290,12 +294,23 @@ export function FolderPreviewTool() {
   const undoLast = useCallback(async () => {
     if (!folder?.canWrite || !folder.handle || lastBatch.length === 0) return;
     setBusy(true);
+    setNote(null);
+    try {
+      await ensureWritable(folder.handle);
+    } catch (e) {
+      setBusy(false);
+      setNote(e instanceof Error ? e.message : 'Could not put those back.');
+      return;
+    }
     const back: PickedFile[] = [];
     const failed: string[] = [];
+    setProgress({ done: 0, total: lastBatch.length });
     for (const entry of lastBatch) {
       try { await restoreFromTrash(folder.handle, entry.file, entry.trashName); back.push(entry.file); }
       catch { failed.push(entry.file.name); }
+      setProgress({ done: back.length + failed.length, total: lastBatch.length });
     }
+    setProgress(null);
     const restoredIds = new Set(back.map((f) => f.id));
     setFolder((prev) => (prev
       ? { ...prev, files: [...back, ...prev.files].sort((a, b) => a.rel.localeCompare(b.rel)) }
@@ -311,15 +326,35 @@ export function FolderPreviewTool() {
   const removeSelected = useCallback(async (files: PickedFile[]) => {
     if (!folder?.canWrite || !folder.handle || files.length === 0) return;
     setBusy(true);
+    setNote(null);
+    // Ask once, up front. Without this the permission failure surfaced 24 times
+    // inside the loop as an unexplained "could not move", which is how this
+    // looked like the button did nothing at all.
+    try {
+      await ensureWritable(folder.handle);
+    } catch (e) {
+      setBusy(false);
+      setNote(e instanceof Error ? e.message : 'Could not move those files.');
+      return;
+    }
     const done: { file: PickedFile; trashName: string }[] = [];
     const failed: string[] = [];
+    let why = '';
     // One at a time and keep going on failure. A half-finished bulk delete that
     // stops at the first locked file, without saying which, is worse than one
     // that finishes and reports.
+    setProgress({ done: 0, total: files.length });
     for (const f of files) {
       try { done.push({ file: f, trashName: await moveToTrash(folder.handle, f) }); }
-      catch { failed.push(f.name); }
+      catch (e) {
+        failed.push(f.name);
+        // Keep the first real reason. Swallowing it entirely left "could not
+        // move" with no cause and nothing the person could act on.
+        if (!why && e instanceof Error) why = e.message;
+      }
+      setProgress({ done: done.length + failed.length, total: files.length });
     }
+    setProgress(null);
     const movedIds = new Set(done.map((e) => e.file.id));
     setFolder((prev) => (prev ? { ...prev, files: prev.files.filter((f) => !movedIds.has(f.id)) } : prev));
     setTrashed((prev) => [...done, ...prev]);
@@ -328,7 +363,7 @@ export function FolderPreviewTool() {
     setBusy(false);
     setNote(
       failed.length
-        ? `Moved ${done.length} to ${TRASH_DIR}. Could not move: ${failed.slice(0, 3).join(', ')}${failed.length > 3 ? ` and ${failed.length - 3} more` : ''}.`
+        ? `Moved ${done.length} to ${TRASH_DIR}. Could not move ${failed.length}: ${failed.slice(0, 3).join(', ')}${failed.length > 3 ? ` and ${failed.length - 3} more` : ''}.${why ? ` ${why}` : ''}`
         : `Moved ${done.length} file${done.length === 1 ? '' : 's'} to ${TRASH_DIR} — still on disk.`,
     );
   }, [folder, clearSelection]);
@@ -553,20 +588,53 @@ export function FolderPreviewTool() {
             {trashed.length} moved to <code>{TRASH_DIR}</code> — still on disk
           </span>
         )}
-        {lastBatch.length > 0 && (
-          <Button variant="outline" size="sm" onClick={() => void undoLast()} disabled={busy}>
-            <Undo2 className="size-4" /> Undo {lastBatch.length === 1 ? '' : `${lastBatch.length} `}
-          </Button>
-        )}
         <span className="flex-1" />
         <Button variant="outline" size="sm" onClick={() => { setFolder(null); setViewer(null); }}>
           Pick another folder
         </Button>
       </div>
 
-      {note && (
-        <div className="flex items-center gap-2 border-t px-4 py-2 text-[13px]">
-          <Undo2 className="size-3.5 text-muted-foreground" /> {note}
+      {/* Status dock.
+          This was a line under the grid, which meant that after a bulk move the
+          result AND the Undo button sat below two thousand cards — the person
+          who had just moved 24 files saw no confirmation, no error and no way
+          back, because all three were screens of scrolling away. It reads as
+          the button having done nothing.
+
+          Fixed rather than sticky on purpose: the card wrapping this has
+          overflow-hidden, which makes it the sticky element's scroll container,
+          and a container that never scrolls means sticky never sticks. */}
+      {(progress || note) && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-4 z-40 flex justify-center px-4">
+          <div className="pointer-events-auto flex max-w-[min(46rem,100%)] flex-wrap items-center gap-3 rounded-xl border bg-card/95 px-4 py-2.5 text-[13px] shadow-lift backdrop-blur">
+            {progress ? (
+              <>
+                <span className="size-3.5 shrink-0 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                <span>Moving {progress.done} of {progress.total}…</span>
+                <span className="h-1 w-24 overflow-hidden rounded-full bg-muted">
+                  <span
+                    className="block h-full bg-primary transition-[width]"
+                    style={{ width: `${Math.round((progress.done / progress.total) * 100)}%` }}
+                  />
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="min-w-0">{note}</span>
+                {lastBatch.length > 0 && (
+                  <Button variant="outline" size="sm" onClick={() => void undoLast()} disabled={busy}>
+                    <Undo2 className="size-4" /> Undo{lastBatch.length > 1 ? ` ${lastBatch.length}` : ''}
+                  </Button>
+                )}
+                <button
+                  onClick={() => setNote(null)}
+                  className="rounded-md px-2 py-1 text-xs font-semibold text-muted-foreground hover:bg-accent"
+                >
+                  Dismiss
+                </button>
+              </>
+            )}
+          </div>
         </div>
       )}
 
