@@ -139,25 +139,41 @@ for (const theme of ['light', 'dark'] as const) {
   });
 }
 
+// The probe is a single computed-style read, so it has to be retried rather
+// than trusted once: visit() waits a fixed SETTLE, and under a loaded parallel
+// run a page can still be hydrating, or mid colour-transition, when we look —
+// and mid-transition an element's colour genuinely does pass through its own
+// background. /pricing and /changelog failed exactly that way in a full run
+// while passing 33/33 in isolation.
+//
+// What we care about is text that is PERSISTENTLY invisible, so poll until the
+// page stops changing its mind. Same lesson as REG-041: a wall-clock wait is
+// not a settled page.
+const INVISIBLE_PROBE = () => {
+  const bad: string[] = [];
+  document.querySelectorAll('body *').forEach((el) => {
+    let own = '';
+    el.childNodes.forEach((n) => { if (n.nodeType === 3) own += n.nodeValue; });
+    if (own.trim().length < 2) return;
+    const s = getComputedStyle(el);
+    if (s.visibility === 'hidden' || s.display === 'none') return;
+    const r = (el as HTMLElement).getBoundingClientRect();
+    if (r.width < 2 || r.height < 2) return;
+    if (s.color === s.backgroundColor) bad.push(`${el.tagName.toLowerCase()}: "${own.trim().slice(0, 40)}"`);
+  });
+  return bad;
+};
+
 test.describe('XC-006 — no text is invisible', () => {
   for (const { path, arch } of ARCHETYPES) {
     test(`${path} [${arch}] never paints text in its own background colour`, async ({ page }) => {
       await visit(page, path, 'light');
-      const invisible = await page.evaluate(() => {
-        const bad: string[] = [];
-        document.querySelectorAll('body *').forEach((el) => {
-          let own = '';
-          el.childNodes.forEach((n) => { if (n.nodeType === 3) own += n.nodeValue; });
-          if (own.trim().length < 2) return;
-          const s = getComputedStyle(el);
-          if (s.visibility === 'hidden' || s.display === 'none') return;
-          const r = (el as HTMLElement).getBoundingClientRect();
-          if (r.width < 2 || r.height < 2) return;
-          if (s.color === s.backgroundColor) bad.push(`${el.tagName.toLowerCase()}: "${own.trim().slice(0, 40)}"`);
-        });
-        return bad;
-      });
-      expect(invisible, 'text painted in exactly its own background colour').toEqual([]);
+      await expect
+        .poll(async () => page.evaluate(INVISIBLE_PROBE), {
+          message: 'text painted in exactly its own background colour',
+          timeout: 10_000,
+        })
+        .toEqual([]);
     });
   }
 });
