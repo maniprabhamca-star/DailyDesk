@@ -207,3 +207,34 @@ test.describe('selection', () => {
     await expect(page.getByRole('button', { name: /move 1 to trash/i })).toHaveCount(0);
   });
 });
+
+// Confirmation and undo.
+//
+// The split is deliberate: bulk asks first, single doesn't. A confirm on every
+// delete trains people to click through it, at which point it protects nobody —
+// whereas an undo that works protects them after the mistake, which is when it
+// actually matters. Forty files at once is a different act, so that one asks.
+//
+// The webkitdirectory path has no folder-write permission, so the destructive
+// half can't run here; what IS asserted is that the tool never offers a control
+// it cannot honour. The real move-and-restore was verified manually in Chrome.
+test.describe('confirmation and undo', () => {
+  test('no delete controls at all without folder permission', async ({ page }) => {
+    await asOwner(page);
+    await openDemoFolder(page);
+
+    // Single-file bin, bulk button and undo are all absent — not present-and-broken.
+    await expect(page.locator('button[title="Move to trash"]')).toHaveCount(0);
+    await page.locator('button[aria-label^="Select "]').first().click();
+    await expect(page.getByRole('button', { name: /move 1 to trash/i })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /^undo/i })).toHaveCount(0);
+  });
+
+  test('the banner explains why tidying is unavailable rather than hiding it', async ({ page }) => {
+    await asOwner(page);
+    await openDemoFolder(page);
+    // Silently removing the buttons would read as a missing feature. Say why.
+    await expect(page.getByText(/tidying doesn.t/i)).toBeVisible();
+    await expect(page.getByText(/Chrome or Edge/i)).toBeVisible();
+  });
+});

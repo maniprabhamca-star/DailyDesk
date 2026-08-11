@@ -12,7 +12,7 @@ import {
   type FileKind,
 } from '@/lib/file-classify';
 import {
-  canPickDirectory, pickDirectory, readFileList, moveToTrash, TRASH_DIR,
+  canPickDirectory, pickDirectory, readFileList, moveToTrash, restoreFromTrash, TRASH_DIR,
   type Folder, type PickedFile,
 } from '@/lib/folder-read';
 
@@ -88,7 +88,11 @@ export function FolderPreviewTool() {
   const [kindFilter, setKindFilter] = useState<string>('');
   const [size, setSize] = useState<'s' | 'm' | 'l'>('m');
   const [viewer, setViewer] = useState<number | null>(null);
-  const [trashed, setTrashed] = useState<PickedFile[]>([]);
+  const [trashed, setTrashed] = useState<{ file: PickedFile; trashName: string }[]>([]);
+  // The most recent batch, so Undo puts back exactly what the last action took —
+  // not "the last file", which is wrong after a bulk move.
+  const [lastBatch, setLastBatch] = useState<{ file: PickedFile; trashName: string }[]>([]);
+  const [confirming, setConfirming] = useState<PickedFile[] | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   // Anchor for shift-click. Selecting 40 files one at a time is not triage.
   const lastPicked = useRef<number | null>(null);
@@ -264,30 +268,62 @@ export function FolderPreviewTool() {
   const remove = useCallback(async (f: PickedFile) => {
     if (!folder?.canWrite || !folder.handle) return;
     try {
-      await moveToTrash(folder.handle, f);
+      const trashName = await moveToTrash(folder.handle, f);
+      const entry = { file: f, trashName };
       setFolder((p) => (p ? { ...p, files: p.files.filter((x) => x.id !== f.id) } : p));
-      setTrashed((p) => [f, ...p]);
-      setNote(`Moved ${f.name} to ${TRASH_DIR}`);
+      setTrashed((p) => [entry, ...p]);
+      setLastBatch([entry]);
+      setNote(`Moved ${f.name} to ${TRASH_DIR}.`);
     } catch (e) {
       setNote(e instanceof Error ? e.message : 'Could not move that file.');
     }
   }, [folder]);
 
-  const removeSelected = useCallback(async () => {
-    if (!folder?.canWrite || !folder.handle || selectedFiles.length === 0) return;
+  /**
+   * Put the last move back.
+   *
+   * This is why a single-file delete does not ask "are you sure". A confirm
+   * dialog on every delete trains people to dismiss it without reading, and then
+   * it protects nobody; an undo that actually works protects them after the
+   * mistake, which is when they need it. Bulk still confirms — see below.
+   */
+  const undoLast = useCallback(async () => {
+    if (!folder?.canWrite || !folder.handle || lastBatch.length === 0) return;
     setBusy(true);
-    const done: PickedFile[] = [];
+    const back: PickedFile[] = [];
+    const failed: string[] = [];
+    for (const entry of lastBatch) {
+      try { await restoreFromTrash(folder.handle, entry.file, entry.trashName); back.push(entry.file); }
+      catch { failed.push(entry.file.name); }
+    }
+    const restoredIds = new Set(back.map((f) => f.id));
+    setFolder((prev) => (prev
+      ? { ...prev, files: [...back, ...prev.files].sort((a, b) => a.rel.localeCompare(b.rel)) }
+      : prev));
+    setTrashed((prev) => prev.filter((e) => !restoredIds.has(e.file.id)));
+    setLastBatch([]);
+    setBusy(false);
+    setNote(failed.length
+      ? `Put ${back.length} back. Could not restore: ${failed.slice(0, 3).join(', ')}.`
+      : `Put ${back.length} file${back.length === 1 ? '' : 's'} back.`);
+  }, [folder, lastBatch]);
+
+  const removeSelected = useCallback(async (files: PickedFile[]) => {
+    if (!folder?.canWrite || !folder.handle || files.length === 0) return;
+    setBusy(true);
+    const done: { file: PickedFile; trashName: string }[] = [];
     const failed: string[] = [];
     // One at a time and keep going on failure. A half-finished bulk delete that
     // stops at the first locked file, without saying which, is worse than one
     // that finishes and reports.
-    for (const f of selectedFiles) {
-      try { await moveToTrash(folder.handle, f); done.push(f); }
+    for (const f of files) {
+      try { done.push({ file: f, trashName: await moveToTrash(folder.handle, f) }); }
       catch { failed.push(f.name); }
     }
-    const movedIds = new Set(done.map((f) => f.id));
+    const movedIds = new Set(done.map((e) => e.file.id));
     setFolder((prev) => (prev ? { ...prev, files: prev.files.filter((f) => !movedIds.has(f.id)) } : prev));
     setTrashed((prev) => [...done, ...prev]);
+    setLastBatch(done);
     clearSelection();
     setBusy(false);
     setNote(
@@ -295,7 +331,7 @@ export function FolderPreviewTool() {
         ? `Moved ${done.length} to ${TRASH_DIR}. Could not move: ${failed.slice(0, 3).join(', ')}${failed.length > 3 ? ` and ${failed.length - 3} more` : ''}.`
         : `Moved ${done.length} file${done.length === 1 ? '' : 's'} to ${TRASH_DIR} — still on disk.`,
     );
-  }, [folder, selectedFiles, clearSelection]);
+  }, [folder, clearSelection]);
 
   /* ------------------------------------------------------- viewer keys */
 
@@ -426,7 +462,7 @@ export function FolderPreviewTool() {
             <Button variant="outline" size="sm" onClick={clearSelection}>Clear</Button>
             {folder.canWrite && (
               <Button
-                size="sm" disabled={busy} onClick={() => void removeSelected()}
+                size="sm" disabled={busy} onClick={() => setConfirming(selectedFiles)}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
                 <Trash2 className="size-4" /> Move {selected.size} to trash
@@ -517,6 +553,11 @@ export function FolderPreviewTool() {
             {trashed.length} moved to <code>{TRASH_DIR}</code> — still on disk
           </span>
         )}
+        {lastBatch.length > 0 && (
+          <Button variant="outline" size="sm" onClick={() => void undoLast()} disabled={busy}>
+            <Undo2 className="size-4" /> Undo {lastBatch.length === 1 ? '' : `${lastBatch.length} `}
+          </Button>
+        )}
         <span className="flex-1" />
         <Button variant="outline" size="sm" onClick={() => { setFolder(null); setViewer(null); }}>
           Pick another folder
@@ -526,6 +567,38 @@ export function FolderPreviewTool() {
       {note && (
         <div className="flex items-center gap-2 border-t px-4 py-2 text-[13px]">
           <Undo2 className="size-3.5 text-muted-foreground" /> {note}
+        </div>
+      )}
+
+      {/* Bulk delete asks first. One file is instantly undoable and a dialog
+          there would just train people to click through; forty files at once is
+          a different act, and the size is the number they actually care about. */}
+      {confirming && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-foreground/40 p-4">
+          <div className="w-full max-w-md rounded-2xl border bg-card p-6 shadow-lift">
+            <p className="flex items-center gap-2 text-base font-bold">
+              <TriangleAlert className="size-5 text-destructive" />
+              Move {confirming.length} file{confirming.length === 1 ? '' : 's'} to trash?
+            </p>
+            <p className="mt-2.5 text-sm leading-relaxed text-muted-foreground">
+              That’s <b className="text-foreground">{fmtBytes(confirming.reduce((n, f) => n + f.size, 0))}</b>.
+              They move to a <code>{TRASH_DIR}</code> folder inside <b className="text-foreground">{folder.name}</b> —
+              nothing is destroyed, and you can put them back.
+            </p>
+            <ul className="mt-3 max-h-32 space-y-0.5 overflow-auto rounded-lg border bg-muted/30 p-2.5 text-xs text-muted-foreground">
+              {confirming.slice(0, 8).map((f) => <li key={f.id} className="truncate">{f.rel}</li>)}
+              {confirming.length > 8 && <li className="pt-1 font-medium">and {confirming.length - 8} more</li>}
+            </ul>
+            <div className="mt-5 flex flex-wrap justify-end gap-2">
+              <Button variant="outline" onClick={() => setConfirming(null)}>Keep them</Button>
+              <Button
+                onClick={() => { const files = confirming; setConfirming(null); void removeSelected(files); }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                <Trash2 className="size-4" /> Move to trash
+              </Button>
+            </div>
+          </div>
         </div>
       )}
 

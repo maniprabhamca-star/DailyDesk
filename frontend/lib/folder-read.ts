@@ -155,14 +155,53 @@ export function readFileList(
  * survives, and getting it back is a file-manager drag rather than a support
  * ticket.
  */
-export async function moveToTrash(root: FileSystemDirectoryHandle, f: PickedFile): Promise<void> {
+export async function moveToTrash(root: FileSystemDirectoryHandle, f: PickedFile): Promise<string> {
   if (!f.dirHandle) throw new Error('This file was not opened with folder permission.');
   const trash = await root.getDirectoryHandle(TRASH_DIR, { create: true });
   // Keep the name unique so trashing two files called "notes.txt" doesn't eat one.
   const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-  const target = await trash.getFileHandle(`${stamp}__${f.name}`, { create: true });
+  const trashName = `${stamp}__${f.name}`;
+  const target = await trash.getFileHandle(trashName, { create: true });
   const w = await target.createWritable();
   await w.write(await f.file.arrayBuffer());
   await w.close();
   await f.dirHandle.removeEntry(f.name);
+  // The caller needs this to put it back — the stamp makes the name unguessable.
+  return trashName;
+}
+
+/**
+ * Put a trashed file back where it came from.
+ *
+ * Undo only works because "delete" was never a delete: the bytes are still in
+ * `_trash`, and `dirHandle` still points at the folder the file came out of. If
+ * a file with the same name has appeared there since, we do NOT overwrite it —
+ * silently clobbering a newer file while "undoing" would be a far worse bug than
+ * the one undo exists to fix.
+ */
+export async function restoreFromTrash(
+  root: FileSystemDirectoryHandle,
+  f: PickedFile,
+  trashName: string,
+): Promise<void> {
+  if (!f.dirHandle) throw new Error('This file was not opened with folder permission.');
+  const trash = await root.getDirectoryHandle(TRASH_DIR, { create: true });
+  const source = await trash.getFileHandle(trashName);
+  const bytes = await (await source.getFile()).arrayBuffer();
+
+  let name = f.name;
+  try {
+    await f.dirHandle.getFileHandle(f.name);
+    // Something is already there. Come back beside it rather than over it.
+    const dot = f.name.lastIndexOf('.');
+    name = dot > 0
+      ? `${f.name.slice(0, dot)} (restored)${f.name.slice(dot)}`
+      : `${f.name} (restored)`;
+  } catch { /* nothing there — the normal case */ }
+
+  const target = await f.dirHandle.getFileHandle(name, { create: true });
+  const w = await target.createWritable();
+  await w.write(bytes);
+  await w.close();
+  await trash.removeEntry(trashName);
 }
