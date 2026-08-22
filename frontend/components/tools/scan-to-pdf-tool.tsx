@@ -6,23 +6,34 @@ import { Button } from '@/components/ui/button';
 import { downloadBlob } from '@/lib/download';
 import { KeepGoing } from '@/components/app/keep-going';
 import { processFrame, buildScanPdf, newId, type ScanPage } from '@/lib/scan-to-pdf';
+import { imageBytesForPdf, describeImageFailure, isHeic } from '@/lib/image-for-pdf';
 
-// Decode a picked file to something canvas can draw. createImageBitmap is the
-// fast path; older Safari/Firefox fall back to an <img>, which also lets the
-// browser apply EXIF orientation for us.
+// Decode a picked file to something canvas can draw. Goes through the shared
+// image decoder so a HEIC straight off an iPhone works here too, then hands the
+// result to processFrame as a plain <img>.
 async function decodeImage(file: File): Promise<{ src: CanvasImageSource; w: number; h: number; release: () => void }> {
-  if (typeof createImageBitmap === 'function') {
+  if (!isHeic(file) && typeof createImageBitmap === 'function') {
     try {
       const bmp = await createImageBitmap(file);
       return { src: bmp, w: bmp.width, h: bmp.height, release: () => bmp.close() };
-    } catch { /* fall through to the <img> path */ }
+    } catch { /* fall through */ }
   }
-  const url = URL.createObjectURL(file);
+  // A HEIC goes through libheif and comes back as JPEG bytes. Anything else the
+  // <img> tag gets a fair try at directly — re-encoding it would not help,
+  // since both paths use the same browser codecs.
+  let blob: Blob = file;
+  if (isHeic(file)) {
+    // isHeic short-circuits imageBytesForPdf straight to the decoder, so these
+    // probes are never called.
+    const { bytes } = await imageBytesForPdf(file, { jpg: async () => {}, png: async () => {} });
+    blob = new Blob([bytes], { type: 'image/jpeg' });
+  }
+  const url = URL.createObjectURL(blob);
   try {
     const el = await new Promise<HTMLImageElement>((resolve, reject) => {
       const i = new Image();
       i.onload = () => resolve(i);
-      i.onerror = () => reject(new Error('decode failed'));
+      i.onerror = () => reject(new Error('This browser cannot open that image format.'));
       i.src = url;
     });
     return { src: el, w: el.naturalWidth || el.width, h: el.naturalHeight || el.height, release: () => URL.revokeObjectURL(url) };
@@ -116,16 +127,14 @@ export function ScanToPdfTool() {
         // down with "a client-side exception has occurred".
         const page = processFrame(decoded.src, decoded.w, decoded.h, enhance);
         setPages((p) => [...p, page]);
-      } catch {
-        rejected.push(f.name);
+      } catch (err) {
+        rejected.push(describeImageFailure(f, err));
       } finally {
         decoded?.release();
       }
     }
     // Never drop a file in silence.
-    if (rejected.length) {
-      setNote(`Couldn’t read ${rejected.length === 1 ? 'this photo' : 'these photos'}: ${rejected.join(', ')}. ${rejected.length === 1 ? 'It may be' : 'They may be'} in a format this browser can’t open (HEIC from an iPhone is the usual one) — re-save as JPG or PNG and try again.`);
-    }
+    if (rejected.length) setNote(`Couldn’t add ${rejected.join('; ')}`);
   }, [enhance]);
 
   const remove = (id: string) => setPages((p) => p.filter((x) => x.id !== id));

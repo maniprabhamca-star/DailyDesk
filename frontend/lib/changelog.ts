@@ -21,6 +21,14 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-08-22',
+    kind: 'improved',
+    title: 'iPhone photos go straight into a PDF now',
+    detail:
+      'Photographs taken on an iPhone are saved as HEIC, a format Chrome, Edge and Firefox cannot open — so until now, dragging one into JPG to PDF or Scan to PDF got you nothing useful unless you were on a Mac. Both tools now decode HEIC themselves, using the same decoder that has always powered HEIC to JPG, so a photo taken on a phone converts on any browser without being re-saved first. The decoder is only fetched if a HEIC actually turns up; if you never use one, nothing extra is downloaded. Ordinary JPGs and PNGs are still embedded exactly as they are, with no re-compression. Samsung phones set to "high efficiency" save the same format and work the same way. And when an image genuinely cannot be read, the tool now names the file and says why, instead of "please try different files" — which was never much help.',
+    href: '/jpg-to-pdf',
+  },
+  {
+    date: '2026-08-22',
     kind: 'fixed',
     title: 'Scan to PDF: the camera works, and no photo disappears quietly',
     detail:

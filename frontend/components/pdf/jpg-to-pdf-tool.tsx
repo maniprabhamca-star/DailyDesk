@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { takeHandoff } from '@/lib/handoff';
 import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
+import { imageBytesForPdf, describeImageFailure, looksLikeImage } from '@/lib/image-for-pdf';
 
 type Item = { id: string; file: File; url: string };
 type PageSize = 'fit' | 'a4' | 'letter';
@@ -28,31 +29,6 @@ function fmt(bytes: number) {
 const selectCls =
   'h-9 rounded-lg border bg-card px-2 text-sm font-medium text-foreground outline-none focus:border-primary';
 
-// Decode any browser-supported image and re-encode as PNG bytes.
-// Fallback for JPEGs pdf-lib can't embed directly (CMYK / progressive / unusual encodings).
-async function rasterizeToPng(file: File): Promise<ArrayBuffer> {
-  const url = URL.createObjectURL(file);
-  try {
-    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const el = new Image();
-      el.onload = () => resolve(el);
-      el.onerror = () => reject(new Error('decode failed'));
-      el.src = url;
-    });
-    const canvas = document.createElement('canvas');
-    canvas.width = img.naturalWidth || img.width;
-    canvas.height = img.naturalHeight || img.height;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('no canvas context');
-    ctx.drawImage(img, 0, 0);
-    const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/png'));
-    if (!blob) throw new Error('encode failed');
-    return await blob.arrayBuffer();
-  } finally {
-    URL.revokeObjectURL(url);
-  }
-}
-
 export function JpgToPdfTool() {
   const [items, setItems] = useState<Item[]>([]);
   const [pageSize, setPageSize] = useState<PageSize>('fit');
@@ -70,12 +46,10 @@ export function JpgToPdfTool() {
   useEffect(() => () => { items.forEach((it) => URL.revokeObjectURL(it.url)); }, [items]);
 
   // Accept anything the browser calls an image. pdf-lib only embeds JPEG/PNG
-  // natively, but rasterizeToPng() re-encodes everything else the browser can
-  // decode (WebP, AVIF, BMP, GIF, and phone photos with odd MIME types), so
-  // narrowing here only served to drop files on the floor.
-  function isImage(f: File) {
-    return f.type.startsWith('image/') || /\.(jpe?g|png|webp|avif|bmp|gif|heic|heif)$/i.test(f.name);
-  }
+  // natively; lib/image-for-pdf decodes the rest (HEIC, WebP, AVIF, BMP, GIF,
+  // and phone photos with odd MIME types), so narrowing here only served to
+  // drop files on the floor.
+  const isImage = looksLikeImage;
 
   // "Keep moving": pick up images handed over from another tool (e.g. PDF→JPG),
   // already in the browser — no re-upload. Runs once on mount.
@@ -177,16 +151,13 @@ export function JpgToPdfTool() {
 
       for (const { file } of items) {
         try {
-          const bytes = await file.arrayBuffer();
-          const isPng = file.type === 'image/png' || /\.png$/i.test(file.name);
-          // embed natively; fall back to canvas re-encode for CMYK/progressive/odd images
-          const img = await (async () => {
-            try {
-              return isPng ? await pdf.embedPng(bytes) : await pdf.embedJpg(bytes);
-            } catch {
-              return pdf.embedPng(await rasterizeToPng(file));
-            }
-          })();
+          // Original bytes when pdf-lib accepts them (lossless), decoded and
+          // re-encoded when it doesn't — HEIC included.
+          const src = await imageBytesForPdf(file, {
+            jpg: (b) => pdf.embedJpg(b),
+            png: (b) => pdf.embedPng(b),
+          });
+          const img = src.kind === 'png' ? await pdf.embedPng(src.bytes) : await pdf.embedJpg(src.bytes);
 
           const index = items.findIndex((x) => x.file === file);
           const effectiveSize: PageSize = storyMode && pageSize === 'fit' ? 'letter' : pageSize;
@@ -213,13 +184,15 @@ export function JpgToPdfTool() {
               page.drawText(`${index + 1} / ${items.length}`, { x: pw - m - 42, y: m + 10, size: 9, font: captionFont, color: rgb(0.39, 0.39, 0.46) });
             }
           }
-        } catch {
-          skipped.push(file.name);
+        } catch (err) {
+          skipped.push(describeImageFailure(file, err));
         }
       }
 
       if (pdf.getPageCount() === 0) {
-        setError('None of these images could be converted. Please try different files.');
+        // Say which file failed and why. "Please try different files" told the
+        // person nothing and was wrong as often as not.
+        setError(`Could not convert ${items.length === 1 ? 'that image' : 'any of these images'}: ${skipped.join('; ')}`);
         return;
       }
 
@@ -230,7 +203,7 @@ export function JpgToPdfTool() {
       setDone({ blob, name, secs: (performance.now() - t0) / 1000 });
 
       if (skipped.length) {
-        setWarning(`Converted ${pdf.getPageCount()} image${pdf.getPageCount() > 1 ? 's' : ''}. Skipped — this browser couldn’t decode ${skipped.length === 1 ? 'it' : 'them'} (HEIC photos from an iPhone are the usual cause; re-save as JPG): ${skipped.join(', ')}`);
+        setWarning(`Converted ${pdf.getPageCount()} image${pdf.getPageCount() > 1 ? 's' : ''}. Skipped: ${skipped.join('; ')}`);
       }
     } catch (e) {
       setError(e instanceof Error ? `Could not convert: ${e.message}` : 'Could not convert the images.');
