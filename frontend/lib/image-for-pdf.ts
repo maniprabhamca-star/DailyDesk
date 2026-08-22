@@ -14,11 +14,65 @@
 
 export type PdfImageBytes = { bytes: ArrayBuffer; kind: 'jpg' | 'png' };
 
-export function isHeic(f: File): boolean {
+// Everything here works on bytes already in memory, never on a File handle.
+// A File picked on Android is backed by a content:// URI that the system can
+// revoke once the <input> is cleared — read it later and you get a failure that
+// looks exactly like an unreadable image. So callers read once, at pick time,
+// and pass the bytes around afterwards.
+export type SourceImage = { name: string; type: string; bytes: ArrayBuffer };
+
+export function toSource(file: File, bytes: ArrayBuffer): SourceImage {
+  return { name: file.name, type: file.type, bytes };
+}
+
+// What the bytes ACTUALLY are. Filenames and MIME types lie: Android's
+// "high efficiency" camera mode and several share-sheets hand over HEIF data
+// under a .jpg name with type image/jpeg. Trusting that label sent the file to
+// pdf-lib's JPEG parser, which refused it, and then to an <img> tag, which
+// cannot decode HEIF on Chrome — producing "this browser could not open it"
+// for a photo that was perfectly convertible.
+export type Sniffed = 'jpeg' | 'png' | 'heic' | 'avif' | 'webp' | 'gif' | 'bmp' | 'tiff' | 'unknown';
+
+export function sniffFormat(bytes: ArrayBuffer): Sniffed {
+  const b = new Uint8Array(bytes, 0, Math.min(32, bytes.byteLength));
+  const ascii = (from: number, to: number) => {
+    let s = '';
+    for (let i = from; i < to && i < b.length; i++) s += String.fromCharCode(b[i]);
+    return s;
+  };
+  if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return 'jpeg';
+  if (b[0] === 0x89 && ascii(1, 4) === 'PNG') return 'png';
+  if (ascii(0, 3) === 'GIF') return 'gif';
+  if (b[0] === 0x42 && b[1] === 0x4d) return 'bmp';
+  if (ascii(0, 4) === 'RIFF' && ascii(8, 12) === 'WEBP') return 'webp';
+  if ((b[0] === 0x49 && b[1] === 0x49) || (b[0] === 0x4d && b[1] === 0x4d)) return 'tiff';
+  if (ascii(4, 8) === 'ftyp') {
+    const brand = ascii(8, 12);
+    if (/^(heic|heix|hevc|heim|heis|hevm|hevs|mif1|msf1)$/.test(brand)) return 'heic';
+    if (/^(avif|avis)$/.test(brand)) return 'avif';
+  }
+  return 'unknown';
+}
+
+// Kept for the name/type-only callers; prefer sniffing when bytes are to hand.
+export function isHeic(f: { name: string; type: string; bytes?: ArrayBuffer }): boolean {
+  if (f.bytes && f.bytes.byteLength >= 12) return sniffFormat(f.bytes) === 'heic';
   return /image\/hei[cf]/i.test(f.type) || /\.(heic|heif)$/i.test(f.name);
 }
 
-export function looksLikeImage(f: File): boolean {
+// Read a picked file immediately. Throws a sentence worth showing if the handle
+// is already dead — which is the moment to say so, not ten seconds later.
+export async function readPickedFile(file: File): Promise<ArrayBuffer> {
+  try {
+    const bytes = await file.arrayBuffer();
+    if (!bytes.byteLength) throw new Error('empty');
+    return bytes;
+  } catch {
+    throw new Error('the file could not be read — if it is in cloud storage, download it to the device first, then pick it again');
+  }
+}
+
+export function looksLikeImage(f: { name: string; type: string }): boolean {
   return f.type.startsWith('image/') || /\.(jpe?g|png|webp|avif|bmp|gif|heic|heif|tiff?)$/i.test(f.name);
 }
 
@@ -80,9 +134,9 @@ function fitWithin(w: number, h: number, maxPixels: number): [number, number] {
 // ---- decode -----------------------------------------------------------------
 type Decoded = { draw: (ctx: CanvasRenderingContext2D, w: number, h: number) => void; w: number; h: number; release: () => void };
 
-async function decodeHeic(file: File): Promise<Decoded> {
+async function decodeHeic(src: SourceImage): Promise<Decoded> {
   const lib = await getLibheif();
-  const images = new lib.HeifDecoder().decode(new Uint8Array(await file.arrayBuffer()));
+  const images = new lib.HeifDecoder().decode(new Uint8Array(src.bytes));
   if (!images.length) throw new Error('That HEIC file has no image in it.');
   const img = images[0]; // first image only — a PDF page is one picture
   const w = img.get_width();
@@ -109,7 +163,13 @@ async function decodeHeic(file: File): Promise<Decoded> {
   };
 }
 
-async function decodeStandard(file: File): Promise<Decoded> {
+async function decodeStandard(src: SourceImage): Promise<Decoded> {
+  // Label the blob with what the bytes really are, not what the picker claimed.
+  const sniffed = sniffFormat(src.bytes);
+  const file = new Blob([src.bytes], {
+    type: sniffed === 'unknown' ? (src.type || 'application/octet-stream') : `image/${sniffed}`,
+  });
+  let why = '';
   if (typeof createImageBitmap === 'function') {
     try {
       const bmp = await createImageBitmap(file);
@@ -118,14 +178,20 @@ async function decodeStandard(file: File): Promise<Decoded> {
         draw: (ctx, dw, dh) => { ctx.imageSmoothingQuality = 'high'; ctx.drawImage(bmp, 0, 0, dw, dh); },
         release: () => bmp.close(),
       };
-    } catch { /* fall through — some browsers refuse animated or exotic files here */ }
+    } catch (e) {
+      // Keep the reason. "Could not open it" is not a bug report.
+      why = e instanceof Error ? e.name : '';
+    }
   }
   const url = URL.createObjectURL(file);
   try {
     const el = await new Promise<HTMLImageElement>((resolve, reject) => {
       const i = new Image();
       i.onload = () => resolve(i);
-      i.onerror = () => reject(new Error('This browser cannot open that image format.'));
+      i.onerror = () => reject(new Error(
+        `this browser cannot decode ${sniffed === 'unknown' ? 'that file' : sniffed.toUpperCase()}` +
+        `${why ? ` (${why})` : ''}${sniffed === 'unknown' ? ` — the first bytes do not match any image format we recognise` : ''}`,
+      ));
       i.src = url;
     });
     const w = el.naturalWidth || el.width;
@@ -145,8 +211,8 @@ async function decodeStandard(file: File): Promise<Decoded> {
 // Decode, downscale if the canvas would be unreasonable, re-encode as JPEG.
 // JPEG rather than PNG on purpose: a photo re-encoded to PNG is many times
 // larger and is the encode most likely to fail outright on a phone.
-export async function rasterize(file: File, opts: { maxPixels?: number; quality?: number } = {}): Promise<PdfImageBytes> {
-  const dec = isHeic(file) ? await decodeHeic(file) : await decodeStandard(file);
+export async function rasterize(src: SourceImage, opts: { maxPixels?: number; quality?: number } = {}): Promise<PdfImageBytes> {
+  const dec = isHeic(src) ? await decodeHeic(src) : await decodeStandard(src);
   try {
     const [w, h] = fitWithin(dec.w, dec.h, opts.maxPixels ?? MAX_CANVAS_PIXELS);
     const canvas = document.createElement('canvas');
@@ -182,36 +248,36 @@ const QUALITY: Record<Exclude<ImageQuality, 'original'>, { maxPixels: number; qu
 };
 
 export async function embedImageInPdf<T>(
-  file: File,
+  src: SourceImage,
   embed: { jpg: (b: ArrayBuffer) => Promise<T>; png: (b: ArrayBuffer) => Promise<T> },
   quality: ImageQuality = 'original',
 ): Promise<T> {
-  const isPng = file.type === 'image/png' || /\.png$/i.test(file.name);
-  const isJpg = file.type === 'image/jpeg' || /\.jpe?g$/i.test(file.name);
+  const original = src.bytes;
+  // Decide from the bytes, never the filename.
+  const fmt = sniffFormat(original);
+  const isPng = fmt === 'png';
+  const isJpg = fmt === 'jpeg';
   // pdf-lib parses before it registers anything, so a refusal leaves no
   // half-written object behind and it is safe to fall through.
-  const embedOriginal = !isHeic(file) && (isPng || isJpg)
+  const embedOriginal = isPng || isJpg
     ? async (bytes: ArrayBuffer) => (isPng ? embed.png(bytes) : embed.jpg(bytes))
     : null;
 
-  let original: ArrayBuffer | null = null;
-  if (embedOriginal) { try { original = await file.arrayBuffer(); } catch { /* unreadable */ } }
-
-  if (quality === 'original' && embedOriginal && original) {
+  if (quality === 'original' && embedOriginal) {
     try { return await embedOriginal(original); } catch { /* pdf-lib refused it — rasterize */ }
   }
 
   try {
-    const { bytes, kind } = await rasterize(file, quality === 'original' ? {} : QUALITY[quality]);
+    const { bytes, kind } = await rasterize(src, quality === 'original' ? {} : QUALITY[quality]);
     // Asking for a smaller file must never hand back a bigger one. Re-encoding
     // an already-small JPEG usually grows it, so keep whichever is smaller.
-    if (quality !== 'original' && embedOriginal && original && bytes.byteLength >= original.byteLength) {
+    if (quality !== 'original' && embedOriginal && bytes.byteLength >= original.byteLength) {
       try { return await embedOriginal(original); } catch { /* fall back to the re-encode */ }
     }
     return kind === 'png' ? embed.png(bytes) : embed.jpg(bytes);
   } catch (err) {
     // Rasterizing failed; the original may still be embeddable.
-    if (embedOriginal && original) {
+    if (embedOriginal) {
       try { return await embedOriginal(original); } catch { /* genuinely unusable */ }
     }
     throw err;
@@ -219,9 +285,9 @@ export async function embedImageInPdf<T>(
 }
 
 // A short, honest sentence for the person who picked the file.
-export function describeImageFailure(file: File, err: unknown): string {
+export function describeImageFailure(file: { name: string; type: string }, err: unknown): string {
   const msg = err instanceof Error ? err.message : '';
-  if (msg && !/^(decode|encode|no-canvas|no-images)$/.test(msg)) return `${file.name} — ${msg}`;
+  if (msg && !/^(decode|encode|no-canvas|no-images|empty)$/.test(msg)) return `${file.name} — ${msg}`;
   if (isHeic(file)) return `${file.name} — the HEIC decoder could not read it.`;
   return `${file.name} — this browser could not open it.`;
 }

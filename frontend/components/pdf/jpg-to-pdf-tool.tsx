@@ -7,9 +7,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { takeHandoff } from '@/lib/handoff';
 import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
-import { embedImageInPdf, describeImageFailure, looksLikeImage, type ImageQuality } from '@/lib/image-for-pdf';
+import { embedImageInPdf, describeImageFailure, looksLikeImage, readPickedFile, toSource, type ImageQuality, type SourceImage } from '@/lib/image-for-pdf';
 
-type Item = { id: string; file: File; url: string };
+// `src` holds the bytes, read the moment the file was picked. Nothing later
+// touches the File handle — on Android the picker's handle can be revoked
+// between choosing a photo and pressing Convert.
+type Item = { id: string; file: File; url: string; src: SourceImage };
 type PageSize = 'fit' | 'a4' | 'letter';
 type Orientation = 'auto' | 'portrait' | 'landscape';
 type Margin = 'none' | 'small' | 'large';
@@ -35,7 +38,9 @@ export function JpgToPdfTool() {
   const [orientation, setOrientation] = useState<Orientation>('auto');
   const [margin, setMargin] = useState<Margin>('none');
   const [storyMode, setStoryMode] = useState(false);
-  const [quality, setQuality] = useState<ImageQuality>('original');
+  // Smaller file is the default: a PDF of phone photos at full resolution is
+  // routinely too big to email, which is not what most people want by default.
+  const [quality, setQuality] = useState<ImageQuality>('balanced');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
@@ -59,46 +64,55 @@ export function JpgToPdfTool() {
     if (!h) return;
     const imgs = h.files.filter(isImage);
     if (imgs.length === 0) return;
-    setItems(imgs.map((f) => ({
-      id: `${f.name}-${f.size}-${Math.random().toString(36).slice(2, 7)}`,
-      file: f,
-      url: URL.createObjectURL(f),
-    })));
+    void addImages(imgs);
     setHandoffNote(`${imgs.length} image${imgs.length === 1 ? '' : 's'} brought straight over from ${h.from} — no re-upload needed.`);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function addImages(imgs: File[]) {
+  // Read every picked file straight away. Doing it now — while the picker's
+  // handle is certainly still alive — is what stops a photo from turning into
+  // "this browser cannot open that image format" at Convert time.
+  async function addImages(imgs: File[]) {
     if (imgs.length === 0) {
       setError('Please choose JPG or PNG images.');
       return;
     }
     setError(null);
-    setItems((cur) => [
-      ...cur,
-      ...imgs.map((f) => ({
-        id: `${f.name}-${f.size}-${Math.random().toString(36).slice(2, 7)}`,
-        file: f,
-        url: URL.createObjectURL(f),
-      })),
-    ]);
+    const added: Item[] = [];
+    const unreadable: string[] = [];
+    for (const f of imgs) {
+      try {
+        const bytes = await readPickedFile(f);
+        added.push({
+          id: `${f.name}-${f.size}-${Math.random().toString(36).slice(2, 7)}`,
+          file: f,
+          url: URL.createObjectURL(new Blob([bytes], { type: f.type || 'image/jpeg' })),
+          src: toSource(f, bytes),
+        });
+      } catch (err) {
+        unreadable.push(describeImageFailure(f, err));
+      }
+    }
+    if (added.length) setItems((cur) => [...cur, ...added]);
+    if (unreadable.length) {
+      const msg = `Could not read: ${unreadable.join('; ')}`;
+      if (added.length) setWarning(msg); else setError(msg);
+    }
+    return { added: added.length, unreadable: unreadable.length };
   }
 
   // Anything the picker hands us that we won't take gets named. Dropping some
   // of a selection and saying nothing looked exactly like a broken converter.
-  function addFiles(files: FileList | null) {
+  async function addFiles(files: FileList | null) {
     if (!files) return;
     const all = Array.from(files);
     const imgs = all.filter(isImage);
     const rejected = all.filter((f) => !isImage(f));
-    addImages(imgs);
-    setWarning(
-      rejected.length && imgs.length
-        ? `Added ${imgs.length} image${imgs.length > 1 ? 's' : ''}. Not added (not an image file): ${rejected.map((f) => f.name).join(', ')}`
-        : null,
-    );
-    if (rejected.length && !imgs.length) {
-      setError(`Not an image file: ${rejected.map((f) => f.name).join(', ')}`);
+    const res = await addImages(imgs);
+    if (rejected.length) {
+      const names = rejected.map((f) => f.name).join(', ');
+      if (res?.added) setWarning(`Added ${res.added} image${res.added > 1 ? 's' : ''}. Not added (not an image file): ${names}`);
+      else setError(`Not an image file: ${names}`);
     }
   }
 
@@ -107,7 +121,7 @@ export function JpgToPdfTool() {
       const files = Array.from(e.clipboardData?.files || []).filter(isImage);
       if (!files.length) return;
       e.preventDefault();
-      addImages(files);
+      void addImages(files);
       setStoryMode(true);
     }
     document.addEventListener('paste', onPaste);
@@ -150,13 +164,13 @@ export function JpgToPdfTool() {
       const captionBold = storyMode ? await pdf.embedFont(StandardFonts.HelveticaBold) : null;
       const skipped: string[] = [];
 
-      for (const { file } of items) {
+      for (const { file, src } of items) {
         try {
           // Original bytes when pdf-lib accepts them (lossless), decoded and
           // re-encoded when it doesn't — HEIC included, or when the reader has
           // asked for a smaller file.
           const img = await embedImageInPdf(
-            file,
+            src,
             { jpg: (b) => pdf.embedJpg(b), png: (b) => pdf.embedPng(b) },
             quality,
           );
@@ -224,7 +238,7 @@ export function JpgToPdfTool() {
         )}
         <div
           onDragOver={(e) => e.preventDefault()}
-          onDrop={(e) => { e.preventDefault(); addFiles(e.dataTransfer.files); }}
+          onDrop={(e) => { e.preventDefault(); void addFiles(e.dataTransfer.files); }}
           onClick={() => inputRef.current?.click()}
           className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border p-8 text-center transition-colors hover:border-primary/50 hover:bg-accent/40"
         >
@@ -234,7 +248,7 @@ export function JpgToPdfTool() {
           <span className="mt-4 inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm">Choose images</span>
           {/* image/* rather than a JPG/PNG allowlist: Android's picker hides or
               mislabels gallery photos that don't match a narrow accept list. */}
-          <input ref={inputRef} type="file" accept="image/*" multiple aria-label="Choose an image file" className="dd-file-input" onChange={(e) => { addFiles(e.target.files); e.currentTarget.value = ''; }} />
+          <input ref={inputRef} type="file" accept="image/*" multiple aria-label="Choose an image file" className="dd-file-input" onChange={(e) => { void addFiles(e.target.files); e.currentTarget.value = ''; }} />
         </div>
 
         <div className="mt-4 rounded-xl border bg-muted/30 p-3">

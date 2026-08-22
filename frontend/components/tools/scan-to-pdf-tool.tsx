@@ -6,24 +6,28 @@ import { Button } from '@/components/ui/button';
 import { downloadBlob } from '@/lib/download';
 import { KeepGoing } from '@/components/app/keep-going';
 import { processFrame, buildScanPdf, newId, type ScanPage } from '@/lib/scan-to-pdf';
-import { rasterize, describeImageFailure, isHeic } from '@/lib/image-for-pdf';
+import { rasterize, describeImageFailure, isHeic, readPickedFile, toSource } from '@/lib/image-for-pdf';
 
 // Decode a picked file to something canvas can draw. Goes through the shared
 // image decoder so a HEIC straight off an iPhone works here too, then hands the
 // result to processFrame as a plain <img>.
 async function decodeImage(file: File): Promise<{ src: CanvasImageSource; w: number; h: number; release: () => void }> {
-  if (!isHeic(file) && typeof createImageBitmap === 'function') {
+  // Read the bytes first, while the picker's handle is certainly still alive.
+  const source = toSource(file, await readPickedFile(file));
+  const asBlob = new Blob([source.bytes], { type: source.type || 'image/jpeg' });
+
+  if (!isHeic(source) && typeof createImageBitmap === 'function') {
     try {
-      const bmp = await createImageBitmap(file);
+      const bmp = await createImageBitmap(asBlob);
       return { src: bmp, w: bmp.width, h: bmp.height, release: () => bmp.close() };
     } catch { /* fall through */ }
   }
   // A HEIC goes through libheif and comes back as JPEG bytes. Anything else the
   // <img> tag gets a fair try at directly — re-encoding it would not help,
   // since both paths use the same browser codecs.
-  let blob: Blob = file;
-  if (isHeic(file)) {
-    const { bytes } = await rasterize(file);
+  let blob: Blob = asBlob;
+  if (isHeic(source)) {
+    const { bytes } = await rasterize(source);
     blob = new Blob([bytes], { type: 'image/jpeg' });
   }
   const url = URL.createObjectURL(blob);

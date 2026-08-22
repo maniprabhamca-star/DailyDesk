@@ -21,10 +21,18 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-08-22',
+    kind: 'fixed',
+    title: 'Photos that said they were one thing and were another',
+    detail:
+      'Some phones — Samsung handsets in "high efficiency" mode, and several apps that pass a picture along to another app — save a photograph in Apple\'s HEIF format but label the file .jpg. Every tool here believed the label, handed the file to a JPEG reader that refused it, and told you your browser could not open that image format, which was both unhelpful and untrue. Photos are now identified by what is actually inside them rather than what the name claims, so a mislabelled photograph converts like any other. When something genuinely cannot be read, the message now names the format we found and what the browser said about it, instead of a shrug. And every picked file is read the moment you choose it rather than at the moment you press Convert, which closes a window in which a photo could quietly become unreadable in between.',
+    href: '/jpg-to-pdf',
+  },
+  {
+    date: '2026-08-22',
     kind: 'improved',
     title: 'Choose how big the PDF should be',
     detail:
-      'Photos out of a phone are big — three of them make a PDF of about nine megabytes, which is more than most mail servers will send. Until now that was the only thing this tool would give you, because it embeds each picture exactly as it is and never re-compresses. That is still the default, and still the right answer when the pages are going to be printed or filed. But there is now a File size choice next to page size: Smaller file resizes each photo to about four megapixels, which took a twelve-megapixel photograph of a document from 1.6MB down to 286KB in our testing with the text still crisp, and Smallest file goes down to 81KB for something that only has to be read on a screen. The tool says what each setting will do before you convert. If a picture is already small enough that re-compressing it would make it bigger — which happens more often than you would think — it is left alone, because a button marked "smaller" should never hand back something larger.',
+      'Photos out of a phone are big — three of them make a PDF of about nine megabytes, which is more than most mail servers will send. Until now that was the only thing this tool would give you, because it embeds each picture exactly as it is and never re-compresses. That is still the default, and still the right answer when the pages are going to be printed or filed. But there is now a File size choice next to page size: Smaller file — now the default — resizes each photo to about four megapixels, which took a twelve-megapixel photograph of a document from 1.6MB down to 286KB in our testing with the text still crisp, and Smallest file goes down to 81KB for something that only has to be read on a screen. Choose Original quality to go back to embedding every photo exactly as it is. The tool says what each setting will do before you convert. If a picture is already small enough that re-compressing it would make it bigger — which happens more often than you would think — it is left alone, because a button marked "smaller" should never hand back something larger.',
     href: '/jpg-to-pdf',
   },
   {
