@@ -140,6 +140,22 @@ useful and the cap should bite only on real bulk.
 `moveToTrash` verified against real files. That was the last thing Playwright
 could not cover, so nothing is now unverified.
 
+⚠️ **Write-path bug found by the owner and fixed 2026-08-22** (`f2f734f`, live on
+prod). 24 files selected → **Move to trash** → nothing visible happened. Three
+causes, all fixed:
+1. `showDirectoryPicker({mode:'readwrite'})` does **not keep** its grant — Chrome
+   downgrades it to `prompt`. `ensureWritable()` now checks + re-requests from
+   inside the click (needs a live user gesture) and refuses in plain English.
+2. The result line and the Undo button rendered **below the grid** — under up to
+   2000 cards, i.e. invisible. Now a `fixed` bottom dock with a live progress
+   count. (`sticky` cannot work: the tool card is `overflow-hidden`.)
+3. The catch swallowed the real error, so a permission problem looked like a bug.
+
+The write path had **zero** test coverage, which is why it reached the owner.
+`tests/e2e/folder-preview.spec.ts` now stubs `window.showDirectoryPicker` with an
+in-memory folder (`withFakeFolder`); permission `'prompt'` reproduces the bug.
+14 folder-preview tests, CI green on chromium/firefox/webkit/edge/mobile.
+
 **Ready to un-gate.** Five edits when you want it public:
 1. `lib/tool-flags.tsx` — drop the `'/folder-preview': 'coming_soon'` line
 2. `components/app/catalog.tsx` — drop `soon: true` (keep `newUntil`)
