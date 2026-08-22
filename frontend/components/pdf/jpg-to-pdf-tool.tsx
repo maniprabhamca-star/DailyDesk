@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { takeHandoff } from '@/lib/handoff';
 import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
-import { imageBytesForPdf, describeImageFailure, looksLikeImage } from '@/lib/image-for-pdf';
+import { embedImageInPdf, describeImageFailure, looksLikeImage, type ImageQuality } from '@/lib/image-for-pdf';
 
 type Item = { id: string; file: File; url: string };
 type PageSize = 'fit' | 'a4' | 'letter';
@@ -35,6 +35,7 @@ export function JpgToPdfTool() {
   const [orientation, setOrientation] = useState<Orientation>('auto');
   const [margin, setMargin] = useState<Margin>('none');
   const [storyMode, setStoryMode] = useState(false);
+  const [quality, setQuality] = useState<ImageQuality>('original');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
@@ -152,12 +153,13 @@ export function JpgToPdfTool() {
       for (const { file } of items) {
         try {
           // Original bytes when pdf-lib accepts them (lossless), decoded and
-          // re-encoded when it doesn't — HEIC included.
-          const src = await imageBytesForPdf(file, {
-            jpg: (b) => pdf.embedJpg(b),
-            png: (b) => pdf.embedPng(b),
-          });
-          const img = src.kind === 'png' ? await pdf.embedPng(src.bytes) : await pdf.embedJpg(src.bytes);
+          // re-encoded when it doesn't — HEIC included, or when the reader has
+          // asked for a smaller file.
+          const img = await embedImageInPdf(
+            file,
+            { jpg: (b) => pdf.embedJpg(b), png: (b) => pdf.embedPng(b) },
+            quality,
+          );
 
           const index = items.findIndex((x) => x.file === file);
           const effectiveSize: PageSize = storyMode && pageSize === 'fit' ? 'letter' : pageSize;
@@ -272,6 +274,14 @@ export function JpgToPdfTool() {
         {/* Options */}
         <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-3">
           <label className="flex items-center gap-2 text-sm">
+            <span className="text-muted-foreground">File size</span>
+            <select className={selectCls} value={quality} onChange={(e) => setQuality(e.target.value as ImageQuality)}>
+              <option value="original">Original quality</option>
+              <option value="balanced">Smaller file</option>
+              <option value="small">Smallest file</option>
+            </select>
+          </label>
+          <label className="flex items-center gap-2 text-sm">
             <span className="text-muted-foreground">Page size</span>
             <select className={selectCls} value={pageSize} onChange={(e) => setPageSize(e.target.value as PageSize)}>
               <option value="fit">Fit to image</option>
@@ -300,6 +310,14 @@ export function JpgToPdfTool() {
             </>
           )}
         </div>
+
+        <p className="mt-2 text-xs text-muted-foreground">
+          {quality === 'original'
+            ? 'Original quality embeds each photo exactly as it is — nothing is re-compressed, so the PDF ends up about the same size as the photos. Pick a smaller file if you need to email it.'
+            : quality === 'balanced'
+              ? 'Photos are resized to about 4 megapixels and re-compressed — text stays sharp, and a phone photo typically drops to a few hundred KB.'
+              : 'Photos are resized to about 1.5 megapixels — smallest file, fine on screen, not for printing.'}
+        </p>
 
         {error && <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
         {warning && <p className="mt-4 rounded-md bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400">{warning}</p>}

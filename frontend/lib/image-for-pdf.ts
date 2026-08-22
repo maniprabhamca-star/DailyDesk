@@ -145,10 +145,10 @@ async function decodeStandard(file: File): Promise<Decoded> {
 // Decode, downscale if the canvas would be unreasonable, re-encode as JPEG.
 // JPEG rather than PNG on purpose: a photo re-encoded to PNG is many times
 // larger and is the encode most likely to fail outright on a phone.
-async function rasterize(file: File): Promise<PdfImageBytes> {
+export async function rasterize(file: File, opts: { maxPixels?: number; quality?: number } = {}): Promise<PdfImageBytes> {
   const dec = isHeic(file) ? await decodeHeic(file) : await decodeStandard(file);
   try {
-    const [w, h] = fitWithin(dec.w, dec.h, MAX_CANVAS_PIXELS);
+    const [w, h] = fitWithin(dec.w, dec.h, opts.maxPixels ?? MAX_CANVAS_PIXELS);
     const canvas = document.createElement('canvas');
     canvas.width = w;
     canvas.height = h;
@@ -159,7 +159,7 @@ async function rasterize(file: File): Promise<PdfImageBytes> {
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, w, h);
     dec.draw(ctx, w, h);
-    const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/jpeg', 0.92));
+    const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/jpeg', opts.quality ?? 0.92));
     canvas.width = canvas.height = 0;
     if (!blob) throw new Error('This browser ran out of memory re-encoding that image.');
     return { bytes: await blob.arrayBuffer(), kind: 'jpg' };
@@ -169,24 +169,53 @@ async function rasterize(file: File): Promise<PdfImageBytes> {
 }
 
 // ---- the entry point --------------------------------------------------------
-// `embed` is pdf-lib's embedJpg/embedPng pair. We hand the original bytes over
-// first and only rasterize if that is refused, so the common case stays lossless.
-export async function imageBytesForPdf(
+// `embed` is pdf-lib's embedJpg/embedPng pair, and it is called EXACTLY ONCE.
+// An earlier version "probed" with embedJpg and then embedded again on success,
+// which quietly wrote every picture into the PDF twice and doubled the file.
+export type ImageQuality = 'original' | 'balanced' | 'small';
+
+// maxPixels caps resolution; quality is the JPEG setting. 'original' never
+// re-encodes a JPEG/PNG pdf-lib already accepts.
+const QUALITY: Record<Exclude<ImageQuality, 'original'>, { maxPixels: number; quality: number }> = {
+  balanced: { maxPixels: 4.0e6, quality: 0.82 }, // ~2400x1700 — sharp text, small file
+  small: { maxPixels: 1.6e6, quality: 0.7 },     // ~1500x1050 — email-friendly
+};
+
+export async function embedImageInPdf<T>(
   file: File,
-  probe: { jpg: (b: ArrayBuffer) => Promise<unknown>; png: (b: ArrayBuffer) => Promise<unknown> },
-): Promise<PdfImageBytes> {
-  if (!isHeic(file)) {
-    const isPng = file.type === 'image/png' || /\.png$/i.test(file.name);
-    const isJpg = file.type === 'image/jpeg' || /\.jpe?g$/i.test(file.name);
-    if (isPng || isJpg) {
-      try {
-        const bytes = await file.arrayBuffer();
-        await (isPng ? probe.png(bytes) : probe.jpg(bytes));
-        return { bytes, kind: isPng ? 'png' : 'jpg' };
-      } catch { /* pdf-lib refused it — rasterize below */ }
-    }
+  embed: { jpg: (b: ArrayBuffer) => Promise<T>; png: (b: ArrayBuffer) => Promise<T> },
+  quality: ImageQuality = 'original',
+): Promise<T> {
+  const isPng = file.type === 'image/png' || /\.png$/i.test(file.name);
+  const isJpg = file.type === 'image/jpeg' || /\.jpe?g$/i.test(file.name);
+  // pdf-lib parses before it registers anything, so a refusal leaves no
+  // half-written object behind and it is safe to fall through.
+  const embedOriginal = !isHeic(file) && (isPng || isJpg)
+    ? async (bytes: ArrayBuffer) => (isPng ? embed.png(bytes) : embed.jpg(bytes))
+    : null;
+
+  let original: ArrayBuffer | null = null;
+  if (embedOriginal) { try { original = await file.arrayBuffer(); } catch { /* unreadable */ } }
+
+  if (quality === 'original' && embedOriginal && original) {
+    try { return await embedOriginal(original); } catch { /* pdf-lib refused it — rasterize */ }
   }
-  return rasterize(file);
+
+  try {
+    const { bytes, kind } = await rasterize(file, quality === 'original' ? {} : QUALITY[quality]);
+    // Asking for a smaller file must never hand back a bigger one. Re-encoding
+    // an already-small JPEG usually grows it, so keep whichever is smaller.
+    if (quality !== 'original' && embedOriginal && original && bytes.byteLength >= original.byteLength) {
+      try { return await embedOriginal(original); } catch { /* fall back to the re-encode */ }
+    }
+    return kind === 'png' ? embed.png(bytes) : embed.jpg(bytes);
+  } catch (err) {
+    // Rasterizing failed; the original may still be embeddable.
+    if (embedOriginal && original) {
+      try { return await embedOriginal(original); } catch { /* genuinely unusable */ }
+    }
+    throw err;
+  }
 }
 
 // A short, honest sentence for the person who picked the file.

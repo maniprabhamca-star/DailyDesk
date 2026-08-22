@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { downloadBlob } from '@/lib/download';
 import { KeepGoing } from '@/components/app/keep-going';
 import { processFrame, buildScanPdf, newId, type ScanPage } from '@/lib/scan-to-pdf';
-import { imageBytesForPdf, describeImageFailure, isHeic } from '@/lib/image-for-pdf';
+import { rasterize, describeImageFailure, isHeic } from '@/lib/image-for-pdf';
 
 // Decode a picked file to something canvas can draw. Goes through the shared
 // image decoder so a HEIC straight off an iPhone works here too, then hands the
@@ -23,9 +23,7 @@ async function decodeImage(file: File): Promise<{ src: CanvasImageSource; w: num
   // since both paths use the same browser codecs.
   let blob: Blob = file;
   if (isHeic(file)) {
-    // isHeic short-circuits imageBytesForPdf straight to the decoder, so these
-    // probes are never called.
-    const { bytes } = await imageBytesForPdf(file, { jpg: async () => {}, png: async () => {} });
+    const { bytes } = await rasterize(file);
     blob = new Blob([bytes], { type: 'image/jpeg' });
   }
   const url = URL.createObjectURL(blob);
