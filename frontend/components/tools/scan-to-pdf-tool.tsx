@@ -7,11 +7,37 @@ import { downloadBlob } from '@/lib/download';
 import { KeepGoing } from '@/components/app/keep-going';
 import { processFrame, buildScanPdf, newId, type ScanPage } from '@/lib/scan-to-pdf';
 
+// Decode a picked file to something canvas can draw. createImageBitmap is the
+// fast path; older Safari/Firefox fall back to an <img>, which also lets the
+// browser apply EXIF orientation for us.
+async function decodeImage(file: File): Promise<{ src: CanvasImageSource; w: number; h: number; release: () => void }> {
+  if (typeof createImageBitmap === 'function') {
+    try {
+      const bmp = await createImageBitmap(file);
+      return { src: bmp, w: bmp.width, h: bmp.height, release: () => bmp.close() };
+    } catch { /* fall through to the <img> path */ }
+  }
+  const url = URL.createObjectURL(file);
+  try {
+    const el = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = () => reject(new Error('decode failed'));
+      i.src = url;
+    });
+    return { src: el, w: el.naturalWidth || el.width, h: el.naturalHeight || el.height, release: () => URL.revokeObjectURL(url) };
+  } catch (e) {
+    URL.revokeObjectURL(url);
+    throw e;
+  }
+}
+
 export function ScanToPdfTool() {
   const [pages, setPages] = useState<ScanPage[]>([]);
   const [enhance, setEnhance] = useState(true);
   const [camOn, setCamOn] = useState(false);
   const [camError, setCamError] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
   const [building, setBuilding] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -25,15 +51,47 @@ export function ScanToPdfTool() {
 
   useEffect(() => () => stopCam(), [stopCam]);
 
+  // The <video> is always mounted (just hidden when off), so the stream can be
+  // attached here. Attaching inside startCam used to run before React had
+  // rendered the element, leaving a live camera pointed at nothing.
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (camOn && streamRef.current) {
+      v.srcObject = streamRef.current;
+      void v.play().catch(() => {});
+    } else {
+      v.srcObject = null;
+    }
+  }, [camOn]);
+
   const startCam = useCallback(async () => {
     setCamError(null);
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+      setCamError(
+        typeof window !== 'undefined' && window.isSecureContext === false
+          ? 'Browsers only allow the camera on secure (https) pages. Use “Add photos” to pick images instead.'
+          : 'This browser doesn’t offer camera capture. Use “Add photos” to pick images instead (works on any device).',
+      );
+      return;
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 2560 }, height: { ideal: 1440 } }, audio: false });
       streamRef.current = stream;
-      if (videoRef.current) { videoRef.current.srcObject = stream; await videoRef.current.play().catch(() => {}); }
       setCamOn(true);
-    } catch {
-      setCamError('No camera available — use “Add photos” to pick images instead (works on any device).');
+    } catch (e) {
+      // Say which of these actually happened — "no camera available" was wrong
+      // for the common case, which is a blocked permission.
+      const name = e instanceof Error ? e.name : '';
+      setCamError(
+        name === 'NotAllowedError' || name === 'SecurityError'
+          ? 'Camera access is blocked for this site. Tap the padlock next to the address → Permissions → allow Camera, then try again — or use “Add photos”.'
+          : name === 'NotFoundError' || name === 'OverconstrainedError'
+            ? 'No camera found on this device — use “Add photos” to pick images instead.'
+            : name === 'NotReadableError' || name === 'AbortError'
+              ? 'Another app is already using the camera. Close it and try again, or use “Add photos”.'
+              : 'Couldn’t start the camera — use “Add photos” to pick images instead (works on any device).',
+      );
     }
   }, []);
 
@@ -46,13 +104,27 @@ export function ScanToPdfTool() {
 
   const addPhotos = useCallback(async (files: FileList | null) => {
     if (!files?.length) return;
+    setNote(null);
+    const rejected: string[] = [];
     for (const f of Array.from(files)) {
-      if (!f.type.startsWith('image/')) continue;
+      let decoded: Awaited<ReturnType<typeof decodeImage>> | null = null;
       try {
-        const bmp = await createImageBitmap(f);
-        setPages((p) => [...p, processFrame(bmp, bmp.width, bmp.height, enhance)]);
-        bmp.close();
-      } catch { /* skip unreadable image */ }
+        decoded = await decodeImage(f);
+        // Build the page BEFORE queueing the state update. React can run an
+        // updater function later (or twice), by which point the decoded source
+        // has been released — that threw during render and took the whole page
+        // down with "a client-side exception has occurred".
+        const page = processFrame(decoded.src, decoded.w, decoded.h, enhance);
+        setPages((p) => [...p, page]);
+      } catch {
+        rejected.push(f.name);
+      } finally {
+        decoded?.release();
+      }
+    }
+    // Never drop a file in silence.
+    if (rejected.length) {
+      setNote(`Couldn’t read ${rejected.length === 1 ? 'this photo' : 'these photos'}: ${rejected.join(', ')}. ${rejected.length === 1 ? 'It may be' : 'They may be'} in a format this browser can’t open (HEIC from an iPhone is the usual one) — re-save as JPG or PNG and try again.`);
     }
   }, [enhance]);
 
@@ -79,9 +151,9 @@ export function ScanToPdfTool() {
         {/* capture surface */}
         <div className="overflow-hidden rounded-2xl border bg-card shadow-soft">
           <div className="relative aspect-[4/3] bg-black">
-            {camOn ? (
-              <video ref={videoRef} playsInline muted className="size-full object-contain" />
-            ) : (
+            {/* always mounted so the stream has something to attach to */}
+            <video ref={videoRef} playsInline muted autoPlay className={`size-full object-contain ${camOn ? '' : 'hidden'}`} />
+            {!camOn && (
               <div className="flex size-full flex-col items-center justify-center gap-3 text-center text-slate-300">
                 <ScanLine className="size-10 opacity-70" />
                 <p className="text-sm">Point your camera at a document, or add photos you already took.</p>
@@ -102,12 +174,17 @@ export function ScanToPdfTool() {
               <Button size="sm" onClick={() => void startCam()} className="bg-primary text-primary-foreground"><Camera className="mr-1 size-4" /> Use camera</Button>
             )}
             <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()}><ImagePlus className="mr-1 size-4" /> Add photos</Button>
-            <input ref={fileRef} type="file" accept="image/*" multiple capture="environment" aria-label="Choose an image file" className="dd-file-input" onChange={(e) => { void addPhotos(e.target.files); e.target.value = ''; }} />
+            {/* no `capture` here — it forces the camera app open on Android and
+                hides the gallery, which is the opposite of "Add photos". */}
+            <input ref={fileRef} type="file" accept="image/*" multiple aria-label="Choose an image file" className="dd-file-input" onChange={(e) => { void addPhotos(e.target.files); e.target.value = ''; }} />
             <label className="ml-auto flex cursor-pointer items-center gap-2 text-xs font-medium">
               <input type="checkbox" checked={enhance} onChange={(e) => setEnhance(e.target.checked)} className="size-4 accent-[hsl(var(--primary))]" />
               Enhance for readability
             </label>
           </div>
+          {note && (
+            <p className="border-t bg-amber-500/10 px-3 py-2.5 text-xs leading-relaxed text-amber-700 dark:text-amber-400">{note}</p>
+          )}
         </div>
 
         {/* pages + build */}

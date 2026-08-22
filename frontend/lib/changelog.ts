@@ -20,6 +20,14 @@ export type ChangeEntry = {
 // flags flip, dated then.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-08-22',
+    kind: 'fixed',
+    title: 'Scan to PDF: the camera works, and no photo disappears quietly',
+    detail:
+      'Three things were wrong here, all on phones. Tapping “Use camera” asked for permission and then showed a black rectangle, because the camera was switched on a fraction of a second before there was anywhere to show it. When the camera could not start, the reason given was always “no camera available” — which was rarely true; usually permission had simply been declined, and now it says so and tells you where to turn it back on. And “Add photos” opened the camera instead of your gallery on Android, which is the opposite of what it says. Separately, adding a photo the browser could not read took the whole page down with an error message rather than skipping that one file; it now names the file and carries on. Same fix in JPG to PDF, where files left out of a selection were left out in silence — they are now listed, with the reason.',
+    href: '/scan-to-pdf',
+  },
+  {
     date: '2026-08-10',
     kind: 'new',
     title: 'Coming soon: preview every file in a folder',

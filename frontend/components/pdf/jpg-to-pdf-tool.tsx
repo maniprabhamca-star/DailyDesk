@@ -69,8 +69,12 @@ export function JpgToPdfTool() {
   // revoke all preview URLs on unmount
   useEffect(() => () => { items.forEach((it) => URL.revokeObjectURL(it.url)); }, [items]);
 
+  // Accept anything the browser calls an image. pdf-lib only embeds JPEG/PNG
+  // natively, but rasterizeToPng() re-encodes everything else the browser can
+  // decode (WebP, AVIF, BMP, GIF, and phone photos with odd MIME types), so
+  // narrowing here only served to drop files on the floor.
   function isImage(f: File) {
-    return f.type === 'image/jpeg' || f.type === 'image/png' || /\.(jpe?g|png)$/i.test(f.name);
+    return f.type.startsWith('image/') || /\.(jpe?g|png|webp|avif|bmp|gif|heic|heif)$/i.test(f.name);
   }
 
   // "Keep moving": pick up images handed over from another tool (e.g. PDF→JPG),
@@ -105,9 +109,22 @@ export function JpgToPdfTool() {
     ]);
   }
 
+  // Anything the picker hands us that we won't take gets named. Dropping some
+  // of a selection and saying nothing looked exactly like a broken converter.
   function addFiles(files: FileList | null) {
     if (!files) return;
-    addImages(Array.from(files).filter(isImage));
+    const all = Array.from(files);
+    const imgs = all.filter(isImage);
+    const rejected = all.filter((f) => !isImage(f));
+    addImages(imgs);
+    setWarning(
+      rejected.length && imgs.length
+        ? `Added ${imgs.length} image${imgs.length > 1 ? 's' : ''}. Not added (not an image file): ${rejected.map((f) => f.name).join(', ')}`
+        : null,
+    );
+    if (rejected.length && !imgs.length) {
+      setError(`Not an image file: ${rejected.map((f) => f.name).join(', ')}`);
+    }
   }
 
   useEffect(() => {
@@ -213,7 +230,7 @@ export function JpgToPdfTool() {
       setDone({ blob, name, secs: (performance.now() - t0) / 1000 });
 
       if (skipped.length) {
-        setWarning(`Converted ${pdf.getPageCount()} image${pdf.getPageCount() > 1 ? 's' : ''}. Skipped (couldn’t read): ${skipped.join(', ')}`);
+        setWarning(`Converted ${pdf.getPageCount()} image${pdf.getPageCount() > 1 ? 's' : ''}. Skipped — this browser couldn’t decode ${skipped.length === 1 ? 'it' : 'them'} (HEIC photos from an iPhone are the usual cause; re-save as JPG): ${skipped.join(', ')}`);
       }
     } catch (e) {
       setError(e instanceof Error ? `Could not convert: ${e.message}` : 'Could not convert the images.');
@@ -240,7 +257,9 @@ export function JpgToPdfTool() {
           <p className="mt-2 text-sm font-medium">Drop JPG or PNG images here, or click to choose</p>
           <p className="text-xs text-muted-foreground">Add one or more — drag to set the order</p>
           <span className="mt-4 inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm">Choose images</span>
-          <input ref={inputRef} type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" multiple aria-label="Choose an image file" className="dd-file-input" onChange={(e) => { addFiles(e.target.files); e.currentTarget.value = ''; }} />
+          {/* image/* rather than a JPG/PNG allowlist: Android's picker hides or
+              mislabels gallery photos that don't match a narrow accept list. */}
+          <input ref={inputRef} type="file" accept="image/*" multiple aria-label="Choose an image file" className="dd-file-input" onChange={(e) => { addFiles(e.target.files); e.currentTarget.value = ''; }} />
         </div>
 
         <div className="mt-4 rounded-xl border bg-muted/30 p-3">
