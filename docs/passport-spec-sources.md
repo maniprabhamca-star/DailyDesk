@@ -53,6 +53,30 @@ Two rules that change how this table gets filled in from here:
 |---|---|---|---|
 | **Germany** | [BMI — *Fotomustertafel: Qualitätsmerkmale biometrischer Fotos für Dokumente*](https://www.bmi.bund.de/SharedDocs/downloads/DE/publikationen/themen/moderne-verwaltung/BMI24037-fotomustertafel.html), **Stand Juli 2025**, Artikelnummer BMI24037 | 2026-08-23 | Text extracted from the official PDF. Confirms face = **70–80% of photo height** (50–80% for children; smaller deviations under 10, further exceptions under 6); background single-colour, shadow-free, must contrast with **hair as well as face**; head coverings religious reasons only; neutral expression, mouth closed; glasses allowed but frames must not cover the eyes and lenses must not be dark or reflecting; exceptions only for long-term medical reasons. Underlying standard: **BSI TR-03121**. The 35×45 mm dimension is set by the Passverordnung, not this chart. |
 
+| **France** | [service-public.gouv.fr — *Quelle photo fournir pour un titre d'identité ?*](https://www.service-public.gouv.fr/particuliers/vosdroits/F10619) | 2026-08-23 | 35×45 mm; face 32–36 mm **from chin to top of skull, excluding hair**; background light blue or light grey — **white is explicitly prohibited**; head must be **bare** (medical exceptions only — note this differs from Germany, which permits religious head coverings); ears visible; neutral expression, mouth closed; photo **under 6 months old**, "nette, sans pliure, ni traces"; glasses allowed but frames not thick and lenses not tinted or reflecting. |
+| **Italy** | [Ministero degli Affari Esteri (Ambasciata d'Italia) — *Fototessera: norme ICAO*](https://ambvienna.esteri.it/it/servizi-consolari-e-visti/servizi-per-il-cittadino-italiano/passaporti/norme-icao/) | 2026-08-23 | 35×45 mm; **not more than 6 months old**; face 70–80% of the photo; neutral expression, mouth closed, fully frontal (half-profile invalid); glasses with clear lenses only, no flash reflection, no heavy frames covering the eye; head covering for religious reasons only with chin-to-forehead and both sides of the face visible; babies' photos must not show any part of the person holding them. The Polizia di Stato's own PDF is a scanned image with no text layer, so the Farnesina consular page was used instead — both are official. |
+
+### ⚠ Open discrepancy — SPAIN (do not publish until resolved)
+
+The Ministerio de Asuntos Exteriores' passport photo sheet
+([consular PDF, updated 2017](https://www.exteriores.gob.es/Consulados/dusseldorf/es/Documents/Nacionales/Normativa%20fotograf%C3%ADas%20pasaporte%20-%20Espa%C3%B1ol.pdf))
+disagrees with our spec table on two points that would get a photo refused:
+
+| | `passport-specs.ts` says | The source says |
+|---|---|---|
+| Background | Light grey | **"fondo BLANCO, liso y uniforme. Sin sombras."** — white |
+| Head height | 70–80% of photo height | **head outline (face + hair) = 50% of the photo**, 5 mm margins at sides and top |
+| Size | 35×45 mm | 30–40 mm wide × 40–53 mm tall — 35×45 is inside this range, so not wrong |
+
+Spain currently inherits the generic `schengen()` preset. **Nothing has been
+changed**: `headMin`/`headMax` drive the crop guide in the tool itself, and the
+source is a 2017 consular document rather than Policía Nacional's current page.
+Verify against Policía Nacional / interior.gob.es before altering the preset,
+and write Spain's editorial only once the table agrees with it — prose saying
+"white, 50%" above a table saying "light grey, 70–80%" is worse than no prose.
+Separately: the **DNI** photo (32×26 mm) is a different size from the passport
+photo, so the page may need to say which document it covers.
+
 Written into `EDITORIAL` in `frontend/lib/passport-specs.ts`. Measured effect on
 the duplicate problem: Germany vs Poland fell from **79.8% → 57.5%** 4-gram
 overlap, France 57.9%, Italy 57.8%, Japan 53.5%, Nepal 50.3% — all under the

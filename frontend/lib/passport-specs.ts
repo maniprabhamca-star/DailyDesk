@@ -175,6 +175,24 @@ export const EDITORIAL: Record<string, CountryEditorial> = {
     sourceUrl: 'https://www.service-public.gouv.fr/particuliers/vosdroits/F10619',
     checkedOn: '2026-08-23',
   },
+
+  italy: {
+    authority:
+      'Italian passports are issued by the Polizia di Stato, and the photo rules follow the ICAO standard published by the Ministero degli Affari Esteri for its consulates. Italy is unusually explicit that the photograph is checked at the counter — the Polizia publishes a rejection sheet, and a photo that fails is handed straight back.',
+    quirk:
+      'The photograph must be no more than six months old, and two identical copies are normally asked for. Bring a spare pair: a set printed for a different country will often be the wrong size, and Italian offices do not crop for you.',
+    expression:
+      'Neutral expression with the mouth closed, eyes open and clearly visible, looking straight at the camera. Centred and fully frontal — a half-profile is not accepted, and neither is a downward glance.',
+    glasses:
+      'Prescription glasses may be worn, but the lenses must be clear — no tint — and there must be no flash reflection on them. Heavy frames that cover any part of the eye are rejected. If your frames cannot avoid it, take the photo without them.',
+    headCovering:
+      'A head covering is accepted only where it is worn for religious reasons. In that case the outline of the face must be clearly visible from the base of the chin to the forehead, and both sides of the face must show.',
+    children:
+      'The same rules apply at every age. In a baby’s photograph no part of the person holding them — including their hands — may appear in the frame.',
+    sourceName: 'Ministero degli Affari Esteri (Ambasciata d’Italia) — Fototessera per passaporto e carta d’identità: norme ICAO',
+    sourceUrl: 'https://ambvienna.esteri.it/it/servizi-consolari-e-visti/servizi-per-il-cittadino-italiano/passaporti/norme-icao/',
+    checkedOn: '2026-08-23',
+  },
 };
 
 export const getEditorial = (id: string): CountryEditorial | undefined => EDITORIAL[id];

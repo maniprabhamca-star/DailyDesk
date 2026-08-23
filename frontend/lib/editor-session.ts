@@ -110,7 +110,19 @@ export function clearSession(key: string): void {
 // the user's choice, silently loads it back. A file arriving via hand-off or a
 // fast user pick wins — restore only fires if nothing is loaded shortly after
 // mount.
-export const MAX_FILE_SESSION = 25 * 1024 * 1024;
+// Raised 25MB -> 100MB (2026-08-23, owner request) to match FREE_MAX_BYTES in
+// lib/plan.ts — the largest file the tools will process on a free plan. The old
+// cap meant a 27MB scan was accepted for compression and then silently dropped
+// on reload, which is the worst combination: big enough to be worth keeping,
+// too big to be kept.
+//
+// The cost is real but bounded: saveSession holds the file in memory as an
+// ArrayBuffer while writing, so a 100MB PDF briefly doubles its footprint, and
+// the write itself is async and best-effort. Browsers grant IndexedDB a large
+// share of free disk, so the quota is not the binding constraint on desktop; on
+// a nearly-full phone the write simply fails and is swallowed, exactly as
+// before.
+export const MAX_FILE_SESSION = 100 * 1024 * 1024;
 
 export function useFileSession(
   key: string,

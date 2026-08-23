@@ -12,7 +12,8 @@ import { CHANGELOG, type ChangeKind } from '@/lib/changelog';
 // indication whether they were touched this month or in 2019.
 
 const KIND_STYLE: Record<ChangeKind, string> = {
-  new: 'bg-primary/10 text-primary',
+  new: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
+  feature: 'bg-teal-500/10 text-teal-700 dark:text-teal-400',
   improved: 'bg-sky-500/10 text-sky-700 dark:text-sky-400',
   fixed: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
   ai: 'bg-violet-500/10 text-violet-700 dark:text-violet-400',
@@ -20,7 +21,8 @@ const KIND_STYLE: Record<ChangeKind, string> = {
 };
 
 const KIND_LABEL: Record<ChangeKind, string> = {
-  new: 'New', improved: 'Improved', fixed: 'Fixed', ai: 'AI', launch: 'Launch',
+  // Match /changelog exactly — two names for one thing is its own confusion.
+  new: 'New tool', feature: 'New feature', improved: 'Improved', fixed: 'Fixed', ai: 'AI', launch: 'Milestone',
 };
 
 /** "2 days ago" for the recent past, a plain date once that stops being useful. */
@@ -49,15 +51,18 @@ export function LastImproved({ max = 3 }: { max?: number }) {
       <p className="mt-1.5 text-sm text-muted-foreground">Changes to this tool specifically, not the site.</p>
       <ol className="mt-4 space-y-3">
         {entries.map((e) => (
-          <li key={e.date + e.title} className="flex flex-col gap-1.5 rounded-xl border bg-card p-4 shadow-soft sm:flex-row sm:items-baseline sm:gap-4">
-            <span className="shrink-0 text-xs tabular-nums text-muted-foreground sm:w-24 sm:text-right">{when(e.date, now)}</span>
-            <div className="min-w-0">
-              <p className="text-sm font-medium">
-                <span className={`mr-2 inline-block rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${KIND_STYLE[e.kind]}`}>{KIND_LABEL[e.kind]}</span>
-                {e.title}
-              </p>
-              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{e.detail}</p>
+          // Date and kind sit together on their own line above the title, the
+          // same reading order as /changelog. They used to share a baseline-
+          // aligned row with the whole entry, so beside a long detail the date
+          // stranded itself at the top-right of a tall card with nothing near
+          // it — it read as a stray label rather than as this entry's date.
+          <li key={e.date + e.title} className="rounded-xl border bg-card p-4 shadow-soft">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${KIND_STYLE[e.kind]}`}>{KIND_LABEL[e.kind]}</span>
+              <span className="text-xs tabular-nums text-muted-foreground">{when(e.date, now)}</span>
             </div>
+            <p className="mt-2 text-sm font-semibold">{e.title}</p>
+            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{e.detail}</p>
           </li>
         ))}
       </ol>

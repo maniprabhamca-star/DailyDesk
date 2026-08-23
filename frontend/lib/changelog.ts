@@ -3,7 +3,10 @@
 // person using the tool, not how the sausage was made. Add an entry with every
 // meaningful ship — this file IS the /changelog page.
 
-export type ChangeKind = 'new' | 'improved' | 'fixed' | 'ai' | 'launch';
+// 'new' means a NEW TOOL — a page that did not exist before. A capability added
+// to a tool that already exists is 'feature'. Conflating the two put "New tool"
+// on top of a compression preview change, which is simply untrue.
+export type ChangeKind = 'new' | 'feature' | 'improved' | 'fixed' | 'ai' | 'launch';
 
 export type ChangeEntry = {
   date: string; // YYYY-MM-DD
@@ -29,7 +32,7 @@ export const CHANGELOG: ChangeEntry[] = [
   },
   {
     date: '2026-08-23',
-    kind: 'new',
+    kind: 'feature',
     title: 'See exactly what compression changed, instead of squinting',
     detail:
       'The quality preview used to put the original and the compressed page side by side and leave you to spot the difference. At the gentler settings there is nothing to spot — which is the whole point, but it reads as though the tool is broken. So it now tells you instead of asking you. It says in words whether anything visible changed, and it lists what was actually done: text untouched and still selectable, and the page image resized from one size to another at a stated quality. There is a "Show what changed" view that paints the page black where nothing moved and bright where it did, amplified ten times, because the changes worth seeing are small ones. And when a page is already close to the smallest size that stays readable, it now says so plainly — that every setting will produce the same page and only the file size differs — instead of leaving you switching between four buttons wondering why nothing happens. None of it is an estimate: it is measured from the actual page your settings will produce, on your device, before you commit to anything.',
@@ -376,6 +379,7 @@ export const CHANGELOG: ChangeEntry[] = [
 
 export const KIND_META: Record<ChangeKind, { label: string }> = {
   new: { label: 'New tool' },
+  feature: { label: 'New feature' },
   improved: { label: 'Improved' },
   fixed: { label: 'Fixed' },
   ai: { label: 'AI' },

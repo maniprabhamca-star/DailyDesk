@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Sparkles, Wrench, Rocket, ArrowUpRight, Plus } from 'lucide-react';
+import { Sparkles, Wrench, Rocket, ArrowUpRight, Plus, Zap } from 'lucide-react';
 import { SiteHeader } from '@/components/app/site-header';
 import { SiteFooter } from '@/components/app/site-footer';
 import { CHANGELOG, KIND_META, type ChangeKind } from '@/lib/changelog';
@@ -16,6 +16,7 @@ export const metadata: Metadata = {
 
 const KIND_STYLE: Record<ChangeKind, { chip: string; dot: string; icon: typeof Plus }> = {
   new: { chip: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400', dot: 'bg-emerald-500', icon: Plus },
+  feature: { chip: 'border-teal-500/40 bg-teal-500/10 text-teal-700 dark:text-teal-400', dot: 'bg-teal-500', icon: Zap },
   improved: { chip: 'border-sky-500/40 bg-sky-500/10 text-sky-700 dark:text-sky-400', dot: 'bg-sky-500', icon: ArrowUpRight },
   fixed: { chip: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400', dot: 'bg-amber-500', icon: Wrench },
   ai: { chip: 'border-violet-500/40 bg-violet-500/10 text-violet-700 dark:text-violet-400', dot: 'bg-violet-500', icon: Sparkles },
