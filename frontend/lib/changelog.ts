@@ -21,6 +21,14 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-08-23',
+    kind: 'improved',
+    title: 'Passport photo pages now tell you the whole requirement',
+    detail:
+      'Each country page used to be a sentence and a short list: the size in millimetres, the background colour, and not much else. It now carries the full requirement — the size in millimetres, inches and pixels at both 300 and 600 DPI, the background, any file-size limit, and the head height in millimetres rather than as a percentage, because "70 to 80 percent" is not a thing you can hold a ruler against and head height is the measurement most photos are rejected for. There is a section on how to measure it, a note on how many copies fit on a single 4×6 print so you can get a set made for the price of one photograph, and links to the other destinations that publish exactly the same size, since one photo often covers several trips. All of the figures are generated from the spec table the tool itself uses, so the page and the photo it makes can never disagree with each other.',
+    href: '/passport-photo',
+  },
+  {
+    date: '2026-08-23',
     kind: 'new',
     title: 'See exactly what compression changed, instead of squinting',
     detail:

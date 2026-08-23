@@ -30,3 +30,19 @@ Philippines, Indonesia, Thailand, Pakistan, Bangladesh, Vietnam, Sri Lanka, Nepa
 Saudi Arabia, Qatar, Türkiye, Egypt, Nigeria, South Africa, Kenya, New Zealand. These use
 each country's commonly-published dimensions; verify head-size %, background and file caps
 against the official portal before submitting. **TODO:** deepen sourcing for these over time.
+
+## 2026-08-23 — re-sourcing pass planned
+
+Google Search Console flags five `/passport-photo/*` URLs as duplicates. The cause
+is measured content similarity, not missing canonicals — full analysis, priority
+tiers, the per-country fields to write and the acceptance criteria are in
+**[designs/passport-photo-editorial-scope.md](designs/passport-photo-editorial-scope.md)**.
+
+Two rules that change how this table gets filled in from here:
+
+1. **One official government source per country.** Two rows above cite aggregators
+   (Passlens for the US visa, AXA/schengenvisainfo for Schengen, simplevisa for
+   India Seva). They are fine for *finding* a rule and unacceptable as the citation.
+   Replace each with the issuing authority's own page as that country is rewritten.
+2. **Record the full URL and the date checked.** A spec moves into `VERIFIED_SPECS`
+   only once someone has opened the page — not because the number looks familiar.
