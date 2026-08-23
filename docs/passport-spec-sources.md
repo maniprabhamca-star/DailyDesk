@@ -46,3 +46,15 @@ Two rules that change how this table gets filled in from here:
    Replace each with the issuing authority's own page as that country is rewritten.
 2. **Record the full URL and the date checked.** A spec moves into `VERIFIED_SPECS`
    only once someone has opened the page — not because the number looks familiar.
+
+### Editorial sources (Tier 2 pass)
+
+| Country | Source | Read on | Notes |
+|---|---|---|---|
+| **Germany** | [BMI — *Fotomustertafel: Qualitätsmerkmale biometrischer Fotos für Dokumente*](https://www.bmi.bund.de/SharedDocs/downloads/DE/publikationen/themen/moderne-verwaltung/BMI24037-fotomustertafel.html), **Stand Juli 2025**, Artikelnummer BMI24037 | 2026-08-23 | Text extracted from the official PDF. Confirms face = **70–80% of photo height** (50–80% for children; smaller deviations under 10, further exceptions under 6); background single-colour, shadow-free, must contrast with **hair as well as face**; head coverings religious reasons only; neutral expression, mouth closed; glasses allowed but frames must not cover the eyes and lenses must not be dark or reflecting; exceptions only for long-term medical reasons. Underlying standard: **BSI TR-03121**. The 35×45 mm dimension is set by the Passverordnung, not this chart. |
+
+Written into `EDITORIAL` in `frontend/lib/passport-specs.ts`. Measured effect on
+the duplicate problem: Germany vs Poland fell from **79.8% → 57.5%** 4-gram
+overlap, France 57.9%, Italy 57.8%, Japan 53.5%, Nepal 50.3% — all under the
+60% bar in the [editorial scope](designs/passport-photo-editorial-scope.md).
+Two pages that still lack editorial (Poland vs Nepal) remain at **74.0%**.

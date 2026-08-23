@@ -110,6 +110,57 @@ export const VERIFIED_SPECS = new Set<string>([
 ]);
 export const isVerified = (id: string): boolean => VERIFIED_SPECS.has(id);
 
+// ---- per-country editorial ---------------------------------------------------
+// The one thing derived numbers CANNOT do: separate two countries that publish
+// the same photo size. Germany, France, Poland and a dozen others are all
+// 35×45 mm with a 70–80% head, so every generated sentence about them is
+// identical and Google treats the pages as duplicates of one another.
+//
+// Every field here must come from the issuing authority's own page, with the
+// URL and the date it was read recorded in docs/passport-spec-sources.md.
+// Aggregator sites are fine for FINDING a rule and unacceptable as the source
+// of one. If a fact is not on the cited page, it does not go in.
+export type CountryEditorial = {
+  authority: string;
+  glasses?: string;
+  headCovering?: string;
+  expression?: string;
+  background?: string;
+  children?: string;
+  exceptions?: string;
+  /** The thing people most often get wrong for this country. */
+  quirk?: string;
+  sourceName: string;
+  sourceUrl: string;
+  checkedOn: string; // ISO date
+};
+
+export const EDITORIAL: Record<string, CountryEditorial> = {
+  germany: {
+    authority:
+      'Photos for German passports and ID cards are governed by the Bundesministerium des Innern (BMI), which publishes a one-page chart — the Fotomustertafel — showing exactly what passes and what gets rejected. The underlying quality standard is BSI TR-03121, “Biometrie in hoheitlichen Anwendungen”, which is why the same photo has to work at an airport eGate as well as on the page.',
+    background:
+      'The background must be shadow-free and a single colour, and it has to contrast clearly with both your face and your hair. That last part catches people out: a white background behind grey or blonde hair is a rejection, and the chart lists “Hintergrund ohne Kontrast” as a failure alongside patterned and shadowed backgrounds.',
+    expression:
+      'Neutral expression, looking straight into the camera, mouth closed. Smiling with the mouth open is shown as a rejection, as is any grimace.',
+    glasses:
+      'Glasses are allowed, but the chart rejects two specific things: frames that cover the eyes, and lenses that are tinted too dark or catching a reflection. The eyes must be clearly visible and unobscured.',
+    headCovering:
+      'Head coverings are permitted for religious reasons only. Where one is worn, the face must be visible from the lower edge of the chin to the forehead, with no shadow falling across it. Caps are shown as a rejection.',
+    children:
+      'For children the face may fill 50–80% of the photo height rather than 70–80%. Up to the age of 10 minor deviations are accepted, and up to the age of 6 there are further allowances on head position, expression and whether the eyes are fully visible.',
+    exceptions:
+      'Exceptions are granted only for long-term or permanent medical reasons — the chart names facial paralysis, asymmetry, and being unable to hold the mouth closed at rest.',
+    quirk:
+      'The head-height rule is expressed as a proportion, not a measurement: the face must occupy 70 to 80% of the photo height, measured from the tip of the chin to the top of the head. On a 45 mm photo that is 31.5–36 mm. Photos are rejected for the head being too large as often as too small.',
+    sourceName: 'BMI — Fotomustertafel: Qualitätsmerkmale biometrischer Fotos für Dokumente (Stand Juli 2025, BMI24037)',
+    sourceUrl: 'https://www.bmi.bund.de/SharedDocs/downloads/DE/publikationen/themen/moderne-verwaltung/BMI24037-fotomustertafel.html',
+    checkedOn: '2026-08-23',
+  },
+};
+
+export const getEditorial = (id: string): CountryEditorial | undefined => EDITORIAL[id];
+
 // ---- derived facts -----------------------------------------------------------
 // Everything below is COMPUTED from the verified numbers above. Nothing here is
 // authored or looked up, so it cannot drift from the spec table or invent a

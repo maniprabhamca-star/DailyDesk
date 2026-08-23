@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { KeywordLanding } from '@/components/app/keyword-landing';
-import { PASSPORT_SPECS, getSpec, isVerified, derive, sharesSpecWith } from '@/lib/passport-specs';
+import { PASSPORT_SPECS, getSpec, isVerified, derive, sharesSpecWith, getEditorial } from '@/lib/passport-specs';
 
 export function generateStaticParams() {
   return PASSPORT_SPECS.map((s) => ({ country: s.id }));
@@ -32,6 +32,7 @@ export default function Page({ params }: { params: { country: string } }) {
   const cap = capOf(s.maxKB);
   const shared = sharesSpecWith(s);
   const verified = isVerified(s.id);
+  const ed = getEditorial(s.id);
 
   const row = (k: string, v: string) => (
     <div key={k} className="flex flex-wrap justify-between gap-2 border-b border-border/60 py-2 last:border-0">
@@ -74,6 +75,30 @@ export default function Page({ params }: { params: { country: string } }) {
                 : 'These are the standard published figures for this document. This particular entry has not yet been checked against an official source, so confirm on the portal where you submit before printing.'}
             </p>
           </section>
+
+          {ed && (
+            <section>
+              <h2 className="text-lg font-semibold">What {s.label} asks for specifically</h2>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{ed.authority}</p>
+              <dl className="mt-3 space-y-3 text-sm leading-relaxed">
+                {ed.quirk && (
+                  <div className="rounded-lg border border-amber-500/40 bg-amber-500/[0.07] p-3">
+                    <dt className="font-semibold">The one people get wrong</dt>
+                    <dd className="mt-1 text-muted-foreground">{ed.quirk}</dd>
+                  </div>
+                )}
+                {ed.background && (<div><dt className="font-semibold">Background</dt><dd className="text-muted-foreground">{ed.background}</dd></div>)}
+                {ed.glasses && (<div><dt className="font-semibold">Glasses</dt><dd className="text-muted-foreground">{ed.glasses}</dd></div>)}
+                {ed.headCovering && (<div><dt className="font-semibold">Head coverings</dt><dd className="text-muted-foreground">{ed.headCovering}</dd></div>)}
+                {ed.expression && (<div><dt className="font-semibold">Expression</dt><dd className="text-muted-foreground">{ed.expression}</dd></div>)}
+                {ed.children && (<div><dt className="font-semibold">Children</dt><dd className="text-muted-foreground">{ed.children}</dd></div>)}
+                {ed.exceptions && (<div><dt className="font-semibold">Exceptions</dt><dd className="text-muted-foreground">{ed.exceptions}</dd></div>)}
+              </dl>
+              <p className="mt-3 text-xs text-muted-foreground">
+                Source: <a href={ed.sourceUrl} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">{ed.sourceName}</a>. Checked {ed.checkedOn}. Rules change — confirm on the authority&rsquo;s own page before you submit.
+              </p>
+            </section>
+          )}
 
           <section>
             <h2 className="text-lg font-semibold">Getting the head size right</h2>
