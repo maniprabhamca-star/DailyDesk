@@ -20,6 +20,14 @@ export type ChangeEntry = {
 // flags flip, dated then.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-08-23',
+    kind: 'new',
+    title: 'See exactly what compression changed, instead of squinting',
+    detail:
+      'The quality preview used to put the original and the compressed page side by side and leave you to spot the difference. At the gentler settings there is nothing to spot — which is the whole point, but it reads as though the tool is not working. So it now measures the page instead of asking you to. You get a match figure comparing the two pages, a plain sentence about what it means, and a "Show what changed" view that paints the page black where nothing moved and bright where it did — so you can see that the text was left alone and only the photographs were touched. The difference is amplified ten times, because the changes worth showing are small ones. None of this is an estimate: it is measured from the actual page the settings will produce, on your device, before you commit to anything.',
+    href: '/compress-pdf',
+  },
+  {
     date: '2026-08-22',
     kind: 'fixed',
     title: 'Photos that said they were one thing and were another',

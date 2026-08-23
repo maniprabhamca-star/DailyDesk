@@ -1,8 +1,9 @@
 'use client';
 
-import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
-import { Loader2, Search } from 'lucide-react';
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { Loader2, Search, Sparkles } from 'lucide-react';
 import type { RenderedPage } from '@/lib/pdf-render';
+import { diffPages, describeMatch, type DiffResult } from '@/lib/image-diff';
 
 // Before/after quality proof for Compress. Responsive: side-by-side panes on
 // desktop, a flip toggle on mobile (each page gets full width). A loupe magnifier
@@ -98,6 +99,7 @@ export function BeforeAfter({
   beforeCaption = 'Original',
   afterCaption = 'Compressed',
   zoomHint = 'Hover the image to zoom in — your text stays razor-sharp',
+  measure = false,
 }: {
   before: RenderedPage | null;
   after: RenderedPage | null;
@@ -107,11 +109,66 @@ export function BeforeAfter({
   beforeCaption?: string;
   afterCaption?: string;
   zoomHint?: string;
+  /** Measure the two pages and offer a difference map + match score. */
+  measure?: boolean;
 }) {
   const [mobileSide, setMobileSide] = useState<'before' | 'after'>('after');
+  const [diff, setDiff] = useState<DiffResult | null>(null);
+  const [showDiff, setShowDiff] = useState(false);
+  const [measuring, setMeasuring] = useState(false);
+
+  // Measure whenever either side changes. The blob URLs behind these pages are
+  // revoked when the PDF handle is destroyed, so a failure here is expected
+  // during teardown and must stay silent rather than throwing into the tree.
+  useEffect(() => {
+    if (!measure || !before || !after) { setDiff(null); return; }
+    let dead = false;
+    let made: string | null = null;
+    setMeasuring(true);
+    diffPages(before.url, after.url)
+      .then((res) => {
+        if (dead) { URL.revokeObjectURL(res.heatmapUrl); return; }
+        made = res.heatmapUrl;
+        setDiff(res);
+      })
+      .catch(() => { if (!dead) setDiff(null); })
+      .finally(() => { if (!dead) setMeasuring(false); });
+    return () => { dead = true; if (made) URL.revokeObjectURL(made); };
+  }, [measure, before, after]);
+
+  const heat: RenderedPage | null = diff && after ? { url: diff.heatmapUrl, w: after.w, h: after.h } : null;
+  const showingHeat = showDiff && !!heat;
 
   return (
     <div>
+      {measure && (
+        <div className="mb-2.5 rounded-lg border bg-muted/30 p-2.5">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <span className="flex items-center gap-1.5 text-xs font-medium">
+              <Sparkles className="size-3.5 text-primary" />
+              {measuring || !diff ? 'Measuring this page…' : `Visual match ${diff.match.toFixed(1)}%`}
+            </span>
+            {diff && (
+              <button
+                type="button"
+                onClick={() => setShowDiff((v) => !v)}
+                aria-pressed={showDiff}
+                className={`ml-auto rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${showDiff ? 'border-primary bg-primary/10 text-primary' : 'bg-card hover:bg-accent'}`}
+              >
+                {showDiff ? 'Hide what changed' : 'Show what changed'}
+              </button>
+            )}
+          </div>
+          {diff && (
+            <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
+              {showDiff
+                ? 'Bright areas are where the page changed; black is untouched. The difference is amplified six times so it can be seen at all.'
+                : describeMatch(diff.match)}
+            </p>
+          )}
+        </div>
+      )}
+
       <div className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
         <Search className="size-3.5 shrink-0 text-primary" />
         <span className="sm:hidden">Tap a version, then press and drag the image to zoom in</span>
@@ -121,16 +178,22 @@ export function BeforeAfter({
       {/* Desktop: side-by-side */}
       <div className="hidden gap-3 sm:grid sm:grid-cols-2">
         <Pane page={before} caption={beforeCaption} value={beforeLabel} loading={loading} />
-        <Pane page={after} caption={afterCaption} value={afterLabel} success loading={loading} />
+        <Pane
+          page={showingHeat ? heat : after}
+          caption={showingHeat ? 'What changed' : afterCaption}
+          value={afterLabel}
+          success={!showingHeat}
+          loading={loading}
+        />
       </div>
 
       {/* Mobile: flip toggle */}
       <div className="sm:hidden">
         <Pane
-          page={mobileSide === 'before' ? before : after}
-          caption={mobileSide === 'before' ? beforeCaption : afterCaption}
+          page={mobileSide === 'before' ? before : (showingHeat ? heat : after)}
+          caption={mobileSide === 'before' ? beforeCaption : (showingHeat ? 'What changed' : afterCaption)}
           value={mobileSide === 'before' ? beforeLabel : afterLabel}
-          success={mobileSide === 'after'}
+          success={mobileSide === 'after' && !showingHeat}
           loading={loading}
         />
         <div className="mt-3 flex justify-center">

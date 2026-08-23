@@ -1056,6 +1056,8 @@ export function CompressTool() {
                   beforeLabel="Original"
                   afterLabel={LEVELS[level].title}
                   loading={!previewPage || !levelPreview}
+                  measure
+                  zoomHint="Hover the image to zoom in, or use “Show what changed” above"
                 />
               </div>
             )}
