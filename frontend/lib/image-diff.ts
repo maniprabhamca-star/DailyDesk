@@ -12,12 +12,19 @@
 // Nothing is estimated or projected — this is the real output, measured.
 
 export type DiffResult = {
-  /** Blob URL of the amplified difference map. Revoke when done. */
-  heatmapUrl: string;
   /** Mean SSIM across the page, 0–100. 100 = pixel-identical. */
   match: number;
-  /** Worst-affected region, in 0–1 fractions of the page. Null if nothing changed. */
+  /**
+   * The part of the page compression hurt most, as 0–1 fractions of the page.
+   * This — not a heat map — is what a reader can actually judge: if the worst
+   * spot on the page looks acceptable at full size, the rest of the page is
+   * better than it. An amplified difference map answered "where do pixels
+   * differ", which on line art means "everywhere", and told nobody whether the
+   * file was still good enough to send.
+   */
   worst: { x: number; y: number; w: number; h: number } | null;
+  /** Plain-English location of `worst`, e.g. "the middle of the page". */
+  worstWhere: string;
 };
 
 // The comparison runs at the COMPRESSED page's own size, capped for speed.
@@ -129,15 +136,16 @@ function ssim(a: Float32Array, b: Float32Array, w: number, h: number): { mean: n
   }
   if (!count) return { mean: 1, worst: null };
   const mean = total / count;
-  // A 3x3 window cluster reads better than a lone 8px square.
-  const span = WIN * 3;
-  const worst = worstVal < 0.999
-    ? {
-        x: Math.max(0, worstX - WIN) / w,
-        y: Math.max(0, worstY - WIN) / h,
-        w: Math.min(span, w) / w,
-        h: Math.min(span, h) / h,
-      }
+  // Crop a chunk big enough to recognise — a lone 8px square shown at 1:1 is
+  // meaningless out of context. A fifth of the long edge, centred on the worst
+  // window and clamped inside the page.
+  const span = Math.round(Math.max(w, h) * 0.2);
+  const cx = worstX + WIN / 2;
+  const cy = worstY + WIN / 2;
+  const x0 = Math.max(0, Math.min(w - span, Math.round(cx - span / 2)));
+  const y0 = Math.max(0, Math.min(h - span, Math.round(cy - span / 2)));
+  const worst = worstVal < 0.999 && span > 0
+    ? { x: x0 / w, y: y0 / h, w: Math.min(span, w) / w, h: Math.min(span, h) / h }
     : null;
   return { mean, worst };
 }
@@ -170,36 +178,28 @@ export async function diffPages(beforeUrl: string, afterUrl: string): Promise<Di
   const gb = denoise(lb, w, h);
   const { mean, worst } = ssim(ga, gb, w, h);
 
-  // Difference map. Amplified hard, because the differences that matter here
-  // are small: a x1 map of a Light pass is pure black and tells nobody anything.
-  const out = new ImageData(w, h);
-  const o = out.data;
-  const AMP = 10;
-  const FLOOR = 2.5; // below this is grain the eye will never see; keep it black
-  for (let i = 0, p = 0; i < n; i++, p += 4) {
-    const raw = Math.abs(ga[i] - gb[i]);
-    const d = raw <= FLOOR ? 0 : Math.min(255, (raw - FLOOR) * AMP);
-    // Black where nothing moved, through amber, to red where it moved most —
-    // legible on any background, and reads as "heat" without a legend.
-    o[p] = Math.min(255, d * 2.2);
-    o[p + 1] = Math.min(255, d * 1.1);
-    o[p + 2] = Math.min(255, d * 0.35);
-    o[p + 3] = 255;
-  }
+  // Tell the reader where they are looking. A crop with no context is a puzzle.
+  const where = (r: { x: number; y: number; w: number; h: number } | null): string => {
+    if (!r) return '';
+    const cx = r.x + r.w / 2;
+    const cy = r.y + r.h / 2;
+    const vert = cy < 0.34 ? 'top' : cy > 0.66 ? 'bottom' : 'middle';
+    const horz = cx < 0.34 ? 'left' : cx > 0.66 ? 'right' : 'centre';
+    if (vert === 'middle' && horz === 'centre') return 'the middle of the page';
+    if (vert === 'middle') return `the ${horz} of the page`;
+    if (horz === 'centre') return `the ${vert} of the page`;
+    return `the ${vert} ${horz} of the page`;
+  };
 
-  const c = document.createElement('canvas');
-  c.width = w; c.height = h;
-  const ctx = c.getContext('2d');
-  if (!ctx) throw new Error('no canvas context');
-  ctx.putImageData(out, 0, 0);
-  const blob = await new Promise<Blob | null>((r) => c.toBlob(r, 'image/png'));
-  c.width = c.height = 0;
-  if (!blob) throw new Error('difference map could not be encoded');
-
+  // No difference map is produced any more. It was the honest measurement of
+  // the wrong question: it showed where pixels differ, which on an engraving is
+  // every line, and it left the reader staring at an alarming orange picture
+  // with no way to decide whether the file was still good enough to send.
+  // `worst` answers the question they actually have.
   return {
-    heatmapUrl: URL.createObjectURL(blob),
     match: Math.max(0, Math.min(100, mean * 100)),
     worst,
+    worstWhere: where(worst),
   };
 }
 

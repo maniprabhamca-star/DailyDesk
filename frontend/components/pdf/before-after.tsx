@@ -136,21 +136,37 @@ export function BeforeAfter({
   useEffect(() => {
     if (!measure || !before || !after) { setDiff(null); return; }
     let dead = false;
-    let made: string | null = null;
     setMeasuring(true);
+    setShowDiff(false);
     diffPages(before.url, after.url)
-      .then((res) => {
-        if (dead) { URL.revokeObjectURL(res.heatmapUrl); return; }
-        made = res.heatmapUrl;
-        setDiff(res);
-      })
+      .then((res) => { if (!dead) setDiff(res); })
       .catch(() => { if (!dead) setDiff(null); })
       .finally(() => { if (!dead) setMeasuring(false); });
-    return () => { dead = true; if (made) URL.revokeObjectURL(made); };
+    return () => { dead = true; };
   }, [measure, before, after]);
 
-  const heat: RenderedPage | null = diff && after ? { url: diff.heatmapUrl, w: after.w, h: after.h } : null;
-  const showingHeat = showDiff && !!heat;
+  const canZoom = !!(diff?.worst && before && after);
+  const showingZoom = showDiff && canZoom;
+
+  // A crop of one page, blown up. Same CSS-background trick as the loupe, so no
+  // second render pass and no extra bitmap in memory.
+  const Crop = ({ page, label, good }: { page: RenderedPage; label: string; good?: boolean }) => {
+    const r = diff!.worst!;
+    return (
+      <figure className="min-w-0 flex-1">
+        <div
+          className={`aspect-square w-full overflow-hidden rounded-lg border bg-white ${good ? 'border-border' : 'border-amber-500/50'}`}
+          style={{
+            backgroundImage: `url(${page.url})`,
+            backgroundRepeat: 'no-repeat',
+            backgroundSize: `${100 / r.w}% ${100 / r.h}%`,
+            backgroundPosition: `${(r.x / (1 - r.w)) * 100}% ${(r.y / (1 - r.h)) * 100}%`,
+          }}
+        />
+        <figcaption className="mt-1 text-center text-[11px] text-muted-foreground">{label}</figcaption>
+      </figure>
+    );
+  };
 
   return (
     <div>
@@ -166,14 +182,14 @@ export function BeforeAfter({
                 {measuring || !diff ? 'Measuring this page…' : describeMatch(diff.match)}
               </span>
             </span>
-            {diff && (
+            {canZoom && (
               <button
                 type="button"
                 onClick={() => setShowDiff((v) => !v)}
                 aria-pressed={showDiff}
                 className={`ml-auto shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${showDiff ? 'border-primary bg-primary/10 text-primary' : 'bg-card hover:bg-accent'}`}
               >
-                {showDiff ? 'Hide what changed' : 'Show what changed'}
+                {showDiff ? 'Hide closest look' : 'Show the worst-affected spot'}
               </button>
             )}
           </div>
@@ -202,10 +218,20 @@ export function BeforeAfter({
             </p>
           )}
 
-          {diff && showDiff && (
-            <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-              Bright areas are where <b>detail was lost</b>; black is untouched. Resizing is not counted — the two pages are compared at the same size, so this shows compression damage only. Amplified ten times so it can be seen at all. Measured match: {diff.match.toFixed(1)}% (structural similarity, grain ignored).
-            </p>
+          {showingZoom && (
+            <div className="mt-2.5 rounded-lg border bg-card p-2.5">
+              <p className="mb-2 text-[11px] leading-relaxed text-muted-foreground">
+                This is the part of the page compression hurt <b>most</b> — {diff!.worstWhere}, enlarged.
+                Everything else on the page came through better than this. If this looks acceptable to you, the file is fine to send.
+              </p>
+              <div className="flex gap-2.5">
+                <Crop page={before!} label="Before" good />
+                <Crop page={after!} label={`After — ${afterLabel}`} />
+              </div>
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                Measured match across the whole page: {diff!.match.toFixed(1)}% (structural similarity; resizing and paper grain are excluded, so this counts compression damage only).
+              </p>
+            </div>
           )}
         </div>
       )}
@@ -220,10 +246,10 @@ export function BeforeAfter({
       <div className="hidden gap-3 sm:grid sm:grid-cols-2">
         <Pane page={before} caption={beforeCaption} value={beforeLabel} loading={loading} />
         <Pane
-          page={showingHeat ? heat : after}
-          caption={showingHeat ? 'What changed' : afterCaption}
+          page={after}
+          caption={afterCaption}
           value={afterLabel}
-          success={!showingHeat}
+          success
           loading={loading}
         />
       </div>
@@ -231,10 +257,10 @@ export function BeforeAfter({
       {/* Mobile: flip toggle */}
       <div className="sm:hidden">
         <Pane
-          page={mobileSide === 'before' ? before : (showingHeat ? heat : after)}
-          caption={mobileSide === 'before' ? beforeCaption : (showingHeat ? 'What changed' : afterCaption)}
+          page={mobileSide === 'before' ? before : after}
+          caption={mobileSide === 'before' ? beforeCaption : afterCaption}
           value={mobileSide === 'before' ? beforeLabel : afterLabel}
-          success={mobileSide === 'after' && !showingHeat}
+          success={mobileSide === 'after'}
           loading={loading}
         />
         <div className="mt-3 flex justify-center">
