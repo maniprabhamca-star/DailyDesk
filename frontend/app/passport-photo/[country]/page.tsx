@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { KeywordLanding } from '@/components/app/keyword-landing';
-import { PASSPORT_SPECS, getSpec, isVerified } from '@/lib/passport-specs';
+import { PASSPORT_SPECS, getSpec, isVerified, derive, sharesSpecWith } from '@/lib/passport-specs';
 
 export function generateStaticParams() {
   return PASSPORT_SPECS.map((s) => ({ country: s.id }));
@@ -12,10 +13,13 @@ const capOf = (kb?: number) => (kb ? (kb >= 1024 ? `${kb / 1024} MB` : `${kb} KB
 export function generateMetadata({ params }: { params: { country: string } }): Metadata {
   const s = getSpec(params.country);
   if (!s) return {};
+  const d = derive(s);
   const cap = capOf(s.maxKB);
   return {
-    title: `${s.label} Passport Photo — ${s.wMM}×${s.hMM} mm | DiemDesk`,
-    description: `${s.label} photo, free — ${s.wMM}×${s.hMM} mm, ${s.bgName.toLowerCase()} background${cap ? `, under ${cap}` : ''}. Cropped and sized on your device — never uploaded.`,
+    // s.label already carries the document type for some entries ("Canada
+    // passport/visa", "US visa (DS-160)"), so don't bolt "Passport" on again.
+    title: `${s.label} Photo Size — ${s.wMM}×${s.hMM} mm | DiemDesk`,
+    description: `${s.label} photo size: ${s.wMM}×${s.hMM} mm (${s.wPx}×${s.hPx} px), head ${d.headMinMM}–${d.headMaxMM} mm, ${s.bgName.toLowerCase()} background${cap ? `, under ${cap}` : ''}. Free maker — cropped on your device, never uploaded.`,
     alternates: { canonical: `/passport-photo/${s.id}` },
     openGraph: { images: ['/og.png'], title: `${s.label} Photo Maker — Free | DiemDesk`, type: 'website' },
   };
@@ -24,24 +28,113 @@ export function generateMetadata({ params }: { params: { country: string } }): M
 export default function Page({ params }: { params: { country: string } }) {
   const s = getSpec(params.country);
   if (!s) notFound();
+  const d = derive(s);
   const cap = capOf(s.maxKB);
+  const shared = sharesSpecWith(s);
+  const verified = isVerified(s.id);
+
+  const row = (k: string, v: string) => (
+    <div key={k} className="flex flex-wrap justify-between gap-2 border-b border-border/60 py-2 last:border-0">
+      <dt className="text-muted-foreground">{k}</dt>
+      <dd className="font-medium">{v}</dd>
+    </div>
+  );
+
   return (
     <KeywordLanding
-      h1={`${s.label} photo size & maker`}
-      lede={`Make a compliant ${s.label} photo — ${s.wMM}×${s.hMM} mm (${s.wPx}×${s.hPx} px), ${s.bgName.toLowerCase()} background${cap ? `, under ${cap}` : ''} — cropped and sized right, entirely in your browser.`}
+      h1={`${s.label} photo size — ${s.wMM}×${s.hMM} mm`}
+      lede={`A ${s.label} photo is ${s.wMM}×${s.hMM} mm with the head ${d.headMinMM}–${d.headMaxMM} mm from crown to chin, on a ${s.bgName.toLowerCase()} background${cap ? `, saved under ${cap}` : ''}. Crop and size one here for free — your photo is processed on your device and never uploaded.`}
       ctaHref="/passport-photo"
       ctaLabel={`Make my ${s.label} photo`}
       bullets={[
-        `Exact size: ${s.wMM}×${s.hMM} mm (${s.wPx}×${s.hPx} px)`,
-        `${s.bgName} background — swap it on your device (Pro)`,
-        cap ? `Kept under the ${cap} file limit` : 'Exported as a high-quality JPEG',
-        'Your photo is never uploaded — faces stay on your device',
-        'Print sheet: multiple copies on a 4×6',
+        `${s.wMM}×${s.hMM} mm — ${d.wIn}×${d.hIn} in — ${s.wPx}×${s.hPx} px at 300 DPI`,
+        `Head height ${d.headMinMM}–${d.headMaxMM} mm (${Math.round(s.headMin * 100)}–${Math.round(s.headMax * 100)}% of the photo)`,
+        `${s.bgName} background`,
+        cap ? `Digital upload limit: ${cap}` : 'No published file-size limit — exported as a high-quality JPEG',
+        `${d.perSheet} copies fit on one 4×6 in print`,
       ]}
-      body={<p>{isVerified(s.id) ? 'This spec has been checked against an official source.' : 'This uses the standard published spec — always double-check your portal’s exact rules before submitting.'}</p>}
+      body={
+        <div className="space-y-6">
+          <section>
+            <h2 className="text-lg font-semibold">{s.label} photo requirements at a glance</h2>
+            <dl className="mt-3 rounded-xl border bg-card p-4 text-sm">
+              {row('Photo size', `${s.wMM} × ${s.hMM} mm`)}
+              {row('In inches', `${d.wIn} × ${d.hIn} in`)}
+              {row('Pixels at 300 DPI', `${s.wPx} × ${s.hPx} px`)}
+              {row('Pixels at 600 DPI', `${d.px600} px`)}
+              {row('Shape', d.isSquare ? 'Square' : `Portrait, about ${d.aspect}`)}
+              {row('Head height', `${d.headMinMM} – ${d.headMaxMM} mm (crown to chin)`)}
+              {row('Background', s.bgName)}
+              {row('File size limit', cap ?? 'None published')}
+              {row('Copies per 4×6 in print', String(d.perSheet))}
+            </dl>
+            <p className="mt-2 text-xs text-muted-foreground">
+              {verified
+                ? 'These figures were checked against an official or widely-cited source. Portals occasionally change their rules, so confirm on the page where you submit.'
+                : 'These are the standard published figures for this document. This particular entry has not yet been checked against an official source, so confirm on the portal where you submit before printing.'}
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-semibold">Getting the head size right</h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              Head height is the measurement most photos fail on, and it is not the same as
+              &ldquo;how much of the frame your face fills&rdquo;. It runs from the top of the head — the
+              crown, not the top of your hair if it stands up — down to the bottom of the chin.
+              For {s.label} that is <b>{d.headMinMM} to {d.headMaxMM} mm</b> on a {s.hMM} mm tall
+              photo{d.isSquare ? '' : ', leaving the rest as space above the head and below the chin'}.
+              The maker draws that band on screen while you position the photo, so you can see
+              whether you are inside it before you export{cap ? `, and keeps the exported file under ${cap}` : ''}.
+            </p>
+          </section>
+
+          {shared.length > 0 && (
+            <section>
+              <h2 className="text-lg font-semibold">One photo, several countries</h2>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                {s.wMM}×{s.hMM} mm with a {s.bgName.toLowerCase()} background and the same head range is
+                also what {shared.length === 1 ? 'one other destination we cover' : `${shared.length} other destinations we cover`} publish{shared.length === 1 ? 'es' : ''} — so
+                the photo you make for {s.label} is normally usable for {shared.length === 1 ? 'it' : 'them'} too:
+              </p>
+              <ul className="mt-3 flex flex-wrap gap-2">
+                {shared.map((o) => (
+                  <li key={o.id}>
+                    <Link
+                      href={`/passport-photo/${o.id}`}
+                      className="inline-flex rounded-full border bg-card px-3 py-1 text-xs font-medium transition-colors hover:border-primary/50 hover:bg-accent"
+                    >
+                      {o.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Sizes match, but each authority still sets its own rules on things like glasses,
+                head coverings and how recent the photograph must be. Check the portal you are
+                submitting to.
+              </p>
+            </section>
+          )}
+
+          <section>
+            <h2 className="text-lg font-semibold">Printing a {s.label} photo at home</h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              At {s.wMM}×{s.hMM} mm you get <b>{d.perSheet} copies</b> on a single 4×6 in
+              (10×15 cm) print, which is the cheapest size at almost every print counter and
+              photo kiosk. Export at 300 DPI ({s.wPx}×{s.hPx} px) for printing; some portals
+              accept or prefer 600 DPI ({d.px600} px) for digital submission. Cut along the
+              guides with a straight edge rather than scissors — a crooked border is a
+              surprisingly common reason for a photo to be handed back.
+            </p>
+          </section>
+        </div>
+      }
       faqs={[
-        { q: `What size is a ${s.label} photo?`, a: `${s.wMM}×${s.hMM} mm (${s.wPx}×${s.hPx} px), ${s.bgName.toLowerCase()} background${cap ? `, under ${cap}` : ''}.` },
-        { q: 'Is my photo uploaded?', a: 'No — cropping, background swap and export all happen in your browser, so your photo never leaves your device.' },
+        { q: `What size is a ${s.label} photo?`, a: `${s.wMM}×${s.hMM} mm — that is ${d.wIn}×${d.hIn} inches, or ${s.wPx}×${s.hPx} pixels at 300 DPI. The background must be ${s.bgName.toLowerCase()}${cap ? `, and the file must be under ${cap}` : ''}.` },
+        { q: `How big should the head be in a ${s.label} photo?`, a: `Between ${d.headMinMM} mm and ${d.headMaxMM} mm from the crown of the head to the bottom of the chin, which is ${Math.round(s.headMin * 100)}–${Math.round(s.headMax * 100)}% of the ${s.hMM} mm photo height.` },
+        { q: `How many ${s.label} photos fit on a 4×6 print?`, a: `${d.perSheet} copies at ${s.wMM}×${s.hMM} mm. The maker lays them out on a 4×6 in sheet with cutting guides, so one cheap print gives you a full set.` },
+        ...(cap ? [{ q: `What is the file size limit for a ${s.label} photo?`, a: `${cap}. The exported JPEG is kept under that limit automatically, so you do not have to compress it yourself afterwards.` }] : []),
+        { q: 'Is my photo uploaded to a server?', a: 'No. Cropping, background replacement and export all run inside your browser, so the photograph never leaves your device. There is no account and nothing to delete afterwards.' },
       ]}
     />
   );

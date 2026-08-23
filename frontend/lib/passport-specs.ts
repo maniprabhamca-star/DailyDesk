@@ -109,3 +109,47 @@ export const VERIFIED_SPECS = new Set<string>([
   'germany', 'france', 'italy', 'spain', 'netherlands', 'portugal', 'belgium', 'switzerland', 'austria', 'sweden', 'norway', 'poland', 'greece', 'ireland',
 ]);
 export const isVerified = (id: string): boolean => VERIFIED_SPECS.has(id);
+
+// ---- derived facts -----------------------------------------------------------
+// Everything below is COMPUTED from the verified numbers above. Nothing here is
+// authored or looked up, so it cannot drift from the spec table or invent a
+// requirement that no authority actually publishes.
+
+export type DerivedSpec = {
+  headMinMM: number; headMaxMM: number;
+  wIn: string; hIn: string;
+  px600: string;
+  aspect: string;
+  perSheet: number;        // copies that fit on a 4x6 in / 10x15 cm print
+  isSquare: boolean;
+};
+
+export function derive(s: PassportSpec): DerivedSpec {
+  const r = (v: number) => Math.round(v * 10) / 10;
+  // A 4x6 in print is 152x102 mm; count both orientations and take the better.
+  const fit = (pw: number, ph: number) => Math.floor(152 / pw) * Math.floor(102 / ph);
+  return {
+    headMinMM: r(s.headMin * s.hMM),
+    headMaxMM: r(s.headMax * s.hMM),
+    wIn: r(s.wMM / 25.4).toFixed(1),
+    hIn: r(s.hMM / 25.4).toFixed(1),
+    px600: `${Math.round((s.wMM / 25.4) * 600)}×${Math.round((s.hMM / 25.4) * 600)}`,
+    aspect: `${r(s.hMM / s.wMM)}:1`,
+    perSheet: Math.max(fit(s.wMM, s.hMM), fit(s.hMM, s.wMM)),
+    isSquare: s.wMM === s.hMM,
+  };
+}
+
+// Other countries that publish EXACTLY this size, head range and background.
+// This is what makes each country page genuinely different from its neighbours:
+// the list excludes the page it appears on, so no two pages carry the same text,
+// and it gives the reader something true and useful — 35×45 mm is shared by
+// dozens of states, and knowing that one photo covers several trips is the point.
+export function sharesSpecWith(s: PassportSpec, limit = 8): PassportSpec[] {
+  return PASSPORT_SPECS.filter((o) =>
+    o.id !== s.id &&
+    o.wMM === s.wMM && o.hMM === s.hMM &&
+    o.headMin === s.headMin && o.headMax === s.headMax &&
+    o.bgName === s.bgName,
+  ).slice(0, limit);
+}
