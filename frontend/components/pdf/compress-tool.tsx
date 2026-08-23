@@ -1,5 +1,5 @@
 'use client';
-import { useFileSession, clearSession } from '@/lib/editor-session';
+import { useFileSession, clearSession, MAX_FILE_SESSION } from '@/lib/editor-session';
 
 import { useEffect, useRef, useState } from 'react';
 import { useFileHandoff } from '@/lib/file-handoff';
@@ -1066,6 +1066,15 @@ export function CompressTool() {
               <p className="mt-2.5 flex items-center gap-1.5 text-xs text-amber-600"><Coffee className="size-3.5 shrink-0" /> Maximum rebuilds every image-heavy page for the smallest size — on big files this can take a few minutes, so grab a coffee. ☕ (Best for scans/photos; won’t shrink text-only PDFs.)</p>
             ) : (
               <p className="mt-2.5 flex items-center gap-1.5 text-xs text-muted-foreground"><CheckCircle2 className="size-3.5 text-emerald-500" /> Smart, DPI-aware — only images bigger than they’re shown get shrunk. Text stays sharp and selectable.</p>
+            )}
+            {/* Files above the session cap are deliberately never written to
+                IndexedDB. Saying nothing meant a refresh looked like the tool
+                had lost the file (owner-reported). */}
+            {file && file.size > MAX_FILE_SESSION && (
+              <p className="mt-2 flex items-start gap-1.5 text-xs text-muted-foreground">
+                <FileText className="mt-0.5 size-3.5 shrink-0" />
+                <span>This file is {fmt(file.size)} — too big to keep for later, so it won’t come back if you reload the page. Files under {fmt(MAX_FILE_SESSION)} are held on your device so a refresh doesn’t lose them.</span>
+              </p>
             )}
 
             {/* Live quality preview (scans): page 1 exactly as this level will

@@ -110,7 +110,7 @@ export function clearSession(key: string): void {
 // the user's choice, silently loads it back. A file arriving via hand-off or a
 // fast user pick wins — restore only fires if nothing is loaded shortly after
 // mount.
-const MAX_FILE_SESSION = 25 * 1024 * 1024;
+export const MAX_FILE_SESSION = 25 * 1024 * 1024;
 
 export function useFileSession(
   key: string,

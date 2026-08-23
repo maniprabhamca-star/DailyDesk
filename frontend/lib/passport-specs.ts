@@ -157,6 +157,24 @@ export const EDITORIAL: Record<string, CountryEditorial> = {
     sourceUrl: 'https://www.bmi.bund.de/SharedDocs/downloads/DE/publikationen/themen/moderne-verwaltung/BMI24037-fotomustertafel.html',
     checkedOn: '2026-08-23',
   },
+
+  france: {
+    authority:
+      'Photos for French passports and identity cards are specified by the Ministère de l’Intérieur and published on service-public.gouv.fr; the titles themselves are produced by the ANTS. France is stricter than most of its neighbours on two points, and photographers outside the country get both of them wrong regularly.',
+    background:
+      'A plain light background — light blue or light grey. White is explicitly prohibited, which is the single most common reason a French photo taken abroad is refused: most photo booths and studios outside France default to white, and a white background is a rejection here even though it is fine for a German or American photo.',
+    quirk:
+      'The head must be bare. Unlike Germany, which permits a head covering worn for religious reasons, France requires the head uncovered — no hat, scarf or headband — with exceptions only on medical grounds. Ears must be visible too, so hair is pulled back if it would hide them.',
+    expression:
+      'Neutral expression with the mouth closed, head straight, looking directly at the lens. The eyes must be “parfaitement visibles et ouvertes”.',
+    glasses:
+      'Glasses may be worn but do not have to be. If they are, the frames must not be thick or mask the eyes, and the lenses must not be tinted, coloured or reflecting.',
+    exceptions:
+      'The photograph must be less than six months old, and physically clean — “nette, sans pliure, ni traces”: sharp, with no fold and no marks. Lighting must be even, with no overexposure, underexposure or shadow across the face.',
+    sourceName: 'service-public.gouv.fr — Quelle photo fournir pour un titre d’identité (passeport, carte d’identité) ?',
+    sourceUrl: 'https://www.service-public.gouv.fr/particuliers/vosdroits/F10619',
+    checkedOn: '2026-08-23',
+  },
 };
 
 export const getEditorial = (id: string): CountryEditorial | undefined => EDITORIAL[id];
