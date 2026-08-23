@@ -1,9 +1,9 @@
 'use client';
-import { useFileSession } from '@/lib/editor-session';
+import { useFileSession, clearSession } from '@/lib/editor-session';
 
 import { useEffect, useRef, useState } from 'react';
 import { useFileHandoff } from '@/lib/file-handoff';
-import { Upload, FileText, X, Download, Loader2, Zap, Shrink, CheckCircle2, Coffee, Sparkles, Type, Eye, Lock, RefreshCw } from 'lucide-react';
+import { Upload, FileText, X, Download, Loader2, Zap, Shrink, CheckCircle2, Coffee, Sparkles, Type, Eye, Lock, RefreshCw, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 import { Card, CardContent } from '@/components/ui/card';
@@ -336,8 +336,9 @@ export function CompressTool() {
   // view stable, and the result renders in place with a persistent Download bar.
 
   useFileHandoff(loadOne);
-  // Survive a background-tab discard: silently reload the last file.
-  useFileSession('compress', file, loadOne);
+  // Survive a background-tab discard: silently reload the last file. Older than
+  // that and it comes back as an offer on the dropzone rather than vanishing.
+  const restorable = useFileSession('compress', file, loadOne);
   function loadOne(f?: File) {
     if (!f) return;
     if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) {
@@ -991,6 +992,15 @@ export function CompressTool() {
             onReset={clear}
           />
         ) : !file ? (
+          <div>
+          {restorable && (
+            <div className="mb-3 flex items-center gap-2 rounded-lg border border-primary/25 bg-primary/[0.06] px-3 py-2 text-sm">
+              <RotateCcw className="size-4 shrink-0 text-primary" />
+              <span className="min-w-0 flex-1 truncate">Pick up where you left off — <b className="font-medium">{restorable.name}</b></span>
+              <button onClick={restorable.run} className="shrink-0 rounded-md bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90">Restore</button>
+              <button onClick={() => { clearSession('compress'); location.reload(); }} className="shrink-0 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors hover:bg-accent">Start fresh</button>
+            </div>
+          )}
           <div
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => { e.preventDefault(); pick(e.dataTransfer.files); }}
@@ -1002,6 +1012,7 @@ export function CompressTool() {
             <p className="text-xs text-muted-foreground">Shrinks images, keeps text crisp and selectable</p>
             <span className="mt-4 inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm">Choose PDF</span>
             <p className="mt-3 flex items-center gap-1.5 text-[11px] text-muted-foreground"><Sparkles className="size-3 text-amber-500" /> Drop <b className="font-semibold text-foreground">several at once</b> to batch them — on your device <span className="rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-1.5 py-px text-[9px] font-bold uppercase text-white">Pro</span></p>
+          </div>
           </div>
         ) : (
           <div>

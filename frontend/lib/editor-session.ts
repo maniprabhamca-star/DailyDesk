@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 // Keep an editor's work alive so you never lose a loaded PDF + your edits.
 // Two layers, both 100% on-device (nothing is ever uploaded):
@@ -112,17 +112,27 @@ export function clearSession(key: string): void {
 // mount.
 const MAX_FILE_SESSION = 25 * 1024 * 1024;
 
-export function useFileSession(key: string, file: File | null, load: (f: File) => void | Promise<void>): void {
+export function useFileSession(
+  key: string,
+  file: File | null,
+  load: (f: File) => void | Promise<void>,
+): { name: string; run: () => void } | null {
   const fileRef = useRef<File | null>(file);
   fileRef.current = file;
   const loadRef = useRef(load);
   loadRef.current = load;
+  // Offered on the dropzone when the session is too old to reload silently.
+  // Without this a tool looked as though it had simply forgotten the file:
+  // inside 30 minutes it came back on its own, outside it vanished with no
+  // way to ask for it. Edit and Annotate already offered the choice.
+  const [restorable, setRestorable] = useState<{ name: string; run: () => void } | null>(null);
 
   // Save whenever a (reasonably sized) file is loaded; clear on explicit unload.
   const hadFile = useRef(false);
   useEffect(() => {
     if (file) {
       hadFile.current = true;
+      setRestorable(null); // a file is open; nothing left to offer
       if (file.size <= MAX_FILE_SESSION) saveSession(key, file, null);
     } else if (hadFile.current) {
       hadFile.current = false;
@@ -136,10 +146,17 @@ export function useFileSession(key: string, file: File | null, load: (f: File) =
     const t = setTimeout(() => {
       void loadSessionAsync(key).then((sess) => {
         if (!alive || !sess || fileRef.current) return;
-        if (shouldAutoRestore(sess.savedAt)) void loadRef.current(sess.file);
+        if (shouldAutoRestore(sess.savedAt)) { void loadRef.current(sess.file); return; }
+        // Too old to reload behind the reader's back — offer it instead.
+        setRestorable({
+          name: sess.file.name,
+          run: () => { setRestorable(null); void loadRef.current(sess.file); },
+        });
       });
     }, 250); // let a hand-off or instant user pick win first
     return () => { alive = false; clearTimeout(t); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
+
+  return restorable;
 }
