@@ -5,6 +5,16 @@ import { Loader2, Search, Sparkles } from 'lucide-react';
 import type { RenderedPage } from '@/lib/pdf-render';
 import { diffPages, describeMatch, type DiffResult } from '@/lib/image-diff';
 
+// What a compression level did to the page being previewed. Measured by the
+// caller from the same numbers the compressor uses — not inferred from pixels.
+export type TouchedInfo = {
+  fromPx: number;   // stored long edge of the source page image
+  toPx: number;     // long edge this level will produce
+  dpi: number;      // the level's raster DPI target
+  quality: number;  // JPEG quality, 0-100
+  atFloor: boolean; // the readability floor bound, so every level lands here
+};
+
 // Before/after quality proof for Compress. Responsive: side-by-side panes on
 // desktop, a flip toggle on mobile (each page gets full width). A loupe magnifier
 // is available in BOTH modes — hover (mouse) or press-drag (touch) over a pane to
@@ -100,6 +110,7 @@ export function BeforeAfter({
   afterCaption = 'Compressed',
   zoomHint = 'Hover the image to zoom in — your text stays razor-sharp',
   measure = false,
+  touched = null,
 }: {
   before: RenderedPage | null;
   after: RenderedPage | null;
@@ -111,6 +122,8 @@ export function BeforeAfter({
   zoomHint?: string;
   /** Measure the two pages and offer a difference map + match score. */
   measure?: boolean;
+  /** What the chosen level actually did to this page, stated plainly. */
+  touched?: TouchedInfo | null;
 }) {
   const [mobileSide, setMobileSide] = useState<'before' | 'after'>('after');
   const [diff, setDiff] = useState<DiffResult | null>(null);
@@ -144,26 +157,54 @@ export function BeforeAfter({
       {measure && (
         <div className="mb-2.5 rounded-lg border bg-muted/30 p-2.5">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            <span className="flex items-center gap-1.5 text-xs font-medium">
-              <Sparkles className="size-3.5 text-primary" />
-              {measuring || !diff ? 'Measuring this page…' : `Visual match ${diff.match.toFixed(1)}%`}
+            {/* The sentence leads. The percentage sits inside the panel below,
+                where it has context — shown on its own it reads as a grade and
+                invites "why isn't it 100?" about a page nothing happened to. */}
+            <span className="flex min-w-0 items-start gap-1.5 text-xs">
+              <Sparkles className="mt-0.5 size-3.5 shrink-0 text-primary" />
+              <span className="font-medium">
+                {measuring || !diff ? 'Measuring this page…' : describeMatch(diff.match)}
+              </span>
             </span>
             {diff && (
               <button
                 type="button"
                 onClick={() => setShowDiff((v) => !v)}
                 aria-pressed={showDiff}
-                className={`ml-auto rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${showDiff ? 'border-primary bg-primary/10 text-primary' : 'bg-card hover:bg-accent'}`}
+                className={`ml-auto shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${showDiff ? 'border-primary bg-primary/10 text-primary' : 'bg-card hover:bg-accent'}`}
               >
                 {showDiff ? 'Hide what changed' : 'Show what changed'}
               </button>
             )}
           </div>
-          {diff && (
-            <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
-              {showDiff
-                ? 'Bright areas are where the page changed; black is untouched. The difference is amplified six times so it can be seen at all.'
-                : describeMatch(diff.match)}
+
+          {/* What actually happened — stated, not inferred from two pictures. */}
+          {touched && (
+            <dl className="mt-2 grid gap-x-4 gap-y-1 text-[11px] sm:grid-cols-2">
+              <div className="flex gap-1.5">
+                <dt className="text-muted-foreground">Text:</dt>
+                <dd className="font-medium text-emerald-600 dark:text-emerald-400">untouched, still selectable</dd>
+              </div>
+              <div className="flex gap-1.5">
+                <dt className="text-muted-foreground">Page image:</dt>
+                <dd className="font-medium">
+                  {touched.fromPx > touched.toPx
+                    ? `${touched.fromPx} → ${touched.toPx} px (${touched.dpi} DPI, quality ${touched.quality})`
+                    : `kept at ${touched.toPx} px (quality ${touched.quality})`}
+                </dd>
+              </div>
+            </dl>
+          )}
+
+          {touched?.atFloor && (
+            <p className="mt-2 rounded-md bg-amber-500/10 px-2 py-1.5 text-[11px] leading-relaxed text-amber-700 dark:text-amber-400">
+              This page is already close to the smallest size that stays readable, so it stops at {touched.toPx} px — <b>every level produces this same page</b>, differing only in JPEG quality. Levels will separate on pages that hold larger images.
+            </p>
+          )}
+
+          {diff && showDiff && (
+            <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+              Bright areas are where the page changed; black is untouched. Amplified ten times so it can be seen at all. Measured match: {diff.match.toFixed(1)}% (structural similarity, grain ignored).
             </p>
           )}
         </div>

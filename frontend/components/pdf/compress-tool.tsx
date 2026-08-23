@@ -23,7 +23,7 @@ import { openPdf, renderPage, dprTarget, getPdfjs, pdfDocOptions, yieldToLoop, t
 import { subsetFonts } from '@/lib/pdf-fontgut';
 import { stripDocMetadata } from '@/lib/pdf-sanitize';
 import { PageStrip } from '@/components/pdf/page-strip';
-import { BeforeAfter } from '@/components/pdf/before-after';
+import { BeforeAfter, type TouchedInfo } from '@/components/pdf/before-after';
 import { SavingsRing } from '@/components/app/savings-ring';
 import { BigFileHint } from '@/components/app/big-file-hint';
 import { BatchRunner } from '@/components/app/batch-runner';
@@ -280,6 +280,7 @@ export function CompressTool() {
   // quality actually changes; text/vector content is never touched).
   const [levelPreview, setLevelPreview] = useState<RenderedPage | null>(null);
   const [levelPreviewBusy, setLevelPreviewBusy] = useState(false);
+  const [touched, setTouched] = useState<TouchedInfo | null>(null);
   // Multi-page preview state: one pdf.js handle for the original, one for the
   // compressed result (opened only when there's a real before/after to show).
   const [srcHandle, setSrcHandle] = useState<PdfHandle | null>(null);
@@ -395,6 +396,7 @@ export function CompressTool() {
     setBeforePage(null);
     setAfterPage(null);
     setLevelPreview((p) => { if (p) URL.revokeObjectURL(p.url); return null; });
+    setTouched(null);
     setSrcHandle((prev) => { if (prev) void prev.destroy(); return null; });
     setOutHandle((prev) => { if (prev) void prev.destroy(); return null; });
   }
@@ -431,7 +433,21 @@ export function CompressTool() {
         const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/jpeg', q01));
         const w = canvas.width, h = canvas.height;
         canvas.width = 0; canvas.height = 0;
-        if (!cancelled && blob) setLevelPreview({ url: URL.createObjectURL(blob), w, h });
+        if (!cancelled && blob) {
+          setLevelPreview({ url: URL.createObjectURL(blob), w, h });
+          // What this level actually did, so the preview can say it plainly
+          // instead of leaving the reader to infer it from two pictures.
+          // atFloor matters most: when the readability floor binds, EVERY level
+          // produces the same page, and saying so is the honest answer to
+          // "why do all four look identical?".
+          setTouched({
+            fromPx: Math.round(p1StoredPx || pageLongPt),
+            toPx: Math.round(targetPx),
+            dpi: lv.rasterDpi,
+            quality: Math.round(q01 * 100),
+            atFloor: p1StoredPx > 0 && lv.rasterFrac * p1StoredPx < RASTER_FLOOR_PX && targetPx <= RASTER_FLOOR_PX + 1,
+          });
+        }
       } catch { /* preview is optional */ } finally {
         if (!cancelled) setLevelPreviewBusy(false);
       }
@@ -1057,6 +1073,7 @@ export function CompressTool() {
                   afterLabel={LEVELS[level].title}
                   loading={!previewPage || !levelPreview}
                   measure
+                  touched={touched}
                   zoomHint="Hover the image to zoom in, or use “Show what changed” above"
                 />
               </div>
