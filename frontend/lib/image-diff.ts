@@ -20,9 +20,24 @@ export type DiffResult = {
   worst: { x: number; y: number; w: number; h: number } | null;
 };
 
-// Long edge the comparison runs at. Big enough to catch real artefacts, small
-// enough that the whole pass is a few tens of milliseconds on a phone.
-const WORK_LONG = 900;
+// The comparison runs at the COMPRESSED page's own size, capped for speed.
+//
+// This matters more than it looks. Compression does two separate things: it
+// resizes the page, and it re-encodes it as JPEG. Only the second is quality
+// loss — resizing is the point of the exercise. Drawing the two pages to some
+// third size put the original through a different resampling path than the
+// compressed one, so every edge landed a fraction of a pixel apart and the map
+// lit up along every line. On an engraving that meant the whole illustration
+// glowed, directly under a sentence saying nothing had changed.
+//
+// Measured on a book scan (1320px original, 1100px compressed):
+//   both scaled to 900        17.3% of the page lit
+//   resizing alone, no JPEG    9.9%   <- over half of the above was this
+//   JPEG damage alone         12.5%
+//
+// Rendering the original AT the compressed size makes the resize common to both
+// sides, so it cancels, and what is left is the part worth showing.
+const WORK_MAX = 1400;
 const WIN = 8; // SSIM window, px
 
 function loadImage(url: string): Promise<HTMLImageElement> {
@@ -129,16 +144,17 @@ function ssim(a: Float32Array, b: Float32Array, w: number, h: number): { mean: n
 
 export async function diffPages(beforeUrl: string, afterUrl: string): Promise<DiffResult> {
   const [ia, ib] = await Promise.all([loadImage(beforeUrl), loadImage(afterUrl)]);
-  const srcW = ia.naturalWidth || ia.width;
-  const srcH = ia.naturalHeight || ia.height;
-  if (!srcW || !srcH) throw new Error('preview image has no size');
+  const outW = ib.naturalWidth || ib.width;
+  const outH = ib.naturalHeight || ib.height;
+  if (!outW || !outH || !(ia.naturalWidth || ia.width)) throw new Error('preview image has no size');
 
-  // Both bitmaps are drawn at ONE common size. They are rendered at different
-  // scales, and comparing them at their native sizes would show resampling
-  // noise across the whole page and report a difference that is not there.
-  const scale = Math.min(1, WORK_LONG / Math.max(srcW, srcH));
-  const w = Math.max(WIN, Math.round(srcW * scale));
-  const h = Math.max(WIN, Math.round(srcH * scale));
+  // Target = the compressed page's own size (capped). At scale 1 the compressed
+  // side is copied pixel-for-pixel and only the original is resampled — which
+  // is exactly the resize the compressor performed, so it stops registering as
+  // a difference.
+  const scale = Math.min(1, WORK_MAX / Math.max(outW, outH));
+  const w = Math.max(WIN, Math.round(outW * scale));
+  const h = Math.max(WIN, Math.round(outH * scale));
 
   const da = drawTo(ia, w, h);
   const db = drawTo(ib, w, h);
@@ -195,10 +211,16 @@ export async function diffPages(beforeUrl: string, afterUrl: string): Promise<Di
 // page to the same readability floor and only JPEG quality differs. An earlier
 // cut called 95 "slight softening", which contradicted the tool's own "Best
 // quality" label on the very same screen.
+// Tightened 2026-08-23 after the difference map was fixed to exclude resizing.
+// The old bands called 94.9 "no meaningful visible change" while the map showed
+// 16% of that same page had lost detail — the words and the picture disagreed,
+// and the picture was right. On a dense engraving at quality 52 fine hatching
+// genuinely goes. Saying "slight softening" is not a worse product; it is a
+// true one, and the levels are named relative to each other anyway.
 export function describeMatch(match: number): string {
   if (match >= 99) return 'This page came through unchanged — only images larger than they display were shrunk. Text was not touched.';
-  if (match >= 94) return 'No meaningful visible change on this page. What did change is confined to photographic areas; text was not touched.';
-  if (match >= 88) return 'Slight softening in the photographic areas. Text stays sharp and selectable.';
-  if (match >= 80) return 'Noticeable softening where the page has photos or shading. Text stays sharp and selectable.';
-  return 'Heavy compression — photos and shaded areas are visibly rougher. Text stays sharp and selectable.';
+  if (match >= 96.5) return 'No meaningful visible change on this page. What did change is confined to photographic areas; text was not touched.';
+  if (match >= 93) return 'Slight softening in the detailed areas — fine lines and shading. Text stays sharp and selectable.';
+  if (match >= 88) return 'Noticeable softening where the page has photos, shading or fine line work. Text stays sharp and selectable.';
+  return 'Heavy compression — photographs and detailed artwork are visibly rougher. Text stays sharp and selectable.';
 }

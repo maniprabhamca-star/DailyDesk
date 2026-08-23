@@ -204,7 +204,7 @@ export function BeforeAfter({
 
           {diff && showDiff && (
             <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-              Bright areas are where the page changed; black is untouched. Amplified ten times so it can be seen at all. Measured match: {diff.match.toFixed(1)}% (structural similarity, grain ignored).
+              Bright areas are where <b>detail was lost</b>; black is untouched. Resizing is not counted — the two pages are compared at the same size, so this shows compression damage only. Amplified ten times so it can be seen at all. Measured match: {diff.match.toFixed(1)}% (structural similarity, grain ignored).
             </p>
           )}
         </div>
