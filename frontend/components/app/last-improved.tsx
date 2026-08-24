@@ -30,8 +30,8 @@ function when(date: string, now: Date): string {
   const then = new Date(`${date}T00:00:00`);
   if (Number.isNaN(then.getTime())) return date;
   const days = Math.floor((now.getTime() - then.getTime()) / 86_400_000);
-  if (days <= 0) return 'today';
-  if (days === 1) return 'yesterday';
+  if (days <= 0) return 'Today';
+  if (days === 1) return 'Yesterday';
   if (days < 30) return `${days} days ago`;
   return then.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }

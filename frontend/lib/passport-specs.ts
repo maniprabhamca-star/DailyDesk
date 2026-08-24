@@ -54,8 +54,21 @@ export const PASSPORT_SPECS: PassportSpec[] = [
   schengen('germany', 'Germany'),
   schengen('france', 'France'),
   schengen('italy', 'Italy'),
-  schengen('spain', 'Spain'),
-  schengen('netherlands', 'Netherlands'),
+  // Spain and the Netherlands do NOT match the generic Schengen row, and both
+  // were wrong here until 2026-08-23. Sourced overrides, see
+  // docs/passport-spec-sources.md.
+  //
+  // Spain: the Ministerio de Asuntos Exteriores photo sheet is explicit —
+  // "fondo BLANCO, liso y uniforme. Sin sombras." Light grey was wrong and
+  // would be refused. Its head rule ("el contorno de la cabeza ha de ocupar el
+  // 50%", measured over face AND hair) does not map cleanly onto our crown-to-
+  // chin fraction, so headMin/headMax are left alone pending the owner's check
+  // against Policía Nacional rather than guessed at.
+  { id: 'spain', label: 'Spain', group: 'Europe (Schengen)', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm, white background' },
+  // Netherlands: the RvIG Fotomatrix 2020 gives chin-to-crown as 26–30 mm on a
+  // 45 mm photo — 58–67%, not the generic 70–80%, which would have cropped the
+  // head too large and failed. It also accepts grey, light blue OR white.
+  { id: 'netherlands', label: 'Netherlands', group: 'Europe (Schengen)', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.578, headMax: 0.667, bg: LIGHTGREY, bgName: 'Grey, light blue or white', note: '35×45 mm, face 26–30 mm chin to crown' },
   schengen('portugal', 'Portugal'),
   schengen('belgium', 'Belgium'),
   schengen('switzerland', 'Switzerland'),
@@ -191,6 +204,50 @@ export const EDITORIAL: Record<string, CountryEditorial> = {
       'The same rules apply at every age. In a baby’s photograph no part of the person holding them — including their hands — may appear in the frame.',
     sourceName: 'Ministero degli Affari Esteri (Ambasciata d’Italia) — Fototessera per passaporto e carta d’identità: norme ICAO',
     sourceUrl: 'https://ambvienna.esteri.it/it/servizi-consolari-e-visti/servizi-per-il-cittadino-italiano/passaporti/norme-icao/',
+    checkedOn: '2026-08-23',
+  },
+
+  netherlands: {
+    authority:
+      'Dutch passport and ID-card photos are governed by the Rijksdienst voor Identiteitsgegevens, which publishes the Fotomatrix — a transparent measuring template that municipal counter staff literally lay over your photograph. It is the most precisely specified photo in Europe, and the only one that measures the width of your face as well as its height.',
+    quirk:
+      'The face is measured twice. Height is 26–30 mm from chin to crown for anyone aged 11 or over (19–30 mm up to age 10), and width is 16–20 mm from one ear attachment to the other. That height is noticeably smaller than the 70–80% rule most of Europe uses — a photo cropped to the generic Schengen proportions has the head too large and is refused at the counter.',
+    background:
+      'Grey, light blue or white, and it must be even, a single colour, with no gradient or shadow and enough contrast against the head. The Netherlands is more permissive here than France, which bans white outright.',
+    glasses:
+      'Glasses are allowed provided the eyes are fully visible through completely transparent lenses, with no disturbing reflection and no shadow cast. Reflection is called out specifically — from shiny skin and jewellery as well as lenses.',
+    headCovering:
+      'The head must be uncovered, with one written exception: on religious or philosophical grounds it may stay covered, provided the face itself is fully visible.',
+    expression:
+      'Neutral gaze, looking straight into the camera, mouth closed, head straight to the front, eyes on a horizontal line, shoulders square. A tilted head is rejected because it breaks automated face recognition.',
+    children:
+      'Under-sixes are exempt from the posture and expression rules — eyes on a horizontal line, head untilted, shoulders square, neutral gaze, looking at the camera and mouth closed — but no visible support may appear in the frame.',
+    exceptions:
+      'The photo must be no more than six months old at the moment of application, printed at 400 dpi or better on smooth photo paper, unedited and not a copy. Physical or medical exemptions exist, and a doctor’s signed statement can be demanded where there is reasonable doubt.',
+    sourceName: 'Rijksdienst voor Identiteitsgegevens — Fotomatrix model 2020: acceptatiecriteria voor de pasfoto',
+    sourceUrl: 'https://www.rvig.nl/fotomatrix',
+    checkedOn: '2026-08-23',
+  },
+
+  spain: {
+    authority:
+      'Spanish passport photographs are specified by the Ministerio de Asuntos Exteriores and the DNI by the Ministerio del Interior, with the Policía Nacional issuing both. Two identical photographs are asked for, not one.',
+    quirk:
+      'The background must be WHITE — plain, even and without shadow. This is the opposite of the light-grey background used for a Schengen visa photo and of what France requires, so a photo taken to the general European standard is the wrong one here. Spain also states its head rule differently: the outline of the head, counting hair, should occupy about half the photograph.',
+    background:
+      '“Fondo BLANCO, liso y uniforme. Sin sombras.” White, plain, uniform, no shadows.',
+    glasses:
+      'Lenses must be clear. Photos with reflections on the lenses are refused, and the frame must not cover the centre of the eye or the eyelid, nor cast a shadow on the face. Thick or decorative frames are not accepted — take the photo without glasses if yours cannot avoid it. Dark lenses are allowed only for blind applicants or a permanent serious eye condition.',
+    headCovering:
+      'The head must be uncovered, with nothing — hat, cap or ornament — that impedes identification. The face, including the eyebrows, must be clear of hair.',
+    expression:
+      'Centred and fully frontal; a half profile is not valid. Look directly at the camera — photos with the gaze lowered or the eyes half closed are refused.',
+    children:
+      'The same rules apply at every age. In a baby’s photograph neither the person holding them nor their hands may appear, even partly; the official advice is to lay the baby on a plain white background.',
+    exceptions:
+      'Both photographs must be recent — less than six months old — in colour, of professional quality and high resolution.',
+    sourceName: 'Ministerio de Asuntos Exteriores — Fotografías para el pasaporte español (consular photo sheet, updated 2017)',
+    sourceUrl: 'https://www.exteriores.gob.es/Consulados/dusseldorf/es/Documents/Nacionales/Normativa%20fotograf%C3%ADas%20pasaporte%20-%20Espa%C3%B1ol.pdf',
     checkedOn: '2026-08-23',
   },
 };

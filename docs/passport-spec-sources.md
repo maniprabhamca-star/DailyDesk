@@ -56,7 +56,25 @@ Two rules that change how this table gets filled in from here:
 | **France** | [service-public.gouv.fr — *Quelle photo fournir pour un titre d'identité ?*](https://www.service-public.gouv.fr/particuliers/vosdroits/F10619) | 2026-08-23 | 35×45 mm; face 32–36 mm **from chin to top of skull, excluding hair**; background light blue or light grey — **white is explicitly prohibited**; head must be **bare** (medical exceptions only — note this differs from Germany, which permits religious head coverings); ears visible; neutral expression, mouth closed; photo **under 6 months old**, "nette, sans pliure, ni traces"; glasses allowed but frames not thick and lenses not tinted or reflecting. |
 | **Italy** | [Ministero degli Affari Esteri (Ambasciata d'Italia) — *Fototessera: norme ICAO*](https://ambvienna.esteri.it/it/servizi-consolari-e-visti/servizi-per-il-cittadino-italiano/passaporti/norme-icao/) | 2026-08-23 | 35×45 mm; **not more than 6 months old**; face 70–80% of the photo; neutral expression, mouth closed, fully frontal (half-profile invalid); glasses with clear lenses only, no flash reflection, no heavy frames covering the eye; head covering for religious reasons only with chin-to-forehead and both sides of the face visible; babies' photos must not show any part of the person holding them. The Polizia di Stato's own PDF is a scanned image with no text layer, so the Farnesina consular page was used instead — both are official. |
 
-### ⚠ Open discrepancy — SPAIN (do not publish until resolved)
+| **Netherlands** | [RvIG — *Fotomatrix model 2020*](https://www.rvig.nl/fotomatrix) (text extracted from the official PDF) | 2026-08-23 | 35×45 mm; **face height chin-to-crown 26–30 mm from age 11** (19–30 mm to age 10) and **face width 16–20 mm ear-attachment to ear-attachment** — the only country we cover that measures width; background grey, light blue **or** white, even and single-coloured; photo ≤6 months old, ≥400 dpi on smooth photo paper, unedited, not a copy; glasses with fully transparent lenses, no reflection or shadow; head uncovered except on religious/philosophical grounds; neutral gaze, mouth closed, head untilted, shoulders square; under-6s exempt from posture/expression rules but no visible support in frame. |
+
+### ✅ SPEC CORRECTIONS APPLIED 2026-08-23
+
+Two `schengen()` presets were wrong. Both would have produced a refused photo.
+
+| Country | Field | Was | Now | Source |
+|---|---|---|---|---|
+| **Netherlands** | head height | 70–80% (31.5–36 mm) | **57.8–66.7%** (26–30 mm) | Fotomatrix 2020 |
+| **Netherlands** | background | Light grey | **Grey, light blue or white** | Fotomatrix 2020 |
+| **Spain** | background | Light grey | **White** | MAEC photo sheet |
+
+⚠ **The generic `schengen()` head range of 70–80% is not reliable.** Two of the
+four Schengen members checked so far disagree with it. The remaining ten
+(`italy` `portugal` `belgium` `switzerland` `austria` `sweden` `norway` `poland`
+`greece` `ireland`) still inherit it **unverified** — treat every one as
+suspect until its own authority has been read.
+
+### ⚠ Still open — SPAIN head height
 
 The Ministerio de Asuntos Exteriores' passport photo sheet
 ([consular PDF, updated 2017](https://www.exteriores.gob.es/Consulados/dusseldorf/es/Documents/Nacionales/Normativa%20fotograf%C3%ADas%20pasaporte%20-%20Espa%C3%B1ol.pdf))
