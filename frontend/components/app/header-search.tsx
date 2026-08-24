@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Search, CornerDownLeft, History, ArrowRight, Sparkles } from 'lucide-react';
 import { catalog, PRO_TOOLS, type CatTool } from '@/components/app/catalog';
 import { getRecent, pushRecent } from '@/lib/recent';
-import { useIsOwner } from '@/lib/plan';
+import { useIsOwner, usePlan } from '@/lib/plan';
 import { cn } from '@/lib/utils';
 
 const isProTool = (t: { name: string }) => PRO_TOOLS.has(t.name);
@@ -30,6 +30,7 @@ function openCommand() {
 export function HeaderSearch({ visible }: { visible: boolean }) {
   const router = useRouter();
   const isOwner = useIsOwner();
+  const plan = usePlan();
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
@@ -74,10 +75,14 @@ export function HeaderSearch({ visible }: { visible: boolean }) {
   }, [open]);
 
   function go(tool: Tool) {
-    // Pro tools: the owner opens them; everyone else lands on pricing, not a dead end.
+    // Pro tools open for anyone entitled to them — the owner, and ALSO anyone
+    // actually on Pro. This used to test isOwner alone, so a paying subscriber
+    // searching for a Pro tool was sent to the pricing page to buy what they
+    // had already bought. Only genuinely free accounts see pricing.
     if (isProTool(tool)) {
       setOpen(false); setQuery(''); inputRef.current?.blur();
-      if (isOwner && tool.href) { pushRecent(tool.href); router.push(tool.href); } else router.push('/pricing');
+      const entitled = isOwner || plan === 'pro';
+      if (entitled && tool.href) { pushRecent(tool.href); router.push(tool.href); } else router.push('/pricing');
       return;
     }
     if (!tool.href) return;

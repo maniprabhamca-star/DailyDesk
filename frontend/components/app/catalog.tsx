@@ -90,7 +90,11 @@ export const catalog: CatGroup[] = [
   },
   {
     label: 'Edit & sign', color: '#d97706', tools: [
-      { name: 'Edit PDF', icon: PenLine, badge: 'device', soon: true },
+      // href is REQUIRED even while soon: the search and the palette route Pro
+      // tools by it, so an entry without one sent everybody — the owner
+      // included — to /pricing instead of the page. /edit-pdf exists and
+      // ToolGate does the gating; `soon` still drives the badge.
+      { name: 'Edit PDF', href: '/edit-pdf', icon: PenLine, badge: 'device', soon: true },
       { name: 'Annotate', href: '/annotate-pdf', icon: Highlighter, badge: 'device', soon: true },
       { name: 'Watermark', href: '/watermark-pdf', icon: Stamp, badge: 'device' },
       { name: 'Bates numbering', href: '/bates-numbering', icon: ListOrdered, badge: 'device' },
@@ -107,7 +111,8 @@ export const catalog: CatGroup[] = [
   {
     label: 'AI & scan', color: '#db2777', tools: [
       { name: 'Clean scanned PDF', href: '/clean-scanned-pdf', icon: ScanText, badge: 'device', soon: true },
-      { name: 'OCR', icon: ScanText, badge: 'server', soon: true },
+      // Same missing-href bug as Edit PDF above; /ocr-pdf exists and is gated.
+      { name: 'OCR', href: '/ocr-pdf', icon: ScanText, badge: 'server', soon: true },
       { name: 'Chat with PDF', href: '/chat-pdf', icon: MessageSquare, badge: 'ai', soon: true },
       { name: 'Summarize', href: '/summarize-pdf', icon: AlignLeft, badge: 'ai', soon: true },
       { name: 'Translate', href: '/translate-pdf', icon: Languages, badge: 'ai', soon: true },
