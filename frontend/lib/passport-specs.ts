@@ -16,6 +16,18 @@ export type PassportSpec = {
   bg: string; bgName: string;
   maxKB?: number;
   note?: string;
+  /**
+   * Set ONLY where the authority measures head size on a basis this type does
+   * not model, so headMin/headMax is our best generic band rather than their
+   * rule. Rendered next to the head row. Countries publish head size on at
+   * least five incompatible bases — crown-to-chin, face including hair,
+   * chin-to-forehead, chin-to-eyes, and a bare percentage — and silently
+   * showing one country's number under another's label is how this file came
+   * to be wrong for six of ten Schengen states.
+   */
+  headCaveat?: string;
+  /** The authority photographs the applicant; a supplied photo is not used. */
+  photographedOnSite?: string;
 };
 
 const mm = (v: number) => Math.round((v / 25.4) * 300); // mm → px @ 300 DPI
@@ -36,7 +48,8 @@ export const PASSPORT_SPECS: PassportSpec[] = [
   { id: 'us-passport', label: 'US passport', group: 'Popular', wPx: 600, hPx: 600, wMM: 51, hMM: 51, headMin: 0.50, headMax: 0.69, bg: WHITE, bgName: 'White', note: '2×2 in, white background' },
   { id: 'schengen-visa', label: 'Schengen visa', group: 'Popular', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: LIGHTGREY, bgName: 'Light grey', note: '35×45 mm' },
   { id: 'uk-passport', label: 'UK passport', group: 'Popular', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.64, headMax: 0.76, bg: LIGHTGREY, bgName: 'Light grey', maxKB: 10240, note: '35×45 mm, 600×750 px min' },
-  { id: 'india-passport', label: 'India passport (Seva)', group: 'Popular', wPx: 630, hPx: 810, wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', maxKB: 250, note: '630×810 px, ≤250 KB' },
+  { id: 'india-passport', label: 'India passport (Seva)', group: 'Popular', wPx: 630, hPx: 810, wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', maxKB: 250, note: '3.5×4.5 cm printed, white background',
+    photographedOnSite: 'At a Passport Seva Kendra or POPSK no photograph is required — you are photographed there. Printed photos are for the routes that still ask for them: two colour copies, 3.5×4.5 cm, white background.' },
   { id: 'india-evisa', label: 'India e-Visa', group: 'Popular', wPx: 600, hPx: 600, wMM: 51, hMM: 51, headMin: 0.60, headMax: 0.80, bg: WHITE, bgName: 'White', maxKB: 1024, note: 'square, 350–1000 px, ≤1 MB' },
   { id: 'canada', label: 'Canada passport/visa', group: 'Popular', wPx: mm(50), hPx: mm(70), wMM: 50, hMM: 70, headMin: 0.443, headMax: 0.514, bg: WHITE, bgName: 'White', note: '50×70 mm, head 31–36 mm' },
   { id: 'australia', label: 'Australia passport', group: 'Popular', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.711, headMax: 0.80, bg: OFFWHITE, bgName: 'Off-white', note: '35×45 mm' },
@@ -64,7 +77,7 @@ export const PASSPORT_SPECS: PassportSpec[] = [
   // 50%", measured over face AND hair) does not map cleanly onto our crown-to-
   // chin fraction, so headMin/headMax are left alone pending the owner's check
   // against Policía Nacional rather than guessed at.
-  { id: 'spain', label: 'Spain', group: 'Europe (Schengen)', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm, white background' },
+  { id: 'spain', label: 'Spain', group: 'Europe (Schengen)', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm, white background', headCaveat: 'Spain publishes this differently — the outline of the head, counting hair, should fill about half the photo. The band shown is the generic European one; check it against Policía Nacional before printing.' },
   // Netherlands: the RvIG Fotomatrix 2020 gives chin-to-crown as 26–30 mm on a
   // 45 mm photo — 58–67%, not the generic 70–80%, which would have cropped the
   // head too large and failed. It also accepts grey, light blue OR white.
@@ -82,20 +95,23 @@ export const PASSPORT_SPECS: PassportSpec[] = [
   // 31.5 mm floor was stricter than the law, rejecting photos Austria accepts.
   // Background "einfärbig hell, idealerweise grau", so light grey stands.
   { id: 'austria', label: 'Austria', group: 'Europe (Schengen)', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.667, headMax: 0.80, bg: LIGHTGREY, bgName: 'Light grey', note: '35×45 mm, head 30–36 mm' },
-  schengen('sweden', 'Sweden'),
-  schengen('norway', 'Norway'),
+  // Sweden does not take a supplied photo at all — the police photograph you.
+  { id: 'sweden', label: 'Sweden', group: 'Europe (Schengen)', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: LIGHTGREY, bgName: 'Light grey', note: '35×45 mm',
+    photographedOnSite: 'For a Swedish passport or national ID card you do not bring a photograph — the police photograph you at the passport counter. Use this only for a visa or another document that does ask for one.' },
+  { id: 'norway', label: 'Norway', group: 'Europe (Schengen)', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: LIGHTGREY, bgName: 'Light grey', note: '35×45 mm, head about 70%',
+    photographedOnSite: 'For a Norwegian passport or national ID card the picture is taken in the biometrikiosk at the police station, children included. Use this only for a visa or another document that does ask for a supplied photo.' },
   // Poland: gov.pl requires a WHITE background ("Tło powinno być białe"), not
   // the light grey the generic row assumed. Its head rule is expressed
   // chin-to-EYES with tolerances in an annex, a different basis from ours, so
   // headMin/headMax are left as-is rather than guessed at — see docs.
-  { id: 'poland', label: 'Poland', group: 'Europe (Schengen)', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm, white background' },
+  { id: 'poland', label: 'Poland', group: 'Europe (Schengen)', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm, white background', headCaveat: 'Poland sizes the head from the chin to the EYES, with tolerances in an annex to its official instruction, not from the crown. The band shown is the generic European one.' },
   // Greece is NOT 35×45. The National Passport Centre publishes 40×60 mm, and
   // a background "preferably gray with an RGB value of (190;190;190) +/-10" —
   // a specific grey, not a vague light one. Head band here is Greece's own
   // published FACE height (chin to forehead, 50–60% of the photo); it does not
   // include the crown, so it reads slightly small against our crown-to-chin
   // label. Flagged in docs rather than converted by guesswork.
-  { id: 'greece', label: 'Greece', group: 'Europe (Schengen)', wPx: mm(40), hPx: mm(60), wMM: 40, hMM: 60, headMin: 0.50, headMax: 0.60, bg: '#bebebe', bgName: 'Grey (RGB 190,190,190)', note: '40×60 mm, face 50–60% of height' },
+  { id: 'greece', label: 'Greece', group: 'Europe (Schengen)', wPx: mm(40), hPx: mm(60), wMM: 40, hMM: 60, headMin: 0.50, headMax: 0.60, bg: '#bebebe', bgName: 'Grey (RGB 190,190,190)', note: '40×60 mm, face 50–60% of height', headCaveat: 'Greece publishes the FACE height, chin to forehead, as 50–60% of the photo — it excludes the crown, so this band reads a little small against a crown-to-chin guide.' },
   { id: 'ireland', label: 'Ireland passport', group: 'Europe (Schengen)', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.68, headMax: 0.80, bg: OFFWHITE, bgName: 'Off-white', note: '35×45 mm' },
 
   // ---- Asia ----
@@ -352,6 +368,58 @@ export const EDITORIAL: Record<string, CountryEditorial> = {
       'Look straight at the camera with a neutral expression.',
     sourceName: 'Instituto dos Registos e do Notariado / Portuguese consular services — Cartão de Cidadão e Passaporte, requisitos de fotografia',
     sourceUrl: 'https://irn.justica.gov.pt/Documentos-de-Identificacao/Cartao-de-Cidadao',
+    checkedOn: '2026-08-23',
+  },
+
+  austria: {
+    authority:
+      'Austrian passports and identity cards are issued by the Bundesministerium für Inneres, which publishes a Fotomuster — a sheet of accepted and rejected examples that passport offices work from directly.',
+    quirk:
+      'Austria states the head size twice over, and the second half is the one that catches people: it must fill two thirds of the image, "darf aber nicht höher als 36 mm sein" — but no taller than 36 mm. It also sets a minimum distance between the pupils of 8 mm, 10 mm preferred, which no other country we cover measures.',
+    background:
+      'A single light colour, ideally grey, with enough contrast against both face and hair — and Austria is specific about which grey: medium grey suits light hair, light grey suits dark hair. No pattern, no shadows falling on it.',
+    glasses:
+      'The eyes must be clearly recognisable. Reflections on the lenses, tinted glass and sunglasses are all rejected, as are frames that cover the eyes.',
+    expression:
+      'Neutral, looking straight ahead. The rejection sheet names an open mouth, an upward glance, a tilted head, closed eyes and shadows across the face.',
+    sourceName: 'Bundesministerium für Inneres — Fotomuster für Ausweisdokumente (2022)',
+    sourceUrl: 'https://www.bmi.gv.at/607/files/passbild_kriterien_2022.pdf',
+    checkedOn: '2026-08-23',
+  },
+
+  poland: {
+    authority:
+      'Polish passports and identity cards share one photo standard, published on gov.pl with a detailed instruction for photographers behind it.',
+    quirk:
+      'The background must be WHITE and evenly lit — not the light grey used for a Schengen visa photo. Poland also sizes the head in a way nobody else does: from the chin to the EYES, with the tolerances set out in an annex to the official instruction, rather than from the crown.',
+    background:
+      'White, uniformly lit, free of shadows and of any decorative element.',
+    glasses:
+      'Glasses with dark lenses are not allowed, nor is anything else that makes the face harder to recognise.',
+    headCovering:
+      'No head covering, on the same principle — nothing that impedes identification.',
+    expression:
+      'A natural facial expression with no gestures and the mouth closed. The photo must show the whole head from the crown down, plus the upper part of the shoulders.',
+    exceptions:
+      'The photograph must have been taken no more than six months before the application.',
+    sourceName: 'gov.pl — Zdjęcie do dowodu lub paszportu',
+    sourceUrl: 'https://www.gov.pl/web/gov/zdjecie-do-dowodu-lub-paszportu',
+    checkedOn: '2026-08-23',
+  },
+
+  sweden: {
+    authority:
+      'Swedish passports and national ID cards are issued by Polismyndigheten, the police, and the rules read differently from everywhere else because of how the photograph is taken.',
+    quirk:
+      'You do not supply a photograph. The police photograph you at the passport counter when you apply, so there is nothing to print beforehand and no size to match. What Sweden publishes is a description of the result rather than a measured template — which is why there is no head height in millimetres here.',
+    background:
+      'Light, with the face evenly lit and no shadows or other distractions behind you.',
+    glasses:
+      'Dark glasses may not be worn except where medically necessary, and the pupils must be clearly visible.',
+    expression:
+      'Photographed straight from the front, whole head visible and centred, with a relaxed and neutral expression.',
+    sourceName: 'Polismyndigheten — Pass och nationellt id-kort',
+    sourceUrl: 'https://polisen.se/tjanster-tillstand/pass-och-nationellt-id-kort/',
     checkedOn: '2026-08-23',
   },
 };

@@ -56,6 +56,12 @@ export default function Page({ params }: { params: { country: string } }) {
       ]}
       body={
         <div className="space-y-6">
+          {s.photographedOnSite && (
+            <section className="rounded-xl border border-amber-500/40 bg-amber-500/[0.07] p-4">
+              <h2 className="text-base font-semibold">You may not need to bring a photo at all</h2>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{s.photographedOnSite}</p>
+            </section>
+          )}
           <section>
             <h2 className="text-lg font-semibold">{s.label} photo requirements at a glance</h2>
             <dl className="mt-3 rounded-xl border bg-card p-4 text-sm">
@@ -65,6 +71,11 @@ export default function Page({ params }: { params: { country: string } }) {
               {row('Pixels at 600 DPI', `${d.px600} px`)}
               {row('Shape', d.isSquare ? 'Square' : `Portrait, about ${d.aspect}`)}
               {row('Head height', `${d.headMinMM} – ${d.headMaxMM} mm (crown to chin)`)}
+              {s.headCaveat && (
+                <div className="border-b border-border/60 py-2 last:border-0">
+                  <p className="text-xs leading-relaxed text-amber-700 dark:text-amber-400">{s.headCaveat}</p>
+                </div>
+              )}
               {row('Background', s.bgName)}
               {row('File size limit', cap ?? 'None published')}
               {row('Copies per 4×6 in print', String(d.perSheet))}
