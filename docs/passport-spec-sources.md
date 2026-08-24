@@ -131,8 +131,34 @@ chin-to-eyes (PL), and a bare percentage (IT, IE). `headMin`/`headMax` models
 only the first. That is the root cause of most of what was wrong here, and it is
 worth deciding whether the type should carry the basis explicitly.
 
-Still unverified: every entry outside Europe that was never in `VERIFIED_SPECS`
-— the Americas rows, and most of Asia, the Middle East, Africa and Oceania.
+### Audit round 4 — 2026-08-23, the eight commercial specs
+
+These were already in `VERIFIED_SPECS`, and unlike the Schengen set they held up.
+
+| Spec | Official | Ours was | Action |
+|---|---|---|---|
+| **US passport / US visa** | 2×2 in, head **25–35 mm** chin to top of head, white, ≤6 months. [travel.state.gov](https://travel.state.gov/content/travel/en/passports/how-apply/photos.html) | 25.5–35.2 mm | ✅ correct |
+| **Canada** | 50×70 mm, face **31–36 mm** chin to crown, plain white, **two identical photos**, colour or B&W. [canada.ca](https://www.canada.ca/en/immigration-refugees-citizenship/services/canadian-passports/photos.html) | 30.8–36.4 mm | tightened |
+| **Australia** | 35×45 mm, face **32–36 mm** chin to crown; head coverings allowed if habitually worn for religious reasons; under-3s may have the mouth open. [passports.gov.au](https://www.passports.gov.au/PhotoGuidelines) | 31.5–36 mm | tightened |
+| **Japan** | 35×45 mm, **34 ± 2 mm** crown to chin (32–36), with 4±2 mm above the head and 7±2 mm below the chin. Derived from ICAO. [MOFA](https://www.mofa.go.jp/mofaj/toko/passport/ic_photo.html) | 31.5–36 mm | tightened |
+| **China visa** | **48×33 mm**, head height **28–33 mm**, head width 15–22 mm, white background, **ears visible**, bare head, tilt ≤20° sideways / ≤25° up-down, ≤6 months. Notably: **do not wear a white top** — it merges with the background. [visaforchina.cn](https://www.visaforchina.cn/SYD3_EN/qianzhengyewu/jichuzhishi/changjianwenti/355135188537315328.html) | 28.8–34.6 mm | **fixed** — our ceiling exceeded China's 33 mm maximum, the same fault as Switzerland |
+| **India passport (Seva)** | **3.5 × 4.5 cm, white background, two colour photos.** No photo is required at all at a Passport Seva Kendra or POPSK — they photograph you there. [passportindia.gov.in](https://www.passportindia.gov.in/psp/FaqApplicationForm) | 35×45 mm, white | ✅ correct. The `630×810 px, ≤250 KB` note belongs to an online-upload route, not this printed spec — worth re-labelling. |
+| **India e-Visa** | square, 350–1000 px, ≤1 MB, white — **not re-confirmed against indianvisaonline.gov.in this round** | 600×600, ≤1 MB | ⚠ carried over, not re-verified |
+
+**Verdict: the commercial specs were sound.** Four were exactly right, three had
+floors ~0.5 mm loose (widening the "head OK" band rather than producing a wrong
+crop), and only the China visa had a real ceiling error. That is what a sourced
+row looks like, versus the `schengen()` guesses.
+
+### Countries that photograph you themselves
+
+A pattern worth surfacing in the UI: **Sweden, Norway and India (at a PSK)** do
+not accept a supplied passport photo — you are photographed at the counter or in
+a biometric kiosk. Their pages currently imply you should bring one.
+
+Still unverified: the Americas rows (Brazil, Mexico, Argentina, Chile,
+Colombia), most of Asia, the Middle East, Africa and Oceania — plus India e-Visa
+above.
 
 ### ⚠ Still open — SPAIN head height
 
