@@ -96,9 +96,22 @@ thing as a member state's own passport spec.
 the visa standard, not any particular country's, and it has now been wrong for
 five of the nine states examined. Add an explicit row with a cited source.
 
-Still unverified and therefore still suspect: `portugal` `austria` `sweden`
-`norway` `greece`, plus every entry outside Europe that was never in
-`VERIFIED_SPECS`.
+### Audit round 2 — 2026-08-23
+
+| Country | Official rule | Action |
+|---|---|---|
+| **Austria** | Head fills 2/3 of the image, *"darf aber nicht höher als 36 mm sein"* → **30–36 mm** (66.7–80%). Background *"einfärbig hell, idealerweise grau"*. Minimum eye separation **8 mm** (10 mm optimal). [BMI Fotomuster 2022](https://www.bmi.gv.at/607/files/passbild_kriterien_2022.pdf) | **fixed** — our 31.5 mm floor was *stricter than the law* and rejected valid photos. Background confirmed correct. |
+| **Sweden** | **You do not supply a photo for a passport — the police photograph you at the counter.** Published rules cover only light background, face square on, relaxed neutral expression, pupils clearly visible, no dark glasses except on medical grounds. No mm head height is published. [Polismyndigheten](https://polisen.se/tjanster-tillstand/pass-och-nationellt-id-kort/) | left as-is; the preset is only meaningful for visa/other uses, and the page should probably say so |
+| **Portugal** | Every result was an aggregator (visafoto, idphotodiy, cantinhodoemprego). No official figure obtained. | untouched, still unverified |
+| **Norway, Greece** | not yet attempted | untouched, still unverified |
+
+Running total: **six presets corrected** (Netherlands, Switzerland, Belgium,
+Austria head ranges; Spain, Poland backgrounds) out of ten Schengen states
+examined. Only Germany, Italy, Ireland and France matched the generic row
+unchanged.
+
+Still unverified and therefore still suspect: `portugal` `norway` `greece`,
+plus every entry outside Europe that was never in `VERIFIED_SPECS`.
 
 ### ⚠ Still open — SPAIN head height
 

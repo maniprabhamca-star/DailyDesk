@@ -27,7 +27,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [expired, setExpired] = useState(false);
   const router = useRouter();
 
-  // Restore session from localStorage on first load.
+  // Restore session from localStorage on first load. The server re-read happens
+  // in the "renew the session on arrival" effect below — once per tab — so this
+  // deliberately does NOT fetch as well.
   useEffect(() => {
     try {
       const stored = localStorage.getItem('dd_user');

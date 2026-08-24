@@ -77,7 +77,11 @@ export const PASSPORT_SPECS: PassportSpec[] = [
   // bis zur Schädeldecke mindestens 29 mm, höchstens 34 mm". Our 36 mm ceiling
   // was ABOVE the Swiss maximum, so the generic crop overshot it.
   { id: 'switzerland', label: 'Switzerland', group: 'Europe (Schengen)', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.644, headMax: 0.756, bg: LIGHTGREY, bgName: 'Plain neutral', note: '35×45 mm, face 29–34 mm chin to crown' },
-  schengen('austria', 'Austria'),
+  // Austria: BMI's Fotomuster says the head must fill 2/3 of the image and
+  // "darf aber nicht höher als 36 mm sein" — 30–36 mm on a 45 mm photo. Our
+  // 31.5 mm floor was stricter than the law, rejecting photos Austria accepts.
+  // Background "einfärbig hell, idealerweise grau", so light grey stands.
+  { id: 'austria', label: 'Austria', group: 'Europe (Schengen)', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.667, headMax: 0.80, bg: LIGHTGREY, bgName: 'Light grey', note: '35×45 mm, head 30–36 mm' },
   schengen('sweden', 'Sweden'),
   schengen('norway', 'Norway'),
   // Poland: gov.pl requires a WHITE background ("Tło powinno być białe"), not
