@@ -70,12 +70,21 @@ export const PASSPORT_SPECS: PassportSpec[] = [
   // head too large and failed. It also accepts grey, light blue OR white.
   { id: 'netherlands', label: 'Netherlands', group: 'Europe (Schengen)', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.578, headMax: 0.667, bg: LIGHTGREY, bgName: 'Grey, light blue or white', note: '35×45 mm, face 26–30 mm chin to crown' },
   schengen('portugal', 'Portugal'),
-  schengen('belgium', 'Belgium'),
-  schengen('switzerland', 'Switzerland'),
+  // Belgium: FPS Foreign Affairs gives face length INCLUDING HAIR as 25–35 mm
+  // on a 45 mm photo — a wider and lower band than the generic 70–80%.
+  { id: 'belgium', label: 'Belgium', group: 'Europe (Schengen)', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.556, headMax: 0.778, bg: LIGHTGREY, bgName: 'Light grey', note: '35×45 mm, face 25–35 mm incl. hair' },
+  // Switzerland: fedpol's Fotomustertafel is explicit — "Gesichtshöhe vom Kinn
+  // bis zur Schädeldecke mindestens 29 mm, höchstens 34 mm". Our 36 mm ceiling
+  // was ABOVE the Swiss maximum, so the generic crop overshot it.
+  { id: 'switzerland', label: 'Switzerland', group: 'Europe (Schengen)', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.644, headMax: 0.756, bg: LIGHTGREY, bgName: 'Plain neutral', note: '35×45 mm, face 29–34 mm chin to crown' },
   schengen('austria', 'Austria'),
   schengen('sweden', 'Sweden'),
   schengen('norway', 'Norway'),
-  schengen('poland', 'Poland'),
+  // Poland: gov.pl requires a WHITE background ("Tło powinno być białe"), not
+  // the light grey the generic row assumed. Its head rule is expressed
+  // chin-to-EYES with tolerances in an annex, a different basis from ours, so
+  // headMin/headMax are left as-is rather than guessed at — see docs.
+  { id: 'poland', label: 'Poland', group: 'Europe (Schengen)', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm, white background' },
   schengen('greece', 'Greece'),
   { id: 'ireland', label: 'Ireland passport', group: 'Europe (Schengen)', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.68, headMax: 0.80, bg: OFFWHITE, bgName: 'Off-white', note: '35×45 mm' },
 
@@ -248,6 +257,38 @@ export const EDITORIAL: Record<string, CountryEditorial> = {
       'Both photographs must be recent — less than six months old — in colour, of professional quality and high resolution.',
     sourceName: 'Ministerio de Asuntos Exteriores — Fotografías para el pasaporte español (consular photo sheet, updated 2017)',
     sourceUrl: 'https://www.exteriores.gob.es/Consulados/dusseldorf/es/Documents/Nacionales/Normativa%20fotograf%C3%ADas%20pasaporte%20-%20Espa%C3%B1ol.pdf',
+    checkedOn: '2026-08-23',
+  },
+
+  belgium: {
+    authority:
+      'Belgian passports are issued through your commune or, from abroad, a consulate, with the photo standard set by FPS Foreign Affairs. Belgium states plainly that the photograph must meet the ICAO standard and that the counter will refuse one that does not.',
+    quirk:
+      'Belgium measures the face INCLUDING the hair — 25 to 35 mm on the 45 mm photo — rather than crown to chin the way Switzerland and the Netherlands do. The band is wider than most of Europe at the bottom end, so a slightly smaller head passes here that would fail in Germany.',
+    expression:
+      'Head and shoulders straight, square to the camera. A neutral expression: mouth shut, no smiling.',
+    glasses:
+      'The eyes must be perfectly visible — no reflecting or tinted lenses. Belgium is unusually specific about frames: they should not be too big, but nor should they sit too close to the eyeline.',
+    headCovering:
+      'The face must be completely uncovered. Forehead, chin and the sides towards the ears all have to be visible.',
+    sourceName: 'FPS Foreign Affairs — Quality requirements for the photo (Belgian passport), with measurements from its consular photo-requirements sheet',
+    sourceUrl: 'https://diplomatie.belgium.be/en/belgians-abroad/belgian-passport/quality-requirements-photo',
+    checkedOn: '2026-08-23',
+  },
+
+  switzerland: {
+    authority:
+      'Swiss passports and identity cards are administered by fedpol, the Federal Office of Police, which publishes a Fotomustertafel in German, French and Italian showing accepted and rejected photographs side by side.',
+    quirk:
+      'The face must measure 29 to 34 mm from the chin to the top of the skull — a tighter and lower band than the 70–80% rule used across much of Europe, and one where a generic “Schengen” crop comes out too large. If you have voluminous hair the face must still not fall below 29 mm. For children under 11 the minimum drops to 23 mm.',
+    background:
+      'A single colour, uniform and neutral, with no shadows and a clear separation between the head and the background. fedpol rejects both “kein neutraler Hintergrund” and a background so pale it loses contrast against the hair.',
+    expression:
+      'Head straight — not tilted, turned or tipped — looking into the camera, mouth closed. The rejection sheet calls out a sideways glance, closed eyes, hair across the face and a hand in shot.',
+    headCovering:
+      'Exceptions are admitted only for attested medical or religious reasons, the latter explicitly covering members of a religious community whose rule prescribes a veil in public.',
+    sourceName: 'fedpol — Kriterien für die Annahme von Fotos für Pässe und Identitätskarten (Fotomustertafel)',
+    sourceUrl: 'https://www.fedpol.admin.ch/fedpol/de/home/pass---identitaetskarte/pass/fotos.html',
     checkedOn: '2026-08-23',
   },
 };

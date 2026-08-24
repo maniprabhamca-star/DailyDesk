@@ -68,11 +68,37 @@ Two `schengen()` presets were wrong. Both would have produced a refused photo.
 | **Netherlands** | background | Light grey | **Grey, light blue or white** | Fotomatrix 2020 |
 | **Spain** | background | Light grey | **White** | MAEC photo sheet |
 
-⚠ **The generic `schengen()` head range of 70–80% is not reliable.** Two of the
-four Schengen members checked so far disagree with it. The remaining ten
-(`italy` `portugal` `belgium` `switzerland` `austria` `sweden` `norway` `poland`
-`greece` `ireland`) still inherit it **unverified** — treat every one as
-suspect until its own authority has been read.
+### Head-range audit, 2026-08-23 — the generic 70–80% is wrong about half the time
+
+Every Schengen preset checked against its own authority. **Five of the nine
+verified disagreed with the shared `schengen()` row.**
+
+| Country | Official rule | vs 70–80% | Action |
+|---|---|---|---|
+| Germany | 70–80% of photo height | ✅ matches | none |
+| Italy | 70–80% of photo | ✅ matches | none |
+| Ireland | 70–80% of frame, chin to crown | ✅ matches | none |
+| France | 32–36 mm chin to crown (excl. hair) | ✅ ≈ matches | none |
+| **Netherlands** | **26–30 mm chin to crown** (58–67%) | ❌ far too big | **fixed** |
+| **Switzerland** | **29–34 mm chin to crown** (64–76%) | ❌ our 36 mm ceiling exceeded theirs | **fixed** |
+| **Belgium** | **25–35 mm face incl. hair** (56–78%) | ❌ different basis, wider band | **fixed** |
+| **Spain** | head outline ≈ **50%** incl. hair | ❌ but basis differs | bg fixed; head left, flagged |
+| **Poland** | chin-to-**eyes** with annexed tolerances | ❌ different basis | bg fixed; head left, flagged |
+| Portugal | **not found on an official source** | ❓ unknown | untouched |
+| Austria, Sweden, Norway, Greece | not yet checked | ❓ unknown | untouched |
+
+Background was wrong more often than head height: **Spain and Poland both
+require WHITE**, and the Netherlands accepts grey, light blue or white. The
+generic "Light grey" came from the Schengen *visa* spec, which is not the same
+thing as a member state's own passport spec.
+
+**Rule going forward: never add a country by calling `schengen()`.** It encodes
+the visa standard, not any particular country's, and it has now been wrong for
+five of the nine states examined. Add an explicit row with a cited source.
+
+Still unverified and therefore still suspect: `portugal` `austria` `sweden`
+`norway` `greece`, plus every entry outside Europe that was never in
+`VERIFIED_SPECS`.
 
 ### ⚠ Still open — SPAIN head height
 
