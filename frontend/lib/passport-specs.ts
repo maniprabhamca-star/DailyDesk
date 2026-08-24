@@ -38,8 +38,8 @@ export const PASSPORT_SPECS: PassportSpec[] = [
   { id: 'uk-passport', label: 'UK passport', group: 'Popular', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.64, headMax: 0.76, bg: LIGHTGREY, bgName: 'Light grey', maxKB: 10240, note: '35×45 mm, 600×750 px min' },
   { id: 'india-passport', label: 'India passport (Seva)', group: 'Popular', wPx: 630, hPx: 810, wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', maxKB: 250, note: '630×810 px, ≤250 KB' },
   { id: 'india-evisa', label: 'India e-Visa', group: 'Popular', wPx: 600, hPx: 600, wMM: 51, hMM: 51, headMin: 0.60, headMax: 0.80, bg: WHITE, bgName: 'White', maxKB: 1024, note: 'square, 350–1000 px, ≤1 MB' },
-  { id: 'canada', label: 'Canada passport/visa', group: 'Popular', wPx: mm(50), hPx: mm(70), wMM: 50, hMM: 70, headMin: 0.44, headMax: 0.52, bg: WHITE, bgName: 'White', note: '50×70 mm, head 31–36 mm' },
-  { id: 'australia', label: 'Australia passport', group: 'Popular', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: OFFWHITE, bgName: 'Off-white', note: '35×45 mm' },
+  { id: 'canada', label: 'Canada passport/visa', group: 'Popular', wPx: mm(50), hPx: mm(70), wMM: 50, hMM: 70, headMin: 0.443, headMax: 0.514, bg: WHITE, bgName: 'White', note: '50×70 mm, head 31–36 mm' },
+  { id: 'australia', label: 'Australia passport', group: 'Popular', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.711, headMax: 0.80, bg: OFFWHITE, bgName: 'Off-white', note: '35×45 mm' },
   { id: 'china-visa', label: 'China visa', group: 'Popular', wPx: 354, hPx: 472, wMM: 33, hMM: 48, headMin: 0.60, headMax: 0.72, bg: WHITE, bgName: 'White', maxKB: 1024, note: '33×48 mm, 354×472 px' },
   { id: 'biometric', label: 'Biometric (generic)', group: 'Popular', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: LIGHTGREY, bgName: 'Light grey', note: 'ICAO 35×45 mm' },
 
@@ -99,7 +99,7 @@ export const PASSPORT_SPECS: PassportSpec[] = [
   { id: 'ireland', label: 'Ireland passport', group: 'Europe (Schengen)', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.68, headMax: 0.80, bg: OFFWHITE, bgName: 'Off-white', note: '35×45 mm' },
 
   // ---- Asia ----
-  { id: 'japan', label: 'Japan', group: 'Asia', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm' },
+  { id: 'japan', label: 'Japan', group: 'Asia', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.711, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm' },
   { id: 'south-korea', label: 'South Korea', group: 'Asia', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm' },
   { id: 'singapore', label: 'Singapore', group: 'Asia', wPx: 400, hPx: 514, wMM: 35, hMM: 45, headMin: 0.66, headMax: 0.80, bg: WHITE, bgName: 'White', maxKB: 1024, note: '35×45 mm, 400×514 px' },
   { id: 'malaysia', label: 'Malaysia', group: 'Asia', wPx: mm(35), hPx: mm(50), wMM: 35, hMM: 50, headMin: 0.66, headMax: 0.80, bg: LIGHTBLUE, bgName: 'Light blue', note: '35×50 mm, BLUE background' },

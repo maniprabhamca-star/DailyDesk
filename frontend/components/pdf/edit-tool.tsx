@@ -334,7 +334,12 @@ const BlockEditText = memo(function BlockEditText({ initialText, style, onInput,
     <div ref={ref} contentEditable suppressContentEditableWarning
       onInput={(e) => onInput((e.currentTarget as HTMLElement).innerText)}
       onKeyDown={(e) => { if (e.key === 'Escape') { e.preventDefault(); (e.currentTarget as HTMLElement).blur(); onDone(); } }}
-      className="absolute z-30 rounded-[2px] px-[1px] outline-none ring-2 ring-primary/60"
+      // No ring. The dashed frame below already marks the selection, and the
+      // caret already shows where typing goes — but the frame is drawn ~35% of
+      // the font size larger so its handles clear the text, so a ring here sat
+      // a few pixels inside it and the pair read as a rendering glitch rather
+      // than as "text" inside "handles" (owner-reported).
+      className="absolute z-30 rounded-[2px] px-[1px] outline-none"
       style={style}
     />
   );
