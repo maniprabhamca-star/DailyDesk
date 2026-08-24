@@ -89,7 +89,13 @@ export const PASSPORT_SPECS: PassportSpec[] = [
   // chin-to-EYES with tolerances in an annex, a different basis from ours, so
   // headMin/headMax are left as-is rather than guessed at — see docs.
   { id: 'poland', label: 'Poland', group: 'Europe (Schengen)', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm, white background' },
-  schengen('greece', 'Greece'),
+  // Greece is NOT 35×45. The National Passport Centre publishes 40×60 mm, and
+  // a background "preferably gray with an RGB value of (190;190;190) +/-10" —
+  // a specific grey, not a vague light one. Head band here is Greece's own
+  // published FACE height (chin to forehead, 50–60% of the photo); it does not
+  // include the crown, so it reads slightly small against our crown-to-chin
+  // label. Flagged in docs rather than converted by guesswork.
+  { id: 'greece', label: 'Greece', group: 'Europe (Schengen)', wPx: mm(40), hPx: mm(60), wMM: 40, hMM: 60, headMin: 0.50, headMax: 0.60, bg: '#bebebe', bgName: 'Grey (RGB 190,190,190)', note: '40×60 mm, face 50–60% of height' },
   { id: 'ireland', label: 'Ireland passport', group: 'Europe (Schengen)', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.68, headMax: 0.80, bg: OFFWHITE, bgName: 'Off-white', note: '35×45 mm' },
 
   // ---- Asia ----
@@ -293,6 +299,59 @@ export const EDITORIAL: Record<string, CountryEditorial> = {
       'Exceptions are admitted only for attested medical or religious reasons, the latter explicitly covering members of a religious community whose rule prescribes a veil in public.',
     sourceName: 'fedpol — Kriterien für die Annahme von Fotos für Pässe und Identitätskarten (Fotomustertafel)',
     sourceUrl: 'https://www.fedpol.admin.ch/fedpol/de/home/pass---identitaetskarte/pass/fotos.html',
+    checkedOn: '2026-08-23',
+  },
+  greece: {
+    authority:
+      'Greek passports are issued by the Hellenic Police through the National Passport and Secure Document Centre, which publishes its own technical specification rather than deferring to the generic European one.',
+    quirk:
+      'Greece does not use the 35×45 mm photo the rest of Schengen does — it asks for 40×60 mm, without a frame. A standard European passport photo is simply the wrong size here. The background is specified to the exact shade: light, preferably grey at RGB (190, 190, 190) ± 10.',
+    background:
+      'Light, preferably grey at RGB (190;190;190) ±10 — one of the few authorities anywhere to name an exact value rather than describe a colour.',
+    glasses:
+      'If you normally wear glasses you must wear them in the photograph. Dark glasses or sunglasses are accepted only for medical reasons, frames must not obstruct the eyes, and reflections have to be eliminated by the lighting angle.',
+    headCovering:
+      'A head covering may be worn for religious reasons, provided the features from the jaw up to the forehead and from one ear to the other remain visible.',
+    expression:
+      'Neutral, without a smile, both eyes normally open — not wide open — and the mouth closed. The frame runs from the base of the shoulders to the top of the hair, filling 70–75% of the photo, with the chin-to-forehead distance at 50–60%.',
+    exceptions:
+      'The photograph must be in colour and taken within the last six months. A digitally printed photo has to be produced at 1200 dpi or better.',
+    sourceName: 'National Passport and Secure Document Centre (Hellenic Police) — Technical specifications of the passport photograph',
+    sourceUrl: 'https://www.passport.gov.gr/en/diadikasia-ekdosis/documents/specificationphoto.html',
+    checkedOn: '2026-08-23',
+  },
+
+  norway: {
+    authority:
+      'Norwegian passports and national ID cards are handled by Politiet, the police. Their quality requirements are unusual in two ways, and both catch people who prepared a photo in advance.',
+    quirk:
+      'You do not bring a photograph. The picture is taken in the biometrikiosk at the police station — “bildet skal tas i biometrikiosken” — and the same applies to children. What follows is what the kiosk photo has to achieve, which is worth knowing before you arrive rather than after.',
+    glasses:
+      'Glasses are not permitted at all — “briller og hodeplagg skal ikke benyttes”. Not merely untinted or unreflective: no glasses. Take them off before you are photographed.',
+    headCovering:
+      'Head coverings are likewise not used, except on religious grounds or particular circumstances such as illness, and only where the person is expected to wear the same covering at future border checks. It must not cover any part of the face, nor more of the head than necessary, and must not be tight enough to change the natural shape of the face.',
+    expression:
+      'Both eyes, both eyebrows and the ears must be fully visible — hair tucked behind the ears — with the gaze on the lens, a neutral expression and the mouth closed. The head should fill about 70% of the picture. Scarves, bags and outer clothing come off before the photo.',
+    sourceName: 'Politiet — Kvalitetskrav til ansiktsfoto i pass og nasjonale ID-kort',
+    sourceUrl: 'https://www.politiet.no/tjenester/pass/passfoto',
+    checkedOn: '2026-08-23',
+  },
+
+  portugal: {
+    authority:
+      'Portuguese passports and the Cartão de Cidadão are issued by the Instituto dos Registos e do Notariado, with consular posts applying the same rules abroad. Two identical photographs are required, not one.',
+    quirk:
+      'Portugal allows a photograph up to a YEAR old, where most of Europe insists on six months. And the Cartão de Cidadão is not the same photo as the passport: the citizen card takes a 32×32 mm square, while the passport asks for a photo “adequada ao modelo do passaporte” — the ICAO 35×45 mm this page is set to. One photograph does not serve both documents.',
+    background:
+      'Plain, clear and light — a white or light-coloured wall is the official suggestion — with the face visible and centred.',
+    glasses:
+      'Dark sunglasses are not accepted. The face must not be obscured by glasses, hats or any accessory.',
+    headCovering:
+      'The head must be uncovered for the Cartão de Cidadão, and nothing may cover the face on either document.',
+    expression:
+      'Look straight at the camera with a neutral expression.',
+    sourceName: 'Instituto dos Registos e do Notariado / Portuguese consular services — Cartão de Cidadão e Passaporte, requisitos de fotografia',
+    sourceUrl: 'https://irn.justica.gov.pt/Documentos-de-Identificacao/Cartao-de-Cidadao',
     checkedOn: '2026-08-23',
   },
 };

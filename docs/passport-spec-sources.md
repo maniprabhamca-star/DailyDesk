@@ -110,8 +110,29 @@ Austria head ranges; Spain, Poland backgrounds) out of ten Schengen states
 examined. Only Germany, Italy, Ireland and France matched the generic row
 unchanged.
 
-Still unverified and therefore still suspect: `portugal` `norway` `greece`,
-plus every entry outside Europe that was never in `VERIFIED_SPECS`.
+### Audit round 3 — 2026-08-23 (Europe complete)
+
+| Country | Official rule | Action |
+|---|---|---|
+| **Greece** | **40 × 60 mm**, not 35×45. Background light, *"preferably gray with an RGB value of (190;190;190) +/-10"*. Shoulders-to-top-of-hair 70–75% of the photo; **chin-to-forehead 50–60%**. Glasses must be worn if normally worn. Colour, ≤6 months, printed ≥1200 dpi. [National Passport Centre](https://www.passport.gov.gr/en/diadikasia-ekdosis/documents/specificationphoto.html) | **fixed — the size was completely wrong.** Head band set to Greece's published *face* height (chin-to-forehead), which excludes the crown and so reads slightly small against our crown-to-chin label. Flagged. |
+| **Norway** | **You are photographed in the biometrikiosk at the police station** — *"bildet skal tas i biometrikiosken"*, children included. **Glasses are banned outright**: *"briller og hodeplagg skal ikke benyttes"*. Ears, both eyebrows and both eyes fully visible; head ≈70% of the picture. [Politiet](https://www.politiet.no/tjenester/pass/passfoto) | preset left (≈70% sits inside our band); editorial written |
+| **Portugal** | Passport: two identical photos, colour, plain background, **up to a YEAR old**, size *"adequada ao modelo do passaporte"* — no mm published. **Cartão de Cidadão is 32 × 32 mm**, head uncovered, no dark sunglasses. [IRN](https://irn.justica.gov.pt/Documentos-de-Identificacao/Cartao-de-Cidadao) | preset left at ICAO 35×45 for the passport; editorial explains the CC is a different photo |
+
+**Europe is now fully audited.** Final score across the twelve Schengen entries:
+
+- **Correct as inherited (4):** Germany, Italy, Ireland, France
+- **Corrected (7):** Netherlands, Switzerland, Belgium, Austria (head) · Spain, Poland (background) · **Greece (size — 35×45 → 40×60)**
+- **Left with a flag (3):** Spain and Poland head bands (different measurement bases), Greece head band (face vs crown-to-chin)
+- **Not applicable (2):** Sweden and Norway photograph you at the counter
+
+Head height is expressed on **five incompatible bases** across these countries:
+crown-to-chin (DE, CH, NL), face including hair (BE, ES), chin-to-forehead (GR),
+chin-to-eyes (PL), and a bare percentage (IT, IE). `headMin`/`headMax` models
+only the first. That is the root cause of most of what was wrong here, and it is
+worth deciding whether the type should carry the basis explicitly.
+
+Still unverified: every entry outside Europe that was never in `VERIFIED_SPECS`
+— the Americas rows, and most of Asia, the Middle East, Africa and Oceania.
 
 ### ⚠ Still open — SPAIN head height
 
