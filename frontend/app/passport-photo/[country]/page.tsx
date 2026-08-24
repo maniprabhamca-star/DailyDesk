@@ -56,6 +56,28 @@ export default function Page({ params }: { params: { country: string } }) {
       ]}
       body={
         <div className="space-y-6">
+          {/* Unverified specs say so LOUDLY. This used to be a line of small
+              muted text under the table, which is not where you look before
+              spending money at a print counter — and an audit of the European
+              entries found six of ten generic rows wrong, so the warning is
+              doing real work. */}
+          {!verified && (
+            <section className="rounded-xl border-2 border-amber-500/50 bg-amber-500/10 p-4">
+              <h2 className="flex items-center gap-2 text-base font-semibold text-amber-800 dark:text-amber-300">
+                Check these figures before you print
+              </h2>
+              <p className="mt-1.5 text-sm leading-relaxed text-amber-900/90 dark:text-amber-200/90">
+                We have <b>not</b> yet confirmed {s.label}&rsquo;s photo rules against the issuing
+                authority&rsquo;s own page. What follows is the commonly-published specification, and
+                it is right often enough to be useful — but when we audited the European entries
+                the same way, several turned out to differ from the official rule on size,
+                background or head height. Open the portal you are submitting to and check the
+                numbers there first. The maker itself is unaffected: it crops to whatever the
+                figures below say.
+              </p>
+            </section>
+          )}
+
           {s.photographedOnSite && (
             <section className="rounded-xl border border-amber-500/40 bg-amber-500/[0.07] p-4">
               <h2 className="text-base font-semibold">You may not need to bring a photo at all</h2>
@@ -83,7 +105,7 @@ export default function Page({ params }: { params: { country: string } }) {
             <p className="mt-2 text-xs text-muted-foreground">
               {verified
                 ? 'These figures were checked against an official or widely-cited source. Portals occasionally change their rules, so confirm on the page where you submit.'
-                : 'These are the standard published figures for this document. This particular entry has not yet been checked against an official source, so confirm on the portal where you submit before printing.'}
+                : 'The rest of this page is generated from those same figures.'}
             </p>
           </section>
 
