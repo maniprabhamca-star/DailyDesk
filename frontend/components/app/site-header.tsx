@@ -34,16 +34,25 @@ const liveToolCount = catalog.reduce((n, g) => n + g.tools.filter((t) => t.href 
 function MenuGrid({ onPick }: { onPick: () => void }) {
   // Same rule as the home grid: the owner can open a gated tool from the menu.
   const owner = useIsOwner();
+  // The rows are deliberately tight. The menu's point is that nothing scrolls,
+  // and at 1280 the catalogue only just fits — five tools took it 14px over.
+  //
+  // Adding a sixth column does NOT help, which is worth recording so nobody
+  // tries it again: the tallest group is a single break-inside-avoid block, so
+  // it sets a floor no amount of columns lowers, and narrower columns truncated
+  // 25 tool names while still overflowing. Height per row is the axis that
+  // works. When this next runs out, split the largest group rather than
+  // shaving further — the rows have no room left to give.
   return (
     <div className="columns-3 gap-x-6 lg:columns-5 xl:columns-6 2xl:columns-7">
       {catalog.map((g) => (
-        <div key={g.label} className="mb-3 break-inside-avoid">
+        <div key={g.label} className="mb-2.5 break-inside-avoid">
           <p className="mb-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{g.label}</p>
           <div className="space-y-px">
             {g.tools.map((t) => {
               const Icon = t.icon;
               const row = (
-                <div className="flex items-center gap-2 rounded-md px-2 py-[3px] hover:bg-accent">
+                <div className="flex items-center gap-2 rounded-md px-2 py-[2px] hover:bg-accent">
                   <Icon className="size-4 shrink-0" style={{ color: g.color }} strokeWidth={2.25} />
                   <span className="truncate text-[13px] font-medium">{t.name}</span>
                   {isNewTool(t) && <span className="ml-auto shrink-0 rounded bg-primary px-1 py-px text-[9px] font-bold text-primary-foreground">New</span>}
