@@ -23,6 +23,14 @@ export type ChangeEntry = {
 // flags flip, dated then.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-08-26',
+    kind: 'new',
+    title: 'Four things a page can need doing to it',
+    detail:
+      'Scan a book and every sheet holds two pages, which no reader will separate for you — Split pages in half cuts them apart, and it knows that in Arabic, Hebrew and manga the left-hand page is the second one, not the first. Pages per sheet does the opposite, putting 2, 4, 9 or 16 pages on one sheet so a long document prints short; the pages are placed as real pages rather than pictures, so they stay sharp however small they get. Change page size gives a document one size — and its more useful half simply asks what size the file already mostly is and makes the stragglers match, which is what you want after merging things from three different places. Rasterize turns every page into a picture, for when a document has to look identical everywhere and nothing in it should be selectable; it says plainly that this cannot be undone. All four run in your browser, on any file, free.',
+    href: '/split-pages-in-half',
+  },
+  {
     date: '2026-08-24',
     kind: 'new',
     title: 'Put your letterhead back on a PDF',

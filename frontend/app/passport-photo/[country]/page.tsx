@@ -10,6 +10,18 @@ export function generateStaticParams() {
 
 const capOf = (kb?: number) => (kb ? (kb >= 1024 ? `${kb / 1024} MB` : `${kb} KB`) : null);
 
+// Meta descriptions are generated from spec values of wildly different lengths —
+// "Japan" against "India passport (Seva)", with or without a file cap — so the
+// same template lands anywhere from 120 to 160 characters. Google truncates
+// around 155 and the QA suite fails the build over it, which is how this was
+// caught. Clamp at a word boundary rather than hoping every country fits.
+function clamp155(s: string): string {
+  if (s.length <= 155) return s;
+  const cut = s.slice(0, 152);
+  const at = cut.lastIndexOf(' ');
+  return `${(at > 120 ? cut.slice(0, at) : cut).replace(/[,;—-]$/, '')}…`;
+}
+
 export function generateMetadata({ params }: { params: { country: string } }): Metadata {
   const s = getSpec(params.country);
   if (!s) return {};
@@ -19,7 +31,9 @@ export function generateMetadata({ params }: { params: { country: string } }): M
     // s.label already carries the document type for some entries ("Canada
     // passport/visa", "US visa (DS-160)"), so don't bolt "Passport" on again.
     title: `${s.label} Photo Size — ${s.wMM}×${s.hMM} mm | DiemDesk`,
-    description: `${s.label} photo size: ${s.wMM}×${s.hMM} mm (${s.wPx}×${s.hPx} px), head ${d.headMinMM}–${d.headMaxMM} mm, ${s.bgName.toLowerCase()} background${cap ? `, under ${cap}` : ''}. Free maker — cropped on your device, never uploaded.`,
+    description: clamp155(
+      `${s.label} photo size: ${s.wMM}×${s.hMM} mm, head ${d.headMinMM}–${d.headMaxMM} mm, ${s.bgName.toLowerCase()} background${cap ? `, under ${cap}` : ''}. Free — made on your device, never uploaded.`,
+    ),
     alternates: { canonical: `/passport-photo/${s.id}` },
     openGraph: { images: ['/og.png'], title: `${s.label} Photo Maker — Free | DiemDesk`, type: 'website' },
   };

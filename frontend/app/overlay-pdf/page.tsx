@@ -4,8 +4,10 @@ import { OverlayTool } from '@/components/pdf/overlay-tool';
 
 export const metadata: Metadata = {
   title: 'Overlay PDF — Stamp One PDF Onto Another, Free | DiemDesk',
+  // Kept under 155 characters — Google truncates around there, and the QA suite
+  // fails the build over it (that check caught this one).
   description:
-    'Lay one PDF over another — company letterhead behind an invoice, a pre-printed background, a DRAFT or PAID stamp. Free, no signup, and your files never leave your browser.',
+    'Lay one PDF over another — letterhead behind an invoice, a pre-printed background, a DRAFT stamp. Free, and your files never leave your browser.',
   alternates: { canonical: '/overlay-pdf' },
   openGraph: {
     images: ['/og.png'],

@@ -149,9 +149,9 @@ Ordered by return per hour, after the verification pass.
 | # | Item | Effort | Do it? |
 |---|---|---|---|
 | 1 | **PDF Overlay** | ~1 day, client-side | ✅ **SHIPPED 2026-08-24** (`/overlay-pdf`) |
-| 2 | **Halve PDF pages** | ~half a day, client-side | **Yes — next.** Verified, trivial with pdf-lib (halve the crop box, duplicate the page), and it completes the scanning chain: Scan to PDF → Clean scanned → **Halve** |
-| 3 | **Change page size + Pages per sheet** | ~1 day together, client-side | **Yes.** Same machinery — new page, draw the old one scaled. "Unify mixed sizes" is the genuinely useful half |
-| 4 | **Rasterize PDF** | ~half a day | **Yes.** We already render pages; this is render → re-assemble, with DPI/quality/greyscale |
+| 2 | **Halve PDF pages** | ~half a day, client-side | ✅ **SHIPPED 2026-08-26** as **Split pages in half** (`/split-pages-in-half`) — clearer name, better search volume. Adds RTL reading order, which PDF24 does not offer here |
+| 3 | **Change page size + Pages per sheet** | ~1 day together, client-side | ✅ **SHIPPED 2026-08-26** (`/change-pdf-page-size`, `/pages-per-sheet`). The "unify to the size it already mostly is" mode is ours — PDF24 only lets you pick a size |
+| 4 | **Rasterize PDF** | ~half a day | ✅ **SHIPPED 2026-08-26** (`/rasterize-pdf`) — DPI, greyscale, and an explicit "this cannot be undone" warning |
 | 5 | **Edit document information** | ~2 h | **Yes.** pdf-lib sets title/author/subject directly; sits beside Remove metadata |
 | 6 | **ODF + PDF→RTF/HTML converters** | ~half a day each | **Yes, cheaply.** LibreOffice is already on the VPS — mostly routes and landing pages |
 | 7 | **Bookmark / outline editor** | ~3–4 days | Worth it later. Genuinely differentiating; nobody free does it well |

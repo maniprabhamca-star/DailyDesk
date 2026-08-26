@@ -7,8 +7,8 @@ import { FolderOpen,
   ImageDown, Smartphone, Eraser, Film, Clapperboard, ArrowLeftRight, Images, Scaling, Repeat, Crop,
   Ruler, Braces, Palette, CaseSensitive, Crosshair, Contact, SquarePen, ScanFace,
   Binary, Hash, GitCompare, FileJson, Type,
-  Cloud, Sparkles, Landmark, Volume2, BookOpen, Table2, Music, AudioLines, Shapes, Captions, type LucideIcon,
-} from 'lucide-react';
+  Cloud, Sparkles, Landmark, Volume2, BookOpen, Table2, Music, AudioLines, Shapes, Captions,
+  Scissors, Grid2x2, type LucideIcon } from 'lucide-react';
 
 // A tool's "where it runs" tag — the single source of truth for every privacy
 // badge on the site. Keep it HONEST: only client-side tools get 'device'
@@ -55,6 +55,10 @@ export const catalog: CatGroup[] = [
       { name: 'Reorder pages', href: '/reorder-pdf', icon: ArrowLeftRight, badge: 'device' },
       { name: 'Compare PDF', href: '/compare-pdf', icon: ArrowLeftRight, badge: 'device', soon: true },
       { name: 'Delete pages', href: '/delete-pages-from-pdf', icon: FileMinus, badge: 'device' },
+      { name: 'Split pages in half', href: '/split-pages-in-half', icon: Scissors, badge: 'device' },
+      { name: 'Pages per sheet', href: '/pages-per-sheet', icon: Grid2x2, badge: 'device' },
+      { name: 'Change page size', href: '/change-pdf-page-size', icon: Ruler, badge: 'device' },
+      { name: 'Rasterize PDF', href: '/rasterize-pdf', icon: ImageDown, badge: 'device' },
       { name: 'Crop PDF', href: '/crop-pdf', icon: Crop, badge: 'device', soon: true },
       { name: 'Page numbers', href: '/add-page-numbers-to-pdf', icon: ListOrdered, badge: 'device' },
       { name: 'Repair PDF', href: '/repair-pdf', icon: Wrench, badge: 'device' },
