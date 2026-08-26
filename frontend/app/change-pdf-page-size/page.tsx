@@ -3,7 +3,7 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { PageSizeTool } from '@/components/pdf/page-ops-tool';
 
 export const metadata: Metadata = {
-  title: 'Change PDF Page Size — Resize to A4, Letter or Unify | DiemDesk',
+  title: 'Change PDF Page Size — Resize to A4 or Letter | DiemDesk',
   description:
     'Set every PDF page to A4, Letter or any size — or make a document with mixed page sizes consistent. Free, and your file never leaves your browser.',
   alternates: { canonical: '/change-pdf-page-size' },

@@ -3,7 +3,7 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { PagesPerSheetTool } from '@/components/pdf/page-ops-tool';
 
 export const metadata: Metadata = {
-  title: 'Pages Per Sheet — Print Multiple PDF Pages on One Page | DiemDesk',
+  title: 'Print Multiple PDF Pages on One Sheet | DiemDesk',
   description:
     'Put 2, 4, 9 or 16 PDF pages on one sheet — save paper, and turn a long document short. Free, no signup, and your file never leaves your browser.',
   alternates: { canonical: '/pages-per-sheet' },
