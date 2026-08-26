@@ -8,7 +8,7 @@ import { FolderOpen,
   Ruler, Braces, Palette, CaseSensitive, Crosshair, Contact, SquarePen, ScanFace,
   Binary, Hash, GitCompare, FileJson, Type,
   Cloud, Sparkles, Landmark, Volume2, BookOpen, Table2, Music, AudioLines, Shapes, Captions,
-  Scissors, Grid2x2, type LucideIcon } from 'lucide-react';
+  Scissors, Grid2x2, Tags, type LucideIcon } from 'lucide-react';
 
 // A tool's "where it runs" tag — the single source of truth for every privacy
 // badge on the site. Keep it HONEST: only client-side tools get 'device'
@@ -83,6 +83,10 @@ export const catalog: CatGroup[] = [
       { name: 'Extract images', href: '/extract-images-from-pdf', icon: Images, badge: 'device' },
       { name: 'PDF to Word', href: '/pdf-to-word', icon: FileType, badge: 'server' },
       { name: 'PDF to PowerPoint', href: '/pdf-to-powerpoint', icon: Presentation, badge: 'server' },
+      { name: 'PDF to RTF', href: '/pdf-to-rtf', icon: FileType, badge: 'server' },
+      { name: 'PDF to HTML', href: '/pdf-to-html', icon: Code2, badge: 'server' },
+      { name: 'PDF to ODT', href: '/pdf-to-odt', icon: FileType2, badge: 'server' },
+      { name: 'OpenDocument to PDF', href: '/odf-to-pdf', icon: FileType2, badge: 'server' },
       { name: 'PDF to Excel', href: '/pdf-to-excel', icon: FileSpreadsheet, badge: 'device' },
       { name: 'PDF to Markdown', href: '/pdf-to-markdown', icon: Hash, badge: 'device' },
       { name: 'PDF to EPUB', href: '/pdf-to-epub', icon: BookOpen, badge: 'device' , soon: true },
@@ -104,6 +108,7 @@ export const catalog: CatGroup[] = [
       { name: 'Overlay PDF', href: '/overlay-pdf', icon: Layers, badge: 'device' },
       { name: 'Bates numbering', href: '/bates-numbering', icon: ListOrdered, badge: 'device' },
       { name: 'Remove metadata', href: '/remove-pdf-metadata', icon: Fingerprint, badge: 'device' },
+      { name: 'Edit PDF details', href: '/edit-pdf-metadata', icon: Tags, badge: 'device' },
       { name: 'Share-Safe PDF Check', href: '/share-safe-pdf-check', icon: ShieldCheck, badge: 'device', soon: true },
       { name: 'Redact PDF', href: '/redact-pdf', icon: EyeOff, badge: 'device', soon: true },
       { name: 'Sign PDF', href: '/sign-pdf', icon: PenTool, badge: 'device' },

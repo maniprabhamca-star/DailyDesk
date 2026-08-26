@@ -20,7 +20,7 @@ const MAX_BYTES = 50 * 1024 * 1024;
 // The registry lives HERE (client side) and pages pass only a string id —
 // RegExps and icon components are not serializable across the App Router
 // server→client boundary (passing them hangs static generation).
-export type OfficeKindId = 'word' | 'excel' | 'powerpoint' | 'document';
+export type OfficeKindId = 'word' | 'excel' | 'powerpoint' | 'document' | 'odf';
 
 type OfficeKind = {
   label: string;
@@ -59,6 +59,18 @@ const KINDS: Record<OfficeKindId, OfficeKind> = {
     icon: Presentation,
     currentHref: '/powerpoint-to-pdf',
     fromLabel: 'PowerPoint to PDF',
+  },
+  // One tool for all four OpenDocument types rather than four near-identical
+  // pages: a LibreOffice user with a drawing and a spreadsheet has one place to
+  // go, and we are not publishing four pages that say the same thing.
+  odf: {
+    label: 'OpenDocument file',
+    accept: '.odt,.ods,.odp,.odg,.fodt,.fods,.fodp,application/vnd.oasis.opendocument.text,application/vnd.oasis.opendocument.spreadsheet,application/vnd.oasis.opendocument.presentation,application/vnd.oasis.opendocument.graphics',
+    extRe: /\.(odt|ods|odp|odg|fodt|fods|fodp)$/i,
+    hint: 'ODT, ODS, ODP or ODG',
+    icon: FileType2,
+    currentHref: '/odf-to-pdf',
+    fromLabel: 'OpenDocument to PDF',
   },
   document: {
     label: 'HTML, text or document file',

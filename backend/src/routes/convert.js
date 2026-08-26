@@ -82,7 +82,7 @@ router.use(rateLimit({
 // Free daily quota (Pro unlimited) — after the burst limiter, before the routes.
 router.use(dailyQuota);
 
-const OFFICE_RE = /\.(docx?|odt|rtf|txt|html?|xlsx?|ods|csv|pptx?|odp)$/i;
+const OFFICE_RE = /\.(docx?|odt|rtf|txt|html?|xlsx?|ods|csv|pptx?|odp|odg|fodt|fods|fodp)$/i;
 
 // (CANARY_TOKEN / isCanaryReq are defined at the top — the canary bypasses the
 // kill-switch as well as the rate limits so it never meters itself.)
@@ -122,7 +122,40 @@ const MIME = {
   docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
   pdf: 'application/pdf',
+  rtf: 'application/rtf',
+  html: 'text/html; charset=utf-8',
+  odt: 'application/vnd.oasis.opendocument.text',
 };
+
+const IMG_MIME = { gif: 'image/gif', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg' };
+
+/**
+ * LibreOffice writes HTML as a page PLUS a pile of sidecar image files beside
+ * it — one .gif per picture on the page. We send a single file, so those
+ * images would arrive as broken links in a document the user cannot fix.
+ *
+ * Inlining them as data URIs gives back one self-contained .html that opens
+ * anywhere, which is what someone converting a PDF to HTML actually wants.
+ * The 50 MB input cap keeps the result bounded.
+ */
+function inlineHtmlImages(outPath, outDir) {
+  let html = fs.readFileSync(outPath, 'utf8');
+  html = html.replace(/(src\s*=\s*)("|')([^"']+)\2/gi, (whole, lead, quote, src) => {
+    if (/^(data:|https?:|\/\/)/i.test(src)) return whole;
+    const ext = (path.extname(src).slice(1) || '').toLowerCase();
+    const type = IMG_MIME[ext];
+    if (!type) return whole;
+    // Only ever read a plain filename out of our own temp dir — never a path.
+    const file = path.join(outDir, path.basename(decodeURIComponent(src)));
+    if (path.dirname(file) !== outDir || !fs.existsSync(file)) return whole;
+    try {
+      return `${lead}${quote}data:${type};base64,${fs.readFileSync(file).toString('base64')}${quote}`;
+    } catch {
+      return whole;
+    }
+  });
+  fs.writeFileSync(outPath, html, 'utf8');
+}
 
 // A run recipe: either LibreOffice (sofficeArgs) or a custom engine (buildCmd,
 // e.g. Ghostscript for PDF/A). buildCmd({input, outDir, profile, outName})
@@ -187,6 +220,12 @@ function convertRoute({ upload, sofficeArgs, buildCmd, outExt, failMessage, slug
           // used (they'd be capped at 3/day otherwise) — mark it for refund checks.
           if (req.isPro) trackEvent(req, 'pro_used', { module: slug, userId: req._userId });
           const outPath = path.join(outDir, produced);
+          // HTML arrives as a page plus loose images; fold them in so the one
+          // file we send is complete. A failure here is not worth losing the
+          // conversion over — the user still gets their document.
+          if (outExt === 'html') {
+            try { inlineHtmlImages(outPath, outDir); } catch { /* send it as-is */ }
+          }
           const base = (req.file.originalname || `document.${outExt}`).replace(/\.[^.]+$/, '');
           res.setHeader('Content-Type', MIME[outExt] || 'application/octet-stream');
           res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(base)}.${outExt}"`);
@@ -205,8 +244,9 @@ function convertRoute({ upload, sofficeArgs, buildCmd, outExt, failMessage, slug
 function officeSlug(file) {
   const name = (file && file.originalname || '').toLowerCase();
   if (/\.(xlsx?|ods|csv)$/i.test(name)) return '/excel-to-pdf';
-  if (/\.(pptx?|odp)$/i.test(name)) return '/powerpoint-to-pdf';
+  if (/\.(pptx?|odp|fodp)$/i.test(name)) return '/powerpoint-to-pdf';
   if (/\.(html?|txt)$/i.test(name)) return '/html-to-pdf';
+  if (/\.odg$/i.test(name)) return '/odf-to-pdf'; // Draw has no MS-format sibling
   return '/word-to-pdf'; // docx/doc/odt/rtf and default
 }
 
@@ -254,5 +294,44 @@ router.post('/pdf-to-pdfa', convertRoute({
   slugFor: '/pdf-to-pdfa',
   failMessage: 'Could not convert this PDF to PDF/A. Encrypted files must be unlocked first.',
 }));
+
+// PDF -> the three formats people ask for when .docx is the wrong answer.
+// All three go through the same Writer PDF import, so a PDF that converts to
+// Word converts to these; the difference is only what LibreOffice writes out.
+//
+// RTF opens in anything, including the old software that will not take a .docx.
+// HTML is for putting the contents on a page or into a CMS.
+// ODT is the open format — LibreOffice, OpenOffice, and archival requirements
+// that specify ODF rather than a Microsoft format.
+const PDF_TO = [
+  {
+    slug: 'pdf-to-rtf',
+    filter: 'rtf:Rich Text Format',
+    ext: 'rtf',
+    fail: 'Could not convert this PDF to RTF. Password-protected or damaged files can’t be converted — unlock it first if it has a password.',
+  },
+  {
+    slug: 'pdf-to-html',
+    filter: 'html:HTML (StarWriter)',
+    ext: 'html',
+    fail: 'Could not convert this PDF to HTML. Password-protected or damaged files can’t be converted — unlock it first if it has a password.',
+  },
+  {
+    slug: 'pdf-to-odt',
+    filter: 'odt:writer8',
+    ext: 'odt',
+    fail: 'Could not convert this PDF to ODT. Password-protected or damaged files can’t be converted — unlock it first if it has a password.',
+  },
+];
+
+for (const { slug, filter, ext, fail } of PDF_TO) {
+  router.post(`/${slug}`, convertRoute({
+    upload: makeUpload('pdf'),
+    sofficeArgs: ['--infilter=writer_pdf_import', '--convert-to', filter],
+    outExt: ext,
+    slugFor: `/${slug}`,
+    failMessage: fail,
+  }));
+}
 
 module.exports = router;
