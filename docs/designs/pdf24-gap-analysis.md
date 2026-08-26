@@ -2,11 +2,19 @@
 
 **Checked 2026-08-24** against [tools.pdf24.org](https://tools.pdf24.org/en/).
 
+> **CORRECTION (2026-08-24).** The first version of this document said PDF24 had
+> 24 tools. That was the landing page, not the catalogue. Their
+> [all-tools page](https://tools.pdf24.org/en/all-tools) lists **~100**, which is
+> comparable to ours — the owner caught the error. The gap list below has been
+> rebuilt from the full catalogue and is considerably longer than it first
+> appeared. Everything under "The headline" was written on the wrong premise;
+> the corrected comparison is in **Full-catalogue gaps** further down.
+
 ## The headline: breadth is not the problem
 
 | | PDF24 | DiemDesk |
 |---|---|---|
-| Tools | **24** | **102** |
+| Tools | ~~24~~ **~100** | **102** |
 | Processing | Uploaded to their servers, "removed after a short time" | On your device for the in-browser tools |
 | Limits | "No artificial limits" — because they scale servers | 100 MB free on in-browser tools |
 | Offline option | A separate Windows desktop download (PDF24 Creator) | The website itself works offline |
@@ -75,6 +83,35 @@ Bates numbering, Share-Safe check, Fill PDF form, Clean scanned PDF, Repair PDF,
 Redaction certificate + `/verify-redaction`, Folder preview, Workflows, Client
 packet builder, File vault — plus the entire image, video, developer and
 everyday-tools sections they have nothing comparable to.
+
+## Full-catalogue gaps (from the all-tools page)
+
+Rebuilt after the correction above. These are **functional** absences, not
+naming — the pure SEO-name gaps are listed separately at the end.
+
+### Genuinely missing capabilities
+
+| Tool | What it does | Effort | Verdict |
+|---|---|---|---|
+| **PDF Overlay** | Stamp one PDF over another — letterhead, DRAFT stamp, pre-printed background | LOW, client-side | **Build** |
+| **Webpage → PDF** | Archive a live URL as PDF | MED, needs headless browser | **Build (Pro)** |
+| **Halve PDF pages** | Cut each page down the middle — scanned book spreads into single pages | LOW, client-side | **Strong candidate.** Genuinely useful, and it pairs with Scan to PDF + Clean scanned PDF |
+| **Pages per sheet (N-up)** | 2 or 4 pages onto one sheet for printing | LOW, client-side | Good candidate |
+| **Change PDF page size** | Rescale pages A4 ↔ Letter ↔ A5 | LOW, client-side | Good candidate |
+| **Change document information** | Edit title / author / subject | LOW | We only *remove* metadata; editing is a natural sibling |
+| **Bookmark PDF** | Add or edit the outline / table of contents | MEDIUM | Worth it — no free competitor does this well |
+| **Rasterize PDF** | Flatten every page to an image | LOW | We render already; different from our form-Flatten |
+| **Create fillable PDF form** | Author AcroForm fields | HIGH | Big. Pairs with Fill PDF form. Pro material |
+| **Set viewer preferences** | Open at page N, page layout | LOW | Niche |
+| **Create invoice / e-invoice** | Invoice builder incl. electronic formats | HIGH | Interesting given the e-invoicing mandates already noted in the tool-expansion roadmap |
+
+### Naming / SEO gaps only (same engines we already run)
+`PNG to PDF` · `WEBP to PDF` · `HEIC to PDF` · `TIFF to PDF` · `PDF to PNG` ·
+`PDF to SVG` · `PDF to HTML` · `PDF to RTF` · `HEIC to PNG` · `WEBP to JPG/PNG` ·
+ODF in/out (`ODT`/`ODS`/`ODP`/`ODG`) · `PUB to PDF`.
+
+Most are landing pages over converters we already have. `PDF to SVG` and
+`PDF to HTML` are the two that need real work.
 
 ## Recommended plan
 

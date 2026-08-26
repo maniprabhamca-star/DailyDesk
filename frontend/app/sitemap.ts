@@ -43,6 +43,7 @@ const ROUTES: Array<{ path: string; priority: number; changeFrequency: MetadataR
   { path: '/protect-pdf', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/unlock-pdf', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/watermark-pdf', priority: 0.9, changeFrequency: 'monthly' },
+  { path: '/overlay-pdf', priority: 0.8, changeFrequency: 'monthly' },
   { path: '/flatten-pdf', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/repair-pdf', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/scan-to-pdf', priority: 0.9, changeFrequency: 'monthly' },

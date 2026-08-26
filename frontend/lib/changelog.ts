@@ -23,6 +23,14 @@ export type ChangeEntry = {
 // flags flip, dated then.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-08-24',
+    kind: 'new',
+    title: 'Put your letterhead back on a PDF',
+    detail:
+      'Some documents arrive plain and have to go out on headed paper — an invoice from your accounting software, a letter from a template, a form that needs the pre-printed background it was designed for. Until now that meant printing it, or paying for desktop software. Overlay PDF lays one PDF over another: the letterhead, the background, or a stamp page such as DRAFT or PAID, applied across the whole document or only the pages you name. It takes a whole PDF as the stamp rather than a picture of one, so the vectors, the embedded fonts and the transparency all come through exactly as they were designed — which a watermark image cannot do. You can put it on top at any opacity, or behind the page where the page allows it. Both files are opened and combined inside your browser, which matters more here than almost anywhere else: a letterheaded invoice is precisely the document you should not be uploading to a stranger.',
+    href: '/overlay-pdf',
+  },
+  {
     date: '2026-08-23',
     kind: 'improved',
     title: 'Passport photo pages now tell you the whole requirement',
