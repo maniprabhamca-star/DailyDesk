@@ -31,8 +31,11 @@ The paid flagship. Bank statement PDF → verified transaction table → **Excel
 
 ---
 
-## 1. Core PDF catalog — parity gaps (Smallpdf/iLovePDF)
+## 1. Core PDF catalog — parity gaps (Smallpdf/iLovePDF/PDF24)
 Mostly free/on-device unless marked.
+- [x] 📱 **Overlay PDF** (`/overlay-pdf` — shipped 2026-08-24, free, on-device). Stamps one PDF onto another: letterhead behind an invoice, pre-printed form background, DRAFT/PAID stamp page. Watermark does text and images; this takes a whole PDF so vectors, embedded fonts and transparency survive. On-top or behind, fit or actual size, first-page or page-for-page, page range, opacity. Verified: base 0 form XObjects → output 6 (matching the stamp); behind → 8.
+- [ ] ⏳ **Webpage → PDF (Pro)** — archive a live URL. ⚠ BLOCKED ON INFRA: the VPS has **no headless browser** (no chromium/puppeteer/playwright; LibreOffice can't render a live page). Needs Chromium + Puppeteer installed on prod **and SSRF hardening** — the server would fetch user-supplied URLs, so private IP ranges, `file://` and redirect-to-localhost must be blocked. ~2–3 days, mostly hardening. Owner approval needed before installing a browser on the production box.
+- See **[pdf24-gap-analysis.md](pdf24-gap-analysis.md)** for the rest of the PDF24 comparison — halve-pages, N-up, page resize, bookmarks, document-info editing, rasterize, fillable-form authoring, invoice builder — plus the naming-only converter gaps.
 - [ ] ⏳ Request e-signatures (Pro) + **certificate of completion** (audit trail + verification hash)
 - [ ] ⏳ Repair PDF
 - [ ] ⏳ Scan-to-PDF (camera/import → PDF)
