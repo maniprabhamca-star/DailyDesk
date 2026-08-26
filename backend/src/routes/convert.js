@@ -123,39 +123,8 @@ const MIME = {
   pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
   pdf: 'application/pdf',
   rtf: 'application/rtf',
-  html: 'text/html; charset=utf-8',
   odt: 'application/vnd.oasis.opendocument.text',
 };
-
-const IMG_MIME = { gif: 'image/gif', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg' };
-
-/**
- * LibreOffice writes HTML as a page PLUS a pile of sidecar image files beside
- * it — one .gif per picture on the page. We send a single file, so those
- * images would arrive as broken links in a document the user cannot fix.
- *
- * Inlining them as data URIs gives back one self-contained .html that opens
- * anywhere, which is what someone converting a PDF to HTML actually wants.
- * The 50 MB input cap keeps the result bounded.
- */
-function inlineHtmlImages(outPath, outDir) {
-  let html = fs.readFileSync(outPath, 'utf8');
-  html = html.replace(/(src\s*=\s*)("|')([^"']+)\2/gi, (whole, lead, quote, src) => {
-    if (/^(data:|https?:|\/\/)/i.test(src)) return whole;
-    const ext = (path.extname(src).slice(1) || '').toLowerCase();
-    const type = IMG_MIME[ext];
-    if (!type) return whole;
-    // Only ever read a plain filename out of our own temp dir — never a path.
-    const file = path.join(outDir, path.basename(decodeURIComponent(src)));
-    if (path.dirname(file) !== outDir || !fs.existsSync(file)) return whole;
-    try {
-      return `${lead}${quote}data:${type};base64,${fs.readFileSync(file).toString('base64')}${quote}`;
-    } catch {
-      return whole;
-    }
-  });
-  fs.writeFileSync(outPath, html, 'utf8');
-}
 
 // A run recipe: either LibreOffice (sofficeArgs) or a custom engine (buildCmd,
 // e.g. Ghostscript for PDF/A). buildCmd({input, outDir, profile, outName})
@@ -220,12 +189,6 @@ function convertRoute({ upload, sofficeArgs, buildCmd, outExt, failMessage, slug
           // used (they'd be capped at 3/day otherwise) — mark it for refund checks.
           if (req.isPro) trackEvent(req, 'pro_used', { module: slug, userId: req._userId });
           const outPath = path.join(outDir, produced);
-          // HTML arrives as a page plus loose images; fold them in so the one
-          // file we send is complete. A failure here is not worth losing the
-          // conversion over — the user still gets their document.
-          if (outExt === 'html') {
-            try { inlineHtmlImages(outPath, outDir); } catch { /* send it as-is */ }
-          }
           const base = (req.file.originalname || `document.${outExt}`).replace(/\.[^.]+$/, '');
           res.setHeader('Content-Type', MIME[outExt] || 'application/octet-stream');
           res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(base)}.${outExt}"`);
@@ -309,12 +272,6 @@ const PDF_TO = [
     filter: 'rtf:Rich Text Format',
     ext: 'rtf',
     fail: 'Could not convert this PDF to RTF. Password-protected or damaged files can’t be converted — unlock it first if it has a password.',
-  },
-  {
-    slug: 'pdf-to-html',
-    filter: 'html:HTML (StarWriter)',
-    ext: 'html',
-    fail: 'Could not convert this PDF to HTML. Password-protected or damaged files can’t be converted — unlock it first if it has a password.',
   },
   {
     slug: 'pdf-to-odt',
