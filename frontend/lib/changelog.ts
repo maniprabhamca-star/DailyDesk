@@ -25,6 +25,14 @@ export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-08-26',
     kind: 'new',
+    title: 'Fix what a PDF says it is — and four more ways out of one',
+    detail:
+      'Every PDF quietly announces a title, an author and the program that made it, which is why a file saved as contract-final still introduces itself as “Microsoft Word - Untitled1”, and why a document can arrive carrying a colleague’s name. Edit PDF details lets you set all of that. The reason other tools appear to do this and change nothing: a PDF can record the same facts twice, in an old information block and in a newer XMP packet, and Acrobat believes the second one — so we write both, and tell you when a file is disagreeing with itself. Drop a stack of PDFs to stamp one author across all of them. Alongside it: PDF to RTF for the software that refuses a .docx, PDF to ODT for people who work in LibreOffice, and OpenDocument to PDF for ODT, ODS, ODP and ODG in one place. PDF to HTML gives you a real web page — selectable text, headings, lists and tables, built in your browser rather than uploaded, because the usual server route turns every paragraph into a picture.',
+    href: '/edit-pdf-metadata',
+  },
+  {
+    date: '2026-08-26',
+    kind: 'new',
     title: 'Four things a page can need doing to it',
     detail:
       'Scan a book and every sheet holds two pages, which no reader will separate for you — Split pages in half cuts them apart, and it knows that in Arabic, Hebrew and manga the left-hand page is the second one, not the first. Pages per sheet does the opposite, putting 2, 4, 9 or 16 pages on one sheet so a long document prints short; the pages are placed as real pages rather than pictures, so they stay sharp however small they get. Change page size gives a document one size — and its more useful half simply asks what size the file already mostly is and makes the stragglers match, which is what you want after merging things from three different places. Rasterize turns every page into a picture, for when a document has to look identical everywhere and nothing in it should be selectable; it says plainly that this cannot be undone. All four run in your browser, on any file, free.',

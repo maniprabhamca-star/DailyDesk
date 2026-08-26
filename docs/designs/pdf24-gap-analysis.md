@@ -152,8 +152,8 @@ Ordered by return per hour, after the verification pass.
 | 2 | **Halve PDF pages** | ~half a day, client-side | ✅ **SHIPPED 2026-08-26** as **Split pages in half** (`/split-pages-in-half`) — clearer name, better search volume. Adds RTL reading order, which PDF24 does not offer here |
 | 3 | **Change page size + Pages per sheet** | ~1 day together, client-side | ✅ **SHIPPED 2026-08-26** (`/change-pdf-page-size`, `/pages-per-sheet`). The "unify to the size it already mostly is" mode is ours — PDF24 only lets you pick a size |
 | 4 | **Rasterize PDF** | ~half a day | ✅ **SHIPPED 2026-08-26** (`/rasterize-pdf`) — DPI, greyscale, and an explicit "this cannot be undone" warning |
-| 5 | **Edit document information** | ~2 h | **Yes.** pdf-lib sets title/author/subject directly; sits beside Remove metadata |
-| 6 | **ODF + PDF→RTF/HTML converters** | ~half a day each | **Yes, cheaply.** LibreOffice is already on the VPS — mostly routes and landing pages |
+| 5 | **Edit document information** | ~2 h | ✅ **SHIPPED 2026-08-26** as **Edit PDF details** (`/edit-pdf-metadata`). Goes past PDF24: it writes the XMP packet too, so the change survives in Acrobat, and it names the fields where a file contradicts itself |
+| 6 | **ODF + PDF→RTF/HTML converters** | ~half a day each | ✅ **SHIPPED 2026-08-26**: `/pdf-to-rtf`, `/pdf-to-odt`, `/odf-to-pdf` (ODT/ODS/ODP/ODG in one page). `/pdf-to-html` had to be rebuilt **on-device** — the LibreOffice filter rasterises the text (17 words + 75 GIFs on a real file) |
 | 7 | **Bookmark / outline editor** | ~3–4 days | Worth it later. Genuinely differentiating; nobody free does it well |
 | 8 | **Webpage → PDF (Pro)** | ~2–3 days, server | Blocked: needs Chromium on prod **plus SSRF hardening**. Owner approval required |
 | 9 | **Create fillable form (Pro)** | ~1–2 weeks | Big. Pairs with Fill PDF form as a Pro pillar, not a quick win |
