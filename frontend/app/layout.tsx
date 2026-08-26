@@ -4,6 +4,7 @@ import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 import { AuthProvider } from '@/lib/auth';
 import { ToolFlagsProvider } from '@/lib/tool-flags';
+import { DeploySkewGuard } from '@/components/app/deploy-skew-guard';
 import { CommandPalette } from '@/components/command-palette';
 import { CookieBanner } from '@/components/cookie-banner';
 import { PwaRegister } from '@/components/pwa-register';
@@ -85,6 +86,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             no error to show for it. Must be inline and early to beat the gap. */}
         <script dangerouslySetInnerHTML={{ __html: FILE_PICKER_RESCUE }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd) }} />
+        {/* Recovers a tab that was open across a deploy — see the component. */}
+        <DeploySkewGuard />
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
           <AuthProvider>
             <ToolFlagsProvider>

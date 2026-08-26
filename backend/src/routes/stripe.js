@@ -14,6 +14,19 @@ const PRICE_YEARLY = process.env.STRIPE_PRICE_ID_YEARLY;
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
 const FRONTEND = process.env.FRONTEND_URL || 'https://diemdesk.com';
 
+// Founding-member coupon, auto-applied while the founding window is open.
+//
+// The plan (decided 2026-07-04): standing price $5.98/mo, and the first 1,000
+// subscribers keep $4.99 for life. Stripe enforces that natively — a coupon of
+// $0.99 off, duration=forever, max_redemptions=1000 — so there is no counter to
+// maintain here and no way to oversell it: once the 1,000th redemption lands,
+// Stripe refuses the coupon and the code below quietly falls back to the
+// standing price rather than failing the checkout.
+//
+// UNSET = nothing happens. Set STRIPE_FOUNDING_COUPON to the coupon id at Pro
+// launch and remove it (or let Stripe exhaust it) when the window closes.
+const FOUNDING_COUPON = process.env.STRIPE_FOUNDING_COUPON;
+
 let stripe = null;
 function getStripe() {
   if (stripe) return stripe;
@@ -46,19 +59,37 @@ router.post('/create-checkout-session', requireAuth, async (req, res) => {
       allow_promotion_codes: true,
       metadata: { userId: String(req.user.userId) },
     };
+    // The founding discount is applied for them. Making a founder hunt for a
+    // promo code to get the price we advertised would be a strange way to treat
+    // the first thousand customers.
+    //
+    // Stripe rejects `discounts` and `allow_promotion_codes` together, so while
+    // the coupon is live the manual code box is dropped — the better price is
+    // already on the session.
+    const withCoupon = FOUNDING_COUPON
+      ? { ...base, discounts: [{ coupon: FOUNDING_COUPON }], allow_promotion_codes: undefined }
+      : base;
+
+    // Reuse an existing customer if we have one, else let Stripe create one
+    // pre-filled with their email.
+    const create = (fields) => s.checkout.sessions.create(
+      user.stripe_customer_id ? { ...fields, customer: user.stripe_customer_id } : { ...fields, customer_email: user.email }
+    );
+
+    // Two independent things can go wrong, and neither may cost us the sale:
+    //   1. the coupon is exhausted / expired / mistyped  -> charge standing price
+    //   2. the stored customer id is unknown to Stripe   -> make a fresh customer
+    // (2) predates the coupon and happens with a leftover live id while testing.
+    const msgOf = (e) => (e && e.message) || '';
     let session;
     try {
-      // Reuse an existing customer if we have one, else let Stripe create one
-      // pre-filled with their email.
-      session = await s.checkout.sessions.create(
-        user.stripe_customer_id ? { ...base, customer: user.stripe_customer_id } : { ...base, customer_email: user.email }
-      );
+      session = await create(withCoupon);
     } catch (e) {
-      // A stored customer Stripe can't find (deleted, or from a different Stripe
-      // mode — e.g. a leftover live id while testing) must not dead-end checkout:
-      // retry with just the email so a fresh customer is created.
-      if (user.stripe_customer_id && /No such customer/i.test(e.message || '')) {
-        session = await s.checkout.sessions.create({ ...base, customer_email: user.email });
+      if (FOUNDING_COUPON && /coupon|promotion/i.test(msgOf(e))) {
+        console.warn('[stripe] founding coupon rejected, falling back to standing price:', msgOf(e));
+        session = await create(base);
+      } else if (user.stripe_customer_id && /No such customer/i.test(msgOf(e))) {
+        session = await s.checkout.sessions.create({ ...withCoupon, customer_email: user.email });
       } else {
         throw e;
       }
