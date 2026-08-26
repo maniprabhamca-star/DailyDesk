@@ -50,7 +50,7 @@ export const PASSPORT_SPECS: PassportSpec[] = [
   { id: 'uk-passport', label: 'UK passport', group: 'Popular', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.64, headMax: 0.76, bg: LIGHTGREY, bgName: 'Light grey', maxKB: 10240, note: '35×45 mm, 600×750 px min' },
   { id: 'india-passport', label: 'India passport (Seva)', group: 'Popular', wPx: 630, hPx: 810, wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', maxKB: 250, note: '3.5×4.5 cm printed, white background',
     photographedOnSite: 'At a Passport Seva Kendra or POPSK no photograph is required — you are photographed there. Printed photos are for the routes that still ask for them: two colour copies, 3.5×4.5 cm, white background.' },
-  { id: 'india-evisa', label: 'India e-Visa', group: 'Popular', wPx: 600, hPx: 600, wMM: 51, hMM: 51, headMin: 0.60, headMax: 0.80, bg: WHITE, bgName: 'White', maxKB: 1024, note: 'square, 350–1000 px, ≤1 MB' },
+  { id: 'india-evisa', label: 'India e-Visa', group: 'Popular', wPx: 600, hPx: 600, wMM: 51, hMM: 51, headMin: 0.60, headMax: 0.80, bg: WHITE, bgName: 'White', maxKB: 1024, note: 'square, JPEG 10 KB–1 MB' },
   { id: 'canada', label: 'Canada passport/visa', group: 'Popular', wPx: mm(50), hPx: mm(70), wMM: 50, hMM: 70, headMin: 0.443, headMax: 0.514, bg: WHITE, bgName: 'White', note: '50×70 mm, head 31–36 mm' },
   { id: 'australia', label: 'Australia passport', group: 'Popular', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.711, headMax: 0.80, bg: OFFWHITE, bgName: 'Off-white', note: '35×45 mm' },
   { id: 'china-visa', label: 'China visa', group: 'Popular', wPx: 354, hPx: 472, wMM: 33, hMM: 48, headMin: 0.583, headMax: 0.688, bg: WHITE, bgName: 'White', maxKB: 1024, note: '33×48 mm, head 28–33 mm' },
@@ -421,6 +421,38 @@ export const EDITORIAL: Record<string, CountryEditorial> = {
     sourceName: 'Polismyndigheten — Pass och nationellt id-kort',
     sourceUrl: 'https://polisen.se/tjanster-tillstand/pass-och-nationellt-id-kort/',
     checkedOn: '2026-08-23',
+  },
+
+  'india-evisa': {
+    authority:
+      'The e-Visa photograph is checked by the Bureau of Immigration through the government’s own portal at indianvisaonline.gov.in. It is uploaded rather than printed, so the rules are about the file as much as the face.',
+    quirk:
+      'No spectacles. The portal states the photo must show the face "eyes open and without spectacles" — so unlike a British or Italian photo, you take your glasses off even if you wear them daily. The image must also be a perfect square: "the height and width of the Photo must be equal". A standard 35×45 mm passport photo is the wrong shape and will be rejected on upload.',
+    background:
+      'Plain light-coloured or white, with no shadow on the face or on the background, and no border around the image.',
+    expression:
+      'Full face, front view, eyes open. Centre the head in the frame and show the whole head, from the top of the hair to the bottom of the chin.',
+    exceptions:
+      'JPEG only, between 10 KB and 1 MB. Files outside that range are refused by the upload form rather than by a person, so it is worth checking before you start the application.',
+    sourceName: 'Bureau of Immigration — Indian e-Visa portal, photograph specifications',
+    sourceUrl: 'https://indianvisaonline.gov.in/evisa/tvoa.html',
+    checkedOn: '2026-08-24',
+  },
+
+  'india-passport': {
+    authority:
+      'Indian passports are issued by the Ministry of External Affairs through Passport Seva. How — and whether — you supply a photograph depends entirely on where you apply.',
+    quirk:
+      'At a Passport Seva Kendra or a Post Office PSK you do not bring a photograph at all: they photograph you at the counter. Printed photos are only for the routes that still ask for them, and there you need two identical colour copies at 3.5 × 4.5 cm on a white background. People routinely pay for photos they never hand over.',
+    background:
+      'Plain white, with the face clearly identifiable.',
+    expression:
+      'Front-facing with a neutral expression, the full face visible.',
+    exceptions:
+      'Where photos are required they are affixed to the printed application form — the first on page one unsigned, the second on page three, stamped across by the issuing office.',
+    sourceName: 'Passport Seva, Ministry of External Affairs — application FAQ',
+    sourceUrl: 'https://www.passportindia.gov.in/psp/FaqApplicationForm',
+    checkedOn: '2026-08-24',
   },
 };
 
