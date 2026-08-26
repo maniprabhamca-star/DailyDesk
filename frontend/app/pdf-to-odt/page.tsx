@@ -23,6 +23,10 @@ const steps = [
 
 const faqs = [
   {
+    q: 'What is an ODT file?',
+    a: 'ODT stands for OpenDocument Text. It is the document format LibreOffice and OpenOffice save in by default — the open-standard counterpart to Microsoft’s .docx. If someone has sent you a .odt and Word made a mess of it, or your office has been told to use open formats, this is the format they mean.',
+  },
+  {
     q: 'Why ODT instead of Word?',
     a: 'If you work in LibreOffice or OpenOffice, ODT is the native format — nothing is translated on the way in, so nothing shifts. Converting to .docx and opening that in LibreOffice puts an extra translation between you and your document, and that is where formatting tends to drift.',
   },
@@ -41,6 +45,10 @@ const faqs = [
   {
     q: 'Why does this one upload when your other tools do not?',
     a: 'It needs a full office engine, which cannot run in a browser. Your file is sent over an encrypted connection, converted, and deleted immediately — never stored, never read.',
+  },
+  {
+    q: 'Is it free?',
+    a: 'Three conversions a day are free, no signup; Pro removes the daily cap and the size limit. Our in-browser tools stay free and unlimited — this one costs us server time.',
   },
 ];
 

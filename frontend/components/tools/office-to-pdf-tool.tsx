@@ -203,7 +203,11 @@ export function OfficeToPdfTool({ kindId }: { kindId: OfficeKindId }) {
           >
             <Upload className="size-7 text-muted-foreground" />
             <p className="mt-2 text-sm font-medium">Drop a {kind.label} here, or click to choose</p>
-            <p className="text-xs text-muted-foreground">{kind.hint} — up to {fmt(MAX_BYTES)}</p>
+            {/* The daily allowance belongs here, before someone picks a file —
+                not only in the message they get after hitting the cap. The
+                ServerConvertTool pages have always said it; these five did not. */}
+            <p className="text-xs text-muted-foreground">{kind.hint} — up to {fmt(MAX_BYTES)}, 3 free a day</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">Unlimited on Pro. Every in-browser tool stays free.</p>
             <span className="mt-4 inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm">Choose file</span>
           </div>
         ) : (

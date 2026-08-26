@@ -15,19 +15,42 @@ import { FolderOpen,
 // ("files never uploaded"); anything that reaches a server is 'server', 'ai',
 // or 'encrypted' so no blanket in-browser claim is ever over-applied.
 export type Badge = 'device' | 'server' | 'ai' | 'encrypted' | 'account';
-export type CatTool = { name: string; href?: string; icon: LucideIcon; badge: Badge; soon?: boolean; newUntil?: string };
+export type CatTool = {
+  name: string;
+  href?: string;
+  icon: LucideIcon;
+  badge: Badge;
+  soon?: boolean;
+  /** The day this tool shipped, yyyy-mm-dd. Drives the "New" chip. */
+  since?: string;
+};
 
 export type CatGroup = { label: string; color: string; tools: CatTool[] };
+
+/** How long a freshly shipped tool wears the "New" chip. */
+export const NEW_FOR_DAYS = 30;
 
 /**
  * Is this tool still worth flagging as new?
  *
  * Date-based on purpose. A "New!" chip added by hand is a chip somebody has to
  * remember to remove, and nobody ever does — so it quietly becomes furniture and
- * stops meaning anything. Set `newUntil` when a tool ships and it retires itself.
+ * stops meaning anything.
+ *
+ * This used to be `newUntil`, an expiry date. That asked the wrong question at
+ * the wrong moment: the person shipping a tool had to decide when its chip
+ * should die, so nine tools shipped in two days with no date at all and not one
+ * of them was ever flagged. `since` is a fact you already know while you are
+ * adding the row, the window is policy in one place, and tool-facts.test.ts
+ * fails if a tool in the changelog's last 30 days is missing it.
  */
-export const isNewTool = (t: CatTool): boolean =>
-  !!t.newUntil && new Date(t.newUntil).getTime() > Date.now();
+export const isNewTool = (t: CatTool): boolean => {
+  if (!t.since) return false;
+  const shipped = Date.parse(`${t.since}T00:00:00Z`);
+  if (Number.isNaN(shipped)) return false;
+  const age = Date.now() - shipped;
+  return age >= 0 && age < NEW_FOR_DAYS * 24 * 60 * 60 * 1000;
+};
 
 export const BADGE: Record<Badge, { icon: LucideIcon; color: string; label: string }> = {
   device: { icon: Lock, color: '#16a34a', label: 'Runs in your browser' },
@@ -50,15 +73,15 @@ export const catalog: CatGroup[] = [
       { name: 'Merge PDF', href: '/merge-pdf', icon: Combine, badge: 'device' },
       { name: 'Split PDF', href: '/split-pdf', icon: Split, badge: 'device' },
       { name: 'Compress PDF', href: '/compress-pdf', icon: Shrink, badge: 'device' },
-      { name: 'Compress to size', href: '/compress-to-size', icon: Crosshair, badge: 'device' },
+      { name: 'Compress to size', href: '/compress-to-size', icon: Crosshair, badge: 'device', since: '2026-08-22' },
       { name: 'Rotate PDF', href: '/rotate-pdf', icon: RotateCw, badge: 'device' },
       { name: 'Reorder pages', href: '/reorder-pdf', icon: ArrowLeftRight, badge: 'device' },
       { name: 'Compare PDF', href: '/compare-pdf', icon: ArrowLeftRight, badge: 'device', soon: true },
       { name: 'Delete pages', href: '/delete-pages-from-pdf', icon: FileMinus, badge: 'device' },
-      { name: 'Split pages in half', href: '/split-pages-in-half', icon: Scissors, badge: 'device' },
-      { name: 'Pages per sheet', href: '/pages-per-sheet', icon: Grid2x2, badge: 'device' },
-      { name: 'Change page size', href: '/change-pdf-page-size', icon: Ruler, badge: 'device' },
-      { name: 'Rasterize PDF', href: '/rasterize-pdf', icon: ImageDown, badge: 'device' },
+      { name: 'Split pages in half', href: '/split-pages-in-half', icon: Scissors, badge: 'device', since: '2026-08-26' },
+      { name: 'Pages per sheet', href: '/pages-per-sheet', icon: Grid2x2, badge: 'device', since: '2026-08-26' },
+      { name: 'Change page size', href: '/change-pdf-page-size', icon: Ruler, badge: 'device', since: '2026-08-26' },
+      { name: 'Rasterize PDF', href: '/rasterize-pdf', icon: ImageDown, badge: 'device', since: '2026-08-26' },
       { name: 'Crop PDF', href: '/crop-pdf', icon: Crop, badge: 'device', soon: true },
       { name: 'Page numbers', href: '/add-page-numbers-to-pdf', icon: ListOrdered, badge: 'device' },
       { name: 'Repair PDF', href: '/repair-pdf', icon: Wrench, badge: 'device' },
@@ -83,10 +106,10 @@ export const catalog: CatGroup[] = [
       { name: 'Extract images', href: '/extract-images-from-pdf', icon: Images, badge: 'device' },
       { name: 'PDF to Word', href: '/pdf-to-word', icon: FileType, badge: 'server' },
       { name: 'PDF to PowerPoint', href: '/pdf-to-powerpoint', icon: Presentation, badge: 'server' },
-      { name: 'PDF to RTF', href: '/pdf-to-rtf', icon: FileType, badge: 'server' },
-      { name: 'PDF to HTML', href: '/pdf-to-html', icon: Code2, badge: 'device' },
-      { name: 'PDF to ODT', href: '/pdf-to-odt', icon: FileType2, badge: 'server' },
-      { name: 'OpenDocument to PDF', href: '/odf-to-pdf', icon: FileType2, badge: 'server' },
+      { name: 'PDF to RTF', href: '/pdf-to-rtf', icon: FileType, badge: 'server', since: '2026-08-26' },
+      { name: 'PDF to HTML', href: '/pdf-to-html', icon: Code2, badge: 'device', since: '2026-08-26' },
+      { name: 'PDF to ODT', href: '/pdf-to-odt', icon: FileType2, badge: 'server', since: '2026-08-26' },
+      { name: 'OpenDocument to PDF', href: '/odf-to-pdf', icon: FileType2, badge: 'server', since: '2026-08-26' },
       { name: 'PDF to Excel', href: '/pdf-to-excel', icon: FileSpreadsheet, badge: 'device' },
       { name: 'PDF to Markdown', href: '/pdf-to-markdown', icon: Hash, badge: 'device' },
       { name: 'PDF to EPUB', href: '/pdf-to-epub', icon: BookOpen, badge: 'device' , soon: true },
@@ -105,10 +128,10 @@ export const catalog: CatGroup[] = [
       { name: 'Edit PDF', href: '/edit-pdf', icon: PenLine, badge: 'device', soon: true },
       { name: 'Annotate', href: '/annotate-pdf', icon: Highlighter, badge: 'device', soon: true },
       { name: 'Watermark', href: '/watermark-pdf', icon: Stamp, badge: 'device' },
-      { name: 'Overlay PDF', href: '/overlay-pdf', icon: Layers, badge: 'device' },
+      { name: 'Overlay PDF', href: '/overlay-pdf', icon: Layers, badge: 'device', since: '2026-08-24' },
       { name: 'Bates numbering', href: '/bates-numbering', icon: ListOrdered, badge: 'device' },
       { name: 'Remove metadata', href: '/remove-pdf-metadata', icon: Fingerprint, badge: 'device' },
-      { name: 'Edit PDF details', href: '/edit-pdf-metadata', icon: Tags, badge: 'device' },
+      { name: 'Edit PDF details', href: '/edit-pdf-metadata', icon: Tags, badge: 'device', since: '2026-08-26' },
       { name: 'Share-Safe PDF Check', href: '/share-safe-pdf-check', icon: ShieldCheck, badge: 'device', soon: true },
       { name: 'Redact PDF', href: '/redact-pdf', icon: EyeOff, badge: 'device', soon: true },
       { name: 'Sign PDF', href: '/sign-pdf', icon: PenTool, badge: 'device' },
@@ -161,7 +184,7 @@ export const catalog: CatGroup[] = [
   },
   {
     label: 'Everyday utilities', color: '#0d9488', tools: [
-      { name: 'Folder preview', href: '/folder-preview', icon: FolderOpen, badge: 'device', soon: true, newUntil: '2026-08-24' },
+      { name: 'Folder preview', href: '/folder-preview', icon: FolderOpen, badge: 'device', soon: true, since: '2026-08-10' },
       { name: 'Word counter', href: '/word-counter', icon: CaseSensitive, badge: 'device' },
       { name: 'Unit converter', href: '/unit-converter', icon: Ruler, badge: 'device' },
       { name: 'JSON formatter', href: '/json-formatter', icon: Braces, badge: 'device' },

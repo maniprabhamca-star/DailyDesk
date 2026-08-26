@@ -23,6 +23,10 @@ const steps = [
 
 const faqs = [
   {
+    q: 'What is an RTF file?',
+    a: 'RTF stands for Rich Text Format. Microsoft published it in 1987 as a way to move documents between programs that otherwise could not read each other, and it stuck — it holds text with basic formatting like bold, headings and simple tables, and very nearly every word processor on any system will open one.',
+  },
+  {
     q: 'Why RTF rather than Word?',
     a: 'Because RTF opens in nearly everything — WordPad, TextEdit, Pages, Google Docs, LibreOffice, and the elderly software that a lot of offices and courts still run. If a system has rejected your .docx, RTF is usually the format it will take.',
   },

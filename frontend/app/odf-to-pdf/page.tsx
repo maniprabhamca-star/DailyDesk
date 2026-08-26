@@ -23,6 +23,10 @@ const steps = [
 
 const faqs = [
   {
+    q: 'What is OpenDocument, and what is ODF?',
+    a: 'ODF stands for OpenDocument Format — an open, published standard (ISO/IEC 26300) for office documents, and the format LibreOffice and OpenOffice use by default. The file extensions are the giveaway: ODT is a text document, ODS a spreadsheet, ODP a presentation and ODG a drawing. Being a standard rather than one company’s format is why public bodies in a number of countries require it.',
+  },
+  {
     q: 'Which OpenDocument files can I convert?',
     a: 'All four of the everyday ones: ODT documents, ODS spreadsheets, ODP presentations and ODG drawings — plus the flat-XML versions (FODT, FODS, FODP). One tool rather than four, because you should not have to find a different page depending on which LibreOffice app you happened to open.',
   },
@@ -41,6 +45,10 @@ const faqs = [
   {
     q: 'Why does this one upload when your other tools do not?',
     a: 'Rendering an office document needs a full office engine, which cannot run in a browser. Your file is sent over an encrypted connection, converted, and deleted immediately — never stored, never read.',
+  },
+  {
+    q: 'Is it free?',
+    a: 'Three conversions a day are free, no signup; Pro removes the daily cap and the size limit. Our in-browser tools stay free and unlimited — this one costs us server time.',
   },
 ];
 
