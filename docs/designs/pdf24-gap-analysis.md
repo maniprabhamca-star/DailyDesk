@@ -89,6 +89,35 @@ everyday-tools sections they have nothing comparable to.
 Rebuilt after the correction above. These are **functional** absences, not
 naming — the pure SEO-name gaps are listed separately at the end.
 
+### ✅ VERIFIED PASS, 2026-08-24
+
+Second correction: the table below was originally written from tool *names*.
+The owner pushed back — correctly — so every name in PDF24's catalogue was then
+diffed against ours programmatically (93 of theirs vs 103 of ours, **26
+unmatched**), and each unmatched tool's own page was opened and read. What
+follows is what those tools actually do, not what their names suggest.
+
+| PDF24 tool | What it really does (from its own page) | Our position |
+|---|---|---|
+| **Halve PDF pages** | *"The pages in a PDF are cut in the middle. Two pages are always created from one page."* A3→2×A4 | **Missing.** Splits scanned book/magazine spreads — nothing we have does this |
+| **Pages per sheet** | N-up: **2, 3, 4, 6, 8, 9, 12 or 16** per sheet, page size A0–A6/Letter/Legal, margins, borders with colour and width, page order, LTR/RTL | **Missing.** Richer than the name suggests |
+| **Change PDF page size** | Set a new size **or unify mixed sizes** in one document. A0–A6/Letter/Legal or custom mm/inch, orientation, batch | **Missing.** The "unify" case is the useful one — merged documents often end up mixed |
+| **Rasterize PDF** | *"Each page is converted into an image and included as a page in the resulting PDF."* DPI, quality, greyscale | **Missing.** Not the same as our Flatten, which flattens form fields |
+| **Bookmark PDF** | Full outline editor — add, edit, remove, reorder bookmarks; set destinations by selecting an area on the page; drag-and-drop hierarchy | **Missing.** No free competitor does this well |
+| **Create fillable PDF form** | Form authoring: text (single and multi-line), checkbox, radio, dropdown, list box, action buttons, **signature fields**, each positioned and configured | **Missing.** We can *fill* forms (`/fill-pdf-form`) but not *author* them. Natural Pro feature |
+| **Change document information** | Edit title / author / subject metadata | **Missing.** We only *remove* metadata |
+| **Webpage to PDF** | URL in, PDF out | **Missing.** Blocked on infra — see below |
+| **Create PDF** | ⚠ **Not a tool.** A hub page linking to merge / images / webpage / camera / invoice / form | **Not a gap** — the earlier entry was wrong |
+| **Web optimize PDF** | Linearise for Fast Web View | Recommended against, see below |
+| Create invoice ×3, Job application, Viewer preferences | Not opened — lower value | Unverified |
+
+**ODF and the other converters are cheaper than they look.** `ODT/ODS/ODP/ODG to
+PDF`, `PUB to PDF`, `PDF to RTF/HTML/ODT/ODS/ODP` are all LibreOffice jobs — and
+**LibreOffice is already installed on the VPS** (`/usr/bin/soffice`, it powers
+the Office conversions). These are routes and landing pages over an engine we
+already run, not new infrastructure. `PDF to SVG` is the one exception needing
+real work.
+
 ### Genuinely missing capabilities
 
 | Tool | What it does | Effort | Verdict |
@@ -115,12 +144,21 @@ Most are landing pages over converters we already have. `PDF to SVG` and
 
 ## Recommended plan
 
+Ordered by return per hour, after the verification pass.
+
 | # | Item | Effort | Do it? |
 |---|---|---|---|
-| 1 | **PDF Overlay** | ~1 day, client-side | **Yes — first.** Cheap, on-brand, no server |
-| 2 | **URL → PDF** | ~2–3 days, server | **Yes — second.** Real search demand; must be labelled `server` |
-| 3 | `/extract-pdf-pages` landing → Split | ~2 h | Yes, if the SEO backlog is being worked anyway |
-| 4 | Web-optimise / linearise | ~3–4 days | **No.** Low and declining value |
+| 1 | **PDF Overlay** | ~1 day, client-side | ✅ **SHIPPED 2026-08-24** (`/overlay-pdf`) |
+| 2 | **Halve PDF pages** | ~half a day, client-side | **Yes — next.** Verified, trivial with pdf-lib (halve the crop box, duplicate the page), and it completes the scanning chain: Scan to PDF → Clean scanned → **Halve** |
+| 3 | **Change page size + Pages per sheet** | ~1 day together, client-side | **Yes.** Same machinery — new page, draw the old one scaled. "Unify mixed sizes" is the genuinely useful half |
+| 4 | **Rasterize PDF** | ~half a day | **Yes.** We already render pages; this is render → re-assemble, with DPI/quality/greyscale |
+| 5 | **Edit document information** | ~2 h | **Yes.** pdf-lib sets title/author/subject directly; sits beside Remove metadata |
+| 6 | **ODF + PDF→RTF/HTML converters** | ~half a day each | **Yes, cheaply.** LibreOffice is already on the VPS — mostly routes and landing pages |
+| 7 | **Bookmark / outline editor** | ~3–4 days | Worth it later. Genuinely differentiating; nobody free does it well |
+| 8 | **Webpage → PDF (Pro)** | ~2–3 days, server | Blocked: needs Chromium on prod **plus SSRF hardening**. Owner approval required |
+| 9 | **Create fillable form (Pro)** | ~1–2 weeks | Big. Pairs with Fill PDF form as a Pro pillar, not a quick win |
+| 10 | Web-optimise / linearise | ~3–4 days | **No.** Rewrites the xref; Fast Web View solved a dial-up problem |
+| 11 | Invoice builder ×3, job application, viewer preferences | — | Not investigated; low priority |
 
 **Sequencing note:** neither of these is worth starting before the two things
 actually blocking money — `WAITLIST_MODE` and the Pro-launch flags. A 103rd tool
