@@ -35,14 +35,19 @@ function MenuGrid({ onPick }: { onPick: () => void }) {
   // Same rule as the home grid: the owner can open a gated tool from the menu.
   const owner = useIsOwner();
   // The rows are deliberately tight. The menu's point is that nothing scrolls,
-  // and at 1280 the catalogue only just fits — five tools took it 14px over.
+  // and at 1280 the catalogue only just fits.
   //
-  // Adding a sixth column does NOT help, which is worth recording so nobody
-  // tries it again: the tallest group is a single break-inside-avoid block, so
-  // it sets a floor no amount of columns lowers, and narrower columns truncated
-  // 25 tool names while still overflowing. Height per row is the axis that
-  // works. When this next runs out, split the largest group rather than
-  // shaving further — the rows have no room left to give.
+  // Two things that do NOT work, recorded so nobody spends the afternoon again:
+  // a sixth column (the tallest group is one break-inside-avoid block, so it
+  // sets a floor no column count lowers — six columns still overflowed AND
+  // truncated 25 names), and shaving the rows further (they are at 24px, which
+  // is as small as a click target should get).
+  //
+  // What works is keeping any single group short. "Developer tools" was 21
+  // items and 514px on its own; splitting it into Developer / Data &
+  // spreadsheets / Text tools took the tallest block to 397px. When this next
+  // runs out, split the tallest group again — check which it is rather than
+  // guessing, the order changes as the catalogue grows.
   return (
     <div className="columns-3 gap-x-6 lg:columns-5 xl:columns-6 2xl:columns-7">
       {catalog.map((g) => (
@@ -54,7 +59,10 @@ function MenuGrid({ onPick }: { onPick: () => void }) {
               const row = (
                 <div className="flex items-center gap-2 rounded-md px-2 py-[2px] hover:bg-accent">
                   <Icon className="size-4 shrink-0" style={{ color: g.color }} strokeWidth={2.25} />
-                  <span className="truncate text-[13px] font-medium">{t.name}</span>
+                  {/* title, because the columns are narrow enough that a dozen
+                      of the longer names clip — "OpenDocument to PDF" shows as
+                      "OpenDocument t…". Hover recovers the rest. */}
+                  <span title={t.name} className="truncate text-[13px] font-medium">{t.name}</span>
                   {isNewTool(t) && <span className={NEW_CHIP_SM}>New</span>}
                   {t.soon && <span className={`shrink-0 text-[10px] text-muted-foreground ${isNewTool(t) ? '' : 'ml-auto'}`}>soon</span>}
                 </div>
@@ -197,8 +205,8 @@ export function SiteHeader({ heroSearchRef }: { heroSearchRef?: React.RefObject<
           ref={panelRef}
           className="absolute inset-x-0 top-full z-40 hidden max-h-[calc(100vh-4rem)] overflow-y-auto overscroll-contain border-b-2 border-border bg-popover shadow-lift sm:block"
         >
-          <div className="mx-auto max-w-[1400px] px-4 py-4 sm:px-6 lg:px-10">
-            <div className="mb-3 flex items-center justify-between">
+          <div className="mx-auto max-w-[1400px] px-4 py-3 sm:px-6 lg:px-10">
+            <div className="mb-2 flex items-center justify-between">
               <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 Every tool — {liveToolCount} ready now
               </p>

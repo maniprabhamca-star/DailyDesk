@@ -228,6 +228,12 @@ export const catalog: CatGroup[] = [
     ],
   },
   {
+    // This was one 21-item "Developer tools" list, and it was the single
+    // tallest thing in the mega-menu — 514px in one break-inside-avoid block,
+    // which set a floor no column count could lower and left the menu 38px from
+    // overflowing again. Splitting it is the fix that was written down at the
+    // time, and it is the better shelf anyway: somebody cleaning up a CSV and
+    // somebody decoding a JWT are not the same person looking in the same place.
     label: 'Developer tools', color: '#4f46e5', tools: [
       { name: 'Base64', href: '/base64', icon: Binary, badge: 'device' },
       { name: 'URL encode', href: '/url-encode', icon: Link2, badge: 'device' },
@@ -235,20 +241,28 @@ export const catalog: CatGroup[] = [
       { name: 'Hash generator', href: '/hash-generator', icon: Hash, badge: 'device' },
       { name: 'JWT decoder', href: '/jwt-decoder', icon: KeyRound, badge: 'device' },
       { name: 'UUID generator', href: '/uuid-generator', icon: Fingerprint, badge: 'device' },
-      { name: 'CSV to JSON', href: '/csv-to-json', icon: FileJson, badge: 'device' },
-      { name: 'HTML to Excel', href: '/html-to-excel', icon: Table2, badge: 'device' , soon: true },
-      { name: 'Excel to CSV', href: '/excel-to-csv', icon: FileSpreadsheet, badge: 'device', soon: true },
-      { name: 'CSV to Excel', href: '/csv-to-excel', icon: FileSpreadsheet, badge: 'device', soon: true },
-      { name: 'JSON to Excel', href: '/json-to-excel', icon: FileJson, badge: 'device', soon: true },
-      { name: 'XML to Excel', href: '/xml-to-excel', icon: Braces, badge: 'device', soon: true },
-      { name: 'Text diff', href: '/text-diff', icon: GitCompare, badge: 'device' },
+      { name: 'Regex tester', href: '/regex-tester', icon: Code2, badge: 'device' },
       { name: 'Timestamp', href: '/timestamp-converter', icon: Ruler, badge: 'device' },
       { name: 'JSON to YAML', href: '/json-to-yaml', icon: Braces, badge: 'device' },
+    ],
+  },
+  {
+    label: 'Data & spreadsheets', color: '#0891b2', tools: [
       { name: 'CSV cleaner', href: '/csv-cleaner', icon: FileSpreadsheet, badge: 'device' },
+      { name: 'CSV to JSON', href: '/csv-to-json', icon: FileJson, badge: 'device' },
+      { name: 'CSV to Excel', href: '/csv-to-excel', icon: FileSpreadsheet, badge: 'device', soon: true },
+      { name: 'Excel to CSV', href: '/excel-to-csv', icon: FileSpreadsheet, badge: 'device', soon: true },
+      { name: 'JSON to Excel', href: '/json-to-excel', icon: FileJson, badge: 'device', soon: true },
+      { name: 'XML to Excel', href: '/xml-to-excel', icon: Braces, badge: 'device', soon: true },
+      { name: 'HTML to Excel', href: '/html-to-excel', icon: Table2, badge: 'device', soon: true },
+    ],
+  },
+  {
+    label: 'Text tools', color: '#7c3aed', tools: [
+      { name: 'Text diff', href: '/text-diff', icon: GitCompare, badge: 'device' },
       { name: 'Case converter', href: '/case-converter', icon: Type, badge: 'device' },
       { name: 'Slugify', href: '/slugify', icon: Link2, badge: 'device' },
       { name: 'Sort lines', href: '/sort-lines', icon: ListOrdered, badge: 'device' },
-      { name: 'Regex tester', href: '/regex-tester', icon: Code2, badge: 'device' },
       { name: 'Lorem ipsum', href: '/lorem-ipsum', icon: Type, badge: 'device' },
     ],
   },
