@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, CornerDownLeft, History, ArrowRight, Sparkles } from 'lucide-react';
-import { catalog, PRO_TOOLS, type CatTool } from '@/components/app/catalog';
+import { catalog, PRO_TOOLS, isNewTool, type CatTool } from '@/components/app/catalog';
 import { getRecent, pushRecent } from '@/lib/recent';
 import { useIsOwner, usePlan } from '@/lib/plan';
 import { cn } from '@/lib/utils';
@@ -175,6 +175,11 @@ export function HeaderSearch({ visible }: { visible: boolean }) {
                     <span className="block truncate text-sm font-medium">{t.name}</span>
                     <span className="block truncate text-[11px] text-muted-foreground">{t.group}</span>
                   </span>
+                  {/* Search is where most people meet a tool for the first time,
+                      so the "New" chip belongs here as much as in the menu. It
+                      sits before the Pro/soon marker rather than replacing it —
+                      a tool can be new AND still coming. */}
+                  {isNewTool(t) && <span className="shrink-0 rounded bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">New</span>}
                   {pro ? <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm"><Sparkles className="size-2.5" /> Pro</span>
                     : soon ? <span className="shrink-0 text-[10px] font-medium text-muted-foreground">soon</span>
                     : isActive && <CornerDownLeft className="size-3.5 shrink-0 text-muted-foreground" />}

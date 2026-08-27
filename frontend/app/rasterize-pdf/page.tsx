@@ -3,9 +3,11 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { RasterizeTool } from '@/components/pdf/page-ops-tool';
 
 export const metadata: Metadata = {
-  title: 'Rasterize PDF — Flatten Pages to Images | DiemDesk',
+  // Deliberately not the word "flatten": that is the other tool's job, and this
+  // title used to borrow it — which is most of why the two blurred together.
+  title: 'Rasterize PDF — Turn Every Page into an Image | DiemDesk',
   description:
-    'Turn every PDF page into an image so nothing can be selected, copied or edited. Free, and your file never leaves your browser.',
+    'Turn every PDF page into an image so nothing can be selected, copied or edited. Choose the detail, or go greyscale. Free, in your browser.',
   alternates: { canonical: '/rasterize-pdf' },
   openGraph: {
     images: ['/og.png'],
@@ -38,6 +40,11 @@ export default function RasterizePdfPage() {
       description="Turn every page into an image inside the same PDF — nothing left to select, copy or edit, and it looks identical on every device."
       steps={steps}
       faqs={faqs}
+      sibling={{
+        text: 'Filled in a form, or added comments and signatures you want made permanent? That is a different job — flattening fixes them into the page and leaves the text selectable.',
+        href: '/flatten-pdf',
+        label: 'Flatten PDF',
+      }}
     >
       <RasterizeTool />
     </PdfToolPage>

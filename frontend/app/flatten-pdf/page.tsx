@@ -36,6 +36,11 @@ export default function FlattenPdfPage() {
       title="Flatten PDF"
       description="Make filled form fields, signatures and annotations a permanent part of the page — or lock entire pages as images. Flattened on your device, so the file is never uploaded."
       steps={steps}
+      sibling={{
+        text: 'No form fields or annotations — you just want every page turned into a picture? This tool can, but the dedicated one gives you greyscale and finer control over the detail.',
+        href: '/rasterize-pdf',
+        label: 'Rasterize PDF',
+      }}
       faqs={faqs}
     >
       <FlattenTool />

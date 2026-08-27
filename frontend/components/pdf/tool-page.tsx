@@ -1,4 +1,5 @@
-import { ChevronDown } from 'lucide-react';
+import Link from 'next/link';
+import { ChevronDown, ArrowRight } from 'lucide-react';
 import { SiteHeader } from '@/components/app/site-header';
 import { SiteFooter } from '@/components/app/site-footer';
 import { ToolGate } from '@/components/app/tool-gate';
@@ -17,6 +18,7 @@ export function PdfToolPage({
   faqs,
   children,
   wide = false,
+  sibling,
 }: {
   title: string;
   description: string;
@@ -24,6 +26,11 @@ export function PdfToolPage({
   faqs: Faq[];
   children: React.ReactNode;
   wide?: boolean;
+  /** For a tool that genuinely overlaps another one. Says which job the other
+   *  tool does better, ABOVE the dropzone — where somebody who landed on the
+   *  wrong one is still deciding, rather than buried in the FAQ they will read
+   *  after downloading the wrong thing. */
+  sibling?: { text: string; href: string; label: string };
 }) {
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -62,6 +69,19 @@ export function PdfToolPage({
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{title}</h1>
           <p className="mx-auto mt-3 max-w-xl text-muted-foreground">{description}</p>
         </div>
+
+        {sibling && (
+          <div className="mx-auto mt-5 max-w-xl rounded-lg border bg-muted/40 px-4 py-3 text-sm leading-relaxed text-muted-foreground">
+            {sibling.text}{' '}
+            <Link
+              href={sibling.href}
+              className="inline-flex items-center gap-1 font-medium text-foreground underline underline-offset-2 hover:text-primary"
+            >
+              {sibling.label}
+              <ArrowRight className="size-3.5" aria-hidden="true" />
+            </Link>
+          </div>
+        )}
 
         <div className="mt-8"><ToolGate>{children}</ToolGate></div>
 
