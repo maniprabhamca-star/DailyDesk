@@ -24,6 +24,14 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-08-26',
+    kind: 'improved',
+    title: 'The little green padlock was telling you the opposite of the truth',
+    detail:
+      'Every tool that runs inside your browser carried a small padlock in the corner of its card. We meant "your file never leaves your device". A customer read it the way anyone would — a padlock in the corner of a card is where apps put the badge that means locked, premium, not for you — and asked why the tool was locked. He was right and we were wrong. It is now a crossed-out cloud, which is the same picture as the badge on our server tools with a line through it: cloud means the file goes to us, cloud with a line means it never does. Hover any of them and you now get the full sentence rather than having to scroll to the legend. Nothing changed about how the tools work — they were always free, and your files were always staying put.',
+    href: '/tools',
+  },
+  {
+    date: '2026-08-26',
     kind: 'new',
     title: 'Fix what a PDF says it is — and four more ways out of one',
     detail:

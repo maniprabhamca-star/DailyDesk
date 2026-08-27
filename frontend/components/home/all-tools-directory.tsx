@@ -114,8 +114,17 @@ function Tile({ t, groupColor }: { t: CatTool; groupColor: string }) {
         t.soon ? '' : 'hover:-translate-y-0.5 hover:border-[color:var(--tool)] hover:shadow-md'
       }`}
     >
-      {/* privacy signal — our identity, tucked top-right */}
-      <B.icon className="absolute right-2.5 top-2.5 size-[15px]" style={{ color: B.color }} aria-label={B.label} />
+      {/* Where this tool runs — our identity, tucked top-right. The icon carries
+          a real tooltip: on its own it can only remind someone of something they
+          already know, and the legend explaining all five sits at the bottom of
+          the page, long after these cards have been read. */}
+      <span
+        title={B.hint}
+        aria-label={B.hint}
+        className="absolute right-2.5 top-2.5 leading-none"
+      >
+        <B.icon className="size-[15px]" style={{ color: B.color }} aria-hidden="true" />
+      </span>
 
       <span
         className="mb-2.5 flex size-10 items-center justify-center rounded-xl text-white shadow-sm transition-transform group-hover:scale-105"
@@ -407,8 +416,8 @@ export function AllToolsDirectory({ full = false, asPage = false }: { full?: boo
             {(Object.keys(BADGE) as (keyof typeof BADGE)[]).map((k) => {
               const B = BADGE[k];
               return (
-                <span key={k} className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                  <B.icon className="size-4 shrink-0" style={{ color: B.color }} /> {B.label}
+                <span key={k} title={B.hint} className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                  <B.icon className="size-4 shrink-0" style={{ color: B.color }} aria-hidden="true" /> {B.label}
                 </span>
               );
             })}

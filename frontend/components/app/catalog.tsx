@@ -7,7 +7,7 @@ import { FolderOpen,
   ImageDown, Smartphone, Eraser, Film, Clapperboard, ArrowLeftRight, Images, Scaling, Repeat, Crop,
   Ruler, Braces, Palette, CaseSensitive, Crosshair, Contact, SquarePen, ScanFace,
   Binary, Hash, GitCompare, FileJson, Type,
-  Cloud, Sparkles, Landmark, Volume2, BookOpen, Table2, Music, AudioLines, Shapes, Captions,
+  Cloud, CloudOff, Sparkles, Landmark, Volume2, BookOpen, Table2, Music, AudioLines, Shapes, Captions,
   Scissors, Grid2x2, Tags, type LucideIcon } from 'lucide-react';
 
 // A tool's "where it runs" tag — the single source of truth for every privacy
@@ -68,12 +68,32 @@ export const NEW_CHIP = `${NEW_CHIP_BASE} px-1.5 py-0.5 text-[10px]`;
 /** Denser variant for the mega-menu's 24px rows. */
 export const NEW_CHIP_SM = `${NEW_CHIP_BASE} ml-auto px-1 py-px text-[9px]`;
 
-export const BADGE: Record<Badge, { icon: LucideIcon; color: string; label: string }> = {
-  device: { icon: Lock, color: '#16a34a', label: 'Runs in your browser' },
-  server: { icon: Cloud, color: '#d97706', label: 'Processed on our servers' },
-  ai: { icon: Sparkles, color: '#7c3aed', label: 'AI-powered' },
-  encrypted: { icon: KeyRound, color: '#2563eb', label: 'End-to-end encrypted' },
-  account: { icon: Cloud, color: '#0891b2', label: 'Synced to your account' },
+/**
+ * Where a tool runs, as one icon in the corner of its card.
+ *
+ * `device` used to be a padlock, and a real customer asked why the tool was
+ * locked. He was not misreading it — a padlock in the top-right corner of a
+ * card is where every paywalled app puts its "locked" badge, so the convention
+ * said "you cannot use this" while we meant "this is private". It also sat
+ * badly next to `encrypted`, which is a key: two security symbols, neither
+ * obviously the privacy one.
+ *
+ * It is now a crossed-out cloud, which makes `device` and `server` the same
+ * metaphor with an on/off state — cloud means it goes to our servers, cloud
+ * with a line through it means it never leaves your machine. That reads
+ * without the legend, which matters, because the legend is at the bottom of
+ * the page and the cards are at the top.
+ *
+ * `hint` is the sentence shown on hover. The icon alone can only ever be a
+ * reminder of something you already know; the hint is where the promise is
+ * actually made.
+ */
+export const BADGE: Record<Badge, { icon: LucideIcon; color: string; label: string; hint: string }> = {
+  device: { icon: CloudOff, color: '#16a34a', label: 'Runs in your browser', hint: 'Runs in your browser — your file never leaves your device and is never uploaded.' },
+  server: { icon: Cloud, color: '#d97706', label: 'Processed on our servers', hint: 'Sent to our server over an encrypted connection, converted, then deleted immediately.' },
+  ai: { icon: Sparkles, color: '#7c3aed', label: 'AI-powered', hint: 'Uses AI, and only when you ask it to.' },
+  encrypted: { icon: KeyRound, color: '#2563eb', label: 'End-to-end encrypted', hint: 'Encrypted on your device before it is stored — only you can unlock it.' },
+  account: { icon: Cloud, color: '#0891b2', label: 'Synced to your account', hint: 'Saved to your DiemDesk account so it follows you between devices.' },
 };
 
 // The premium tier — owner-only until Pro launches: the deep editors, OCR and the
