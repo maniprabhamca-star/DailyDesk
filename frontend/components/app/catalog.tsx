@@ -52,6 +52,22 @@ export const isNewTool = (t: CatTool): boolean => {
   return age >= 0 && age < NEW_FOR_DAYS * 24 * 60 * 60 * 1000;
 };
 
+/**
+ * The "New" chip, in one place because it renders in four (menu, tools
+ * directory, header search, ⌘K palette) and four copies drift.
+ *
+ * A tint rather than a solid fill. Solid primary put "New" at the same visual
+ * weight as the Pro chip, so a free tool shouted as loudly as the paid signal —
+ * and with a dozen tools carrying it at once it took over the grid. The order
+ * that should read is Pro, then New, then "soon". Text contrast is 5.3:1 light
+ * and 5.7:1 dark, both past AA for this size; `text-primary` resolves to the
+ * lighter --primary-text token in dark mode via globals.css.
+ */
+const NEW_CHIP_BASE = 'shrink-0 rounded bg-primary/10 font-bold text-primary ring-1 ring-inset ring-primary/20 dark:bg-primary/20 dark:ring-primary/30';
+export const NEW_CHIP = `${NEW_CHIP_BASE} px-1.5 py-0.5 text-[10px]`;
+/** Denser variant for the mega-menu's 24px rows. */
+export const NEW_CHIP_SM = `${NEW_CHIP_BASE} ml-auto px-1 py-px text-[9px]`;
+
 export const BADGE: Record<Badge, { icon: LucideIcon; color: string; label: string }> = {
   device: { icon: Lock, color: '#16a34a', label: 'Runs in your browser' },
   server: { icon: Cloud, color: '#d97706', label: 'Processed on our servers' },

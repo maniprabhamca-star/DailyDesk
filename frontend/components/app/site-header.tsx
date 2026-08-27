@@ -8,7 +8,7 @@ import {
 import { BrandMark } from '@/components/app/brand-mark';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
-import { catalog , isNewTool } from '@/components/app/catalog';
+import { catalog, isNewTool, NEW_CHIP_SM } from '@/components/app/catalog';
 import { HeaderSearch } from '@/components/app/header-search';
 import { HeaderUser } from '@/components/app/header-user';
 import { useAuth } from '@/lib/auth';
@@ -55,7 +55,7 @@ function MenuGrid({ onPick }: { onPick: () => void }) {
                 <div className="flex items-center gap-2 rounded-md px-2 py-[2px] hover:bg-accent">
                   <Icon className="size-4 shrink-0" style={{ color: g.color }} strokeWidth={2.25} />
                   <span className="truncate text-[13px] font-medium">{t.name}</span>
-                  {isNewTool(t) && <span className="ml-auto shrink-0 rounded bg-primary px-1 py-px text-[9px] font-bold text-primary-foreground">New</span>}
+                  {isNewTool(t) && <span className={NEW_CHIP_SM}>New</span>}
                   {t.soon && <span className={`shrink-0 text-[10px] text-muted-foreground ${isNewTool(t) ? '' : 'ml-auto'}`}>soon</span>}
                 </div>
               );

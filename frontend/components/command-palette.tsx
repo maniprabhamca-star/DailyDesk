@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import * as Dialog from '@radix-ui/react-dialog';
 import { Search, CornerDownLeft, Sun, Moon, LayoutGrid, Tag, Wand2, ShieldCheck, Sparkles, Wrench, FileText, Loader2 } from 'lucide-react';
-import { catalog, PRO_TOOLS, isNewTool, type CatTool } from '@/components/app/catalog';
+import { catalog, PRO_TOOLS, isNewTool, NEW_CHIP, type CatTool } from '@/components/app/catalog';
 import { getRecent, pushRecent } from '@/lib/recent';
 import { useIsOwner, usePlan } from '@/lib/plan';
 import { useEditorContext, type EditorCommand } from '@/lib/command-registry';
@@ -326,7 +326,7 @@ export function CommandPalette() {
                   className={cn('flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors', isActive && 'bg-accent', r.disabled && 'cursor-not-allowed opacity-55')}>
                   <span className="flex size-8 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: `${t.color}1A`, color: t.color }}><Icon className="size-4" /></span>
                   <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{t.name}</span><span className="block truncate text-xs text-muted-foreground">{t.group}</span></span>
-                  {isNewTool(t) && <span className="shrink-0 rounded bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">New</span>}
+                  {isNewTool(t) && <span className={NEW_CHIP}>New</span>}
                   {isProTool(t)
                     ? <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm"><Sparkles className="size-2.5" /> Pro</span>
                     : r.disabled ? <span className="shrink-0 text-[10px] font-medium text-muted-foreground">soon</span>
