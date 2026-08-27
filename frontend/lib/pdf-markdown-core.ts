@@ -86,6 +86,39 @@ function gfmTable(rows: string[][]): string {
   return [header, sep, ...bodyRows].map((r) => `| ${r.join(' | ')} |`).join('\n');
 }
 
+/** A heading found in the document, with the page it sits on. */
+export type FoundHeading = { title: string; page: number; level: 1 | 2 | 3 };
+
+/**
+ * Every heading in the document, in reading order — the raw material for a
+ * bookmark outline.
+ *
+ * Deliberately the SAME test pdfItemsToMarkdown uses to decide what is a
+ * heading, sharing buildLines and the body-size median rather than a second
+ * near-identical heuristic that would slowly disagree with the first. If
+ * Markdown calls a line a heading, so does the outline, and vice versa.
+ */
+export function pdfItemsToHeadings(pages: MItem[][]): FoundHeading[] {
+  const perPageLines = pages.map(buildLines);
+  const body = median(perPageLines.flat().map((l) => l.size).filter((s) => s > 0)) || 10;
+  const out: FoundHeading[] = [];
+
+  perPageLines.forEach((lines, page) => {
+    for (const l of lines) {
+      const isHeading =
+        l.cells < 2 &&
+        l.text.length <= 120 &&
+        !/[.,:;]$/.test(l.text) &&
+        (l.size >= body * 1.15 || (l.bold && l.text.length <= 80));
+      if (!isHeading) continue;
+      const level = l.size >= body * 1.6 ? 1 : l.size >= body * 1.28 ? 2 : 3;
+      out.push({ title: l.text, page, level });
+    }
+  });
+
+  return out;
+}
+
 export function pdfItemsToMarkdown(pages: MItem[][], opts: MdOptions = {}): string {
   const { headings = true, tables = true } = opts;
   const perPageLines = pages.map(buildLines);

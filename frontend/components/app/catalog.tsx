@@ -8,7 +8,7 @@ import { FolderOpen,
   Ruler, Braces, Palette, CaseSensitive, Crosshair, Contact, SquarePen, ScanFace,
   Binary, Hash, GitCompare, FileJson, Type,
   Cloud, CloudOff, Sparkles, Landmark, Volume2, BookOpen, Table2, Music, AudioLines, Shapes, Captions,
-  Scissors, Grid2x2, Tags, type LucideIcon } from 'lucide-react';
+  Scissors, Grid2x2, Tags, ListTree, type LucideIcon } from 'lucide-react';
 
 // A tool's "where it runs" tag — the single source of truth for every privacy
 // badge on the site. Keep it HONEST: only client-side tools get 'device'
@@ -120,6 +120,7 @@ export const catalog: CatGroup[] = [
       { name: 'Rasterize PDF', href: '/rasterize-pdf', icon: ImageDown, badge: 'device', since: '2026-08-26' },
       { name: 'Crop PDF', href: '/crop-pdf', icon: Crop, badge: 'device', soon: true },
       { name: 'Page numbers', href: '/add-page-numbers-to-pdf', icon: ListOrdered, badge: 'device' },
+      { name: 'Add bookmarks', href: '/add-bookmarks-to-pdf', icon: ListTree, badge: 'device', since: '2026-08-26' },
       { name: 'Repair PDF', href: '/repair-pdf', icon: Wrench, badge: 'device' },
     ],
   },
