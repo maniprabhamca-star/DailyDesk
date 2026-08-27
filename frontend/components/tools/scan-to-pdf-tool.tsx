@@ -161,14 +161,16 @@ export function ScanToPdfTool() {
       <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
         {/* capture surface */}
         <div className="overflow-hidden rounded-2xl border bg-card shadow-soft">
-          <div className="relative aspect-[4/3] bg-black">
+          {/* Black and 4:3 only while the camera is running — otherwise this was
+              a huge empty black rectangle before anyone had granted anything. */}
+          <div className={camOn ? 'relative mx-auto aspect-[4/3] w-full max-w-2xl bg-black' : 'relative'}>
             {/* always mounted so the stream has something to attach to */}
             <video ref={videoRef} playsInline muted autoPlay className={`size-full object-contain ${camOn ? '' : 'hidden'}`} />
             {!camOn && (
-              <div className="flex size-full flex-col items-center justify-center gap-3 text-center text-slate-300">
-                <ScanLine className="size-10 opacity-70" />
-                <p className="text-sm">Point your camera at a document, or add photos you already took.</p>
-                {camError && <p className="mx-6 flex items-center gap-1.5 text-xs text-amber-400"><CameraOff className="size-3.5" /> {camError}</p>}
+              <div className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
+                <ScanLine className="size-10 text-muted-foreground/70" />
+                <p className="max-w-sm text-sm text-muted-foreground">Point your camera at a document, or add photos you already took.</p>
+                {camError && <p className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400"><CameraOff className="size-3.5" /> {camError}</p>}
               </div>
             )}
             {camOn && (

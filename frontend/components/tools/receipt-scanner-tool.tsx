@@ -96,13 +96,19 @@ export function ReceiptScannerTool() {
 
       {phase === 'capture' && (
         <div className="overflow-hidden rounded-2xl border bg-card shadow-soft">
-          <div className="relative aspect-[4/3] bg-black">
+          {/* The black 4:3 frame belongs to a running camera and nothing else.
+              It used to render whether or not the camera was on, so on a wide
+              screen the first thing you met was a 1400px black rectangle with
+              one line of text floating in it. The width cap keeps the
+              viewfinder sane on a desktop too — 4:3 of a full-width column is
+              taller than most screens. */}
+          <div className={camOn ? 'relative mx-auto aspect-[4/3] w-full max-w-2xl bg-black' : 'relative'}>
             {camOn ? <video ref={videoRef} playsInline muted className="size-full object-contain" />
               : (
-                <div className="flex size-full flex-col items-center justify-center gap-3 text-center text-slate-300">
-                  <ReceiptText className="size-10 opacity-70" />
-                  <p className="text-sm">Snap a receipt, or upload a photo. We’ll pull out the amount, store and date.</p>
-                  {camError && <p className="mx-6 flex items-center gap-1.5 text-xs text-amber-400"><CameraOff className="size-3.5" /> {camError}</p>}
+                <div className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
+                  <ReceiptText className="size-10 text-muted-foreground/70" />
+                  <p className="max-w-sm text-sm text-muted-foreground">Snap a receipt, or upload a photo. We’ll pull out the amount, store and date.</p>
+                  {camError && <p className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400"><CameraOff className="size-3.5" /> {camError}</p>}
                 </div>
               )}
             {camOn && (
