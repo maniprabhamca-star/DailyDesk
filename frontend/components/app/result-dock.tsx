@@ -58,13 +58,19 @@ export function ResultDock({
   );
 }
 
-// Persistent sticky Download bar (all screen sizes) so Download is ALWAYS in view
-// as the user scrolls the result — never "scroll back up to download". A slim
-// centered pill on desktop, thumb-reachable at the bottom on mobile. Render it
-// near the END of the result block so it pins to the viewport bottom.
+// Persistent Download bar so Download is ALWAYS in view while reviewing a
+// result — never "scroll back up to download". A slim centered pill on desktop,
+// thumb-reachable at the bottom on mobile.
+//
+// `fixed`, not `sticky`. It was sticky, under a comment claiming that rendering
+// it at the end of the result block would pin it to the viewport bottom — which
+// is not what sticky does. A sticky element only pins while its CONTAINING BLOCK
+// is on screen, so the moment you scrolled past the result into "How it works"
+// the bar left with its parent and sat in the middle of the page. Anchoring to
+// the viewport is what "always in view" actually requires.
 export function StickyDownloadBar({ onDownload, label = 'Download', hint }: { onDownload: () => void; label?: string; hint?: string }) {
   return (
-    <div className="pointer-events-none sticky bottom-3 z-20 mt-3 flex justify-center">
+    <div className="pointer-events-none fixed inset-x-0 bottom-4 z-40 flex justify-center px-4 pb-[env(safe-area-inset-bottom)]">
       <div className="pointer-events-auto flex w-full max-w-md items-center gap-2 rounded-full border bg-card/95 p-1.5 pl-4 shadow-lift backdrop-blur">
         {hint && <span className="flex items-center gap-1.5 text-sm font-medium text-emerald-600"><CheckCircle2 className="size-4" /> {hint}</span>}
         <Button className={`ml-auto rounded-full ${hint ? '' : 'w-full'}`} onClick={onDownload}><Download className="size-4" /> {label}</Button>
