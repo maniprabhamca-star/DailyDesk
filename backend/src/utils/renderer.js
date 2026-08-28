@@ -15,7 +15,13 @@ const puppeteer = require('puppeteer-core');
 const { isRequestAllowed } = require('./ssrfGuard');
 
 const CHROME = process.env.CHROME_PATH || '/usr/bin/google-chrome-stable';
-const PROFILE = process.env.CHROME_PROFILE || '/var/lib/ddrender';
+const PROFILE_ROOT = process.env.CHROME_PROFILE || '/var/lib/ddrender';
+// The backend runs as a pm2 CLUSTER — two processes. Chrome locks its profile
+// directory, so the second instance to try was refused outright (exit 21) and
+// every capture that landed on it failed while the other worked. One profile
+// per instance, keyed by pm2's instance id and falling back to the pid.
+const INSTANCE = process.env.NODE_APP_INSTANCE ?? process.env.pm_id ?? String(process.pid);
+const PROFILE = `${PROFILE_ROOT}/inst-${INSTANCE}`;
 const RENDER_USER = process.env.CHROME_USER || 'ddrender';
 const NAV_TIMEOUT = 25_000;
 const RENDER_TIMEOUT = 45_000;
