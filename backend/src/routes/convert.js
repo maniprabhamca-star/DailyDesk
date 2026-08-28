@@ -285,6 +285,8 @@ router.post('/webpage-to-pdf', express.json({ limit: '8kb' }), async (req, res) 
     landscape: !!(req.body && req.body.landscape),
     background: !(req.body && req.body.background === false),
     format: ['A4', 'Letter', 'Legal', 'A3'].includes(req.body && req.body.format) ? req.body.format : 'A4',
+    view: (req.body && req.body.view) === 'mobile' ? 'mobile' : 'desktop',
+    singlePage: !!(req.body && req.body.singlePage),
   };
 
   // Opt-in progress. A capture can take half a minute — a cold Chrome start

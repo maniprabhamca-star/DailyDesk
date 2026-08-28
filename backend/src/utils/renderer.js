@@ -30,6 +30,29 @@ const SETTLE_TIMEOUT = 8_000;
 const RENDER_TIMEOUT = 45_000;
 const MAX_BYTES = 40 * 1024 * 1024; // stop a page that tries to stream us a film
 
+// The two ways someone wants to see a page, and the widths that produce them.
+const VIEWS = {
+  desktop: {
+    width: 1280, height: 1696, isMobile: false, touch: false,
+    ua: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36 DiemDesk/1.0 (+https://diemdesk.com)',
+  },
+  mobile: {
+    width: 390, height: 844, isMobile: true, touch: true,
+    ua: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1 DiemDesk/1.0 (+https://diemdesk.com)',
+  },
+};
+
+// Paper widths in CSS pixels at 96dpi, which is the unit Chrome lays print out
+// in. Used to work out how much to shrink a wide layout so it fits the sheet.
+const PAPER_PX = {
+  A4: { portrait: 794, landscape: 1123 },
+  Letter: { portrait: 816, landscape: 1056 },
+  Legal: { portrait: 816, landscape: 1344 },
+  A3: { portrait: 1123, landscape: 1587 },
+};
+const MARGIN_PX = 76;      // the 10mm side margins, both sides, at 96dpi
+const MAX_PAGE_PX = 19_000; // PDF caps a page at 200in; stay inside it
+
 let browserPromise = null;
 let child = null;
 
@@ -126,7 +149,7 @@ async function getBrowser() {
  * makes is checked again here, which is what catches redirects and DNS
  * rebinding — by that point the address is the one actually being connected to.
  */
-async function renderUrlToPdf(url, { landscape = false, background = true, format = 'A4' } = {}, onProgress) {
+async function renderUrlToPdf(url, { landscape = false, background = true, format = 'A4', view = 'desktop', singlePage = false } = {}, onProgress) {
   // The caller may want to narrate this: a cold Chrome start alone can take
   // fifteen seconds, and a spinner that says nothing for that long reads as
   // broken. Never let a progress callback break a capture.
@@ -142,9 +165,16 @@ async function renderUrlToPdf(url, { landscape = false, background = true, forma
   let bytes = 0;
 
   try {
+    const v = VIEWS[view] || VIEWS.desktop;
     const page = await context.newPage();
-    await page.setViewport({ width: 1280, height: 1696, deviceScaleFactor: 1 });
-    await page.setUserAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36 DiemDesk/1.0 (+https://diemdesk.com)');
+    await page.setViewport({
+      width: v.width, height: v.height, deviceScaleFactor: 1,
+      isMobile: v.isMobile, hasTouch: v.touch,
+    });
+    await page.setUserAgent(v.ua);
+    // The promise on the page is "exactly as it looks today", so render what a
+    // visitor sees rather than what a print stylesheet wants to show.
+    await page.emulateMediaType('screen');
     await page.setJavaScriptEnabled(true);
     await page.setBypassCSP(false);
 
@@ -187,13 +217,50 @@ async function renderUrlToPdf(url, { landscape = false, background = true, forma
     await page.evaluate(() => new Promise((r) => setTimeout(r, 400)));
 
     report('printing');
-    const pdf = await page.pdf({
-      format,
-      landscape,
-      printBackground: background,
-      margin: { top: '12mm', right: '10mm', bottom: '12mm', left: '10mm' },
-      timeout: RENDER_TIMEOUT,
-    });
+
+    // The bug this replaces: Chrome lays PRINT out at the PAPER width, not the
+    // viewport. So a 1280px capture was being re-laid-out at ~794px (A4), the
+    // site switched to its narrow breakpoint, and anything wider than the sheet
+    // was simply cut off. It looked like a mobile screenshot with the edges
+    // missing, because that is effectively what it was.
+    //
+    // Chrome's print `scale` divides the layout width: layout = paper / scale.
+    // So asking for scale = paperWidth / viewportWidth lays the page out at
+    // EXACTLY the viewport width and then shrinks the result onto the sheet.
+    // The desktop layout stays the desktop layout; it just gets smaller.
+    let pdf;
+    if (singlePage) {
+      // One continuous page the width of the viewport and as tall as the
+      // document — no page breaks cutting through a section.
+      const contentHeight = await page.evaluate(() => Math.max(
+        document.body?.scrollHeight || 0,
+        document.documentElement?.scrollHeight || 0,
+        document.body?.offsetHeight || 0,
+      ));
+      const height = Math.min(Math.max(contentHeight || v.height, v.height), MAX_PAGE_PX);
+      pdf = await page.pdf({
+        width: `${v.width}px`,
+        height: `${Math.ceil(height)}px`,
+        printBackground: background,
+        margin: { top: 0, right: 0, bottom: 0, left: 0 },
+        scale: 1,
+        timeout: RENDER_TIMEOUT,
+      });
+    } else {
+      const paper = (PAPER_PX[format] || PAPER_PX.A4)[landscape ? 'landscape' : 'portrait'];
+      const usable = Math.max(200, paper - MARGIN_PX);
+      // Chrome accepts 0.1–2. Shrinking a desktop layout onto A4 lands ~0.56;
+      // a narrow mobile layout is allowed to grow so it fills the sheet.
+      const scale = Math.min(2, Math.max(0.1, usable / v.width));
+      pdf = await page.pdf({
+        format,
+        landscape,
+        printBackground: background,
+        margin: { top: '12mm', right: '10mm', bottom: '12mm', left: '10mm' },
+        scale,
+        timeout: RENDER_TIMEOUT,
+      });
+    }
     return Buffer.from(pdf);
   } finally {
     await context.close().catch(() => {});

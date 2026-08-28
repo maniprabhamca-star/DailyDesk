@@ -70,6 +70,8 @@ export function WebpageToPdfTool() {
   const [format, setFormat] = useState('A4');
   const [landscape, setLandscape] = useState(false);
   const [background, setBackground] = useState(true);
+  const [view, setView] = useState('desktop');
+  const [singlePage, setSinglePage] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [stage, setStageRaw] = useState<string | null>(null);
@@ -103,7 +105,7 @@ export function WebpageToPdfTool() {
         },
         // stream:true asks the server to narrate. It answers with one JSON line
         // per stage, a `done` line, then the PDF bytes on the same response.
-        body: JSON.stringify({ url: withScheme, format, landscape, background, stream: true }),
+        body: JSON.stringify({ url: withScheme, format, landscape, background, view, singlePage, stream: true }),
       });
       // A refusal (bad URL, over the daily cap) still comes back as JSON with a
       // real status — only a capture that actually started gets narrated.
@@ -164,8 +166,32 @@ export function WebpageToPdfTool() {
           </div>
         </label>
 
-        <div className="mt-3 grid gap-3 sm:grid-cols-3">
-          <label className="flex items-center justify-between gap-2 text-sm">
+        {/* The two questions that decide what the PDF actually looks like, asked
+            before the capture rather than discovered afterwards. */}
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <label className="text-sm">
+            <span className="mb-1 block text-xs font-medium text-muted-foreground">How it should look</span>
+            <select className={`${selectCls} w-full`} value={view} onChange={(e) => setView(e.target.value)}>
+              <option value="desktop">Desktop — as you see it</option>
+              <option value="mobile">Mobile — the phone layout</option>
+            </select>
+          </label>
+          <label className="text-sm">
+            <span className="mb-1 block text-xs font-medium text-muted-foreground">Pages</span>
+            <select className={`${selectCls} w-full`} value={singlePage ? 'one' : 'split'} onChange={(e) => setSinglePage(e.target.value === 'one')}>
+              <option value="split">Split into sheets</option>
+              <option value="one">One long page, no breaks</option>
+            </select>
+          </label>
+        </div>
+        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+          {singlePage
+            ? 'One continuous page as tall as the site — nothing is cut across a page break. Best for reading on screen.'
+            : 'The page is fitted to the sheet at full desktop width, then split where it needs to be. Best for printing.'}
+        </p>
+
+        <div className={`mt-3 grid gap-3 ${singlePage ? 'sm:grid-cols-1' : 'sm:grid-cols-3'}`}>
+          <label className={`flex items-center justify-between gap-2 text-sm ${singlePage ? 'hidden' : ''}`}>
             <span className="text-muted-foreground">Paper</span>
             <select className={selectCls} value={format} onChange={(e) => setFormat(e.target.value)}>
               <option value="A4">A4</option>
@@ -174,7 +200,8 @@ export function WebpageToPdfTool() {
               <option value="A3">A3</option>
             </select>
           </label>
-          <label className="flex items-center gap-2 text-sm">
+          {/* Orientation only means something when there are sheets to orient. */}
+          <label className={`flex items-center gap-2 text-sm ${singlePage ? 'hidden' : ''}`}>
             <input type="checkbox" checked={landscape} onChange={(e) => setLandscape(e.target.checked)} className="size-4" />
             <span className="text-muted-foreground">Landscape</span>
           </label>
