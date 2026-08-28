@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const { startTempSweeper } = require('./utils/tempSweeper');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
@@ -98,6 +99,9 @@ app.use((err, req, res, next) => {
 const HOST = process.env.HOST || '127.0.0.1';
 app.listen(PORT, HOST, () => {
   console.log(`DailyDesk API running on ${HOST}:${PORT}`);
+  // Clear anything a crashed request left in /tmp. Boot is exactly when that
+  // has just happened, so this runs before we take traffic, then hourly.
+  startTempSweeper();
 });
 
 module.exports = app;
