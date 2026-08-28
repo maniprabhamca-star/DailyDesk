@@ -8,7 +8,7 @@ import { FolderOpen,
   Ruler, Braces, Palette, CaseSensitive, Crosshair, Contact, SquarePen, ScanFace,
   Binary, Hash, GitCompare, FileJson, Type,
   Cloud, CloudOff, Sparkles, Landmark, Volume2, BookOpen, Table2, Music, AudioLines, Shapes, Captions,
-  Scissors, Grid2x2, Tags, ListTree, type LucideIcon } from 'lucide-react';
+  Scissors, Grid2x2, Tags, ListTree, Globe, type LucideIcon } from 'lucide-react';
 
 // A tool's "where it runs" tag — the single source of truth for every privacy
 // badge on the site. Keep it HONEST: only client-side tools get 'device'
@@ -132,6 +132,7 @@ export const catalog: CatGroup[] = [
       { name: 'PowerPoint to PDF', href: '/powerpoint-to-pdf', icon: Presentation, badge: 'server' },
       { name: 'Excel to PDF', href: '/excel-to-pdf', icon: FileSpreadsheet, badge: 'server' },
       { name: 'HTML to PDF', href: '/html-to-pdf', icon: Code2, badge: 'server', soon: true },
+      { name: 'Webpage to PDF', href: '/webpage-to-pdf', icon: Globe, badge: 'server', since: '2026-08-26' },
       { name: 'EPUB to PDF', href: '/epub-to-pdf', icon: BookOpen, badge: 'device', soon: true },
       { name: 'Markdown to PDF', href: '/markdown-to-pdf', icon: Hash, badge: 'device', soon: true },
       { name: 'SVG to PDF', href: '/svg-to-pdf', icon: Shapes, badge: 'device', soon: true },

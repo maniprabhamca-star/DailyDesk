@@ -23,6 +23,22 @@ export type ChangeEntry = {
 // flags flip, dated then.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-08-27',
+    kind: 'new',
+    title: 'Give a long PDF a table of contents in one click',
+    detail:
+      'A hundred-page report with no bookmarks is a scroll bar and a guess. Add bookmarks to a PDF builds the whole clickable outline from the document’s own headings — press the button, check what it found, save. You can also add entries by hand, rename them, point them at different pages, drag them into a sensible order and nest them as deep as you like, and any bookmarks the file already had are loaded ready to edit. Deleting a heading keeps everything underneath it rather than taking the whole branch with it, and saving with none at all cleanly strips the bookmarks a file arrived with. It runs in your browser like the rest of the free tools.',
+    href: '/add-bookmarks-to-pdf',
+  },
+  {
+    date: '2026-08-27',
+    kind: 'fixed',
+    title: 'The camera tools opened as a big black rectangle',
+    detail:
+      'Receipt scanner and Scan to PDF both greeted you with an empty black box most of the screen tall, with one line of text floating in the middle of it. The camera viewfinder was being drawn at full size whether or not the camera was actually running — so before you had granted permission to anything, the page was mostly a black void. Now you get a normal, compact panel until the camera is on, and the viewfinder itself no longer tries to fill a widescreen monitor when it starts.',
+    href: '/receipt-scanner',
+  },
+  {
     date: '2026-08-26',
     kind: 'improved',
     title: 'The little green padlock was telling you the opposite of the truth',

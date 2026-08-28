@@ -58,6 +58,7 @@ const ROUTES: Array<{ path: string; priority: number; changeFrequency: MetadataR
   { path: '/pdf-to-html', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/pdf-to-odt', priority: 0.8, changeFrequency: 'monthly' },
   { path: '/odf-to-pdf', priority: 0.8, changeFrequency: 'monthly' },
+  { path: '/webpage-to-pdf', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/pdf-to-pdfa', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/scan-qr-code', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/reorder-pdf', priority: 0.9, changeFrequency: 'monthly' },

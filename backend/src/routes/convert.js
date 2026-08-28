@@ -291,4 +291,56 @@ for (const { slug, filter, ext, fail } of PDF_TO) {
   }));
 }
 
+// Webpage -> PDF. The only endpoint here that takes a URL instead of a file,
+// which makes it the only one with an SSRF surface — see utils/ssrfGuard.js for
+// what that means and what is done about it. Chrome runs unprivileged with its
+// sandbox on; see utils/renderer.js.
+router.post('/webpage-to-pdf', express.json({ limit: '8kb' }), async (req, res) => {
+  if (inFlight >= MAX_CONCURRENT) {
+    return res.status(503).json({ error: 'busy', message: 'The capture service is busy right now — try again in a moment.' });
+  }
+  const slug = '/webpage-to-pdf';
+  if (!isCanaryReq(req) && (await isDisabled(slug))) {
+    return res.status(503).json({ error: 'tool-disabled', message: 'This tool is temporarily unavailable. Please try again later.' });
+  }
+
+  const { validateTarget } = require('../utils/ssrfGuard');
+  const verdict = await validateTarget(req.body && req.body.url);
+  if (!verdict.ok) {
+    return res.status(400).json({ error: 'bad-url', message: verdict.reason });
+  }
+
+  const opts = {
+    landscape: !!(req.body && req.body.landscape),
+    background: !(req.body && req.body.background === false),
+    format: ['A4', 'Letter', 'Legal', 'A3'].includes(req.body && req.body.format) ? req.body.format : 'A4',
+  };
+
+  inFlight++;
+  try {
+    const { renderUrlToPdf } = require('../utils/renderer');
+    const pdf = await renderUrlToPdf(verdict.url.toString(), opts);
+
+    if (req._convKey) redis.pipeline().incr(req._convKey).expire(req._convKey, 93600).exec().catch(() => {});
+    if (req.isPro) trackEvent(req, 'pro_used', { module: slug, userId: req._userId });
+
+    const base = (verdict.url.hostname || 'webpage').replace(/[^a-z0-9.-]/gi, '') || 'webpage';
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(base)}.pdf"`);
+    return res.end(pdf);
+  } catch (err) {
+    const m = String((err && err.message) || '');
+    // Nothing internal reaches the user — a stack trace here would describe our
+    // network to whoever was probing it.
+    const message = m.includes('too-large')
+      ? 'That page is too big to capture.'
+      : /timeout|Navigation/i.test(m)
+        ? 'That page took too long to load, so the capture was stopped.'
+        : 'That page could not be captured. It may block automated visitors, or need a login.';
+    return res.status(422).json({ error: 'render-failed', message });
+  } finally {
+    inFlight--;
+  }
+});
+
 module.exports = router;
