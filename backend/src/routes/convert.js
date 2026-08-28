@@ -16,6 +16,7 @@ const os = require('os');
 const crypto = require('crypto');
 const { isDisabled } = require('../utils/toolFlag');
 const { isCanaryReq } = require('../utils/canary');
+const { dailyQuota, countUse } = require('../utils/entitlement');
 const { trackEvent } = require('../utils/trackEvent');
 const jwt = require('jsonwebtoken');
 const db = require('../db');
@@ -35,40 +36,10 @@ const FREE_DAILY = Number(process.env.FREE_DAILY_CONVERSIONS || 3);
 // so it bypasses BOTH rate limiters below AND the daily quota — otherwise it meters
 // itself, hits 429, and false-alarms the tool. See docs/canary-and-rate-limits.md.
 
-async function planOf(req) {
-  const h = req.headers.authorization;
-  if (!h || !h.startsWith('Bearer ')) return null; // anonymous → free path
-  try {
-    const decoded = jwt.verify(h.split(' ')[1], process.env.JWT_SECRET);
-    req._userId = decoded.userId; // captured for pro_used logging on success
-    const { rows } = await db.query('SELECT plan FROM users WHERE id = $1', [decoded.userId]);
-    return rows[0] ? rows[0].plan : null;
-  } catch { return null; }
-}
-
-// Enforce the free daily cap (Pro bypasses). Runs after the burst limiter and
-// FAILS OPEN on any Redis/DB hiccup so infra trouble never blocks conversions.
-async function dailyQuota(req, res, next) {
-  if (isCanaryReq(req)) return next(); // health probe, not a user — never metered
-  let plan = null;
-  try { plan = await planOf(req); } catch { plan = null; }
-  if (plan === 'pro') { req.isPro = true; return next(); }
-  if (redisDown()) return next();
-  const day = new Date().toISOString().slice(0, 10); // UTC calendar day
-  const key = `conv:day:${clientKey(req)}:${day}`;
-  try {
-    const used = Number(await redis.get(key)) || 0;
-    if (used >= FREE_DAILY) {
-      return res.status(429).json({
-        error: 'daily-limit',
-        limit: FREE_DAILY,
-        message: `You've used your ${FREE_DAILY} free document conversions for today.`,
-      });
-    }
-    req._convKey = key; // counted only once the conversion actually succeeds
-  } catch { /* fail open */ }
-  return next();
-}
+// The caller check and the daily allowance now live in utils/entitlement.js so
+// OTHER routers can use them. They protected only this file before, which is
+// how OCR — a separate router and a far more expensive endpoint — ended up
+// with no meter at all.
 
 // Stricter than the global limiter: conversions cost real CPU.
 router.use(rateLimit({
@@ -80,7 +51,7 @@ router.use(rateLimit({
   message: { error: 'Too many conversions — please try again in a few minutes.' },
 }));
 // Free daily quota (Pro unlimited) — after the burst limiter, before the routes.
-router.use(dailyQuota);
+router.use(dailyQuota({ limit: FREE_DAILY }));
 
 const OFFICE_RE = /\.(docx?|odt|rtf|txt|html?|xlsx?|ods|csv|pptx?|odp|odg|fodt|fods|fodp)$/i;
 
@@ -184,7 +155,7 @@ function convertRoute({ upload, sofficeArgs, buildCmd, outExt, failMessage, slug
           }
           // Count this SUCCESSFUL conversion against the free daily quota (Pro
           // requests have no _convKey). TTL 26h cleans up the per-day key.
-          if (req._convKey) redis.pipeline().incr(req._convKey).expire(req._convKey, 93600).exec().catch(() => {});
+          countUse(req);
           // A Pro subscriber running a server conversion = a Pro feature actually
           // used (they'd be capped at 3/day otherwise) — mark it for refund checks.
           if (req.isPro) trackEvent(req, 'pro_used', { module: slug, userId: req._userId });
@@ -321,7 +292,7 @@ router.post('/webpage-to-pdf', express.json({ limit: '8kb' }), async (req, res) 
     const { renderUrlToPdf } = require('../utils/renderer');
     const pdf = await renderUrlToPdf(verdict.url.toString(), opts);
 
-    if (req._convKey) redis.pipeline().incr(req._convKey).expire(req._convKey, 93600).exec().catch(() => {});
+    countUse(req);
     if (req.isPro) trackEvent(req, 'pro_used', { module: slug, userId: req._userId });
 
     const base = (verdict.url.hostname || 'webpage').replace(/[^a-z0-9.-]/gi, '') || 'webpage';

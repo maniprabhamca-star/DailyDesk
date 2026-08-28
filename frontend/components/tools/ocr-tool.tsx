@@ -104,10 +104,24 @@ async function ocrBatch(blobs: Blob[], lang: string): Promise<{ pages: { words: 
   const form = new FormData();
   blobs.forEach((b, i) => form.append('pages', b, `p${i}.jpg`));
   form.append('lang', lang);
-  const res = await fetch('/api/ocr', { method: 'POST', body: form });
+  // OCR is Pro, and the server checks it — so the session token has to travel
+  // with the request. Without this a paying subscriber is refused exactly like
+  // an anonymous visitor. (FormData sets its own Content-Type boundary; do not
+  // set one here.)
+  const token = typeof window !== 'undefined' ? localStorage.getItem('dd_token') : null;
+  const res = await fetch('/api/ocr', {
+    method: 'POST',
+    body: form,
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
   if (!res.ok) {
-    let msg = res.status === 429 ? 'Too many OCR requests — please wait a moment.' : 'OCR failed — please try a clearer scan.';
-    try { const j = await res.json(); if (j.error) msg = j.error; } catch { /* ignore */ }
+    let msg = res.status === 429 ? 'Too many OCR requests — please wait a moment.'
+      : res.status === 402 ? 'OCR is a Pro feature.'
+      : 'OCR failed — please try a clearer scan.';
+    // This route answers two shapes: its own errors put the sentence in
+    // `error`, the shared entitlement check puts a code there and the sentence
+    // in `message`. Prefer the sentence, or the user reads "pro-required".
+    try { const j = await res.json(); if (j.message) msg = j.message; else if (j.error) msg = j.error; } catch { /* ignore */ }
     throw new Error(msg);
   }
   return res.json();

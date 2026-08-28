@@ -15,6 +15,7 @@ const { clientKey } = require('../utils/rateLimitKey');
 const { makeStore, redisDown } = require('../utils/rateLimitStore');
 const { guard } = require('../utils/toolFlag');
 const { isCanaryReq } = require('../utils/canary');
+const { requirePro } = require('../utils/entitlement');
 
 const router = express.Router();
 
@@ -60,6 +61,18 @@ const upload = multer({
 // Server-side kill switch: refuse if an admin has disabled OCR (matches the
 // hidden front-end button so a direct API call can't bypass it).
 router.use(guard('/ocr-pdf'));
+
+// OCR is Pro. It is the most expensive thing we run for one person — 20-page
+// batches of rasterised images, up to 90 MB a batch, three minutes of CPU — so
+// it is not on the "a few free a day" plan the office conversions use.
+//
+// This matters MORE than the flag above, not less: the flag is a launch switch
+// somebody will flip one day, and until now flipping it would have opened an
+// unmetered endpoint to anyone. The entitlement check does not depend on
+// remembering that.
+router.use(requirePro({
+  message: 'OCR is a Pro feature — it reads scanned pages on our server, which costs real time. Upgrade to use it.',
+}));
 
 router.post('/', (req, res) => {
   upload.array('pages', MAX_PAGES)(req, res, async (uErr) => {
