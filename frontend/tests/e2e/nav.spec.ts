@@ -11,6 +11,30 @@ const SIZES = [
   { w: 1920, h: 1080 },
 ];
 
+/**
+ * Open the mega-menu, retrying the click until the panel is actually there.
+ *
+ * These tests used to click once and assume. They passed for a bad reason: the
+ * first-visit splash was playing over the page (the specs guarded it with a key
+ * nothing read), so Playwright waited for the overlay to lift before the button
+ * became actionable — roughly two seconds, which happened to be long enough for
+ * React to hydrate. Fixing the splash key removed that accidental pause and the
+ * click started landing on a button whose handler was not attached yet.
+ *
+ * Waiting on hydration directly is the honest fix; there is no marker for it, so
+ * retry the click until the menu opens. A click that DID register just makes the
+ * first assertion pass and no retry happens.
+ */
+async function openToolsMenu(page: import('@playwright/test').Page) {
+  const button = page.getByRole('button', { name: /^tools$/i });
+  const panel = page.locator('#dd-tools-menu');
+  await expect(async () => {
+    await button.click();
+    await expect(panel).toBeVisible({ timeout: 2_000 });
+  }).toPass({ timeout: 20_000 });
+  return panel;
+}
+
 test.describe('the Tools menu shows everything at once', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
@@ -25,7 +49,7 @@ test.describe('the Tools menu shows everything at once', () => {
     test(`at ${w}×${h}: full width, no inner scrollbar, aligned to the logo`, async ({ page }) => {
       await page.setViewportSize({ width: w, height: h });
       await page.goto('/', { waitUntil: 'domcontentloaded' });
-      await page.getByRole('button', { name: /^tools$/i }).click();
+      await openToolsMenu(page);
 
       const m = await page.evaluate(() => {
         const sc = document.querySelector('#dd-tools-menu') as HTMLElement;
@@ -53,12 +77,12 @@ test.describe('the Tools menu shows everything at once', () => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     const panel = page.locator('#dd-tools-menu');
 
-    await page.getByRole('button', { name: /^tools$/i }).click();
+    await openToolsMenu(page);
     await expect(panel).toBeVisible();
     await page.getByRole('button', { name: /close the tools menu/i }).click();
     await expect(panel).toBeHidden();
 
-    await page.getByRole('button', { name: /^tools$/i }).click();
+    await openToolsMenu(page);
     await expect(panel).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(panel).toBeHidden();
@@ -69,7 +93,7 @@ test.describe('the Tools menu shows everything at once', () => {
     // outside-click check would swallow the click on the way to the link.
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('button', { name: /^tools$/i }).click();
+    await openToolsMenu(page);
     await page.locator('#dd-tools-menu').getByRole('link', { name: /^Merge PDF$/ }).click();
     await expect(page).toHaveURL(/\/merge-pdf$/);
   });

@@ -3,17 +3,13 @@ import { PdfToolPage } from '@/components/pdf/tool-page';
 import { OcrTool } from '@/components/tools/ocr-tool';
 
 export const metadata: Metadata = {
-  title: "OCR PDF — Make Scanned PDFs Searchable, Free | DiemDesk",
+  title: "OCR PDF — Make a Scanned PDF Searchable | DiemDesk",
   description:
-    "Turn a scanned PDF or image into a searchable PDF and pull out the text with OCR — free. Pages recognised securely and deleted immediately.",
+    "Turn a scanned PDF or image into a searchable PDF and pull the text out with OCR. A Pro tool: pages are read on our server, then deleted.",
   alternates: { canonical: '/ocr-pdf' },
-  // Gated (coming_soon): a thin "coming soon" page must not be indexed — it
-  // would rank, convert nobody, and have to earn its way back after launch.
-  // Remove this line the day the tool un-gates.
-  robots: { index: false, follow: true },
   openGraph: {
     images: ['/og.png'],
-    title: 'OCR PDF — Make Scanned PDFs Searchable & Extract Text Free | DiemDesk',
+    title: 'OCR PDF — Make Scanned PDFs Searchable & Extract the Text | DiemDesk',
     description: 'Make scanned PDFs searchable and pull out the text with OCR — handled securely and deleted immediately.',
     type: 'website',
   },
@@ -37,7 +33,7 @@ export default function OcrPdfPage() {
   return (
     <PdfToolPage
       title="OCR — make scans searchable"
-      description="Turn a scanned PDF or image into a searchable PDF and pull out the text — free, accurate 300-DPI recognition, handled honestly: prepared in your browser, recognised securely, then deleted immediately."
+      description="Turn a scanned PDF or image into a searchable PDF and pull the text out — accurate 300-DPI recognition, handled honestly: pages are prepared in your browser, read on our server, then deleted immediately."
       steps={steps}
       faqs={faqs}
     >
