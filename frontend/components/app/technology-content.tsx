@@ -482,7 +482,7 @@ const INNOVATIONS = [
       ['Only if it is worth it', 'A page is rasterised only when the target is ≤87% of the stored pixels. Re-encoding at the same size burns minutes and can GROW the file — JPEG 2000 beats same-resolution JPEG. "Squeeze harder" overrides this.'],
       ['Monotonic levels', 'Taking min() of both caps guarantees a stronger level always targets fewer pixels and lower quality, so Maximum can never come out larger than Recommended — which it otherwise could, and did.'],
     ],
-    testing: 'Proven headlessly in Node against real files, not eyeballed. A 27 MB JPEG-2000 book at Recommended: ~58% smaller, output still crisp and readable. Competitors managed ~1% on the same file. Compression runs across a worker pool (up to 4, sized to cores and file size) with per-page watchdogs that fall back to the surgical-only result rather than hanging.',
+    testing: 'Proven headlessly in Node against real files, not eyeballed. A 27 MB JPEG-2000 book at Recommended: ~58% smaller, output still crisp and readable. Competitors managed ~1% on the same file. Compression runs across a worker pool (up to 4, sized to cores and file size), guarded by two watchdogs — because a pdf.js worker given a corrupt or out-of-memory page does not throw, it simply never settles, and the tab would spin forever. 45s wraps a single page render: that page is cancelled and copied through untouched, so one bad page in a 200-page book costs one page rather than the whole job. 90s wraps opening the pool: the workers are torn down and the job falls back to the surgical-only result, which is smaller than the original just not as small.',
   },
   {
     icon: FileSearch, tint: 'text-sky-600 dark:text-sky-400', bg: 'bg-sky-500/10',
@@ -493,9 +493,9 @@ const INNOVATIONS = [
       'It also reports what actually changed: source pixels → output pixels, the DPI and quality used, and whether the resolution floor was hit. If the honest answer is "this is already as small as it usefully gets", it says so instead of pretending.',
     ],
     guards: [
-      ['Keep whichever is smaller', 'On a small source, "Smaller file" once produced a BIGGER file (170 KB → 180 KB). The engine now compares and keeps the smaller of the two.'],
+      ['Never hand back something bigger', 'Three checks at three scopes, because a "compress" button that grows a file is worse than one that does nothing. A re-encoded image replaces the original stream only if it is actually smaller. If the whole file saved under 1%, the ORIGINAL bytes are returned and the tool says "Nothing left to shrink" rather than claiming a win. And Squeeze harder compares against the result you already have — if the stronger setting cannot beat it, you keep the smaller one and are told so.'],
     ],
-    testing: 'Verified by measuring real byte counts before and after, including the case that produced the regression.',
+    testing: 'Verified by measuring real byte counts before and after at each of the three scopes.',
   },
   {
     icon: Landmark, tint: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10',
@@ -574,6 +574,9 @@ const INNOVATIONS = [
     body: [
       'Image format is decided by reading the magic bytes, not the filename or the browser-reported type. That single change fixed the "none of these images could be converted" reports from mobile users.',
       'The embed path also calls the encoder EXACTLY ONCE. An earlier probe embedded twice to measure the result and doubled every output file — caught by measuring real bytes (170,763 vs 340,759), not by looking.',
+    ],
+    guards: [
+      ['Asking for smaller must never give you bigger', 'Re-encoding an already-small JPEG usually GROWS it: a JPEG carries a fixed cost in headers and quantisation tables that a small image has too few pixels to amortise, and flat-colour screenshots compress far better as PNG than as JPEG. On one source, "Smaller file" turned 170 KB into 180 KB. The picture is now embedded exactly as it arrived whenever the re-encode comes out larger.'],
     ],
     testing: 'Byte-level verification in Node, after an earlier "verbatim" check was found to be comparing only the first 64 bytes — which are identical for every canvas JPEG and therefore proved nothing.',
   },
