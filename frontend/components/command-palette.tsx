@@ -33,6 +33,10 @@ type AiCmd =
   | { phase: 'resolved'; kind: 'cmd' | 'tool'; id: string; why: string };
 
 const WORKFLOWS = [{ label: 'Merge → Compress → Sign', sub: 'Chain tools, no re-upload' }];
+// How many tool rows the palette mounts. Kept small on purpose — see the note
+// in the row builder about the 1,319 DOM nodes this used to cost.
+const NO_QUERY_TOOLS = 10;
+const MAX_RESULTS = 24;
 const API = process.env.NEXT_PUBLIC_API_URL || '';
 
 export function CommandPalette() {
@@ -107,10 +111,19 @@ export function CommandPalette() {
       WORKFLOWS.forEach((w) => rows.push({ type: 'workflow', label: w.label, sub: w.sub }));
       rows.push({ type: 'header', label: 'Actions' });
       actions.forEach((a) => rows.push({ type: 'action', action: a }));
-      rows.push({ type: 'header', label: 'All tools' });
-      tools.forEach((t) => rows.push({ type: 'tool', tool: t, disabled: toolDisabled(t)}));
+      // Only a first handful before anything is typed.
+      //
+      // This used to push every tool in the catalogue: 119 buttons, 1,319 DOM
+      // nodes and 134 icons mounted in a single frame, which is why the palette
+      // took a visible moment to appear. Nobody browses a hundred items in a
+      // command palette — they type. /tools is where the full list belongs.
+      const shown = tools.slice(0, NO_QUERY_TOOLS);
+      rows.push({ type: 'header', label: 'Tools', note: `· type to search all ${tools.length}` });
+      shown.forEach((t) => rows.push({ type: 'tool', tool: t, disabled: toolDisabled(t)}));
     } else {
-      const mt = tools.filter(matchTool);
+      // Capped too: a one-letter query matches most of the catalogue, and a
+      // result list nobody scrolls to the end of costs the same to render.
+      const mt = tools.filter(matchTool).slice(0, MAX_RESULTS);
       const ma = actions.filter(matchAction);
       if (mt.length) { rows.push({ type: 'header', label: 'Tools' }); mt.forEach((t) => rows.push({ type: 'tool', tool: t, disabled: toolDisabled(t)})); }
       if (ma.length) { rows.push({ type: 'header', label: 'Actions' }); ma.forEach((a) => rows.push({ type: 'action', action: a })); }
