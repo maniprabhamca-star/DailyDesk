@@ -10,6 +10,9 @@ All visual HTML artifacts live in **[`artifacts/`](artifacts/)** (see [artifacts
 ## Model in one line
 Every in-browser tool is **free & unlimited forever** (they run on your device and cost us nothing). Only the few server-processed tools are metered: **Office conversions = 3 free/day → Pro unlimited**; OCR + AI = Pro. The Pro tier's moat is a set of features rivals structurally can't copy — **on-device batch, redaction certificate, saved workflows, encrypted File Vault** (flagships), plus self-destruct shares, certificate of completion, Bates numbering, brand kit, and an offline PWA.
 
+## Reference
+- **[tech-stack.md](tech-stack.md)** — ⭐ the full technology + server inventory, read from the repo and the live box rather than from memory: the frontend framework and every in-browser WASM engine, the backend and its shared entitlement layer, the server-side engines (LibreOffice / Ghostscript / Tesseract / Chrome), and the production server (OS, sizing, nginx, Postgres, Redis, pm2, TLS, cron). Opens with the one security finding worth acting on.
+
 ## Design specs
 - **[designs/master-roadmap.md](designs/master-roadmap.md)** — ⭐ the COMPLETE tracked roadmap: every shipped / in-flight / pending item across all categories (PDF catalog gaps, beyond-market uniques, AI layer, Pro pillars, media, tier-2 apps, feature-pack polish, infra/go-live, business). The single source of truth; mirrored on the status board.
 - **[artifacts/unit-economics.html](artifacts/unit-economics.html)** — interactive margin calculator: true profit per Pro user (AI + Stripe + Vault + infra), break-even, and the 20%-of-revenue AI budget guardrail. Pairs with the `dailydesk-unit-economics` memory.
