@@ -166,12 +166,12 @@ export function CommandPalette() {
     if (r.type === 'tool') {
       const t = r.tool;
       if (isProTool(t)) {
-        // Pro tool: anyone entitled to it opens it — the owner, and ALSO anyone
-        // actually on Pro. Checking isOwner alone sent paying subscribers to the
-        // pricing page for a tool they had already bought.
+        // Pro tool: everyone goes to the tool page, subscriber or not. The page
+        // explains what it does and makes its own case for Pro; the pricing page
+        // answers a question the person did not ask. Pricing remains the
+        // fallback only when a Pro tool has no page to send them to.
         setOpen(false);
-        const entitled = isOwner || plan === 'pro';
-        if (entitled && t.href) { pushRecent(t.href); router.push(t.href); } else router.push('/pricing');
+        if (t.href) { pushRecent(t.href); router.push(t.href); } else router.push('/pricing');
       } else if (t.href) { pushRecent(t.href); setOpen(false); router.push(t.href); }
     } else if (r.type === 'action') { setOpen(false); r.action.run(); }
   }, [rows, router, isProTool, isOwner, editorCtx, ai, plan, query, tools]);

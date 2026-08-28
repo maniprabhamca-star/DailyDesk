@@ -97,8 +97,8 @@ export const BADGE: Record<Badge, { icon: LucideIcon; color: string; label: stri
 };
 
 // The premium tier — owner-only until Pro launches: the deep editors, OCR and the
-// AI tools. Search surfaces (⌘K palette, header search) badge these "Pro" and send
-// free users to pricing instead of a dead end. Keep in sync with the pro-launch
+// AI tools. Search surfaces (⌘K palette, header search) badge these "Pro" and open
+// the tool page, where the tool makes its own case. Keep in sync with the pro-launch
 // checklist. Matched by tool name.
 export const PRO_TOOLS = new Set(['Edit PDF', 'Redact PDF', 'OCR', 'Chat with PDF', 'Summarize', 'Translate', 'Question generator', 'File vault', 'Link in bio', 'Receipt scanner', 'Workflows']);
 

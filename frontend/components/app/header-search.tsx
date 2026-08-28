@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Search, CornerDownLeft, History, ArrowRight, Sparkles } from 'lucide-react';
 import { catalog, PRO_TOOLS, isNewTool, NEW_CHIP, type CatTool } from '@/components/app/catalog';
 import { getRecent, pushRecent } from '@/lib/recent';
-import { useIsOwner, usePlan } from '@/lib/plan';
+
 import { cn } from '@/lib/utils';
 
 const isProTool = (t: { name: string }) => PRO_TOOLS.has(t.name);
@@ -29,8 +29,6 @@ function openCommand() {
 
 export function HeaderSearch({ visible }: { visible: boolean }) {
   const router = useRouter();
-  const isOwner = useIsOwner();
-  const plan = usePlan();
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
@@ -75,14 +73,17 @@ export function HeaderSearch({ visible }: { visible: boolean }) {
   }, [open]);
 
   function go(tool: Tool) {
-    // Pro tools open for anyone entitled to them — the owner, and ALSO anyone
-    // actually on Pro. This used to test isOwner alone, so a paying subscriber
-    // searching for a Pro tool was sent to the pricing page to buy what they
-    // had already bought. Only genuinely free accounts see pricing.
+    // Pro tools open for everyone: the page is the pitch.
     if (isProTool(tool)) {
       setOpen(false); setQuery(''); inputRef.current?.blur();
-      const entitled = isOwner || plan === 'pro';
-      if (entitled && tool.href) { pushRecent(tool.href); router.push(tool.href); } else router.push('/pricing');
+      // Everyone goes to the tool, Pro or not. A free user who searched for OCR
+      // wants to know what OCR is; the page tells them that and then makes the
+      // case for Pro. Answering "how much is it?" to someone who asked "what is
+      // it?" sells nothing and looks like a wall.
+      //
+      // Pricing stays the fallback for the one case where there is nowhere else
+      // to send them — a Pro tool with no page yet.
+      if (tool.href) { pushRecent(tool.href); router.push(tool.href); } else router.push('/pricing');
       return;
     }
     if (!tool.href) return;
