@@ -184,7 +184,7 @@ export const catalog: CatGroup[] = [
       { name: 'Clean scanned PDF', href: '/clean-scanned-pdf', icon: ScanText, badge: 'device', soon: true },
       // Live as a Pro tool (2026-08-27): no longer "soon", so the catalog says
       // available and the Pro badge in search says who it is for.
-      { name: 'OCR', href: '/ocr-pdf', icon: ScanText, badge: 'server' },
+      { name: 'OCR', href: '/ocr-pdf', icon: ScanText, badge: 'server', since: '2026-08-27' },
       { name: 'Chat with PDF', href: '/chat-pdf', icon: MessageSquare, badge: 'ai', soon: true },
       { name: 'Summarize', href: '/summarize-pdf', icon: AlignLeft, badge: 'ai', soon: true },
       { name: 'Translate', href: '/translate-pdf', icon: Languages, badge: 'ai', soon: true },
