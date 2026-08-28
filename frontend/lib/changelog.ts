@@ -25,6 +25,14 @@ export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-08-27',
     kind: 'new',
+    title: 'Keep a web page exactly as it looks today',
+    detail:
+      'Paste an address and get a PDF of the page — the whole page, not one screenful like a screenshot. It is for the things that do not stay put: a price before it changes, terms before they are quietly updated, a listing before it is taken down, a confirmation screen you want a record of. A real browser visits the address, prints it, and we keep nothing. It cannot open anything behind a login, because our server visits as a stranger with no access to your accounts — for those, print from your own browser. Three captures a day free, unlimited on Pro.',
+    href: '/webpage-to-pdf',
+  },
+  {
+    date: '2026-08-27',
+    kind: 'new',
     title: 'Give a long PDF a table of contents in one click',
     detail:
       'A hundred-page report with no bookmarks is a scroll bar and a guess. Add bookmarks to a PDF builds the whole clickable outline from the document’s own headings — press the button, check what it found, save. You can also add entries by hand, rename them, point them at different pages, drag them into a sensible order and nest them as deep as you like, and any bookmarks the file already had are loaded ready to edit. Deleting a heading keeps everything underneath it rather than taking the whole branch with it, and saving with none at all cleanly strips the bookmarks a file arrived with. It runs in your browser like the rest of the free tools.',

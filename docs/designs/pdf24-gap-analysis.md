@@ -154,8 +154,8 @@ Ordered by return per hour, after the verification pass.
 | 4 | **Rasterize PDF** | ~half a day | ✅ **SHIPPED 2026-08-26** (`/rasterize-pdf`) — DPI, greyscale, and an explicit "this cannot be undone" warning |
 | 5 | **Edit document information** | ~2 h | ✅ **SHIPPED 2026-08-26** as **Edit PDF details** (`/edit-pdf-metadata`). Goes past PDF24: it writes the XMP packet too, so the change survives in Acrobat, and it names the fields where a file contradicts itself |
 | 6 | **ODF + PDF→RTF/HTML converters** | ~half a day each | ✅ **SHIPPED 2026-08-26**: `/pdf-to-rtf`, `/pdf-to-odt`, `/odf-to-pdf` (ODT/ODS/ODP/ODG in one page). `/pdf-to-html` had to be rebuilt **on-device** — the LibreOffice filter rasterises the text (17 words + 75 GIFs on a real file) |
-| 7 | **Bookmark / outline editor** | ~3–4 days | Worth it later. Genuinely differentiating; nobody free does it well |
-| 8 | **Webpage → PDF (Pro)** | ~2–3 days, server | Blocked: needs Chromium on prod **plus SSRF hardening**. Owner approval required |
+| 7 | **Bookmark / outline editor** | ~3–4 days | ✅ **SHIPPED 2026-08-27** (`/add-bookmarks-to-pdf`) — and past PDF24: it builds the whole outline from the document's own headings in one click |
+| 8 | **Webpage → PDF** | ~2–3 days, server | ✅ **SHIPPED 2026-08-27** (`/webpage-to-pdf`) — Chrome as unprivileged `ddrender` with its sandbox on, SSRF guard with a 58-assertion harness |
 | 9 | **Create fillable form (Pro)** | ~1–2 weeks | Big. Pairs with Fill PDF form as a Pro pillar, not a quick win |
 | 10 | Web-optimise / linearise | ~3–4 days | **No.** Rewrites the xref; Fast Web View solved a dial-up problem |
 | 11 | Invoice builder ×3, job application, viewer preferences | — | Not investigated; low priority |
