@@ -18,7 +18,10 @@ export const DEFAULT_TOOL_FLAGS: FlagMap = {
   '/annotate-pdf': 'coming_soon',
   '/folder-preview': 'coming_soon',
   '/redact-pdf': 'coming_soon',
-  '/ocr-pdf': 'coming_soon',
+  // OCR: LIVE as Pro (2026-08-27). 'pro' passes through ToolGate — the page
+  // renders for everyone and the tool itself shows a Pro panel to free users,
+  // while backend/src/utils/entitlement.js does the real enforcing (402).
+  '/ocr-pdf': 'pro',
   // The AI (Pro) tools ship dark: owner-only until the ANTHROPIC_API_KEY is set
   // + Pro billing goes live, then flip each to 'pro'.
   '/chat-pdf': 'coming_soon',

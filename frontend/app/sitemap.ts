@@ -24,6 +24,7 @@ const ROUTES: Array<{ path: string; priority: number; changeFrequency: MetadataR
   { path: '/add-page-numbers-to-pdf', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/jpg-to-pdf', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/pdf-to-jpg', priority: 0.9, changeFrequency: 'monthly' },
+  { path: '/ocr-pdf', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/pdf-to-word', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/pdf-to-excel', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/pdf-to-markdown', priority: 0.9, changeFrequency: 'monthly' },

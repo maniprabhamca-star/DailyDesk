@@ -25,6 +25,14 @@ export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-08-27',
     kind: 'new',
+    title: 'OCR is open — read the text off a scan',
+    detail:
+      'Point it at a scanned PDF or a photo of a page and you get the document back with real, selectable, searchable text underneath — the pages look exactly as they did, and the file barely grows, because we lay an invisible text layer over your originals rather than re-rendering them. Over fifty languages, and you can pick a page range. This one is Pro: it is the single job here that cannot run inside your browser, so it runs on our server and takes real time per page, which is why everything that can run on your device stays free and unlimited. If your PDF already has a text layer and you only want the words out, PDF to Text does that free.',
+    href: '/ocr-pdf',
+  },
+  {
+    date: '2026-08-27',
+    kind: 'new',
     title: 'Keep a web page exactly as it looks today',
     detail:
       'Paste an address and get a PDF of the page — the whole page, not one screenful like a screenshot. It is for the things that do not stay put: a price before it changes, terms before they are quietly updated, a listing before it is taken down, a confirmation screen you want a record of. A real browser visits the address, prints it, and we keep nothing. It cannot open anything behind a login, because our server visits as a stranger with no access to your accounts — for those, print from your own browser. Three captures a day free, unlimited on Pro.',
