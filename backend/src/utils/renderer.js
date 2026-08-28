@@ -24,6 +24,9 @@ const INSTANCE = process.env.NODE_APP_INSTANCE ?? process.env.pm_id ?? String(pr
 const PROFILE = `${PROFILE_ROOT}/inst-${INSTANCE}`;
 const RENDER_USER = process.env.CHROME_USER || 'ddrender';
 const NAV_TIMEOUT = 25_000;
+// How long we let a page keep fetching after the document is there. Bounded on
+// purpose: this is a courtesy to images and fonts, not a condition for success.
+const SETTLE_TIMEOUT = 8_000;
 const RENDER_TIMEOUT = 45_000;
 const MAX_BYTES = 40 * 1024 * 1024; // stop a page that tries to stream us a film
 
@@ -123,7 +126,15 @@ async function getBrowser() {
  * makes is checked again here, which is what catches redirects and DNS
  * rebinding — by that point the address is the one actually being connected to.
  */
-async function renderUrlToPdf(url, { landscape = false, background = true, format = 'A4' } = {}) {
+async function renderUrlToPdf(url, { landscape = false, background = true, format = 'A4' } = {}, onProgress) {
+  // The caller may want to narrate this: a cold Chrome start alone can take
+  // fifteen seconds, and a spinner that says nothing for that long reads as
+  // broken. Never let a progress callback break a capture.
+  const report = (stage, detail) => {
+    try { if (onProgress) onProgress(stage, detail); } catch { /* never fatal */ }
+  };
+
+  report('browser');
   const browser = await getBrowser();
   // A throwaway context per render: no cookies, storage or cache carried from
   // one person's capture into the next.
@@ -155,13 +166,27 @@ async function renderUrlToPdf(url, { landscape = false, background = true, forma
     // Nothing on the page gets to open a dialog and hold the render open.
     page.on('dialog', (d) => d.dismiss().catch(() => {}));
 
-    const resp = await page.goto(url, { waitUntil: 'networkidle2', timeout: NAV_TIMEOUT });
+    report('opening');
+    // `domcontentloaded`, not `networkidle2`.
+    //
+    // Waiting for the network to go quiet sounds right and is wrong for real
+    // sites: analytics beacons, chat widgets, live dashboards and anything with
+    // a websocket never go quiet, so a perfectly capturable page timed out and
+    // the user was told it "took too long to load". Get a document first, then
+    // settle on a budget — a page we can see is a page we can print.
+    const resp = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: NAV_TIMEOUT });
     if (!resp) throw new Error('no-response');
+
+    report('settling');
+    // Best effort. Images and fonts usually finish inside this; if the site
+    // keeps a socket open forever we print what is there rather than failing.
+    await page.waitForNetworkIdle({ idleTime: 600, timeout: SETTLE_TIMEOUT }).catch(() => {});
     if (bytes > MAX_BYTES) throw new Error('too-large');
 
-    // Give lazy images a moment, but never more than the budget allows.
+    // A last beat for lazy images that started loading during the settle.
     await page.evaluate(() => new Promise((r) => setTimeout(r, 400)));
 
+    report('printing');
     const pdf = await page.pdf({
       format,
       landscape,

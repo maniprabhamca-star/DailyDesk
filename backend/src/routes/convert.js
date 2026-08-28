@@ -287,15 +287,44 @@ router.post('/webpage-to-pdf', express.json({ limit: '8kb' }), async (req, res) 
     format: ['A4', 'Letter', 'Legal', 'A3'].includes(req.body && req.body.format) ? req.body.format : 'A4',
   };
 
+  // Opt-in progress. A capture can take half a minute — a cold Chrome start
+  // alone is most of that — and a button that says "Opening the page…" for
+  // thirty seconds reads as broken. When the client asks for it we stream one
+  // JSON line per stage, then a sentinel, then the PDF bytes on the same
+  // response. Single request, so it cannot land on the other cluster instance.
+  //
+  // Deliberately opt-in: the plain POST still answers with application/pdf, so
+  // the health canary and anything else pointed at this endpoint is unaffected.
+  const wantsStream = !!(req.body && req.body.stream);
+  const sendStage = (stage, detail) => {
+    if (!wantsStream || res.writableEnded) return;
+    try { res.write(`${JSON.stringify({ stage, ...(detail ? { detail } : {}) })}\n`); } catch { /* client gone */ }
+  };
+  if (wantsStream) {
+    res.setHeader('Content-Type', 'application/x-ndjson');
+    res.setHeader('Cache-Control', 'no-store');
+    // Without this nginx buffers the whole response and the progress arrives
+    // all at once at the end, which is worse than not sending it.
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders?.();
+    sendStage('checking');
+  }
+
   inFlight++;
   try {
     const { renderUrlToPdf } = require('../utils/renderer');
-    const pdf = await renderUrlToPdf(verdict.url.toString(), opts);
+    const pdf = await renderUrlToPdf(verdict.url.toString(), opts, sendStage);
 
     countUse(req);
     if (req.isPro) trackEvent(req, 'pro_used', { module: slug, userId: req._userId });
 
     const base = (verdict.url.hostname || 'webpage').replace(/[^a-z0-9.-]/gi, '') || 'webpage';
+    if (wantsStream) {
+      // Sentinel line, then the raw bytes. The client reads lines until it sees
+      // this one and treats everything after the newline as the PDF.
+      res.write(`${JSON.stringify({ stage: 'done', bytes: pdf.length, name: `${base}.pdf` })}\n`);
+      return res.end(pdf);
+    }
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(base)}.pdf"`);
     return res.end(pdf);
@@ -312,6 +341,15 @@ router.post('/webpage-to-pdf', express.json({ limit: '8kb' }), async (req, res) 
       : /timeout|Navigation/i.test(m)
         ? 'That page took too long to load, so the capture was stopped.'
         : 'That page could not be captured. It may block automated visitors, or need a login.';
+    if (wantsStream) {
+      // Headers went out as 200 the moment we started narrating, so the status
+      // code can no longer carry the failure — it has to travel as a line.
+      if (!res.writableEnded) {
+        try { res.write(`${JSON.stringify({ stage: 'error', message })}\n`); } catch { /* client gone */ }
+        res.end();
+      }
+      return undefined;
+    }
     return res.status(422).json({ error: 'render-failed', message });
   } finally {
     inFlight--;
