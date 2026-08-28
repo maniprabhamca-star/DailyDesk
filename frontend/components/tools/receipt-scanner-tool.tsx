@@ -3,7 +3,7 @@
 import { useCallback, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
-  Camera, ImagePlus, Loader2, ScanLine, Check, X, Cloud, CameraOff, ReceiptText, Wallet, RotateCcw,
+  Camera, ImagePlus, Loader2, ScanLine, Check, X, Cloud, CameraOff, ReceiptText, Wallet, RotateCcw, AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CATEGORIES, addExpense, budgetSignedIn, BudgetApiError } from '@/lib/budget-api';
@@ -19,6 +19,9 @@ export function ReceiptScannerTool() {
   // editable fields after a scan
   const [merchant, setMerchant] = useState('');
   const [amount, setAmount] = useState('');
+  // What the scan actually came back with, so the review screen can say whether
+  // a blank box means "we read nothing" or "you cleared it".
+  const [scanFound, setScanFound] = useState<{ amount: boolean; merchant: boolean }>({ amount: false, merchant: false });
   const [category, setCategory] = useState('Other');
   const [date, setDate] = useState('');
   const [currency, setCurrency] = useState('₹');
@@ -58,6 +61,7 @@ export function ReceiptScannerTool() {
       setAmount(p.total != null ? String(p.total) : '');
       setCategory(CATEGORIES.includes(p.category as (typeof CATEGORIES)[number]) ? p.category : 'Other');
       setDate(p.date || new Date().toISOString().slice(0, 10));
+      setScanFound({ amount: p.total != null, merchant: !!p.merchant });
       setPhase('review');
     } catch { setError('Could not reach the scanner — check your connection.'); setPhase('capture'); }
   }, []);
@@ -85,7 +89,11 @@ export function ReceiptScannerTool() {
     }
   }, [amount, category, merchant, date]);
 
-  const reset = () => { setPhase('capture'); setMerchant(''); setAmount(''); setCategory('Other'); setDate(''); setError(null); };
+  const reset = () => { setPhase('capture'); setMerchant(''); setAmount(''); setCategory('Other'); setDate(''); setError(null); setScanFound({ amount: false, merchant: false }); };
+
+  // What the review screen needs to say, derived from what the scan returned.
+  const readNothing = !scanFound.amount && !scanFound.merchant;
+  const missingFields = [!scanFound.amount && 'the amount', !scanFound.merchant && 'the store name'].filter(Boolean) as string[];
 
   return (
     <div>
@@ -137,8 +145,37 @@ export function ReceiptScannerTool() {
 
       {phase === 'review' && (
         <div className="rounded-2xl border bg-card p-5 shadow-soft">
-          <div className="mb-3 flex items-center gap-2 text-sm font-semibold"><ScanLine className="size-4 text-primary" /> Check the details, then save</div>
-          <p className="mb-4 text-xs text-muted-foreground">These are our best reads from the photo — correct anything before saving. Nothing goes to your budget until you tap Save.</p>
+          {/* The screen used to say "these are our best reads from the photo"
+              over four empty boxes when the scan found nothing at all — so the
+              only honest questions left were "did that work?" and "what now?",
+              and the page answered neither. It now says which of the two
+              happened, and what to do next in each case. */}
+          {readNothing ? (
+            <>
+              <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-amber-700 dark:text-amber-500">
+                <AlertTriangle className="size-4" /> We couldn’t read anything from that photo
+              </div>
+              <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/[0.07] p-3">
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  The scan ran, but no amount or store name came back. That is almost always the photo rather than the receipt:
+                  a faded thermal till slip, glare from a flash, part of the receipt outside the frame, or a shot taken at an angle.
+                  Flat, evenly lit, whole receipt in frame works best.
+                </p>
+                <p className="mt-2 text-xs font-medium">
+                  Take another photo, or simply type the details in below — the form works either way.
+                </p>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="mb-3 flex items-center gap-2 text-sm font-semibold"><ScanLine className="size-4 text-primary" /> Check the details, then save</div>
+              <p className="mb-4 text-xs text-muted-foreground">
+                {missingFields.length > 0
+                  ? `We read what we could. ${missingFields.join(' and ')} did not come through — add ${missingFields.length > 1 ? 'them' : 'it'} below. Nothing goes to your budget until you tap Save.`
+                  : 'These are our best reads from the photo — correct anything before saving. Nothing goes to your budget until you tap Save.'}
+              </p>
+            </>
+          )}
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="text-sm"><span className="mb-1 block text-xs font-medium text-muted-foreground">Store / description</span>
               <input value={merchant} onChange={(e) => setMerchant(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:border-primary" /></label>
@@ -153,9 +190,21 @@ export function ReceiptScannerTool() {
               <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:border-primary" /></label>
           </div>
           {error && <p className="mt-3 text-sm text-amber-700 dark:text-amber-400">{error}</p>}
-          <div className="mt-4 flex gap-2">
-            <Button onClick={() => void save()} className="bg-primary text-primary-foreground"><Wallet className="mr-1.5 size-4" /> Save to Budget</Button>
-            <Button variant="outline" onClick={reset}><RotateCcw className="mr-1.5 size-4" /> Scan another</Button>
+          {/* When the scan read nothing, saving can only fail on an empty
+              amount — so taking another photo leads, and saving stays available
+              for anyone who would rather just type it in. */}
+          <div className="mt-4 flex flex-wrap gap-2">
+            {readNothing ? (
+              <>
+                <Button onClick={reset} className="bg-primary text-primary-foreground"><Camera className="mr-1.5 size-4" /> Try another photo</Button>
+                <Button variant="outline" onClick={() => void save()}><Wallet className="mr-1.5 size-4" /> Save what I typed</Button>
+              </>
+            ) : (
+              <>
+                <Button onClick={() => void save()} className="bg-primary text-primary-foreground"><Wallet className="mr-1.5 size-4" /> Save to Budget</Button>
+                <Button variant="outline" onClick={reset}><RotateCcw className="mr-1.5 size-4" /> Scan another</Button>
+              </>
+            )}
           </div>
         </div>
       )}
