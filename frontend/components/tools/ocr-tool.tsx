@@ -12,6 +12,7 @@ import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 import { openPdf, yieldToLoop, type PdfHandle } from '@/lib/pdf-render';
 import { usePlan } from '@/lib/plan';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
+import { ProCheckout } from '@/components/app/pro-checkout';
 
 // OCR — scanned PDF/image → SEARCHABLE PDF + text, at ~the original file size.
 // Pipeline (license-clean, no Ghostscript/Poppler): pages are rasterized in the
@@ -307,6 +308,38 @@ export function OcrTool() {
       if (handle) await handle.destroy();
       if (jobRef.current === myJob) { setBusy(false); setMsg(null); }
     }
+  }
+
+  // OCR is Pro, and the server enforces it. Say so BEFORE the work, not after.
+  //
+  // Without this the sequence for a free user is: choose a file, watch every
+  // page rasterize on their own machine, then get told at the first API call
+  // that they cannot use it. That is a dead end arrived at the slow way. The
+  // panel below costs them one glance instead.
+  //
+  // Owner and Pro both resolve to 'pro' here, so neither ever sees it.
+  if (plan !== 'pro') {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center p-8 text-center">
+          <span className="flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <ScanText className="size-6" />
+          </span>
+          <h2 className="mt-4 text-lg font-bold">OCR is a Pro tool</h2>
+          <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
+            Reading text off scanned pages is the one job here that cannot happen in your browser —
+            it runs on our server and takes real time per page. That is why it sits behind Pro while
+            everything that <em>can</em> run on your device stays free and unlimited.
+          </p>
+          <div className="mt-5"><ProCheckout /></div>
+          <p className="mt-4 max-w-md text-xs leading-relaxed text-muted-foreground">
+            Only need the text, not a searchable PDF? If your PDF already has a text layer,{' '}
+            <Link href="/pdf-to-text" className="font-medium text-primary hover:underline">PDF to Text</Link>{' '}
+            pulls it out free, in your browser.
+          </p>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
