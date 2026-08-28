@@ -16,7 +16,7 @@ test.describe('the Tools menu shows everything at once', () => {
     await page.addInitScript(() => {
       try {
         localStorage.setItem('dd_cookie_ack', '1');
-        localStorage.setItem('dd_splash_seen', '1');
+        localStorage.setItem('dd-splash-seen-v1', '1');
       } catch { /* private mode */ }
     });
   });

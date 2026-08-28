@@ -22,7 +22,7 @@ const signIn = async (page: Page) => {
       localStorage.setItem('dd_token', 'expired.token.value');
       localStorage.setItem('dd_user', JSON.stringify({ id: '1', name: 'Test Owner', email: 't@example.com', plan: 'pro' }));
       localStorage.setItem('dd_cookie_ack', '1');
-      localStorage.setItem('dd_splash_seen', '1');
+      localStorage.setItem('dd-splash-seen-v1', '1');
     } catch { /* private mode */ }
   });
 };

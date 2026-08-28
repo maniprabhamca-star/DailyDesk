@@ -30,7 +30,7 @@ async function visit(page: Page, path: string, theme: 'light' | 'dark', reduceMo
       // Dismiss the consent banner: it is not what these tests are about, and
       // it covers page content (REG-022).
       localStorage.setItem('dd_cookie_ack', '1');
-      localStorage.setItem('dd_splash_seen', '1');
+      localStorage.setItem('dd-splash-seen-v1', '1');
     } catch { /* private mode — the test still works, just noisier */ }
   }, theme);
   await page.goto(path, { waitUntil: 'domcontentloaded' });
@@ -289,7 +289,7 @@ test.describe('XC-008 — reduced motion is honoured', () => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.addInitScript(() => {
       try {
-        localStorage.removeItem('dd_splash_seen');
+        localStorage.removeItem('dd-splash-seen-v1');
         localStorage.setItem('dd_cookie_ack', '1');
       } catch { /* ignore */ }
     });
