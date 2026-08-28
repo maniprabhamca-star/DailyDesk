@@ -222,7 +222,7 @@ function Card({ t }: { t: Tech }) {
   );
 }
 
-function Group({ icon: Icon, title, sub, items }: { icon: typeof Cpu; title: string; sub: string; items: Tech[] }) {
+function Group({ icon: Icon, title, sub, blurb, items }: { icon: typeof Cpu; title: string; sub: string; blurb: string; items: Tech[] }) {
   return (
     <section className="mx-auto max-w-[1200px] px-5 py-10">
       <div className="flex items-center gap-2.5">
@@ -232,6 +232,12 @@ function Group({ icon: Icon, title, sub, items }: { icon: typeof Cpu; title: str
           <p className="text-sm text-muted-foreground">{sub}</p>
         </div>
       </div>
+      {/* A list of names tells you what we installed. This says why the layer is
+          shaped the way it is — which is the part that is hard to reconstruct
+          later from the package.json alone. */}
+      <p className="mt-4 max-w-3xl border-l-2 border-primary/30 pl-4 text-[14px] leading-relaxed text-foreground/80">
+        {blurb}
+      </p>
       <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((t) => <Card key={t.name} t={t} />)}
       </div>
@@ -260,15 +266,30 @@ export function TechnologyContent() {
         </div>
       </section>
 
-      <Group icon={Cpu} title="Frontend" sub="What the browser runs" items={FRONTEND} />
+      <Group
+        icon={Cpu} title="Frontend" sub="What the browser runs" items={FRONTEND}
+        blurb="Every page is rendered on the server so search engines get real HTML, then handed to React in the browser for the part that is actually interactive. Tailwind holds one token set that drives both light and dark, so a colour is never defined in two places and can never disagree with itself. TypeScript is not decoration here: these libraries pass raw byte arrays between each other, and the types are what stop the wrong buffer reaching a font parser at three in the morning."
+      />
       <div className="border-y bg-muted/20">
-        <Group icon={Boxes} title="In-browser document engines" sub="Why most tools never upload anything" items={ENGINES} />
+        <Group
+          icon={Boxes} title="In-browser document engines" sub="Why most tools never upload anything" items={ENGINES}
+          blurb="This row is the whole product position. Each of these is a real document engine — the same class of software a server would run — compiled to WebAssembly and executed inside the tab, on the machine that already has the file. Nothing is uploaded because nothing needs to be. It also costs us nothing per use, which is precisely why those tools can be free and unlimited forever while competitors meter theirs."
+        />
       </div>
-      <Group icon={Server} title="Backend" sub="Deliberately small — only what a browser cannot do" items={BACKEND} />
+      <Group
+        icon={Server} title="Backend" sub="Deliberately small — only what a browser cannot do" items={BACKEND}
+        blurb="Small on purpose, and kept that way. It exists for four things a browser genuinely cannot do: visit a live web page, run a full office suite, read text off a scan, and take money. Everything else was deliberately left out, because each endpoint added is one more thing that can leak, cost or break at two in the morning. The rule is that work moves to the server only when it cannot be done on the device."
+      />
       <div className="border-y bg-muted/20">
-        <Group icon={Wrench} title="Server-side engines" sub="Installed on the box" items={SERVER_ENGINES} />
+        <Group
+          icon={Wrench} title="Server-side engines" sub="Installed on the box" items={SERVER_ENGINES}
+          blurb="Four programs doing the heavy lifting a browser cannot. Licensing narrowed this field more than performance did: Tesseract because Apache-2.0 is clean for a commercial product, and deliberately no Ghostscript or Poppler anywhere in the OCR path, because their licences would reach into what we ship. Each one is sandboxed, given a fresh working directory, and handed nothing it does not need."
+        />
       </div>
-      <Group icon={ShieldCheck} title="Production" sub="Where it all runs" items={PRODUCTION} />
+      <Group
+        icon={ShieldCheck} title="Production" sub="Where it all runs" items={PRODUCTION}
+        blurb="One box, doing an unglamorous amount of work for its size. Everything except nginx binds to loopback, so the only way in is through the proxy — that is the rule the admin portal was quietly breaking until it was caught. Cloudflare sits in front for TLS, caching and Zero Trust on the admin host, and the origin certificate is Cloudflare's own, which is why it runs to 2041 rather than needing renewal every ninety days."
+      />
 
       {/* The part worth keeping: decisions, not dependencies. */}
       <section className="border-t bg-muted/20">
