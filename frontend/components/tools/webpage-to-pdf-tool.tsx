@@ -29,9 +29,15 @@ export function WebpageToPdfTool() {
     setBusy(true); setError(null);
     const t0 = performance.now();
     try {
+      // Same rule as every other server tool: send the session token, or a Pro
+      // subscriber is metered as an anonymous visitor and capped at three a day.
+      const token = typeof window !== 'undefined' ? localStorage.getItem('dd_token') : null;
       const res = await fetch('/api/convert/webpage-to-pdf', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ url: withScheme, format, landscape, background }),
       });
       if (!res.ok) {

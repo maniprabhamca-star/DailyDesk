@@ -74,6 +74,10 @@ export function PdfToWordTool() {
     xhrRef.current = xhr;
     xhr.open('POST', '/api/convert/pdf-to-word');
     xhr.responseType = 'blob';
+    // The server only knows a caller is Pro if we say so — without the token a
+    // subscriber is metered as anonymous and capped at three a day.
+    const token = typeof window !== 'undefined' ? localStorage.getItem('dd_token') : null;
+    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
     xhr.onabort = () => { setBusy(false); setPhase(null); setProgress(null); }; // user Cancel — quiet
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable) {

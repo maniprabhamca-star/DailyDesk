@@ -139,6 +139,12 @@ export function OfficeToPdfTool({ kindId }: { kindId: OfficeKindId }) {
     xhrRef.current = xhr;
     xhr.open('POST', '/api/convert/office-to-pdf');
     xhr.responseType = 'blob';
+    // Without this a Pro subscriber is counted as anonymous and capped at three
+    // a day — the server can only see a plan it is told about. "Unlimited on
+    // Pro" is the paid promise on every one of these pages, so the token is not
+    // optional here.
+    const token = typeof window !== 'undefined' ? localStorage.getItem('dd_token') : null;
+    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
     xhr.onabort = () => { // user hit Cancel — stop cleanly, no error
       setBusy(false);
       setPhase(null);
