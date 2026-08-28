@@ -8,28 +8,36 @@ Related: [master-roadmap.md](designs/master-roadmap.md) · deploy steps live in 
 
 ---
 
-## ⚠ One finding, worth acting on before anything else
+## ✅ Admin exposure — found and fixed 2026-08-28
 
-**The admin portal is reachable from the public internet, over plain HTTP.**
+**The admin portal was reachable from the public internet, over plain HTTP.**
+`http://<server-ip>:3100/login` answered `200` from outside the box, because the
+admin Next server bound to `*:3100` (all interfaces) rather than to loopback —
+sitting beside nginx instead of behind it.
 
-`http://<server-ip>:3100/login` answers `200` from outside the box. The admin
-Next server is bound to `*:3100` (all interfaces) rather than to loopback, so it
-sits beside nginx rather than behind it — which means it bypasses the TLS, the
-`admin.diemdesk.com` host rule, and whatever `dd-admin-bypass.conf` enforces.
-A password typed into that page travels unencrypted.
+That mattered more than a stray open port usually would: `admin.diemdesk.com` is
+protected by **Cloudflare Access**, and the direct port bypassed it completely.
+The Zero Trust login was in front of the door while the window was open, and a
+password typed on that page travelled unencrypted.
 
-The main site is bound correctly for comparison:
+**Fixed** by moving the host flag into the admin's own start script —
+`next start -H 127.0.0.1 -p 3100` — so it survives a pm2 re-create rather than
+living only in a pm2 argument. Verified afterwards: `admin.diemdesk.com` still
+302s to Cloudflare Access, the direct port refuses, and the main site is
+untouched.
+
+⚠ **The admin lives in a separate repo** (`DailyDesk-Admin-Portal`) and the fix
+was applied to the checkout on the server. Commit the same one-line change to
+that repo, or the next deploy of it will reopen the port. A backup of the
+original sits at `package.json.bak-prebind`.
+
+Binds now, all three:
 
 | Process | Bind | Reachable directly? |
 |---|---|---|
-| `dailydesk-frontend` | `127.0.0.1:3000` (`-H 127.0.0.1`) | no |
+| `dailydesk-frontend` | `127.0.0.1:3000` | no |
 | `dailydesk-backend` | `127.0.0.1:4000` | no |
-| **`dailydesk-admin`** | **`*:3100`** | **yes — 200 from the internet** |
-
-**Fix:** start the admin with the same host flag the frontend already uses
-(`next start -H 127.0.0.1 -p 3100`) so only nginx can reach it, then confirm
-`https://admin.diemdesk.com` still serves. One line, one restart. Nginx already
-proxies to `127.0.0.1:3100`, so nothing else needs to change.
+| `dailydesk-admin` | `127.0.0.1:3100` | no |
 
 ---
 
