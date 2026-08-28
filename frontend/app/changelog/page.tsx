@@ -5,6 +5,7 @@ import { SiteHeader } from '@/components/app/site-header';
 import { SiteFooter } from '@/components/app/site-footer';
 import { CHANGELOG, KIND_META, type ChangeKind } from '@/lib/changelog';
 import { PageJsonLd } from '@/components/seo/page-jsonld';
+import { RevealMore } from '@/components/app/reveal-more';
 
 export const metadata: Metadata = {
   title: 'Changelog — What Shipped, When | DiemDesk',
@@ -23,6 +24,10 @@ const KIND_STYLE: Record<ChangeKind, { chip: string; dot: string; icon: typeof P
   launch: { chip: 'border-primary/40 bg-primary/10 text-primary', dot: 'bg-primary', icon: Rocket },
 };
 
+// How many entries are on screen before 'Show earlier updates'. Everything is
+// still rendered and served — this is presentation, not pagination.
+const VISIBLE_ENTRIES = 12;
+
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 function fmtDay(date: string): string {
@@ -34,39 +39,14 @@ function monthKey(date: string): string {
   return `${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
 
-export default function ChangelogPage() {
-  // Group (already newest-first) by month for the timeline headers.
-  const groups: Array<{ month: string; items: typeof CHANGELOG }> = [];
-  for (const e of CHANGELOG) {
-    const m = monthKey(e.date);
-    const g = groups[groups.length - 1];
-    if (g && g.month === m) g.items.push(e);
-    else groups.push({ month: m, items: [e] });
-  }
 
+// One month's worth of the timeline. Extracted so the first dozen entries and
+// the revealed remainder render through exactly the same code.
+function Timeline({ groups }: { groups: Array<{ month: string; items: typeof CHANGELOG }> }) {
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground">
-      <PageJsonLd name="Changelog" path="/changelog" crumb="Changelog" description="Every meaningful DiemDesk release, in plain language: new tools, improvements and fixes." />
-      <SiteHeader />
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-12 sm:px-6">
-        <div className="text-center">
-          <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-primary">Changelog</p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">What shipped, when</h1>
-          <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
-            Every meaningful release, in plain language — new tools, improvements, and yes, the fixes too.
-            A living product should show its pulse.
-          </p>
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
-            {(Object.keys(KIND_META) as ChangeKind[]).map((k) => (
-              <span key={k} className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${KIND_STYLE[k].chip}`}>
-                <span className={`size-1.5 rounded-full ${KIND_STYLE[k].dot}`} /> {KIND_META[k].label}
-              </span>
-            ))}
-          </div>
-        </div>
+    <>
+      {groups.map((g) => (
 
-        <div className="mt-12">
-          {groups.map((g) => (
             <section key={g.month} className="relative">
               <h2 className="sticky top-16 z-10 -mx-2 mb-6 w-fit rounded-full border bg-background/90 px-4 py-1.5 text-sm font-bold backdrop-blur">
                 {g.month}
@@ -101,7 +81,72 @@ export default function ChangelogPage() {
                 })}
               </div>
             </section>
-          ))}
+      ))}
+    </>
+  );
+}
+
+export default function ChangelogPage() {
+  // Group (already newest-first) by month for the timeline headers.
+  const groups: Array<{ month: string; items: typeof CHANGELOG }> = [];
+  for (const e of CHANGELOG) {
+    const m = monthKey(e.date);
+    const g = groups[groups.length - 1];
+    if (g && g.month === m) g.items.push(e);
+    else groups.push({ month: m, items: [e] });
+  }
+
+  // Split the timeline after the first dozen entries. Everything is still
+  // rendered and served — this only decides what is on screen to start with, so
+  // the page stays one indexable document and Ctrl+F still finds everything.
+  //
+  // A month that straddles the boundary is cut, not moved: its header repeats
+  // on the far side so the older half is not left floating under no date.
+  const head: typeof groups = [];
+  const tail: typeof groups = [];
+  let shown = 0;
+  for (const g of groups) {
+    if (shown >= VISIBLE_ENTRIES) { tail.push(g); continue; }
+    const room = VISIBLE_ENTRIES - shown;
+    if (g.items.length <= room) { head.push(g); shown += g.items.length; }
+    else {
+      head.push({ month: g.month, items: g.items.slice(0, room) });
+      tail.push({ month: g.month, items: g.items.slice(room) });
+      shown = VISIBLE_ENTRIES;
+    }
+  }
+  const hiddenCount = tail.reduce((n, g) => n + g.items.length, 0);
+
+  return (
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
+      <PageJsonLd name="Changelog" path="/changelog" crumb="Changelog" description="Every meaningful DiemDesk release, in plain language: new tools, improvements and fixes." />
+      <SiteHeader />
+      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-12 sm:px-6">
+        <div className="text-center">
+          <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-primary">Changelog</p>
+          <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">What shipped, when</h1>
+          <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
+            Every meaningful release, in plain language — new tools, improvements, and yes, the fixes too.
+            A living product should show its pulse.
+          </p>
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+            {(Object.keys(KIND_META) as ChangeKind[]).map((k) => (
+              <span key={k} className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${KIND_STYLE[k].chip}`}>
+                <span className={`size-1.5 rounded-full ${KIND_STYLE[k].dot}`} /> {KIND_META[k].label}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-12">
+          <Timeline groups={head} />
+          {hiddenCount > 0 && (
+            <div className="mt-4">
+              <RevealMore count={hiddenCount} label="Show earlier updates">
+                <div className="mt-8"><Timeline groups={tail} /></div>
+              </RevealMore>
+            </div>
+          )}
         </div>
 
         <div className="mt-10 rounded-2xl border bg-card p-6 text-center">
