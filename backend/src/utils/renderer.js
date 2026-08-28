@@ -52,10 +52,23 @@ function chromeArgs(port) {
 function spawnChrome() {
   return new Promise((resolve, reject) => {
     // port 0 lets the OS pick, so two deploys can never fight over one port.
+    // setpriv changes the user but NOT the environment, so without this Chrome
+    // inherits HOME=/root, cannot write there, and spends its startup failing
+    // to create config directories it is not allowed to touch.
     const proc = spawn('setpriv', [
       '--reuid', RENDER_USER, '--regid', RENDER_USER, '--init-groups',
       '--', CHROME, ...chromeArgs(0),
-    ], { stdio: ['ignore', 'ignore', 'pipe'] });
+    ], {
+      stdio: ['ignore', 'ignore', 'pipe'],
+      env: {
+        PATH: process.env.PATH,
+        HOME: PROFILE,
+        XDG_CONFIG_HOME: `${PROFILE}/.config`,
+        XDG_CACHE_HOME: `${PROFILE}/.cache`,
+        XDG_DATA_HOME: `${PROFILE}/.local/share`,
+        LANG: process.env.LANG || 'C.UTF-8',
+      },
+    });
 
     let out = '';
     const onData = (buf) => {

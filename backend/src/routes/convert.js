@@ -330,6 +330,10 @@ router.post('/webpage-to-pdf', express.json({ limit: '8kb' }), async (req, res) 
     return res.end(pdf);
   } catch (err) {
     const m = String((err && err.message) || '');
+    // Logged for us, never returned: without this a capture failure is a
+    // 422 with nothing behind it and no way to tell a blocked page from a
+    // browser that would not start.
+    console.error('[webpage-to-pdf] render failed:', m);
     // Nothing internal reaches the user — a stack trace here would describe our
     // network to whoever was probing it.
     const message = m.includes('too-large')
