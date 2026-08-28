@@ -23,6 +23,22 @@ export type ChangeEntry = {
 // flags flip, dated then.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-08-28',
+    kind: 'fixed',
+    title: 'Webpage to PDF stopped giving up on busy pages — and now tells you what it is doing',
+    detail:
+      'It used to wait for a page to go completely quiet before capturing it. That sounds sensible and is wrong for most real sites: anything with analytics, a chat widget, a live feed or a running clock never goes quiet, so pages that were perfectly ready to capture were told they had "taken too long to load". Now it waits for the page itself, gives the images and fonts a few seconds to catch up, and prints what is there. A page you can see is a page it can print. The button also stops saying one thing for half a minute — it now names the step it is on, from checking the address through starting the browser to printing, so a slow capture looks like work rather than a hang. The honest bit: the first capture after a quiet spell is the slow one, because the browser has to start up, and now you can see that is what it is doing.',
+    href: '/webpage-to-pdf',
+  },
+  {
+    date: '2026-08-28',
+    kind: 'fixed',
+    title: 'Pro accounts were being counted as free on the server tools',
+    detail:
+      'Word, Excel, PowerPoint and HTML to PDF, PDF to Word, and Webpage to PDF were not telling the server who was asking, so a Pro subscriber was metered like an anonymous visitor and stopped after three conversions a day — on exactly the tools whose pages promise unlimited. Nobody was charged for anything they did not get, and nothing was lost; the cap simply applied to people it should never have applied to. Fixed on all of them, with a check that now fails the build if a server tool ever forgets again.',
+    href: '/pricing',
+  },
+  {
     date: '2026-08-27',
     kind: 'new',
     title: 'OCR is open — read the text off a scan',

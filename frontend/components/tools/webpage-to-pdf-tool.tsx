@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Globe, Loader2, Zap, Cloud, AlertTriangle, Check } from 'lucide-react';
+import { Globe, Loader2, Zap, Cloud, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { downloadBlob as download } from '@/lib/download';
@@ -20,7 +20,6 @@ const STAGES: Record<string, string> = {
   settling: 'Waiting for images and fonts…',
   printing: 'Printing it to PDF…',
 };
-const STAGE_ORDER = ['checking', 'browser', 'opening', 'settling', 'printing'];
 
 /**
  * Read a narrated capture: JSON lines, a `done` sentinel, then raw PDF bytes on
@@ -193,29 +192,9 @@ export function WebpageToPdfTool() {
         </p>
       )}
 
-      {/* The steps, ticked off as the server reports them. A capture can take
-          half a minute and most of that is a cold browser start, so saying which
-          part we are in is the difference between "working" and "hung". */}
-      {busy && (
-        <ol className="space-y-1.5 rounded-xl border bg-card p-4">
-          {STAGE_ORDER.map((key) => {
-            const at = stage ? STAGE_ORDER.indexOf(stage) : -1;
-            const i = STAGE_ORDER.indexOf(key);
-            const state = at > i ? 'done' : at === i ? 'now' : 'todo';
-            return (
-              <li key={key} className="flex items-center gap-2.5 text-sm">
-                {state === 'done' ? <Check className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-                  : state === 'now' ? <Loader2 className="size-4 shrink-0 animate-spin text-primary" />
-                  : <span className="size-4 shrink-0 rounded-full border border-muted-foreground/30" />}
-                <span className={state === 'todo' ? 'text-muted-foreground/60' : state === 'now' ? 'font-medium text-foreground' : 'text-muted-foreground'}>
-                  {STAGES[key]}
-                </span>
-              </li>
-            );
-          })}
-        </ol>
-      )}
-
+      {/* The button carries the current stage on its own — a separate checklist
+          repeated the same five lines a second time, which is noise, not
+          reassurance. One place, the place you are already looking. */}
       <Button className="w-full" size="lg" onClick={() => void run()} disabled={busy}>
         {busy ? <Loader2 className="size-4 animate-spin" /> : <Zap className="size-4" />}
         {busy ? (stage && STAGES[stage]) || 'Starting…' : 'Capture the page as a PDF'}
