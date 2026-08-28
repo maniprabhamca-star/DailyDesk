@@ -15,54 +15,175 @@ import {
 type Tech = { name: string; purpose: string; note?: string };
 
 const FRONTEND: Tech[] = [
-  { name: 'Next.js 14.2 (App Router)', purpose: 'The whole site. Server-rendered pages for SEO, client components for the tools themselves.', note: 'Tool pages are static; only the interactive area hydrates.' },
-  { name: 'React 18 · TypeScript 5', purpose: 'UI and type safety. Every engine boundary is typed, which is what makes the PDF libraries survivable.' },
-  { name: 'Tailwind CSS 3.4', purpose: 'Styling. One token set drives light and dark, so a colour is never defined in two places.' },
-  { name: 'Radix UI', purpose: 'Dialog, dropdown, toast. Accessibility primitives we would otherwise get subtly wrong.' },
-  { name: 'framer-motion 11', purpose: 'The brand reveal and small state transitions. Respects prefers-reduced-motion.' },
-  { name: 'lucide-react', purpose: 'Icons. ISC licensed — clean for commercial use, which not every icon set is.' },
+  {
+    name: 'Next.js 14.2 (App Router)',
+    purpose: 'Runs the whole site. Every tool page is statically generated at build time — the marketing copy, the how-it-works steps and the FAQ JSON-LD are all in the HTML before a single script runs, which is why 175 routes can rank without a rendering budget. The interactive area is the only thing that hydrates.',
+    note: 'Server Actions are version-stamped, so an open tab from before a deploy calls an action that no longer exists. A guard catches that and reloads once rather than showing a broken tool.',
+  },
+  {
+    name: 'React 18 · TypeScript 5',
+    purpose: 'The UI, and the type discipline that makes the document engines survivable. These libraries hand each other raw Uint8Arrays with no runtime checking — pdf.js output into pdf-lib, canvas output into an encoder — so a wrong buffer is a silent corruption rather than an exception. The types are the only thing standing between those calls.',
+  },
+  {
+    name: 'Tailwind CSS 3.4',
+    purpose: 'Styling, with one HSL token set defined on :root and overridden once for dark. Every colour on the site resolves through those tokens, so light and dark cannot drift apart and a component can never hard-code a shade that breaks in the other theme.',
+    note: 'A colour defined only inside a dark-mode block is the classic bug — it renders transparent in light. Define the light value first, always.',
+  },
+  {
+    name: 'Radix UI',
+    purpose: 'Dialog, dropdown and toast. Chosen for the parts that are tedious to get right and invisible when wrong: focus trapping, restoring focus on close, Escape handling, aria wiring and scroll locking. Hand-rolled versions of these pass a quick look and fail a screen reader.',
+  },
+  {
+    name: 'framer-motion 11',
+    purpose: 'The first-visit brand reveal and small state transitions. Every animation checks prefers-reduced-motion and resolves to a static state rather than a shortened one — reduced motion means "take me there", not "play a faster film".',
+    note: 'The splash is aria-hidden and role=presentation: it repeats what the page underneath already says, so a screen reader should skip it entirely.',
+  },
+  {
+    name: 'lucide-react',
+    purpose: 'The icon set. ISC licensed, which matters more than it sounds — a commercial product cannot ship an icon library with an attribution or non-commercial clause, and several popular sets have one. Tree-shaken per import, so a page carries only the glyphs it draws.',
+  },
 ];
 
 const ENGINES: Tech[] = [
-  { name: 'pdfjs-dist 6.1', purpose: 'Reading and rendering PDFs in the browser: previews, page rasterisation, text extraction, outlines.', note: 'Rendering needs intent:"print" or a background tab hangs forever.' },
-  { name: 'pdf-lib 1.17', purpose: 'Writing PDFs: merge, split, rotate, stamp, page geometry, metadata, bookmarks.', note: 'No outline API — the bookmark tree is hand-built (see below).' },
-  { name: '@pdf-lib/fontkit', purpose: 'Embedding real fonts when we add text to a page.' },
-  { name: 'qpdf-wasm', purpose: 'Password-protected PDFs, decrypted on the device. Bank statements are protected by default.' },
-  { name: '@jsquash/jpeg', purpose: 'JPEG encode/decode in WASM, for compression work the canvas API cannot do precisely.' },
-  { name: 'libheif-js', purpose: 'HEIC/HEIF — what an iPhone actually produces. Without it, half of mobile photo uploads fail.' },
-  { name: 'onnxruntime-web', purpose: 'Background removal. A real segmentation model running on the device, so the photo is never uploaded.' },
-  { name: 'hash-wasm', purpose: 'File hashing for the redaction certificate and integrity checks.' },
-  { name: 'jsqr · qrcode', purpose: 'Reading and writing QR codes.' },
-  { name: 'jszip', purpose: 'Bundling batch output into one download.' },
-  { name: 'mp4-muxer · webm-muxer · gifenc', purpose: 'Video and GIF assembly in the browser for the media tools.' },
+  {
+    name: 'pdfjs-dist 6.1',
+    purpose: 'Mozilla\'s PDF engine — the same one inside Firefox — doing every READ operation: page previews, rasterising pages for OCR and compression, pulling out text with per-word coordinates, and reading an existing bookmark outline. It carries its own WASM image decoders for JPEG 2000 and JBIG2, which is what lets scanned bank statements open at all.',
+    note: 'page.render() without intent:"print" never resolves in a background tab. A blob URL from a render also dies the moment the document handle is destroyed — two separate traps, both silent.',
+  },
+  {
+    name: 'pdf-lib 1.17',
+    purpose: 'Every WRITE operation: merge, split, rotate, page geometry, stamping one PDF onto another, metadata and bookmarks. It works at the object level rather than re-rendering, so merging two documents keeps both sets of fonts, vectors and compression exactly as they were — nothing is flattened on the way through.',
+    note: 'It has no outline API at all, so the bookmark tree is built by hand. updateMetadata is a LOAD option, not a save one — passing it to save() only looks like it works.',
+  },
+  {
+    name: '@pdf-lib/fontkit',
+    purpose: 'Font embedding, needed the moment we draw text a viewer might not have. It subsets the font to the glyphs actually used, so adding a page number costs a few kilobytes instead of shipping an entire typeface inside the document.',
+  },
+  {
+    name: 'qpdf-wasm',
+    purpose: 'Opens password-protected PDFs on the device. Not an edge case: Indian bank e-statements are encrypted by default, so the flagship statement converter would fail at the first step without it. The password is typed in the tab, used in the tab, and never transmitted.',
+  },
+  {
+    name: '@jsquash/jpeg',
+    purpose: 'A real libjpeg build in WebAssembly, for the encode work canvas cannot do. Canvas gives you one quality knob and re-encodes through the browser\'s own pipeline; this gives direct control over the quantisation, which is what makes the compression levels predictable instead of browser-dependent.',
+  },
+  {
+    name: 'libheif-js',
+    purpose: 'Decodes HEIC/HEIF — what an iPhone actually saves. Chrome and Firefox cannot open these natively, so before this every iPhone photo failed with "the browser cannot open that image format", which was most mobile photo uploads.',
+    note: 'Android hands you HEIF named .jpg with an image/jpeg type. Both labels lie, so format is decided by magic bytes, never the filename.',
+  },
+  {
+    name: 'onnxruntime-web',
+    purpose: 'Runs a real image-segmentation model inside the tab for background removal — the kind of work every competitor sends to a GPU server. It executes on the visitor\'s own machine via WASM and WebGL, so a photograph of a person is processed without ever being uploaded, and it costs us nothing per use.',
+  },
+  {
+    name: 'hash-wasm',
+    purpose: 'SHA-256 over file bytes, fast enough to hash a large PDF without freezing the tab. It underpins the redaction certificate: a hash of the finished file that a recipient can independently recompute to prove the document they hold is the one that was certified.',
+  },
+  {
+    name: 'jsqr · qrcode',
+    purpose: 'Reading QR codes from a photo or a live camera frame, and generating them with custom colours, a logo overlay and bulk export. Both directions run locally, which matters because a QR code often encodes a Wi-Fi password or a contact card.',
+  },
+  {
+    name: 'jszip',
+    purpose: 'Assembles batch output into one download. A Pro user compressing fifty PDFs gets a single zip built in the browser from files that never left it — the alternative is fifty download prompts or a server round trip.',
+  },
+  {
+    name: 'mp4-muxer · webm-muxer · gifenc',
+    purpose: 'Container assembly for the media tools. The browser\'s own WebCodecs does the encoding; these write the resulting frames into a valid MP4, WebM or GIF. It means video compression and GIF conversion happen locally, on files far too large to be worth uploading.',
+  },
 ];
 
 const BACKEND: Tech[] = [
-  { name: 'Node 22 · Express 4', purpose: 'The API. Deliberately small — it exists only for jobs a browser genuinely cannot do.' },
-  { name: 'PostgreSQL 16 (pg)', purpose: 'Accounts, plans, waitlist, events. Bound to loopback only.' },
-  { name: 'Redis 7 (ioredis)', purpose: 'Rate limits, daily quotas, AI spend counters, tool kill-switches.' },
-  { name: 'jsonwebtoken · bcryptjs', purpose: 'Sessions and password hashing.' },
-  { name: 'Stripe 22', purpose: 'Subscriptions. Live keys are set on the server only, never in the repo.' },
-  { name: 'express-rate-limit + rate-limit-redis', purpose: 'Burst protection shared across both cluster instances.' },
-  { name: 'helmet · cors · compression · morgan', purpose: 'Headers, origin policy, gzip, request logs.' },
-  { name: 'multer', purpose: 'Upload handling for the server-side converters. Files are deleted the moment the response is sent.' },
-  { name: 'puppeteer-core 24', purpose: 'Drives Chrome for Webpage → PDF. "core" means no bundled browser — we manage Chrome ourselves.' },
-  { name: 'nodemailer · bullmq · minio', purpose: 'Mail, background jobs, object storage client.' },
+  {
+    name: 'Node 22 · Express 4',
+    purpose: 'The API, and about as small as an API can be. Roughly a dozen routers covering conversion, OCR, auth, billing, the AI layer and the statement engine. It holds no document state and owns no user files — work arrives, is done, and the inputs are deleted before the response finishes.',
+    note: 'It runs as a pm2 CLUSTER of two. Anything per-process — a Chrome profile, an in-memory cache — must account for both, or half the requests behave differently.',
+  },
+  {
+    name: 'PostgreSQL 16 (pg)',
+    purpose: 'Accounts, plans, the Pro waitlist and the usage-event log. Bound to 127.0.0.1, so it is unreachable except through the application. Notably it holds no documents: there is no column anywhere for a file the user processed, which is what makes "we do not keep your files" checkable rather than a promise.',
+  },
+  {
+    name: 'Redis 7 (ioredis)',
+    purpose: 'Everything that has to be counted across both cluster instances: burst rate limits, the 3-a-day free conversion quota, per-user and global AI spend, and the admin kill-switch that can disable a single tool without a deploy. Chosen for shared, expiring counters — the daily key simply ages out after 26 hours.',
+  },
+  {
+    name: 'jsonwebtoken · bcryptjs',
+    purpose: 'Sessions and password hashing. Tokens last 30 days rather than 7, because a 7-day window signed people out simply for not visiting for a week. bcrypt is deliberately slow — that is the entire point of it for stored passwords.',
+  },
+  {
+    name: 'Stripe 22',
+    purpose: 'Subscriptions, checkout and webhooks. Card details never touch our server or our database. Live keys exist only in the server environment, never in the repository, and the checkout path is written to degrade rather than fail — a stale customer record retries instead of showing an error at the moment somebody is trying to pay.',
+  },
+  {
+    name: 'express-rate-limit + rate-limit-redis',
+    purpose: 'Burst protection, with the counter in Redis so both cluster instances enforce one shared limit instead of two independent halves. It fails OPEN if Redis is unreachable — an infrastructure problem must not become a site outage for everybody.',
+  },
+  {
+    name: 'helmet · cors · compression · morgan',
+    purpose: 'Security headers, origin policy, gzip and request logging. The logs record method, path, status and timing — never request bodies, which for this product would mean logging the contents of somebody\'s document.',
+  },
+  {
+    name: 'multer',
+    purpose: 'Upload handling for the server-side tools, deliberately configured two different ways: memory storage where the file is handed straight to a process (OCR, receipts), disk storage where an engine needs a real path (LibreOffice, Ghostscript). Either way the temp directory is removed on both the success and the failure path.',
+  },
+  {
+    name: 'puppeteer-core 24',
+    purpose: 'Drives Chrome for Webpage → PDF. The "core" build ships no browser of its own, which is the point: we install Chrome from Google\'s apt repo so it gets security updates like any other package, and connect over the DevTools socket to a browser we launched ourselves as an unprivileged user.',
+  },
+  {
+    name: 'nodemailer · bullmq · minio',
+    purpose: 'Transactional mail, background job queues, and the S3-compatible storage client reserved for the encrypted File Vault. Worth stating plainly: no conversion tool touches object storage — the vault is the only feature that stores anything, and its contents are encrypted on the device before they arrive.',
+  },
 ];
 
 const SERVER_ENGINES: Tech[] = [
-  { name: 'LibreOffice 24.2', purpose: 'Office ↔ PDF, PDF → RTF/ODT, ODF → PDF. One profile directory per run, or it corrupts under concurrency.' },
-  { name: 'Ghostscript 10.02', purpose: 'PDF/A archival conversion — the one job that genuinely needs it.' },
-  { name: 'Tesseract 5.3', purpose: 'OCR. Apache-2.0, so licence-clean; 100+ language packs installed.' },
-  { name: 'Google Chrome 152', purpose: 'Webpage → PDF. Runs unprivileged as ddrender with its sandbox intact.' },
+  {
+    name: 'LibreOffice 24.2',
+    purpose: 'Backs eleven tools: Word, Excel, PowerPoint, HTML and OpenDocument into PDF, and PDF back out to Word, RTF and ODT. It is the same engine that wrote most of these formats, so conversion is a native export rather than a third party guessing at the spec — which is why fonts and layout survive.',
+    note: 'Two hard lessons: it needs its own profile directory per run or it corrupts under concurrency, and its HTML export rasterises text — a real document came out as 17 words and 75 GIFs, which is why PDF → HTML runs in the browser instead.',
+  },
+  {
+    name: 'Ghostscript 10.02',
+    purpose: 'PDF/A conversion, and nothing else. Archival PDF/A-2b is a genuine ISO profile with rules about embedded fonts and colour spaces, and Ghostscript is the only free engine that reliably produces a compliant file. Kept strictly to this one job because its licence would otherwise reach into the product.',
+  },
+  {
+    name: 'Tesseract 5.3',
+    purpose: 'The OCR engine, with 100+ language packs installed. We ask it for TSV — word text plus bounding boxes — rather than a rendered PDF, which is what lets us lay an invisible text layer over the original pages instead of replacing them. Apache-2.0, so it is clean to ship commercially.',
+  },
+  {
+    name: 'Google Chrome 152',
+    purpose: 'A real browser for Webpage → PDF, because a page has to be visited to be captured. Installed from Google\'s apt repo so it receives security updates as a normal package — Ubuntu 24.04 only offers a snap shim, which is a poor fit for a headless server.',
+    note: 'It runs as the unprivileged ddrender user via setpriv with its sandbox INTACT — never --no-sandbox, on the one feature whose whole job is loading hostile third-party pages.',
+  },
 ];
 
 const PRODUCTION: Tech[] = [
-  { name: 'Ubuntu 24.04 LTS', purpose: '4 vCPU · 15 GB RAM · 193 GB disk (13% used).' },
-  { name: 'nginx 1.24', purpose: 'TLS termination and reverse proxy. Everything else binds to 127.0.0.1 and is only reachable through it.' },
-  { name: 'pm2', purpose: 'Process manager. Frontend fork, backend cluster of two, admin fork.' },
-  { name: 'Cloudflare', purpose: 'Edge, DNS and an Origin certificate valid to 2041. Cloudflare Access protects the admin host.' },
-  { name: 'fail2ban · nftables', purpose: 'SSH protection and firewall rules.' },
+  {
+    name: 'Ubuntu 24.04 LTS',
+    purpose: '4 vCPU · 15 GB RAM · 193 GB disk, running at 13%. LTS for the five-year support window rather than the newest packages — this box runs conversion engines that break in interesting ways when a system library moves underneath them.',
+    note: 'A separate project and Docker share this machine. Not ours, but it competes for the same CPU when a conversion queue builds up.',
+  },
+  {
+    name: 'nginx 1.24',
+    purpose: 'TLS termination and the only public door. Frontend on 3000, backend on 4000 and admin on 3100 all bind to 127.0.0.1, so nothing is reachable except through the proxy — which is where the headers, the rate limits and the routing live.',
+    note: 'The admin was the exception until it was caught: it bound to all interfaces, so its login answered on the raw IP and bypassed Cloudflare Access entirely.',
+  },
+  {
+    name: 'pm2',
+    purpose: 'Process supervision and restart-on-crash. Frontend as a single fork, backend as a cluster of two so a conversion cannot block an API call, admin as a fork. The saved process list survives a reboot, which is why the bind fix had to go into the app\'s own start script rather than a pm2 argument.',
+  },
+  {
+    name: 'Cloudflare',
+    purpose: 'DNS, edge caching, TLS and Zero Trust on the admin host. The origin certificate is Cloudflare\'s own, valid to 2041 — an origin cert is only trusted by Cloudflare, so it can have a long life without the ninety-day renewal cycle a public certificate needs.',
+    note: 'Cloudflare\'s managed robots.txt currently blocks AI crawlers site-wide. Worth a deliberate decision rather than a default.',
+  },
+  {
+    name: 'fail2ban · nftables',
+    purpose: 'SSH brute-force banning and packet filtering. fail2ban watches the auth log and drops repeat offenders; nftables carries the rule chains.',
+    note: 'ufw is no longer installed but its chains are still loaded — the firewall is enforcing, yet there is no tool on the box to inspect or change those rules safely.',
+  },
 ];
 
 const INNOVATIONS = [
