@@ -213,7 +213,23 @@ async function renderUrlToPdf(url, { landscape = false, background = true, forma
     await page.waitForNetworkIdle({ idleTime: 600, timeout: SETTLE_TIMEOUT }).catch(() => {});
     if (bytes > MAX_BYTES) throw new Error('too-large');
 
-    // A last beat for lazy images that started loading during the settle.
+    // Walk the page to the bottom and back.
+    //
+    // Two things depend on this. Lazy images only load when they scroll into
+    // view, so a capture without it is full of blank boxes. And the page keeps
+    // GROWING as they load — measuring the height first gave a document 2696px
+    // tall that was really taller, so "one long page" came out as two.
+    await page.evaluate(async () => {
+      const step = Math.max(200, window.innerHeight * 0.9);
+      for (let y = 0; y < document.documentElement.scrollHeight; y += step) {
+        window.scrollTo(0, y);
+        await new Promise((r) => setTimeout(r, 120));
+      }
+      window.scrollTo(0, 0);
+      await new Promise((r) => setTimeout(r, 250));
+    });
+
+    // A last beat for anything that started loading on the way down.
     await page.evaluate(() => new Promise((r) => setTimeout(r, 400)));
 
     report('printing');
@@ -236,8 +252,12 @@ async function renderUrlToPdf(url, { landscape = false, background = true, forma
         document.body?.scrollHeight || 0,
         document.documentElement?.scrollHeight || 0,
         document.body?.offsetHeight || 0,
+        document.documentElement?.offsetHeight || 0,
+        document.body?.getBoundingClientRect().height || 0,
       ));
-      const height = Math.min(Math.max(contentHeight || v.height, v.height), MAX_PAGE_PX);
+      // A couple of pixels of rounding, or a sub-pixel layout, is enough to spill
+      // onto a second page and defeat the whole point of this mode.
+      const height = Math.min(Math.max(Math.ceil(contentHeight) + 2, v.height), MAX_PAGE_PX);
       pdf = await page.pdf({
         width: `${v.width}px`,
         height: `${Math.ceil(height)}px`,
