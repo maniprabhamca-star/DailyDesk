@@ -3,11 +3,13 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Home, LayoutGrid, Plus, History, User, X } from 'lucide-react';
+import { Home, LayoutGrid, Plus, History, User, X, Pin, PinOff } from 'lucide-react';
 import { catalog } from '@/components/app/catalog';
 import { getRecent } from '@/lib/recent';
 import { useAuth } from '@/lib/auth';
 import { routeForFile } from '@/lib/route-for-file';
+import { stashFile } from '@/lib/pending-file';
+import { getPinned, togglePin, PINS_CHANGED } from '@/lib/pinned-tools';
 
 // The mobile app bar — option B from docs/designs/mobile-app-bar.html.
 //
@@ -36,13 +38,29 @@ export function MobileAppBar() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [recentOpen, setRecentOpen] = useState(false);
   const [recent, setRecent] = useState<typeof ALL>([]);
+  const [pinned, setPinned] = useState<typeof ALL>([]);
+  // Long-press to pin. A tap opens the tool; holding it for a moment pins it,
+  // which is the gesture people already expect from a phone home screen.
+  const holdRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const heldRef = useRef(false);
 
   // Read history after mount — it lives in localStorage, and reading it during
   // render would make the server and client disagree.
+  const load = () => {
+    const byHref = (h: string) => ALL.find((t) => t.href === h);
+    const pins = getPinned().map(byHref).filter(Boolean) as typeof ALL;
+    setPinned(pins);
+    const pinnedHrefs = new Set(pins.map((t) => t.href));
+    // A pinned tool does not need to appear twice.
+    setRecent(getRecent().map(byHref).filter((t): t is (typeof ALL)[number] => !!t && !pinnedHrefs.has(t.href)));
+  };
+
   useEffect(() => {
     if (!recentOpen) return;
-    const hrefs = getRecent();
-    setRecent(hrefs.map((h) => ALL.find((t) => t.href === h)).filter(Boolean as unknown as (t: unknown) => boolean) as typeof ALL);
+    load();
+    window.addEventListener(PINS_CHANGED, load);
+    return () => window.removeEventListener(PINS_CHANGED, load);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recentOpen]);
 
   // Close the sheet whenever the route changes, including a back gesture.
@@ -58,8 +76,28 @@ export function MobileAppBar() {
     const f = e.target.files?.[0];
     e.target.value = '';
     if (!f) return;
+    // Hand the file across the navigation. Routing without this opened the tool
+    // with an empty picker, so the tap looked like it worked and did nothing.
+    stashFile(f);
     router.push(routeForFile(f.name));
   };
+
+  // Long-press handling, shared by the pinned and recent grids.
+  const holdHandlers = (href: string) => ({
+    onPointerDown: () => {
+      heldRef.current = false;
+      holdRef.current = setTimeout(() => {
+        heldRef.current = true;
+        togglePin(href);
+        if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(12);
+      }, 450);
+    },
+    onPointerUp: () => { if (holdRef.current) clearTimeout(holdRef.current); },
+    onPointerLeave: () => { if (holdRef.current) clearTimeout(holdRef.current); },
+    // A long press must not also follow the link.
+    onClick: (ev: React.MouseEvent) => { if (heldRef.current) { ev.preventDefault(); heldRef.current = false; } },
+    onContextMenu: (ev: React.MouseEvent) => ev.preventDefault(),
+  });
 
   const tabClass = (on: boolean) =>
     `flex flex-col items-center gap-0.5 rounded-lg px-2 py-1 transition-colors ${
@@ -81,33 +119,75 @@ export function MobileAppBar() {
           >
             <div className="mx-auto mb-3 h-1 w-9 rounded-full bg-border" />
             <div className="mb-2 flex items-center justify-between">
-              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Recently used</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Your tools</p>
               <button onClick={() => setRecentOpen(false)} aria-label="Close" className="rounded p-1 text-muted-foreground">
                 <X className="size-4" />
               </button>
             </div>
-            {recent.length === 0 ? (
-              <p className="pb-5 text-sm text-muted-foreground">
+
+            {/* Pinned first. Recents answer "take me back to what I was just
+                doing"; pins answer "these are the reason I come here" — and
+                without them the weekly job gets buried under yesterday's. */}
+            {pinned.length > 0 && (
+              <>
+                <p className="mb-2 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-primary">
+                  <Pin className="size-3" /> Pinned
+                </p>
+                <div className="mb-4 grid grid-cols-4 gap-3">
+                  {pinned.map((t) => {
+                    const Icon = t.icon;
+                    return (
+                      <Link key={t.href} href={t.href!} {...holdHandlers(t.href!)} className="relative flex select-none flex-col items-center gap-1.5">
+                        <span
+                          className="flex size-11 items-center justify-center rounded-xl ring-2 ring-primary/40"
+                          style={{ backgroundColor: `${t.color}1A`, color: t.color }}
+                        >
+                          <Icon className="size-5" strokeWidth={2.25} />
+                        </span>
+                        <span className="text-center text-[10px] leading-tight text-foreground">{t.name}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            {recent.length > 0 && (
+              <>
+                {pinned.length > 0 && (
+                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Recent</p>
+                )}
+                <div className="grid grid-cols-4 gap-3">
+                  {recent.slice(0, 8 - pinned.length > 0 ? 8 - pinned.length : 4).map((t) => {
+                    const Icon = t.icon;
+                    return (
+                      <Link key={t.href} href={t.href!} {...holdHandlers(t.href!)} className="flex select-none flex-col items-center gap-1.5">
+                        <span
+                          className="flex size-11 items-center justify-center rounded-xl"
+                          style={{ backgroundColor: `${t.color}1A`, color: t.color }}
+                        >
+                          <Icon className="size-5" strokeWidth={2.25} />
+                        </span>
+                        <span className="text-center text-[10px] leading-tight text-muted-foreground">{t.name}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            {pinned.length === 0 && recent.length === 0 && (
+              <p className="pb-2 text-sm text-muted-foreground">
                 Nothing yet. Open a tool and it will show up here so you can get back to it in one tap.
               </p>
-            ) : (
-              <div className="grid grid-cols-4 gap-3 pb-5">
-                {recent.slice(0, 8).map((t) => {
-                  const Icon = t.icon;
-                  return (
-                    <Link key={t.href} href={t.href!} className="flex flex-col items-center gap-1.5">
-                      <span
-                        className="flex size-11 items-center justify-center rounded-xl"
-                        style={{ backgroundColor: `${t.color}1A`, color: t.color }}
-                      >
-                        <Icon className="size-5" strokeWidth={2.25} />
-                      </span>
-                      <span className="text-center text-[10px] leading-tight text-muted-foreground">{t.name}</span>
-                    </Link>
-                  );
-                })}
-              </div>
             )}
+
+            <p className="flex items-center gap-1.5 py-3 text-[11px] text-muted-foreground">
+              {pinned.length > 0 ? <PinOff className="size-3 shrink-0" /> : <Pin className="size-3 shrink-0" />}
+              {pinned.length > 0
+                ? 'Press and hold to pin or unpin.'
+                : 'Press and hold a tool to pin it here.'}
+            </p>
           </div>
         </>
       )}

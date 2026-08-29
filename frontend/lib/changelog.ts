@@ -24,6 +24,14 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-08-29',
+    kind: 'fixed',
+    title: 'The app bar carries your file with it, and you can pin your favourite tools',
+    detail:
+      "Two things on the bottom bar. The centre button now actually carries your file across: picking one used to take you to the right tool and then leave you staring at an empty picker, which looked like it had worked and had not. The file now arrives with you, already loaded. And you can pin the tools you use most — press and hold any tool in the Recent sheet and it moves up into a Pinned row that stays put. Recents tell you what you touched yesterday; pins are for the four or five things that are the reason you come here at all, and those should not get buried under whatever you happened to open last. Press and hold again to unpin. Pins live on your own device, not in an account, so they work whether or not you are signed in.",
+    href: '/'
+  },
+  {
+    date: '2026-08-29',
     kind: 'feature',
     title: 'A proper app bar at the bottom of the screen on phones',
     detail:

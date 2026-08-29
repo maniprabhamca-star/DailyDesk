@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 import { MobileAppBar } from '@/components/app/mobile-app-bar';
+import { PendingFileHandoff } from '@/components/app/pending-file-handoff';
 import { AuthProvider } from '@/lib/auth';
 import { ToolFlagsProvider } from '@/lib/tool-flags';
 import { DeploySkewGuard } from '@/components/app/deploy-skew-guard';
@@ -114,6 +115,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <FilePickerRescue />
             {/* Phones only — the desktop header already carries all of these. */}
             <MobileAppBar />
+            {/* Delivers a file picked from the app bar to the tool it routed to. */}
+            <PendingFileHandoff />
           </AuthProvider>
           <CloudflareAnalytics />
         </ThemeProvider>
