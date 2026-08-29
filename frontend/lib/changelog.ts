@@ -24,6 +24,14 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-08-29',
+    kind: 'improved',
+    title: 'Passport photo pages now say what each country actually asks for',
+    detail:
+      'Thirty-odd countries publish the same 35 \u00D7 45 mm photo, so our pages for them were saying much the same thing in much the same order \u2014 useful once, tedious by the third country, and not much help if your question was \u201Cwill Australia take this?\u201D The UK, Canada and Australia pages now carry the rules from the issuing authority itself: who issues them, whether glasses are allowed at all, when a head covering is accepted, how old the photograph may be, what changes for children, and the one thing people most often get wrong. Two of those turned out to matter more than the measurements. Canada refuses edited photographs and counts cropping and background replacement as editing, and Australia refuses retouching \u2014 so both pages now say plainly what this tool should and should not be used for there. Australia also warns against online photo services on identity-fraud grounds, which is a fair warning about anything that uploads your face to a server; your photo never leaves your browser here, and the page says so rather than skipping the question. Three specs were corrected along the way: the UK head height is 29\u201334 mm and the background is cream or light grey rather than white, and Australia publishes a size range with the face at 32\u201336 mm.',
+    href: '/passport-photo/uk-passport',
+  },
+  {
+    date: '2026-08-29',
     kind: 'fixed',
     title: 'You can sign, stamp and annotate a PDF with a photo from your phone',
     detail:

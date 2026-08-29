@@ -47,12 +47,19 @@ export const PASSPORT_SPECS: PassportSpec[] = [
   { id: 'us-visa', label: 'US visa (DS-160)', group: 'Popular', wPx: 600, hPx: 600, wMM: 51, hMM: 51, headMin: 0.50, headMax: 0.69, bg: WHITE, bgName: 'White', maxKB: 240, note: '2×2 in, 600–1200 px, ≤240 KB' },
   { id: 'us-passport', label: 'US passport', group: 'Popular', wPx: 600, hPx: 600, wMM: 51, hMM: 51, headMin: 0.50, headMax: 0.69, bg: WHITE, bgName: 'White', note: '2×2 in, white background' },
   { id: 'schengen-visa', label: 'Schengen visa', group: 'Popular', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: LIGHTGREY, bgName: 'Light grey', note: '35×45 mm' },
-  { id: 'uk-passport', label: 'UK passport', group: 'Popular', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.64, headMax: 0.76, bg: LIGHTGREY, bgName: 'Light grey', maxKB: 10240, note: '35×45 mm, 600×750 px min' },
+    // UK: HMPO publishes the head as 29-34 mm on a 45 mm photo — 64.4-75.6%, not the
+  // rounded 64-76% this row used to carry. Background is "plain cream or light grey",
+  // NOT white; a white wall is the single most common UK rejection.
+  { id: 'uk-passport', label: 'UK passport', group: 'Popular', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 29 / 45, headMax: 34 / 45, bg: LIGHTGREY, bgName: 'Cream or light grey', maxKB: 10240, note: '35×45 mm, head 29–34 mm, 600×750 px min' },
   { id: 'india-passport', label: 'India passport (Seva)', group: 'Popular', wPx: 630, hPx: 810, wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', maxKB: 250, note: '3.5×4.5 cm printed, white background',
     photographedOnSite: 'At a Passport Seva Kendra or POPSK no photograph is required — you are photographed there. Printed photos are for the routes that still ask for them: two colour copies, 3.5×4.5 cm, white background.' },
   { id: 'india-evisa', label: 'India e-Visa', group: 'Popular', wPx: 600, hPx: 600, wMM: 51, hMM: 51, headMin: 0.60, headMax: 0.80, bg: WHITE, bgName: 'White', maxKB: 1024, note: 'square, JPEG 10 KB–1 MB' },
   { id: 'canada', label: 'Canada passport/visa', group: 'Popular', wPx: mm(50), hPx: mm(70), wMM: 50, hMM: 70, headMin: 0.443, headMax: 0.514, bg: WHITE, bgName: 'White', note: '50×70 mm, head 31–36 mm' },
-  { id: 'australia', label: 'Australia passport', group: 'Popular', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.711, headMax: 0.80, bg: OFFWHITE, bgName: 'Off-white', note: '35×45 mm' },
+  // Australia publishes a RANGE, not a fixed size: 35–40 mm wide by 45–50 mm high,
+  // with the face 32–36 mm chin to crown. We target the smallest valid rectangle
+  // (35×45), where 32–36 mm is 71.1–80%. Background is "plain white or light grey";
+  // the off-white this row used to carry was not one of the two stated options.
+  { id: 'australia', label: 'Australia passport', group: 'Popular', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 32 / 45, headMax: 36 / 45, bg: WHITE, bgName: 'White or light grey', note: '35–40 × 45–50 mm, face 32–36 mm' },
   { id: 'china-visa', label: 'China visa', group: 'Popular', wPx: 354, hPx: 472, wMM: 33, hMM: 48, headMin: 0.583, headMax: 0.688, bg: WHITE, bgName: 'White', maxKB: 1024, note: '33×48 mm, head 28–33 mm' },
   { id: 'biometric', label: 'Biometric (generic)', group: 'Popular', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: LIGHTGREY, bgName: 'Light grey', note: 'ICAO 35×45 mm' },
 
@@ -176,6 +183,8 @@ export type CountryEditorial = {
   background?: string;
   children?: string;
   exceptions?: string;
+  /** How old the photograph may be. Differs widely and is rarely on the size chart. */
+  recency?: string;
   /** The thing people most often get wrong for this country. */
   quirk?: string;
   sourceName: string;
@@ -418,9 +427,13 @@ export const EDITORIAL: Record<string, CountryEditorial> = {
       'Dark glasses may not be worn except where medically necessary, and the pupils must be clearly visible.',
     expression:
       'Photographed straight from the front, whole head visible and centred, with a relaxed and neutral expression.',
-    sourceName: 'Polismyndigheten — Pass och nationellt id-kort',
-    sourceUrl: 'https://polisen.se/tjanster-tillstand/pass-och-nationellt-id-kort/',
-    checkedOn: '2026-08-23',
+    exceptions:
+      'Polismyndigheten sets out the counter visit step by step, and two details are worth knowing before you go. You must bring a valid PHYSICAL Swedish identity document \u2014 the digital ID card in BankID is not accepted for any form of identification at the police, which surprises people who now carry nothing else. If you have no valid ID at all, you may bring an approved intygsgivare who vouches for your identity and shows their own. At the counter you take a numbered ticket and measure your height, pay the fee, and the case officer takes the photograph and two fingerprints. You are then shown how the finished passport will look and approve the details before signing.',
+    recency:
+      'Not applicable in the usual sense \u2014 the photograph is taken during the appointment, so it is minutes old. Collection is separate: roughly a week after approval, drop-in with no appointment, at whichever passport office in Sweden you nominated or at a Swedish embassy abroad. That choice cannot be changed once the application is registered.',
+    sourceName: 'Polismyndigheten \u2014 Pass och nationellt id-kort, Bes\u00F6k passexpedition',
+    sourceUrl: 'https://polisen.se/tjanster-tillstand/pass-och-nationellt-id-kort/besok-passexpedition/',
+    checkedOn: '2026-08-29',
   },
 
   'india-evisa': {
@@ -449,10 +462,86 @@ export const EDITORIAL: Record<string, CountryEditorial> = {
     expression:
       'Front-facing with a neutral expression, the full face visible.',
     exceptions:
-      'Where photos are required they are affixed to the printed application form — the first on page one unsigned, the second on page three, stamped across by the issuing office.',
-    sourceName: 'Passport Seva, Ministry of External Affairs — application FAQ',
+      'The clearest published photo specification on the Passport Seva FAQ is the one for the Diplomatic and Official application form, and it is worth reading as the template for any route that still asks for prints: two coloured photographs, 4.5 \u00D7 3.5 cm, white background. The first is affixed to page one of the printed form with no signature or stamp on it. The second goes on page three and is then stamped across, over the photograph, with the office stamp and the signature of the Head of Office \u2014 so it must be pasted before it is stamped, not after.',
+    recency:
+      'Passport Seva does not publish a maximum age for the photograph the way the UK or Canada do. The operative test is the one applied at the counter: the photograph has to look like the person standing there. Anything old enough to be argued about is worth retaking.',
+    children:
+      'The same photo specification applies; there is no separate size for children.',
+    sourceName: 'Passport Seva, Ministry of External Affairs \u2014 application form FAQ',
     sourceUrl: 'https://www.passportindia.gov.in/psp/FaqApplicationForm',
-    checkedOn: '2026-08-24',
+    checkedOn: '2026-08-29',
+  },
+
+  'uk-passport': {
+    authority:
+      'UK passports are issued by His Majesty\u2019s Passport Office, and the photo rules are published as two separate sets \u2014 one for the digital photo you upload when applying online, one for the printed pair you send with a paper form. They are not interchangeable, and the printed set is the stricter of the two.',
+    quirk:
+      'The background is the thing people get wrong. HMPO asks for \u201Cplain cream or light grey\u201D \u2014 not white. A white wall is the default assumption everywhere else and it is the wrong answer here, because the standard is contrast against your face and hair rather than brightness for its own sake.',
+    background:
+      'Printed photos: a plain cream or light grey background, colour, on plain white photographic paper with no border. Digital photos: a plain light-coloured background, in colour, with your face in clear contrast to it and no other objects or people in frame.',
+    expression:
+      'Face forward, look straight at the camera, neutral expression, mouth closed. Eyes open, visible, and not covered by hair.',
+    glasses:
+      'Do not wear glasses at all unless you have to. If you must, they cannot be sunglasses or tinted, the frames must not cover your eyes, and there must be no glare on the lenses.',
+    headCovering:
+      'No head coverings unless worn for religious or medical reasons, and no face coverings in any circumstance. No shadows across the face.',
+    children:
+      'Children have to appear alone in the picture \u2014 no supporting hands in frame \u2014 and babies cannot hold a toy or use a dummy. Under 6, they do not have to look directly at the camera or hold a plain expression. Under 1, their eyes do not have to be open, and the practical route is to lay the baby on a plain light-coloured sheet and shoot from directly above.',
+    exceptions:
+      'Printed: two identical photos, 45 mm high by 35 mm wide, with the head measuring between 29 mm and 34 mm from chin to crown, unmarked on both sides unless the application needs countersigning. Digital: at least 600 \u00D7 750 pixels, between 50 KB and 10 MB, and unaltered by computer software.',
+    recency:
+      'Taken within the last month.',
+    sourceName: 'HM Passport Office \u2014 Get a passport photo (photo requirements and digital photos)',
+    sourceUrl: 'https://www.gov.uk/photos-for-passports/photo-requirements',
+    checkedOn: '2026-08-29',
+  },
+
+  canada: {
+    authority:
+      'Canadian passport photos are set by Immigration, Refugees and Citizenship Canada, and the page opens by warning that they differ from other countries\u2019 \u2014 which is true, and the reason people arrive with a photo that is the wrong shape. There are two separate specifications: printed photos for applications made in person or by mail, and a digital photo used only for online renewals.',
+    quirk:
+      'Canada rejects edited photos outright, and defines editing more broadly than almost anyone else. Cropping around the head and shoulders counts. Cutting your image out and pasting it onto a white background counts. Adjusting colour, brightness, contrast or sharpness counts, as do filters and AI tools. Use this page and this tool to check a photographer\u2019s photo against the numbers before you submit it \u2014 do not use background removal or retouching on a photo destined for a Canadian passport application.',
+    background:
+      'Plain white or light-coloured, with a clear difference between your face and the background and no shadows around the ears or behind you. Avoid wearing white clothing, which blends into the background and gets the photo rejected.',
+    expression:
+      'Neutral: eyes open and clearly visible, looking straight at the camera, mouth closed, neither smiling nor frowning. Face and shoulders centred and squared to the camera, not tilted.',
+    glasses:
+      'Ordinary glasses are accepted provided the eyes are clearly visible and there is no glare on the lenses. Sunglasses and tinted lenses are refused \u2014 explicitly including tinted prescription lenses, even where the eyes can be seen through them.',
+    headCovering:
+      'Hats and head coverings are accepted only where worn daily for religious belief or medical reasons, with the full face clearly visible and no shadow cast on it. Medical headwear or a nasal cannula needs a signed letter of explanation, and IRCC may ask for one from your doctor.',
+    children:
+      'The size rules are identical for children, and two identical photos are required as for adults. Newborns are the one relaxation: they may show a range of facial expressions.',
+    exceptions:
+      'Printed route: two identical photos, 50 \u00D7 70 mm, head 31\u201336 mm chin to crown, taken by a commercial photographer and professionally printed \u2014 home printing is refused. The photographer writes or stamps the date and the studio\u2019s name and address on the back of one, and where a guarantor is needed they write \u201CI certify this to be a true likeness of (name)\u201D and sign beneath it. Online renewal is a different photo entirely: JPEG, 3:2 portrait, at least 1800 \u00D7 1200 px and at most 4500 \u00D7 3000, between 200 KB and 5 MB, with chin-to-crown at 45\u201350% of the image height \u2014 a noticeably smaller head than the printed spec.',
+    recency:
+      'Taken no more than six months before the date you submit the application.',
+    sourceName: 'Immigration, Refugees and Citizenship Canada \u2014 Passport photo requirements',
+    sourceUrl: 'https://www.canada.ca/en/immigration-refugees-citizenship/services/canadian-passports/photos.html',
+    checkedOn: '2026-08-29',
+  },
+
+  australia: {
+    authority:
+      'The Australian Passport Office, part of DFAT, sets these rules, and it is one of the few authorities that publishes the size as a range rather than a single rectangle: 35\u201340 mm wide by 45\u201350 mm high, with the face 32\u201336 mm from chin to crown. Two photos are required with every application.',
+    quirk:
+      'The APO says plainly that it does not recommend online passport photo services or mobile apps, because they \u201Cmay put you in danger of identity fraud\u201D. That is a fair warning about services that upload your face to a server, and it is worth reading carefully rather than ignoring. This page and this tool run entirely inside your browser \u2014 the photo is never uploaded anywhere, and there is no account and no server copy \u2014 so the risk being described does not arise here. The rest of the warning still stands: Australia also refuses retouched images and edited backgrounds, so use this to get the crop and the measurements right and have the photo itself taken and printed properly.',
+    background:
+      'Plain white or light grey, contrasting with your face, with uniform lighting and no shadows or reflections. The edges of your face must be clearly visible against it.',
+    expression:
+      'Anyone over three faces the camera straight on, eyes open, neutral expression, head not tilted in any direction and hair not obscuring the edges of the face. Under three, the mouth may be open \u2014 but nobody else may appear in the photo, and a parent\u2019s steadying hand in frame is a rejection.',
+    glasses:
+      'Do not wear glasses at all unless you cannot remove them for a medical reason. The APO states specifically that vision impairment on its own is not an acceptable reason. Where glasses are unavoidable, the frames must not obscure the eyes and there must be no reflection.',
+    headCovering:
+      'A religious head covering worn habitually is accepted, but it must be plain \u2014 no patterns, including small ones \u2014 and worn so the entire face from the bottom of the chin to the top of the forehead, and both edges of the face, remain visible.',
+    children:
+      'Under three, an open mouth is tolerated and a relaxed expression is not held against the child. Everyone else follows the adult rule. In every case the child must be alone in the frame.',
+    exceptions:
+      'Hearing aids may be worn, by adults and infants alike; wireless earbuds are explicitly not hearing aids and must come out. Jewellery and piercings are allowed only where they obscure no part of the face and throw no reflection. Where a medical condition makes a rule impossible, supply a medical certificate or a completed B\u201111 form. Prints must be dye\u2011sublimation on heavyweight glossy paper of at least 200 gsm \u2014 an inkjet print is refused however good it looks.',
+    recency:
+      'Less than six months old.',
+    sourceName: 'Australian Passport Office \u2014 Passport photos',
+    sourceUrl: 'https://www.passports.gov.au/getting-passport-how-it-works/photo-guidelines',
+    checkedOn: '2026-08-29',
   },
 };
 

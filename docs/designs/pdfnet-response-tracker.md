@@ -17,7 +17,7 @@ Status values: `todo` · `in progress` · `shipped` · `blocked` · `parked`
 | 1 | Centralise file-accept lists (+`.ppsx`, HEIC everywhere) | 0 | **shipped** | 2026-08-29 |
 | 1b | HEIC in the 5 PDF-embed tools (sign/watermark/annotate/edit/signature) | 0 | **shipped** | 2026-08-29 |
 | 2 | Stripe ToS consent checkbox | 0 | **todo** | |
-| 3 | Passport differentiation + verify 21 specs | 0 | **todo** | |
+| 3 | Passport differentiation + verify 21 specs | 0 | **in progress** | Tier 1: UK/Canada/Australia done 2026-08-29 |
 | 4 | Bank statement guides 11 → 40 | ~29 | **todo** | |
 | 5 | Competitor alternatives 4 → 10 | ~6 | **todo** | |
 | 6 | Sector pages 4 → 12 | ~8 | **todo** | |
@@ -228,3 +228,39 @@ tools can execute there. One engine, no divergence.
 
 Honest caveat: a file sent through MCP does reach our server, so MCP tools carry
 the `server` badge, not `device`. Say it plainly rather than blurring the claim.
+
+---
+
+## 3 — Passport differentiation · in progress
+
+**Where it stands.** The editorial mechanism was already built and 15 of 50
+countries had entries. This pass took the Tier 1 traffic countries, which had
+none, and did them from the issuing authority's own page:
+
+| Country | Source read | Outcome |
+|---|---|---|
+| UK | GOV.UK photo requirements + digital photos | Editorial written. Head band corrected to the published 29–34 mm; background corrected from "Light grey" to **"Cream or light grey"**. |
+| Canada | IRCC passport photo requirements | Editorial written, incl. the separate online-renewal digital spec (3:2, chin-to-crown 45–50%). Spec confirmed correct. |
+| Australia | Australian Passport Office | Editorial written. Head band corrected to the published 32–36 mm; background corrected from off-white to **white** — off-white is not one of the two options APO states. |
+| Sweden, India (passport) | Polismyndigheten; Passport Seva FAQ | Existing entries were below the 150-word bar. Both expanded with sourced detail and re-checked. |
+
+**Blocked, and honestly so.** `travel.state.gov` (US passport and US visa)
+serves a Cloudflare bot interstitial, and Japan's specification is a 10.8 MB PDF
+that is not retrievable outside a browser session and did not yield its text.
+Neither has editorial, so neither page asserts anything unsourced — both still
+show the "double-check your portal" banner. They need a manual read.
+
+**A guard test now exists.** `tests/unit/passport-editorial.test.ts` fails the
+build if an entry lacks a source URL or a checked date, if it cites one of the
+known aggregator domains instead of the authority, if it falls under 150 words,
+or if a new country is added into a shared-spec cluster without editorial to
+separate it. The last assertion carries a countdown of pages still to write; it
+is allowed to fall and not to rise.
+
+**Two findings that changed the copy, not just the data.** Canada and Australia
+both refuse edited photographs, and Canada counts cropping and background
+replacement as editing. Saying nothing would have sold people a rejected
+application, so both pages now state what the tool should and should not be used
+for there. Australia separately warns against online photo services as an
+identity-fraud risk — a fair warning about anything that uploads a face to a
+server, and the page answers it directly rather than omitting it.

@@ -139,6 +139,7 @@ export default function Page({ params }: { params: { country: string } }) {
                 {ed.headCovering && (<div><dt className="font-semibold">Head coverings</dt><dd className="text-muted-foreground">{ed.headCovering}</dd></div>)}
                 {ed.expression && (<div><dt className="font-semibold">Expression</dt><dd className="text-muted-foreground">{ed.expression}</dd></div>)}
                 {ed.children && (<div><dt className="font-semibold">Children</dt><dd className="text-muted-foreground">{ed.children}</dd></div>)}
+                {ed.recency && (<div><dt className="font-semibold">How recent</dt><dd className="text-muted-foreground">{ed.recency}</dd></div>)}
                 {ed.exceptions && (<div><dt className="font-semibold">Exceptions</dt><dd className="text-muted-foreground">{ed.exceptions}</dd></div>)}
               </dl>
               <p className="mt-3 text-xs text-muted-foreground">

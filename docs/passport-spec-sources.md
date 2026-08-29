@@ -186,3 +186,43 @@ the duplicate problem: Germany vs Poland fell from **79.8% → 57.5%** 4-gram
 overlap, France 57.9%, Italy 57.8%, Japan 53.5%, Nepal 50.3% — all under the
 60% bar in the [editorial scope](designs/passport-photo-editorial-scope.md).
 Two pages that still lack editorial (Poland vs Nepal) remain at **74.0%**.
+
+---
+
+## Tier 1 sourcing pass — 2026-08-29
+
+The editorial scope's Tier 1 is the traffic tier: the countries people actually
+search for. Each entry below was read on the authority's own page on the date
+shown, and replaces an aggregator citation in the table at the top of this file.
+
+| Spec | Authority page read | What changed in `passport-specs.ts` |
+|---|---|---|
+| **UK passport** | [GOV.UK — photo requirements](https://www.gov.uk/photos-for-passports/photo-requirements) + [digital photos](https://www.gov.uk/photos-for-passports/digital-photos) | Head band tightened from the rounded `0.64–0.76` to the published **29–34 mm on a 45 mm photo** (`29/45`–`34/45`). `bgName` corrected to **"Cream or light grey"** — GOV.UK says "plain cream or light grey", and white is the most common UK rejection. Editorial written. |
+| **Canada passport** | [IRCC — Passport photo requirements](https://www.canada.ca/en/immigration-refugees-citizenship/services/canadian-passports/photos.html) | Spec confirmed correct (50×70 mm, 31–36 mm chin to crown). Editorial written, including the second, different **online-renewal digital spec** (3:2 portrait, 1800×1200–4500×3000 px, 200 KB–5 MB, chin-to-crown **45–50%**). |
+| **Australia passport** | [Australian Passport Office — Passport photos](https://www.passports.gov.au/getting-passport-how-it-works/photo-guidelines) | Was cited as "standard ICAO + national guides". APO publishes a **range**: 35–40 × 45–50 mm, face **32–36 mm**. Head band set to `32/45`–`36/45`; `bg` changed from off-white to **white**, `bgName` to "White or light grey" — off-white is not one of the two options APO states. Editorial written. |
+
+### Two findings worth carrying forward
+
+**Canada and Australia both refuse edited photos, and define editing broadly.**
+Canada lists cropping around the head and shoulders, pasting the subject onto a
+white background, and any change to colour, brightness, contrast or sharpness —
+filters and AI tools named explicitly. Australia refuses retouching and edited
+backgrounds. Our country pages for both now say so plainly: use the tool to
+check the crop and the measurements, not to manufacture a compliant photo out of
+a non-compliant one. Saying otherwise would sell a rejected application.
+
+**The Australian Passport Office warns against online photo services by name** —
+they "may put you in danger of identity fraud". That warning is about services
+that upload a face to a server, which is precisely what we do not do, so the
+page answers it directly rather than omitting it.
+
+### Blocked — could not be read automatically
+
+| Spec | Authority | Obstacle |
+|---|---|---|
+| **US passport / US visa** | Bureau of Consular Affairs, `travel.state.gov` | Cloudflare bot interstitial on every request. Not bypassed. Needs a manual read. |
+| **Japan** | MOFA, `mofa.go.jp` | The spec itself is a 10.8 MB PDF (`/mofaj/files/100171389.pdf`) linked from [ic_photo.html](https://www.mofa.go.jp/mofaj/toko/passport/ic_photo.html). The HTML page carries no measurements; direct download is blocked outside the browser and the PDF's text did not extract. Needs a manual read. |
+
+Both remain on the generic values they already had. Neither has editorial, so
+neither page claims anything unsourced — they show the "double-check your
+portal" banner as before.
