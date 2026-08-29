@@ -25,6 +25,14 @@ export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-08-29',
     kind: 'new',
+    title: 'DPA, subprocessors, accessibility and security reporting',
+    detail:
+      "Four pages that business buyers ask for before they are allowed to pay, published rather than sent on request. A Data Processing Agreement setting out our GDPR Article 28 processor terms — and the table in it is the point, because for most of the catalogue the honest answer to \"what do you hold?\" is nothing at all. A subprocessor list naming everyone outside DiemDesk who can touch personal data: there are four, and the page says plainly that the list is short for a structural reason rather than a modest one, since tools that never receive a file cannot hand it on. An accessibility statement that does not claim a conformance level we have not been audited against, and instead lists the gaps we already know about, including that drag-and-drop in the visual editors is not solved. And a vulnerability disclosure policy with a safe-harbour commitment, response times we will actually meet, and a machine-readable security.txt. The report we most want is named on it: evidence that an in-browser tool sends file content anywhere.",
+    href: '/dpa'
+  },
+  {
+    date: '2026-08-29',
+    kind: 'new',
     title: 'Indian tax, GST and EPF forms explained',
     detail:
       "A plain-English guide to 21 Indian forms: Form 16, Form 16A, 26AS, AIS, all four ITR forms, 15G and 15H, 10E, 12BB, the PAN forms 49A and 49AA, GSTR-1, 3B and 9, and the EPF claim forms 19, 10C, 31 and 13. Each page says what the form is, who files it, roughly when, and — the part nobody writes down — the specific thing people get wrong. Two Form 16s from two employers in one year, and the second employer knowing nothing about the first. Taking the EPF withdrawal benefit when a scheme certificate would have kept your pension service. Claiming arrears relief without filing 10E first, so the relief is reversed. We do not host any of the forms. Government forms get revised without notice and a stale copy served from here would be worse than none, so every page links to the department that issues it. We also do not file anything for you — what these tools do is the paperwork around the filing, which is where the real friction is: combining certificates, squeezing a scan under a payroll portal upload cap, turning a statement into rows that add up.",

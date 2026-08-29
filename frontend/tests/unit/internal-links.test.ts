@@ -22,6 +22,15 @@ const routeDirs = readdirSync(APP, { withFileTypes: true })
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8');
 
+// Comments are prose, and prose legitimately mentions a path while explaining
+// why a link is there. Stripping them keeps "is this hard-coded?" asking about
+// code — which is what it means. Without this, writing a comment that names a
+// route fails the test that exists to stop routes being typed by hand.
+const code = (p: string) =>
+  read(p)
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/(^|\s)\/\/.*$/gm, '$1');
+
 describe('internal links', () => {
   it('lists every *-alternative route in ALTERNATIVES', () => {
     const onDisk = routeDirs.filter((d) => d.endsWith('-alternative')).sort();
@@ -36,7 +45,7 @@ describe('internal links', () => {
   });
 
   it('renders the alternatives from the list rather than typing them', () => {
-    const compare = read('app/compare/page.tsx');
+    const compare = code('app/compare/page.tsx');
     expect(compare.includes('ALTERNATIVES'), '/compare should map over ALTERNATIVES').toBe(true);
     // A hard-coded href is how the first four drifted out of sync with the rest.
     for (const a of ALTERNATIVES) {
@@ -48,7 +57,7 @@ describe('internal links', () => {
   });
 
   it('links every sector from the footer', () => {
-    const footer = read('components/app/site-footer.tsx');
+    const footer = code('components/app/site-footer.tsx');
     expect(footer.includes('SECTORS.map'), 'the footer should derive its Built for column from SECTORS').toBe(true);
     for (const s of SECTORS) {
       expect(

@@ -45,10 +45,18 @@ const COLUMNS = [
   // Derived from SECTORS. Typed by hand until 2026-08-29, which is why the two
   // sectors added that day shipped linked from nowhere on the site.
   { title: 'Built for', color: '#f472b6', links: SECTORS.map((s) => ({ label: s.name, href: `/for/${s.slug}` })) },
+  // DPA and Subprocessors are here because business buyers look for them before
+  // they are allowed to pay — legal, healthcare, finance and HR teams often
+  // cannot procure without both. Accessibility matters to the public-sector
+  // readers /for/government is written for.
   { title: 'Legal', color: '#fbbf24', links: [
     { label: 'About', href: '/about' },
     { label: 'Privacy', href: '/privacy' },
     { label: 'Security', href: '/security' },
+    { label: 'DPA', href: '/dpa' },
+    { label: 'Subprocessors', href: '/subprocessors' },
+    { label: 'Accessibility', href: '/accessibility' },
+    { label: 'Report a vulnerability', href: '/vulnerability-disclosure' },
     { label: 'Terms', href: '/terms' },
     { label: 'Refunds', href: '/refund-policy' },
   ] },
