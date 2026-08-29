@@ -111,10 +111,27 @@ function Tile({ t, groupColor }: { t: CatTool; groupColor: string }) {
   const B = BADGE[t.badge];
   const color = META[t.name]?.color ?? groupColor;
 
+  // isNewTool() reads Date.now(), and this page is statically prerendered — so
+  // the HTML is baked at BUILD time and the chip is evaluated again at LOAD
+  // time. Any tool that crosses the 30-day line between those two moments
+  // renders a chip on one side and not the other, which is a hydration
+  // mismatch that appears on its own schedule and is gone by the time anyone
+  // looks. Folder preview (since 2026-08-10) crosses on 2026-09-09.
+  //
+  // Deciding after mount means both passes agree — neither renders it — and the
+  // chip appears a frame later against the reader's own clock, which is the
+  // right clock for "new" anyway.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   const inner = (
     <div
       style={{ ['--tool' as string]: color } as CSSProperties}
-      className={`group relative h-full rounded-2xl border bg-card p-3.5 shadow-soft transition-all ${
+      // flex column + mt-auto on the badge, so "Runs in your browser" sits on
+      // the same baseline across a row. Without it the badge follows the
+      // description, and descriptions run two or three lines — so the one line
+      // that is the same on every card was the one line that never lined up.
+      className={`group relative flex h-full flex-col rounded-2xl border bg-card p-3.5 shadow-soft transition-all ${
         t.soon ? '' : 'hover:-translate-y-0.5 hover:border-[color:var(--tool)] hover:shadow-md'
       }`}
     >
@@ -127,7 +144,7 @@ function Tile({ t, groupColor }: { t: CatTool; groupColor: string }) {
 
       <p className="flex items-center gap-1.5 text-sm font-semibold leading-tight text-foreground">
         {t.name}
-        {isNewTool(t) && <span className={NEW_CHIP}>New</span>}
+        {mounted && isNewTool(t) && <span className={NEW_CHIP}>New</span>}
         {t.soon && <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-foreground/75">soon</span>}
       </p>
       <p className="mt-1 text-xs leading-snug text-muted-foreground">{t.desc}</p>
@@ -138,7 +155,7 @@ function Tile({ t, groupColor }: { t: CatTool; groupColor: string }) {
           no hover. It is the one line on the card no competitor can write. */}
       <p
         title={B.hint}
-        className="mt-2 flex items-center gap-1.5 text-[11px] font-semibold leading-none"
+        className="mt-auto pt-2.5 flex items-center gap-1.5 text-[11px] font-semibold leading-none"
         style={{ color: B.color }}
       >
         <B.icon className="size-3" strokeWidth={2.5} aria-hidden="true" />

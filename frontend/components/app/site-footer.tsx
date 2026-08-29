@@ -8,14 +8,24 @@ import { SECTORS } from '@/lib/sectors';
 const FOOTER_WM_MONO = process.env.NEXT_PUBLIC_FOOTER_WM === 'mono';
 
 const COLUMNS = [
+  // Ordered by what people actually search for, with one deliberate exception:
+  // the bank statement converter. It is the tool we intend to charge for, 39
+  // guide pages funnel into it, and it was not linked from the footer at all —
+  // while two of the nine slots went to AI tools that are still behind a
+  // coming-soon gate. Summarize came out; Chat with PDF still represents the
+  // suite, and /pricing carries the rest.
   { title: 'Tools', color: '#a78bfa', links: [
     { label: 'Compress PDF', href: '/compress-pdf' },
     { label: 'Merge PDF', href: '/merge-pdf' },
+    { label: 'Split PDF', href: '/split-pdf' },
+    { label: 'PDF → Word', href: '/pdf-to-word' },
     { label: 'PDF → Excel', href: '/pdf-to-excel' },
+    { label: 'Bank statement → Excel', href: '/bank-statement-converter' },
+    { label: 'Edit PDF', href: '/edit-pdf' },
     { label: 'Sign PDF', href: '/sign-pdf' },
     { label: 'Redact PDF', href: '/redact-pdf' },
+    { label: 'Passport photo', href: '/passport-photo' },
     { label: 'Chat with PDF', href: '/chat-pdf' },
-    { label: 'Summarize PDF', href: '/summarize-pdf' },
     { label: 'File Vault', href: '/file-vault' },
     { label: 'All tools', href: '/#tools' },
   ] },
@@ -106,14 +116,23 @@ export function SiteFooter() {
               </div>
             ))}
           </div>
-          {/* Legal: five short, familiar words — an inline row on phones, the
-              usual column on desktop. */}
+          {/* Two different shapes on a phone, because the content is different.
+              Legal is five short familiar words and reads fine as an inline row.
+              Built for is nine labels of wildly uneven length — "Legal" next to
+              "Property & conveyancing" — and the same wrap turns it into a
+              ragged block with no two rows aligned. It gets a 2-up grid so the
+              left edges line up and each row holds two items. Both collapse to
+              the ordinary column at lg. */}
           {COLUMNS.slice(2).map((col) => (
             <div key={col.title}>
               <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-white">
                 <span className="size-1.5 rounded-full" style={{ backgroundColor: col.color }} /> {col.title}
               </p>
-              <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-[13px] lg:mt-4 lg:block lg:space-y-2.5 lg:text-sm">
+              <ul className={`mt-3 text-[13px] lg:mt-4 lg:block lg:space-y-2.5 lg:text-sm ${
+                col.title === 'Built for'
+                  ? 'grid grid-cols-2 gap-x-4 gap-y-2.5 sm:grid-cols-3 lg:gap-0'
+                  : 'flex flex-wrap gap-x-5 gap-y-2'
+              }`}>
                 {col.links.map((l) => (
                   <li key={l.label}>
                     <Link href={l.href} className="group inline-flex items-center gap-1 font-medium text-slate-400 transition-colors hover:text-white">
