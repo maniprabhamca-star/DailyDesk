@@ -314,3 +314,14 @@ body {
   height: 1px;
   opacity: 0;
 }
+
+/* The mobile app bar is fixed to the bottom, so every page needs room beneath
+   its last element or the bar covers it. Phones only, and it includes the
+   home-indicator strip so the gap is right on an iPhone as well as on Android.
+   Kept here rather than on each page: a page that forgot it would look fine on
+   a desktop and hide its own footer on a phone. */
+@media (max-width: 639px) {
+  body {
+    padding-bottom: calc(3.75rem + env(safe-area-inset-bottom, 0px));
+  }
+}

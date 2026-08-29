@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
+import { MobileAppBar } from '@/components/app/mobile-app-bar';
 import { AuthProvider } from '@/lib/auth';
 import { ToolFlagsProvider } from '@/lib/tool-flags';
 import { DeploySkewGuard } from '@/components/app/deploy-skew-guard';
@@ -54,6 +55,10 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: '#6d5ef6',
+  // Required for env(safe-area-inset-*) to report anything but 0 on iOS.
+  // Without it the mobile app bar sits on the home-indicator strip and its
+  // bottom row of taps lands on the browser instead of on us.
+  viewportFit: 'cover',
 };
 
 // Organization + WebSite entity signals for Google (rendered once, site-wide).
@@ -107,6 +112,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <UsageBeacon />
             <ErrorBeacon />
             <FilePickerRescue />
+            {/* Phones only — the desktop header already carries all of these. */}
+            <MobileAppBar />
           </AuthProvider>
           <CloudflareAnalytics />
         </ThemeProvider>

@@ -24,6 +24,14 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-08-29',
+    kind: 'feature',
+    title: 'A proper app bar at the bottom of the screen on phones',
+    detail:
+      "On a phone there is now a bar along the bottom, the way an app has one. Home, Tools, Recent and your account sit in the corners, and the middle is a raised button that opens a file from wherever you are. That last one is the point: until now, starting a different job meant scrolling back to the top of the page and opening the menu in the far corner, which is the one place a thumb cannot reach. Pick a file and it takes you to the tool that suits it rather than to a page that asks what you wanted — a HEIC goes to the converter, a spreadsheet goes to Excel to PDF, a PDF opens in the viewer. Recent slides up a sheet of the tools you have used, so getting back to something takes one tap. It appears on phones only; the desktop header already has all of this, and two navigations at once looks like a website pretending to be an app.",
+    href: '/'
+  },
+  {
+    date: '2026-08-29',
     kind: 'new',
     title: 'DiemDesk works inside Claude and other AI assistants',
     detail:

@@ -1,0 +1,354 @@
+<title>Mobile App Bar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;600&display=swap">
+
+<style>
+  :root {
+    --ground: #f7f7fb;
+    --panel: #ffffff;
+    --ink: #15141c;
+    --ink-soft: #55525f;
+    --ink-faint: #85818f;
+    --rule: #e5e3ec;
+    --accent: #4f46e5;
+    --accent-soft: #eeecfd;
+    --good: #12704a;
+    --good-soft: #e4f2ea;
+    --warn: #9a5b00;
+    --warn-soft: #fdf1e0;
+    --phone: #101018;
+    --shadow: 0 1px 2px rgba(21,20,28,.05), 0 12px 32px -20px rgba(21,20,28,.35);
+
+    --display: "Outfit", "Trebuchet MS", sans-serif;
+    --body: "Source Sans 3", -apple-system, BlinkMacSystemFont, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0d0c12; --panel: #16151d; --ink: #f3f1f8; --ink-soft: #b3aec0;
+      --ink-faint: #7e798b; --rule: #2a2833; --accent: #a79dff; --accent-soft: #241f4a;
+      --good: #6ed3a6; --good-soft: #10281f; --warn: #f0b26b; --warn-soft: #2e2110;
+      --phone: #05050a;
+      --shadow: 0 1px 2px rgba(0,0,0,.55), 0 12px 32px -20px rgba(0,0,0,.9);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0d0c12; --panel: #16151d; --ink: #f3f1f8; --ink-soft: #b3aec0;
+    --ink-faint: #7e798b; --rule: #2a2833; --accent: #a79dff; --accent-soft: #241f4a;
+    --good: #6ed3a6; --good-soft: #10281f; --warn: #f0b26b; --warn-soft: #2e2110;
+    --phone: #05050a;
+    --shadow: 0 1px 2px rgba(0,0,0,.55), 0 12px 32px -20px rgba(0,0,0,.9);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--ground); color: var(--ink);
+    font-family: var(--body); font-size: 17px; line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px 90px; }
+  .col { max-width: 66ch; }
+
+  header.top { padding: 68px 0 40px; border-bottom: 1px solid var(--rule); margin-bottom: 48px; }
+  .eyebrow {
+    font-family: var(--mono); font-size: 11.5px; font-weight: 600;
+    letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); margin: 0 0 16px;
+  }
+  h1 {
+    font-family: var(--display); font-weight: 700;
+    font-size: clamp(36px, 5.5vw, 56px); line-height: 1.04; letter-spacing: -.022em;
+    margin: 0 0 18px; text-wrap: balance; max-width: 17ch;
+  }
+  .standfirst { font-size: 19.5px; line-height: 1.5; color: var(--ink-soft); margin: 0; max-width: 58ch; }
+  .standfirst strong { color: var(--ink); font-weight: 600; }
+
+  section { margin: 0 0 60px; }
+  h2 {
+    font-family: var(--display); font-weight: 600; font-size: 27px;
+    line-height: 1.18; letter-spacing: -.014em; margin: 0 0 8px; text-wrap: balance;
+  }
+  h2 .q {
+    display: block; font-family: var(--mono); font-size: 11.5px; font-weight: 600;
+    letter-spacing: .14em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px;
+  }
+  h3 { font-family: var(--display); font-weight: 600; font-size: 18px; margin: 30px 0 8px; }
+  p { margin: 0 0 15px; }
+  a { color: var(--accent); }
+
+  /* ── phone specimens ─────────────────────────────────────────── */
+  .phones { display: grid; gap: 28px; grid-template-columns: repeat(auto-fit, minmax(248px, 1fr)); margin: 26px 0 0; }
+  .spec { }
+  .spec > h3 { margin-top: 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .pill {
+    font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: .07em;
+    text-transform: uppercase; padding: 3px 8px; border-radius: 999px;
+  }
+  .pill.rec { background: var(--good-soft); color: var(--good); }
+  .pill.no { background: var(--warn-soft); color: var(--warn); }
+  .spec > p { font-size: 14.5px; color: var(--ink-soft); margin-top: 6px; }
+
+  .phone {
+    background: var(--phone); border-radius: 26px; padding: 8px;
+    box-shadow: var(--shadow); margin-bottom: 14px;
+  }
+  .screen {
+    background: var(--panel); border-radius: 19px; overflow: hidden;
+    display: flex; flex-direction: column; height: 400px; position: relative;
+  }
+  .fake-head {
+    padding: 11px 14px; border-bottom: 1px solid var(--rule);
+    display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+  }
+  .logo { width: 20px; height: 20px; border-radius: 6px; background: var(--accent); flex-shrink: 0; }
+  .fake-head b { font-family: var(--display); font-size: 13.5px; }
+  .fake-body { flex: 1; padding: 14px; overflow: hidden; }
+  .skel { height: 9px; border-radius: 5px; background: var(--rule); margin-bottom: 9px; }
+  .skel.w70 { width: 70%; } .skel.w45 { width: 45%; } .skel.w90 { width: 90%; }
+  .card-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+  .mini {
+    border: 1px solid var(--rule); border-radius: 10px; padding: 9px; background: var(--panel);
+  }
+  .mini .dot { width: 22px; height: 22px; border-radius: 7px; margin-bottom: 7px; }
+  .mini .l { height: 7px; border-radius: 4px; background: var(--rule); width: 76%; }
+
+  /* the bar itself */
+  .bar {
+    border-top: 1px solid var(--rule); background: var(--panel);
+    display: grid; align-items: end; flex-shrink: 0; position: relative;
+    padding: 7px 4px 10px;
+  }
+  .bar.five { grid-template-columns: repeat(5, 1fr); }
+  .tab { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .tab .ic {
+    width: 21px; height: 21px; border-radius: 6px; background: var(--ink-faint); opacity: .55;
+  }
+  .tab .tl { font-size: 9.5px; color: var(--ink-faint); letter-spacing: .01em; }
+  .tab.on .ic { background: var(--accent); opacity: 1; }
+  .tab.on .tl { color: var(--accent); font-weight: 600; }
+
+  /* option B centre action */
+  .fab {
+    width: 46px; height: 46px; border-radius: 15px; background: var(--accent);
+    display: grid; place-items: center; margin: -22px auto 2px;
+    box-shadow: 0 6px 16px -6px var(--accent); position: relative;
+  }
+  .fab::before, .fab::after {
+    content: ""; position: absolute; background: #fff; border-radius: 2px;
+  }
+  .fab::before { width: 16px; height: 2.5px; }
+  .fab::after { width: 2.5px; height: 16px; }
+
+  /* option C sheet */
+  .sheet {
+    position: absolute; left: 0; right: 0; bottom: 56px; background: var(--panel);
+    border-top: 1px solid var(--rule); border-radius: 16px 16px 0 0;
+    padding: 12px 12px 14px; box-shadow: 0 -10px 24px -18px rgba(0,0,0,.5);
+  }
+  .grab { width: 34px; height: 4px; border-radius: 3px; background: var(--rule); margin: 0 auto 11px; }
+  .fav-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .fav { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+  .fav .sq { width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; }
+  .fav .fl { font-size: 8.5px; color: var(--ink-faint); text-align: center; line-height: 1.25; }
+  .sheet-label {
+    font-family: var(--mono); font-size: 9px; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--ink-faint); margin: 0 0 9px;
+  }
+
+  /* ── prose furniture ─────────────────────────────────────────── */
+  .verdict {
+    border: 1px solid var(--rule); border-radius: 15px; overflow: hidden;
+    margin: 24px 0; background: var(--panel); box-shadow: var(--shadow);
+  }
+  .verdict-head {
+    padding: 16px 22px; background: var(--accent-soft); border-bottom: 1px solid var(--rule);
+    font-family: var(--display); font-weight: 600; font-size: 17.5px; letter-spacing: -.008em;
+  }
+  .verdict-body { padding: 20px 22px 6px; }
+  .verdict-body p:last-child { margin-bottom: 16px; }
+
+  ul.ticks { list-style: none; padding: 0; margin: 0 0 16px; display: grid; gap: 10px; }
+  ul.ticks li { display: grid; grid-template-columns: 18px 1fr; gap: 11px; font-size: 15.5px; line-height: 1.5; }
+  ul.ticks li::before { content: "→"; font-family: var(--mono); color: var(--accent); font-weight: 600; }
+  ul.ticks li.no::before { content: "×"; color: var(--warn); }
+
+  .tbl-wrap { overflow-x: auto; margin: 20px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; min-width: 520px; }
+  th, td { text-align: left; padding: 10px 13px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th {
+    font-family: var(--mono); font-size: 10.5px; font-weight: 600; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--ink-faint);
+  }
+  tbody tr:last-child td { border-bottom: none; }
+
+  .note {
+    border-left: 3px solid var(--accent); background: var(--panel); border-radius: 0 12px 12px 0;
+    padding: 16px 20px; margin: 20px 0; font-size: 15.5px;
+  }
+
+  footer.end {
+    border-top: 1px solid var(--rule); padding-top: 24px; margin-top: 10px;
+    font-size: 14px; color: var(--ink-faint);
+  }
+  code { font-family: var(--mono); font-size: .88em; background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+</style>
+
+<div class="wrap">
+
+  <header class="top">
+    <p class="eyebrow">App shell · mobile · 29 Aug 2026</p>
+    <h1>A bar at the bottom, where the thumb already is</h1>
+    <p class="standfirst">Three ways to give DiemDesk a bottom bar on phones, the one I would build, and the two things about mobile browsers that decide whether it feels native or broken.</p>
+  </header>
+
+  <section>
+    <h2><span class="q">The idea</span>Why this is worth doing</h2>
+    <p class="col">On a phone today, every route to another tool goes through the hamburger at the top right. That is the corner furthest from a right thumb and completely out of reach for a left one. Meanwhile the thing people came to do — put a file in — is somewhere down the page.</p>
+    <p class="col">A bottom bar fixes both at once, and it is the single change that makes a website feel like an app. It is also already the plan: the app-shell note names <em>&ldquo;bottom-or-drawer nav on mobile&rdquo;</em> as the mobile half of the persistent shell.</p>
+  </section>
+
+  <section>
+    <h2><span class="q">Three options</span>Same bar, different centre</h2>
+
+    <div class="phones">
+
+      <!-- A -->
+      <div class="spec">
+        <h3>A · Five plain tabs <span class="pill no">Safe</span></h3>
+        <div class="phone"><div class="screen">
+          <div class="fake-head"><span class="logo"></span><b>DiemDesk</b></div>
+          <div class="fake-body">
+            <div class="skel w70"></div><div class="skel w90"></div><div class="skel w45"></div>
+            <div class="card-row">
+              <div class="mini"><div class="dot" style="background:#e11d48"></div><div class="l"></div></div>
+              <div class="mini"><div class="dot" style="background:#0d9488"></div><div class="l"></div></div>
+              <div class="mini"><div class="dot" style="background:#d97706"></div><div class="l"></div></div>
+              <div class="mini"><div class="dot" style="background:#4f46e5"></div><div class="l"></div></div>
+            </div>
+          </div>
+          <div class="bar five">
+            <div class="tab on"><div class="ic"></div><div class="tl">Home</div></div>
+            <div class="tab"><div class="ic"></div><div class="tl">Tools</div></div>
+            <div class="tab"><div class="ic"></div><div class="tl">Search</div></div>
+            <div class="tab"><div class="ic"></div><div class="tl">Recent</div></div>
+            <div class="tab"><div class="ic"></div><div class="tl">You</div></div>
+          </div>
+        </div></div>
+        <p>Every slot equal. Familiar, and it works. But the most important action on the whole site — dropping a file in — gets the same 20% of the bar as the account page.</p>
+      </div>
+
+      <!-- B -->
+      <div class="spec">
+        <h3>B · Four tabs, one action <span class="pill rec">Recommended</span></h3>
+        <div class="phone"><div class="screen">
+          <div class="fake-head"><span class="logo"></span><b>DiemDesk</b></div>
+          <div class="fake-body">
+            <div class="skel w70"></div><div class="skel w90"></div><div class="skel w45"></div>
+            <div class="card-row">
+              <div class="mini"><div class="dot" style="background:#e11d48"></div><div class="l"></div></div>
+              <div class="mini"><div class="dot" style="background:#0d9488"></div><div class="l"></div></div>
+              <div class="mini"><div class="dot" style="background:#d97706"></div><div class="l"></div></div>
+              <div class="mini"><div class="dot" style="background:#4f46e5"></div><div class="l"></div></div>
+            </div>
+          </div>
+          <div class="bar five">
+            <div class="tab on"><div class="ic"></div><div class="tl">Home</div></div>
+            <div class="tab"><div class="ic"></div><div class="tl">Tools</div></div>
+            <div><div class="fab"></div><div class="tl" style="text-align:center">Open file</div></div>
+            <div class="tab"><div class="ic"></div><div class="tl">Recent</div></div>
+            <div class="tab"><div class="ic"></div><div class="tl">You</div></div>
+          </div>
+        </div></div>
+        <p>The centre is the product&rsquo;s actual verb. One thumb tap opens the picker from any page, and the raised shape says &ldquo;this is the thing&rdquo; without a word of copy.</p>
+      </div>
+
+      <!-- C -->
+      <div class="spec">
+        <h3>C · Bar plus a favourites sheet <span class="pill no">Phase 2</span></h3>
+        <div class="phone"><div class="screen">
+          <div class="fake-head"><span class="logo"></span><b>DiemDesk</b></div>
+          <div class="fake-body">
+            <div class="skel w70"></div><div class="skel w45"></div>
+          </div>
+          <div class="sheet">
+            <div class="grab"></div>
+            <p class="sheet-label">Your quick tools</p>
+            <div class="fav-grid">
+              <div class="fav"><div class="sq" style="background:#e11d4820"><div style="width:15px;height:15px;border-radius:4px;background:#e11d48"></div></div><div class="fl">Merge</div></div>
+              <div class="fav"><div class="sq" style="background:#0d948820"><div style="width:15px;height:15px;border-radius:4px;background:#0d9488"></div></div><div class="fl">Compress</div></div>
+              <div class="fav"><div class="sq" style="background:#7c3aed20"><div style="width:15px;height:15px;border-radius:4px;background:#7c3aed"></div></div><div class="fl">Sign</div></div>
+              <div class="fav"><div class="sq" style="background:#0284c720"><div style="width:15px;height:15px;border-radius:4px;background:#0284c7"></div></div><div class="fl">Scan</div></div>
+            </div>
+          </div>
+          <div class="bar five" style="position:relative;z-index:2">
+            <div class="tab"><div class="ic"></div><div class="tl">Home</div></div>
+            <div class="tab on"><div class="ic"></div><div class="tl">Tools</div></div>
+            <div><div class="fab"></div><div class="tl" style="text-align:center">Open file</div></div>
+            <div class="tab"><div class="ic"></div><div class="tl">Recent</div></div>
+            <div class="tab"><div class="ic"></div><div class="tl">You</div></div>
+          </div>
+        </div></div>
+        <p>B, plus a sheet of pinned tools above the bar. This is where the &ldquo;one-click favourite&rdquo; idea lives — but it needs a pinning gesture and somewhere to store it, so it is a second step, not the first.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="q">The recommendation</span>Build B now, C next</h2>
+
+    <div class="verdict">
+      <div class="verdict-head">B, because the centre slot should be a verb rather than a destination</div>
+      <div class="verdict-body">
+        <p>Four of the five slots are places you go. The fifth is the thing you came to do. Giving <em>open a file</em> the raised centre position means the primary action is reachable from every page in the app with one thumb, which is exactly what a native app would do and exactly what a website usually fails to do.</p>
+        <p>It also solves a real problem that has nothing to do with looks: today, on a tool page, there is no way to start a different job without scrolling back up and opening the hamburger.</p>
+      </div>
+    </div>
+
+    <h3>What each slot does</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Slot</th><th>Goes to</th><th>Why it earns a slot</th></tr></thead>
+        <tbody>
+          <tr><td><b>Home</b></td><td><code>/</code></td><td>The way back. Every app has one and people reach for it without thinking.</td></tr>
+          <tr><td><b>Tools</b></td><td><code>/tools</code></td><td>The full catalogue. Replaces the hamburger&rsquo;s main job.</td></tr>
+          <tr><td><b>Open file</b></td><td>the picker</td><td>The verb. One tap from anywhere, and it lands you in the right tool for what you picked.</td></tr>
+          <tr><td><b>Recent</b></td><td>a sheet</td><td>Reads the history the ⌘K palette already keeps. On a phone, &ldquo;take me back to what I was doing&rdquo; is genuinely the second most common need.</td></tr>
+          <tr><td><b>You</b></td><td><code>/account</code> or sign-in</td><td>Where the account, plan and settings live. Signed out, it says Sign in.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="q">The hard part</span>Two things that decide whether it feels native</h2>
+
+    <div class="note">
+      <b>1. The home indicator and the browser&rsquo;s own bar.</b> iOS Safari and Chrome both put chrome at the bottom of the screen, and iPhones reserve a strip for the home indicator. A bar that ignores this sits <em>under</em> the browser UI and is untappable. It needs
+      <code>padding-bottom: env(safe-area-inset-bottom)</code> and a matching <code>viewport-fit=cover</code>, and the page needs bottom padding of its own so the last row of content is not hidden behind the bar.
+    </div>
+
+    <div class="note">
+      <b>2. It must not appear on desktop, and must not double up.</b> Below <code>sm</code> only. The desktop header already carries all five destinations, and two navigations visible at once is how an app-shell starts feeling like a website wearing a costume.
+    </div>
+
+    <h3>What I would NOT do</h3>
+    <ul class="ticks">
+      <li class="no">Hide it on scroll. It saves 56 pixels and costs the one thing a bottom bar is for: being there without being looked for.</li>
+      <li class="no">Put five destinations in and call the fifth &ldquo;More&rdquo;. A More tab is an admission the other four were chosen badly.</li>
+      <li class="no">Animate the centre button on load. It draws the eye once and irritates on every visit after.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2><span class="q">Then</span>Favourites, and why they come second</h2>
+    <p class="col">The one-click favourites idea is right, and it is option C. It needs two things B does not: a way to pin a tool, and somewhere to keep the list. Recents already exist and cost nothing, so the Recent slot ships with real content on day one while pinning is designed properly rather than bolted on.</p>
+    <p class="col">The natural gesture: long-press a tool card to pin it, and the Recent sheet grows a pinned row above the automatic one. That is a small, self-contained follow-up — not a reason to delay the bar.</p>
+  </section>
+
+  <footer class="end">
+    Specimens are recreations at phone proportions, not screenshots. Slot names and destinations match the routes that exist today.
+  </footer>
+
+</div>
