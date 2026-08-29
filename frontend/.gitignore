@@ -12,3 +12,4 @@ tests/.fixtures/
 # Never hand-edit: a twin that disagrees with its page is worse than no twin.
 public/llms.txt
 public/*.md
+public/**/*.md

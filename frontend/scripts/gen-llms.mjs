@@ -56,14 +56,35 @@ const grab = (html, re) => { const m = html.match(re); return m ? decode(m[1]).t
 
 // --- the route list, straight from the sitemap -------------------------------
 // One source of truth. If a route is not advertised to search engines it is not
-// advertised to assistants either.
+// advertised to assistants either — which is what keeps owner-gated tools out
+// of both without a second list to maintain.
+//
+// The BUILT sitemap is used rather than the source, because app/sitemap.ts only
+// hard-codes the ~92 static routes; the other ~80 (per-bank statement pages,
+// passport specs, sector pages, dev tools) are expanded at build time from data
+// files. Parsing the source found the first group and silently missed the
+// second — which is most of our long-tail content.
 function sitemapRoutes() {
+  const built = path.join(BUILT, 'sitemap.xml.body');
+  if (fs.existsSync(built)) {
+    const xml = read(built);
+    const out = [];
+    for (const m of xml.matchAll(/<loc>([^<]+)<\/loc>/g)) {
+      const route = decode(m[1]).replace(SITE, '') || '/';
+      const pr = xml.slice(m.index, m.index + 400).match(/<priority>([\d.]+)<\/priority>/);
+      out.push({ path: route, priority: pr ? Number(pr[1]) : 0.5 });
+    }
+    if (out.length) return out;
+  }
+
+  // Fallback for a partial build: the static list only.
   const src = read(path.join(ROOT, 'app', 'sitemap.ts'));
   const block = src.match(/const ROUTES[^=]*=\s*\[([\s\S]*?)\n\];/);
   if (!block) throw new Error('gen-llms: could not find ROUTES in app/sitemap.ts');
   const out = [];
   const re = /\{\s*path:\s*'([^']+)'\s*,\s*priority:\s*([\d.]+)/g;
   for (let m; (m = re.exec(block[1])); ) out.push({ path: m[1], priority: Number(m[2]) });
+  console.warn('[gen-llms] no built sitemap — falling back to the static route list only');
   return out;
 }
 
@@ -100,6 +121,19 @@ function catalogFacts() {
     }
   }
   return { byHref, badgeLabel };
+}
+
+// The long-tail content pages are expanded from data files rather than listed
+// in the catalog, so they have no group of their own. Give each family a real
+// heading — dropping eighty pages into "Other" would make the index unreadable
+// exactly where it is most useful, since these are the pages that answer a
+// specific question ("HDFC statement to Excel", "Japan visa photo size").
+function groupForRoute(route) {
+  if (route.startsWith('/bank-statement-converter/')) return 'Bank statement guides (per bank)';
+  if (route.startsWith('/passport-photo/')) return 'Passport & visa photo sizes (per country)';
+  if (route.startsWith('/for/')) return 'Written for your profession';
+  if (route.startsWith('/statement-to-') || route.includes('-to-tally')) return 'Statement conversion workflows';
+  return 'Other pages';
 }
 
 // --- pull a page apart -------------------------------------------------------
@@ -227,7 +261,7 @@ function main() {
   // --- llms.txt --------------------------------------------------------------
   const groups = new Map();
   for (const w of written) {
-    const g = w.fact?.group || 'Other pages';
+    const g = w.fact?.group || groupForRoute(w.route);
     if (!groups.has(g)) groups.set(g, []);
     groups.get(g).push(w);
   }
