@@ -258,7 +258,7 @@ _Status re-verified against the live server 2026-07-15 — several items below w
 - [ ] ⏳ Reset test data (TRUNCATE user_events) + reset test Pro accounts to free
 - [ ] ⏳ Top up Anthropic credits before public AI
 - [ ] ⏳ Counsel review of Terms (billing/liability) · USPTO/trademark check
-- [x] ✅ **Align AI per-user cap to the economics model** (2026-07-15) — now `AI_USER_MONTHLY_MAX=100`/month (was 40/day); ~$2 worst case/user. Added optional `AI_GLOBAL_MONTHLY_USD` — **set to ~20% of monthly Pro revenue at launch** (the "cost can't exceed revenue" guarantee). See `dailydesk-unit-economics`.
+- [x] ✅ **Align AI per-user cap to the economics model** (2026-07-15) — now `AI_USER_MONTHLY_MAX`/month (was 40/day). **Lowered 100 → 50 on 2026-08-29** at the owner’s request; ~$1 worst case/user. Added optional `AI_GLOBAL_MONTHLY_USD` — **set to ~20% of monthly Pro revenue at launch** (the "cost can't exceed revenue" guarantee). See `dailydesk-unit-economics`.
 
 ---
 

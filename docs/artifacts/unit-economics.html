@@ -95,7 +95,7 @@
         <div class="field">
           <label for="ai">AI actions / user / month</label><span class="val" id="ai_v"></span>
           <input type="range" id="ai" min="0" max="300" step="5" value="45">
-          <span class="hint">Typical Pro user ≈ 30–60. The playbook cap is ~100/mo.</span>
+          <span class="hint">Typical Pro user ≈ 30–60. The shipped cap is <b>50/mo</b> (lowered from 100 on 2026-08-29).</span>
         </div>
         <div class="field">
           <label for="cpa">Blended $ / AI action</label><span class="val" id="cpa_v"></span>
@@ -239,7 +239,7 @@
     // contextual flag
     const flag = $('capflag');
     if(aiN > 100){
-      flag.innerHTML = '⚠️ <span><b>'+aiN+' actions/mo exceeds the ~100/mo playbook cap.</b> Per-user AI cost is '+usd(ai)+'. The global 20%-of-revenue kill-switch still protects the business, but this is the range where you\'d want a Pro+ tier. Current code ships <code>AI_USER_DAILY_MAX=40/day</code> — looser than this; tighten to a monthly cap.</span>';
+      flag.innerHTML = '⚠️ <span><b>'+aiN+' actions/mo exceeds the 50/mo shipped cap.</b> Per-user AI cost is '+usd(ai)+'. The global 20%-of-revenue kill-switch still protects the business, but this is the range where you\'d want a Pro+ tier. The code now ships a monthly cap of 50, raisable at runtime from the admin console without a restart.</span>';
     } else if(varPct > 50){
       flag.innerHTML = '⚠️ <span><b>Variable cost is '+varPct.toFixed(0)+'% of price</b> — over the 50% guardrail. Trim AI/vault usage assumptions or raise price / add a Pro+ tier.</span>';
     } else {

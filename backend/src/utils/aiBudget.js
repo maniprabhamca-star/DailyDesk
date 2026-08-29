@@ -5,8 +5,12 @@
 //      account, sized well under the price. Monthly (not daily) so we never
 //      advertise a per-day number and a burst can't drain a whole allowance in an
 //      hour. Each action's OUTPUT is already bounded by max_tokens (~700) → a
-//      single action costs ~$0.02, so 100/mo ≈ $2 worst case, far under the ~$5.69
-//      blended revenue/user.
+//      single action costs ~$0.02, so 50/mo ≈ $1 worst case against ~$5.69
+//      blended revenue/user. Receipt scans are cheaper still (~$0.005), so the
+//      cap bites on the expensive actions first, which is the right order.
+//      Lowered 100 → 50 on 2026-08-29 by the owner. Raise it from the admin
+//      console (Redis `ai:cfg:user_monthly_max`) rather than here — that takes
+//      effect without a restart, and this default is only the floor beneath it.
 //   2) Global MONTHLY budget   (AI_GLOBAL_MONTHLY_USD, optional) — set this to
 //      ~20% of the month's Pro revenue at launch. When the month's spend crosses
 //      it, AI pauses for everyone until next month. This is the line that makes AI
@@ -24,7 +28,7 @@
 const redis = require('./redis');
 const { redisDown } = require('./rateLimitStore');
 
-const USER_MONTHLY_MAX = Number(process.env.AI_USER_MONTHLY_MAX || 100);
+const USER_MONTHLY_MAX = Number(process.env.AI_USER_MONTHLY_MAX || 50);
 const GLOBAL_DAILY_USD = Number(process.env.AI_GLOBAL_DAILY_USD || 5);
 // 0 = disabled (use the daily backstop only). At Pro launch, set this to ~20% of
 // expected monthly Pro revenue so AI can never exceed a fraction of income.
