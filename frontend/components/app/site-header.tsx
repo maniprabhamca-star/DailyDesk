@@ -224,9 +224,21 @@ export function SiteHeader({ heroSearchRef }: { heroSearchRef?: React.RefObject<
         </div>
       )}
 
-      {/* Mobile menu */}
+      {/* Mobile menu — overlays the page rather than pushing it down.
+          It used to be an in-flow block, so opening it shoved the hero and
+          everything under it down the screen; closing it snapped them back.
+          The desktop Tools panel above already floats on `absolute top-full`,
+          and this now does the same, with a backdrop so a tap anywhere outside
+          closes it — which is what people try first on a phone. */}
       {mobileOpen && (
-        <div className="border-t sm:hidden">
+        <>
+          <button
+            aria-hidden
+            tabIndex={-1}
+            onClick={() => setMobileOpen(false)}
+            className="fixed inset-0 z-30 cursor-default bg-foreground/20 sm:hidden"
+          />
+          <div className="absolute inset-x-0 top-full z-40 max-h-[calc(100vh-4rem)] overflow-y-auto overscroll-contain border-b-2 border-border bg-popover shadow-lift sm:hidden">
           <div className="mx-auto flex max-w-[1400px] flex-col gap-0.5 px-4 py-3">
             {[
               { label: 'All tools', href: '/#tools' },
@@ -249,7 +261,8 @@ export function SiteHeader({ heroSearchRef }: { heroSearchRef?: React.RefObject<
               <Button asChild size="sm" className="mt-1.5 w-full"><Link href="/register" onClick={() => setMobileOpen(false)}>Get started</Link></Button>
             )}
           </div>
-        </div>
+          </div>
+        </>
       )}
     </header>
   );

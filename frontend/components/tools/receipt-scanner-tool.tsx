@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   Camera, ImagePlus, Loader2, ScanLine, Check, X, Cloud, CameraOff, ReceiptText, Wallet, RotateCcw, AlertTriangle,
@@ -33,13 +33,41 @@ export function ReceiptScannerTool() {
 
   const startCam = useCallback(async () => {
     setCamError(null);
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCamError('This browser cannot open a camera here — use “Upload photo” instead.');
+      return;
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 2000 } }, audio: false });
       streamRef.current = stream;
-      if (videoRef.current) { videoRef.current.srcObject = stream; await videoRef.current.play().catch(() => {}); }
+      // Only flip the flag. The <video> does not exist yet — it renders on
+      // camOn — so attaching the stream here silently did nothing and left a
+      // black rectangle with a working camera behind it. The effect below
+      // attaches it on the render where the element actually exists.
       setCamOn(true);
-    } catch { setCamError('No camera available — use “Upload photo” instead.'); }
+    } catch (e) {
+      const name = (e as { name?: string })?.name;
+      setCamError(
+        name === 'NotAllowedError'
+          ? 'Camera permission was blocked. Allow it in your browser’s site settings, or use “Upload photo”.'
+          : name === 'NotFoundError'
+            ? 'No camera found on this device — use “Upload photo” instead.'
+            : 'Could not open the camera — use “Upload photo” instead.',
+      );
+    }
   }, []);
+
+  // Attach the stream once the <video> is on the page, not before it exists.
+  useEffect(() => {
+    const v = videoRef.current;
+    const s = streamRef.current;
+    if (!camOn || !v || !s) return;
+    v.srcObject = s;
+    void v.play().catch(() => {});
+  }, [camOn]);
+
+  // A stream left running holds the camera light on after you navigate away.
+  useEffect(() => () => { streamRef.current?.getTracks().forEach((t) => t.stop()); }, []);
 
   const scanBlob = useCallback(async (blob: Blob) => {
     setPhase('scanning'); setError(null);
@@ -130,7 +158,13 @@ export function ReceiptScannerTool() {
             {camOn ? <Button size="sm" variant="outline" onClick={stopCam}><CameraOff className="mr-1 size-4" /> Stop camera</Button>
               : <Button size="sm" onClick={() => void startCam()} className="bg-primary text-primary-foreground"><Camera className="mr-1 size-4" /> Use camera</Button>}
             <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()}><ImagePlus className="mr-1 size-4" /> Upload photo</Button>
-            <input ref={fileRef} type="file" accept="image/*" capture="environment" aria-label="Choose an image file" className="dd-file-input" onChange={(e) => { const f = e.target.files?.[0]; if (f) void scanBlob(f); e.target.value = ''; }} />
+            {/* NO `capture` attribute. It forces the camera app instead of the
+                file picker, so "Upload photo" opened the camera and gave you no
+                way to reach a receipt already saved on the device — which is the
+                normal case, since people photograph the receipt at the shop and
+                deal with it later. Taking a picture live is what the camera
+                button beside this is for. */}
+            <input ref={fileRef} type="file" accept="image/*" aria-label="Choose an image file" className="dd-file-input" onChange={(e) => { const f = e.target.files?.[0]; if (f) void scanBlob(f); e.target.value = ''; }} />
           </div>
         </div>
       )}

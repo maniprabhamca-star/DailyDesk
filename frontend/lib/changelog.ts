@@ -24,6 +24,14 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-08-29',
+    kind: 'fixed',
+    title: 'The receipt scanner now reads receipts that are sideways, and stops guessing the amount',
+    detail:
+      "The receipt scanner was getting real receipts wrong, and there were three separate reasons. It now rotates the photo the right way up before reading it — a till roll is long and thin so people photograph it sideways, and reading a sideways receipt does not produce a worse answer, it produces noise, which is why a Walmart receipt came back with a store name of \"Aeqg AJeAFq 1SnN4\" and no amount at all. The amount is worked out properly now instead of being guessed: it looks for the line that says total, ignores the card-machine block at the bottom that says TOTAL PURCHASE once per tender, and where the receipt prints a subtotal and a tax line it checks that the total actually adds up. If it still cannot tell, it leaves the box empty rather than filling it in, because a wrong number gets saved to your budget while an empty one gets typed in correctly. It used to fall back to the largest number anywhere on the receipt, which is usually the phone number. Two buttons were broken too: Use camera opened the camera but showed you a black rectangle, and Upload photo opened the camera as well, so there was no way to pick a receipt already saved on your phone. Both work now.",
+    href: '/receipt-scanner'
+  },
+  {
+    date: '2026-08-29',
     kind: 'feature',
     title: 'Tool pages now suggest what usually comes next',
     detail:
