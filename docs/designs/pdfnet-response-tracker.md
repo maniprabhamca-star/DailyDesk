@@ -19,7 +19,7 @@ Status values: `todo` · `in progress` · `shipped` · `blocked` · `parked`
 | 2 | Stripe ToS consent checkbox | 0 | **todo** | |
 | 3 | Passport differentiation + verify 21 specs | 0 | **in progress** | Tier 1: UK/Canada/Australia done 2026-08-29 |
 | 4 | Bank statement guides 11 → 40 | ~29 | **todo** | |
-| 5 | Competitor alternatives 4 → 10 | ~6 | **todo** | |
+| 5 | Competitor alternatives 4 → 10 | 5 | **shipped** | 2026-08-29 (9 of 10; Canva pending a source) |
 | 6 | Sector pages 4 → 12 | ~8 | **todo** | |
 | 7 | Indian statutory forms library | ~40–60 | **todo** | |
 | 8 | US forms library (privacy wedge) | ~30–60 | **todo** | |
@@ -264,3 +264,36 @@ application, so both pages now state what the tool should and should not be used
 for there. Australia separately warns against online photo services as an
 identity-fraud risk — a fair warning about anything that uploads a face to a
 server, and the page answers it directly rather than omitting it.
+
+---
+
+## 5 — Competitor alternative pages · shipped 2026-08-29
+
+Four became nine. New: **PDF24, Foxit, Soda PDF, pdfFiller, pdf.net** — all on
+the existing `AlternativePage` shell, all added to `sitemap.ts`.
+
+**Sourcing.** Every competitor claim was read from the vendor's own page on
+2026-08-29, and each page links to the page it was read from:
+
+| Page | Read | Load-bearing facts taken from it |
+|---|---|---|
+| PDF24 | tools.pdf24.org | "You can use all PDF24 tools free of charge and without any restrictions… via some advertising"; files encrypted in transit and "completely removed from our servers after a short time"; PDF24 Creator is the Windows-only way to keep files local |
+| Foxit | foxit.com/pdf-editor | From $10.99/mo; PDF Editor+ $159.99/yr per user; perpetual $209.99; 14-day trial, no card |
+| Soda PDF | sodapdf.com/pricing | Pro / Team / Business; Windows desktop **and** browser; cloud storage bundled. Prices sit behind a "see prices" step, so the page links rather than quotes |
+| pdfFiller | pdffiller.com | Owned by airSlate; cloud platform; account required; 30-day free trial |
+| pdf.net | our own scan, [gap analysis](competitor-pdfnet-gap-analysis.md) | ~35 tools; all server-side; 225 forms pages; 7 languages |
+
+**Canva was dropped from this batch, deliberately.** Its PDF editor page returns
+403 to every automated read, and the honest options were to guess at its
+behaviour or leave it out. Left out. It is the tenth page whenever someone can
+open that page and note what it says.
+
+**Where a price could not be sourced, the page does not invent one.** Soda PDF's
+row reads "See their pricing page" and the FAQ explains why in a sentence. That
+is better than a number that silently goes stale and makes every other figure on
+the site less trustworthy.
+
+**Each page names something the competitor does better**, because a comparison
+page that finds no merit in the alternative reads as marketing and converts like
+it. Foxit's maturity, pdfFiller's team routing and audit trails, pdf.net's forms
+library and seven languages, PDF24's genuine no-limits generosity — all stated.

@@ -25,6 +25,14 @@ export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-08-29',
     kind: 'improved',
+    title: 'Five more honest comparisons: PDF24, Foxit, Soda PDF, pdfFiller and pdf.net',
+    detail:
+      "If you are weighing us up against something else, there are now nine comparison pages instead of four. The new ones cover PDF24, Foxit, Soda PDF, pdfFiller and pdf.net, and they are written the same way as the others: what the other product genuinely does better goes on the page, in plain words, next to what we do better. PDF24 is free and broad and says so honestly — but it uploads your file unless you install its Windows app, which is not an option on a Mac or a locked-down work laptop. Foxit is a serious desktop editor, and if you do production PDF work every day it earns its licence fee; if you merge and sign a few files a month it does not. pdfFiller is built for teams routing paperwork for signature, which we do not do at all. pdf.net has a large US tax and immigration forms library and seven languages, and we have neither. Every competitor figure on these pages was read from their own site, and the page links to it so you can check.",
+    href: '/compare',
+  },
+  {
+    date: '2026-08-29',
+    kind: 'improved',
     title: 'Passport photo pages now say what each country actually asks for',
     detail:
       'Thirty-odd countries publish the same 35 \u00D7 45 mm photo, so our pages for them were saying much the same thing in much the same order \u2014 useful once, tedious by the third country, and not much help if your question was \u201Cwill Australia take this?\u201D The UK, Canada and Australia pages now carry the rules from the issuing authority itself: who issues them, whether glasses are allowed at all, when a head covering is accepted, how old the photograph may be, what changes for children, and the one thing people most often get wrong. Two of those turned out to matter more than the measurements. Canada refuses edited photographs and counts cropping and background replacement as editing, and Australia refuses retouching \u2014 so both pages now say plainly what this tool should and should not be used for there. Australia also warns against online photo services on identity-fraud grounds, which is a fair warning about anything that uploads your face to a server; your photo never leaves your browser here, and the page says so rather than skipping the question. Three specs were corrected along the way: the UK head height is 29\u201334 mm and the background is cream or light grey rather than white, and Australia publishes a size range with the face at 32\u201336 mm.',
