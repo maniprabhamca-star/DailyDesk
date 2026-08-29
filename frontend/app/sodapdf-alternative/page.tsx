@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { AlternativePage, type AltData } from '@/components/marketing/alternative-page';
 
 export const metadata: Metadata = {
-  title: "Soda PDF Alternative — No Account, No Cloud Storage | DiemDesk",
+  title: "Soda PDF Alternative — No Account, No Cloud | DiemDesk",
   description:
     "A Soda PDF alternative: DiemDesk works in your browser with no account and no cloud storage of your documents. Free during launch, compared honestly.",
   alternates: { canonical: '/sodapdf-alternative' },

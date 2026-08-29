@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { AlternativePage, type AltData } from '@/components/marketing/alternative-page';
 
 export const metadata: Metadata = {
-  title: "pdf.net Alternative — 114 Tools, Most On Your Device | DiemDesk",
+  title: "pdf.net Alternative — 114 Tools, On Device | DiemDesk",
   description:
     "A pdf.net alternative: DiemDesk has 114 tools to their ~35, and most run in your browser instead of uploading. Free during launch, compared honestly.",
   alternates: { canonical: '/pdfnet-alternative' },

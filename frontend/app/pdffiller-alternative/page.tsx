@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { AlternativePage, type AltData } from '@/components/marketing/alternative-page';
 
 export const metadata: Metadata = {
-  title: "pdfFiller Alternative — No 30-Day Trial, No Cloud Account | DiemDesk",
+  title: "pdfFiller Alternative — No Trial, No Account | DiemDesk",
   description:
     "A pdfFiller alternative: DiemDesk fills, signs and edits PDFs in your browser with no account and nothing stored in a cloud. Free during launch, compared honestly.",
   alternates: { canonical: '/pdffiller-alternative' },

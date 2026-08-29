@@ -125,13 +125,14 @@ export function SiteFooter() {
               </div>
             ))}
           </div>
-          {/* Two different shapes on a phone, because the content is different.
-              Legal is five short familiar words and reads fine as an inline row.
-              Built for is nine labels of wildly uneven length — "Legal" next to
-              "Property & conveyancing" — and the same wrap turns it into a
-              ragged block with no two rows aligned. It gets a 2-up grid so the
-              left edges line up and each row holds two items. Both collapse to
-              the ordinary column at lg. */}
+          {/* Both get the 2-up grid on phones.
+              Legal used to be five short familiar words and an inline wrap read
+              fine. Adding DPA, Subprocessors, Accessibility and Report a
+              vulnerability took it to nine of very uneven length, and the wrap
+              turned it into the same ragged block Built for had — three rows,
+              no two aligned. The condition that used to name one column was a
+              statement about ITS CONTENT, and the content changed underneath
+              it. A grid is right for both now. */}
           {COLUMNS.slice(2).map((col) => (
             // A hairline above each of these two on phones. Stacked, they ran
             // into the block above with nothing but whitespace between them, so
@@ -142,11 +143,7 @@ export function SiteFooter() {
               <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-white">
                 <span className="size-1.5 rounded-full" style={{ backgroundColor: col.color }} /> {col.title}
               </p>
-              <ul className={`mt-3 text-[13px] lg:mt-4 lg:block lg:space-y-2.5 lg:text-sm ${
-                col.title === 'Built for'
-                  ? 'grid grid-cols-2 gap-x-4 gap-y-2.5 sm:grid-cols-3 lg:gap-0'
-                  : 'flex flex-wrap gap-x-5 gap-y-2'
-              }`}>
+              <ul className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2.5 text-[13px] sm:grid-cols-3 lg:mt-4 lg:block lg:space-y-2.5 lg:gap-0 lg:text-sm">
                 {col.links.map((l) => (
                   <li key={l.label}>
                     <Link href={l.href} className="group inline-flex items-center gap-1 font-medium text-slate-400 transition-colors hover:text-white">

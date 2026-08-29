@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { AlternativePage, type AltData } from '@/components/marketing/alternative-page';
 
 export const metadata: Metadata = {
-  title: "PDF24 Alternative — Nothing Uploaded, No Windows Install | DiemDesk",
+  title: "PDF24 Alternative — No Upload, No Install | DiemDesk",
   description:
     "A PDF24 alternative: DiemDesk runs its tools in your browser, so files stay on your device without installing PDF24 Creator. No ads, no uploads, free during launch.",
   alternates: { canonical: '/pdf24-alternative' },
