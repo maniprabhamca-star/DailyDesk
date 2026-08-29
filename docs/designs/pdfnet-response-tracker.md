@@ -18,7 +18,7 @@ Status values: `todo` · `in progress` · `shipped` · `blocked` · `parked`
 | 1b | HEIC in the 5 PDF-embed tools (sign/watermark/annotate/edit/signature) | 0 | **shipped** | 2026-08-29 |
 | 2 | Stripe ToS consent checkbox | 0 | **shipped** | 2026-08-29 · self-arming when the URL is set |
 | 3 | Passport differentiation + verify 21 specs | 0 | **in progress** | Tier 1: UK/Canada/Australia done 2026-08-29 |
-| 4 | Bank statement guides 11 → 40 | ~29 | **todo** | |
+| 4 | Bank statement guides 11 → 40 | 28 | **shipped** | 2026-08-29 · 39 pages |
 | 5 | Competitor alternatives 4 → 10 | 5 | **shipped** | 2026-08-29 (9 of 10; Canva pending a source) |
 | 6 | Sector pages 4 → 12 | 2 | **in progress** | 6 of 12 · 2026-08-29 |
 | 7 | Indian statutory forms library | ~40–60 | **todo** | |
@@ -363,3 +363,50 @@ error is still raised rather than swallowed, and a coupon failure alone does
 
 **Not copied:** pdf.net's $0.95-for-14-days auto-renewing at $49.88/month. Their
 consent wall is loud because that model earns chargebacks. Ours is flat $5.98.
+
+---
+
+## 4 — Bank statement guides · shipped 2026-08-29 (11 → 39)
+
+The straightest line from a content page to the paid tool, so this got the same
+treatment as the first eleven: per-bank download path, per-bank password
+guidance, per-bank layout quirk. Nothing templated, because a templated set of
+39 is a duplicate-content report waiting to happen — which is exactly what the
+passport family taught us.
+
+**Added:** Bank of India · IndusInd · Federal · RBL · Bandhan · AU Small Finance
+· IDBI · Central Bank · Indian Bank · UCO · South Indian · Karnataka · CSB · DCB
+· IOB · Punjab & Sind · Standard Chartered · HSBC India · Fi · Jupiter ·
+HDFC card · SBI Card · ICICI card · Axis card · Amex · Razorpay settlements ·
+Zerodha ledger · PhonePe history.
+
+**Two were deliberately NOT written**, and the guard test enforces it:
+
+| Left out | Why |
+|---|---|
+| Paytm Payments Bank | The RBI **cancelled its licence on 2026-04-24** and it is winding up. A page explaining how to log in and download a statement would be actively wrong. |
+| Citi India | The consumer business moved to **Axis Bank** and customers were migrated during 2024. The query belongs on the Axis page, not its own. |
+
+Both were on the original list in [content-seo-strategy.md](content-seo-strategy.md).
+Checking their status before writing was the difference between a useful page and
+a page that damages trust at the exact moment someone is deciding whether to pay us.
+
+**The credit-card pages say something the bank pages cannot.** Our whole accuracy
+claim rests on reconciling every row against the running balance — and a credit
+card statement has no running balance. Rather than quietly dropping the claim,
+those five pages state what is actually checked instead: the transactions against
+the opening balance, the payments and the closing total due. Same for the three
+non-bank pages, where a Razorpay settlement row is a net batch and a Zerodha
+ledger moves for reasons a bank statement never does.
+
+**`tests/unit/bank-pages.test.ts`** (9 checks) enforces unique slugs, url-safe
+slugs, the 60-char title and 165-char description budgets, at least three real
+download steps, a **unique quirk and password paragraph per bank** — two banks
+sharing either means one page is filler — that password copy always hedges rather
+than stating a format as fact, that every page says the unlocking happens on the
+reader's own device, and that the two retired institutions never reappear.
+
+Two titles were over budget and the test caught both: *Indian Overseas Bank* and
+*Razorpay settlements* were shortened to IOB and Razorpay.
+
+Site is now **211 indexable URLs**, up from 183.

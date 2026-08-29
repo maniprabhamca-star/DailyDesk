@@ -25,6 +25,14 @@ export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-08-29',
     kind: 'improved',
+    title: 'Bank statement guides for 39 banks, up from 11',
+    detail:
+      "The statement converter now has a guide for 39 banks instead of 11. New ones cover IndusInd, Federal, RBL, Bandhan, AU Small Finance, IDBI, Central Bank, Indian Bank, UCO, South Indian, Karnataka, CSB, DCB, Bank of India, IOB, Punjab & Sind, Standard Chartered and HSBC, plus Fi and Jupiter, the credit card statements from HDFC, SBI Card, ICICI, Axis and Amex, and three things that are not bank statements but get converted for the same reason: Razorpay settlements, a Zerodha ledger and PhonePe history. Each page tells you where that particular portal hides the download, what its password is usually built from, and the specific thing about its layout that trips converters up. The credit card pages say plainly that the balance check works differently there, because a card statement has no running balance to check against — we total the transactions against the opening balance, payments and closing amount due instead. Two banks were deliberately left out: Paytm Payments Bank, whose licence the RBI cancelled in April, and Citi India, whose accounts moved to Axis.",
+    href: '/bank-statement-converter'
+  },
+  {
+    date: '2026-08-29',
+    kind: 'improved',
     title: 'Every tool card now tells you what the tool does',
     detail:
       "Every tool card now says what the tool actually does. Sixty-seven of our 114 tools had no description at all — the card was a name and nothing else — and most of the ones that did have a line just said the name again in different words: \"Word into a PDF\" under Word to PDF, \"Slides into a PDF\" under PowerPoint to PDF. All 114 are rewritten to answer the question you were actually asking. Nobody converting a Word file is unsure what that means; they are wondering whether the table survives, so it now says fonts, tables and layout land where you left them. Rotate says the fix survives saving, because that is the thing that goes wrong. Repair says it opens files other readers refuse. And the little crossed-out cloud in the corner of each card, which was carrying our whole argument and asking you to guess what it meant, is now just written down: Runs in your browser, or Processed on our servers, whichever is true for that tool.",
