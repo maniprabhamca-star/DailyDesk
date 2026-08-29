@@ -124,7 +124,12 @@ export function SiteFooter() {
               left edges line up and each row holds two items. Both collapse to
               the ordinary column at lg. */}
           {COLUMNS.slice(2).map((col) => (
-            <div key={col.title}>
+            // A hairline above each of these two on phones. Stacked, they ran
+            // into the block above with nothing but whitespace between them, so
+            // the eyebrow had to do all the separating on its own. The rule is
+            // dropped at lg, where they sit as columns side by side and a line
+            // above only one of them would look like a mistake.
+            <div key={col.title} className="border-t border-white/10 pt-6 lg:border-0 lg:pt-0">
               <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-white">
                 <span className="size-1.5 rounded-full" style={{ backgroundColor: col.color }} /> {col.title}
               </p>
