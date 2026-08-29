@@ -1,0 +1,568 @@
+<title>Thin Cards</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;600&display=swap">
+
+<style>
+  :root {
+    --ground: #fbfafc;
+    --panel: #ffffff;
+    --panel-2: #f4f3f7;
+    --ink: #17161d;
+    --ink-soft: #57545f;
+    --ink-faint: #86828f;
+    --rule: #e4e2ea;
+    --rule-soft: #eeecf2;
+    --accent: #4f46e5;
+    --accent-soft: #eeecfd;
+    --bad: #c2313a;
+    --bad-soft: #fdeced;
+    --good: #12704a;
+    --good-soft: #e6f3ec;
+    --shadow: 0 1px 2px rgba(23,22,29,.05), 0 8px 24px -16px rgba(23,22,29,.28);
+
+    --display: "Bricolage Grotesque", "Trebuchet MS", sans-serif;
+    --body: "Source Sans 3", -apple-system, BlinkMacSystemFont, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", monospace;
+    /* The product's own stack — specimens must render in it, not in ours. */
+    --product: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0f0e13;
+      --panel: #17161d;
+      --panel-2: #1e1d26;
+      --ink: #f2f0f6;
+      --ink-soft: #b2aebd;
+      --ink-faint: #7d7889;
+      --rule: #2c2a35;
+      --rule-soft: #24222c;
+      --accent: #a59dff;
+      --accent-soft: #241f47;
+      --bad: #ff8b90;
+      --bad-soft: #35191c;
+      --good: #6fd3a5;
+      --good-soft: #10291f;
+      --shadow: 0 1px 2px rgba(0,0,0,.5), 0 8px 24px -16px rgba(0,0,0,.9);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #0f0e13;
+    --panel: #17161d;
+    --panel-2: #1e1d26;
+    --ink: #f2f0f6;
+    --ink-soft: #b2aebd;
+    --ink-faint: #7d7889;
+    --rule: #2c2a35;
+    --rule-soft: #24222c;
+    --accent: #a59dff;
+    --accent-soft: #241f47;
+    --bad: #ff8b90;
+    --bad-soft: #35191c;
+    --good: #6fd3a5;
+    --good-soft: #10291f;
+    --shadow: 0 1px 2px rgba(0,0,0,.5), 0 8px 24px -16px rgba(0,0,0,.9);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 17px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 24px 96px;
+  }
+
+  .col { max-width: 65ch; }
+
+  /* ---- masthead ---- */
+  header.top {
+    padding: 72px 0 44px;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 56px;
+  }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 18px;
+  }
+  h1 {
+    font-family: var(--display);
+    font-optical-sizing: auto;
+    font-weight: 800;
+    font-size: clamp(38px, 6vw, 62px);
+    line-height: 1.02;
+    letter-spacing: -.025em;
+    margin: 0 0 20px;
+    text-wrap: balance;
+    max-width: 16ch;
+  }
+  .standfirst {
+    font-size: 20px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    margin: 0;
+    max-width: 58ch;
+  }
+  .standfirst strong { color: var(--ink); font-weight: 600; }
+
+  /* ---- sections ---- */
+  section { margin: 0 0 68px; scroll-margin-top: 24px; }
+  h2 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 30px;
+    line-height: 1.15;
+    letter-spacing: -.017em;
+    margin: 0 0 6px;
+    text-wrap: balance;
+  }
+  h2 .q {
+    display: block;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+  h3 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 19px;
+    letter-spacing: -.01em;
+    margin: 36px 0 10px;
+  }
+  p { margin: 0 0 16px; }
+  p.lede { font-size: 18.5px; color: var(--ink-soft); }
+  a { color: var(--accent); }
+  strong { font-weight: 600; }
+  em { font-style: italic; color: var(--ink-soft); }
+
+  /* ---- the number ---- */
+  .stat {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 24px;
+    align-items: center;
+    background: var(--bad-soft);
+    border: 1px solid color-mix(in srgb, var(--bad) 22%, transparent);
+    border-radius: 14px;
+    padding: 22px 26px;
+    margin: 28px 0 8px;
+  }
+  .stat .fig {
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: 54px;
+    line-height: 1;
+    letter-spacing: -.03em;
+    color: var(--bad);
+    font-variant-numeric: tabular-nums;
+  }
+  .stat .say { font-size: 16.5px; line-height: 1.5; margin: 0; color: var(--ink); }
+
+  /* ---- specimen bands ---- */
+  .band {
+    background: var(--panel-2);
+    border: 1px solid var(--rule-soft);
+    border-radius: 16px;
+    padding: 26px;
+    margin: 22px 0;
+    overflow-x: auto;
+  }
+  .band-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .08em;
+  }
+  .tag.now { background: var(--bad-soft); color: var(--bad); }
+  .tag.next { background: var(--good-soft); color: var(--good); }
+
+  /* ---- the product card, recreated ---- */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
+    gap: 14px;
+    min-width: 620px;
+  }
+  .card {
+    font-family: var(--product);
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 13px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    position: relative;
+  }
+  .card .ico {
+    width: 40px; height: 40px;
+    border-radius: 11px;
+    display: grid;
+    place-items: center;
+    margin-bottom: 11px;
+    font-size: 17px;
+    line-height: 1;
+  }
+  .card .nm {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.25;
+    color: var(--ink);
+  }
+  .card .ds {
+    font-size: 12.5px;
+    line-height: 1.4;
+    color: var(--ink-faint);
+    margin-top: 2px;
+  }
+  .card .ds.empty {
+    color: var(--bad);
+    font-style: italic;
+    opacity: .7;
+  }
+  .card .pair {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: .02em;
+    color: var(--ink-soft);
+    background: var(--panel-2);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 1px 6px;
+    align-self: flex-start;
+    margin-bottom: 9px;
+  }
+  .card .runs {
+    margin-top: 9px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .01em;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--good);
+  }
+  .card .runs::before {
+    content: "";
+    width: 6px; height: 6px;
+    border-radius: 999px;
+    background: currentColor;
+  }
+  .card .runs.srv { color: var(--ink-faint); }
+
+  /* ---- before/after pairs ---- */
+  .ba {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    min-width: 560px;
+  }
+  @media (max-width: 700px) { .ba { grid-template-columns: 1fr; min-width: 0; } .grid { min-width: 0; } }
+
+  /* ---- formula ---- */
+  .formula {
+    font-family: var(--mono);
+    font-size: 14px;
+    line-height: 1.9;
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 12px 12px 0;
+    padding: 20px 24px;
+    margin: 22px 0;
+    overflow-x: auto;
+  }
+  .formula .a { color: var(--ink); font-weight: 600; }
+  .formula .b { color: var(--accent); font-weight: 600; }
+  .formula .note { color: var(--ink-faint); font-size: 12.5px; font-family: var(--body); }
+
+  /* ---- table ---- */
+  .tbl-wrap { overflow-x: auto; margin: 22px 0; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 15.5px;
+    min-width: 540px;
+  }
+  th, td {
+    text-align: left;
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--rule-soft);
+    vertical-align: top;
+  }
+  th {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    border-bottom: 1px solid var(--rule);
+  }
+  td.was { color: var(--ink-faint); }
+  td.now-c { color: var(--ink); }
+  tbody tr:last-child td { border-bottom: none; }
+
+  /* ---- verdict ---- */
+  .verdict {
+    border: 1px solid var(--rule);
+    border-radius: 16px;
+    overflow: hidden;
+    margin: 26px 0;
+    background: var(--panel);
+    box-shadow: var(--shadow);
+  }
+  .verdict-head {
+    padding: 18px 24px;
+    background: var(--accent-soft);
+    border-bottom: 1px solid var(--rule);
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 18px;
+    letter-spacing: -.01em;
+  }
+  .verdict-body { padding: 22px 24px 6px; }
+  .verdict-body p:last-child { margin-bottom: 18px; }
+
+  ul.ticks { list-style: none; padding: 0; margin: 0 0 18px; display: grid; gap: 11px; }
+  ul.ticks li {
+    display: grid;
+    grid-template-columns: 20px 1fr;
+    gap: 12px;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  ul.ticks li::before {
+    content: "→";
+    font-family: var(--mono);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  ul.ticks li.no::before { content: "×"; color: var(--bad); }
+
+  footer.end {
+    border-top: 1px solid var(--rule);
+    padding-top: 26px;
+    margin-top: 12px;
+    font-size: 14.5px;
+    color: var(--ink-faint);
+  }
+  footer.end code { font-family: var(--mono); font-size: 13px; color: var(--ink-soft); }
+
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+</style>
+
+<div class="wrap">
+
+  <header class="top">
+    <p class="eyebrow">Tool grid · design review · 29 Aug 2026</p>
+    <h1>The cards aren't thin. Most are empty.</h1>
+    <p class="standfirst">A look at what pdf.net and iLovePDF put on a tool card, what we put on ours, and the one number that reframes the problem: <strong>67 of our 114 tools have no description at all.</strong></p>
+  </header>
+
+  <section>
+    <h2><span class="q">The finding</span>It isn't a copy-length problem</h2>
+    <p class="col lede">The instinct on seeing pdf.net's grid is that our blurbs are too short. That's the second problem. The first is that most cards don't have one.</p>
+
+    <div class="stat">
+      <span class="fig">67</span>
+      <p class="say">tools out of 114 have no <code style="font-family:var(--mono);font-size:13px">desc</code> in <code style="font-family:var(--mono);font-size:13px">all-tools-directory.tsx</code>. They render as a name and nothing else, in the same row as cards that do have one — so the grid has ragged holes in it.</p>
+    </div>
+
+    <div class="band">
+      <p class="band-label"><span class="tag now">Today</span> Convert to PDF — as it renders right now</p>
+      <div class="grid">
+        <div class="card"><span class="ico" style="background:#0ea5e91f;color:#0284c7">◎</span><span class="nm">Scan to PDF</span><span class="ds empty">no description</span></div>
+        <div class="card"><span class="ico" style="background:#4f46e51f;color:#4f46e5">▤</span><span class="nm">JPG to PDF</span><span class="ds">Images into a PDF</span></div>
+        <div class="card"><span class="ico" style="background:#2563eb1f;color:#2563eb">W</span><span class="nm">Word to PDF</span><span class="ds">Word into a PDF</span></div>
+        <div class="card"><span class="ico" style="background:#c2410c1f;color:#c2410c">▰</span><span class="nm">PowerPoint to PDF</span><span class="ds">Slides into a PDF</span></div>
+        <div class="card"><span class="ico" style="background:#15803d1f;color:#15803d">▦</span><span class="nm">Excel to PDF</span><span class="ds">Sheets into a PDF</span></div>
+        <div class="card"><span class="ico" style="background:#0891b21f;color:#0891b2">&lt;/&gt;</span><span class="nm">HTML to PDF</span><span class="ds">Web page to PDF</span></div>
+      </div>
+    </div>
+
+    <p class="col">Look at the four that do have copy. <em>Word into a PDF. Slides into a PDF. Sheets into a PDF. Web page to PDF.</em> Each one restates the tool's own name with different grammar. A person reading that learns nothing they didn't get from the title — so the line costs a row of vertical space and returns nothing.</p>
+  </section>
+
+  <section>
+    <h2><span class="q">What they actually do</span>The structure is the idea, not the length</h2>
+    <p class="col">pdf.net's blurbs are two clauses, and the second one is doing all the work:</p>
+
+    <div class="formula">
+      <span class="a">Transform DOC/DOCX to PDF.</span> <span class="b">Preserve formatting.</span><br>
+      <span class="a">Merge JPEG photos into a single PDF file</span> <span class="b">without losing quality.</span><br>
+      <span class="a">Combine multiple PNG images into one PDF.</span> <span class="b">Resolution maintained.</span><br>
+      <span class="a">Turn iPhone HEIC photos into a shareable PDF.</span> <span class="b">Opens on any device.</span>
+      <div class="note" style="margin-top:14px">Clause one: what it does. Clause two: the specific thing you were afraid would go wrong.</div>
+    </div>
+
+    <p class="col">Nobody converting a Word file is unsure what "Word to PDF" means. They're wondering whether their table will survive. <strong>Preserve formatting</strong> is the whole sale, in two words. iLovePDF does the same thing at greater length — <em>"The converted WORD document is almost 100% accurate"</em> — and even hedges honestly with <em>almost</em>.</p>
+
+    <h3>We already know how to write these</h3>
+    <p class="col">Our AI tools have the best copy on the site, and they're the ones nobody points at:</p>
+
+    <div class="band">
+      <p class="band-label">Existing blurbs, AI &amp; scan group</p>
+      <div class="grid">
+        <div class="card"><span class="ico" style="background:#7c3aed1f;color:#7c3aed">✦</span><span class="nm">Chat with PDF</span><span class="ds">page-cited answers you can verify</span></div>
+        <div class="card"><span class="ico" style="background:#0d94881f;color:#0d9488">≡</span><span class="nm">Summarise</span><span class="ds">checkable summary, any language</span></div>
+        <div class="card"><span class="ico" style="background:#dc26261f;color:#dc2626">◐</span><span class="nm">Share-safe check</span><span class="ds">spots personal info, you approve</span></div>
+        <div class="card"><span class="ico" style="background:#4f46e51f;color:#4f46e5">⇄</span><span class="nm">Compare PDF</span><span class="ds">what changed — amounts, dates, terms</span></div>
+      </div>
+    </div>
+
+    <p class="col"><em>page-cited answers you can verify</em> is a better line than anything pdf.net has written. It names the exact fear about an AI reading your document and answers it in five words. The pattern is already ours — it just stopped at the AI group.</p>
+  </section>
+
+  <section>
+    <h2><span class="q">The proposal</span>One formula, applied to all 114</h2>
+
+    <div class="formula">
+      <span class="a">[what it does]</span> — <span class="b">[the thing you were worried about]</span><br>
+      <div class="note" style="margin-top:12px">Six to ten words. Two lines maximum at card width. Never restate the tool's name.</div>
+    </div>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th style="width:23%">Tool</th><th style="width:30%">Today</th><th>Proposed</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Rotate PDF</strong></td><td class="was">Turn pages visually</td><td class="now-c">Turn pages upright — the fix sticks when you save</td></tr>
+          <tr><td><strong>Compress PDF</strong></td><td class="was">Shrink the size</td><td class="now-c">Smaller file, text still sharp</td></tr>
+          <tr><td><strong>Merge PDF</strong></td><td class="was">Join files into one</td><td class="now-c">Combine in any order, at any size</td></tr>
+          <tr><td><strong>Word to PDF</strong></td><td class="was">Word into a PDF</td><td class="now-c">Fonts and layout land where you left them</td></tr>
+          <tr><td><strong>Split PDF</strong></td><td class="was">Pull out pages</td><td class="now-c">Take a page or a range, original untouched</td></tr>
+          <tr><td><strong>Scan to PDF</strong></td><td class="was">—</td><td class="now-c">Photograph paper, get a straightened PDF</td></tr>
+          <tr><td><strong>Compress to size</strong></td><td class="was">—</td><td class="now-c">Hit an exact KB limit a portal insists on</td></tr>
+          <tr><td><strong>Bank statement to Excel</strong></td><td class="was">—</td><td class="now-c">Rows that add up to the closing balance</td></tr>
+          <tr><td><strong>PDF to Excel</strong></td><td class="was">—</td><td class="now-c">Tables you can total, not a screenshot</td></tr>
+          <tr><td><strong>Repair PDF</strong></td><td class="was">—</td><td class="now-c">Opens files other readers refuse</td></tr>
+          <tr><td><strong>Bates numbering</strong></td><td class="was">—</td><td class="now-c">Numbering that runs on across files</td></tr>
+          <tr><td><strong>Share-Safe PDF Check</strong></td><td class="was">—</td><td class="now-c">Finds what's hidden before you send it</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Two additions worth making at the same time</h3>
+
+    <p class="col"><strong>A format-pair chip on converters.</strong> pdf.net's illustrated icons beat flat glyphs because they <em>show</em> the transformation — you read DOCX→PDF before you read a word. Commissioning 114 illustrations is a real art budget; a monospace pair chip gets most of that benefit for nothing, and scans faster than an icon at small sizes.</p>
+
+    <p class="col"><strong>Say "on your device" in words, not a glyph.</strong> Our single biggest differentiator is currently a small crossed-out cloud in a card corner. Nobody decodes that. It's also the one thing on the card that no competitor can copy.</p>
+
+    <div class="band">
+      <p class="band-label"><span class="tag now">Now</span> &nbsp;→&nbsp; <span class="tag next">Proposed</span> &nbsp; same card, both treatments</p>
+      <div class="ba">
+        <div class="grid" style="grid-template-columns:1fr;min-width:0">
+          <div class="card">
+            <span class="ico" style="background:#2563eb1f;color:#2563eb">W</span>
+            <span class="nm">Word to PDF</span>
+            <span class="ds">Word into a PDF</span>
+          </div>
+          <div class="card">
+            <span class="ico" style="background:#0d94881f;color:#0d9488">◱</span>
+            <span class="nm">Compress PDF</span>
+            <span class="ds">Shrink the size</span>
+          </div>
+          <div class="card">
+            <span class="ico" style="background:#0ea5e91f;color:#0284c7">◎</span>
+            <span class="nm">Scan to PDF</span>
+            <span class="ds empty">no description</span>
+          </div>
+        </div>
+        <div class="grid" style="grid-template-columns:1fr;min-width:0">
+          <div class="card">
+            <span class="pair">DOCX → PDF</span>
+            <span class="nm">Word to PDF</span>
+            <span class="ds">Fonts and layout land where you left them</span>
+            <span class="runs srv">Runs on our server</span>
+          </div>
+          <div class="card">
+            <span class="pair">PDF → PDF</span>
+            <span class="nm">Compress PDF</span>
+            <span class="ds">Smaller file, text still sharp</span>
+            <span class="runs">Runs on your device</span>
+          </div>
+          <div class="card">
+            <span class="pair">PHOTO → PDF</span>
+            <span class="nm">Scan to PDF</span>
+            <span class="ds">Photograph paper, get a straightened PDF</span>
+            <span class="runs">Runs on your device</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Why not just copy their length</h3>
+    <p class="col">They have 35 tools; we have 114. Their three-line description costs them one screen. At our count the same treatment adds roughly 340 lines of text to the grid and turns a scannable directory into a wall. The formula above stays at two lines, which holds the current row height — the cards get more useful without the page getting longer.</p>
+  </section>
+
+  <section>
+    <h2><span class="q">Your second question</span>Does "Jump back in" earn its place?</h2>
+
+    <div class="verdict">
+      <div class="verdict-head">Keep it, but stop looking at it. It isn't the feature you're reaching for.</div>
+      <div class="verdict-body">
+        <p>It costs nothing and it's well built — <code style="font-family:var(--mono);font-size:13.5px">jump-back-in.tsx</code> returns <code style="font-family:var(--mono);font-size:13.5px">null</code> when there's no history, so a first-time visitor from search never sees it. There's no case for removing it.</p>
+        <p>But it isn't pulling its weight either, for three honest reasons:</p>
+        <ul class="ticks">
+          <li class="no">It duplicates the ⌘K palette's Recent section. Two surfaces, one list.</li>
+          <li class="no">Recency is a weak signal. The row in your screenshot reads <em>Receipt scanner, Budget tracker, Webpage to PDF, Compress PDF</em> — four unrelated errands, not a workflow. It tells you what you touched, which you already know.</li>
+          <li class="no">It sits above <strong>All tools</strong>, the most valuable strip on the page, and only ever serves returning homepage visitors — a small slice when most traffic lands directly on a tool page from search.</li>
+        </ul>
+        <p><strong>The version worth building is already item 9 on the roadmap:</strong> a “what comes next” dock. Sequence beats recency, because it works on the first visit too. Someone who just compressed a PDF is about to send it — that's the moment for Share-safe check. Someone who merged is about to add page numbers. That row helps a stranger; a recents row can only ever help you.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="q">If you want it</span>What shipping this looks like</h2>
+    <ul class="ticks">
+      <li>Write 114 blurbs to the formula, move them out of <code style="font-family:var(--mono);font-size:13.5px">all-tools-directory.tsx</code> and into <code style="font-family:var(--mono);font-size:13.5px">catalog.tsx</code> beside the tool, so the description lives with the thing it describes.</li>
+      <li>Add a guard test: a tool without a description fails the build. That's how the count went to 67 unnoticed.</li>
+      <li>Add the format-pair chip on the converter groups only — it's noise on <em>Budget tracker</em>.</li>
+      <li>Replace the corner badge glyph with the words, keeping the honest three states we already model: on your device, our server, encrypted.</li>
+    </ul>
+    <p class="col">Roughly a day, no new components, and it lifts every tool page's card as well as the home grid. The blurbs are also on-page text on 114 routes, which the thin ones currently aren't contributing.</p>
+  </section>
+
+  <footer class="end">
+    Counts read from <code>components/app/catalog.tsx</code> and <code>components/home/all-tools-directory.tsx</code> on 29 Aug 2026. Competitor wording quoted from pdf.net and ilovepdf.com the same day. Card specimens are recreations at the product's real dimensions, not screenshots.
+  </footer>
+
+</div>
