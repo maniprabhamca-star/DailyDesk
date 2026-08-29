@@ -21,7 +21,7 @@ Status values: `todo` · `in progress` · `shipped` · `blocked` · `parked`
 | 4 | Bank statement guides 11 → 40 | 28 | **shipped** | 2026-08-29 · 39 pages |
 | 5 | Competitor alternatives 4 → 10 | 5 | **shipped** | 2026-08-29 (9 of 10; Canva pending a source) |
 | 6 | Sector pages 4 → 12 | 5 | **in progress** | 9 of 12 · 2026-08-29 |
-| 7 | Indian statutory forms library | ~40–60 | **todo** | |
+| 7 | Indian statutory forms library | 22 | **in progress** | first tranche 2026-08-29 |
 | 8 | US forms library (privacy wedge) | ~30–60 | **todo** | |
 | 9 | "What comes next" dock | 0 | **todo** | |
 | 10 | AI document generator / invoice builder | 1–2 | **todo** | |
@@ -445,3 +445,56 @@ when somebody clicks it.
 NAIC Insurance Data Security Model Law (#668) — its existence and state-adoption
 map are confirmed on content.naic.org, but the requirement wording is in the
 model law document and was not retrieved, so it is not being written from memory.
+
+---
+
+## 7 — Indian statutory forms · first tranche shipped 2026-08-29
+
+**21 form pages + an index**, at `/india-forms/<slug>`. Income tax (Form 16, 16A,
+26AS, AIS, ITR-1 to 4, 15G, 15H, 10E, 12BB), PAN (49A, 49AA), GST (GSTR-1, 3B, 9)
+and EPF (Forms 19, 10C, 31, 13). Site: **214 → 236 URLs**.
+
+### Two rules this family runs on, both enforced by tests
+
+**1. We never host the form.** Government forms are revised without notice, and a
+stale copy served from our domain is worse than no copy — it looks current, so
+someone files last year's version and finds out months later. Every page links to
+the issuing authority, and the test rejects any `officialUrl` that is not a
+`.gov.in`/`.nic.in` page, or that points straight at a PDF.
+
+**2. No page states a deadline as fact.** These dates move every year and are
+extended more often than not. The test requires hedging language in every `when`
+field and fails on any concrete calendar date. It caught six fields on the first
+run and they were rewritten rather than the rule being loosened.
+
+### The framing that makes it honest
+
+**Most of these are filed online now.** ITRs are e-filed, EPF claims go through
+the UAN portal, GST returns through the GST portal. A page implying you download
+a PDF and fill it in would be wrong about the main thing it describes — which is
+the trap pdf.net's US forms library does not have, because those genuinely are
+fillable PDFs.
+
+So these pages do not pretend to be the filing. They cover the document work
+**around** it, which is the part nobody helps with: two Form 16s to combine, a
+26AS to reconcile, investment proofs to squeeze under a payroll portal's upload
+cap, a statement to turn into rows. Every page says plainly that we do not file
+anything and are not affiliated with any department.
+
+### Why the gotcha field is the whole product
+
+It is the sentence that makes a page worth linking to, and the test enforces one
+per form with no duplicates. Examples: two employers in one year means the second
+knows nothing about the first, so the exemption is applied twice; taking the EPF
+withdrawal benefit ends the service a scheme certificate would have preserved;
+claiming arrears relief without filing 10E first gets the relief reversed.
+
+### Remaining
+
+~20–40 more: Aadhaar enrolment and correction, the company forms (SPICe+, DIR-3
+KYC, AOC-4, MGT-7), GST REG-01, banking KYC and FATCA/CRS declarations, and
+nomination forms. The template and the guard tests are done, so the rest is
+writing.
+
+**Linked from the footer's Product column on day one** — not left an orphan, per
+the lesson two items earlier.

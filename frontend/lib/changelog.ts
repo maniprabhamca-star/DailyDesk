@@ -24,6 +24,14 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-08-29',
+    kind: 'new',
+    title: 'Indian tax, GST and EPF forms explained',
+    detail:
+      "A plain-English guide to 21 Indian forms: Form 16, Form 16A, 26AS, AIS, all four ITR forms, 15G and 15H, 10E, 12BB, the PAN forms 49A and 49AA, GSTR-1, 3B and 9, and the EPF claim forms 19, 10C, 31 and 13. Each page says what the form is, who files it, roughly when, and — the part nobody writes down — the specific thing people get wrong. Two Form 16s from two employers in one year, and the second employer knowing nothing about the first. Taking the EPF withdrawal benefit when a scheme certificate would have kept your pension service. Claiming arrears relief without filing 10E first, so the relief is reversed. We do not host any of the forms. Government forms get revised without notice and a stale copy served from here would be worse than none, so every page links to the department that issues it. We also do not file anything for you — what these tools do is the paperwork around the filing, which is where the real friction is: combining certificates, squeezing a scan under a payroll portal upload cap, turning a statement into rows that add up.",
+    href: '/india-forms'
+  },
+  {
+    date: '2026-08-29',
     kind: 'improved',
     title: 'Pages for finance, public sector and property — and all of them findable',
     detail:

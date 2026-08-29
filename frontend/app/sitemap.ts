@@ -3,6 +3,7 @@ import { SITE_URL } from '@/lib/site';
 import { PASSPORT_SPECS } from '@/lib/passport-specs';
 import { DEV_TOOLS } from '@/lib/dev-tools';
 import { BANK_PAGES } from '@/lib/bank-statements';
+import { INDIA_FORMS } from '@/lib/india-forms';
 import { WORKFLOWS } from '@/lib/statement-workflows';
 import { SECTORS } from '@/lib/sectors';
 
@@ -89,6 +90,7 @@ const ROUTES: Array<{ path: string; priority: number; changeFrequency: MetadataR
   { path: '/overview', priority: 0.7, changeFrequency: 'monthly' },
   { path: '/why-diemdesk', priority: 0.8, changeFrequency: 'weekly' },
   { path: '/changelog', priority: 0.6, changeFrequency: 'weekly' },
+  { path: '/india-forms', priority: 0.8, changeFrequency: 'monthly' },
   { path: '/compare', priority: 0.7, changeFrequency: 'monthly' },
   { path: '/smallpdf-alternative', priority: 0.7, changeFrequency: 'monthly' },
   { path: '/ilovepdf-alternative', priority: 0.7, changeFrequency: 'monthly' },
@@ -132,6 +134,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
   // Bank-specific Statement Converter landing pages — the flagship's SEO engine.
   // (The converter tool itself is owner-gated until launch and stays out of the
   // sitemap, like /edit-pdf; these content pages seed ranking in the meantime.)
+  const formRoutes = INDIA_FORMS.map((f) => ({
+    url: `${SITE_URL}/india-forms/${f.slug}`,
+    lastModified,
+    changeFrequency: 'monthly' as const,
+    priority: 0.7,
+  }));
+
   const bankRoutes = BANK_PAGES.map((b) => ({
     url: `${SITE_URL}/bank-statement-converter/${b.slug}`,
     lastModified,
@@ -160,5 +169,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     changeFrequency: 'monthly' as const,
     priority: 0.7,
   }));
-  return [...staticRoutes, ...devRoutes, ...bankRoutes, ...workflowRoutes, ...sectorRoutes, ...countryRoutes];
+  return [...staticRoutes, ...devRoutes, ...bankRoutes, ...formRoutes, ...workflowRoutes, ...sectorRoutes, ...countryRoutes];
 }
