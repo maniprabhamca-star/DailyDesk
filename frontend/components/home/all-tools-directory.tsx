@@ -427,19 +427,38 @@ export function AllToolsDirectory({ full = false, asPage = false }: { full?: boo
           </div>
         )}
 
-        {/* Legend — "where each tool runs" (single subtle divider, no boxed band) */}
+        {/* This was a colour key, and once every card started saying "Runs in
+            your browser" in words it became five labels repeated under a grid
+            that already carried them.
+            It earns its place by answering the next question instead of the
+            one already answered. The cards say WHERE a tool runs; this says
+            what that means for your file. Those sentences existed already — as
+            `title` tooltips, which need a hover to read and therefore do not
+            exist at all on a phone. */}
         <div className="mt-10 border-t border-border/60 pt-6">
-          <p className="mb-4 text-center text-xs text-muted-foreground">Where each tool runs — your files stay on your device for everything that can run there.</p>
-          <div className="mx-auto grid w-fit grid-cols-[auto_auto] justify-items-start gap-x-8 gap-y-3 sm:flex sm:w-auto sm:flex-wrap sm:justify-center sm:gap-x-5 sm:gap-y-2">
+          <p className="mb-5 text-center text-sm font-medium text-foreground">
+            What happens to your file, tool by tool
+          </p>
+          <dl className="mx-auto grid max-w-4xl gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
             {(Object.keys(BADGE) as (keyof typeof BADGE)[]).map((k) => {
               const B = BADGE[k];
+              // The hints are written to stand alone as tooltips, so one of them
+              // opens by restating its own label. Sitting under that label here,
+              // that reads as a stutter — so drop the prefix when it is there.
+              const meaning = B.hint.startsWith(B.label)
+                ? B.hint.slice(B.label.length).replace(/^\s*[—–-]\s*/, '').replace(/^./, (c) => c.toUpperCase())
+                : B.hint;
               return (
-                <span key={k} title={B.hint} className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                  <B.icon className="size-4 shrink-0" style={{ color: B.color }} aria-hidden="true" /> {B.label}
-                </span>
+                <div key={k} className="flex gap-2.5">
+                  <B.icon className="mt-0.5 size-4 shrink-0" style={{ color: B.color }} aria-hidden="true" />
+                  <div>
+                    <dt className="text-xs font-semibold" style={{ color: B.color }}>{B.label}</dt>
+                    <dd className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{meaning}</dd>
+                  </div>
+                </div>
               );
             })}
-          </div>
+          </dl>
         </div>
       </div>
     </section>
