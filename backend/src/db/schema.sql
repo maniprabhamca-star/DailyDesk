@@ -142,3 +142,15 @@ CREATE TABLE IF NOT EXISTS subscription_cancellations (
   created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_cancellations_created ON subscription_cancellations(created_at DESC);
+
+-- Stripe Checkout terms-of-service acceptance. Hosted Checkout always DISCLOSES
+-- the recurring terms; consent_collection additionally records that the customer
+-- ticked to accept them. Stripe keeps this on the session, which is fine until
+-- the day someone disputes a charge and you are paging through the dashboard —
+-- so the webhook mirrors it onto the user.
+--
+-- Nullable on purpose: it stays NULL until a Terms of service URL is configured
+-- on the Stripe account, and every row written before that date legitimately has
+-- no acceptance to record. A NULL here means "not collected", never "refused".
+ALTER TABLE users ADD COLUMN IF NOT EXISTS tos_accepted_at TIMESTAMPTZ;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS tos_accepted_session VARCHAR(80);

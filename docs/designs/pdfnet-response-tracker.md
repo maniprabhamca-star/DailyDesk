@@ -16,7 +16,7 @@ Status values: `todo` · `in progress` · `shipped` · `blocked` · `parked`
 | 0 | `llms.txt` + 176 Markdown twins | 0 | **shipped** | 2026-08-29 |
 | 1 | Centralise file-accept lists (+`.ppsx`, HEIC everywhere) | 0 | **shipped** | 2026-08-29 |
 | 1b | HEIC in the 5 PDF-embed tools (sign/watermark/annotate/edit/signature) | 0 | **shipped** | 2026-08-29 |
-| 2 | Stripe ToS consent checkbox | 0 | **todo** | |
+| 2 | Stripe ToS consent checkbox | 0 | **shipped** | 2026-08-29 · self-arming when the URL is set |
 | 3 | Passport differentiation + verify 21 specs | 0 | **in progress** | Tier 1: UK/Canada/Australia done 2026-08-29 |
 | 4 | Bank statement guides 11 → 40 | ~29 | **todo** | |
 | 5 | Competitor alternatives 4 → 10 | 5 | **shipped** | 2026-08-29 (9 of 10; Canva pending a source) |
@@ -33,7 +33,7 @@ Status values: `todo` · `in progress` · `shipped` · `blocked` · `parked`
 | Item | Where | Status |
 |---|---|---|
 | Unblock AI crawlers | Cloudflare → diemdesk.com → Security → Settings → Bots → **AI Scrapers and Crawlers = Off**; content signals `ai-train=yes`, `ai-input=yes` | **open** |
-| Terms of Service URL for the checkout consent box | Stripe Dashboard → Settings → Business → Public details → Terms of service URL = `https://diemdesk.com/terms` | **open** (needed by item 2) |
+| Terms of Service URL for the checkout consent box | Stripe Dashboard → Settings → Business → Public details → Terms of service URL = `https://diemdesk.com/terms` | **open** — no longer BLOCKING: the code ships the consent box and drops it if Stripe refuses, so setting the URL arms it with no deploy |
 | Admin portal bind | commit `"start": "next start -H 127.0.0.1 -p 3100"` to `DailyDesk-Admin-Portal` | **open** |
 
 ---
@@ -328,3 +328,38 @@ agency, and journalism's source protection is not a data-security regime at all.
 Writing them from memory would put a confident legal citation on a page aimed at
 compliance-minded readers, which is the one audience that will check. They are
 worth doing properly, one verified regulation at a time.
+
+---
+
+## 2 — Stripe ToS consent · shipped 2026-08-29
+
+**The trap.** `consent_collection: { terms_of_service: 'required' }` is a single
+line, and adding it plainly would have broken every checkout on the site the
+moment it deployed. Stripe **rejects the parameter outright** unless a Terms of
+service URL is configured on the account, and ours is not set. That is the exact
+failure mode the checkout-reliability rule exists to prevent: a customer who was
+ready to pay, meeting a 500 caused by our configuration.
+
+**What shipped instead.** The parameter is applied as a strippable layer. If
+Stripe refuses it, the route retries without it and the customer pays normally —
+we lose the acceptance record, never the sale. The consequence worth noting:
+**the owner action is no longer blocking.** The day the ToS URL is set in the
+dashboard, the checkbox starts appearing with no deploy and no code change.
+
+**The record is persisted, not just collected.** Stripe keeps consent on the
+session, which is no help at 2am during a dispute, so the webhook mirrors it to
+`users.tos_accepted_at` / `tos_accepted_session`. That write sits **after** the
+plan upgrade and in its own try/catch — a missing column on a database that has
+not run the latest `schema.sql` must never be why someone paid and stayed on
+free. Absent consent is a footnote; a failed upgrade is an incident.
+
+**`npm run test:checkout`** (17 assertions, no Stripe account, no network, no
+database) proves every configuration failure still ends in a checkout URL: no
+ToS URL, no ToS URL + dead coupon, no ToS URL + stale customer id, and three
+different wordings of Stripe's rejection, because they have reworded it before.
+It also asserts the two things a careless fallback would get wrong — a genuine
+error is still raised rather than swallowed, and a coupon failure alone does
+**not** drop the consent box.
+
+**Not copied:** pdf.net's $0.95-for-14-days auto-renewing at $49.88/month. Their
+consent wall is loud because that model earns chargebacks. Ours is flat $5.98.

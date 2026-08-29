@@ -58,7 +58,20 @@ router.post('/create-checkout-session', requireAuth, async (req, res) => {
       cancel_url: `${FRONTEND}/pricing?canceled=1`,
       allow_promotion_codes: true,
       metadata: { userId: String(req.user.userId) },
+      // Hosted Checkout already discloses the recurring terms; what this adds is
+      // a RECORD that the customer accepted them, stored by Stripe on the
+      // session and mirrored onto the user row by the webhook. Worth having
+      // before the first chargeback, not after.
+      //
+      // ⚠ Stripe REJECTS this unless a Terms of service URL is set on the
+      // account (Dashboard → Settings → Business → Public details). It is not
+      // set yet, which is why this is applied as a strippable layer rather than
+      // baked into `base` — see the fallback below. The day the owner sets that
+      // URL, consent starts being collected with no deploy.
+      consent_collection: { terms_of_service: 'required' },
     };
+    // `base` minus the parameter Stripe refuses without a configured ToS URL.
+    const withoutConsent = (f) => { const { consent_collection, ...rest } = f; return rest; };
     // The founding discount is applied for them. Making a founder hunt for a
     // promo code to get the price we advertised would be a strange way to treat
     // the first thousand customers.
@@ -76,16 +89,36 @@ router.post('/create-checkout-session', requireAuth, async (req, res) => {
       user.stripe_customer_id ? { ...fields, customer: user.stripe_customer_id } : { ...fields, customer_email: user.email }
     );
 
-    // Two independent things can go wrong, and neither may cost us the sale:
-    //   1. the coupon is exhausted / expired / mistyped  -> charge standing price
-    //   2. the stored customer id is unknown to Stripe   -> make a fresh customer
-    // (2) predates the coupon and happens with a leftover live id while testing.
+    // Three independent things can go wrong, and NONE of them may cost us the
+    // sale — a checkout that 500s is a customer who was ready to pay and wasn't
+    // allowed to:
+    //   1. the account has no Terms of service URL -> drop the consent checkbox
+    //   2. the coupon is exhausted / expired / mistyped -> charge standing price
+    //   3. the stored customer id is unknown to Stripe  -> make a fresh customer
+    // (3) predates the coupon and happens with a leftover live id while testing.
     const msgOf = (e) => (e && e.message) || '';
+    // Stripe's wording has changed before, so match on either half of it.
+    const isConsentError = (e) => /terms[_ ]of[_ ]service|consent_collection/i.test(msgOf(e));
     let session;
     try {
       session = await create(withCoupon);
     } catch (e) {
-      if (FOUNDING_COUPON && /coupon|promotion/i.test(msgOf(e))) {
+      if (isConsentError(e)) {
+        // Not an error the customer should ever meet. Take the checkbox off and
+        // let them pay; the acceptance record is the thing we lose, not the sale.
+        console.warn('[stripe] ToS consent rejected — set a Terms of service URL in Dashboard → Settings → Business → Public details:', msgOf(e));
+        try {
+          session = await create(withoutConsent(withCoupon));
+        } catch (e2) {
+          if (FOUNDING_COUPON && /coupon|promotion/i.test(msgOf(e2))) {
+            session = await create(withoutConsent(base));
+          } else if (user.stripe_customer_id && /No such customer/i.test(msgOf(e2))) {
+            session = await s.checkout.sessions.create({ ...withoutConsent(withCoupon), customer_email: user.email });
+          } else {
+            throw e2;
+          }
+        }
+      } else if (FOUNDING_COUPON && /coupon|promotion/i.test(msgOf(e))) {
         console.warn('[stripe] founding coupon rejected, falling back to standing price:', msgOf(e));
         session = await create(base);
       } else if (user.stripe_customer_id && /No such customer/i.test(msgOf(e))) {
@@ -352,6 +385,23 @@ async function webhookHandler(req, res) {
       if (userId) {
         await db.query('UPDATE users SET plan = $1, stripe_customer_id = $2, updated_at = now() WHERE id = $3', ['pro', session.customer || null, userId]);
         console.log(`Stripe: user ${userId} → pro`);
+
+        // Mirror the terms acceptance onto the user, AFTER the upgrade and in
+        // its own try/catch. The upgrade is the thing a paying customer is
+        // waiting on; a missing column on a database that has not run the
+        // latest schema.sql must never be the reason someone paid and stayed
+        // on free. Absent consent is a footnote, a failed upgrade is an
+        // incident.
+        if (session.consent && session.consent.terms_of_service === 'accepted') {
+          try {
+            await db.query(
+              'UPDATE users SET tos_accepted_at = to_timestamp($1), tos_accepted_session = $2 WHERE id = $3 AND tos_accepted_at IS NULL',
+              [session.created || Math.floor(Date.now() / 1000), String(session.id).slice(0, 80), userId],
+            );
+          } catch (e) {
+            console.warn('[stripe] could not record ToS acceptance (run backend/src/db/schema.sql):', e.message);
+          }
+        }
       }
     } else if (event.type === 'customer.subscription.deleted') {
       const sub = event.data.object;
