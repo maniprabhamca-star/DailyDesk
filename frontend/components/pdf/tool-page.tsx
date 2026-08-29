@@ -8,6 +8,7 @@ import { EngineWarmup } from '@/components/pdf/engine-warmup';
 import { UploadWatch } from '@/components/app/upload-watch';
 import { ToolFacts } from '@/components/app/tool-facts';
 import { LastImproved } from '@/components/app/last-improved';
+import { NextSteps } from '@/components/app/next-steps';
 
 export type Faq = { q: string; a: string };
 
@@ -119,6 +120,7 @@ export function PdfToolPage({
           </div>
         </section>
 
+        <NextSteps />
         <LastImproved />
         </div>
       </main>

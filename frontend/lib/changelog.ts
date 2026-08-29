@@ -24,6 +24,14 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-08-29',
+    kind: 'feature',
+    title: 'Tool pages now suggest what usually comes next',
+    detail:
+      "Tool pages now tell you the step that usually comes after the one you just did, and why it follows. Compress a PDF and it points at the Share-Safe check, because you compressed it in order to send it and you should know what is hidden inside it first. Sign one and it offers to flatten it, so the signature cannot be dragged off the page afterwards. Scan a document and it offers OCR, because a photo of text is not text. It only appears where a step genuinely follows — on a tool where nothing does, there is nothing there, which is deliberate. This is the idea we picked over showing your recently used tools: recency only tells you what you already know you opened, and shows a first-time visitor nothing at all, while the next step is the same for everyone and works the first time you land here from a search.",
+    href: '/compress-pdf'
+  },
+  {
+    date: '2026-08-29',
     kind: 'improved',
     title: 'Aadhaar, company, GST registration and banking forms added',
     detail:

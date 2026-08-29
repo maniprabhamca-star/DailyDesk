@@ -23,7 +23,7 @@ Status values: `todo` · `in progress` · `shipped` · `blocked` · `parked`
 | 6 | Sector pages 4 → 12 | 5 | **in progress** | 9 of 12 · 2026-08-29 |
 | 7 | Indian statutory forms library | 33 | **shipped** | 32 forms + index · 2026-08-29 |
 | 8 | US forms library (privacy wedge) | ~30–60 | **todo** | |
-| 9 | "What comes next" dock | 0 | **todo** | |
+| 9 | "What comes next" dock | 0 | **shipped** | 2026-08-29 |
 | 10 | AI document generator / invoice builder | 1–2 | **todo** | |
 | 11 | Multi-document AI chat | 0 | **blocked** — File Vault | |
 | 12 | MCP server | 1 | **todo** | |
