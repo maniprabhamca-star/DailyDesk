@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { CSSProperties, useEffect, useState } from 'react';
-import { Search, Sparkles, MessageSquare, AlignLeft, Languages, HelpCircle, EyeOff, GitCompare, ArrowRight, Rows3, PanelLeft } from 'lucide-react';
+import { Search, Sparkles, MessageSquare, AlignLeft, Languages, HelpCircle, EyeOff, GitCompare, Rows3, PanelLeft } from 'lucide-react';
 import { catalog, BADGE, isNewTool, NEW_CHIP, type CatTool } from '@/components/app/catalog';
 import { useIsOwner } from '@/lib/plan';
 
@@ -384,17 +384,13 @@ export function AllToolsDirectory({ full = false, asPage = false }: { full?: boo
                     <Link href={`/tools#${groupId(g.label)}`} className="shrink-0 text-xs font-semibold text-primary hover:underline">See all {tools.length} &rarr;</Link>
                   )}
                 </div>
+                {/* No "+N more" tile. It was the third way to reach the same
+                    place — the "See all N →" link sits in this group's header
+                    and the category tabs above filter to it — and it was the
+                    worst of the three: a dashed box that wrapped onto a row of
+                    its own and left five empty cells beside it. */}
                 <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
                   {shown.map((t) => <Tile key={t.name} t={t} groupColor={g.color} />)}
-                  {hidden > 0 && (
-                    // Hidden on mobile: the "See all N →" link in the header already
-                    // covers this, and on a 2-col grid the lone tile leaves an empty
-                    // cell beside it. Kept from sm up, where the denser grid fills in.
-                    <button onClick={() => setCat(g.label)}
-                      className="hidden min-h-[96px] items-center justify-center gap-1.5 rounded-2xl border border-dashed bg-card/50 p-3.5 text-sm font-semibold text-muted-foreground transition-all hover:-translate-y-0.5 hover:border-primary/60 hover:text-primary sm:flex">
-                      + {hidden} more <ArrowRight className="size-3.5" />
-                    </button>
-                  )}
                 </div>
               </div>
             );
