@@ -21,6 +21,8 @@ import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
 import { FAMILIES, type Family } from '@/lib/fonts';
 import { FontSelect } from '@/components/app/font-select';
+import { pickedImageForPdf, pdfImageDataUrl, describeImageFailure } from '@/lib/image-for-pdf';
+import { ACCEPT } from '@/lib/accept';
 
 // Annotate PDF — highlight, draw, box and type on a live page preview, then
 // flatten the markup onto the original pages with the shared place-image rewrite
@@ -660,11 +662,17 @@ export function AnnotateTool() {
   }
   function pickImageFile(files: FileList | null) {
     const f = files?.[0]; if (!f) return;
-    if (!/^image\/(png|jpe?g|webp|gif)$/i.test(f.type) && !/\.(png|jpe?g|webp|gif)$/i.test(f.name)) { setError('Please choose a PNG, JPG, WebP or GIF image.'); return; }
     setError(null);
-    const reader = new FileReader();
-    reader.onload = () => { const url = String(reader.result); const probe = new Image(); probe.onload = () => addImageSrc(url, probe.naturalHeight / probe.naturalWidth); probe.src = url; };
-    reader.readAsDataURL(f);
+    // Shared decoder (HEIC included), normalised to a PNG/JPEG data URL — safe
+    // for the canvas composite at export and for a saved session.
+    void (async () => {
+      try {
+        const img = await pickedImageForPdf(f);
+        addImageSrc(await pdfImageDataUrl(img), img.aspect);
+      } catch (e) {
+        setError(describeImageFailure(f, e));
+      }
+    })();
   }
   function deleteImage(id: string) { setImages((a) => a.filter((i) => i.id !== id)); if (selImg === id) setSelImg(null); }
   function imgDown(e: React.PointerEvent<HTMLElement>, id: string, mode: 'move' | 'resize') {
@@ -1126,7 +1134,7 @@ export function AnnotateTool() {
   return (
     <>
       <input ref={inputRef} type="file" accept="application/pdf,.pdf" aria-label="Choose a PDF file" className="dd-file-input" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
-      <input ref={imgFileRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" aria-label="Choose an image file" className="dd-file-input" onChange={(e) => { pickImageFile(e.target.files); e.currentTarget.value = ''; }} />
+      <input ref={imgFileRef} type="file" accept={ACCEPT.image} aria-label="Choose an image file" className="dd-file-input" onChange={(e) => { pickImageFile(e.target.files); e.currentTarget.value = ''; }} />
       {sigOpen && <SignatureMaker onClose={() => setSigOpen(false)} onCreate={(url, aspect) => addImageSrc(url, aspect)} />}
 
       {tooBig ? (

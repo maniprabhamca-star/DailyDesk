@@ -33,19 +33,11 @@ describe('file accept lists', () => {
   // exists to take a HEIC, and offering a PNG to an SVG converter would be a lie.
   const SINGLE_FORMAT = ['components/tools/heic-tool.tsx', 'components/tools/svg-convert-tool.tsx'];
 
-  // Still cannot open a HEIC — tracked as item 1b in
-  // docs/designs/pdfnet-response-tracker.md. These embed a picked image INTO a
-  // PDF using `new Image()` and a data URL, which fails on HEIC the same way
-  // createImageBitmap does; widening the picker before fixing the loader would
-  // turn "greyed out" into "picked, then error", which is worse. Listed exactly,
-  // so this shrinks as they are fixed rather than becoming permanent furniture.
-  const KNOWN_NARROW = [
-    'components/pdf/annotate-tool.tsx',
-    'components/pdf/edit-tool.tsx',
-    'components/pdf/sign-tool.tsx',
-    'components/pdf/signature-maker.tsx',
-    'components/pdf/watermark-tool.tsx',
-  ];
+  // Emptied 2026-08-29 (item 1b): the five PDF-embed tools now decode through
+  // pickedImageForPdf, so their pickers are wide. The mechanism stays — any
+  // future exemption must be listed here by name, with a reason, and leaves the
+  // moment it is fixed rather than becoming permanent furniture.
+  const KNOWN_NARROW: string[] = [];
 
   it('never narrows an image picker to a hand-written format list', () => {
     // A narrow image accept is a bug, not a safety feature: `accept` is a
@@ -125,6 +117,26 @@ describe('file accept lists', () => {
     expect(officeRe, 'backend OFFICE_RE must admit .pps/.ppsx').toMatch(/ppsx\?/);
     // and it must route to the PowerPoint tool, not fall through to a default
     expect(convert).toMatch(/pptx\?\|ppsx\?[^)]*\)\$\/i\.test\(name\)/);
+  });
+
+  it('takes every image placed INTO a PDF through the shared decoder', () => {
+    // These tools hand picked images to pdf-lib or composite them onto a page
+    // canvas — both only speak JPEG/PNG, and `new Image()` cannot open a HEIC.
+    // pickedImageForPdf normalises at pick time; going around it brings the
+    // iPhone-photo refusal straight back.
+    const EMBED_TOOLS = [
+      'components/pdf/annotate-tool.tsx',
+      'components/pdf/edit-tool.tsx',
+      'components/pdf/sign-tool.tsx',
+      'components/pdf/signature-maker.tsx',
+      'components/pdf/watermark-tool.tsx',
+    ];
+    for (const f of EMBED_TOOLS) {
+      expect(read(f), `${f} must decode picked images via pickedImageForPdf`).toMatch(/pickedImageForPdf/);
+    }
+    // The workflows signature pad stores a canvas PNG, not pdf-lib bytes, so it
+    // uses the bitmap decoder — same shared HEIC path.
+    expect(read('components/tools/signature-pad.tsx')).toMatch(/decodeToBitmap/);
   });
 
   it('offers HEIC everywhere an image is taken', () => {

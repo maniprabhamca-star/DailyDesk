@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { PenTool, Type as TypeIcon, ImagePlus, Eraser, Check, X, Undo2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { pickedImageForPdf, pdfImageDataUrl, describeImageFailure } from '@/lib/image-for-pdf';
+import { ACCEPT } from '@/lib/accept';
 
 // Reusable signature builder (draw / type / upload) — the same approach as the
 // Sign PDF tool, packaged as a modal so Annotate can drop a signature onto the
@@ -108,10 +110,18 @@ export function SignatureMaker({ onClose, onCreate }: { onClose: () => void; onC
   }
   function useUpload(files: FileList | null) {
     const f = files?.[0]; if (!f) return;
-    if (!/^image\/(png|jpe?g)$/i.test(f.type) && !/\.(png|jpe?g)$/i.test(f.name)) { setErr('Use a PNG (transparent works best) or JPG.'); return; }
-    const reader = new FileReader();
-    reader.onload = () => { const url = String(reader.result); const img = new Image(); img.onload = () => onCreate(url, img.naturalHeight / img.naturalWidth); img.onerror = () => setErr('Could not read that image.'); img.src = url; onClose(); };
-    reader.readAsDataURL(f);
+    setErr(null);
+    // Shared decoder: iPhone HEIC and mislabelled Android HEIF included. On a
+    // failure the dialog stays open and says what the decoder found.
+    void (async () => {
+      try {
+        const img = await pickedImageForPdf(f);
+        onCreate(await pdfImageDataUrl(img), img.aspect);
+        onClose();
+      } catch (e) {
+        setErr(describeImageFailure(f, e));
+      }
+    })();
   }
 
   const tab = (id: Source, icon: React.ReactNode, label: string) => (
@@ -128,7 +138,7 @@ export function SignatureMaker({ onClose, onCreate }: { onClose: () => void; onC
           <h3 className="text-base font-semibold">Add a signature</h3>
           <button onClick={onClose} aria-label="Close" className="text-muted-foreground hover:text-foreground"><X className="size-5" /></button>
         </div>
-        <input ref={uploadRef} type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg" aria-label="Choose an image file" className="dd-file-input" onChange={(e) => { useUpload(e.target.files); e.currentTarget.value = ''; }} />
+        <input ref={uploadRef} type="file" accept={ACCEPT.image} aria-label="Choose an image file" className="dd-file-input" onChange={(e) => { useUpload(e.target.files); e.currentTarget.value = ''; }} />
         <div className="grid grid-cols-3 gap-2">
           {tab('draw', <PenTool className="size-4" />, 'Draw')}
           {tab('type', <TypeIcon className="size-4" />, 'Type')}

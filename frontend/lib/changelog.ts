@@ -25,6 +25,14 @@ export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-08-29',
     kind: 'fixed',
+    title: 'You can sign, stamp and annotate a PDF with a photo from your phone',
+    detail:
+      'The tools that put a picture into a PDF — Sign, Watermark, Annotate, Edit and the signature maker — were the last holdouts still asking for a PNG or a JPG. So the obvious thing, photographing your signature on a piece of paper and uploading it, did not work from an iPhone, because an iPhone saves that photo as a HEIC. The file picker greyed it out and there was nothing on screen explaining why. All five now take any photo your phone produces, HEIC included, along with WebP, GIF, BMP, TIFF and AVIF. A signature with a transparent background stays transparent — we keep the see-through parts rather than flattening them onto a white box, which is the whole reason people export a signature as a PNG in the first place. If a picture genuinely cannot be opened, the message now says what the file turned out to be instead of just refusing.',
+    href: '/sign-pdf',
+  },
+  {
+    date: '2026-08-29',
+    kind: 'fixed',
     title: 'iPhone photos now work in every image tool, not just some of them',
     detail:
       'An iPhone saves photos as HEIC, and until now most of our image tools quietly refused them. Compress, Convert, Crop, Resize, Remove background, the passport photo maker, the EXIF cleaner and the QR reader would either grey the photo out in the file picker or accept it and then say it could not be read — and one of them helpfully suggested you go and convert it with our own HEIC to JPG tool first, which is a strange thing for us to ask when we already had the decoder sitting there. Worse on Android, where the phone hands over a HEIC photo labelled as a JPG: the file went through, then failed. All of those tools now open an iPhone photo directly. PowerPoint show files (.ppsx and .pps) convert too — they always could, they were just missing from the list of things we said we accepted.',

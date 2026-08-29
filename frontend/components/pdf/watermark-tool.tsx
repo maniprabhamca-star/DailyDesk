@@ -18,6 +18,8 @@ import { rewritePdf } from '@/lib/pdf-rewrite';
 import { useCancelableJob, isCancel } from '@/lib/use-cancelable-job';
 import type { StampCore, StampLayer } from '@/lib/pdf-stamp';
 import { FAMILIES, loadFontBytes, type Family } from '@/lib/fonts';
+import { pickedImageForPdf, describeImageFailure } from '@/lib/image-for-pdf';
+import { ACCEPT } from '@/lib/accept';
 import { FontSelect } from '@/components/app/font-select';
 
 // Watermark PDF — text OR logo/image stamps, 100% in the browser (pdf-lib), with
@@ -196,15 +198,19 @@ export function WatermarkTool() {
   function pickLogo(files: FileList | null) {
     const f = files?.[0];
     if (!f) return;
-    const isPng = /image\/png/.test(f.type) || /\.png$/i.test(f.name);
-    const isJpg = /image\/jpeg/.test(f.type) || /\.jpe?g$/i.test(f.name);
-    if (!isPng && !isJpg) { setError('Logo must be a PNG or JPG image.'); return; }
     setError(null);
-    void f.arrayBuffer().then((buf) => {
-      setImageName(f.name);
-      set('imageBytes', new Uint8Array(buf));
-      set('imageIsPng', isPng);
-    });
+    // Shared decoder: any readable image (iPhone HEIC included) becomes
+    // PNG/JPEG bytes pdf-lib embeds; transparency survives where it exists.
+    void (async () => {
+      try {
+        const img = await pickedImageForPdf(f);
+        setImageName(f.name);
+        set('imageBytes', new Uint8Array(img.bytes));
+        set('imageIsPng', img.isPng);
+      } catch (e) {
+        setError(describeImageFailure(f, e));
+      }
+    })();
   }
 
   useEffect(() => {
@@ -287,7 +293,7 @@ export function WatermarkTool() {
     <Card>
       <CardContent className="p-5">
         <input ref={inputRef} type="file" accept="application/pdf,.pdf" aria-label="Choose a PDF file" className="dd-file-input" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
-        <input ref={logoRef} type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg" aria-label="Choose an image file" className="dd-file-input" onChange={(e) => { pickLogo(e.target.files); e.currentTarget.value = ''; }} />
+        <input ref={logoRef} type="file" accept={ACCEPT.image} aria-label="Choose an image file" className="dd-file-input" onChange={(e) => { pickLogo(e.target.files); e.currentTarget.value = ''; }} />
         {handoffNote && (
           <p className="mb-3 flex items-center gap-2 rounded-lg border border-primary/25 bg-primary/[0.06] px-3 py-2 text-sm text-foreground">
             <Zap className="size-4 shrink-0 text-primary" /> {handoffNote}
@@ -383,7 +389,7 @@ export function WatermarkTool() {
               ) : (
                 <>
                   <div className="mt-4 flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={() => logoRef.current?.click()}><Upload className="size-4" /> {settings.imageBytes ? 'Change logo' : 'Choose logo (PNG or JPG)'}</Button>
+                    <Button variant="outline" size="sm" onClick={() => logoRef.current?.click()}><Upload className="size-4" /> {settings.imageBytes ? 'Change logo' : 'Choose logo'}</Button>
                     {imageName && <span className="truncate text-xs text-muted-foreground">{imageName}</span>}
                   </div>
                   <p className="mt-1.5 text-[11px] text-muted-foreground">PNG transparency is preserved.</p>

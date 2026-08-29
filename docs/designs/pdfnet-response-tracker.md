@@ -15,7 +15,7 @@ Status values: `todo` · `in progress` · `shipped` · `blocked` · `parked`
 |---|---|---|---|---|
 | 0 | `llms.txt` + 176 Markdown twins | 0 | **shipped** | 2026-08-29 |
 | 1 | Centralise file-accept lists (+`.ppsx`, HEIC everywhere) | 0 | **shipped** | 2026-08-29 |
-| 1b | HEIC in the 5 PDF-embed tools (sign/watermark/annotate/edit/signature) | 0 | **todo** | |
+| 1b | HEIC in the 5 PDF-embed tools (sign/watermark/annotate/edit/signature) | 0 | **shipped** | 2026-08-29 |
 | 2 | Stripe ToS consent checkbox | 0 | **todo** | |
 | 3 | Passport differentiation + verify 21 specs | 0 | **todo** | |
 | 4 | Bank statement guides 11 → 40 | ~29 | **todo** | |
@@ -86,6 +86,58 @@ URL, which fails on HEIC the same way. They are listed by name in the test's
 `KNOWN_NARROW`, with a second assertion that the list SHRINKS rather than
 becoming permanent furniture. Widening their pickers before fixing the loader
 would turn "greyed out" into "picked, then error", which is worse.
+
+---
+
+## 1b — HEIC in the five PDF-embed tools · shipped 2026-08-29
+
+These five were the ones where the refusal was most visible: photographing a
+signature on paper and uploading it is the obvious way to sign a PDF, and from an
+iPhone it did not work. The picker greyed the photo out with nothing on screen
+explaining why.
+
+**They are a different problem from item 1.** The rest of the image tools only
+need pixels, so `decodeToBitmap()` was enough. These hand the image to **pdf-lib**
+(`embedPng`/`embedJpg`) or composite it onto a page canvas — both of which only
+speak JPEG and PNG. A bitmap does not help; they need *bytes* in one of two
+formats.
+
+**`pickedImageForPdf(file)` in `lib/image-for-pdf.ts`** normalises once, at pick
+time, so every step afterwards — preview `<img>`, canvas draw, pdf-lib embed,
+saved editor session — is guaranteed to work. It returns `{ bytes, isPng,
+aspect }`, routed by magic bytes:
+
+| Sniffed | Path | Why |
+|---|---|---|
+| JPEG / PNG | passed through byte-for-byte | no re-encode, no quality loss |
+| HEIC / TIFF / BMP | `rasterize()` → JPEG | photos; reuses the shipped libheif path and the phone canvas cap |
+| WebP / GIF / AVIF / unknown | decode → PNG | **may carry transparency** — a logo or a signature on a clear background |
+
+That last row is the one worth keeping: the PNG branch deliberately does **not**
+white-fill the canvas the way `rasterize()` does. Flattening a transparent
+signature onto a white box defeats the reason people export one as a PNG.
+
+- All five pickers now use `ACCEPT.image`; `KNOWN_NARROW` is **empty**.
+- Annotate and Edit keep placed images as data URLs (via `pdfImageDataUrl`) —
+  they must survive in a saved session, where an object URL dies with the tab.
+  Only the loader changed; Edit's core logic was not touched.
+- `components/tools/signature-pad.tsx` (Saved Workflows) went through too. It
+  stores a canvas PNG in `localStorage`, not pdf-lib bytes, so it uses
+  `decodeToBitmap` — capped at 1600px, because a full 12MP photo as a PNG data
+  URL would blow the ~5MB quota.
+- Failures now report through `describeImageFailure`, naming what the file
+  turned out to be rather than refusing on the filename.
+- `tests/unit/file-accepts.test.ts` — 7 assertions. `KNOWN_NARROW` emptied, and a
+  new one requires all five to route through `pickedImageForPdf` (and the
+  signature pad through `decodeToBitmap`), so the hole cannot reopen. **167 unit
+  tests pass.**
+
+**Verified in the browser**, not just by test: a PNG named `signature.heic` with
+`type: image/heic` is accepted where the old name check refused it; a transparent
+WebP comes back as a PNG with the corner pixel still at alpha 0 and its 200×80
+dimensions intact; Sign exports a valid PDF whose image object is `FlateDecode`
+(the PNG path, transparency kept, not flattened to JPEG); Watermark accepts a
+mislabelled logo and stamps it.
 
 ---
 

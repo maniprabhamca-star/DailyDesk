@@ -295,6 +295,96 @@ export async function decodeToBitmap(file: File): Promise<ImageBitmap> {
   return createImageBitmap(id);
 }
 
+// ---- picked images that get PLACED INTO a PDF -------------------------------
+// Sign, Watermark, Annotate, Edit and the signature maker all take a picked
+// image and later hand it to pdf-lib (embedPng/embedJpg) or composite it onto a
+// page canvas. Both destinations only speak JPEG and PNG — so normalise ONCE,
+// at pick time, and every step after that (preview <img>, canvas draw, pdf-lib
+// embed, saved session) is guaranteed to work. Each of those tools previously
+// probed with `new Image()` + a data URL, which cannot open a HEIC, so an
+// iPhone photo of a signature was refused.
+//
+// Format rule: JPEG/PNG pass through byte-for-byte (no quality loss). HEIC,
+// TIFF and BMP are photos — re-encoded as JPEG so a 12MP shot stays sane.
+// Everything else (WebP, GIF, AVIF) may carry transparency — a logo or a
+// signature with a clear background — so those become PNG.
+export type PickedPdfImage = { bytes: ArrayBuffer; isPng: boolean; aspect: number };
+
+async function probeDims(blob: Blob): Promise<{ w: number; h: number }> {
+  if (typeof createImageBitmap === 'function') {
+    try {
+      const b = await createImageBitmap(blob);
+      const d = { w: b.width, h: b.height };
+      b.close();
+      if (d.w && d.h) return d;
+    } catch { /* fall through to the <img> probe */ }
+  }
+  const url = URL.createObjectURL(blob);
+  try {
+    const el = await new Promise<HTMLImageElement>((res, rej) => {
+      const i = new Image();
+      i.onload = () => res(i);
+      i.onerror = () => rej(new Error('this browser could not decode that image'));
+      i.src = url;
+    });
+    if (!el.naturalWidth || !el.naturalHeight) throw new Error('That image reports no size.');
+    return { w: el.naturalWidth, h: el.naturalHeight };
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+export async function pickedImageForPdf(file: File): Promise<PickedPdfImage> {
+  const bytes = await readPickedFile(file);
+  const src = toSource(file, bytes);
+  const fmt = sniffFormat(bytes);
+
+  // Already what pdf-lib and every browser understand: keep the bytes untouched.
+  if (fmt === 'jpeg' || fmt === 'png') {
+    const { w, h } = await probeDims(new Blob([bytes], { type: `image/${fmt}` }));
+    return { bytes, isPng: fmt === 'png', aspect: h / w };
+  }
+
+  // Photo formats with no transparency in practice — JPEG via the shared
+  // rasterizer, which handles HEIC (libheif) and caps the canvas for phones.
+  if (fmt === 'heic' || fmt === 'tiff' || fmt === 'bmp') {
+    const { bytes: jpg } = await rasterize(src);
+    const { w, h } = await probeDims(new Blob([jpg], { type: 'image/jpeg' }));
+    return { bytes: jpg, isPng: false, aspect: h / w };
+  }
+
+  // WebP / GIF / AVIF / unrecognised: decode (with the <img> fallback for older
+  // browsers) and re-encode as PNG so transparency survives. No white fill here
+  // on purpose — a transparent signature must stay transparent.
+  const dec = await decodeStandard(src);
+  try {
+    const [w, h] = fitWithin(dec.w, dec.h, MAX_CANVAS_PIXELS);
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('This browser ran out of room to open that image.');
+    dec.draw(ctx, w, h);
+    const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/png'));
+    canvas.width = canvas.height = 0;
+    if (!blob) throw new Error('This browser ran out of memory re-encoding that image.');
+    return { bytes: await blob.arrayBuffer(), isPng: true, aspect: h / w };
+  } finally {
+    dec.release();
+  }
+}
+
+// Annotate/Edit keep placed images as data URLs — they survive in a saved
+// editor session where an object URL would die with the tab.
+export function pdfImageDataUrl(img: PickedPdfImage): Promise<string> {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(String(r.result));
+    r.onerror = () => rej(new Error('could not encode the image'));
+    r.readAsDataURL(new Blob([img.bytes], { type: img.isPng ? 'image/png' : 'image/jpeg' }));
+  });
+}
+
 // ---- the entry point --------------------------------------------------------
 // `embed` is pdf-lib's embedJpg/embedPng pair, and it is called EXACTLY ONCE.
 // An earlier version "probed" with embedJpg and then embedded again on success,

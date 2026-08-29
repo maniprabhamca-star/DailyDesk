@@ -8,6 +8,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Check, Eraser, ImagePlus, Trash2 } from 'lucide-react';
 import { trimCanvas } from '@/lib/signature-canvas';
+import { decodeToBitmap, describeImageFailure } from '@/lib/image-for-pdf';
 import { loadSignature, saveSignature, clearSignature, type SavedSignature } from '@/lib/workflows/signature';
 
 export function SignaturePad() {
@@ -77,24 +78,28 @@ export function SignaturePad() {
   function pickImage(files: FileList | null) {
     const f = files?.[0];
     if (!f) return;
-    if (!f.type.startsWith('image/')) { setError('Choose a PNG or JPG image.'); return; }
-    const reader = new FileReader();
-    reader.onload = () => {
-      const img = new Image();
-      img.onload = () => {
+    setError(null);
+    // Shared decoder so an iPhone HEIC works here too. Capped: this lands in
+    // localStorage as a PNG data URL, and a full 12MP photo would blow the
+    // ~5MB quota — a signature stamp never needs more than this.
+    void (async () => {
+      try {
+        const bmp = await decodeToBitmap(f);
+        const scale = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
         const c = document.createElement('canvas');
-        c.width = img.naturalWidth;
-        c.height = img.naturalHeight;
-        c.getContext('2d')!.drawImage(img, 0, 0);
+        c.width = Math.max(1, Math.round(bmp.width * scale));
+        c.height = Math.max(1, Math.round(bmp.height * scale));
+        const ctx = c.getContext('2d')!;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(bmp, 0, 0, c.width, c.height);
+        bmp.close();
         // A transparent PNG trims to its strokes; a photo on white has no
         // transparency to measure, so it's kept whole.
         adopt(trimCanvas(c) ?? c);
-      };
-      img.onerror = () => setError('Could not read that image.');
-      img.src = String(reader.result);
-    };
-    reader.onerror = () => setError('Could not read that image.');
-    reader.readAsDataURL(f);
+      } catch (e) {
+        setError(describeImageFailure(f, e));
+      }
+    })();
   }
 
   function forget() { clearSignature(); setSig(null); }

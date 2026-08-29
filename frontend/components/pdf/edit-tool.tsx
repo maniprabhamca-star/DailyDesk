@@ -21,6 +21,8 @@ import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
 import { FAMILIES, type Family } from '@/lib/fonts';
 import { applyLineEdits, COVER_TOP, COVER_H, BASELINE, type LineEdit, type BlockEdit } from '@/lib/pdf-edit-text';
 import { pageBackground, lineColors, type RGB } from '@/lib/pdf-sample';
+import { pickedImageForPdf, pdfImageDataUrl, describeImageFailure } from '@/lib/image-for-pdf';
+import { ACCEPT } from '@/lib/accept';
 
 // Edit PDF — HYBRID in-place text editing (see docs/edit-pdf-approach.md).
 // pdf.js detects each LINE of text (box, size, colour) and splits it into words.
@@ -1095,16 +1097,17 @@ export function EditTool() {
 
   function pickImageFile(files: FileList | null) {
     const f = files?.[0]; if (!f) return;
-    if (!/^image\/(png|jpe?g|webp|gif)$/i.test(f.type) && !/\.(png|jpe?g|webp|gif)$/i.test(f.name)) { setError('Please choose a PNG, JPG, WebP or GIF image.'); return; }
     setError(null);
-    const reader = new FileReader();
-    reader.onload = () => {
-      const url = String(reader.result);
-      const probe = new Image();
-      probe.onload = () => addImageSrc(url, probe.naturalHeight / probe.naturalWidth);
-      probe.src = url;
-    };
-    reader.readAsDataURL(f);
+    // Shared decoder (HEIC included), normalised to a PNG/JPEG data URL — safe
+    // for the canvas composite at export and for a saved session.
+    void (async () => {
+      try {
+        const img = await pickedImageForPdf(f);
+        addImageSrc(await pdfImageDataUrl(img), img.aspect);
+      } catch (e) {
+        setError(describeImageFailure(f, e));
+      }
+    })();
   }
 
   function deleteImage(id: string) {
@@ -2093,7 +2096,7 @@ export function EditTool() {
   return (
     <div ref={editorTopRef}>
       <input id="edit-pdf-upload" ref={inputRef} type="file" accept="application/pdf,.pdf" className="sr-only" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
-      <input ref={imgFileRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="sr-only" onChange={(e) => { pickImageFile(e.target.files); e.currentTarget.value = ''; }} />
+      <input ref={imgFileRef} type="file" accept={ACCEPT.image} className="sr-only" onChange={(e) => { pickImageFile(e.target.files); e.currentTarget.value = ''; }} />
       {sigOpen && <SignatureMaker onClose={() => setSigOpen(false)} onCreate={(url, aspect) => addImageSrc(url, aspect)} />}
 
       {tooBig ? (

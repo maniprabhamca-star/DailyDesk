@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { downloadBlob as download } from '@/lib/download';
 import { trimCanvas } from '@/lib/signature-canvas';
+import { pickedImageForPdf, describeImageFailure } from '@/lib/image-for-pdf';
+import { ACCEPT } from '@/lib/accept';
 import { PdfDone } from '@/components/app/pdf-done';
 import { takeHandoff } from '@/lib/handoff';
 import { rewritePdf } from '@/lib/pdf-rewrite';
@@ -209,20 +211,20 @@ export function SignTool() {
   function pickSigImage(files: FileList | null) {
     const f = files?.[0];
     if (!f) return;
-    const isPng = /png$/i.test(f.type) || /\.png$/i.test(f.name);
-    const isJpg = /jpe?g$/i.test(f.type) || /\.jpe?g$/i.test(f.name);
-    if (!isPng && !isJpg) { setError('Signature image must be PNG (transparent background works best) or JPG.'); return; }
     setError(null);
-    void f.arrayBuffer().then((buf) => {
-      const bytes = new Uint8Array(buf);
-      const url = URL.createObjectURL(new Blob([buf], { type: f.type }));
-      const img = new Image();
-      img.onload = () => {
+    // The shared decoder normalises anything we can read — an iPhone HEIC
+    // included — to PNG/JPEG bytes pdf-lib embeds directly. Format is decided
+    // from the bytes, never the name: Android calls a HEIF "photo.jpg".
+    void (async () => {
+      try {
+        const img = await pickedImageForPdf(f);
+        const url = URL.createObjectURL(new Blob([img.bytes], { type: img.isPng ? 'image/png' : 'image/jpeg' }));
         if (sig) URL.revokeObjectURL(sig.url);
-        setSig({ bytes, isPng, url, aspect: img.naturalHeight / img.naturalWidth });
-      };
-      img.src = url;
-    });
+        setSig({ bytes: new Uint8Array(img.bytes), isPng: img.isPng, url, aspect: img.aspect });
+      } catch (e) {
+        setError(describeImageFailure(f, e));
+      }
+    })();
   }
 
   // ---- drag placement --------------------------------------------------------
@@ -277,7 +279,7 @@ export function SignTool() {
     <Card>
       <CardContent className="p-5">
         <input ref={inputRef} type="file" accept="application/pdf,.pdf" aria-label="Choose a PDF file" className="dd-file-input" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
-        <input ref={sigUploadRef} type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg" aria-label="Choose an image file" className="dd-file-input" onChange={(e) => { pickSigImage(e.target.files); e.currentTarget.value = ''; }} />
+        <input ref={sigUploadRef} type="file" accept={ACCEPT.image} aria-label="Choose an image file" className="dd-file-input" onChange={(e) => { pickSigImage(e.target.files); e.currentTarget.value = ''; }} />
         {handoffNote && (
           <p className="mb-3 flex items-center gap-2 rounded-lg border border-primary/25 bg-primary/[0.06] px-3 py-2 text-sm text-foreground">
             <Zap className="size-4 shrink-0 text-primary" /> {handoffNote}
