@@ -23,6 +23,14 @@ export type ChangeEntry = {
 // flags flip, dated then.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-08-29',
+    kind: 'improved',
+    title: 'Every page now has a plain-text version, for people and for AI assistants',
+    detail:
+      'More and more people find a tool by asking an assistant rather than by searching, and an assistant landing on an ordinary web page has to pick three useful sentences out of a wall of markup. So every page on the site now also exists as plain text: add .md to any address — diemdesk.com/compress-pdf.md, or /passport-photo/japan.md — and you get the same content with nothing but words in it. There is also an index at diemdesk.com/llms.txt listing all 176 pages with what each one does, whether it runs in your browser or on our servers, and whether it is free. Useful if you want to read a page without the page, paste one into something, or point your own assistant at the right tool. The text is generated from the published page every time we deploy, so it cannot quietly drift out of date with what the page actually says.',
+    href: '/llms.txt',
+  },
+  {
     date: '2026-08-28',
     kind: 'fixed',
     title: 'Webpage to PDF stopped giving up on busy pages — and now tells you what it is doing',
