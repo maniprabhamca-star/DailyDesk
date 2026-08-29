@@ -8,6 +8,7 @@ import { BigFileHint } from '@/components/app/big-file-hint';
 import { KeepGoing } from '@/components/app/keep-going';
 import { usePlan } from '@/lib/plan';
 import { readMeta, detectFaces, exportCleanImage, type BlurRect, type MetaReport } from '@/lib/photo-privacy';
+import { decodeToBitmap } from '@/lib/image-for-pdf';
 
 const MAX_W = 560, MAX_H = 620;
 
@@ -38,7 +39,7 @@ export function PhotoPrivacyTool() {
     if (!/^image\//.test(f.type) && !/\.(jpe?g|png|webp|heic|heif)$/i.test(f.name)) { setError('Please choose a photo (JPG, PNG, or WebP).'); return; }
     setError(null); setDone(null); setBoxes([]);
     try {
-      const b = await createImageBitmap(f);
+      const b = await decodeToBitmap(f);
       setSrcUrl((u) => { if (u) URL.revokeObjectURL(u); return URL.createObjectURL(f); });
       setBmp(b); setFile(f); setMeta(await readMeta(f));
     } catch { setError('Could not read that photo.'); }

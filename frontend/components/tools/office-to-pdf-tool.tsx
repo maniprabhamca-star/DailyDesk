@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
+import { ACCEPT } from '@/lib/accept';
 import { ConversionLimitUpsell } from './conversion-limit';
 
 // Shared engine for Word/Excel/PowerPoint -> PDF (DiemDesk's server tier —
@@ -35,7 +36,7 @@ type OfficeKind = {
 const KINDS: Record<OfficeKindId, OfficeKind> = {
   word: {
     label: 'Word document',
-    accept: '.doc,.docx,.odt,.rtf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    accept: ACCEPT.documents,
     extRe: /\.(docx?|odt|rtf)$/i,
     hint: 'DOCX, DOC, ODT or RTF',
     icon: FileType2,
@@ -44,7 +45,7 @@ const KINDS: Record<OfficeKindId, OfficeKind> = {
   },
   excel: {
     label: 'Excel spreadsheet',
-    accept: '.xls,.xlsx,.ods,.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv',
+    accept: ACCEPT.spreadsheets,
     extRe: /\.(xlsx?|ods|csv)$/i,
     hint: 'XLSX, XLS, ODS or CSV',
     icon: FileSpreadsheet,
@@ -53,9 +54,11 @@ const KINDS: Record<OfficeKindId, OfficeKind> = {
   },
   powerpoint: {
     label: 'PowerPoint presentation',
-    accept: '.ppt,.pptx,.odp,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation',
-    extRe: /\.(pptx?|odp)$/i,
-    hint: 'PPTX, PPT or ODP',
+    accept: ACCEPT.presentations,
+    // .pps/.ppsx must be in BOTH the accept list and this gate — widening only
+    // the picker would let the file be chosen and then reject it.
+    extRe: /\.(pptx?|ppsx?|odp|fodp)$/i,
+    hint: 'PPTX, PPT, PPSX or ODP',
     icon: Presentation,
     currentHref: '/powerpoint-to-pdf',
     fromLabel: 'PowerPoint to PDF',
@@ -65,7 +68,7 @@ const KINDS: Record<OfficeKindId, OfficeKind> = {
   // go, and we are not publishing four pages that say the same thing.
   odf: {
     label: 'OpenDocument file',
-    accept: '.odt,.ods,.odp,.odg,.fodt,.fods,.fodp,application/vnd.oasis.opendocument.text,application/vnd.oasis.opendocument.spreadsheet,application/vnd.oasis.opendocument.presentation,application/vnd.oasis.opendocument.graphics',
+    accept: ACCEPT.opendocument,
     extRe: /\.(odt|ods|odp|odg|fodt|fods|fodp)$/i,
     hint: 'ODT, ODS, ODP or ODG',
     icon: FileType2,

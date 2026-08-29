@@ -14,7 +14,8 @@ Status values: `todo` · `in progress` · `shipped` · `blocked` · `parked`
 | # | Item | New pages | Status | Shipped |
 |---|---|---|---|---|
 | 0 | `llms.txt` + 176 Markdown twins | 0 | **shipped** | 2026-08-29 |
-| 1 | Centralise file-accept lists (+`.ppsx`, HEIC everywhere) | 0 | **todo** | |
+| 1 | Centralise file-accept lists (+`.ppsx`, HEIC everywhere) | 0 | **shipped** | 2026-08-29 |
+| 1b | HEIC in the 5 PDF-embed tools (sign/watermark/annotate/edit/signature) | 0 | **todo** | |
 | 2 | Stripe ToS consent checkbox | 0 | **todo** | |
 | 3 | Passport differentiation + verify 21 specs | 0 | **todo** | |
 | 4 | Bank statement guides 11 → 40 | ~29 | **todo** | |
@@ -51,6 +52,40 @@ used for tool counts: derived, never typed.
 
 **Acceptance:** `.ppsx` converts · HEIC accepted by every image tool · no
 literal `accept="` string outside the shared module · guard test.
+
+### Shipped 2026-08-29 — and it was bigger than the accept lists
+
+There were **five separate image decoders**, four of which called
+`createImageBitmap`, and none of those can open a HEIC. So Compress, Convert,
+Crop, Resize, Remove background, the passport photo maker, the EXIF cleaner and
+the QR reader all refused iPhone photos. One of them told the user to go and
+convert the photo with our own HEIC to JPG tool first.
+
+On Android it was worse than a refusal: the phone labels a HEIF as `image/jpeg`,
+so the file passed the picker and then failed at decode.
+
+- `lib/accept.ts` — named accept groups, with the rule written down: a narrow
+  image accept is a bug, not a safety feature. `accept` is a picker convenience;
+  the real check is the byte sniff, because the name and the type both lie.
+- `decodeToBitmap()` exported from `lib/image-for-pdf.ts`. It returns a real
+  ImageBitmap, so every caller changed one import and nothing else — libheif
+  returns ImageData and `createImageBitmap` accepts ImageData, so there is no
+  re-encode in the middle.
+- Adopted by `image-convert`, `image-compress-core`, `qr-decode` and the four
+  phone-photo tools. Compress Image's "before" pane needed changing too: it
+  pointed an `<img>` at the raw picked file, which renders nothing for a HEIC.
+- `.pps`/`.ppsx` added to the picker, the frontend extension gate AND the backend
+  `OFFICE_RE` — widening only the picker lets a file be chosen and then rejected.
+- `tests/unit/file-accepts.test.ts` (6 assertions) now fails the build on a
+  narrow image accept, on a user-file `createImageBitmap` outside the shared
+  decoder, and if `.ppsx` drops out of either gate.
+
+**Left open as 1b.** The five tools that embed an image INTO a PDF (sign,
+watermark, annotate, edit, signature-maker) load through `new Image()` and a data
+URL, which fails on HEIC the same way. They are listed by name in the test's
+`KNOWN_NARROW`, with a second assertion that the list SHRINKS rather than
+becoming permanent furniture. Widening their pickers before fixing the loader
+would turn "greyed out" into "picked, then error", which is worse.
 
 ---
 

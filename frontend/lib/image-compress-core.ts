@@ -3,6 +3,7 @@
 // many files by the BatchRunner (Pro on-device batch). Decode → optional
 // downscale → mozjpeg re-encode (native-canvas fallback) → never bigger.
 import { encodeJpeg } from './mozjpeg';
+import { decodeToBitmap } from './image-for-pdf';
 
 export type ImgLevel = 'light' | 'recommended' | 'strong';
 export type ImgResize = 'original' | '2560' | '1920' | '1280';
@@ -11,21 +12,11 @@ export type ImgResize = 'original' | '2560' | '1920' | '1280';
 export const IMG_QUALITY: Record<ImgLevel, number> = { light: 82, recommended: 72, strong: 55 };
 const HARD_MAX_DIM = 8000; // never-hang clamp (a 100MP canvas OOMs low-RAM phones)
 
-export async function decodeImage(f: File): Promise<ImageBitmap | HTMLImageElement> {
-  if (typeof createImageBitmap === 'function') {
-    try { return await createImageBitmap(f); } catch { /* fall through */ }
-  }
-  const url = URL.createObjectURL(f);
-  try {
-    return await new Promise((res, rej) => {
-      const img = new Image();
-      img.onload = () => res(img);
-      img.onerror = () => rej(new Error('decode'));
-      img.src = url;
-    });
-  } finally {
-    URL.revokeObjectURL(url);
-  }
+// Shares the one HEIC-aware decoder, so a batch of iPhone photos compresses
+// like any other. It used to be a bare createImageBitmap with an Image() fallback,
+// and neither of those opens a HEIC.
+export async function decodeImage(f: File): Promise<ImageBitmap> {
+  return decodeToBitmap(f);
 }
 
 export type CompressedImage = { blob: Blob; name: string; before: number; after: number; w: number; h: number; optimized: boolean };

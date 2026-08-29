@@ -53,7 +53,11 @@ router.use(rateLimit({
 // Free daily quota (Pro unlimited) — after the burst limiter, before the routes.
 router.use(dailyQuota({ limit: FREE_DAILY }));
 
-const OFFICE_RE = /\.(docx?|odt|rtf|txt|html?|xlsx?|ods|csv|pptx?|odp|odg|fodt|fods|fodp)$/i;
+// .pps/.ppsx are PowerPoint SHOW files — the same deck saved to open straight
+// into the slideshow instead of the editor. LibreOffice has always converted
+// them; they were simply missing from this list, so anyone who had saved a deck
+// that way was told the format was unsupported.
+const OFFICE_RE = /\.(docx?|odt|rtf|txt|html?|xlsx?|ods|csv|pptx?|ppsx?|odp|odg|fodt|fods|fodp)$/i;
 
 // (CANARY_TOKEN / isCanaryReq are defined at the top — the canary bypasses the
 // kill-switch as well as the rate limits so it never meters itself.)
@@ -178,7 +182,7 @@ function convertRoute({ upload, sofficeArgs, buildCmd, outExt, failMessage, slug
 function officeSlug(file) {
   const name = (file && file.originalname || '').toLowerCase();
   if (/\.(xlsx?|ods|csv)$/i.test(name)) return '/excel-to-pdf';
-  if (/\.(pptx?|odp|fodp)$/i.test(name)) return '/powerpoint-to-pdf';
+  if (/\.(pptx?|ppsx?|odp|fodp)$/i.test(name)) return '/powerpoint-to-pdf';
   if (/\.(html?|txt)$/i.test(name)) return '/html-to-pdf';
   if (/\.odg$/i.test(name)) return '/odf-to-pdf'; // Draw has no MS-format sibling
   return '/word-to-pdf'; // docx/doc/odt/rtf and default

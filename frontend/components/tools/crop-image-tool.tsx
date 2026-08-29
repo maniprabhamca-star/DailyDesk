@@ -12,6 +12,7 @@ import { decodeImage, encodeCanvas, canEncodeWebp, detectFormat, type OutFormat 
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
 import { BigFileHint } from '@/components/app/big-file-hint';
+import { ACCEPT } from '@/lib/accept';
 
 // Crop image — a real draggable/resizable crop box on the photo itself, with
 // aspect presets. All fractions of the displayed image, applied to the
@@ -160,7 +161,7 @@ export function CropImageTool() {
   return (
     <Card>
       <CardContent className="p-5">
-        <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/bmp,.jpg,.jpeg,.png,.webp,.gif,.bmp" aria-label="Choose an image file" className="dd-file-input" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
+        <input ref={inputRef} type="file" accept={ACCEPT.image} aria-label="Choose an image file" className="dd-file-input" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
         {tooBig ? (
           <UpgradeNotice fileName={tooBig.name} sizeText={fmtBytes(tooBig.size)} limitText={fmtBytes(FREE_MAX_BYTES)} onReset={() => { setTooBig(null); inputRef.current?.click(); }} />
         ) : !file ? (

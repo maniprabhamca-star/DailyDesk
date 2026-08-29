@@ -9,6 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { THEME_LIST, EMPTY_BIO, type BioConfig, type BioLink } from '@/lib/bio-themes';
 import { BioPageView } from '@/components/bio/bio-page-view';
+import { decodeToBitmap } from '@/lib/image-for-pdf';
 import {
   getBio, createBio, updateBio, checkHandle, bioSignedIn, BioApiError,
 } from '@/lib/bio-api';
@@ -58,7 +59,7 @@ export function LinkInBioTool() {
   const onAvatar = useCallback(async (f?: File) => {
     if (!f || !f.type.startsWith('image/')) return;
     // Downscale to 400px square so the stored data URL stays small.
-    const bmp = await createImageBitmap(f);
+    const bmp = await decodeToBitmap(f);
     const size = 400;
     const c = document.createElement('canvas'); c.width = c.height = size;
     const ctx = c.getContext('2d')!;

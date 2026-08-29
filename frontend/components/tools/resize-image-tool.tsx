@@ -13,6 +13,7 @@ import { BatchRunner } from '@/components/app/batch-runner';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
 import { BigFileHint } from '@/components/app/big-file-hint';
+import { ACCEPT } from '@/lib/accept';
 
 const MAX_DIM = 12000; // sanity cap either side
 
@@ -188,7 +189,7 @@ export function ResizeImageTool() {
   return (
     <Card>
       <CardContent className="p-5">
-        <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/bmp,.jpg,.jpeg,.png,.webp,.gif,.bmp" multiple aria-label="Choose an image file" className="dd-file-input" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
+        <input ref={inputRef} type="file" accept={ACCEPT.image} multiple aria-label="Choose an image file" className="dd-file-input" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
         {tooBig ? (
           <UpgradeNotice fileName={tooBig.name} sizeText={fmtBytes(tooBig.size)} limitText={fmtBytes(FREE_MAX_BYTES)} onReset={() => { setTooBig(null); inputRef.current?.click(); }} />
         ) : batchFiles.length > 0 ? (

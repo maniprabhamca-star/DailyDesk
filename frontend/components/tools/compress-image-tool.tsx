@@ -17,6 +17,8 @@ import { buildPreviewCanvas, canvasToPngBlob, encodeCanvas } from '@/lib/image-c
 import { useQualityPreview } from '@/lib/use-quality-preview';
 import { BatchRunner } from '@/components/app/batch-runner';
 import { compressImageFile } from '@/lib/image-compress-core';
+import { decodeToBitmap, looksLikeImage } from '@/lib/image-for-pdf';
+import { ACCEPT } from '@/lib/accept';
 
 // Compress Image — 100% on-device. Decode → optional downscale → re-encode with
 // mozjpeg (same WASM encoder as PDF→JPG; graceful native-canvas fallback). Never
@@ -42,7 +44,10 @@ const RESIZES: Array<{ id: Resize; label: string; sub: string }> = [
 // at this long edge — a 100-megapixel canvas would OOM low-RAM phones.
 const HARD_MAX_DIM = 8000;
 
-const isImage = (f: File) => /image\/(jpeg|png|webp)/.test(f.type) || /\.(jpe?g|png|webp)$/i.test(f.name);
+// Permissive on purpose: a picker's name and type both lie — Android hands you a
+// HEIF called photo.jpg — so the real check is the decoder's byte sniff, and a
+// narrow gate here only greys out photos we can actually open.
+const isImage = looksLikeImage;
 
 function fmt(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -50,22 +55,9 @@ function fmt(bytes: number) {
   return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
 }
 
-async function decode(f: File): Promise<ImageBitmap | HTMLImageElement> {
-  if (typeof createImageBitmap === 'function') {
-    try { return await createImageBitmap(f); } catch { /* fall through */ }
-  }
-  const url = URL.createObjectURL(f);
-  try {
-    return await new Promise((res, rej) => {
-      const img = new Image();
-      img.onload = () => res(img);
-      img.onerror = () => rej(new Error('decode'));
-      img.src = url;
-    });
-  } finally {
-    URL.revokeObjectURL(url);
-  }
-}
+// This was a local createImageBitmap with an Image() fallback, and neither of
+// those opens a HEIC. It is the shared HEIC-aware decoder now.
+const decode = decodeToBitmap;
 
 export function CompressImageTool() {
   const plan = usePlan();
@@ -106,12 +98,12 @@ export function CompressImageTool() {
 
   function loadOne(f?: File) {
     if (!f) return;
-    if (!isImage(f)) { setError('Please choose a JPG, PNG, or WebP image.'); return; }
+    if (!isImage(f)) { setError('Please choose an image — JPG, PNG, WebP or an iPhone HEIC photo.'); return; }
     if (!canProcessSize(f.size, plan)) { setError(null); setTooBig({ name: f.name, size: f.size }); return; }
     setError(null);
     setTooBig(null);
     setDone((d) => { if (d) URL.revokeObjectURL(d.url); return null; });
-    setSrcUrl((u) => { if (u) URL.revokeObjectURL(u); return URL.createObjectURL(f); });
+    setSrcUrl((u) => { if (u) URL.revokeObjectURL(u); return null; });
     setSrcDims(null);
     releaseSource();
     setFile(f);
@@ -122,7 +114,12 @@ export function CompressImageTool() {
       try {
         const { canvas, w, h } = buildPreviewCanvas(srcSourceRef.current);
         const png = await canvasToPngBlob(canvas);
-        setBeforePrev((p) => { if (p) URL.revokeObjectURL(p.url); return { url: URL.createObjectURL(png), w, h }; });
+        const url = URL.createObjectURL(png);
+        setBeforePrev((p) => { if (p) URL.revokeObjectURL(p.url); return { url, w, h }; });
+        // The "before" image is the DECODED png, not the picked file. An <img>
+        // pointed at a raw HEIC renders nothing in Chrome or Firefox, so the
+        // preview pane sat empty for exactly the photos this tool now accepts.
+        setSrcUrl((u) => { if (u) URL.revokeObjectURL(u); return url; });
       } catch { /* preview is optional */ }
     }).catch(() => { /* info only */ });
   }
@@ -243,7 +240,7 @@ export function CompressImageTool() {
       <Card>
         <CardContent className="p-5">
           {/* value reset: browsers only fire change when the selection differs */}
-          <input ref={inputRef} type="file" multiple accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" aria-label="Choose an image file" className="dd-file-input" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
+          <input ref={inputRef} type="file" multiple accept={ACCEPT.image} aria-label="Choose an image file" className="dd-file-input" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
           {file && <BigFileHint bytes={file.size} threshold={500 * 1024 * 1024} />}
 
           {tooBig ? (

@@ -13,6 +13,7 @@ import { openPdf, yieldToLoop, type PdfHandle } from '@/lib/pdf-render';
 import { usePlan } from '@/lib/plan';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { ProCheckout } from '@/components/app/pro-checkout';
+import { decodeToBitmap } from '@/lib/image-for-pdf';
 
 // OCR — scanned PDF/image → SEARCHABLE PDF + text, at ~the original file size.
 // Pipeline (license-clean, no Ghostscript/Poppler): pages are rasterized in the
@@ -130,7 +131,7 @@ async function ocrBatch(blobs: Blob[], lang: string): Promise<{ pages: { words: 
 
 async function imageSize(file: File): Promise<{ w: number; h: number }> {
   try {
-    const b = await createImageBitmap(file);
+    const b = await decodeToBitmap(file);
     const s = { w: b.width, h: b.height };
     if (b.close) b.close();
     return s;
@@ -178,7 +179,7 @@ async function buildImagePdf(file: File, imgW: number, imgH: number, words: Word
   else if (isJpg) img = await doc.embedJpg(new Uint8Array(await file.arrayBuffer()));
   else {
     // webp/tiff/bmp → re-encode to JPEG via canvas so pdf-lib can embed it.
-    const bmp = await createImageBitmap(file);
+    const bmp = await decodeToBitmap(file);
     const c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height;
     c.getContext('2d')!.drawImage(bmp, 0, 0); if (bmp.close) bmp.close();
     const jpg = await new Promise<Blob>((res) => c.toBlob((b) => res(b!), 'image/jpeg', 0.9));

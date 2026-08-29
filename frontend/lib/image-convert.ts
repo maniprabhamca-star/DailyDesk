@@ -5,6 +5,7 @@
 // silently-broken download.
 
 import { encodeJpeg } from './mozjpeg';
+import { decodeToBitmap } from './image-for-pdf';
 
 export type OutFormat = 'jpg' | 'png' | 'webp';
 
@@ -16,12 +17,20 @@ export function canEncodeWebp(): boolean {
   }
 }
 
+/**
+ * Decode a picked image, HEIC included.
+ *
+ * This used to be a bare createImageBitmap whose failure message told people to
+ * go and convert their iPhone photo with our HEIC to JPG tool first — a two-step
+ * dance for something we already had the decoder for. It now shares the one
+ * HEIC-aware decoder, so Convert, Crop, Resize, Compress-to-size and the favicon
+ * pack all open an iPhone photo directly.
+ */
 export async function decodeImage(file: File | Blob): Promise<ImageBitmap> {
-  try {
-    return await createImageBitmap(file);
-  } catch {
-    throw new Error('Could not read that image. (iPhone HEIC photos: convert them with our HEIC to JPG tool first.)');
-  }
+  // A Blob has no name; the sniffer works off bytes anyway, and File is what
+  // every real caller passes.
+  const asFile = file instanceof File ? file : new File([file], 'image', { type: file.type });
+  return decodeToBitmap(asFile);
 }
 
 /** High-quality resample: progressive halving for big downscales (plain

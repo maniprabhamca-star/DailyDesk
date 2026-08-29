@@ -8,6 +8,7 @@ import { BigFileHint } from '@/components/app/big-file-hint';
 import { KeepGoing } from '@/components/app/keep-going';
 import { PASSPORT_SPECS, SPEC_GROUPS, isVerified, type PassportSpec } from '@/lib/passport-specs';
 import { renderPassport, prepareCutout, buildPrintSheet, type Crop } from '@/lib/passport-photo';
+import { decodeToBitmap } from '@/lib/image-for-pdf';
 
 const FRAME_W = 232;
 
@@ -112,7 +113,7 @@ export function PassportPhotoTool() {
     }
     setError(null); setResult(null); setCutout(null); setBgId('keep'); setZoom(1); setAutoPlaced(false);
     try {
-      const bmp = await createImageBitmap(f);
+      const bmp = await decodeToBitmap(f);
       setSrcBmp(bmp);
       setFile(f);
       const cover = Math.max(FRAME_W / bmp.width, frameH / bmp.height);

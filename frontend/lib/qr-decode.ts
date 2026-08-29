@@ -3,6 +3,8 @@
 // are downscaled — faster AND blur-tolerant; tiny screenshots are tried at
 // native size too) and both polarities (inversionAttempts) for dark-mode
 // screenshots. Returns the decoded string or null if no code was found.
+import { decodeToBitmap } from './image-for-pdf';
+
 type Drawable = ImageBitmap | HTMLImageElement;
 
 // jsQR is ~50KB — loaded on first scan, not with the page.
@@ -13,10 +15,12 @@ function getJsQr() {
 }
 
 async function loadImage(src: Blob): Promise<{ img: Drawable; w: number; h: number; done: () => void }> {
-  // createImageBitmap decodes off the main thread where supported…
+  // Through the shared decoder, so a QR photographed on an iPhone reads like any
+  // other. A bare createImageBitmap here refused HEIC, which is most photos taken
+  // of a code on a screen or a poster.
   if (typeof createImageBitmap === 'function') {
     try {
-      const bmp = await createImageBitmap(src);
+      const bmp = await decodeToBitmap(src instanceof File ? src : new File([src], 'qr', { type: src.type }));
       return { img: bmp, w: bmp.width, h: bmp.height, done: () => bmp.close() };
     } catch {
       // …fall through to the universal <img> path (older Safari, odd formats)

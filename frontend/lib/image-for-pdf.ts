@@ -234,6 +234,67 @@ export async function rasterize(src: SourceImage, opts: { maxPixels?: number; qu
   }
 }
 
+// ---- the general decoder ----------------------------------------------------
+// Everything above was written for the PDF path and stayed private to it, so
+// every OTHER image tool grew its own createImageBitmap() with an Image()
+// fallback — and neither of those opens a HEIC. Eleven tools could not open an
+// iPhone photo, and because Android labels HEIF as image/jpeg the file sailed
+// through the picker and failed at decode, which is the worse of the two
+// failures. So the decoder is exported.
+//
+// Route by MAGIC BYTES, never by name or type. A file called photo.jpg from an
+// Android gallery is routinely HEIF, and isHeic() checks the bytes when it has
+// them, which is why the file is read before the format is decided.
+
+/**
+ * Decode any image we can read — HEIC included — as a real ImageBitmap.
+ *
+ * The return type is the whole point. Four separate decoders had grown across
+ * the codebase (image-convert, image-compress-core, compress-image-tool,
+ * scan-to-pdf-tool), each calling createImageBitmap and each failing on HEIC;
+ * one of them told the user to go and convert the photo with our own HEIC tool
+ * first, which is a strange thing to say while shipping a HEIC decoder.
+ *
+ * Returning an ImageBitmap rather than some richer wrapper means those callers
+ * change one import and nothing else: same type, same .width/.height, same
+ * .close(). libheif hands back ImageData, and createImageBitmap takes ImageData
+ * directly, so no re-encode happens in the middle.
+ */
+export async function decodeToBitmap(file: File): Promise<ImageBitmap> {
+  if (typeof createImageBitmap !== 'function') {
+    throw new Error('This browser is too old to open images here — try a recent Chrome, Firefox, Edge or Safari.');
+  }
+  const src = toSource(file, await readPickedFile(file));
+
+  if (!isHeic(src)) {
+    // Label the blob with what the BYTES say, not what the picker claimed — an
+    // Android gallery routinely reports a HEIF as image/jpeg.
+    const sniffed = sniffFormat(src.bytes);
+    const blob = new Blob([src.bytes], {
+      type: sniffed === 'unknown' ? src.type || 'application/octet-stream' : `image/${sniffed}`,
+    });
+    try {
+      return await createImageBitmap(blob);
+    } catch (e) {
+      throw new Error(describeImageFailure(file, e));
+    }
+  }
+
+  const lib = await getLibheif();
+  const images = new lib.HeifDecoder().decode(new Uint8Array(src.bytes));
+  if (!images.length) throw new Error('That HEIC file has no image in it.');
+  const img = images[0]; // first image only — a burst or live photo holds several
+  const w = img.get_width();
+  const h = img.get_height();
+  if (!w || !h) { img.free?.(); throw new Error('That HEIC file reports no size.'); }
+  const id = new ImageData(w, h);
+  await new Promise<void>((res, rej) =>
+    img.display(id, (d) => (d ? res() : rej(new Error('Could not decode that HEIC photo.')))),
+  );
+  img.free?.();
+  return createImageBitmap(id);
+}
+
 // ---- the entry point --------------------------------------------------------
 // `embed` is pdf-lib's embedJpg/embedPng pair, and it is called EXACTLY ONCE.
 // An earlier version "probed" with embedJpg and then embedded again on success,

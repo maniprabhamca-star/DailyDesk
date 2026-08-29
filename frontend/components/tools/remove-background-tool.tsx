@@ -11,6 +11,7 @@ import { removeBackground, type BgProgress } from '@/lib/remove-bg';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
 import { cn } from '@/lib/utils';
+import { ACCEPT } from '@/lib/accept';
 
 function fmt(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -86,7 +87,7 @@ export function RemoveBackgroundTool() {
   return (
     <Card>
       <CardContent className="p-5">
-        <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/bmp,.jpg,.jpeg,.png,.webp,.gif,.bmp" aria-label="Choose an image file" className="dd-file-input" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
+        <input ref={inputRef} type="file" accept={ACCEPT.image} aria-label="Choose an image file" className="dd-file-input" onChange={(e) => { pick(e.target.files); e.currentTarget.value = ''; }} />
 
         {tooBig ? (
           <UpgradeNotice fileName={tooBig.name} sizeText={fmtBytes(tooBig.size)} limitText={fmtBytes(FREE_MAX_BYTES)} onReset={() => { setTooBig(null); inputRef.current?.click(); }} />

@@ -24,6 +24,14 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-08-29',
+    kind: 'fixed',
+    title: 'iPhone photos now work in every image tool, not just some of them',
+    detail:
+      'An iPhone saves photos as HEIC, and until now most of our image tools quietly refused them. Compress, Convert, Crop, Resize, Remove background, the passport photo maker, the EXIF cleaner and the QR reader would either grey the photo out in the file picker or accept it and then say it could not be read — and one of them helpfully suggested you go and convert it with our own HEIC to JPG tool first, which is a strange thing for us to ask when we already had the decoder sitting there. Worse on Android, where the phone hands over a HEIC photo labelled as a JPG: the file went through, then failed. All of those tools now open an iPhone photo directly. PowerPoint show files (.ppsx and .pps) convert too — they always could, they were just missing from the list of things we said we accepted.',
+    href: '/compress-image',
+  },
+  {
+    date: '2026-08-29',
     kind: 'improved',
     title: 'Every page now has a plain-text version, for people and for AI assistants',
     detail:

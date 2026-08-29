@@ -12,6 +12,7 @@ import { KeepGoing } from '@/components/app/keep-going';
 import { downloadBlob as download } from '@/lib/download';
 import { decodeQrFromImage } from '@/lib/qr-decode';
 import { parseQrPayload, toVcf, type ParsedQr } from '@/lib/qr-parse';
+import { ACCEPT } from '@/lib/accept';
 
 function CopyButton({ text, label }: { text: string; label: string }) {
   const [copied, setCopied] = useState(false);
@@ -127,7 +128,7 @@ export function ScanQrTool() {
           <p className="text-xs text-muted-foreground">Tip: you can also just press Ctrl+V (⌘+V) to paste a screenshot</p>
           <span className="mt-4 inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm">Choose image</span>
         </div>
-        <input ref={inputRef} type="file" accept="image/*,.png,.jpg,.jpeg,.webp,.gif,.bmp" aria-label="Choose an image file" className="dd-file-input"
+        <input ref={inputRef} type="file" accept={ACCEPT.image} aria-label="Choose an image file" className="dd-file-input"
           onChange={(e) => { void scan(e.target.files?.[0]); e.currentTarget.value = ''; }} />
         {touch && (
           <>
