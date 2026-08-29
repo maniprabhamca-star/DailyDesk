@@ -91,6 +91,7 @@ const ROUTES: Array<{ path: string; priority: number; changeFrequency: MetadataR
   { path: '/why-diemdesk', priority: 0.8, changeFrequency: 'weekly' },
   { path: '/changelog', priority: 0.6, changeFrequency: 'weekly' },
   { path: '/india-forms', priority: 0.8, changeFrequency: 'monthly' },
+  { path: '/mcp-server', priority: 0.7, changeFrequency: 'monthly' },
   { path: '/dpa', priority: 0.5, changeFrequency: 'yearly' },
   { path: '/subprocessors', priority: 0.5, changeFrequency: 'yearly' },
   { path: '/accessibility', priority: 0.5, changeFrequency: 'yearly' },

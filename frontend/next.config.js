@@ -6,6 +6,15 @@ const nextConfig = {
   images: {
     domains: ['localhost'],
   },
+  // /for/government was renamed to /for/public-sector so the URL matches the
+  // label the whole site already used. It was live for four days and is in a
+  // published sitemap, so it gets a permanent redirect rather than a 404 —
+  // anything that linked or indexed it still lands on the page.
+  async redirects() {
+    return [
+      { source: '/for/government', destination: '/for/public-sector', permanent: true },
+    ];
+  },
   webpack: (config) => {
     // pdfjs-dist has an optional Node "canvas" dependency that isn't used in the browser.
     config.resolve.alias = { ...config.resolve.alias, canvas: false };

@@ -259,7 +259,7 @@ export const SECTORS: Sector[] = [
     close: 'Open the Network tab and redact one document. The absence of a request is the whole argument.',
   },
   {
-    slug: 'government',
+    slug: 'public-sector',
     icon: Building2,
     name: 'Public sector',
     headline: 'Redaction you can defend, before release',

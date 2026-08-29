@@ -24,6 +24,14 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-08-29',
+    kind: 'new',
+    title: 'DiemDesk works inside Claude and other AI assistants',
+    detail:
+      "You can now use DiemDesk from inside Claude, or any assistant that speaks MCP. Point it at the server and ask it to convert a Word file to PDF, turn a PDF back into an editable document, OCR a scan, or capture a live web page — it does the job and writes the file next to the original. There are nine tools rather than a hundred and fourteen, and the reason is the same reason the site exists: almost everything here runs inside your browser and never sends the file anywhere, and an assistant running on your behalf simply cannot reach those. We were not going to build server versions of them purely to make the list longer, because that would mean uploading files that currently never move. So what is exposed is exactly the set that already ran on our servers — the Office conversions, OCR and webpage capture — behaving the same way they always did. Ask the assistant to run list_local_tools and it will tell you which jobs to do on the website instead, and why.",
+    href: '/mcp-server'
+  },
+  {
+    date: '2026-08-29',
     kind: 'fixed',
     title: 'The receipt scanner now reads receipts that are sideways, and stops guessing the amount',
     detail:

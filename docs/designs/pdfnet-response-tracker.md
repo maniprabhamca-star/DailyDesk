@@ -20,13 +20,13 @@ Status values: `todo` · `in progress` · `shipped` · `blocked` · `parked`
 | 3 | Passport differentiation + verify 21 specs | 0 | **in progress** | Tier 1: UK/Canada/Australia done 2026-08-29 |
 | 4 | Bank statement guides 11 → 40 | 28 | **shipped** | 2026-08-29 · 39 pages |
 | 5 | Competitor alternatives 4 → 10 | 5 | **shipped** | 2026-08-29 (9 of 10; Canva pending a source) |
-| 6 | Sector pages 4 → 12 | 5 | **in progress** | 9 of 12 · 2026-08-29 |
+| 6 | Sector pages 4 → 12 | 5 | **in progress** | 9 of 12 · government renamed to public-sector |
 | 7 | Indian statutory forms library | 33 | **shipped** | 32 forms + index · 2026-08-29 |
 | 8 | US forms library (privacy wedge) | ~30–60 | **todo** | |
 | 9 | "What comes next" dock | 0 | **shipped** | 2026-08-29 |
 | 10 | AI document generator / invoice builder | 0 | **parked** | commodity — see gap analysis |
 | 11 | Multi-document AI chat | 0 | **blocked** — File Vault | |
-| 12 | MCP server | 1 | **todo** | |
+| 12 | MCP server | 1 | **shipped** | 2026-08-29 · 9 tools, server-side only |
 
 ### Owner actions (not code — only you can do these)
 

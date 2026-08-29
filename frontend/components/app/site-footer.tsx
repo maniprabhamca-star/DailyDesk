@@ -37,6 +37,7 @@ const COLUMNS = [
     { label: 'Compare', href: '/compare' },
     { label: 'India tax & GST forms', href: '/india-forms' },
     { label: 'Developers', href: '/developers' },
+    { label: 'MCP server', href: '/mcp-server' },
     { label: 'Changelog', href: '/changelog' },
     { label: 'Feedback', href: '/feedback' },
     { label: 'Get started', href: '/register' },

@@ -1,0 +1,29 @@
+{
+  "name": "@diemdesk/mcp",
+  "version": "0.1.0",
+  "description": "DiemDesk document tools for Claude, ChatGPT and any MCP client — convert Office files and PDFs, OCR a scan, capture a web page.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "diemdesk-mcp": "./index.mjs"
+  },
+  "files": [
+    "index.mjs",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "pdf",
+    "ocr",
+    "convert",
+    "claude",
+    "diemdesk"
+  ],
+  "scripts": {
+    "test": "node test.mjs"
+  }
+}
