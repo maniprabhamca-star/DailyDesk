@@ -25,6 +25,14 @@ export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-08-29',
     kind: 'improved',
+    title: 'Pages for HR teams and tax practitioners',
+    detail:
+      "Two more pages for people whose job makes uploading a document a problem, joining the existing ones for legal, accountants, healthcare and schools. The HR page is about the thing HR inboxes are full of and nobody says out loud: sickness notes, grievances naming beliefs, right-to-work documents. Those are special-category data under GDPR Article 9, prohibited to process by default, and the page quotes the security wording from Article 5 rather than gesturing at it. The tax practitioners page quotes IRS Publication 4557, which says protecting taxpayer data is the law and that preparers must write and enact a security plan under the FTC Safeguards Rule. Both pages list what we cannot do as clearly as what we can — we are not an HR system, we do not file returns, and we keep no audit trail of what you processed, which is the point and also a limitation.",
+    href: '/for/hr',
+  },
+  {
+    date: '2026-08-29',
+    kind: 'improved',
     title: 'Five more honest comparisons: PDF24, Foxit, Soda PDF, pdfFiller and pdf.net',
     detail:
       "If you are weighing us up against something else, there are now nine comparison pages instead of four. The new ones cover PDF24, Foxit, Soda PDF, pdfFiller and pdf.net, and they are written the same way as the others: what the other product genuinely does better goes on the page, in plain words, next to what we do better. PDF24 is free and broad and says so honestly — but it uploads your file unless you install its Windows app, which is not an option on a Mac or a locked-down work laptop. Foxit is a serious desktop editor, and if you do production PDF work every day it earns its licence fee; if you merge and sign a few files a month it does not. pdfFiller is built for teams routing paperwork for signature, which we do not do at all. pdf.net has a large US tax and immigration forms library and seven languages, and we have neither. Every competitor figure on these pages was read from their own site, and the page links to it so you can check.",

@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
-import { Scale, Stethoscope, Calculator, GraduationCap } from 'lucide-react';
+import { Scale, Stethoscope, Calculator, GraduationCap, Users, Receipt } from 'lucide-react';
 
 // The sector pages exist for one reason: "the file never leaves your device" is
 // the sentence that gets a tool past a compliance review, and no competitor
@@ -164,6 +164,68 @@ export const SECTORS: Sector[] = [
       'On school-managed devices, an old locked-down browser may lack the features some tools need. Every tool degrades to something that still works, but the fastest path is a current browser.',
     ],
     close: 'No account, no ads, no upload. Try it on a device you already have.',
+  },
+  {
+    slug: 'hr',
+    icon: Users,
+    name: 'HR & recruitment',
+    headline: 'CVs and case files that stay in the room',
+    title: 'PDF Tools for HR Teams | DiemDesk',
+    description:
+      'Redact CVs, strip metadata and combine case files without uploading them. Runs in your browser — check the Network tab yourself.',
+    intro:
+      'An HR inbox is one of the densest concentrations of special-category data in any organisation: health notes in a sickness case, a grievance naming beliefs or sexual orientation, a right-to-work document carrying ethnicity. Most online PDF tools process that on a server and promise deletion afterwards. These do not receive it at all.',
+    duty: {
+      label: 'GDPR Article 5(1)(f), and why Article 9 raises the stakes',
+      body:
+        'Personal data must be "processed in a manner that ensures appropriate security … including protection against unauthorised or unlawful processing", using appropriate technical measures — and under Article 5(2) you must be able to demonstrate you did. Article 9 then singles out health, racial or ethnic origin, religious or philosophical beliefs, trade union membership, biometric and sex-life data as prohibited to process by default. HR handles all of those routinely. A tool that never transmits the file is the easiest technical measure to demonstrate, because there is no transfer to justify and no processor to add to your Article 30 record.',
+    },
+    jobs: [
+      { task: 'Redacting a CV before the panel sees it', why: 'Name, address, age and photograph removed for the sift, with the text genuinely gone rather than covered by a rectangle — and the candidate’s file never leaves your machine.', href: '/redact-pdf', tool: 'Redact PDF' },
+      { task: 'Stripping metadata from an offer letter', why: 'A PDF exported from Word carries the author, the file path and often the template it came from. That is your salary-band folder structure, sent to a candidate.', href: '/remove-pdf-metadata', tool: 'Remove metadata' },
+      { task: 'Assembling a grievance or disciplinary bundle', why: 'Combine statements, notes and correspondence into one paginated file, on your own machine, however sensitive the contents.', href: '/merge-pdf', tool: 'Merge PDF' },
+      { task: 'Getting a file under an ATS upload limit', why: 'Applicant systems cap attachments. Compress to a target size locally instead of routing a CV through a converter you have not assessed.', href: '/compress-to-size', tool: 'Compress to size' },
+    ],
+    toolkit: ['Redact PDF', 'Remove metadata', 'Merge PDF', 'Split PDF', 'Compress to size', 'Sign PDF', 'Protect PDF', 'PDF to Text', 'Share-Safe PDF Check', 'Flatten PDF', 'Bates numbering', 'OCR'],
+    primary: { label: 'Redact a CV', href: '/redact-pdf' },
+    limits: [
+      'These are document tools, not an HR system. There is no applicant tracking, no case management and no retention schedule — you keep running those where you run them now.',
+      'Redaction removes what you select. It cannot know that a reference number on page 9 identifies someone; a human still has to read the document.',
+      'We keep no log of what you processed. That is the point, and it also means we cannot produce one if your retention policy expects a trail.',
+      'Tools that genuinely need a server — Office conversions, and OCR — are labelled on their own pages. Treat those as you would any processor.',
+    ],
+    close: 'Redact one CV and watch the Network tab stay empty. Then decide whether it belongs in your process.',
+  },
+  {
+    slug: 'tax-practitioners',
+    icon: Receipt,
+    name: 'Tax practitioners',
+    headline: 'Client returns that never touch a stranger’s server',
+    title: 'PDF Tools for Tax Preparers | DiemDesk',
+    description:
+      'Convert statements, redact and combine client tax documents without uploading them. In-browser, so there is no transfer to safeguard.',
+    intro:
+      'A tax file is the most complete financial portrait of a person that exists outside a bank. The IRS is blunt about what that means for the people who hold it, and about the fact that preparers are now a target in their own right. These tools do the everyday document work without the file leaving your machine.',
+    duty: {
+      label: 'IRS Publication 4557 and the FTC Safeguards Rule',
+      body:
+        'Publication 4557 states it plainly — protecting taxpayer data is the law. Federal law gives the FTC authority to set data safeguard regulations for professional tax return preparers, and under the Safeguards Rule preparers must create and enact a written security plan to protect client data; failure to do so may result in an FTC investigation. The same guide tells you to encrypt sensitive files, limit access to taxpayer data to those who need to know, and treat data theft at preparers’ offices as a rising risk rather than a hypothetical. A document that is never transmitted is the simplest way to satisfy a plan you have to be able to show someone.',
+    },
+    jobs: [
+      { task: 'Turning a bank statement into rows', why: 'Convert a statement PDF into a spreadsheet with the totals checked against the closing balance — without handing a full year of a client’s spending to a free converter.', href: '/pdf-to-excel', tool: 'PDF to Excel' },
+      { task: 'Redacting an SSN or PAN before it circulates', why: 'Remove the number itself rather than drawing over it, so it does not survive a copy-paste out of the finished PDF.', href: '/redact-pdf', tool: 'Redact PDF' },
+      { task: 'Assembling the return package', why: 'Combine schedules, statements and signature pages into one file at whatever size it comes to, on your own machine.', href: '/merge-pdf', tool: 'Merge PDF' },
+      { task: 'Meeting a portal’s size limit', why: 'E-filing portals cap uploads. Compress to a target size locally instead of routing the return through a third party first.', href: '/compress-to-size', tool: 'Compress to size' },
+    ],
+    toolkit: ['PDF to Excel', 'Bank statement to Excel', 'Redact PDF', 'Merge PDF', 'Compress to size', 'Remove metadata', 'Split PDF', 'Protect PDF', 'Sign PDF', 'PDF to Text', 'Share-Safe PDF Check', 'OCR'],
+    primary: { label: 'Convert a statement', href: '/pdf-to-excel' },
+    limits: [
+      'We do not prepare, calculate or file returns. These are document tools that sit beside your tax software, not a replacement for it.',
+      'Statement conversion checks its own totals against the closing balance and tells you when they disagree. It does not remove the need to read the result.',
+      'A written information security plan is still yours to write — see IRS Publication 5708. Using on-device tools is one control within it, not the plan.',
+      'We keep no record of what you converted, which means we also cannot reconstruct it for an audit trail.',
+    ],
+    close: 'Convert one statement with the Network tab open. The absence of a request is the whole argument.',
   },
 ];
 

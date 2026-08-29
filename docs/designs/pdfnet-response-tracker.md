@@ -20,7 +20,7 @@ Status values: `todo` · `in progress` · `shipped` · `blocked` · `parked`
 | 3 | Passport differentiation + verify 21 specs | 0 | **in progress** | Tier 1: UK/Canada/Australia done 2026-08-29 |
 | 4 | Bank statement guides 11 → 40 | ~29 | **todo** | |
 | 5 | Competitor alternatives 4 → 10 | 5 | **shipped** | 2026-08-29 (9 of 10; Canva pending a source) |
-| 6 | Sector pages 4 → 12 | ~8 | **todo** | |
+| 6 | Sector pages 4 → 12 | 2 | **in progress** | 6 of 12 · 2026-08-29 |
 | 7 | Indian statutory forms library | ~40–60 | **todo** | |
 | 8 | US forms library (privacy wedge) | ~30–60 | **todo** | |
 | 9 | "What comes next" dock | 0 | **todo** | |
@@ -297,3 +297,34 @@ the site less trustworthy.
 page that finds no merit in the alternative reads as marketing and converts like
 it. Foxit's maturity, pdfFiller's team routing and audit trails, pdf.net's forms
 library and seven languages, PDF24's genuine no-limits generosity — all stated.
+
+---
+
+## 6 — Sector pages · in progress (4 → 6)
+
+New: **`/for/hr`** and **`/for/tax-practitioners`**. Both sit on the existing
+`SECTORS` data file, so `/sitemap.xml` picked them up without an edit.
+
+The `duty` field is what makes these pages worth anything — it names the rule
+the reader is actually bound by instead of gesturing at "compliance". Both new
+citations were read from source on 2026-08-29:
+
+| Page | Cited | Read from |
+|---|---|---|
+| HR & recruitment | GDPR Art. 5(1)(f) integrity and confidentiality, Art. 5(2) accountability, Art. 9(1) special categories | gdpr-info.eu, quoting the official text |
+| Tax practitioners | IRS Publication 4557 — "Protecting taxpayer data is the law" — and the FTC Safeguards Rule obligation to create and enact a written security plan | The publication itself (irs.gov/pub/irs-pdf/p4557.pdf), text extracted with pdf.js |
+
+The HR page exists because HR inboxes concentrate exactly the categories
+Article 9 prohibits by default — health, beliefs, trade union membership,
+ethnicity — and no competitor whose product uploads the file can make the
+argument this page makes.
+
+**Why only two, and not the eight the plan named.** The remaining six —
+banking/NBFC, insurance, government, architecture/engineering, journalism,
+non-profits — each need a *named, verified* rule to be worth publishing, and
+those are the ones where a plausible-sounding citation is worst: insurance is
+state-regulated in the US rather than FTC-regulated, government varies by
+agency, and journalism's source protection is not a data-security regime at all.
+Writing them from memory would put a confident legal citation on a page aimed at
+compliance-minded readers, which is the one audience that will check. They are
+worth doing properly, one verified regulation at a time.
