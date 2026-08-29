@@ -86,6 +86,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             no error to show for it. Must be inline and early to beat the gap. */}
         <script dangerouslySetInnerHTML={{ __html: FILE_PICKER_RESCUE }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd) }} />
+        {/* Machine-readable index for AI assistants. A crawler looks for
+            /llms.txt at the root on its own, but advertising it from every page
+            costs one tag and makes it reachable from wherever a model landed.
+            Every page in the sitemap also has a plain-Markdown twin at <url>.md,
+            generated from the BUILT page by scripts/gen-llms.mjs. */}
+        <link rel="help" type="text/plain" href="/llms.txt" />
         {/* Recovers a tab that was open across a deploy — see the component. */}
         <DeploySkewGuard />
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
