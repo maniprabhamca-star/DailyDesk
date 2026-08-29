@@ -226,3 +226,28 @@ page answers it directly rather than omitting it.
 Both remain on the generic values they already had. Neither has editorial, so
 neither page claims anything unsourced — they show the "double-check your
 portal" banner as before.
+
+### Measured effect of the Tier 1 pass — 2026-08-29
+
+4-gram overlap between rendered pages, dev server, nav/header/footer stripped.
+The bar in the [editorial scope](designs/passport-photo-editorial-scope.md) is
+**under 60%**.
+
+| Pair | Overlap | |
+|---|---|---|
+| Canada vs Australia | **33.9%** | ✅ |
+| UK vs Australia | **41.6%** | ✅ |
+| UK vs Japan | **52.4%** | ✅ |
+| Germany vs Poland | **57.9%** | ✅ (fixed in the 2026-08-23 pass) |
+| Poland vs Nepal | **68.2%** | ❌ Nepal has no editorial |
+| Japan vs Nepal | **70.7%** | ❌ neither has editorial |
+
+Word counts rose from the 643–721 band to 908–975 for the pages with editorial;
+the two without are still 466 (Japan) and 607 (Nepal).
+
+**Every remaining failure is a page with no editorial.** The mechanism works —
+what is left is the writing, and the writing is gated on being able to read the
+authority's own page. Japan, the US and Nepal could not be read automatically
+(Cloudflare interstitial, a 10.8 MB PDF, and a page whose body does not render
+without its scripts). They are the next three to do by hand, and doing them
+clears the last two failing pairs.
