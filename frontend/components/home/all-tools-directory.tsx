@@ -48,56 +48,61 @@ function AiSuiteBlock({ id }: { id: string }) {
   );
 }
 
-// Per-tool colour + one-line benefit. Each tool gets its OWN hue (not one colour
-// per group) and a benefit blurb — our distinct, premium take on a tool grid.
-const META: Record<string, { color: string; desc: string }> = {
-  'PDF viewer': { color: '#0284c7', desc: 'Open & read on-device' },
-  'Merge PDF': { color: '#e11d48', desc: 'Join files into one' },
-  'Split PDF': { color: '#d97706', desc: 'Pull out pages' },
-  'Compress PDF': { color: '#0d9488', desc: 'Shrink the size' },
-  'Rotate PDF': { color: '#0284c7', desc: 'Turn pages visually' },
-  'Reorder pages': { color: '#9333ea', desc: 'Drag into a new order' },
-  'Delete pages': { color: '#dc2626', desc: 'Remove pages' },
-  'Page numbers': { color: '#7c3aed', desc: 'Stamp numbers' },
-  'JPG to PDF': { color: '#4f46e5', desc: 'Images into a PDF' },
-  'PDF to JPG': { color: '#c026d3', desc: 'Pages to images' },
-  'Extract images': { color: '#db2777', desc: 'Original pictures out' },
-  'PDF to Word': { color: '#2563eb', desc: 'Editable Word doc' },
-  'Word to PDF': { color: '#1d4ed8', desc: 'Word into a PDF' },
-  'Excel to PDF': { color: '#15803d', desc: 'Sheets into a PDF' },
-  'PowerPoint to PDF': { color: '#c2410c', desc: 'Slides into a PDF' },
-  'HTML to PDF': { color: '#0891b2', desc: 'Web page to PDF' },
-  'Edit PDF': { color: '#ea580c', desc: 'Change text & images' },
-  'Annotate': { color: '#c2410c', desc: 'Highlight & comment' },
-  'Watermark': { color: '#0f766e', desc: 'Stamp a watermark' },
-  'Remove metadata': { color: '#65a30d', desc: 'Wipe hidden info' },
-  'Redact PDF': { color: '#475569', desc: 'Black out secrets' },
-  'Sign PDF': { color: '#7c3aed', desc: 'Add your signature' },
-  'Protect PDF': { color: '#b45309', desc: 'Password-lock it' },
-  'Unlock PDF': { color: '#0369a1', desc: 'Remove a known password' },
-  'OCR': { color: '#0284c7', desc: 'Make scans searchable' },
-  'Chat with PDF': { color: '#db2777', desc: 'Ask your document' },
-  'Summarize': { color: '#7c3aed', desc: 'Get the gist' },
-  'Translate': { color: '#2563eb', desc: 'Into any language' },
-  'QR generator': { color: '#059669', desc: 'Make a QR code' },
-  'Password': { color: '#6d28d9', desc: 'Strong passwords' },
-  'Compress image': { color: '#ea580c', desc: 'Shrink JPG & PNG' },
-  'Resize image': { color: '#0891b2', desc: 'Exact pixels or percent' },
-  'Crop image': { color: '#be185d', desc: 'Frame the exact shot' },
-  'Convert image': { color: '#9333ea', desc: 'WebP ↔ PNG ↔ JPG' },
-  'HEIC to JPG': { color: '#0ea5e9', desc: 'iPhone photos to JPG' },
-  'Background remover': { color: '#db2777', desc: 'Cut out the subject' },
-  'Compress video': { color: '#dc2626', desc: 'Shrink video size' },
-  'Video to GIF': { color: '#7c3aed', desc: 'Clip to a GIF' },
-  'Word counter': { color: '#0d9488', desc: 'Words & characters' },
-  'Unit converter': { color: '#b45309', desc: 'Any unit to any' },
-  'JSON formatter': { color: '#475569', desc: 'Pretty-print JSON' },
-  'Color picker': { color: '#c026d3', desc: 'Grab any color' },
-  'Smart notes': { color: '#16a34a', desc: 'Quick notes' },
-  'Habit tracker': { color: '#ea580c', desc: 'Build streaks' },
-  'Budget tracker': { color: '#0d9488', desc: 'Track spending' },
-  'File vault': { color: '#4f46e5', desc: 'Encrypted storage' },
-  'Link in bio': { color: '#db2777', desc: 'One link page' },
+// Per-tool colour. Each tool gets its OWN hue (not one colour per group) —
+// our distinct, premium take on a tool grid.
+//
+// The blurb used to live here too, which is exactly why 67 of 114 tools never
+// got one: this file is about how the grid LOOKS, so nobody adding a tool to
+// the catalogue thought to open it. It now lives on the tool itself in
+// catalog.tsx, next to the name it describes, and a test enforces it.
+const META: Record<string, { color: string }> = {
+  'PDF viewer': { color: '#0284c7' },
+  'Merge PDF': { color: '#e11d48' },
+  'Split PDF': { color: '#d97706' },
+  'Compress PDF': { color: '#0d9488' },
+  'Rotate PDF': { color: '#0284c7' },
+  'Reorder pages': { color: '#9333ea' },
+  'Delete pages': { color: '#dc2626' },
+  'Page numbers': { color: '#7c3aed' },
+  'JPG to PDF': { color: '#4f46e5' },
+  'PDF to JPG': { color: '#c026d3' },
+  'Extract images': { color: '#db2777' },
+  'PDF to Word': { color: '#2563eb' },
+  'Word to PDF': { color: '#1d4ed8' },
+  'Excel to PDF': { color: '#15803d' },
+  'PowerPoint to PDF': { color: '#c2410c' },
+  'HTML to PDF': { color: '#0891b2' },
+  'Edit PDF': { color: '#ea580c' },
+  'Annotate': { color: '#c2410c' },
+  'Watermark': { color: '#0f766e' },
+  'Remove metadata': { color: '#65a30d' },
+  'Redact PDF': { color: '#475569' },
+  'Sign PDF': { color: '#7c3aed' },
+  'Protect PDF': { color: '#b45309' },
+  'Unlock PDF': { color: '#0369a1' },
+  'OCR': { color: '#0284c7' },
+  'Chat with PDF': { color: '#db2777' },
+  'Summarize': { color: '#7c3aed' },
+  'Translate': { color: '#2563eb' },
+  'QR generator': { color: '#059669' },
+  'Password': { color: '#6d28d9' },
+  'Compress image': { color: '#ea580c' },
+  'Resize image': { color: '#0891b2' },
+  'Crop image': { color: '#be185d' },
+  'Convert image': { color: '#9333ea' },
+  'HEIC to JPG': { color: '#0ea5e9' },
+  'Background remover': { color: '#db2777' },
+  'Compress video': { color: '#dc2626' },
+  'Video to GIF': { color: '#7c3aed' },
+  'Word counter': { color: '#0d9488' },
+  'Unit converter': { color: '#b45309' },
+  'JSON formatter': { color: '#475569' },
+  'Color picker': { color: '#c026d3' },
+  'Smart notes': { color: '#16a34a' },
+  'Habit tracker': { color: '#ea580c' },
+  'Budget tracker': { color: '#0d9488' },
+  'File vault': { color: '#4f46e5' },
+  'Link in bio': { color: '#db2777' },
 };
 
 function Tile({ t, groupColor }: { t: CatTool; groupColor: string }) {
@@ -105,7 +110,6 @@ function Tile({ t, groupColor }: { t: CatTool; groupColor: string }) {
   const Icon = t.icon;
   const B = BADGE[t.badge];
   const color = META[t.name]?.color ?? groupColor;
-  const desc = META[t.name]?.desc;
 
   const inner = (
     <div
@@ -114,18 +118,6 @@ function Tile({ t, groupColor }: { t: CatTool; groupColor: string }) {
         t.soon ? '' : 'hover:-translate-y-0.5 hover:border-[color:var(--tool)] hover:shadow-md'
       }`}
     >
-      {/* Where this tool runs — our identity, tucked top-right. The icon carries
-          a real tooltip: on its own it can only remind someone of something they
-          already know, and the legend explaining all five sits at the bottom of
-          the page, long after these cards have been read. */}
-      <span
-        title={B.hint}
-        aria-label={B.hint}
-        className="absolute right-2.5 top-2.5 leading-none"
-      >
-        <B.icon className="size-[15px]" style={{ color: B.color }} aria-hidden="true" />
-      </span>
-
       <span
         className="mb-2.5 flex size-10 items-center justify-center rounded-xl text-white shadow-sm transition-transform group-hover:scale-105"
         style={{ backgroundColor: color }}
@@ -138,7 +130,20 @@ function Tile({ t, groupColor }: { t: CatTool; groupColor: string }) {
         {isNewTool(t) && <span className={NEW_CHIP}>New</span>}
         {t.soon && <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-foreground/75">soon</span>}
       </p>
-      {desc && <p className="mt-0.5 text-xs text-muted-foreground">{desc}</p>}
+      <p className="mt-1 text-xs leading-snug text-muted-foreground">{t.desc}</p>
+
+      {/* Where this tool runs, in words. This used to be a 15px crossed-out
+          cloud in the corner with a tooltip — which asks the reader to already
+          know what it means, and says nothing at all on a phone where there is
+          no hover. It is the one line on the card no competitor can write. */}
+      <p
+        title={B.hint}
+        className="mt-2 flex items-center gap-1.5 text-[11px] font-semibold leading-none"
+        style={{ color: B.color }}
+      >
+        <B.icon className="size-3" strokeWidth={2.5} aria-hidden="true" />
+        {B.label}
+      </p>
     </div>
   );
 
@@ -290,7 +295,7 @@ export function AllToolsDirectory({ full = false, asPage = false }: { full?: boo
   const changeView = (v: 'tabs' | 'rail') => { setView(v); try { localStorage.setItem('dd-tools-view', v); } catch { /* ignore */ } };
   const query = q.trim().toLowerCase();
   const matches = (t: CatTool) =>
-    !query || t.name.toLowerCase().includes(query) || (META[t.name]?.desc?.toLowerCase().includes(query) ?? false);
+    !query || t.name.toLowerCase().includes(query) || t.desc.toLowerCase().includes(query);
   const empty = catalog.every((g) => !g.tools.some(matches));
   const showAll = full || query.length > 0;
   const activeGroups = query || full || cat === 'all' ? catalog : catalog.filter((g) => g.label === cat);

@@ -25,6 +25,14 @@ export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-08-29',
     kind: 'improved',
+    title: 'Every tool card now tells you what the tool does',
+    detail:
+      "Every tool card now says what the tool actually does. Sixty-seven of our 114 tools had no description at all — the card was a name and nothing else — and most of the ones that did have a line just said the name again in different words: \"Word into a PDF\" under Word to PDF, \"Slides into a PDF\" under PowerPoint to PDF. All 114 are rewritten to answer the question you were actually asking. Nobody converting a Word file is unsure what that means; they are wondering whether the table survives, so it now says fonts, tables and layout land where you left them. Rotate says the fix survives saving, because that is the thing that goes wrong. Repair says it opens files other readers refuse. And the little crossed-out cloud in the corner of each card, which was carrying our whole argument and asking you to guess what it meant, is now just written down: Runs in your browser, or Processed on our servers, whichever is true for that tool.",
+    href: '/'
+  },
+  {
+    date: '2026-08-29',
+    kind: 'improved',
     title: 'Pages for HR teams and tax practitioners',
     detail:
       "Two more pages for people whose job makes uploading a document a problem, joining the existing ones for legal, accountants, healthcare and schools. The HR page is about the thing HR inboxes are full of and nobody says out loud: sickness notes, grievances naming beliefs, right-to-work documents. Those are special-category data under GDPR Article 9, prohibited to process by default, and the page quotes the security wording from Article 5 rather than gesturing at it. The tax practitioners page quotes IRS Publication 4557, which says protecting taxpayer data is the law and that preparers must write and enact a security plan under the FTC Safeguards Rule. Both pages list what we cannot do as clearly as what we can — we are not an HR system, we do not file returns, and we keep no audit trail of what you processed, which is the point and also a limitation.",

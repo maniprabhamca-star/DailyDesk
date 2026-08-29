@@ -481,7 +481,9 @@
 
     <h3>Two additions worth making at the same time</h3>
 
-    <p class="col"><strong>A format-pair chip on converters.</strong> pdf.net's illustrated icons beat flat glyphs because they <em>show</em> the transformation — you read DOCX→PDF before you read a word. Commissioning 114 illustrations is a real art budget; a monospace pair chip gets most of that benefit for nothing, and scans faster than an icon at small sizes.</p>
+    <p class="col"><strong>A format-pair chip on converters. <span style="color:var(--bad)">Proposed, built, then dropped.</span></strong> The argument was that pdf.net's illustrated icons beat flat glyphs because they <em>show</em> the transformation — you read DOCX→PDF before you read a word — and that a monospace chip buys most of that for no art budget. Building it showed the reasoning does not survive our own tool names. Their titles read <em>"Convert Word to PDF"</em>, so a picture genuinely scans faster than the sentence. Ours read <strong>"Word to PDF"</strong> — the formats are already in the title, and a text chip underneath saying <code style="font-family:var(--mono);font-size:13px">DOCX → PDF</code> is precisely the restatement this page objects to. The illustration works because it is <em>visual</em>, not because it is <em>redundant</em>; a text chip keeps the redundancy and loses the visual. Dropped rather than shipped.</p>
+
+    <p class="col">The lesson generalises: their pattern was worth copying, their <em>implementation of it</em> was not, because our titles carry information theirs do not. Custom illustrations remain the only real version of this idea, and that is an art commission, not an afternoon.</p>
 
     <p class="col"><strong>Say "on your device" in words, not a glyph.</strong> Our single biggest differentiator is currently a small crossed-out cloud in a card corner. Nobody decodes that. It's also the one thing on the card that no competitor can copy.</p>
 
@@ -507,22 +509,22 @@
         </div>
         <div class="grid" style="grid-template-columns:1fr;min-width:0">
           <div class="card">
-            <span class="pair">DOCX → PDF</span>
+            <span class="ico" style="background:#2563eb1f;color:#2563eb">W</span>
             <span class="nm">Word to PDF</span>
-            <span class="ds">Fonts and layout land where you left them</span>
-            <span class="runs srv">Runs on our server</span>
+            <span class="ds">Fonts, tables and layout land where you left them.</span>
+            <span class="runs srv">Processed on our servers</span>
           </div>
           <div class="card">
-            <span class="pair">PDF → PDF</span>
+            <span class="ico" style="background:#0d94881f;color:#0d9488">◱</span>
             <span class="nm">Compress PDF</span>
-            <span class="ds">Smaller file, text still sharp</span>
-            <span class="runs">Runs on your device</span>
+            <span class="ds">Smaller file, text stays sharp. You set the quality.</span>
+            <span class="runs">Runs in your browser</span>
           </div>
           <div class="card">
-            <span class="pair">PHOTO → PDF</span>
+            <span class="ico" style="background:#0ea5e91f;color:#0284c7">◎</span>
             <span class="nm">Scan to PDF</span>
-            <span class="ds">Photograph paper, get a straightened PDF</span>
-            <span class="runs">Runs on your device</span>
+            <span class="ds">Photograph paper with your phone. Edges straightened for you.</span>
+            <span class="runs">Runs in your browser</span>
           </div>
         </div>
       </div>
@@ -551,14 +553,14 @@
   </section>
 
   <section>
-    <h2><span class="q">If you want it</span>What shipping this looks like</h2>
+    <h2><span class="q">Shipped</span>What actually went in</h2>
     <ul class="ticks">
-      <li>Write 114 blurbs to the formula, move them out of <code style="font-family:var(--mono);font-size:13.5px">all-tools-directory.tsx</code> and into <code style="font-family:var(--mono);font-size:13.5px">catalog.tsx</code> beside the tool, so the description lives with the thing it describes.</li>
-      <li>Add a guard test: a tool without a description fails the build. That's how the count went to 67 unnoticed.</li>
-      <li>Add the format-pair chip on the converter groups only — it's noise on <em>Budget tracker</em>.</li>
-      <li>Replace the corner badge glyph with the words, keeping the honest three states we already model: on your device, our server, encrypted.</li>
+      <li><strong>114 blurbs written to the formula</strong>, moved out of <code style="font-family:var(--mono);font-size:13.5px">all-tools-directory.tsx</code> and onto the tool itself in <code style="font-family:var(--mono);font-size:13.5px">catalog.tsx</code>. That file move is the actual fix: the blurbs lived in a file about how the grid <em>looks</em>, so nobody adding a tool row was ever asked the question.</li>
+      <li><strong>A guard test</strong>, <code style="font-family:var(--mono);font-size:13.5px">tool-blurbs.test.ts</code> — fails the build on a missing blurb, one under five words, one over 64 characters, a duplicate, or one that says nothing the title did not. Two of its rules had to be loosened against real copy: counting echoed name words wrongly failed <em>"Reorder before you merge"</em>, and a capital-letter rule wrongly failed <em>iPhone</em> and <em>camelCase</em>.</li>
+      <li class="no"><strong>The format-pair chip was dropped</strong>, for the reason above.</li>
+      <li><strong>The corner badge glyph became words</strong> — <em>Runs in your browser</em> / <em>Processed on our servers</em> — keeping all five honest states. A 15px crossed-out cloud asks the reader to already know what it means, and says nothing at all on a phone, where there is no hover to reveal the tooltip.</li>
     </ul>
-    <p class="col">Roughly a day, no new components, and it lifts every tool page's card as well as the home grid. The blurbs are also on-page text on 114 routes, which the thin ones currently aren't contributing.</p>
+    <p class="col">The blurbs are also on-page text on 114 routes, which the missing ones were contributing nothing to.</p>
   </section>
 
   <footer class="end">
