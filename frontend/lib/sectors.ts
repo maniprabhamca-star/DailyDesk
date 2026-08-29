@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
-import { Scale, Stethoscope, Calculator, GraduationCap, Users, Receipt } from 'lucide-react';
+import { Scale, Stethoscope, Calculator, GraduationCap, Users, Receipt, Landmark, Building2, Home } from 'lucide-react';
 
 // The sector pages exist for one reason: "the file never leaves your device" is
 // the sentence that gets a tool past a compliance review, and no competitor
@@ -226,6 +226,99 @@ export const SECTORS: Sector[] = [
       'We keep no record of what you converted, which means we also cannot reconstruct it for an audit trail.',
     ],
     close: 'Convert one statement with the Network tab open. The absence of a request is the whole argument.',
+  },
+  {
+    slug: 'finance',
+    icon: Landmark,
+    name: 'Lenders & finance firms',
+    headline: 'Customer files that never reach a third party',
+    title: 'PDF Tools for Finance Firms | DiemDesk',
+    description:
+      'Redact, combine and convert customer documents without uploading them. In-browser, so there is no service provider to oversee.',
+    intro:
+      'The Safeguards Rule reaches much further than banks. If you broker mortgages, service accounts, collect debts, advise on investments or prepare returns, you are a financial institution under it — and the paperwork you handle every day is exactly the “customer information” it names.',
+    duty: {
+      label: 'The FTC Safeguards Rule, 16 CFR Part 314',
+      body:
+        'Covered firms must “develop, implement, and maintain an information security program with administrative, technical, and physical safeguards designed to protect customer information” — written down, and proportionate to the size of the business and the sensitivity of what it holds. The Rule defines customer information as any record containing nonpublic personal information about a customer, “whether in paper, electronic, or other form”, and it covers records other institutions passed to you as well as your own. Section 314.2(h) lists thirteen worked examples, including mortgage lenders and brokers, account servicers, collection agencies, credit counselors, tax preparation firms and investment advisers who need not register with the SEC. Section 314.4 then sets out nine required elements, one of which is overseeing your service providers. A tool that never receives the document is the one place in that programme where there is no provider to oversee.',
+    },
+    jobs: [
+      { task: 'Redacting an account or Social Security number', why: 'Take the digits out of the file rather than drawing a box over them, so they cannot be copied back out of the PDF you send on.', href: '/redact-pdf', tool: 'Redact PDF' },
+      { task: 'Turning a statement into rows', why: 'Convert a customer statement into a spreadsheet with the totals checked against the closing balance, without routing a year of their spending through a converter you have not assessed.', href: '/pdf-to-excel', tool: 'PDF to Excel' },
+      { task: 'Assembling a file for underwriting or audit', why: 'Combine application, statements and correspondence into one paginated file, on your own machine, at whatever size it comes to.', href: '/merge-pdf', tool: 'Merge PDF' },
+      { task: 'Checking what is hidden before it leaves', why: 'Metadata, tracked comments and layered content survive a PDF export and travel with the file to whoever you send it to.', href: '/share-safe-pdf-check', tool: 'Share-Safe PDF Check' },
+    ],
+    toolkit: ['Redact PDF', 'PDF to Excel', 'Bank statement to Excel', 'Merge PDF', 'Split PDF', 'Compress to size', 'Remove metadata', 'Share-Safe PDF Check', 'Protect PDF', 'Sign PDF', 'Flatten PDF', 'OCR'],
+    primary: { label: 'Redact a document', href: '/redact-pdf' },
+    limits: [
+      'These are document tools. They are one control inside a written information security program, not the program — Section 314.4 asks for eight other things we cannot do for you.',
+      'Redaction removes what you select. It cannot know that a reference number elsewhere in the file identifies the same customer.',
+      'We keep no record of what you processed, which is the point and also means we cannot produce an access log if your program expects one.',
+      'Office conversions and OCR run on our servers and are labelled on their own pages. Treat those as you would any service provider.',
+    ],
+    close: 'Open the Network tab and redact one document. The absence of a request is the whole argument.',
+  },
+  {
+    slug: 'government',
+    icon: Building2,
+    name: 'Public sector',
+    headline: 'Redaction you can defend, before release',
+    title: 'PDF Tools for Government Teams | DiemDesk',
+    description:
+      'Redact records for FOIA release so the text is genuinely removed, not covered. Runs in your browser — nothing is uploaded.',
+    intro:
+      'A records request ends with someone deciding what has to come out before the file goes public. That decision is reviewable, the released document is permanent, and the failure mode is famous: a black rectangle drawn over text that is still sitting underneath it, waiting to be copied out.',
+    duty: {
+      label: 'FOIA and its Exemption 6',
+      body:
+        'The Freedom of Information Act has let the public request federal agency records since 1967, and agencies must disclose them unless the material falls within one of nine exemptions. Exemption 6 covers “information that, if disclosed, would invade another individual’s personal privacy” — the reason most releases are redacted rather than withheld outright. That makes the quality of the redaction the whole of the job: a released record is public permanently and cannot be recalled. It also makes the redaction tool part of the release process, which is a poor argument for uploading an unredacted record to a third party in order to redact it.',
+    },
+    jobs: [
+      { task: 'Redacting before release', why: 'The content is removed from the file, not hidden behind a shape, so it cannot be selected, copied or recovered from the released PDF.', href: '/redact-pdf', tool: 'Redact PDF' },
+      { task: 'Numbering a release package', why: 'Number a set continuously across files so a released package can be cited page by page in correspondence and in court.', href: '/bates-numbering', tool: 'Bates numbering' },
+      { task: 'Checking a file before it goes public', why: 'Author names, tracked comments and revision history survive a PDF export. On a released record they become public too.', href: '/share-safe-pdf-check', tool: 'Share-Safe PDF Check' },
+      { task: 'Making a scanned record searchable', why: 'Older records arrive as images. Text recognition makes them searchable so a reviewer can find what has to be withheld.', href: '/ocr-pdf', tool: 'OCR' },
+    ],
+    toolkit: ['Redact PDF', 'Bates numbering', 'Share-Safe PDF Check', 'Remove metadata', 'Merge PDF', 'Split PDF', 'OCR', 'Flatten PDF', 'PDF to Text', 'Compress to size', 'PDF to PDF/A', 'Add bookmarks'],
+    primary: { label: 'Redact a record', href: '/redact-pdf' },
+    limits: [
+      'We do not decide what is exempt. The tool removes what a reviewer marks; the judgement about what falls under an exemption is entirely yours.',
+      'These are not a records management system. There is no case file, no review queue and no release log.',
+      'We keep no audit trail of what was redacted, which is deliberate and is also the opposite of what a release process usually wants to record. Keep that trail where you keep the rest of the file.',
+      'OCR runs on our servers and is labelled as such. For a record that has not yet been reviewed, that distinction matters.',
+    ],
+    close: 'Redact one page and try to select the text underneath. There is nothing there to select.',
+  },
+  {
+    slug: 'real-estate',
+    icon: Home,
+    name: 'Property & conveyancing',
+    headline: 'Completion files that stay off other people’s servers',
+    title: 'PDF Tools for Property Firms | DiemDesk',
+    description:
+      'Combine, redact and sign completion documents without uploading them. In-browser, so bank details never sit on a server.',
+    intro:
+      'A conveyancing file is an identity document, a bank statement and a set of account details, moving between several parties on a deadline. It is the highest-value document bundle most people will ever email, and criminals know exactly what it is worth.',
+    duty: {
+      label: 'Why property transactions are targeted, in the FBI’s own numbers',
+      body:
+        'The FBI’s Internet Crime Complaint Center recorded a record $16.6 billion in reported losses in 2024. Business email compromise — the category that covers a fraudulent change of payment details mid-transaction — accounted for $2,770,151,146 of it, and real estate for a further $173,586,820. The IC3 Recovery Asset Team ran the Financial Fraud Kill Chain on 3,020 complaints that year, freezing funds in about two thirds of cases, which is another way of saying that a third of the time the money is gone. Every additional copy of a completion file, on every additional server, is another place those details can be read and another inbox that can be watched.',
+    },
+    jobs: [
+      { task: 'Redacting account details before forwarding', why: 'Take the digits out of the document rather than covering them, so a forwarded file cannot give up the numbers a fraudster is waiting for.', href: '/redact-pdf', tool: 'Redact PDF' },
+      { task: 'Assembling the completion pack', why: 'Combine contract, searches, ID and statements into one paginated file on your own machine, however large the bundle grows.', href: '/merge-pdf', tool: 'Merge PDF' },
+      { task: 'Signing and returning a document', why: 'Sign on your device and send it back, without the signed contract passing through a third party on the way.', href: '/sign-pdf', tool: 'Sign PDF' },
+      { task: 'Getting a bundle under an email limit', why: 'Portals and mail servers cap attachments. Compress to a target size locally instead of uploading the pack to a file service to shrink it.', href: '/compress-to-size', tool: 'Compress to size' },
+    ],
+    toolkit: ['Merge PDF', 'Redact PDF', 'Sign PDF', 'Compress to size', 'Split PDF', 'Remove metadata', 'Share-Safe PDF Check', 'Protect PDF', 'Fill PDF form', 'Flatten PDF', 'Scan to PDF', 'OCR'],
+    primary: { label: 'Build a completion pack', href: '/merge-pdf' },
+    limits: [
+      'We do not verify identity, run searches or check a title. These are document tools that sit beside your case management system.',
+      'Nothing here prevents business email compromise on its own. It removes copies of the details; it cannot stop someone acting on an email that looks like it came from you.',
+      'We keep no copy of the bundle, which is the point, and means there is nothing to retrieve from us later if you lose your own.',
+      'Office conversions and OCR run on our servers and say so on their own pages.',
+    ],
+    close: 'Build one pack with the Network tab open. Nothing about the transaction leaves the machine.',
   },
 ];
 

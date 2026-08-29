@@ -20,7 +20,7 @@ Status values: `todo` · `in progress` · `shipped` · `blocked` · `parked`
 | 3 | Passport differentiation + verify 21 specs | 0 | **in progress** | Tier 1: UK/Canada/Australia done 2026-08-29 |
 | 4 | Bank statement guides 11 → 40 | 28 | **shipped** | 2026-08-29 · 39 pages |
 | 5 | Competitor alternatives 4 → 10 | 5 | **shipped** | 2026-08-29 (9 of 10; Canva pending a source) |
-| 6 | Sector pages 4 → 12 | 2 | **in progress** | 6 of 12 · 2026-08-29 |
+| 6 | Sector pages 4 → 12 | 5 | **in progress** | 9 of 12 · 2026-08-29 |
 | 7 | Indian statutory forms library | ~40–60 | **todo** | |
 | 8 | US forms library (privacy wedge) | ~30–60 | **todo** | |
 | 9 | "What comes next" dock | 0 | **todo** | |
@@ -410,3 +410,38 @@ Two titles were over budget and the test caught both: *Indian Overseas Bank* and
 *Razorpay settlements* were shortened to IOB and Razorpay.
 
 Site is now **211 indexable URLs**, up from 183.
+
+---
+
+## 6 continued · 9 of 12, and the orphan-page bug that came with it
+
+**Three more sectors**, each on a citation read from source on 2026-08-29:
+
+| Page | Cited | Read from |
+|---|---|---|
+| `/for/finance` | FTC Safeguards Rule, 16 CFR 314 — the written information security program, and §314.2(h)'s thirteen worked examples (mortgage lenders and brokers, account servicers, collection agencies, credit counselors, tax preparers, non-SEC investment advisers) | ftc.gov business guidance |
+| `/for/government` | FOIA and **Exemption 6** — "information that, if disclosed, would invade another individual's personal privacy" | foia.gov |
+| `/for/real-estate` | FBI IC3 2024 Annual Report — record **$16.6bn** total losses, **$2,770,151,146** business email compromise, **$173,586,820** real estate, and the Recovery Asset Team freezing funds in about two thirds of 3,020 kill-chain cases | the report PDF, text extracted with pdf.js |
+
+**The bug the owner caught: the pages were orphans.** Nine `*-alternative` pages
+existed while `/compare` listed a hand-typed four, and **all** the sector pages —
+including the four live for weeks — were linked from nowhere at all. Nothing was
+broken, which is why nothing caught it: the pages rendered perfectly and simply
+could not be found. A sitemap tells Google a page exists; an internal link is
+what says it matters, and it is the only way a reader arrives.
+
+Both lists are now derived: `lib/alternatives.ts` feeds `/compare`, and the
+footer's "Built for" column maps over `SECTORS`. Adding a page adds its link.
+
+**`tests/unit/internal-links.test.ts`** fails the build if an `app/*-alternative`
+route is missing from `ALTERNATIVES`, if either list is hard-coded again, if a
+sector job or CTA points at a route that does not exist, or if a toolkit names a
+tool the catalogue does not have. The last two caught a real defect immediately:
+three sector pages linked `/share-safe-pdf` and the route is
+`/share-safe-pdf-check` — a wrong href in data compiles, renders, and 404s only
+when somebody clicks it.
+
+**Still to write (3):** insurance, journalism, non-profits. Insurance needs the
+NAIC Insurance Data Security Model Law (#668) — its existence and state-adoption
+map are confirmed on content.naic.org, but the requirement wording is in the
+model law document and was not retrieved, so it is not being written from memory.

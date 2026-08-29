@@ -25,6 +25,14 @@ export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-08-29',
     kind: 'improved',
+    title: 'Pages for finance, public sector and property — and all of them findable',
+    detail:
+      "Three more pages for people whose work makes uploading a document a problem, and — more usefully — all nine of them are now findable. The sector pages and the newer comparison pages were live and in the sitemap but linked from nowhere on the site, so unless you knew the address you were never going to see them. Both lists are now built from the same data the pages are, so adding one adds its link. The new pages: lenders and finance firms, where the FTC Safeguards Rule reaches far past banks and names mortgage brokers, collection agencies and tax preparers by example; public sector teams redacting records before a FOIA release, where a black rectangle over text that is still underneath is the failure everyone has read about; and property firms, where a completion file is an ID document, a bank statement and a set of account details moving between parties on a deadline — the FBI logged .77bn of business email compromise losses in 2024.",
+    href: '/for/finance'
+  },
+  {
+    date: '2026-08-29',
+    kind: 'improved',
     title: 'Bank statement guides for 39 banks, up from 11',
     detail:
       "The statement converter now has a guide for 39 banks instead of 11. New ones cover IndusInd, Federal, RBL, Bandhan, AU Small Finance, IDBI, Central Bank, Indian Bank, UCO, South Indian, Karnataka, CSB, DCB, Bank of India, IOB, Punjab & Sind, Standard Chartered and HSBC, plus Fi and Jupiter, the credit card statements from HDFC, SBI Card, ICICI, Axis and Amex, and three things that are not bank statements but get converted for the same reason: Razorpay settlements, a Zerodha ledger and PhonePe history. Each page tells you where that particular portal hides the download, what its password is usually built from, and the specific thing about its layout that trips converters up. The credit card pages say plainly that the balance check works differently there, because a card statement has no running balance to check against — we total the transactions against the opening balance, payments and closing amount due instead. Two banks were deliberately left out: Paytm Payments Bank, whose licence the RBI cancelled in April, and Citi India, whose accounts moved to Axis.",

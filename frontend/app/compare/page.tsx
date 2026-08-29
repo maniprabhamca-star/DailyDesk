@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { ALTERNATIVES } from '@/lib/alternatives';
 import { Check, Minus, ShieldCheck, ArrowRight } from 'lucide-react';
 import { SiteHeader } from '@/components/app/site-header';
 import { SiteFooter } from '@/components/app/site-footer';
@@ -181,14 +182,24 @@ export default function ComparePage() {
           . Also worth a look: <strong>Sejda</strong> (free: 3 tasks/hour, 50&nbsp;MB, 200 pages; paid from ~$7.50/week).
         </p>
 
-        {/* Per-competitor deep dives (internal links → the /*-alternative pages). */}
-        <div className="mx-auto mt-10 max-w-2xl text-center">
-          <p className="text-sm font-medium">Switching from a specific tool?</p>
-          <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1.5 text-sm">
-            <Link href="/smallpdf-alternative" className="text-primary hover:underline">Smallpdf alternative</Link>
-            <Link href="/ilovepdf-alternative" className="text-primary hover:underline">iLovePDF alternative</Link>
-            <Link href="/sejda-alternative" className="text-primary hover:underline">Sejda alternative</Link>
-            <Link href="/adobe-acrobat-alternative" className="text-primary hover:underline">Adobe Acrobat alternative</Link>
+        {/* Per-competitor deep dives → the /*-alternative pages.
+            Derived from ALTERNATIVES, not typed here. The first four were typed,
+            the next five were not, and they shipped reachable from nowhere. */}
+        <div className="mx-auto mt-10 max-w-3xl">
+          <p className="text-center text-sm font-medium">Switching from a specific tool?</p>
+          <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {ALTERNATIVES.map((a) => (
+              <Link
+                key={a.slug}
+                href={`/${a.slug}`}
+                className="group rounded-xl border bg-card px-4 py-3 transition-all hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-soft"
+              >
+                <span className="block text-sm font-semibold text-foreground group-hover:text-primary">
+                  {a.name} alternative
+                </span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">{a.hook}</span>
+              </Link>
+            ))}
           </div>
         </div>
 

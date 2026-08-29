@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ShieldCheck, Apple, Play, MapPin, Lock, EyeOff, ArrowUpRight } from 'lucide-react';
 import { BrandMark } from '@/components/app/brand-mark';
+import { SECTORS } from '@/lib/sectors';
 
 // Preview toggle: a server started with NEXT_PUBLIC_FOOTER_WM=mono renders the
 // footer watermark in grayscale so we can compare colorful vs monochrome.
@@ -30,12 +31,9 @@ const COLUMNS = [
     { label: 'Get started', href: '/register' },
     { label: 'Log in', href: '/login' },
   ] },
-  { title: 'Built for', color: '#f472b6', links: [
-    { label: 'Law firms', href: '/for/legal' },
-    { label: 'Accountants', href: '/for/accountants' },
-    { label: 'Healthcare', href: '/for/healthcare' },
-    { label: 'Schools', href: '/for/schools' },
-  ] },
+  // Derived from SECTORS. Typed by hand until 2026-08-29, which is why the two
+  // sectors added that day shipped linked from nowhere on the site.
+  { title: 'Built for', color: '#f472b6', links: SECTORS.map((s) => ({ label: s.name, href: `/for/${s.slug}` })) },
   { title: 'Legal', color: '#fbbf24', links: [
     { label: 'About', href: '/about' },
     { label: 'Privacy', href: '/privacy' },
