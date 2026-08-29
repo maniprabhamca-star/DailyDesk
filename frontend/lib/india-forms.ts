@@ -382,6 +382,186 @@ export const INDIA_FORMS: IndiaForm[] = [
       'Withdrawing instead of transferring breaks continuous service, and continuous service is what decides both pension eligibility and whether the withdrawal is taxable. The convenient option is frequently the expensive one.',
     tools: ['Scan to PDF', 'Merge PDF', 'Compress to size', 'PDF viewer'],
   },
+
+  // ---- second tranche, 2026-08-29 --------------------------------------------
+  // Aadhaar, the MCA company filings, GST registration and the banking
+  // declarations. Same two rules: no hosted copies, no deadline stated as fact.
+  {
+    slug: 'aadhaar-enrolment', name: 'Aadhaar enrolment form', short: 'Aadhaar enrolment', group: 'PAN & identity',
+    aka: 'new Aadhaar application',
+    authority: 'Unique Identification Authority of India (UIDAI)',
+    officialName: 'an authorised enrolment centre',
+    officialUrl: 'https://uidai.gov.in/',
+    what:
+      'The application for a new Aadhaar number, completed at an enrolment centre where your photograph, fingerprints and iris scan are captured on the spot.',
+    who:
+      'Residents applying for Aadhaar for the first time, including children, who are enrolled with a parent as the introducer where required.',
+    when:
+      'Any time, at an enrolment centre. Biometrics are captured there, so it generally cannot be completed entirely online.',
+    gotcha:
+      'The name and date of birth you give here become the reference every other record is checked against for the rest of your life — bank KYC, PAN, EPF, passport. A spelling that seemed unimportant at the counter turns into a mismatch you spend years correcting.',
+    tools: ['Passport & ID photo', 'Scan to PDF', 'Compress to size', 'Merge PDF'],
+  },
+  {
+    slug: 'aadhaar-correction', name: 'Aadhaar update / correction form', short: 'Aadhaar update', group: 'PAN & identity',
+    aka: 'Aadhaar name, address or date of birth change',
+    authority: 'Unique Identification Authority of India (UIDAI)',
+    officialName: 'the myAadhaar portal or an enrolment centre',
+    officialUrl: 'https://uidai.gov.in/',
+    what:
+      'The request to change details already recorded against your Aadhaar — name, address, date of birth, gender, mobile number or email.',
+    who:
+      'Anyone whose recorded details are wrong or have changed. Some fields can be updated online; others generally require a visit because biometrics have to be re-verified.',
+    when:
+      'Any time. UIDAI periodically asks holders to refresh supporting documents, so check the portal rather than assuming your record is current.',
+    gotcha:
+      'Certain fields can only be changed a limited number of times in a lifetime, and name and date of birth are usually among them. People burn one of those attempts on a small correction, then find the second, real correction refused.',
+    tools: ['Scan to PDF', 'Compress to size', 'Merge PDF', 'Redact PDF'],
+  },
+  {
+    slug: 'gst-reg-01', name: 'GST REG-01', short: 'GST REG-01', group: 'GST',
+    aka: 'GST registration application',
+    authority: 'Goods and Services Tax Network (GSTN)',
+    officialName: 'the GST portal',
+    officialUrl: 'https://www.gst.gov.in/',
+    what:
+      'The application for GST registration: business details, place of business, bank account, and the authorised signatory, with documents uploaded in support.',
+    who:
+      'Businesses crossing the registration threshold for their category and state, and anyone required to register regardless of turnover, such as those making inter-state supplies or selling through an e-commerce operator.',
+    when:
+      'Generally within the period prescribed after becoming liable to register. Registering late usually means tax is still due from the date liability began.',
+    gotcha:
+      'Applications are rejected on the address proof far more often than on eligibility. The proof has to match the premises exactly, and a rent agreement without the owner\'s consent letter or a mismatched electricity bill is the usual reason for a query that stalls the whole thing.',
+    tools: ['Scan to PDF', 'Compress to size', 'Merge PDF', 'Fill PDF form'],
+  },
+  {
+    slug: 'spice-plus', name: 'SPICe+ (INC-32)', short: 'SPICe+', group: 'Company & MCA',
+    aka: 'company incorporation form',
+    authority: 'Ministry of Corporate Affairs (MCA)',
+    officialName: 'the MCA portal',
+    officialUrl: 'https://www.mca.gov.in/',
+    what:
+      'The integrated form that incorporates a company and, in the same filing, reserves the name and applies for PAN, TAN, EPFO and ESIC registration, a bank account and, where applicable, professional tax.',
+    who:
+      'Anyone incorporating a company in India. It is filed by or through the proposed directors, usually with a professional certifying it.',
+    when:
+      'Any time, though a reserved name is valid only for a limited period, so the incorporation has to follow within it.',
+    gotcha:
+      'Because it bundles so many registrations, one bad detail fails several at once. The objects clause and the name are checked against existing companies and trade marks, and a rejected name means starting the sequence again rather than fixing one field.',
+    tools: ['Merge PDF', 'Sign PDF', 'Compress to size', 'Scan to PDF'],
+  },
+  {
+    slug: 'dir-3-kyc', name: 'DIR-3 KYC', short: 'DIR-3 KYC', group: 'Company & MCA',
+    aka: 'annual director KYC',
+    authority: 'Ministry of Corporate Affairs (MCA)',
+    officialName: 'the MCA portal',
+    officialUrl: 'https://www.mca.gov.in/',
+    what:
+      'The annual confirmation of a director\'s own details against their Director Identification Number, filed by the individual rather than by the company.',
+    who:
+      'Every person holding a DIN, whether or not they are currently a director of anything, and whether or not the company traded.',
+    when:
+      'Annually, by a date notified each year. There is generally a fee for filing late, and it applies per DIN.',
+    gotcha:
+      'Miss it and the DIN is deactivated, which blocks every other filing that needs your signature — not just yours, the company\'s. People discover it at the moment they are trying to file something urgent, and reactivation costs a fee and time.',
+    tools: ['Sign PDF', 'Compress to size', 'Merge PDF', 'Scan to PDF'],
+  },
+  {
+    slug: 'aoc-4', name: 'AOC-4', short: 'AOC-4', group: 'Company & MCA',
+    aka: 'annual filing of financial statements',
+    authority: 'Ministry of Corporate Affairs (MCA)',
+    officialName: 'the MCA portal',
+    officialUrl: 'https://www.mca.gov.in/',
+    what:
+      'The filing of a company\'s financial statements with the Registrar — balance sheet, profit and loss, the auditor\'s report and the board\'s report as attachments.',
+    who:
+      'Every company registered in India, including one that did not trade during the year.',
+    when:
+      'Generally within a period after the annual general meeting, on dates notified each year.',
+    gotcha:
+      'The late fee here accrues per day with no ceiling in the way people expect, so a filing forgotten for a year becomes an expensive one. Dormant companies are where this happens, because nobody is watching a company that is not doing anything.',
+    tools: ['Merge PDF', 'Compress to size', 'PDF to Excel', 'Sign PDF'],
+  },
+  {
+    slug: 'mgt-7', name: 'MGT-7 / MGT-7A', short: 'MGT-7', group: 'Company & MCA',
+    aka: 'annual return',
+    authority: 'Ministry of Corporate Affairs (MCA)',
+    officialName: 'the MCA portal',
+    officialUrl: 'https://www.mca.gov.in/',
+    what:
+      'The company\'s annual return: shareholding, directors, meetings held and changes during the year. MGT-7A is the abridged version for small companies and one-person companies.',
+    who:
+      'Every registered company. Which of the two versions applies depends on the company\'s category.',
+    when:
+      'Generally within a period after the annual general meeting, separate from the AOC-4 deadline — the two are frequently confused.',
+    gotcha:
+      'The shareholding and directorship details must agree with what has actually been filed during the year. If a share transfer or a director change was never filed, this return either contradicts the register or repeats the omission, and both are visible on the public record.',
+    tools: ['Merge PDF', 'Compare PDF', 'Compress to size', 'Sign PDF'],
+  },
+  {
+    slug: 'bank-kyc-update', name: 'Bank KYC update form', short: 'Bank KYC update', group: 'Banking',
+    aka: 're-KYC / periodic KYC',
+    authority: 'Reserve Bank of India (RBI) direction, applied by your bank',
+    officialName: 'your bank',
+    officialUrl: 'https://www.rbi.org.in/',
+    what:
+      'The periodic re-confirmation of your identity and address that banks are required to carry out on existing customers, with fresh proof where anything has changed.',
+    who:
+      'Existing account holders. How often it is required generally depends on the risk category the bank has assigned to the account.',
+    when:
+      'Periodically, on the bank\'s cycle. You are usually notified in advance, and the notice is easy to mistake for marketing.',
+    gotcha:
+      'An account that misses re-KYC can be frozen for debits, and that is discovered at the worst possible moment — a payment failing, or a salary credit that cannot be withdrawn. Restoring it takes a branch visit that a returned form would have avoided.',
+    tools: ['Scan to PDF', 'Compress to size', 'Merge PDF', 'Redact PDF'],
+  },
+  {
+    slug: 'fatca-crs-declaration', name: 'FATCA / CRS declaration', short: 'FATCA / CRS', group: 'Banking',
+    aka: 'tax residency self-certification',
+    authority: 'Central Board of Direct Taxes (CBDT), applied by banks and fund houses',
+    officialName: 'your bank, fund house or depository',
+    officialUrl: 'https://www.incometax.gov.in/',
+    what:
+      'A self-certification of where you are tax resident, so financial institutions can report accounts to the right jurisdiction under the international exchange-of-information arrangements.',
+    who:
+      'Holders of bank accounts, mutual fund folios and demat accounts. It is asked at account opening and again when something suggests the position has changed.',
+    when:
+      'Generally at account opening, and again whenever your circumstances change — moving abroad being the obvious trigger. Institutions ask again periodically, so check with yours.',
+    gotcha:
+      'Folios are frozen for transactions when this is outstanding, and people find out when a redemption will not go through. Tax residency is also not the same as citizenship or where you currently live, and guessing at that box is how a wrong declaration gets signed.',
+    tools: ['Fill PDF form', 'Sign PDF', 'Scan to PDF', 'Compress to size'],
+  },
+  {
+    slug: 'bank-nomination-form', name: 'Bank nomination form', short: 'Bank nomination', group: 'Banking',
+    aka: 'DA-1 / nomination in a bank account',
+    authority: 'Reserve Bank of India (RBI) direction, applied by your bank',
+    officialName: 'your bank',
+    officialUrl: 'https://www.rbi.org.in/',
+    what:
+      'The form recording who receives the balance in an account, deposit or locker if the holder dies, so the bank can release it without a court process.',
+    who:
+      'Any account or deposit holder. It can be added at opening or later, and changed at any time.',
+    when:
+      'Any time. Banks have been running campaigns to collect nominations on older accounts that never had one.',
+    gotcha:
+      'A nominee is a receiver, not an heir — the money is paid to them, but who is legally entitled is decided by succession law or a will. Families assume the nomination settles ownership, and it does not, which is exactly the misunderstanding that turns into a dispute.',
+    tools: ['Fill PDF form', 'Sign PDF', 'Scan to PDF', 'Merge PDF'],
+  },
+  {
+    slug: 'form-15ca', name: 'Form 15CA', short: 'Form 15CA', group: 'Income tax',
+    aka: 'declaration for a foreign remittance',
+    authority: 'Income Tax Department (CBDT)',
+    officialName: 'the income tax e-filing portal',
+    officialUrl: 'https://www.incometax.gov.in/',
+    what:
+      'The declaration filed before money is remitted to a non-resident, stating the nature of the payment and the tax deducted on it.',
+    who:
+      'Anyone making a payment to a non-resident that is chargeable to tax in India, whether an individual paying a foreign vendor or a company paying overseas fees.',
+    when:
+      'Before the remittance is made. Banks generally will not process it without the acknowledgement.',
+    gotcha:
+      'Which parts you complete depends on the amount and whether a Chartered Accountant certificate on Form 15CB is required first. People fill the wrong part, the bank rejects it, and the payment misses its date.',
+    tools: ['Merge PDF', 'Compress to size', 'Sign PDF', 'PDF to Excel'],
+  },
 ];
 
 export const FORM_GROUPS = INDIA_FORMS.map((f) => f.group).filter((g, i, a) => a.indexOf(g) === i);

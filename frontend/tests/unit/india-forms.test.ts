@@ -32,10 +32,27 @@ describe('India forms library', () => {
   it('never hosts the form itself — the link goes to the authority', () => {
     // Government forms are revised without notice. A copy served from our domain
     // is worse than no copy, because it looks current.
+    //
+    // An allowlist rather than a ".gov.in suffix" rule, because that rule was
+    // wrong on its first real test: the Reserve Bank of India is rbi.org.in, and
+    // it is unambiguously the authority. Naming the hosts keeps the check strict
+    // where it matters — the point is that the link leaves our domain for a body
+    // that actually issues the form.
+    const AUTHORITIES = [
+      'incometax.gov.in',
+      'gst.gov.in',
+      'epfindia.gov.in',
+      'uidai.gov.in',
+      'mca.gov.in',
+      'rbi.org.in',
+    ];
     for (const f of INDIA_FORMS) {
       expect(f.officialUrl, `${f.name}: officialUrl must be https`).toMatch(/^https:\/\//);
-      const host = new URL(f.officialUrl).hostname;
-      expect(host.endsWith('.gov.in') || host.endsWith('.nic.in'), `${f.name}: ${host} is not a government domain`).toBe(true);
+      const host = new URL(f.officialUrl).hostname.replace(/^www\./, '');
+      expect(
+        AUTHORITIES.includes(host),
+        `${f.name}: ${host} is not a known issuing authority — add it here only if it genuinely issues the form`,
+      ).toBe(true);
       expect(f.officialUrl.toLowerCase().endsWith('.pdf'), `${f.name}: link to the page, not a PDF that will go stale`).toBe(false);
     }
   });

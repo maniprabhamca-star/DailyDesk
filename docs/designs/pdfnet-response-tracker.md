@@ -21,7 +21,7 @@ Status values: `todo` · `in progress` · `shipped` · `blocked` · `parked`
 | 4 | Bank statement guides 11 → 40 | 28 | **shipped** | 2026-08-29 · 39 pages |
 | 5 | Competitor alternatives 4 → 10 | 5 | **shipped** | 2026-08-29 (9 of 10; Canva pending a source) |
 | 6 | Sector pages 4 → 12 | 5 | **in progress** | 9 of 12 · 2026-08-29 |
-| 7 | Indian statutory forms library | 22 | **in progress** | first tranche 2026-08-29 |
+| 7 | Indian statutory forms library | 33 | **shipped** | 32 forms + index · 2026-08-29 |
 | 8 | US forms library (privacy wedge) | ~30–60 | **todo** | |
 | 9 | "What comes next" dock | 0 | **todo** | |
 | 10 | AI document generator / invoice builder | 1–2 | **todo** | |

@@ -24,6 +24,14 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-08-29',
+    kind: 'improved',
+    title: 'Aadhaar, company, GST registration and banking forms added',
+    detail:
+      "Eleven more, taking the library to 32. Aadhaar enrolment and update, the MCA company filings (SPICe+, DIR-3 KYC, AOC-4, MGT-7), GST registration, the banking declarations (KYC update, FATCA/CRS, nomination) and Form 15CA for foreign remittances. Same as the first batch: what it is, who files it, roughly when, and the thing people get wrong — which for these is often the expensive part. Miss DIR-3 KYC and your DIN is deactivated, which blocks every filing that needs your signature, and you find out on the day something is urgent. A bank nominee is a receiver, not an heir: the money is paid to them, but who is legally entitled is decided by succession law, and families assume the nomination settles it. Certain Aadhaar fields can only be changed a limited number of times in a lifetime, so a small correction can burn the attempt you needed for a real one.",
+    href: '/india-forms'
+  },
+  {
+    date: '2026-08-29',
     kind: 'new',
     title: 'DPA, subprocessors, accessibility and security reporting',
     detail:
