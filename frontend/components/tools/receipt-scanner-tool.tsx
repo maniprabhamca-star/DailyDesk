@@ -7,9 +7,15 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CATEGORIES, addExpense, budgetSignedIn, BudgetApiError } from '@/lib/budget-api';
+import { ReceiptDetailPanel, type ReceiptDetail } from '@/components/tools/receipt-detail';
 
 const API = process.env.NEXT_PUBLIC_API_URL || '';
-type Parsed = { merchant: string; total: number | null; date: string | null; category: string; text: string };
+type Parsed = ReceiptDetail & { merchant: string; total: number | null; date: string | null; category: string; text: string };
+
+// The receipt states its own currency; our default was rupees, so a US Walmart
+// slip showed its total against a ₹ sign.
+const CURRENCY_SYMBOL: Record<string, string> = { USD: '$', EUR: '€', GBP: '£', INR: '₹', JPY: '¥' };
+const SYMBOLS = ['₹', '$', '€', '£', '¥'];
 
 export function ReceiptScannerTool() {
   const [phase, setPhase] = useState<'capture' | 'scanning' | 'review' | 'saved'>('capture');
@@ -25,6 +31,9 @@ export function ReceiptScannerTool() {
   const [category, setCategory] = useState('Other');
   const [date, setDate] = useState('');
   const [currency, setCurrency] = useState('₹');
+  // Everything the receipt says beyond the single figure the Budget entry needs:
+  // line items, tax lines, references, how it was paid.
+  const [detail, setDetail] = useState<ReceiptDetail | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -90,6 +99,11 @@ export function ReceiptScannerTool() {
       setCategory(CATEGORIES.includes(p.category as (typeof CATEGORIES)[number]) ? p.category : 'Other');
       setDate(p.date || new Date().toISOString().slice(0, 10));
       setScanFound({ amount: p.total != null, merchant: !!p.merchant });
+      setDetail(p);
+      if (p.currency) {
+        const sym = CURRENCY_SYMBOL[p.currency.toUpperCase()] || p.currency;
+        if (SYMBOLS.includes(sym)) setCurrency(sym);
+      }
       setPhase('review');
     } catch { setError('Could not reach the scanner — check your connection.'); setPhase('capture'); }
   }, []);
@@ -117,7 +131,7 @@ export function ReceiptScannerTool() {
     }
   }, [amount, category, merchant, date]);
 
-  const reset = () => { setPhase('capture'); setMerchant(''); setAmount(''); setCategory('Other'); setDate(''); setError(null); setScanFound({ amount: false, merchant: false }); };
+  const reset = () => { setPhase('capture'); setMerchant(''); setAmount(''); setCategory('Other'); setDate(''); setError(null); setScanFound({ amount: false, merchant: false }); setDetail(null); };
 
   // What the review screen needs to say, derived from what the scan returned.
   const readNothing = !scanFound.amount && !scanFound.merchant;
@@ -223,6 +237,15 @@ export function ReceiptScannerTool() {
             <label className="text-sm"><span className="mb-1 block text-xs font-medium text-muted-foreground">Date</span>
               <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-2 outline-none focus:border-primary" /></label>
           </div>
+          {/* Everything else the receipt said. The Budget entry stays one
+              expense — that is what a budget is — but discarding the line
+              items, the tax breakdown and the reference numbers at the exact
+              moment we have read them would be wasteful. This is what turns
+              "an expense" into a record that stands up at tax time. */}
+          {detail && (
+            <ReceiptDetailPanel detail={detail} merchant={merchant} date={date} currency={currency} />
+          )}
+
           {error && <p className="mt-3 text-sm text-amber-700 dark:text-amber-400">{error}</p>}
           {/* When the scan read nothing, saving can only fail on an empty
               amount — so taking another photo leads, and saving stays available

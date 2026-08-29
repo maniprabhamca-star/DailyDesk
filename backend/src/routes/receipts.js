@@ -73,18 +73,36 @@ const AI_ENABLED = process.env.AI_ENABLED === 'true';
 const AI_TIMEOUT_MS = 30 * 1000;
 
 const VISION_SYSTEM = [
-  'You read photographs of retail receipts and return structured data.',
-  'Return STRICT JSON only, no prose, no code fence:',
-  '{"merchant": string|null, "total": number|null, "date": "YYYY-MM-DD"|null, "category": string|null, "currency": string|null}',
+  'You read photographs of receipts and return every field the receipt actually shows.',
+  'Receipts vary enormously by country, chain and terminal. Do not assume a layout — read what is printed.',
+  '',
+  'Return STRICT JSON only. No prose, no code fence:',
+  '{',
+  '  "merchant": string|null,',
+  '  "merchantAddress": string|null,',
+  '  "date": "YYYY-MM-DD"|null,',
+  '  "time": "HH:MM"|null,',
+  '  "currency": string|null,',
+  '  "lines": [{"description": string, "qty": number|null, "unitPrice": number|null, "amount": number|null}],',
+  '  "subtotal": number|null,',
+  '  "taxes": [{"label": string, "amount": number}],',
+  '  "discounts": [{"label": string, "amount": number}],',
+  '  "total": number|null,',
+  '  "payments": [{"method": string, "amount": number|null, "last4": string|null}],',
+  '  "identifiers": [{"label": string, "value": string}],',
+  '  "category": string|null',
+  '}',
   '',
   'Rules:',
-  '- total is the FINAL amount the customer paid: the grand total, amount payable or balance due. Never the subtotal, never a single line item, never a tax line.',
-  '- If the total is genuinely unreadable, return null. Do NOT guess. A wrong number is worse than no number, because it gets saved to a budget.',
-  '- Never return a phone number, GSTIN, VAT number, invoice number, card number or loyalty ID as the total.',
-  '- merchant is the trading name only, without the address or the legal suffix.',
-  '- date is the transaction date in YYYY-MM-DD. If the receipt shows an ambiguous numeric date, prefer the reading that is a valid date; if both are valid, assume day-first.',
+  '- lines: EVERY purchased item, in the order printed. description is the item name as printed; amount is what that line cost. Leave qty or unitPrice null where the receipt does not show them. Do not invent a line and do not merge two into one.',
+  '- Do NOT put subtotal, tax, total, tender, change or loyalty rows into lines. Each of those has its own field.',
+  '- taxes: one entry per tax line, keeping the printed label (VAT, GST, CGST, SGST, TAX1, Sales Tax).',
+  '- total is the FINAL amount the customer paid. Never a subtotal, never a single line, never a tender or change line.',
+  '- payments: how it was settled. method is like Visa, Mastercard, Cash, Gift card, UPI. last4 is ONLY the last four digits of a masked card number. NEVER return a full card number — if more than four digits are visible, return only the last four.',
+  '- identifiers: anything that uniquely marks this transaction — receipt, invoice, bill or order number, reference number, terminal or till ID, store number, auth or approval code, transaction ID. Keep the printed label. Skip loyalty balances and marketing codes.',
   '- category must be exactly one of: Food, Transport, Bills, Shopping, Health, Fun, Home, Other.',
-  '- currency is the symbol or ISO code printed on the receipt, or null.',
+  '- If a value is genuinely unreadable, use null. Do NOT guess — a wrong number is worse than a missing one, because it gets saved into someone\u2019s records.',
+  '- Numbers must be plain JSON numbers: 35.11, not "$35.11".',
 ].join('\n');
 
 /** Media type Anthropic will accept, sniffed from the bytes rather than trusted. */
@@ -142,16 +160,76 @@ async function readWithVision(buf, capKey, isOwner) {
     const json = text.replace(/^\`\`\`(?:json)?/i, '').replace(/\`\`\`$/, '').trim();
     const out = JSON.parse(json);
 
-    const total = typeof out.total === 'number' && Number.isFinite(out.total) && out.total > 0 && out.total < 1e7
-      ? out.total : null;
+    const money = (v) => (typeof v === 'number' && Number.isFinite(v) && Math.abs(v) < 1e7 ? v : null);
+    const str = (v, n) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, n) : null);
+
+    const lineItems = Array.isArray(out.lines) ? out.lines.slice(0, 200).map((l) => ({
+      description: str(l && l.description, 120) || '',
+      qty: money(l && l.qty),
+      unitPrice: money(l && l.unitPrice),
+      amount: money(l && l.amount),
+    })).filter((l) => l.description || l.amount != null) : [];
+
+    const pairs = (arr, cap) => (Array.isArray(arr) ? arr.slice(0, cap).map((t) => ({
+      label: str(t && t.label, 40) || '',
+      amount: money(t && t.amount),
+    })).filter((t) => t.label && t.amount != null) : []);
+
+    // last4 ONLY, enforced here rather than trusted to the prompt. A model that
+    // returned a full card number must not be able to put one in our response:
+    // storing a PAN would drag this tool into PCI scope for no benefit, and four
+    // digits is both what the receipt prints and all anyone needs to match a
+    // line on their card statement.
+    const payments = Array.isArray(out.payments) ? out.payments.slice(0, 6).map((pm) => {
+      const digits = (str(pm && pm.last4, 32) || '').replace(/\D/g, '');
+      return {
+        method: str(pm && pm.method, 40) || '',
+        amount: money(pm && pm.amount),
+        last4: digits ? digits.slice(-4) : null,
+      };
+    }).filter((pm) => pm.method || pm.amount != null) : [];
+
+    const identifiers = Array.isArray(out.identifiers) ? out.identifiers.slice(0, 20).map((i) => ({
+      label: str(i && i.label, 40) || '',
+      // An identifier field is a plausible hiding place for a card number, so
+      // any long digit run is masked here too.
+      value: (str(i && i.value, 60) || '').replace(/\b\d{13,19}\b/g, (m) => '\u2022\u2022\u2022\u2022 ' + m.slice(-4)),
+    })).filter((i) => i.label && i.value) : [];
+
+    const total = money(out.total) != null && out.total > 0 ? out.total : null;
+    const subtotal = money(out.subtotal);
+    const taxes = pairs(out.taxes, 10);
+    const discounts = pairs(out.discounts, 10);
     const date = typeof out.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(out.date) && !Number.isNaN(Date.parse(out.date))
       ? out.date : null;
+
+    // Does the receipt agree with itself? The same move as the bank statement
+    // converter's balance check: a figure the document PROVES beats a figure we
+    // merely read. Reported to the reader rather than kept to ourselves, so a
+    // mismatch is something they can see and fix before saving.
+    const taxSum = taxes.reduce((n, t) => n + t.amount, 0);
+    const discSum = discounts.reduce((n, d) => n + Math.abs(d.amount), 0);
+    const lineSum = lineItems.reduce((n, l) => n + (l.amount || 0), 0);
+    const near = (a, b) => a != null && b != null && Math.abs(a - b) < 0.02;
+
     return {
-      merchant: typeof out.merchant === 'string' ? out.merchant.slice(0, 60) : '',
-      total,
+      merchant: str(out.merchant, 60) || '',
+      merchantAddress: str(out.merchantAddress, 120),
       date,
+      time: typeof out.time === 'string' && /^\d{1,2}:\d{2}/.test(out.time) ? out.time.slice(0, 5) : null,
+      currency: str(out.currency, 8),
+      lines: lineItems,
+      subtotal,
+      taxes,
+      discounts,
+      total,
+      payments,
+      identifiers,
+      verified: {
+        totalAddsUp: subtotal != null && total != null ? near(subtotal + taxSum - discSum, total) : null,
+        linesAddUp: lineItems.length > 0 && subtotal != null ? near(lineSum, subtotal) : null,
+      },
       category: CATS.includes(out.category) ? out.category : 'Other',
-      currency: typeof out.currency === 'string' ? out.currency.slice(0, 8) : null,
     };
   } catch (e) {
     console.error('receipt vision failed:', e.message);
@@ -191,7 +269,7 @@ router.post('/scan', requirePro, (req, res) => {
       // The model reads the photograph directly — no OCR step to lose detail in.
       const capKey = req._userId || clientKey(req);
       const seen = await readWithVision(req.file.buffer, capKey, req._isOwner);
-      if (seen && (seen.total != null || seen.merchant)) {
+      if (seen && (seen.total != null || seen.merchant || seen.lines.length)) {
         clean();
         if (req._userId) trackEvent(req, 'pro_used', { module: '/receipt-scanner', userId: req._userId });
         trackEvent(req, 'receipt_scan', { module: '/receipt-scanner', userId: req._userId, source: 'vision' });
@@ -218,7 +296,20 @@ router.post('/scan', requirePro, (req, res) => {
       const parsed = parseReceipt(text);
       if (req._userId) trackEvent(req, 'pro_used', { module: '/receipt-scanner', userId: req._userId });
       trackEvent(req, 'receipt_scan', { module: '/receipt-scanner', userId: req._userId, source: 'ocr' });
-      return res.json({ ...parsed, currency: null, source: 'ocr', text: text.slice(0, 4000) });
+      // Same SHAPE as the vision path so the client never has to branch on which
+      // one answered. The empty arrays are the honest answer: reading individual
+      // line items off OCR text across every receipt layout in the world is not
+      // something regular expressions do, and inventing rows would be worse than
+      // showing none.
+      return res.json({
+        ...parsed,
+        merchantAddress: null, time: null, currency: null,
+        lines: [], subtotal: null, taxes: [], discounts: [],
+        payments: [], identifiers: [],
+        verified: { totalAddsUp: null, linesAddUp: null },
+        source: 'ocr',
+        text: text.slice(0, 4000),
+      });
     } catch (e) {
       clean();
       console.error('receipt scan:', e.message);
