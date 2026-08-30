@@ -90,7 +90,8 @@ const VISION_SYSTEM = [
   '  "total": number|null,',
   '  "payments": [{"method": string, "amount": number|null, "last4": string|null}],',
   '  "identifiers": [{"label": string, "value": string}],',
-  '  "category": string|null',
+  '  "category": string|null,',
+  '  "unreadable": boolean',
   '}',
   '',
   'Rules:',
@@ -100,8 +101,11 @@ const VISION_SYSTEM = [
   '- total is the FINAL amount the customer paid. Never a subtotal, never a single line, never a tender or change line.',
   '- payments: how it was settled. method is like Visa, Mastercard, Cash, Gift card, UPI. last4 is ONLY the last four digits of a masked card number. NEVER return a full card number — if more than four digits are visible, return only the last four.',
   '- identifiers: anything that uniquely marks this transaction — receipt, invoice, bill or order number, reference number, terminal or till ID, store number, auth or approval code, transaction ID. Keep the printed label. Skip loyalty balances and marketing codes.',
+  '- Read the WHOLE receipt for identifiers, including the dense block printed BELOW the total and above the barcode, which is where most of them live. Capture every labelled code there, whatever the abbreviation and whether or not you recognise it: ST#, OP#, TE#, TR#, TC#, REF#, AID, APPR CODE, SEQ#, BATCH, INVOICE, AUTH, MID, POS. Keep the label exactly as printed and the value exactly as printed, digits and all. Different chains use different abbreviations for the same thing — do not restrict yourself to labels you have seen before, and do not drop one because you cannot tell what it means.',
   '- category must be exactly one of: Food, Transport, Bills, Shopping, Health, Fun, Home, Other.',
   '- If a value is genuinely unreadable, use null. Do NOT guess — a wrong number is worse than a missing one, because it gets saved into someone\u2019s records.',
+  '- CRITICAL: only report what you can actually SEE in this image. Never fill in items, prices or a store that would be typical for this kind of receipt — a plausible invention is far worse than an empty result, because it looks correct and gets filed.',
+  '- If the photograph is too blurred, too dark, cropped, or rotated such that you cannot read the lines with confidence, return every field as null or an empty array and set "unreadable": true. Returning nothing is the correct answer to an unreadable image.',
   '- Numbers must be plain JSON numbers: 35.11, not "$35.11".',
 ].join('\n');
 
@@ -171,6 +175,12 @@ async function readWithVision(buf, capKey, isOwner) {
     const text = (data.content || []).filter((c) => c.type === 'text').map((c) => c.text).join('').trim();
     const json = text.replace(/^\`\`\`(?:json)?/i, '').replace(/\`\`\`$/, '').trim();
     const out = JSON.parse(json);
+    // The model told us it could not read the image. Believe it, and let OCR
+    // try rather than presenting a guess as a reading.
+    if (out && out.unreadable === true) {
+      console.warn('receipt vision: image reported unreadable');
+      return null;
+    }
 
     const money = (v) => (typeof v === 'number' && Number.isFinite(v) && Math.abs(v) < 1e7 ? v : null);
     const str = (v, n) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, n) : null);
@@ -280,23 +290,35 @@ router.post('/scan', requirePro, (req, res) => {
     try {
       // The model reads the photograph directly — no OCR step to lose detail in.
       const capKey = req._userId || clientKey(req);
-      const seen = await readWithVision(req.file.buffer, capKey, req._isOwner);
+      // Straighten it FIRST. Rotation used to happen only on the OCR fallback,
+      // so the model was handed the sideways photograph — and a model given a
+      // receipt it cannot read does not return nothing, it returns a plausible
+      // receipt. A real scan came back with five identical apple juices and a
+      // beef roast that were not on the slip at all, and the totals it invented
+      // were internally consistent, so the arithmetic check passed and put a
+      // green tick on fabricated data. That is the worst failure this tool has.
+      fs.writeFileSync(img, req.file.buffer);
+      const rotated = await autoRotate(img);
+      const upright = rotated ? fs.readFileSync(img) : req.file.buffer;
+
+      const seen = await readWithVision(upright, capKey, req._isOwner);
       if (seen && (seen.total != null || seen.merchant || seen.lines.length)) {
+        // Payment details only when they were asked for. The model is told to
+        // return at most four digits and that is enforced above, but the
+        // stronger guarantee is not reading it back at all unless the person
+        // ticked the box on the preview screen — an opt-in nobody set should
+        // never produce card data in a response, however well redacted.
+        if (String(req.body && req.body.cards) !== 'yes') seen.payments = [];
         clean();
         if (req._userId) trackEvent(req, 'pro_used', { module: '/receipt-scanner', userId: req._userId });
         trackEvent(req, 'receipt_scan', { module: '/receipt-scanner', userId: req._userId, source: 'vision' });
         return res.json({ ...seen, source: 'vision', text: '' });
       }
 
-      // Fallback. --psm 6 treats the image as one uniform block, which is what a
-      // receipt is; the default page-segmentation mode assumes a multi-column
-      // page and shuffles a narrow receipt's lines out of order.
-      fs.writeFileSync(img, req.file.buffer);
-      // A till roll is long and thin, so people photograph it sideways. OCR of a
-      // sideways receipt is not merely worse, it is noise — the owner's Walmart
-      // slip came back with a merchant of "Aeqg AJeAFq 1SnN4" and no amount at
-      // all. Ask tesseract which way is up, then rotate before reading.
-      await autoRotate(img);
+      // Fallback. The image on disk is already upright — it was straightened
+      // above, before the vision attempt. --psm 6 treats it as one uniform block,
+      // which is what a receipt is; the default page-segmentation mode assumes a
+      // multi-column page and shuffles a narrow receipt's lines out of order.
       await new Promise((resolve, reject) => {
         execFile('tesseract', [img, outBase, '-l', 'eng', '--psm', '6', 'txt'], { timeout: TIMEOUT_MS, maxBuffer: 20 * 1024 * 1024 },
           (err) => (err ? reject(err) : resolve()));

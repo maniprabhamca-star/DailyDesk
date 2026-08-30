@@ -8,6 +8,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { CATEGORIES, addExpense, budgetSignedIn, BudgetApiError } from '@/lib/budget-api';
 import { ReceiptDetailPanel, type ReceiptDetail } from '@/components/tools/receipt-detail';
+import { ReceiptPreview } from '@/components/tools/receipt-preview';
 
 const API = process.env.NEXT_PUBLIC_API_URL || '';
 type Parsed = ReceiptDetail & { merchant: string; total: number | null; date: string | null; category: string; text: string };
@@ -18,7 +19,12 @@ const CURRENCY_SYMBOL: Record<string, string> = { USD: '$', EUR: '€', GBP: '£
 const SYMBOLS = ['₹', '$', '€', '£', '¥'];
 
 export function ReceiptScannerTool() {
-  const [phase, setPhase] = useState<'capture' | 'scanning' | 'review' | 'saved'>('capture');
+  // 'preview' sits between picking a photo and reading it. A sideways receipt
+  // used to go straight to the reader, and a reader that cannot make out a
+  // receipt returns a plausible one rather than nothing — so the fix is partly
+  // to straighten it and partly to let you see what is about to be read.
+  const [phase, setPhase] = useState<'capture' | 'preview' | 'scanning' | 'review' | 'saved'>('capture');
+  const [pending, setPending] = useState<File | null>(null);
   const [camOn, setCamOn] = useState(false);
   const [camError, setCamError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -78,11 +84,13 @@ export function ReceiptScannerTool() {
   // A stream left running holds the camera light on after you navigate away.
   useEffect(() => () => { streamRef.current?.getTracks().forEach((t) => t.stop()); }, []);
 
-  const scanBlob = useCallback(async (blob: Blob) => {
+  const scanBlob = useCallback(async (blob: Blob, wantCard = false) => {
     setPhase('scanning'); setError(null);
     try {
       const form = new FormData();
       form.append('image', blob, 'receipt.jpg');
+      // Absent unless asked for, rather than sent and ignored.
+      if (wantCard) form.append('cards', 'yes');
       const token = typeof window !== 'undefined' ? localStorage.getItem('dd_token') : null;
       const res = await fetch(`${API}/api/receipts/scan`, { method: 'POST', body: form, headers: token ? { Authorization: `Bearer ${token}` } : {} });
       const data = await res.json().catch(() => ({}));
@@ -114,7 +122,7 @@ export function ReceiptScannerTool() {
     const c = document.createElement('canvas'); c.width = v.videoWidth; c.height = v.videoHeight;
     c.getContext('2d')!.drawImage(v, 0, 0);
     stopCam();
-    c.toBlob((b) => { if (b) void scanBlob(b); c.width = c.height = 0; }, 'image/jpeg', 0.9);
+    c.toBlob((b) => { if (b) { setPending(new File([b], 'receipt.jpg', { type: 'image/jpeg' })); setPhase('preview'); } c.width = c.height = 0; }, 'image/jpeg', 0.9);
   }, [scanBlob, stopCam]);
 
   const save = useCallback(async () => {
@@ -131,7 +139,7 @@ export function ReceiptScannerTool() {
     }
   }, [amount, category, merchant, date]);
 
-  const reset = () => { setPhase('capture'); setMerchant(''); setAmount(''); setCategory('Other'); setDate(''); setError(null); setScanFound({ amount: false, merchant: false }); setDetail(null); };
+  const reset = () => { setPhase('capture'); setPending(null); setMerchant(''); setAmount(''); setCategory('Other'); setDate(''); setError(null); setScanFound({ amount: false, merchant: false }); setDetail(null); };
 
   // What the review screen needs to say, derived from what the scan returned.
   const readNothing = !scanFound.amount && !scanFound.merchant;
@@ -178,9 +186,17 @@ export function ReceiptScannerTool() {
                 normal case, since people photograph the receipt at the shop and
                 deal with it later. Taking a picture live is what the camera
                 button beside this is for. */}
-            <input ref={fileRef} type="file" accept="image/*" aria-label="Choose an image file" className="dd-file-input" onChange={(e) => { const f = e.target.files?.[0]; if (f) void scanBlob(f); e.target.value = ''; }} />
+            <input ref={fileRef} type="file" accept="image/*" aria-label="Choose an image file" className="dd-file-input" onChange={(e) => { const f = e.target.files?.[0]; if (f) { setPending(f); setPhase('preview'); } e.target.value = ''; }} />
           </div>
         </div>
+      )}
+
+      {phase === 'preview' && pending && (
+        <ReceiptPreview
+          file={pending}
+          onScan={(blob, wantCard) => void scanBlob(blob, wantCard)}
+          onCancel={() => { setPending(null); setPhase('capture'); }}
+        />
       )}
 
       {phase === 'scanning' && (
@@ -278,7 +294,7 @@ export function ReceiptScannerTool() {
         </div>
       )}
 
-      {phase === 'capture' && error && <p className="mt-3 text-center text-sm text-amber-700 dark:text-amber-400">{error}</p>}
+      {(phase === 'capture' || phase === 'preview') && error && <p className="mt-3 text-center text-sm text-amber-700 dark:text-amber-400">{error}</p>}
 
       <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-primary/30 bg-primary/5 p-3.5 text-[13px] leading-relaxed text-foreground">
         <ReceiptText className="mt-0.5 size-4 shrink-0 text-primary" />
