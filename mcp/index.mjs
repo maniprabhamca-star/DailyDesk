@@ -127,7 +127,11 @@ async function post(path, body, headers = {}) {
     try {
       const j = await r.json();
       msg = j.message || j.error || msg;
-      if (j.error === 'pro-required') msg = 'This tool needs a DiemDesk Pro account. Set DIEMDESK_TOKEN to your API token.';
+      if (j.error === 'pro-required') {
+        msg = TOKEN
+          ? 'This tool needs a DiemDesk Pro account, and the token in your config was not accepted — it may have been revoked. Get a new one at https://diemdesk.com/account.'
+          : 'This tool needs a DiemDesk Pro account. Connect yours at https://diemdesk.com/account — it gives you a ready-made command to paste.';
+      }
       if (j.error === 'quota') msg = 'Daily free conversion limit reached. Pro removes the cap.';
     } catch { /* keep the status */ }
     throw new Error(msg);

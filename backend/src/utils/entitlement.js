@@ -15,6 +15,7 @@ const redis = require('./redis');
 const { redisDown } = require('./rateLimitStore');
 const { clientKey } = require('./rateLimitKey');
 const { isCanaryReq } = require('./canary');
+const mcpTokens = require('../controllers/mcpTokenController');
 
 // Mirrors routes/ai.js so "owner" means the same person everywhere.
 const OWNER_EMAILS = (process.env.OWNER_EMAILS || process.env.AI_OWNER_EMAILS || 'maniprabhamca@gmail.com,mrmanigandan@gmail.com')
@@ -24,8 +25,25 @@ const OWNER_EMAILS = (process.env.OWNER_EMAILS || process.env.AI_OWNER_EMAILS ||
 async function whoIs(req) {
   const h = req.headers.authorization;
   if (!h || !h.startsWith('Bearer ')) return { plan: null, email: null, userId: null, isOwner: false };
+  const bearer = h.slice(7);
+
+  // An MCP token first. These live in a config file on someone's disk and do
+  // not expire, which is the whole point: a login JWT lapsing after 30 days
+  // told a paying subscriber "you need a Pro account" — wrong, and with
+  // nothing they could do about it.
+  const viaMcp = await mcpTokens.resolve(bearer);
+  if (viaMcp) {
+    const email = String(viaMcp.email || '').toLowerCase();
+    return {
+      plan: viaMcp.plan,
+      email,
+      userId: viaMcp.userId,
+      isOwner: !!email && OWNER_EMAILS.includes(email),
+    };
+  }
+
   try {
-    const decoded = jwt.verify(h.split(' ')[1], process.env.JWT_SECRET);
+    const decoded = jwt.verify(bearer, process.env.JWT_SECRET);
     const { rows } = await db.query('SELECT plan, email FROM users WHERE id = $1', [decoded.userId]);
     const email = rows[0] ? String(rows[0].email || '').toLowerCase() : null;
     return {

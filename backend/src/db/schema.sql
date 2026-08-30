@@ -154,3 +154,28 @@ CREATE INDEX IF NOT EXISTS idx_cancellations_created ON subscription_cancellatio
 -- no acceptance to record. A NULL here means "not collected", never "refused".
 ALTER TABLE users ADD COLUMN IF NOT EXISTS tos_accepted_at TIMESTAMPTZ;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS tos_accepted_session VARCHAR(80);
+
+-- Long-lived tokens for the MCP server, so an assistant can reach the Pro
+-- tools without the person pasting a session JWT out of DevTools.
+--
+-- Deliberately NOT a JWT. A login token expires in 30 days, and when it did,
+-- the MCP would tell a paying subscriber "you need a Pro account" — an error
+-- that is both wrong and unactionable. These do not expire; they are revoked,
+-- which is a decision the owner makes rather than a surprise they receive.
+--
+-- Only the hash is stored. A token in a config file on someone's disk is more
+-- exposed than a session cookie, so a database leak must not hand over working
+-- credentials. The plaintext is shown once, at creation, and never again.
+CREATE TABLE IF NOT EXISTS mcp_tokens (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token_hash CHAR(64) NOT NULL UNIQUE,
+  -- First 8 characters of the plaintext, so the account page can show which
+  -- token is which without being able to reconstruct any of them.
+  prefix VARCHAR(12) NOT NULL,
+  label VARCHAR(60) NOT NULL DEFAULT 'Claude',
+  last_used_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_mcp_tokens_hash ON mcp_tokens(token_hash);
+CREATE INDEX IF NOT EXISTS idx_mcp_tokens_user ON mcp_tokens(user_id);

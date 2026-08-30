@@ -13,6 +13,7 @@ import { useAuth } from '@/lib/auth';
 import { usePlan } from '@/lib/plan';
 import { SubscriptionManager } from '@/components/app/subscription-manager';
 import { AccountData, SyncedTools } from '@/components/app/account-data';
+import { McpConnect } from '@/components/app/mcp-connect';
 
 export default function AccountPage() {
   const { user, loading, expired, logout, refreshUser } = useAuth();
@@ -158,6 +159,8 @@ export default function AccountPage() {
             </>
           )}
         </section>
+
+        <McpConnect />
 
         <div className="mt-4 space-y-4">
           <SyncedTools />

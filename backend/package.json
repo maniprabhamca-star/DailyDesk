@@ -9,7 +9,8 @@
     "build": "echo 'No build step for backend'",
     "test:subs": "node scripts/test-subscriptions.js",
     "test:checkout": "node scripts/test-checkout-fallbacks.js",
-    "test:receipt": "node scripts/test-receipt-parse.js"
+    "test:receipt": "node scripts/test-receipt-parse.js",
+    "test:mcp-token": "node scripts/test-mcp-token.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

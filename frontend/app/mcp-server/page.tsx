@@ -34,7 +34,7 @@ const CONFIG_PRO = `{
       "command": "npx",
       "args": ["-y", "diemdesk-mcp"],
       "env": {
-        "DIEMDESK_TOKEN": "paste-your-token-here"
+        "DIEMDESK_TOKEN": "ddm_your-token-here"
       }
     }
   }
@@ -221,12 +221,25 @@ export default function McpServerPage() {
               </div>
             </Step>
 
-            <Step n={5} title="Optional — connect a Pro account">
+            <Step n={5} title="Optional — connect your account">
               <p>
-                The conversions run on the free daily allowance without any account. Add your token to lift the cap and
-                reach the Pro tools such as OCR.
+                Everything above works with no account at all, at the free daily allowance. Connecting lifts the cap and
+                unlocks OCR.
               </p>
-              <CopyBlock code={CONFIG_PRO} label="With a Pro token" />
+              <p>
+                Go to <Link href="/account" className="font-medium underline">your account</Link> and press{' '}
+                <b className="text-foreground">Connect Claude</b>. It gives you a finished command with the token
+                already in it — copy, paste, restart. There is nothing to fill in by hand and nothing to find in a
+                developer console.
+              </p>
+              <p className="text-muted-foreground">
+                For reference, that is all it changes — an <code className="rounded bg-muted px-1 py-0.5 text-xs">env</code> block:
+              </p>
+              <CopyBlock code={CONFIG_PRO} label="What the token does" />
+              <p className="text-muted-foreground">
+                The token does not expire, so it will not quietly stop working. It stays valid until you revoke it,
+                which you can do from the same place at any time.
+              </p>
             </Step>
           </div>
         </section>
