@@ -139,7 +139,14 @@ async function readWithVision(buf, capKey, isOwner) {
       },
       body: JSON.stringify({
         model: AI_MODEL,
-        max_tokens: 300,
+        // A ceiling, not a charge — you pay for what is generated, so a small
+        // receipt costs the same whether this is 300 or 4000. It was 300, and a
+        // Walmart shop with nine lines, two taxes, three tenders and five
+        // reference numbers overran it: the JSON came back cut off mid-string,
+        // JSON.parse threw, and the whole thing fell back to OCR, which returns
+        // no line items at all. That looked exactly like "the feature does not
+        // work". 4000 covers a 40-line shop with room to spare.
+        max_tokens: 4000,
         system: VISION_SYSTEM,
         messages: [{
           role: 'user',
@@ -153,6 +160,11 @@ async function readWithVision(buf, capKey, isOwner) {
     });
     if (!r.ok) { console.error('receipt vision', r.status); return null; }
     const data = await r.json();
+    // Say WHY when it truncates. Without this a token overrun surfaces as an
+    // opaque "Unterminated string in JSON", which is what hid the bug above.
+    if (data.stop_reason === 'max_tokens') {
+      console.error('receipt vision: hit max_tokens — the receipt is longer than the budget, raise it');
+    }
     const usage = data.usage || {};
     await budget.record(capKey, usage.input_tokens || 0, usage.output_tokens || 0).catch(() => {});
 

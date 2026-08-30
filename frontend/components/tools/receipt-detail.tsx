@@ -77,7 +77,26 @@ export function ReceiptDetailPanel({
 
   const cur = currency || detail.currency || '';
   const hasDetail = detail.lines.length > 0 || detail.taxes.length > 0 || detail.identifiers.length > 0 || detail.payments.length > 0;
-  if (!hasDetail) return null;
+
+  // Say when the detailed read did not happen, rather than showing nothing.
+  // Silence here is what made a failed detailed read look like a missing
+  // feature: you get an amount, no line items, and no reason why.
+  if (!hasDetail) {
+    if (detail.source !== 'ocr') return null;
+    return (
+      <div className="mt-5 flex items-start gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/[0.07] p-4 text-sm">
+        <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600" />
+        <div>
+          <p className="font-medium text-foreground">Basic read only — no line items this time</p>
+          <p className="mt-1 leading-relaxed text-muted-foreground">
+            The detailed reader could not run, so this fell back to plain text recognition, which gets the total and
+            the store but not the individual items or reference numbers. A clearer, flatter photo of the whole receipt
+            usually gets the full read.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const { totalAddsUp, linesAddUp } = detail.verified;
 
