@@ -1,0 +1,519 @@
+<title>DiemDesk MCP Record</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap">
+
+<style>
+  /* ── tokens ─────────────────────────────────────────────────────────────
+     A record of infrastructure work, so: the palette is ink on paper with a
+     single signal colour borrowed from a terminal cursor. Nothing decorative
+     competes with the status marks, because the status marks are the point. */
+  :root {
+    --paper:        #faf9f7;
+    --paper-raised: #ffffff;
+    --rule:         #e4e0d9;
+    --rule-strong:  #cdc7bc;
+    --ink:          #1c1b19;
+    --ink-soft:     #55514a;
+    --ink-faint:    #868075;
+    --signal:       #1f6f4a;
+    --signal-bg:    #e8f3ec;
+    --warn:         #8a5a12;
+    --warn-bg:      #fbf1de;
+    --stop:         #8f3423;
+    --stop-bg:      #fbeae6;
+    --code-bg:      #f3f1ed;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:        #16151a;
+      --paper-raised: #1e1d23;
+      --rule:         #2f2d36;
+      --rule-strong:  #45424e;
+      --ink:          #eceaf0;
+      --ink-soft:     #b3aebc;
+      --ink-faint:    #837e8d;
+      --signal:       #5fcd97;
+      --signal-bg:    #163024;
+      --warn:         #e0ae5c;
+      --warn-bg:      #33280f;
+      --stop:         #ea8b74;
+      --stop-bg:      #331a14;
+      --code-bg:      #26242c;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:        #16151a;
+    --paper-raised: #1e1d23;
+    --rule:         #2f2d36;
+    --rule-strong:  #45424e;
+    --ink:          #eceaf0;
+    --ink-soft:     #b3aebc;
+    --ink-faint:    #837e8d;
+    --signal:       #5fcd97;
+    --signal-bg:    #163024;
+    --warn:         #e0ae5c;
+    --warn-bg:      #33280f;
+    --stop:         #ea8b74;
+    --stop-bg:      #331a14;
+    --code-bg:      #26242c;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Newsreader", Georgia, serif;
+    font-size: 17px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 50rem; margin: 0 auto; padding: 3.5rem 1.5rem 6rem; }
+
+  /* ── masthead ─────────────────────────────────────────────────────────── */
+  header { border-bottom: 2px solid var(--ink); padding-bottom: 1.25rem; margin-bottom: 2.5rem; }
+  .kicker {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.7rem; font-weight: 600;
+    letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--ink-faint);
+    display: flex; flex-wrap: wrap; gap: 0.5rem 1rem;
+  }
+  h1 {
+    font-size: clamp(2.1rem, 6vw, 3rem);
+    line-height: 1.08; font-weight: 600;
+    margin: 0.75rem 0 0.5rem; text-wrap: balance;
+    letter-spacing: -0.02em;
+  }
+  .standfirst { font-size: 1.1rem; color: var(--ink-soft); margin: 0; max-width: 42rem; }
+
+  h2 {
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 0.78rem; font-weight: 600;
+    letter-spacing: 0.13em; text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 3.25rem 0 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  h3 {
+    font-size: 1.28rem; font-weight: 600;
+    margin: 2rem 0 0.5rem; letter-spacing: -0.01em; text-wrap: balance;
+  }
+  p { margin: 0 0 1rem; }
+  a { color: inherit; text-decoration-color: var(--rule-strong); text-underline-offset: 3px; }
+  a:hover { text-decoration-color: var(--signal); }
+  a:focus-visible { outline: 2px solid var(--signal); outline-offset: 3px; border-radius: 2px; }
+
+  code, .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 0.86em; }
+  :not(pre) > code { background: var(--code-bg); padding: 0.12em 0.36em; border-radius: 3px; }
+
+  pre {
+    background: var(--code-bg); border: 1px solid var(--rule);
+    border-radius: 6px; padding: 0.9rem 1rem;
+    overflow-x: auto; margin: 0 0 1rem;
+    font-family: "IBM Plex Mono", monospace; font-size: 0.82rem; line-height: 1.6;
+  }
+  pre code { background: none; padding: 0; }
+
+  /* ── status marks — the load-bearing element ───────────────────────────── */
+  .mark {
+    display: inline-flex; align-items: center; gap: 0.4em;
+    font-family: "Inter", sans-serif; font-size: 0.68rem; font-weight: 600;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 0.2em 0.55em; border-radius: 3px; white-space: nowrap;
+    vertical-align: 0.12em;
+  }
+  .done { background: var(--signal-bg); color: var(--signal); }
+  .wait { background: var(--warn-bg);   color: var(--warn); }
+  .skip { background: var(--stop-bg);   color: var(--stop); }
+
+  /* ── tables ───────────────────────────────────────────────────────────── */
+  .scroll { overflow-x: auto; margin: 0 0 1.25rem; }
+  table { border-collapse: collapse; width: 100%; min-width: 30rem; font-size: 0.94rem; }
+  th, td { text-align: left; padding: 0.55rem 0.9rem 0.55rem 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th {
+    font-family: "Inter", sans-serif; font-size: 0.7rem; font-weight: 600;
+    letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-faint);
+    border-bottom-color: var(--rule-strong);
+  }
+  td.num { font-variant-numeric: tabular-nums; font-family: "IBM Plex Mono", monospace; font-size: 0.85rem; }
+
+  /* ── callouts ─────────────────────────────────────────────────────────── */
+  .note {
+    border-left: 3px solid var(--rule-strong);
+    padding: 0.1rem 0 0.1rem 1.1rem;
+    margin: 1.25rem 0; color: var(--ink-soft); font-size: 0.97rem;
+  }
+  .note.trap   { border-left-color: var(--warn); }
+  .note.danger { border-left-color: var(--stop); }
+  .note strong { color: var(--ink); }
+
+  /* ── the action list ──────────────────────────────────────────────────── */
+  ol.actions { list-style: none; counter-reset: a; padding: 0; margin: 0; }
+  ol.actions > li {
+    counter-increment: a;
+    position: relative;
+    padding: 1rem 0 1rem 3rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  ol.actions > li::before {
+    content: counter(a);
+    position: absolute; left: 0; top: 1rem;
+    width: 1.9rem; height: 1.9rem; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--ink); color: var(--paper);
+    font-family: "IBM Plex Mono", monospace; font-size: 0.78rem; font-weight: 600;
+  }
+  ol.actions > li.is-done::before { background: var(--signal-bg); color: var(--signal); content: "✓"; }
+  ol.actions .who {
+    font-family: "Inter", sans-serif; font-size: 0.7rem; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint);
+    display: block; margin-bottom: 0.15rem;
+  }
+  ol.actions h3 { margin: 0 0 0.35rem; font-size: 1.08rem; }
+  ol.actions p:last-child { margin-bottom: 0; }
+
+  ul.plain { padding-left: 1.15rem; margin: 0 0 1rem; }
+  ul.plain li { margin-bottom: 0.35rem; }
+
+  .lede { font-size: 1.02rem; }
+  .quiet { color: var(--ink-soft); }
+
+  footer {
+    margin-top: 4rem; padding-top: 1.25rem;
+    border-top: 1px solid var(--rule);
+    font-family: "Inter", sans-serif; font-size: 0.8rem; color: var(--ink-faint);
+  }
+
+  @media (max-width: 34rem) {
+    .wrap { padding: 2.25rem 1.1rem 4rem; }
+    body { font-size: 16px; }
+  }
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="kicker">
+    <span>DiemDesk</span>
+    <span>Infrastructure record</span>
+    <span>30 August 2026</span>
+  </div>
+  <h1>The MCP server, end to end</h1>
+  <p class="standfirst">
+    What was built, what it deliberately leaves out, the two registries that both call themselves
+    “publishing”, every trap that cost a cycle — and the one thing still waiting on you.
+  </p>
+</header>
+
+<h2>Where it stands</h2>
+
+<div class="scroll">
+<table>
+  <thead><tr><th>Thing</th><th>State</th><th>Detail</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>npm package</strong></td>
+      <td><span class="mark done">live</span></td>
+      <td class="mono">diemdesk-mcp@0.1.2</td>
+    </tr>
+    <tr>
+      <td><strong>Official MCP Registry</strong></td>
+      <td><span class="mark done">active</span></td>
+      <td class="mono">com.diemdesk/mcp</td>
+    </tr>
+    <tr>
+      <td><strong>awesome-mcp-servers</strong></td>
+      <td><span class="mark wait">PR open</span></td>
+      <td>#13214 · +1 −0 · awaiting a maintainer</td>
+    </tr>
+    <tr>
+      <td><strong>Glama</strong></td>
+      <td><span class="mark wait">submitted</span></td>
+      <td>Under review before it becomes visible</td>
+    </tr>
+    <tr>
+      <td><strong>Smithery</strong></td>
+      <td><span class="mark skip">skipped</span></td>
+      <td>Deliberate — see below</td>
+    </tr>
+    <tr>
+      <td><strong>Site pages</strong></td>
+      <td><span class="mark done">deployed</span></td>
+      <td>/mcp-server, /overview card, repo README</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<h2>What it actually is</h2>
+
+<p class="lede">
+  An MCP server is a small program <em>the assistant</em> runs — not you. You never launch it and never
+  see it. You say “turn this into a PDF” in Claude; Claude calls the tool; the file is converted and the
+  result lands beside the original <strong>on your own disk</strong>. No browser, no upload dialog, no tab.
+</p>
+
+<p>One command, run in any terminal, from any folder:</p>
+
+<pre><code>claude mcp add --scope user diemdesk -- npx -y diemdesk-mcp</code></pre>
+
+<p>
+  <code>--scope user</code> makes it available in every project. Without it you get <code>local</code>,
+  which is that one folder only. Then <code>/mcp</code> inside Claude Code lists it. Claude Desktop takes a
+  JSON block instead — both forms are on <a href="https://diemdesk.com/mcp-server">diemdesk.com/mcp-server</a>.
+</p>
+
+<div class="note trap">
+  <strong>Two silent failure modes.</strong> Claude Desktop reads its config <em>once</em>, at startup —
+  a reload is not enough, you must quit completely. And a single trailing comma in that JSON stops the
+  whole file being read, with no error shown anywhere.
+</div>
+
+<h3>The nine tools</h3>
+
+<div class="scroll">
+<table>
+  <thead><tr><th>Tool</th><th>What it needs a server for</th></tr></thead>
+  <tbody>
+    <tr><td class="mono">office_to_pdf</td><td>LibreOffice — Word, Excel, PowerPoint, OpenDocument, RTF, CSV, HTML</td></tr>
+    <tr><td class="mono">pdf_to_word</td><td>LibreOffice</td></tr>
+    <tr><td class="mono">pdf_to_powerpoint</td><td>LibreOffice</td></tr>
+    <tr><td class="mono">pdf_to_rtf</td><td>LibreOffice</td></tr>
+    <tr><td class="mono">pdf_to_odt</td><td>LibreOffice</td></tr>
+    <tr><td class="mono">pdf_to_pdfa</td><td>Ghostscript — the archival format</td></tr>
+    <tr><td class="mono">ocr_pdf</td><td>Tesseract</td></tr>
+    <tr><td class="mono">webpage_to_pdf</td><td>Headless Chrome</td></tr>
+    <tr><td class="mono">list_local_tools</td><td>Nothing — it reports what is deliberately absent</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>Why nine and not a hundred</h3>
+
+<p>
+  DiemDesk has 114+ tools. Most run <strong>in the browser</strong> and never touch a server — that is the
+  whole product. Those have nothing for an MCP server to call: exposing them would mean uploading files to
+  do work the machine already does locally and privately. It would trade the moat for a longer list.
+</p>
+
+<p>
+  So what is exposed is exactly the set that genuinely needs a server. <code>list_local_tools</code> is the
+  honest half of that: without it, an assistant that cannot find “merge PDF” concludes DiemDesk does not
+  have one. With it, the assistant says “that runs in your browser, here is the page” instead of guessing.
+</p>
+
+<h3>Who can use it</h3>
+
+<p>
+  Already gated, and more tightly than you would expect. <code>ocr_pdf</code> is <strong>Pro-only</strong> —
+  it is the most expensive thing we run for one person. The six conversions and web capture give free users
+  <strong>3 a day</strong>, keyed by IP, plus a 20-per-15-minute burst limit. The gate lives in
+  <code>utils/entitlement.js</code>, shared by every router, so the MCP path cannot bypass what the website
+  enforces.
+</p>
+
+<p>
+  <code>DIEMDESK_TOKEN</code> is a <em>DiemDesk Pro</em> token — nothing to do with npm or GitHub. It lifts
+  the daily cap. Optional; add it with <code>-e DIEMDESK_TOKEN=xxx</code> before the <code>--</code>.
+</p>
+
+<div class="note">
+  <strong>Recommendation: do not make it fully Pro-only.</strong> It contradicts the standing rule — gate
+  scale, not quality — and the expensive tool is already gated. A wall on first use means install, hit wall,
+  uninstall; directories also rank by adoption. This server’s job is distribution, not revenue.
+</div>
+
+<h2>The two registries</h2>
+
+<p class="lede">
+  This caused genuine confusion, and it is worth stating plainly: <strong>two different things are called
+  “publishing”.</strong>
+</p>
+
+<div class="scroll">
+<table>
+  <thead><tr><th></th><th>npm</th><th>MCP Registry</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Is</strong></td><td>The warehouse — where code is stored and installed from</td><td>The catalogue — what lists MCP servers so people find them</td></tr>
+    <tr><td><strong>Used by</strong></td><td><code>npx</code>, at install time</td><td>Humans browsing; clients seeking verified servers</td></tr>
+    <tr><td><strong>Holds</strong></td><td>The actual files</td><td>Metadata only, pointing back at npm</td></tr>
+    <tr><td><strong>Gives you</strong></td><td>Installability</td><td>Discoverability</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>
+  Publishing to npm alone puts the code somewhere people can install from and nowhere they can find.
+  Nobody browses three million npm packages looking for MCP servers.
+</p>
+
+<h3>Why the name is <span class="mono">com.diemdesk/mcp</span></h3>
+
+<p>
+  The registry stops people claiming servers they do not own, and the <em>name you may use</em> is decided
+  by <em>how you proved ownership</em>:
+</p>
+
+<div class="scroll">
+<table>
+  <thead><tr><th>Proof</th><th>Name must start</th></tr></thead>
+  <tbody>
+    <tr><td>GitHub device login</td><td class="mono">io.github.&lt;username&gt;/</td></tr>
+    <tr><td>DNS TXT record</td><td class="mono">com.diemdesk/</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>
+  Domain proof was chosen because it is the brand rather than a personal account, and it survives the
+  GitHub username ever changing. Only someone controlling <span class="mono">diemdesk.com</span>’s DNS can
+  add a record to it — that is the whole proof. Cost: one TXT record, added <em>alongside</em> the existing
+  SPF and Google-verification records, never replacing them.
+</p>
+
+<div class="note danger">
+  <strong>The TXT record goes on the apex</strong> — <span class="mono">diemdesk.com</span>, not
+  <span class="mono">_mcp-auth.diemdesk.com</span>. MCP DNS auth is SPF-style, not DKIM-style. Wrong
+  placement fails with a generic <em>signature error</em> that gives no hint of the real cause. If the key
+  is ever rotated, delete the old record — a stale one is tried first and fails.
+</div>
+
+<div class="note danger">
+  <strong>The signing key.</strong> <span class="mono">mcp/mcp-registry-key.pem</span> — Ed25519,
+  gitignored along with <span class="mono">*.pem</span>, verified never committed. Anyone holding it can
+  publish servers as <span class="mono">com.diemdesk</span>. It exists only on your laptop, and not in the
+  private memory repo either. If lost: generate a new pair, replace the TXT record.
+</div>
+
+<h2>Four traps, each of which cost a cycle</h2>
+
+<h3>1. The <span class="mono">bin</span> warning that looked fatal</h3>
+<p>
+  Publishing warned <em>“bin[diemdesk-mcp] script name index.mjs was invalid and removed”</em> — which reads
+  as though the executable entry had been thrown away. If true, <code>npx -y diemdesk-mcp</code> would not
+  resolve and every instruction on the site would be wrong. <strong>It was not thrown away:</strong> npm
+  normalises <code>./index.mjs</code> to <code>index.mjs</code> and keeps it. Verified by packing, installing
+  into a clean project, and running the generated shim. Write bin paths without <code>./</code> and the
+  warning goes away.
+</p>
+
+<h3>2. The README that would have published blank</h3>
+<p>
+  <code>files</code> listed <span class="mono">README.md</span> and the file did not exist. The npm page
+  would have shipped empty — for a package advertised on the site, worse than no page. Anything in
+  <code>files</code> must actually exist.
+</p>
+
+<h3>3. The version that lied</h3>
+<p>
+  The handshake announced <span class="mono">0.1.0</span> while npm served <span class="mono">0.1.1</span>.
+  The number was typed by hand and had already drifted one release. Clients display that string to users.
+  It now reads from <code>package.json</code> — which is the only reason
+  <span class="mono">0.1.2</span> exists. Caught only by testing the <em>published</em> package; the working
+  copy was correct throughout.
+</p>
+
+<h3>4. The one-line PR that was 3,938 lines</h3>
+<p>
+  The awesome-mcp-servers PR opened as <span class="mono">+3938 −3937</span> — the entire README rewritten,
+  because <code>core.autocrlf false</code> was set <em>after</em> cloning, by which point CRLF was already on
+  disk. A maintainer would have closed it on sight.
+</p>
+
+<div class="note trap">
+  <strong>What makes this one nasty:</strong> <code>git diff --stat</code> reported “1 insertion” the whole
+  time. Only <code>gh pr view --json additions,deletions</code> revealed it. Set both
+  <code>core.autocrlf false</code> and <code>core.eol lf</code> <em>before</em> cloning, and always check the
+  PR’s real numbers before calling it done.
+</div>
+
+<h2>The directories</h2>
+
+<h3>Official MCP Registry <span class="mark done">live</span></h3>
+<p>
+  Run by Anthropic and the MCP steering group; what clients query for verified servers. Currently in
+  preview, so expect churn. Check the listing any time:
+</p>
+<pre><code>curl "https://registry.modelcontextprotocol.io/v0/servers?search=diemdesk"</code></pre>
+
+<div class="note trap">
+  <strong>Always run <code>mcp-publisher validate</code> before publishing.</strong> It caught a 422 —
+  <code>description</code> is capped at <strong>100 characters</strong> and ours was 148 — without spending a
+  publish. Nothing in the quickstart mentions that cap.
+</div>
+
+<h3>awesome-mcp-servers <span class="mark wait">PR open</span></h3>
+<p>
+  93k stars, actively maintained. One line added to <strong>File Systems</strong>, the section that already
+  holds the PDF and OCR servers, placed alphabetically. Their CONTRIBUTING asks agent-authored PRs to append
+  a robot marker for fast-tracking — used, and disclosed in the body rather than applied quietly.
+</p>
+
+<h3>Glama <span class="mark wait">submitted</span></h3>
+<p>
+  Submitted on the <strong>Server</strong> tab, which is correct — Connector is for deployed remote
+  endpoints. Their notice says public submissions are reviewed before becoming visible, so expect a delay
+  rather than an instant listing.
+</p>
+
+<h3>Smithery <span class="mark skip">skipped, deliberately</span></h3>
+<p>
+  Not blocked — <em>wrong shape</em>. <code>smithery mcp publish</code> takes a hosted URL or a bundle, and
+  a search of their directory for “filesystem” returned 127 results, every one a cloud service: Google
+  Drive, OneDrive, Cloudinary. Their pitch is “auth, credentials and sessions handled for you”.
+</p>
+<p>
+  DiemDesk’s server does the opposite: it reads a file from your disk and writes the result back beside it.
+  Hosting that turns it into an upload service — the one thing the product exists not to be. Revisit only
+  if Smithery adds first-class stdio listings.
+</p>
+
+<h2>What is left for you</h2>
+
+<ol class="actions">
+  <li class="is-done">
+    <span class="who">Done</span>
+    <h3>DNS record, npm publishes, Glama submission</h3>
+    <p class="quiet">All three completed. Nothing to revisit.</p>
+  </li>
+  <li>
+    <span class="who">You — the only real item</span>
+    <h3>Re-test the Walmart receipt</h3>
+    <p>
+      The receipt scanner fix is deployed but <strong>unproven on your actual slip</strong>. A sideways photo
+      previously made the model invent an entirely different receipt — five apple juices, a beef roast — and
+      because the invented figures were internally consistent, the arithmetic check went green on fabricated
+      data. Rotation now happens before reading, the model can refuse, and you see the photo first. None of
+      that is confirmed until a real scan comes back. It needs the AI key, so only you can run it.
+    </p>
+  </li>
+  <li>
+    <span class="who">You — nothing to do, just wait</span>
+    <h3>Two reviews in other people’s hands</h3>
+    <p>
+      The awesome-mcp-servers PR and the Glama submission are both queued for human review. No action
+      required; they land when they land.
+    </p>
+  </li>
+  <li>
+    <span class="who">Decision, whenever you want it</span>
+    <h3>Should MCP be Pro-only?</h3>
+    <p>
+      Currently free users get 3 conversions a day and OCR is already Pro. The recommendation is to leave it.
+      If you disagree it is a two-line change, plus updating the page and README, which currently promise a
+      free allowance.
+    </p>
+  </li>
+</ol>
+
+<footer>
+  Source: <span class="mono">mcp/</span> in the DailyDesk repo · package
+  <span class="mono">diemdesk-mcp</span> on npm · setup guide at
+  <a href="https://diemdesk.com/mcp-server">diemdesk.com/mcp-server</a>.
+  Written 30 August 2026.
+</footer>
+
+</div>

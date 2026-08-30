@@ -50,6 +50,9 @@ Every in-browser tool is **free & unlimited forever** (they run on your device a
 ## Ops & monitoring
 - **[canary-and-rate-limits.md](canary-and-rate-limits.md)** — the contract between the self-healing canary and the rate limiters/quotas: every canary-probed endpoint must exempt the canary (`isCanaryReq`), why token-not-IP, the endpoint×limiter matrix, and the checklist for adding a new server tool. Written after the 2026-07-13 `/word-to-pdf` false-disable incident.
 
+## MCP server
+- **[designs/mcp-server-record.html](designs/mcp-server-record.html)** — the whole MCP story end to end: what an MCP server is, the nine tools and why not the other 105, npm vs the MCP Registry (two different things both called "publishing"), how `com.diemdesk/mcp` was claimed by DNS, the four traps that each cost a cycle, and what is still pending. Written 2026-08-30 when the server went live.
+
 ## Other docs here
 - `TECHNOLOGY.md` — tech stack & architecture
 - `SCALING-AND-OPS.md` — scaling playbook & ops
