@@ -2,76 +2,16 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "dailydesk-frontend",
+      "name": "frontend",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "frontend", "run", "dev"],
       "port": 3000
     },
     {
-      "name": "dailydesk-frontend-prod",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "frontend", "run", "start"],
-      "port": 3000
-    },
-    {
-      "name": "brand-a-lifted-tile",
-      "runtimeExecutable": "node",
-      "runtimeArgs": ["scripts/preview-brand.mjs", "A", "3001"],
-      "port": 3001
-    },
-    {
-      "name": "brand-b-monogram-d",
-      "runtimeExecutable": "node",
-      "runtimeArgs": ["scripts/preview-brand.mjs", "B", "3002"],
-      "port": 3002
-    },
-    {
-      "name": "brand-c-daybreak",
-      "runtimeExecutable": "node",
-      "runtimeArgs": ["scripts/preview-brand.mjs", "C", "3003"],
-      "port": 3003
-    },
-    {
-      "name": "brand-d-spark",
-      "runtimeExecutable": "node",
-      "runtimeArgs": ["scripts/preview-brand.mjs", "D", "3004"],
-      "port": 3004
-    },
-    {
-      "name": "upsell-test",
-      "runtimeExecutable": "node",
-      "runtimeArgs": ["scripts/preview-upsell.mjs", "3005"],
-      "port": 3005
-    },
-    {
-      "name": "logo-1-white",
-      "runtimeExecutable": "node",
-      "runtimeArgs": ["scripts/preview-brand.mjs", "L1", "3001"],
-      "port": 3001
-    },
-    {
-      "name": "logo-A-vivid",
-      "runtimeExecutable": "node",
-      "runtimeArgs": ["scripts/preview-brand.mjs", "LA", "3002"],
-      "port": 3002
-    },
-    {
-      "name": "logo-C-office",
-      "runtimeExecutable": "node",
-      "runtimeArgs": ["scripts/preview-brand.mjs", "LC", "3003"],
-      "port": 3003
-    },
-    {
-      "name": "logo-D-doclines",
-      "runtimeExecutable": "node",
-      "runtimeArgs": ["scripts/preview-brand.mjs", "LD", "3004"],
-      "port": 3004
-    },
-    {
-      "name": "footer-mono",
-      "runtimeExecutable": "node",
-      "runtimeArgs": ["scripts/preview-footer-mono.mjs", "3001"],
-      "port": 3001
+      "name": "frontend-prod",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--prefix", "frontend", "next", "start", "frontend", "-p", "3100"],
+      "port": 3100
     }
   ]
 }
