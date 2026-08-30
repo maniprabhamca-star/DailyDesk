@@ -21,11 +21,13 @@
  */
 
 import { readFile, writeFile } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import { basename, extname, resolve, dirname, join } from 'node:path';
 import { createInterface } from 'node:readline';
 
 const API = (process.env.DIEMDESK_API || 'https://diemdesk.com').replace(/\/+$/, '');
 const TOKEN = process.env.DIEMDESK_TOKEN || '';
+const VERSION = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')).version;
 const PROTOCOL_VERSION = '2024-11-05';
 const MAX_BYTES = 100 * 1024 * 1024;
 
@@ -209,7 +211,10 @@ async function handle(req) {
     return reply({
       protocolVersion: PROTOCOL_VERSION,
       capabilities: { tools: {} },
-      serverInfo: { name: 'diemdesk', version: '0.1.0' },
+      // Read from package.json rather than typed here. It was typed here, and
+      // by the second release it already disagreed with the published version —
+      // which is what clients show the user.
+      serverInfo: { name: 'diemdesk', version: VERSION },
     });
   }
   if (method === 'tools/list') return reply({ tools: toolList() });
