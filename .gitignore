@@ -66,3 +66,8 @@ packages/sdk/dist/
 # IS committed — it's what the owner dashboard renders.
 frontend/tests/.reports/
 frontend/tests/.fixtures/
+
+# MCP Registry signing key — proves we own diemdesk.com to the registry.
+# NEVER commit this: anyone holding it can publish servers under our name.
+mcp/mcp-registry-key.pem
+*.pem

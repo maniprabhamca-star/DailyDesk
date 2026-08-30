@@ -1,6 +1,7 @@
 {
   "name": "diemdesk-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
+  "mcpName": "com.diemdesk/mcp",
   "description": "DiemDesk document tools for Claude, ChatGPT and any MCP client — convert Office files and PDFs, OCR a scan, capture a web page.",
   "license": "MIT",
   "type": "module",

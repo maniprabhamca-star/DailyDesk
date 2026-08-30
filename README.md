@@ -2,6 +2,23 @@
 
 All-in-one productivity multi-tool — one app replacing six.
 
+## Use it inside Claude
+
+[![npm](https://img.shields.io/npm/v/diemdesk-mcp?color=%2300a884&label=diemdesk-mcp)](https://www.npmjs.com/package/diemdesk-mcp)
+
+An MCP server ships from [`mcp/`](mcp/), so an assistant can call the tools that
+genuinely need a server — the Office and PDF conversions, PDF/A, OCR, and web
+capture:
+
+```bash
+claude mcp add --scope user diemdesk -- npx -y diemdesk-mcp
+```
+
+Nine tools, not a hundred: everything else runs **in the browser** and never
+touches a server, so exposing it here would mean uploading files to do work the
+machine already does locally. Setup guide, Claude Desktop config and
+troubleshooting: **<https://diemdesk.com/mcp-server>**
+
 ## Modules
 
 | Tier | Module | Description |

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ShieldCheck, Zap, Target, Check, ArrowRight, Sparkles, Lock, Globe, Download, Smartphone } from 'lucide-react';
+import { ShieldCheck, Zap, Target, Check, ArrowRight, Sparkles, Lock, Globe, Download, Smartphone, Terminal } from 'lucide-react';
 import { SiteHeader } from '@/components/app/site-header';
 import { SiteFooter } from '@/components/app/site-footer';
 import { BrandMark } from '@/components/app/brand-mark';
@@ -99,11 +99,12 @@ const BEYOND: { name: string; desc: string; status: 'live' | 'soon'; tier: 'free
     ];
 
 // Where DiemDesk runs — web today, native apps next.
-const PLATFORMS: { icon: typeof Globe; name: string; status: 'live' | 'soon'; desc: string }[] = [
+const PLATFORMS: { icon: typeof Globe; name: string; status: 'live' | 'soon'; desc: string; href?: string }[] = [
   { icon: Globe, name: 'Web', status: 'live', desc: 'Every tool runs in any modern browser — nothing to install.' },
   { icon: Download, name: 'Install as an app', status: 'live', desc: 'Add DiemDesk to your home screen or desktop (PWA).' },
   { icon: Smartphone, name: 'iOS app', status: 'soon', desc: 'Native iPhone & iPad app — open PDFs straight from Mail & Files.' },
   { icon: Smartphone, name: 'Android app', status: 'soon', desc: '“Share to DiemDesk” from any app; full open-with support.' },
+  { icon: Terminal, name: 'Inside Claude', status: 'live', desc: 'Ask your assistant to convert a file and it happens, on your own disk.', href: '/mcp-server' },
 ];
 
 const tierTag: Record<'free' | 'pro' | 'ai', { label: string; cls: string }> = {
@@ -302,18 +303,25 @@ export default function OverviewPage() {
         <section className="mx-auto max-w-[1400px] px-5 py-14">
           <p className="text-[11.5px] font-bold uppercase tracking-[0.14em] text-primary">Use it anywhere</p>
           <h2 className="mt-2 text-2xl font-extrabold tracking-tight sm:text-[26px]">One private toolkit — web today, native apps next</h2>
-          <p className="mt-2 max-w-[62ch] text-sm text-muted-foreground">Start in the browser with nothing to install. Native <span className="font-medium text-foreground">iOS &amp; Android</span> apps are on the way — so you can open a PDF straight from Mail, Files or any app and it stays on your device.</p>
-          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {PLATFORMS.map((p) => (
-              <div key={p.name} className="rounded-xl border bg-card p-4 shadow-soft">
+          <p className="mt-2 max-w-[62ch] text-sm text-muted-foreground">Start in the browser with nothing to install. It also works <span className="font-medium text-foreground">inside Claude</span>, so you can convert a file by asking. Native <span className="font-medium text-foreground">iOS &amp; Android</span> apps are on the way — so you can open a PDF straight from Mail, Files or any app and it stays on your device.</p>
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            {PLATFORMS.map((p) => {
+              const cls = `rounded-xl border bg-card p-4 shadow-soft${p.href ? ' transition-colors hover:border-primary/60' : ''}`;
+              const body = (
+                <>
                 <div className="flex items-center gap-2">
                   <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary"><p.icon className="size-4" /></span>
                   <span className="text-sm font-semibold">{p.name}</span>
                   <span className={`ml-auto shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${p.status === 'live' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/30' : 'text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/30'}`}>{p.status === 'live' ? 'Live' : 'Coming soon'}</span>
                 </div>
                 <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">{p.desc}</p>
-              </div>
-            ))}
+                {p.href && <span className="mt-1.5 inline-block text-[11px] font-semibold text-primary">Set it up →</span>}
+                </>
+              );
+              return p.href
+                ? <Link key={p.name} href={p.href} className={cls}>{body}</Link>
+                : <div key={p.name} className={cls}>{body}</div>;
+            })}
           </div>
         </section>
 
