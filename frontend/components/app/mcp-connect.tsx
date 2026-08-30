@@ -93,6 +93,11 @@ export function McpConnect() {
     try {
       const res = await fetch(`${API}/api/user/mcp-tokens/${id}`, { method: 'DELETE', headers: authHeaders() });
       if (!res.ok) { setError('Could not revoke that token.'); return; }
+      // Clear the just-created block too. Revoking while it was still on screen
+      // left a dead end: the panel kept showing a token that no longer worked,
+      // and both buttons are hidden while it is up, so there was no way back to
+      // "Connect Claude" short of reloading the page.
+      setFresh(null);
       void load();
     } catch { setError('Could not reach the server.'); }
   };
