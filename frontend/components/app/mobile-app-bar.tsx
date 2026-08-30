@@ -78,8 +78,12 @@ export function MobileAppBar() {
     if (!f) return;
     // Hand the file across the navigation. Routing without this opened the tool
     // with an empty picker, so the tap looked like it worked and did nothing.
-    stashFile(f);
-    router.push(routeForFile(f.name));
+    const href = routeForFile(f.name);
+    // Name the destination, so the status line can say where you are going
+    // rather than just spinning.
+    const label = ALL.find((t) => t.href === href)?.name || 'the tools';
+    stashFile(f, label);
+    router.push(href);
   };
 
   // Long-press handling, shared by the pinned and recent grids.

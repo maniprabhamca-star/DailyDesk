@@ -25,6 +25,14 @@ export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-08-29',
     kind: 'fixed',
+    title: 'Opening a file from the bottom bar now shows you it is working',
+    detail:
+      "Picking a file with the bottom bar now tells you what is happening. It used to work silently: the file was handed to the right tool, but the page kept the scroll position you had on the way in, so the tool was often off-screen and it looked like nothing had happened at all — and the natural response, refreshing, threw the file away. Now a line appears the moment the picker closes saying which file is opening and which tool it is going to, the page scrolls up so the tool is actually in front of you, and the message clears itself once the file has landed. If the handover cannot be completed for any reason, it says so and tells you to pick the file again on the page you are already on, instead of leaving you guessing.",
+    href: '/'
+  },
+  {
+    date: '2026-08-29',
+    kind: 'fixed',
     title: 'The app bar carries your file with it, and you can pin your favourite tools',
     detail:
       "Two things on the bottom bar. The centre button now actually carries your file across: picking one used to take you to the right tool and then leave you staring at an empty picker, which looked like it had worked and had not. The file now arrives with you, already loaded. And you can pin the tools you use most — press and hold any tool in the Recent sheet and it moves up into a Pinned row that stays put. Recents tell you what you touched yesterday; pins are for the four or five things that are the reason you come here at all, and those should not get buried under whatever you happened to open last. Press and hold again to unpin. Pins live on your own device, not in an account, so they work whether or not you are signed in.",

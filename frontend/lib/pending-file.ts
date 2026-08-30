@@ -22,10 +22,44 @@ let stashedAt = 0;
  *  enough that a file can never be applied to a page opened much later. */
 const TTL_MS = 30_000;
 
-export function stashFile(f: File) {
+// ── status, so the handoff is visible while it happens ──────────────────────
+// The first version was silent: you picked a file, the route changed, and the
+// tool it landed on was often below the fold because a client navigation keeps
+// the scroll position. From where the reader was looking, nothing happened —
+// and the reflex is to refresh, which throws the file away. A status line the
+// moment the picker closes is the whole difference.
+
+export type HandoffStatus =
+  | { phase: 'idle' }
+  | { phase: 'opening'; filename: string; toolLabel: string }
+  | { phase: 'failed'; filename: string };
+
+let status: HandoffStatus = { phase: 'idle' };
+const listeners = new Set<(s: HandoffStatus) => void>();
+
+function setStatus(s: HandoffStatus) {
+  status = s;
+  listeners.forEach((fn) => fn(s));
+}
+
+export function getStatus() { return status; }
+
+export function onStatus(fn: (s: HandoffStatus) => void) {
+  listeners.add(fn);
+  return () => { listeners.delete(fn); };
+}
+
+export function clearStatus() { setStatus({ phase: 'idle' }); }
+
+export function stashFile(f: File, toolLabel = 'the right tool') {
   pending = f;
   stashedAt = Date.now();
+  setStatus({ phase: 'opening', filename: f.name, toolLabel });
 }
+
+export function markDelivered() { setStatus({ phase: 'idle' }); }
+
+export function markFailed(filename: string) { setStatus({ phase: 'failed', filename }); }
 
 /** Returns the file once, then forgets it. */
 export function takeFile(): File | null {
