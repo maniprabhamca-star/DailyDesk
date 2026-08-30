@@ -1,5 +1,5 @@
 {
-  "name": "@diemdesk/mcp",
+  "name": "diemdesk-mcp",
   "version": "0.1.0",
   "description": "DiemDesk document tools for Claude, ChatGPT and any MCP client — convert Office files and PDFs, OCR a scan, capture a web page.",
   "license": "MIT",
