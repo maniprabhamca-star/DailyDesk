@@ -5,7 +5,7 @@
   "license": "MIT",
   "type": "module",
   "bin": {
-    "diemdesk-mcp": "./index.mjs"
+    "diemdesk-mcp": "index.mjs"
   },
   "files": [
     "index.mjs",
@@ -25,5 +25,14 @@
   ],
   "scripts": {
     "test": "node test.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/maniprabhamca-star/DailyDesk.git",
+    "directory": "mcp"
+  },
+  "homepage": "https://diemdesk.com/mcp-server",
+  "bugs": {
+    "url": "https://github.com/maniprabhamca-star/DailyDesk/issues"
   }
 }
