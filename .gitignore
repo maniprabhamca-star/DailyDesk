@@ -71,3 +71,9 @@ frontend/tests/.fixtures/
 # NEVER commit this: anyone holding it can publish servers under our name.
 mcp/mcp-registry-key.pem
 *.pem
+
+# Font binaries pulled apart by the dev-harness while debugging Edit PDF's
+# embedded fonts. They are extraction OUTPUT, not source — ~1 MB that the
+# harness regenerates on demand, so committing them only makes clones heavier.
+dev-harness/carlito.ttf
+dev-harness/extract-F*-ttf
