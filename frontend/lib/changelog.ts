@@ -23,6 +23,14 @@ export type ChangeEntry = {
 // flags flip, dated then.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-08-30',
+    kind: 'feature',
+    title: 'DiemDesk now works inside Claude',
+    detail:
+      "Ask Claude to convert a file and it just happens — to a real file on your own machine, no browser, no upload dialog. One line to set up: `claude mcp add diemdesk -- npx -y diemdesk-mcp`, or a small block in Claude Desktop's config. Nine tools are exposed: the Office and PDF conversions, PDF/A, OCR, and capturing a live web page. Deliberately not all of them — most DiemDesk tools run inside your browser and never touch a server, so putting them here would mean uploading files to do work your own machine already does privately. The setup page has the config for both apps, the token step for Pro, and what to do when the tools do not show up.",
+    href: '/mcp-server'
+  },
+  {
     date: '2026-08-29',
     kind: 'fixed',
     title: 'Opening a file from the bottom bar now shows you it is working',

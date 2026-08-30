@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Terminal, CloudOff, Cloud, ShieldCheck, ArrowRight, CircleHelp, Wrench, Clock } from 'lucide-react';
+import { Terminal, CloudOff, Cloud, ShieldCheck, ArrowRight, CircleHelp, Wrench } from 'lucide-react';
 import { SiteHeader } from '@/components/app/site-header';
 import { SiteFooter } from '@/components/app/site-footer';
 import { Button } from '@/components/ui/button';
@@ -41,14 +41,6 @@ const CONFIG_PRO = `{
 }`;
 
 const CLI = 'claude mcp add diemdesk -- npx -y diemdesk-mcp';
-
-// The package is not on npm yet, so every command on this page fails with a
-// 404 for anyone who follows it today. Saying so is not an apology — it is the
-// difference between "not out yet" and "their instructions are broken", and
-// only one of those is recoverable for a developer deciding whether to trust
-// us. FLIP THIS TO true THE MOMENT `npm publish` succeeds; that is the only
-// edit needed, the notices below disappear with it.
-const PUBLISHED = false;
 
 const TOOLS = [
   { name: 'office_to_pdf', what: 'Word, Excel, PowerPoint, OpenDocument, RTF, CSV or HTML → PDF' },
@@ -142,16 +134,6 @@ export default function McpServerPage() {
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Button asChild size="lg"><Link href="#setup">Set it up <ArrowRight className="size-4" /></Link></Button>
           </div>
-          {!PUBLISHED && (
-            <p className="mx-auto mt-5 flex max-w-lg items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/[0.07] px-4 py-3 text-left text-sm text-amber-800 dark:text-amber-300">
-              <Clock className="mt-0.5 size-4 shrink-0" />
-              <span>
-                <b className="font-semibold">Coming shortly.</b> The server is built and tested — it is not on npm yet, so
-                the commands below will not resolve for a day or so. Everything on this page is what you will run;
-                nothing about it changes when it lands.
-              </span>
-            </p>
-          )}
         </div>
 
         {/* What it feels like, before any config. Someone deciding whether this is
@@ -175,15 +157,6 @@ export default function McpServerPage() {
 
         <section id="setup" className="mt-14 scroll-mt-24">
           <h2 className="text-xl font-bold tracking-tight">Set it up</h2>
-          {!PUBLISHED && (
-            <p className="mt-3 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/[0.07] px-3.5 py-2.5 text-sm text-amber-800 dark:text-amber-300">
-              <Clock className="mt-0.5 size-4 shrink-0" />
-              <span>
-                Worth knowing before you copy anything: <code className="rounded bg-background/70 px-1 py-0.5 text-xs">diemdesk-mcp</code>{' '}
-                is not published yet, so these will fail with a <b>404</b> today. Bookmark the page — the steps are final.
-              </span>
-            </p>
-          )}
           <p className="mt-2 text-sm text-muted-foreground">
             You need <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2">Node.js 18 or newer</a>.
             Nothing else is installed permanently — <code className="rounded bg-muted px-1 py-0.5 text-xs">npx</code> fetches the
