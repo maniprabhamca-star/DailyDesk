@@ -222,7 +222,7 @@ async function distributionChecks() {
     out.push(check('awesome-list', 'awesome-mcp-servers (93k stars)',
       merged ? 'pass' : (j.state === 'closed' ? 'warn' : 'warn'),
       merged ? 'merged' : (j.state === 'closed' ? 'closed without merging' : 'PR #13214 open — waiting on their maintainer'),
-      merged || j.state !== 'open' ? null : 'Nothing to do — a maintainer has to merge it'));
+      null));
   } catch {
     out.push(check('awesome-list', 'awesome-mcp-servers', 'unknown', 'could not reach GitHub'));
   }
@@ -289,7 +289,7 @@ router.get('/', async (req, res) => {
     ]);
     const all = [...security, ...backups, ...distribution];
     const actions = all
-      .filter((c) => c.action && (c.state === 'fail' || c.state === 'warn'))
+      .filter((c) => c.action && c.state !== 'pass')
       .map((c) => ({ id: c.id, who: c.who, label: c.label, action: c.action, severity: c.state }));
 
     // Advisories needing a major bump cannot be applied by a bot and are not a
