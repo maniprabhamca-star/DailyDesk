@@ -46,6 +46,14 @@ const run = (cmd, args, ms = 5000) => new Promise((resolve) => {
   execFile(cmd, args, { timeout: ms, maxBuffer: 4 * 1024 * 1024 }, (err, stdout) => resolve(err ? null : String(stdout)));
 });
 
+// npm audit exits non-zero whenever it finds anything, so the JSON on stdout is
+// the result even in the "error" case — discarding it would report every
+// vulnerable install as "audit unavailable".
+const runIn = (cwd, cmd, args, ms = 60000) => new Promise((resolve) => {
+  execFile(cmd, args, { cwd, timeout: ms, maxBuffer: 16 * 1024 * 1024, shell: process.platform === 'win32' },
+    (err, stdout) => resolve(stdout && String(stdout).trim() ? String(stdout) : null));
+});
+
 /** A single check. `state` is pass | warn | fail | unknown — never a default pass. */
 const check = (id, label, state, detail, action) => ({ id, label, state, detail, action: action || null });
 
@@ -124,9 +132,17 @@ async function backupChecks() {
   const out = [];
   const dir = process.env.BACKUP_DIR || '/root/backups';
 
+  // Ours, specifically. The box is shared with another project, and its
+  // unrelated dump in the same directory was being read as evidence that we
+  // had a backup — turning a hard fail into a reassuring warn. A status page
+  // that reports somebody else's backup as yours is worse than one that
+  // reports nothing at all.
+  const dbName = process.env.DB_NAME || 'dailydesk';
+  const mine = new RegExp('^' + dbName.replace(/[^a-z0-9_]/gi, '') + '[-_.]', 'i');
+
   let dbDump = null;
   try {
-    dbDump = fs.readdirSync(dir).filter((f) => /\.(dump|sql|sql\.gz)$/i.test(f))
+    dbDump = fs.readdirSync(dir).filter((f) => /\.(dump|sql|sql\.gz)$/i.test(f) && mine.test(f))
       .map((f) => ({ f, t: fs.statSync(path.join(dir, f)).mtime, size: fs.statSync(path.join(dir, f)).size }))
       .sort((a, b) => b.t - a.t)[0] || null;
   } catch { /* directory may not exist */ }
@@ -178,7 +194,7 @@ function installed(appDir) {
 let auditCache = { at: 0, data: null };
 async function auditFor(appDir) {
   if (Date.now() - auditCache.at < 10 * 60 * 1000 && auditCache.data) return auditCache.data;
-  const raw = await run('npm', ['audit', '--omit=dev', '--json', '--prefix', appDir], 60000);
+  const raw = await runIn(appDir, 'npm', ['audit', '--omit=dev', '--json'], 90000);
   let data = { error: 'audit unavailable' };
   if (raw) {
     try {
