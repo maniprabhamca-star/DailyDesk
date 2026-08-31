@@ -56,7 +56,7 @@ jobs:
       - name: Dependency audit (production deps)
         run: npm run audit:gate
       - name: Cache the build for E2E
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: next-build
           path: frontend/.next
@@ -96,7 +96,7 @@ jobs:
         run: npx playwright test --project=${{ matrix.project }}
       - name: Upload Playwright report
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report-${{ matrix.project }}
           path: frontend/playwright-report
@@ -124,7 +124,7 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - name: Slow-3G + 4× CPU
         run: npx playwright test --project=chromium-slow
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
           name: playwright-report-slow
