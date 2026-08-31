@@ -80,6 +80,8 @@ app.use('/api/notes', require('./routes/notes'));
 app.use('/api/habits', require('./routes/habits'));
 app.use('/api/budget', require('./routes/budget'));
 app.use('/api/receipts', require('./routes/receipts'));
+// Owner-only live system report (security posture, backups, dependencies).
+app.use('/api/system', require('./routes/system'));
 
 // 404 handler
 app.use((req, res) => {

@@ -1,10 +1,11 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   Loader2, RefreshCw, ShieldCheck, BarChart3, Users, UserPlus, MousePointerClick, Repeat,
   AlertTriangle, Activity, Crown, Play, CalendarDays, Globe, Link2, MonitorSmartphone,
-  Chrome, MessageSquare, Star, TrendingUp, SearchX,
+  Chrome, MessageSquare, Star, TrendingUp, SearchX, ServerCog,
 } from 'lucide-react';
 import { SiteHeader } from '@/components/app/site-header';
 import { SiteFooter } from '@/components/app/site-footer';
@@ -223,7 +224,14 @@ export default function DashboardPage() {
             <h1 className="text-2xl font-bold tracking-tight">Usage dashboard</h1>
             <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground"><ShieldCheck className="size-4 text-emerald-600" /> First-party data from your own server — no third-party trackers.</p>
           </div>
-          {isOwner && <Button size="sm" variant="outline" onClick={() => void load(dates)} disabled={loading}><RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} /> Refresh</Button>}
+          {isOwner && (
+            <div className="flex flex-wrap gap-2">
+              {/* The other half of the owner view: what the machine reports about
+                  itself, rather than what visitors did. */}
+              <Button size="sm" variant="outline" asChild><Link href="/dashboard/system"><ServerCog className="size-4" /> System</Link></Button>
+              <Button size="sm" variant="outline" onClick={() => void load(dates)} disabled={loading}><RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} /> Refresh</Button>
+            </div>
+          )}
         </div>
 
         {isOwner && (
