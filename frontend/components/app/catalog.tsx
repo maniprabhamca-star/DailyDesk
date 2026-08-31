@@ -100,11 +100,11 @@ export const NEW_CHIP_SM = `${NEW_CHIP_BASE} ml-auto px-1 py-px text-[9px]`;
  * actually made.
  */
 export const BADGE: Record<Badge, { icon: LucideIcon; color: string; label: string; hint: string }> = {
-  device: { icon: CloudOff, color: '#16a34a', label: 'Runs in your browser', hint: 'Runs in your browser — your file never leaves your device and is never uploaded.' },
-  server: { icon: Cloud, color: '#d97706', label: 'Processed on our servers', hint: 'Sent to our server over an encrypted connection, converted, then deleted immediately.' },
-  ai: { icon: Sparkles, color: '#7c3aed', label: 'AI-powered', hint: 'Uses AI, and only when you ask it to.' },
-  encrypted: { icon: KeyRound, color: '#2563eb', label: 'End-to-end encrypted', hint: 'Encrypted on your device before it is stored — only you can unlock it.' },
-  account: { icon: Cloud, color: '#0891b2', label: 'Synced to your account', hint: 'Saved to your DiemDesk account so it follows you between devices.' },
+  device: { icon: CloudOff, color: 'var(--badge-device)', label: 'Runs in your browser', hint: 'Runs in your browser — your file never leaves your device and is never uploaded.' },
+  server: { icon: Cloud, color: 'var(--badge-server)', label: 'Processed on our servers', hint: 'Sent to our server over an encrypted connection, converted, then deleted immediately.' },
+  ai: { icon: Sparkles, color: 'var(--badge-ai)', label: 'AI-powered', hint: 'Uses AI, and only when you ask it to.' },
+  encrypted: { icon: KeyRound, color: 'var(--badge-encrypted)', label: 'End-to-end encrypted', hint: 'Encrypted on your device before it is stored — only you can unlock it.' },
+  account: { icon: Cloud, color: 'var(--badge-account)', label: 'Synced to your account', hint: 'Saved to your DiemDesk account so it follows you between devices.' },
 };
 
 // The premium tier — owner-only until Pro launches: the deep editors, OCR and the

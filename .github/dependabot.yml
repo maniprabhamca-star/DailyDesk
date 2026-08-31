@@ -1,0 +1,61 @@
+# Dependency updates, opened as pull requests automatically.
+#
+# The ask was "no outdated plugins at any time, strictly". A dashboard showing
+# what is stale does not achieve that — it reports the problem and still waits
+# for someone to notice the report. This does: GitHub watches the advisory
+# database, opens a PR the day something is published, and CI proves whether it
+# is safe to merge.
+#
+# The pdf.js advisory found in the 2026-08-30 audit — "arbitrary JavaScript
+# execution upon opening a malicious PDF" — had been public for a while before
+# anyone here looked. With this, it would have arrived as a PR on day one.
+version: 2
+updates:
+  # Security fixes across every ecosystem, as soon as they exist. Left daily and
+  # ungrouped deliberately: a security PR should stand alone and be obvious.
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+    labels: [dependencies, frontend]
+    # Routine version bumps are grouped so they arrive as one reviewable PR a
+    # week rather than thirty. Security updates ignore grouping and come
+    # through immediately regardless.
+    groups:
+      frontend-minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      # Next 15/16 is a migration, not a bump — it needs its own piece of work
+      # rather than a PR that fails CI every week until someone closes it.
+      - dependency-name: next
+        update-types: [version-update:semver-major]
+      # React majors move with Next; same reasoning.
+      - dependency-name: react
+        update-types: [version-update:semver-major]
+      - dependency-name: react-dom
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: npm
+    directory: /backend
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+    labels: [dependencies, backend]
+    groups:
+      backend-minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /mcp
+    schedule:
+      interval: weekly
+    labels: [dependencies, mcp]
+
+  # The workflows themselves pin third-party actions; those go stale too, and a
+  # compromised action is a supply-chain problem rather than a dependency one.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    labels: [ci]

@@ -49,6 +49,12 @@ jobs:
         run: npm run test:sw
       - name: Production build
         run: npm run build
+      # Fails the build on a HIGH or CRITICAL advisory in anything that actually
+      # ships. Dependabot opens the PR; this is what stops one being merged past.
+      # Dev-only advisories are excluded deliberately — they never reach a user,
+      # and failing on them trains people to ignore this step.
+      - name: Dependency audit (production deps)
+        run: npm run audit:gate
       - name: Cache the build for E2E
         uses: actions/upload-artifact@v4
         with:

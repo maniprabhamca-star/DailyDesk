@@ -26,7 +26,8 @@
     "qa:e2e:json": "playwright test --project=chromium --reporter=json > tests/.reports/e2e-chromium.json",
     "qa:unit:json": "vitest run --pool=forks --reporter=json --outputFile=tests/.reports/unit.json",
     "postbuild": "node scripts/gen-llms.mjs",
-    "llms": "node scripts/gen-llms.mjs"
+    "llms": "node scripts/gen-llms.mjs",
+    "audit:gate": "node scripts/audit-gate.mjs"
   },
   "dependencies": {
     "@jsquash/jpeg": "^1.6.0",

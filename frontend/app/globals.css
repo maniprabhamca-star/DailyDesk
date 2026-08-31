@@ -4,6 +4,17 @@
 
 @layer base {
   :root {
+    /* Tool badge colours, one value per theme.
+       A single hex cannot pass WCAG AA on both grounds — measured: #16a34a is
+       3.3:1 on white but 5.5:1 on the dark card, and #15803d is the exact
+       mirror. The CI accessibility test (XC-006) had been failing on this for
+       weeks. Same hues; the light values step darker, the dark values lighter. */
+    --badge-device: #15803d;    /* 5.02:1 on white */
+    --badge-server: #b45309;    /* 5.02:1 */
+    --badge-ai: #7c3aed;        /* 5.70:1 */
+    --badge-encrypted: #2563eb; /* 5.17:1 */
+    --badge-account: #0e7490;   /* 5.36:1 */
+
     --background: 0 0% 100%;
     --foreground: 222 47% 11%;
     --card: 0 0% 100%;
@@ -31,6 +42,12 @@
   }
 
   .dark {
+    --badge-device: #16a34a;    /* 5.53:1 on the dark ground */
+    --badge-server: #d97706;    /* 5.72:1 */
+    --badge-ai: #a78bfa;        /* 6.69:1 */
+    --badge-encrypted: #3b82f6; /* 4.95:1 */
+    --badge-account: #0891b2;   /* 4.95:1 */
+
     --background: 222 47% 7%;
     --foreground: 210 20% 96%;
     --card: 222 40% 10%;
