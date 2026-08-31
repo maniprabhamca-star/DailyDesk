@@ -77,3 +77,8 @@ mcp/mcp-registry-key.pem
 # harness regenerates on demand, so committing them only makes clones heavier.
 dev-harness/carlito.ttf
 dev-harness/extract-F*-ttf
+
+# Session handover notes. They carry the production IP and ssh invocations,
+# so they live in the PRIVATE memory repo (DailyDesk-Memory), not here.
+SESSION-HANDOFF*.md
+SESSION-SUMMARY*.md
