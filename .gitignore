@@ -82,3 +82,7 @@ dev-harness/extract-F*-ttf
 # so they live in the PRIVATE memory repo (DailyDesk-Memory), not here.
 SESSION-HANDOFF*.md
 SESSION-SUMMARY*.md
+
+# A local clone of the standalone MCP server repo, for publishing from.
+# It has its own git history; it must not be committed into this one.
+mcp-server-repo/
