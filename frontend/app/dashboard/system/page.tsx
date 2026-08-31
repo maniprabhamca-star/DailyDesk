@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   ShieldCheck, Package, RefreshCw, ArrowLeft, Check, AlertTriangle, XCircle,
-  HelpCircle, HardDriveDownload, Clock,
+  HelpCircle, HardDriveDownload, Clock, UserRound, Bot, ListChecks,
 } from 'lucide-react';
 import { SiteHeader } from '@/components/app/site-header';
 import { Button } from '@/components/ui/button';
@@ -22,13 +22,15 @@ import { useIsOwner } from '@/lib/plan';
 const API = process.env.NEXT_PUBLIC_API_URL || '';
 
 type State = 'pass' | 'warn' | 'fail' | 'unknown';
-type Check = { id: string; label: string; state: State; detail: string; action: string | null };
+type Check = { id: string; label: string; state: State; detail: string; action: string | null; who: 'you' | 'claude' | null };
+type Action = { id: string; who: 'you' | 'claude'; label: string; action: string; severity: State };
 type Dep = { name: string; wanted: string; installed: string | null };
 type Pkg = { name: string; count: number; deps: Dep[] } | null;
 type Advisory = { name: string; severity: string; range: string; title: string | null; direct: boolean };
 
 type Report = {
   measuredAt: string;
+  actions: Action[];
   security: Check[];
   backups: Check[];
   dependencies: {
@@ -168,6 +170,48 @@ export default function SystemPage() {
             <RefreshCw className={`mr-1.5 size-4 ${busy ? 'animate-spin' : ''}`} /> Re-check
           </Button>
         </div>
+
+        {data && data.actions.length > 0 && (
+          <section className="mt-5 overflow-hidden rounded-xl border bg-card">
+            <header className="flex items-center gap-2 border-b px-4 py-2.5">
+              <ListChecks className="size-4 text-muted-foreground" />
+              <h2 className="text-sm font-semibold">What to do next</h2>
+              <span className="ml-auto text-[11px] text-muted-foreground">{data.actions.length} open</span>
+            </header>
+            <div className="grid sm:grid-cols-2 sm:divide-x">
+              {(['you', 'claude'] as const).map((who) => {
+                const items = data.actions.filter((a) => a.who === who);
+                const Icon = who === 'you' ? UserRound : Bot;
+                return (
+                  <div key={who} className="min-w-0">
+                    <p className="flex items-center gap-1.5 border-b bg-muted/40 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      <Icon className="size-3.5" /> {who === 'you' ? 'Needs you' : 'Needs code'}
+                    </p>
+                    {items.length === 0 ? (
+                      <p className="px-4 py-3 text-xs text-muted-foreground">Nothing outstanding.</p>
+                    ) : (
+                      <ul className="divide-y">
+                        {items.map((a) => (
+                          <li key={a.id} className="px-4 py-3">
+                            <p className="flex items-start gap-2 text-sm font-medium">
+                              <span className={`mt-1 size-1.5 shrink-0 rounded-full ${a.severity === 'fail' ? 'bg-red-500' : 'bg-amber-500'}`} />
+                              {a.label}
+                            </p>
+                            <p className="mt-0.5 pl-3.5 text-xs text-muted-foreground">{a.action}</p>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <p className="border-t px-4 py-2.5 text-[11px] leading-relaxed text-muted-foreground">
+              Derived from the checks below, not a list kept by hand — an item disappears when the thing it describes
+              starts passing.
+            </p>
+          </section>
+        )}
 
         <div className="mt-5 inline-flex gap-1 rounded-lg bg-muted p-1 text-xs">
           {([['security', 'Security & backups', ShieldCheck], ['deps', 'Dependencies', Package]] as const).map(([k, label, Icon]) => (

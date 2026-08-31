@@ -55,7 +55,13 @@ const runIn = (cwd, cmd, args, ms = 60000) => new Promise((resolve) => {
 });
 
 /** A single check. `state` is pass | warn | fail | unknown — never a default pass. */
-const check = (id, label, state, detail, action) => ({ id, label, state, detail, action: action || null });
+const check = (id, label, state, detail, action, who) => ({
+  id, label, state, detail, action: action || null,
+  // 'you' when the fix needs an account, a dashboard or a credential nobody
+  // else holds; 'claude' when it is code or configuration. Null when there is
+  // nothing to do.
+  who: action ? (who || 'claude') : null,
+});
 
 // ── security ────────────────────────────────────────────────────────────────
 
@@ -152,14 +158,14 @@ async function backupChecks() {
     !dbDump ? 'fail' : (ageHrs > 48 ? 'warn' : 'pass'),
     !dbDump ? 'no database dump found — users, notes, expenses and tokens are unbacked'
       : `${dbDump.f} · ${(dbDump.size / 1048576).toFixed(1)} MB · ${ageHrs.toFixed(0)}h old`,
-    !dbDump ? 'The nightly job tars /var/www but never runs pg_dump' : null));
+    !dbDump ? 'Create an R2 bucket + API token; the backup script follows' : null, 'you'));
 
   // A backup on the same disk as the thing it protects is not a backup.
   const offsite = !!(process.env.R2_BUCKET || process.env.BACKUP_REMOTE);
   out.push(check('offsite', 'Off-site copy', offsite ? 'pass' : 'fail',
     offsite ? `configured (${process.env.R2_BUCKET || process.env.BACKUP_REMOTE})`
       : 'backups stay on the same machine they protect',
-    offsite ? null : 'Ship dumps to Cloudflare R2'));
+    offsite ? null : 'Create an R2 bucket + API token; the backup script follows', 'you'));
 
   try {
     const { rows } = await db.query('SELECT pg_size_pretty(pg_database_size(current_database())) AS s');
@@ -220,8 +226,26 @@ router.get('/', async (req, res) => {
       backupChecks(),
       auditFor(path.join(root, 'frontend')),
     ]);
+    const all = [...security, ...backups];
+    const actions = all
+      .filter((c) => c.action && (c.state === 'fail' || c.state === 'warn'))
+      .map((c) => ({ id: c.id, who: c.who, label: c.label, action: c.action, severity: c.state }));
+
+    // Advisories needing a major bump cannot be applied by a bot and are not a
+    // check, so they are derived from the audit instead.
+    for (const a of (audit.items || [])) {
+      actions.push({
+        id: 'dep-' + a.name,
+        who: 'claude',
+        label: a.name + ' (' + a.severity + ')',
+        action: 'Upgrade — likely a major, so it needs its own pass with tests',
+        severity: 'warn',
+      });
+    }
+
     return res.json({
       measuredAt: new Date().toISOString(),
+      actions,
       security,
       backups,
       dependencies: {
