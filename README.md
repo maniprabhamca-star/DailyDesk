@@ -6,7 +6,7 @@ All-in-one productivity multi-tool — one app replacing six.
 
 [![npm](https://img.shields.io/npm/v/diemdesk-mcp?color=%2300a884&label=diemdesk-mcp)](https://www.npmjs.com/package/diemdesk-mcp)
 
-An MCP server ships from [`mcp/`](mcp/), so an assistant can call the tools that
+An MCP server — [its own repo](https://github.com/maniprabhamca-star/diemdesk-mcp), MIT — lets an assistant call the tools that
 genuinely need a server — the Office and PDF conversions, PDF/A, OCR, and web
 capture:
 
