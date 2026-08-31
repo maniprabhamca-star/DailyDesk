@@ -1,61 +1,70 @@
 # Dependency updates, opened as pull requests automatically.
 #
-# The ask was "no outdated plugins at any time, strictly". A dashboard showing
-# what is stale does not achieve that — it reports the problem and still waits
-# for someone to notice the report. This does: GitHub watches the advisory
-# database, opens a PR the day something is published, and CI proves whether it
-# is safe to merge.
+# ⚠ The FIRST version of this file was wrong, and the mistake is worth keeping
+# written down. It grouped only minor and patch updates, so every major bump
+# arrived as its own pull request — twenty of them within the hour, because the
+# project had drifted a long way (typescript 5→7, tailwind 3→4, eslint 8→10,
+# uuid 10→14). Twenty-two open PRs is not monitoring, it is noise, and noise is
+# what gets a bot muted.
 #
-# The pdf.js advisory found in the 2026-08-30 audit — "arbitrary JavaScript
-# execution upon opening a malicious PDF" — had been public for a while before
-# anyone here looked. With this, it would have arrived as a PR on day one.
+# Worse, "no outdated dependencies, strictly" is about SECURITY, and Dependabot
+# security updates were switched off at the repository level the whole time. So
+# the first config delivered maximum noise and zero protection. Security updates
+# are now enabled in repo settings — they are a SEPARATE mechanism that does not
+# read this file, which is exactly why ignoring majors here is safe.
+#
+# The split this file now makes:
+#   security   → repo settings, immediate, unaffected by anything below
+#   minor/patch → one grouped PR a week, per project
+#   major       → ignored, because a major is a migration and belongs in a
+#                 planned piece of work, not a PR that fails CI until someone
+#                 closes it
 version: 2
 updates:
-  # Security fixes across every ecosystem, as soon as they exist. Left daily and
-  # ungrouped deliberately: a security PR should stand alone and be obvious.
   - package-ecosystem: npm
     directory: /frontend
     schedule:
-      interval: daily
-    open-pull-requests-limit: 10
+      interval: weekly
+    open-pull-requests-limit: 3
     labels: [dependencies, frontend]
-    # Routine version bumps are grouped so they arrive as one reviewable PR a
-    # week rather than thirty. Security updates ignore grouping and come
-    # through immediately regardless.
     groups:
-      frontend-minor-and-patch:
+      frontend:
         update-types: [minor, patch]
     ignore:
-      # Next 15/16 is a migration, not a bump — it needs its own piece of work
-      # rather than a PR that fails CI every week until someone closes it.
-      - dependency-name: next
-        update-types: [version-update:semver-major]
-      # React majors move with Next; same reasoning.
-      - dependency-name: react
-        update-types: [version-update:semver-major]
-      - dependency-name: react-dom
+      - dependency-name: '*'
         update-types: [version-update:semver-major]
 
   - package-ecosystem: npm
     directory: /backend
     schedule:
-      interval: daily
-    open-pull-requests-limit: 10
+      interval: weekly
+    open-pull-requests-limit: 3
     labels: [dependencies, backend]
     groups:
-      backend-minor-and-patch:
+      backend:
         update-types: [minor, patch]
+    ignore:
+      - dependency-name: '*'
+        update-types: [version-update:semver-major]
 
   - package-ecosystem: npm
     directory: /mcp
     schedule:
       interval: weekly
+    open-pull-requests-limit: 2
     labels: [dependencies, mcp]
+    ignore:
+      - dependency-name: '*'
+        update-types: [version-update:semver-major]
 
-  # The workflows themselves pin third-party actions; those go stale too, and a
-  # compromised action is a supply-chain problem rather than a dependency one.
+  # Pinned actions go stale too, and a compromised action is a supply-chain
+  # problem rather than a dependency one. Grouped, so it is one PR not four.
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    open-pull-requests-limit: 2
     labels: [ci]
+    groups:
+      actions:
+        patterns: ['*']
