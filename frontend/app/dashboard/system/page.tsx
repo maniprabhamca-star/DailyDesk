@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   ShieldCheck, Package, RefreshCw, ArrowLeft, Check, AlertTriangle, XCircle,
-  HelpCircle, HardDriveDownload, Clock, UserRound, Bot, ListChecks,
+  HelpCircle, HardDriveDownload, Clock, UserRound, Bot, ListChecks, Share2,
 } from 'lucide-react';
 import { SiteHeader } from '@/components/app/site-header';
 import { Button } from '@/components/ui/button';
@@ -33,6 +33,7 @@ type Report = {
   actions: Action[];
   security: Check[];
   backups: Check[];
+  distribution: Check[];
   dependencies: {
     frontend: Pkg; backend: Pkg; mcp: Pkg;
     audit: { totals?: Record<string, number> | null; items?: Advisory[]; error?: string };
@@ -234,6 +235,10 @@ export default function SystemPage() {
           <div className="mt-5 space-y-4">
             <Panel title="Hardening" icon={ShieldCheck} checks={data.security} />
             <Panel title="Backups" icon={HardDriveDownload} checks={data.backups} />
+            {/* Where the MCP server is listed. On other people's systems, but
+                npm and the MCP Registry answer public JSON, so they are as
+                measurable as anything else here. */}
+            <Panel title="Distribution" icon={Share2} checks={data.distribution} />
           </div>
         )}
 

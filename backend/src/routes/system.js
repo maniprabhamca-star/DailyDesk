@@ -177,6 +177,66 @@ async function backupChecks() {
   return out;
 }
 
+// ── distribution ────────────────────────────────────────────────────────────
+//
+// Where the MCP server is listed, and what is still outstanding. I argued at
+// first that these could not go on this page because they live on other
+// people's systems — that was wrong for two of the three: both the MCP Registry
+// and GitHub answer public JSON, so they are as measurable as anything else
+// here. Glama needs an API key, so it says so rather than being guessed at.
+
+let distCache = { at: 0, data: null };
+async function distributionChecks() {
+  if (Date.now() - distCache.at < 10 * 60 * 1000 && distCache.data) return distCache.data;
+  const out = [];
+
+  // npm — the package itself.
+  try {
+    const r = await fetch('https://registry.npmjs.org/diemdesk-mcp/latest', { signal: AbortSignal.timeout(8000) });
+    const j = await r.json();
+    out.push(check('npm', 'npm package', 'pass', `diemdesk-mcp@${j.version}`));
+  } catch {
+    out.push(check('npm', 'npm package', 'unknown', 'could not reach the npm registry'));
+  }
+
+  // The official MCP Registry — the catalogue clients query.
+  try {
+    const r = await fetch('https://registry.modelcontextprotocol.io/v0/servers?search=diemdesk', { signal: AbortSignal.timeout(8000) });
+    const j = await r.json();
+    const hit = (j.servers || [])[0];
+    const srv = hit && (hit.server || hit);
+    out.push(check('mcp-registry', 'MCP Registry', srv ? 'pass' : 'fail',
+      srv ? `${srv.name} ${srv.version}` : 'not listed',
+      srv ? null : 'mcp-publisher publish from mcp/', 'claude'));
+  } catch {
+    out.push(check('mcp-registry', 'MCP Registry', 'unknown', 'could not reach the registry'));
+  }
+
+  // The awesome-mcp-servers submission. Nothing to do but wait, and the page
+  // should say that rather than leave it looking like an open task.
+  try {
+    const r = await fetch('https://api.github.com/repos/punkpeye/awesome-mcp-servers/pulls/13214',
+      { headers: { 'user-agent': 'diemdesk-system-check' }, signal: AbortSignal.timeout(8000) });
+    const j = await r.json();
+    const merged = !!j.merged;
+    out.push(check('awesome-list', 'awesome-mcp-servers (93k stars)',
+      merged ? 'pass' : (j.state === 'closed' ? 'warn' : 'warn'),
+      merged ? 'merged' : (j.state === 'closed' ? 'closed without merging' : 'PR #13214 open — waiting on their maintainer'),
+      merged || j.state !== 'open' ? null : 'Nothing to do — a maintainer has to merge it'));
+  } catch {
+    out.push(check('awesome-list', 'awesome-mcp-servers', 'unknown', 'could not reach GitHub'));
+  }
+
+  // Glama's API needs a key, so this is honest about being unmeasured rather
+  // than quietly optimistic.
+  out.push(check('glama', 'Glama listing', 'unknown',
+    'Their API needs a key, so this cannot be checked from here. Release is cut manually.',
+    'Cut a release: Dockerfile admin page → Build & Release', 'you'));
+
+  distCache = { at: Date.now(), data: out };
+  return out;
+}
+
 // ── dependencies ────────────────────────────────────────────────────────────
 
 /** Read installed versions from a lockfile — what is deployed, not what is asked for. */
@@ -221,12 +281,13 @@ router.get('/', async (req, res) => {
   if (!(await isOwnerRequest(req))) return res.status(404).json({ error: 'Not found' });
   try {
     const root = path.join(__dirname, '..', '..', '..');
-    const [security, backups, audit] = await Promise.all([
+    const [security, backups, distribution, audit] = await Promise.all([
       securityChecks(),
       backupChecks(),
+      distributionChecks(),
       auditFor(path.join(root, 'frontend')),
     ]);
-    const all = [...security, ...backups];
+    const all = [...security, ...backups, ...distribution];
     const actions = all
       .filter((c) => c.action && (c.state === 'fail' || c.state === 'warn'))
       .map((c) => ({ id: c.id, who: c.who, label: c.label, action: c.action, severity: c.state }));
@@ -248,6 +309,7 @@ router.get('/', async (req, res) => {
       actions,
       security,
       backups,
+      distribution,
       dependencies: {
         frontend: installed(path.join(root, 'frontend')),
         backend: installed(path.join(root, 'backend')),
