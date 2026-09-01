@@ -34,6 +34,26 @@ async function visit(page: Page, path: string, theme: 'light' | 'dark', reduceMo
     } catch { /* private mode — the test still works, just noisier */ }
   }, theme);
   await page.goto(path, { waitUntil: 'domcontentloaded' });
+
+  // Two things must be true before anything here is worth measuring, and both
+  // were producing false failures.
+  //
+  // Stylesheets: contrast was reported as white-on-rgb(192,192,192) — the UA
+  // default button face — for a dozen elements. Tailwind's preflight sets
+  // buttons transparent, so that reading only happens BEFORE the stylesheet
+  // applies. Measured in a real browser afterwards, no element on the page has
+  // that colour at all.
+  //
+  // Hydration: the ⌘K listener is attached by an effect, so pressing the
+  // shortcut before React has hydrated tests nothing but the race.
+  await page.waitForFunction(() => {
+    const sheets = Array.from(document.styleSheets);
+    const loaded = sheets.some((s) => { try { return (s.cssRules?.length ?? 0) > 50; } catch { return true; } });
+    const btn = document.querySelector('button');
+    const neutral = !btn || getComputedStyle(btn).backgroundColor !== 'rgb(192, 192, 192)';
+    return loaded && neutral;
+  }, null, { timeout: 15_000 });
+  await page.waitForLoadState('networkidle').catch(() => {});
   await page.waitForTimeout(SETTLE);
 }
 

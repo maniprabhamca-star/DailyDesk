@@ -449,12 +449,16 @@ export function AllToolsDirectory({ full = false, asPage = false }: { full?: boo
                 ? B.hint.slice(B.label.length).replace(/^\s*[—–-]\s*/, '').replace(/^./, (c) => c.toUpperCase())
                 : B.hint;
               return (
-                <div key={k} className="flex gap-2.5">
-                  <B.icon className="mt-0.5 size-4 shrink-0" style={{ color: B.color }} aria-hidden="true" />
-                  <div>
-                    <dt className="text-xs font-semibold" style={{ color: B.color }}>{B.label}</dt>
-                    <dd className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{meaning}</dd>
-                  </div>
+                // A <dl> may only directly contain <dt>, <dd>, or a <div> that
+                // itself holds only those. The icon sat beside the pair inside
+                // that div, which is not a permitted shape; inside the <dt> it
+                // renders identically and the list becomes valid.
+                <div key={k}>
+                  <dt className="flex items-center gap-2 text-xs font-semibold" style={{ color: B.color }}>
+                    <B.icon className="size-4 shrink-0" aria-hidden="true" />
+                    {B.label}
+                  </dt>
+                  <dd className="mt-0.5 pl-6 text-xs leading-relaxed text-muted-foreground">{meaning}</dd>
                 </div>
               );
             })}

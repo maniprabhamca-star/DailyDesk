@@ -23,7 +23,10 @@ const asOwner = async (page: import('@playwright/test').Page) => {
 const openDemoFolder = async (page: import('@playwright/test').Page) => {
   await page.goto('/folder-preview', { waitUntil: 'domcontentloaded' });
   await expect(page.getByRole('heading', { name: /preview every file in a folder/i })).toBeVisible({ timeout: 20_000 });
-  await page.locator('input[type=file]').first().setInputFiles(await demoFolder());
+  // Wait for the folder input specifically: it renders on the client, while the
+  // app bar's plain file input is in the server HTML and would otherwise win.
+  await page.locator('input[webkitdirectory]').waitFor({ state: 'attached', timeout: 15_000 });
+  await page.locator('input[webkitdirectory]').setInputFiles(await demoFolder());
   await expect(page.getByText(/of 9 files/)).toBeVisible({ timeout: 20_000 });
   await page.waitForTimeout(2000); // let the render queue drain
 };
@@ -146,7 +149,7 @@ test('PDF previews still finish when the tab is backgrounded', async ({ page, co
   await asOwner(page);
   await page.goto('/folder-preview', { waitUntil: 'domcontentloaded' });
   await expect(page.getByRole('heading', { name: /preview every file in a folder/i })).toBeVisible({ timeout: 20_000 });
-  await page.locator('input[type=file]').first()
+  await page.locator('input[webkitdirectory]')
     .setInputFiles(await demoFolder());
   await expect(page.getByText(/of 9 files/)).toBeVisible({ timeout: 20_000 });
 
