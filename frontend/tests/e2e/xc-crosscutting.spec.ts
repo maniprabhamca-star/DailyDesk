@@ -1,3 +1,4 @@
+import { waitReady } from './_fixtures';
 import { test, expect, type Page } from '@playwright/test';
 import { ARCHETYPES, allRoutes, isEnvNoise, publicRoutes, gatedRoutes } from './_routes';
 
@@ -94,6 +95,7 @@ test.describe('XC-005 — responsive, no sideways scroll', () => {
       for (const width of [375, 768, 1280]) {
         await page.setViewportSize({ width, height: 900 });
         await page.goto(path, { waitUntil: 'domcontentloaded' });
+        await waitReady(page);
         // Let fonts and any client layout settle before measuring.
         await page.waitForTimeout(250);
 

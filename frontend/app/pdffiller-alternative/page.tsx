@@ -4,7 +4,7 @@ import { AlternativePage, type AltData } from '@/components/marketing/alternativ
 export const metadata: Metadata = {
   title: "pdfFiller Alternative — No Trial, No Account | DiemDesk",
   description:
-    "A pdfFiller alternative: DiemDesk fills, signs and edits PDFs in your browser with no account and nothing stored in a cloud. Free during launch, compared honestly.",
+    "A pdfFiller alternative: DiemDesk fills, signs and edits PDFs in your browser — no account, nothing stored in a cloud. Free during launch.",
   alternates: { canonical: '/pdffiller-alternative' },
   openGraph: {
     images: ['/og.png'],

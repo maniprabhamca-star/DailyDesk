@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { waitReady } from './_fixtures';
 
 // REG-034 — an expired session left /account looking signed in and doing nothing.
 //
@@ -195,7 +196,7 @@ test.describe('REG-038 — the signed-in header fits a phone', () => {
 
       await page.setViewportSize({ width: 375, height: 812 });
       await page.goto(path, { waitUntil: 'domcontentloaded' });
-      await page.waitForTimeout(500);
+      await waitReady(page);
 
       // Measured directly rather than inferred from a pass/fail elsewhere —
       // the last time this class of bug was called "environment-sensitive" it

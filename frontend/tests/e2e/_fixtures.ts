@@ -147,3 +147,37 @@ export async function demoFolder(): Promise<string> {
 
   return dir;
 }
+
+/**
+ * Wait until a page is worth measuring.
+ *
+ * Three separate suites were asserting against pages whose stylesheet had not
+ * applied yet, and each failure looked like a real defect:
+ *   • contrast reported white on rgb(192,192,192), the UA default button face —
+ *     Tailwind's preflight makes buttons transparent, so that reading can only
+ *     happen before the CSS lands. With styles applied, no element on the page
+ *     has that colour at all.
+ *   • "/ overflows by 1169px at 375" — an unstyled horizontal scroller lays its
+ *     chips out inline, so the document really is that wide for a moment.
+ *     Measured afterwards, the overflow is 0.
+ *   • ⌘K did nothing, because its listener is attached by an effect and the key
+ *     was pressed before hydration.
+ *
+ * A fixed waitForTimeout cannot express any of that: it is a guess that passes
+ * on a fast runner and fails on a slow one.
+ */
+export async function waitReady(page: import('@playwright/test').Page, timeout = 15_000) {
+  await page.waitForFunction(() => {
+    // Styles: a real stylesheet, not just the inline critical CSS.
+    const applied = Array.from(document.styleSheets).some((s) => {
+      try { return (s.cssRules?.length ?? 0) > 50; } catch { return true; } // cross-origin: assume loaded
+    });
+    // And the tell-tale: preflight has neutralised the UA button face.
+    const btn = document.querySelector('button');
+    const reset = !btn || getComputedStyle(btn).backgroundColor !== 'rgb(192, 192, 192)';
+    // Hydration: React has attached, so effect-bound listeners exist.
+    const hydrated = !document.querySelector('[data-hydrating]');
+    return applied && reset && hydrated;
+  }, null, { timeout });
+  await page.waitForLoadState('networkidle').catch(() => {});
+}
