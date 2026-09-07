@@ -53,7 +53,12 @@ const nextConfig = {
       // The exfiltration boundary. Same-origin API, the analytics beacon, and
       // Google only for sign-in.
       "connect-src 'self' https://static.cloudflareinsights.com https://cloudflareinsights.com https://accounts.google.com",
-      "frame-src 'self' https://accounts.google.com",
+      // blob: is not optional here. Every PDF preview in the app frames a
+      // blob: URL built in the browser — that is what "the file never leaves
+      // your device" means in practice, so there is no http URL to allow
+      // instead. Omitting it blocked the previews outright, and child-src does
+      // not cover the gap: frame-src overrides it for frames.
+      "frame-src 'self' blob: https://accounts.google.com",
       // Nothing may embed us — stronger than X-Frame-Options and it supersedes it.
       "frame-ancestors 'none'",
       "object-src 'none'",
