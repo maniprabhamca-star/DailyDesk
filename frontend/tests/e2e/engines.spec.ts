@@ -13,9 +13,29 @@ test.beforeAll(async () => { await ensureFixtures(); });
 
 /** Drop a file into a tool the way a user does, then wait for it to be read. */
 async function drop(page: Page, path: string, files: string | string[]) {
+  await page.addInitScript(() => {
+    // The privacy banner overlays the drop zone; it is not what these tests are
+    // about (REG-022).
+    try { localStorage.setItem('dd_cookie_ack', '1'); localStorage.setItem('dd-splash-seen-v1', '1'); } catch { /* private mode */ }
+  });
   await page.goto(path, { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => (window as unknown as { __ddHydrated?: boolean }).__ddHydrated === true);
-  const input = page.locator('input[type=file]').first();
+
+  // Interval polling, and bounded. The default is requestAnimationFrame, which
+  // does not fire on a backgrounded page — and this config runs fullyParallel
+  // with two workers in CI, so pages are backgrounded constantly. Unbounded, it
+  // then ate the whole 90s test budget.
+  await page
+    .waitForFunction(() => (window as unknown as { __ddHydrated?: boolean }).__ddHydrated === true,
+      null, { timeout: 20_000, polling: 250 })
+    .catch(() => {});
+
+  // ⚠ The TOOL's input, not whichever comes first. The mobile app bar puts a
+  // file input on every page and it is in the server HTML, while a tool's own
+  // input renders on the client — so .first() selected the app bar's, the file
+  // went nowhere, and the tool sat in its empty state until the assertion timed
+  // out. Scoping to <main> excludes the bar, which lives in <nav>.
+  const input = page.locator('main input[type=file]').first();
+  await input.waitFor({ state: 'attached', timeout: 20_000 });
   await input.setInputFiles(Array.isArray(files) ? files.map(fixture) : fixture(files));
 }
 

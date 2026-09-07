@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "og": "node scripts/gen-og-images.mjs",
-    "prebuild": "node scripts/gen-sw.mjs",
+    "prebuild": "npm run sync:pdf-worker && node scripts/gen-sw.mjs",
     "predev": "node scripts/gen-sw.mjs",
     "sw": "node scripts/gen-sw.mjs",
     "test:sw": "node scripts/gen-sw.mjs && node scripts/test-sw.mjs",
@@ -27,7 +27,8 @@
     "qa:unit:json": "vitest run --pool=forks --reporter=json --outputFile=tests/.reports/unit.json",
     "postbuild": "node scripts/gen-llms.mjs",
     "llms": "node scripts/gen-llms.mjs",
-    "audit:gate": "node scripts/audit-gate.mjs"
+    "audit:gate": "node scripts/audit-gate.mjs",
+    "sync:pdf-worker": "node scripts/sync-pdf-worker.mjs"
   },
   "dependencies": {
     "@jsquash/jpeg": "^1.6.0",
