@@ -63,9 +63,16 @@ STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 # backup of ours.
 OUT="${BACKUP_DIR}/${DB}-${STAMP}.dump"
 
-# Every exit path that is not success reports itself. `set -e` plus this trap
-# means a failure in any command below becomes an email, rather than a line in a
-# log file nobody opens.
+# Every exit path that is not success reports itself.
+#
+# This is deliberately an EXIT trap and not an ERR trap. ERR fires when a command
+# fails; it does NOT fire on an explicit `exit 1` — and every failure this script
+# is most likely to hit is an explicit exit: the dump failing verification, a
+# table count that says the dump is not this database, the uploaded object coming
+# back the wrong size, rclone giving up. With an ERR trap those were exactly the
+# cases that stayed silent. Found by pointing the script at a dead endpoint and
+# checking whether the email actually arrived; it had not. An alarm nobody has
+# heard ring is a hypothesis, and this one was wrong.
 fail() {
   local line=$1 code=$2
   local msg="DiemDesk backup FAILED on $(hostname) at line ${line} (exit ${code}).
@@ -80,9 +87,8 @@ Check the log and re-run: /usr/local/bin/backup-db.sh"
     printf 'To: %s\nFrom: %s\nSubject: [DiemDesk] Database backup FAILED\n\n%s\n' \
       "$ALERT_TO" "$ALERT_TO" "$msg" | "$SENDMAIL" -t || true
   fi
-  exit "$code"
 }
-trap 'fail "$LINENO" "$?"' ERR
+trap 'code=$?; if [ "$code" -ne 0 ]; then fail "$LINENO" "$code"; fi' EXIT
 
 mkdir -p "$BACKUP_DIR"
 chmod 700 "$BACKUP_DIR"
@@ -123,23 +129,42 @@ fi
 # ── 3. off the box ──────────────────────────────────────────────────────────
 # rclone with inline flags rather than an rclone.conf: the credentials stay in
 # one root-only env file instead of being copied into a second one.
+R2_FLAGS=(
+  --s3-provider=Cloudflare
+  --s3-access-key-id="${R2_ACCESS_KEY_ID:-}"
+  --s3-secret-access-key="${R2_SECRET_ACCESS_KEY:-}"
+  --s3-endpoint="${R2_ENDPOINT:-}"
+  --s3-no-check-bucket
+)
+
 if [ -n "${R2_BUCKET:-}" ] && [ -n "${R2_ENDPOINT:-}" ]; then
-  rclone copy "$UPLOAD" ":s3:${R2_BUCKET}/postgres/" \
-    --s3-provider=Cloudflare \
-    --s3-access-key-id="$R2_ACCESS_KEY_ID" \
-    --s3-secret-access-key="$R2_SECRET_ACCESS_KEY" \
-    --s3-endpoint="$R2_ENDPOINT" \
-    --s3-no-check-bucket \
-    --retries 3 --low-level-retries 10 --stats-log-level NOTICE
+  # rclone's output is captured and only printed if it FAILS.
+  #
+  # Ubuntu 24.04 ships rclone 1.60, which is old enough that its first PUT to R2
+  # returns 501 Not Implemented every single run; the retry immediately succeeds
+  # and the object lands intact. Measured: every command (copy, copyto, --no-
+  # traverse) and every flag combination does it, on new and existing prefixes
+  # alike, so it is the client, not us.
+  #
+  # Two ERROR lines in a nightly log that are always there and never mean
+  # anything is how a log stops being read — and this is a backup log, the one
+  # place that matters. So the noise goes, and what replaces it is not silence:
+  # the size read-back below is the actual proof the upload worked, and if
+  # anything does go wrong the whole captured log is printed with it.
+  RCLONE_LOG=$(mktemp)
+  if ! rclone copy "$UPLOAD" ":s3:${R2_BUCKET}/postgres/" \
+      "${R2_FLAGS[@]}" --retries 3 --low-level-retries 10 > "$RCLONE_LOG" 2>&1; then
+    echo "rclone failed to upload ${UPLOAD}:" >&2
+    cat "$RCLONE_LOG" >&2
+    rm -f "$RCLONE_LOG"
+    exit 1
+  fi
+  rm -f "$RCLONE_LOG"
 
   # Trust nothing that has not been read back. rclone exiting 0 is a claim; the
   # object appearing in a listing at the right size is evidence.
   REMOTE_SIZE=$(rclone size ":s3:${R2_BUCKET}/postgres/$(basename "$UPLOAD")" \
-    --s3-provider=Cloudflare \
-    --s3-access-key-id="$R2_ACCESS_KEY_ID" \
-    --s3-secret-access-key="$R2_SECRET_ACCESS_KEY" \
-    --s3-endpoint="$R2_ENDPOINT" \
-    --json 2>/dev/null | sed -n 's/.*"bytes":\([0-9]*\).*/\1/p')
+    "${R2_FLAGS[@]}" --json 2>/dev/null | sed -n 's/.*"bytes":\([0-9]*\).*/\1/p')
   LOCAL_SIZE=$(stat -c %s "$UPLOAD")
   if [ "${REMOTE_SIZE:-0}" != "$LOCAL_SIZE" ]; then
     echo "uploaded object is ${REMOTE_SIZE:-missing} bytes, local is ${LOCAL_SIZE}" >&2
