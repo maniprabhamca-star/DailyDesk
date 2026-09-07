@@ -139,7 +139,30 @@ for (const theme of ['light', 'dark'] as const) {
         const report = findings
           .map((f) => `  ${f.ratio}:1  <${f.tag}> ${f.fg} on ${f.bg} — "${f.text}"`)
           .join('\n');
-        expect(findings, `text below AA contrast in ${theme}:\n${report}`).toEqual([]);
+
+        // If this fails, say WHY, not only what. Every CI contrast failure so
+        // far has been rgb(192,192,192) — the UA button face, which appears
+        // only when the stylesheet has not applied. That is a serving problem,
+        // not a colour one, and the message could not tell them apart — so the
+        // same false failure was investigated three separate times.
+        const why = findings.length
+          ? await page.evaluate(() => {
+              const sheets = Array.from(document.styleSheets).map((sh) => {
+                try { return (sh.href || 'inline').split('/').pop() + ':' + (sh.cssRules?.length ?? 0); }
+                catch { return (sh.href || 'inline').split('/').pop() + ':cross-origin'; }
+              });
+              const b = document.querySelector('button');
+              return [
+                '',
+                '',
+                'stylesheets: ' + sheets.join(', '),
+                'first button background: ' + (b ? getComputedStyle(b).backgroundColor : 'no button'),
+                'served by a service worker: ' + !!navigator.serviceWorker?.controller,
+                '(rgb(192, 192, 192) means the CSS had not applied)',
+              ].join('\n');
+            })
+          : '';
+        expect(findings, `text below AA contrast in ${theme}:\n${report}${why}`).toEqual([]);
       });
     }
   });

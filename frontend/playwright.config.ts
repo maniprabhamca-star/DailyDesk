@@ -31,6 +31,18 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     // Start every test with a clean slate so first-visit / gating logic is deterministic.
     storageState: undefined,
+    // ⚠ No service worker during E2E. CI generates one (`npm run sw`) immediately
+    // before the sweep, and its job is to serve a cached HTML shell — which is
+    // exactly what you do not want underneath a test that measures the page it
+    // was just served. A stale shell can arrive without the current CSS link,
+    // and an unstyled <button> reports the UA face rgb(192,192,192): every
+    // "text below AA contrast" failure in CI has been that number, on a page
+    // that is provably fine in a real browser.
+    //
+    // Nothing here needs it. The worker has its own test (`npm run test:sw`),
+    // and leaving it live only injects stale-content nondeterminism into every
+    // other spec.
+    serviceWorkers: 'block',
   },
   projects: [
     // Throttle tests are excluded here on purpose. They measure wall-clock time
