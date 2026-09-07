@@ -1,0 +1,76 @@
+name: Backend
+
+# The backend had no CI at all until 2026-09-07.
+#
+# qa.yml is filtered to `frontend/**`, which is correct for what it does — it
+# builds Next and drives five browsers — but it meant backend/ could be pushed
+# to main without anything running. There were already four test suites sitting
+# in backend/scripts (77 checks covering Stripe subscription flattening, the
+# checkout fallback chain, receipt parsing and MCP token properties) and a
+# 58-assertion SSRF harness in dev-harness/. All of it was only ever run by
+# hand, which is the same as saying it was run when someone remembered.
+#
+# Nothing here needs a database, Redis or a browser: every suite is a pure
+# function test or a fetch against a locally-bound express app.
+
+on:
+  push:
+    branches: [main]
+    paths: ['backend/**', 'dev-harness/ssrf-check.mjs', '.github/workflows/backend.yml']
+  pull_request:
+    paths: ['backend/**', 'dev-harness/ssrf-check.mjs', '.github/workflows/backend.yml']
+  workflow_dispatch: {}
+
+concurrency:
+  group: backend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend tests + audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install
+        run: npm ci
+        working-directory: backend
+
+      - name: Syntax check every source file
+        run: find src -name '*.js' -exec node --check {} +
+        working-directory: backend
+
+      - name: Stripe subscription handling
+        run: npm run test:subs
+        working-directory: backend
+
+      - name: Checkout fallback chain
+        run: npm run test:checkout
+        working-directory: backend
+
+      - name: Receipt parsing
+        run: npm run test:receipt
+        working-directory: backend
+
+      - name: MCP token properties
+        run: npm run test:mcp-token
+        working-directory: backend
+
+      # The webpage-to-PDF renderer takes a URL from the user. This is the only
+      # thing standing between that and the VPS metadata endpoint, so it runs on
+      # every backend change, not just when the guard itself is touched.
+      - name: SSRF guard
+        run: node dev-harness/ssrf-check.mjs
+
+      # Unlike the frontend gate, this one fails on ANY advisory, not just
+      # high/critical. The backend has a small, deliberate dependency list and
+      # holds the database credentials; there is no reason to carry known debt
+      # here, and as of this commit the count is zero. Keep it there.
+      - name: Dependency audit (production deps)
+        run: npm audit --omit=dev --audit-level=low
+        working-directory: backend
