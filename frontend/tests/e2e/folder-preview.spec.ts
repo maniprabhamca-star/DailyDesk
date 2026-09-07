@@ -125,13 +125,18 @@ test.describe('gated tools open for the owner', () => {
   test('the owner can click a coming-soon tile', async ({ page }) => {
     await asOwner(page);
     await page.goto('/', { waitUntil: 'domcontentloaded' });
-    // Settle FIRST: the tile is a <div> until auth restores and then becomes an
-    // <a>, so grabbing it too early gets a node React is about to replace.
-    await page.waitForTimeout(2500);
-    const tile = page.getByText('Folder preview').first();
-    await tile.scrollIntoViewIfNeeded();
-    const href = await tile.evaluate((n) => (n as HTMLElement).closest('a')?.getAttribute('href') ?? null);
-    expect(href, 'the owner should reach a gated tool from the tile').toBe('/folder-preview');
+    // The tile is a <div> until auth restores and then becomes an <a>, so a
+    // handle taken before that swap points at a node React is about to throw
+    // away. This used to wait 2500ms and then grab one — which held on Chromium
+    // and failed on WebKit with "Element is not attached to the DOM" the moment
+    // webkit started executing JavaScript at all. A wall-clock guess about how
+    // long hydration takes is a race with a stopwatch attached.
+    //
+    // So: no handle, no guess. Describe the finished state — an anchor pointing
+    // at the gated tool — and let the locator re-resolve until it is there.
+    const tile = page.locator('a[href="/folder-preview"]').filter({ hasText: /folder preview/i });
+    await expect(tile, 'the owner should reach a gated tool from the tile').toHaveCount(1, { timeout: 20_000 });
+    await expect(tile.first()).toBeVisible();
   });
 });
 

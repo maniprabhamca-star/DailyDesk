@@ -59,12 +59,48 @@ const nextConfig = {
       // instead. Omitting it blocked the previews outright, and child-src does
       // not cover the gap: frame-src overrides it for frames.
       "frame-src 'self' blob: https://accounts.google.com",
-      // Nothing may embed us — stronger than X-Frame-Options and it supersedes it.
-      "frame-ancestors 'none'",
+      // 'self', not 'none' — and the difference is not cosmetic.
+      //
+      // A blob: document INHERITS the CSP of the page that created it. So a blob
+      // built here carries `frame-ancestors 'none'` of its own, and when this
+      // page then frames it, WebKit refuses the load: "Refused to load blob:…
+      // because it does not appear in the frame-ancestors directive". Our own
+      // page is not allowed to embed our own blob. Chromium does not enforce it
+      // that way, which is why this only ever showed up on Safari — where it
+      // broke Print (result-actions.tsx loads the finished PDF into a hidden
+      // iframe to print it) and every card preview in Folder Preview.
+      //
+      // 'self' still refuses every third-party embed, which is the entire point
+      // of the directive; the only thing it additionally permits is this origin
+      // framing itself, and an attacker who can already serve a page from this
+      // origin is not being held back by a framing rule.
+      "frame-ancestors 'self'",
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
-      "upgrade-insecure-requests",
+      // upgrade-insecure-requests, EXCEPT when we are deliberately serving over
+      // plain http — which is only ever the E2E run on localhost:3100.
+      //
+      // The spec says a potentially-trustworthy origin like localhost should not
+      // be upgraded, and Chromium honours that. WebKit does not: it rewrote
+      // every script, stylesheet and manifest URL to https://localhost:3100,
+      // each one failed with an SSL connect error, no JavaScript ever executed,
+      // and so nothing hydrated. The pages still rendered — Next had already
+      // sent the server HTML — which is why this looked like forty unrelated
+      // webkit failures (a splash that never lifts, a file input that never
+      // appears, an account page stuck on "Loading…", the dark theme never
+      // applying) instead of one cause. It was waived as engine flake for
+      // months. Every one of them was this line.
+      //
+      // This is read at BUILD time, not at boot: next compiles headers() into
+      // .next/routes-manifest.json, so `next start` never re-evaluates it. The
+      // variable therefore has to be set for `npm run build`, which is what the
+      // QA workflow does for the build it hands to the E2E jobs. A production
+      // build sets nothing and keeps the directive.
+      //
+      // tests/unit/csp.test.ts asserts the default build still carries it, so
+      // this switch cannot quietly become the way it gets dropped for everyone.
+      ...(process.env.DD_ALLOW_PLAIN_HTTP === '1' ? [] : ['upgrade-insecure-requests']),
     ].join('; ');
 
     return [

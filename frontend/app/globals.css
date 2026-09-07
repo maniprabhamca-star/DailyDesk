@@ -307,14 +307,28 @@ p a.text-primary, li a.text-primary { text-decoration: underline; text-underline
    can always be scrolled clear of it. Zero when the banner is gone.
 
    scroll-padding-top keeps the sticky 64px header from doing the same thing at
-   the other end whenever anything scrolls an element into view. */
+   the other end whenever anything scrolls an element into view.
+
+   --dd-bottom-inset is the single answer to "how much of the bottom of the
+   viewport is covered right now". Two different fixed things live down there —
+   the consent banner on every screen, the app bar on phones — and each one was
+   given its own ad-hoc allowance by whoever added it. That is how the banner's
+   reservation got silently overwritten on mobile, and how the folder-preview
+   status dock ended up underneath the app bar with its Undo button unclickable.
+   Anything that pins itself to the bottom of the screen, or needs to be clear
+   of what does, reads this one value. */
+:root {
+  --dd-appbar-h: 0px;
+  --dd-bottom-inset: max(var(--dd-appbar-h), var(--dd-banner-h, 0px));
+}
+
 html {
   scroll-padding-top: 5rem;
-  scroll-padding-bottom: var(--dd-banner-h, 0px);
+  scroll-padding-bottom: var(--dd-bottom-inset);
 }
 
 body {
-  padding-bottom: var(--dd-banner-h, 0px);
+  padding-bottom: var(--dd-bottom-inset);
 }
 
 /* File inputs: hidden from view, but STILL RENDERED.
@@ -336,9 +350,17 @@ body {
    its last element or the bar covers it. Phones only, and it includes the
    home-indicator strip so the gap is right on an iPhone as well as on Android.
    Kept here rather than on each page: a page that forgot it would look fine on
-   a desktop and hide its own footer on a phone. */
+   a desktop and hide its own footer on a phone.
+
+   This sets the VARIABLE, and nothing else. The previous version set
+   `body { padding-bottom }` here directly, and because it came after the base
+   rule it replaced the consent banner's reservation outright on exactly the
+   screens where the banner does the most damage — phones reserved 60px for a
+   260px banner, and REG-022 came back months after it was fixed. Feeding
+   --dd-bottom-inset instead means the two allowances are compared rather than
+   one quietly winning. */
 @media (max-width: 639px) {
-  body {
-    padding-bottom: calc(3.75rem + env(safe-area-inset-bottom, 0px));
+  :root {
+    --dd-appbar-h: calc(3.75rem + env(safe-area-inset-bottom, 0px));
   }
 }

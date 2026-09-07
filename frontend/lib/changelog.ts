@@ -23,6 +23,20 @@ export type ChangeEntry = {
 // flags flip, dated then.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-09-07',
+    kind: 'fixed',
+    title: 'Printing works again in Safari',
+    detail:
+      "Printing a finished PDF did nothing in Safari, on Mac and on iPhone. A security rule that stops other websites embedding DiemDesk was also, only in Safari, stopping DiemDesk from opening its own freshly-made file to print it. Other browsers were never affected, which is why it went unnoticed. The rule still refuses every outside site; it now makes an exception for us opening our own work. Folder Preview, which shows each file in a folder the same way, was blank in Safari for the same reason and is fixed with it.",
+  },
+  {
+    date: '2026-09-07',
+    kind: 'fixed',
+    title: 'Two things a phone was hiding',
+    detail:
+      "On a phone, the privacy notice at the bottom of the screen sat on top of the last part of the page, so whatever was down there could be read but not tapped — the same complaint as the download button on the favicon pack. Separately, after moving files to the bin in Folder Preview, the Undo button appeared behind the bottom navigation bar and could not be pressed. Both were the same mistake: two things pinned to the bottom of the screen, each unaware of the other. The page now leaves room for whichever is taller.",
+  },
+  {
     date: '2026-08-30',
     kind: 'feature',
     title: 'DiemDesk now works inside Claude',

@@ -6,7 +6,23 @@ import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { deflateSync } from 'node:zlib';
 
-export const FIXTURE_DIR = path.join(process.cwd(), 'tests', '.fixtures');
+/* One fixture directory PER WORKER, not one shared by all of them.
+ *
+ * Every generator here rewrites its file on each call, and the config runs
+ * fullyParallel on two workers in CI. So worker B could call demoFolder() and
+ * truncate statement.csv at the exact moment worker A's browser was reading the
+ * File it had already selected — the read rejects with NotReadableError, the
+ * card says "This file couldn't be read", and the folder-preview spec fails on
+ * whichever files happened to be last in the render queue.
+ *
+ * It only ever failed in CI, because `workers` is 1 locally and 2 with CI set,
+ * so every local run and every re-run in a single worker looked green. That is
+ * the shape of a bug that gets labelled flake and waived for months.
+ *
+ * TEST_PARALLEL_INDEX is set by Playwright in each worker process; the fallback
+ * covers direct node/vitest use of these helpers outside a Playwright run. */
+const WORKER_SLOT = process.env.TEST_PARALLEL_INDEX ?? '0';
+export const FIXTURE_DIR = path.join(process.cwd(), 'tests', '.fixtures', `w${WORKER_SLOT}`);
 
 const file = (name: string) => path.join(FIXTURE_DIR, name);
 

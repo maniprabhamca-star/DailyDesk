@@ -603,9 +603,18 @@ export function FolderPreviewTool() {
 
           Fixed rather than sticky on purpose: the card wrapping this has
           overflow-hidden, which makes it the sticky element's scroll container,
-          and a container that never scrolls means sticky never sticks. */}
+          and a container that never scrolls means sticky never sticks.
+
+          Offset by --dd-bottom-inset, not a bare bottom-4: on a phone the app
+          bar is also fixed at bottom-0 and is ~60px tall, so bottom-4 put this
+          dock inside it. Playwright's log is unambiguous — the nav's own home
+          link "intercepts pointer events" — which means that after moving files
+          to trash on a phone, the Undo button was drawn but could not be
+          tapped. The exact failure this dock was introduced to prevent, caused
+          by a different fixed element. z-50 to match: the two overlap at z-40
+          and the later one in the DOM would win. */}
       {(progress || note) && (
-        <div className="pointer-events-none fixed inset-x-0 bottom-4 z-40 flex justify-center px-4">
+        <div className="pointer-events-none fixed inset-x-0 bottom-[calc(var(--dd-bottom-inset,0px)+1rem)] z-50 flex justify-center px-4">
           <div className="pointer-events-auto flex max-w-[min(46rem,100%)] flex-wrap items-center gap-3 rounded-xl border bg-card/95 px-4 py-2.5 text-[13px] shadow-lift backdrop-blur">
             {progress ? (
               <>
