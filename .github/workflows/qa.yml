@@ -3,11 +3,19 @@ name: QA
 # DiemDesk quality gate — see docs/qa/qa-master-plan.md §6.
 #
 # Blocking: typecheck + unit + service-worker + production build.
-# Blocking: the E2E suite on chromium — it needs no backend (every journey it
-#   covers is on-device), so there is no excuse for it to be advisory.
-# Advisory: firefox and webkit, which catch engine differences (REG-015, the
-#   iOS file-picker bug, is exactly this class) but occasionally flake on the
-#   runner. Promote to blocking once they've been quiet for a fortnight.
+# Blocking: E2E on chromium, mobile and webkit. None of them needs a backend —
+#   every journey they cover runs on-device — so there is no excuse for any of
+#   the three to be advisory. webkit is Safari, which is every iPhone; mobile is
+#   the viewport most people actually arrive on.
+# Advisory: firefox and edge, which catch engine differences (REG-015, the iOS
+#   file-picker bug, is exactly this class). Both are green as of a1980ae and
+#   should follow once they have been quiet for a fortnight.
+#
+# ⚠ An advisory job is INVISIBLE. Its failure does not reach the run conclusion,
+# `gh run list`, the checks API, or the tick on a PR — all of which say success.
+# mobile and webkit spent months red behind that, holding four real defects. If
+# you make a job advisory, you are choosing not to be told; write down when you
+# will look at it, or don't do it.
 
 on:
   push:
@@ -76,8 +84,20 @@ jobs:
     name: E2E — ${{ matrix.project }}
     runs-on: ubuntu-latest
     needs: quality
-    # chromium blocks the build; the other engines report but don't block yet.
-    continue-on-error: ${{ matrix.project != 'chromium' }}
+    # chromium, mobile and webkit all block. firefox and edge still only report.
+    #
+    # mobile and webkit were advisory from the start, on the theory that engine
+    # differences flake on the runner. What actually happened is that they went
+    # red and stayed red — three real mobile defects and a CSP bug that had
+    # killed Print in Safari on production — while this workflow reported
+    # success on every single run, because the run's conclusion is the only
+    # thing gh, the checks API and the green tick on a PR ever show. Nobody
+    # ignored a warning; there was no warning to ignore.
+    #
+    # They are green on a1980ae, so they block from here. A blocking job that
+    # flakes gets fixed or gets its test quarantined; an advisory job that fails
+    # gets nothing, which is how months of real bugs went unread.
+    continue-on-error: ${{ matrix.project == 'firefox' || matrix.project == 'edge' }}
     strategy:
       fail-fast: false
       matrix:
