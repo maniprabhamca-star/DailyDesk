@@ -149,35 +149,59 @@ export async function demoFolder(): Promise<string> {
 }
 
 /**
- * Wait until a page is worth measuring.
+ * Wait until a page is worth measuring — and never fail a test by waiting.
  *
- * Three separate suites were asserting against pages whose stylesheet had not
- * applied yet, and each failure looked like a real defect:
- *   • contrast reported white on rgb(192,192,192), the UA default button face —
- *     Tailwind's preflight makes buttons transparent, so that reading can only
- *     happen before the CSS lands. With styles applied, no element on the page
- *     has that colour at all.
- *   • "/ overflows by 1169px at 375" — an unstyled horizontal scroller lays its
- *     chips out inline, so the document really is that wide for a moment.
- *     Measured afterwards, the overflow is 0.
- *   • ⌘K did nothing, because its listener is attached by an effect and the key
- *     was pressed before hydration.
+ * Three suites were asserting against pages whose stylesheet had not applied,
+ * and each false reading looked like a real defect: contrast reported white on
+ * rgb(192,192,192) (the UA button face, which preflight removes); "/ overflows
+ * by 1169px at 375" (an unstyled horizontal scroller lays its chips out
+ * inline); and ⌘K doing nothing (its listener is attached by an effect).
  *
- * A fixed waitForTimeout cannot express any of that: it is a guess that passes
- * on a fast runner and fails on a slow one.
+ * ⚠ The first version of this helper was WORSE than the problem: 402 CI
+ * failures from this one call. Two reasons, both worth keeping written down.
+ *
+ *   waitForFunction polls on requestAnimationFrame by default, and rAF does
+ *   not fire on a backgrounded page. This config runs fullyParallel with two
+ *   workers, so pages are backgrounded constantly — the predicate was never
+ *   re-evaluated and every call sat there until it timed out. Interval polling
+ *   does not care whether the page is visible.
+ *
+ *   And it gated on `[data-hydrating]`, an attribute I invented. Nothing in
+ *   the app ever sets it, so the clause was a no-op pretending to check
+ *   hydration.
+ *
+ * It now fails OPEN. A readiness gate exists to make assertions meaningful; if
+ * it cannot establish readiness it must let the real assertion run and report
+ * its own verdict, not convert every page into a timeout.
  */
-export async function waitReady(page: import('@playwright/test').Page, timeout = 15_000) {
-  await page.waitForFunction(() => {
-    // Styles: a real stylesheet, not just the inline critical CSS.
-    const applied = Array.from(document.styleSheets).some((s) => {
-      try { return (s.cssRules?.length ?? 0) > 50; } catch { return true; } // cross-origin: assume loaded
-    });
-    // And the tell-tale: preflight has neutralised the UA button face.
-    const btn = document.querySelector('button');
-    const reset = !btn || getComputedStyle(btn).backgroundColor !== 'rgb(192, 192, 192)';
-    // Hydration: React has attached, so effect-bound listeners exist.
-    const hydrated = !document.querySelector('[data-hydrating]');
-    return applied && reset && hydrated;
-  }, null, { timeout });
-  await page.waitForLoadState('networkidle').catch(() => {});
+export async function waitReady(page: import('@playwright/test').Page, timeout = 10_000) {
+  // Playwright's own primitive for "stylesheets and images have loaded", and
+  // the most reliable part of this.
+  await page.waitForLoadState('load', { timeout: 10_000 }).catch(() => {});
+
+  await page
+    .waitForFunction(
+      () => {
+        const applied = Array.from(document.styleSheets).some((s) => {
+          try { return (s.cssRules?.length ?? 0) > 50; } catch { return true; } // cross-origin: assume loaded
+        });
+        // The tell-tale that preflight has landed: an unstyled <button> reports
+        // the UA button face, and every false contrast reading came from that.
+        const btn = document.querySelector('button');
+        const reset = !btn || getComputedStyle(btn).backgroundColor !== 'rgb(192, 192, 192)';
+        return applied && reset;
+      },
+      null,
+      { timeout, polling: 500 },
+    )
+    .catch(() => {}); // fail open — see above
+
+  // ⚠ Bounded, and last. networkidle has NO default timeout of its own, so a
+  // page that never goes quiet — /pricing keeps a connection open — burns the
+  // entire 90s test budget and is then torn down mid-wait. .catch() does not
+  // help: there is no rejection to catch, only a hang. Playwright's own docs
+  // discourage this state for exactly this reason; it stays only as a short
+  // opportunistic settle.
+  await page.waitForLoadState('networkidle', { timeout: 3_000 }).catch(() => {});
 }
+
