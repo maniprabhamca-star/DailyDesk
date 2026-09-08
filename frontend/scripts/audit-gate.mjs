@@ -13,22 +13,14 @@
 import { execSync } from 'node:child_process';
 
 const ALLOW = [
-  {
-    name: 'next',
-    reason: 'DoS via Image Optimizer remotePatterns. We do not use remotePatterns '
-      + '(next.config.js sets images.domains only), so the vector is not reachable. '
-      + 'The fix is Next 16 — a major migration that needs its own piece of work.',
-    added: '2026-08-30',
-    expires: '2026-11-30',
-  },
-  {
-    name: 'postcss',
-    reason: 'XSS via unescaped </style> in CSS stringify output. Reaches us only '
-      + 'through Next\'s build pipeline, which processes our own stylesheets and '
-      + 'never user input. Resolves with the same Next 16 upgrade.',
-    added: '2026-08-30',
-    expires: '2026-11-30',
-  },
+  // Empty, and that is the point.
+  //
+  // This held two waivers — next and postcss, both high, both reachable only
+  // through the Next build pipeline, both resolving at Next 16 — with an expiry
+  // of 2026-11-30 so that nobody could renew them by reflex. The Next 14 -> 16
+  // upgrade cleared both, so they are deleted rather than left as tidy-looking
+  // dead entries. A waiver list that still names advisories which no longer
+  // exist teaches you to skim it.
 ];
 
 let report;

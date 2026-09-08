@@ -22,7 +22,8 @@ function clamp155(s: string): string {
   return `${(at > 120 ? cut.slice(0, at) : cut).replace(/[,;—-]$/, '')}…`;
 }
 
-export function generateMetadata({ params }: { params: { country: string } }): Metadata {
+export async function generateMetadata(props: { params: Promise<{ country: string }> }): Promise<Metadata> {
+  const params = await props.params;
   const s = getSpec(params.country);
   if (!s) return {};
   const d = derive(s);
@@ -39,7 +40,8 @@ export function generateMetadata({ params }: { params: { country: string } }): M
   };
 }
 
-export default function Page({ params }: { params: { country: string } }) {
+export default async function Page(props: { params: Promise<{ country: string }> }) {
+  const params = await props.params;
   const s = getSpec(params.country);
   if (!s) notFound();
   const d = derive(s);

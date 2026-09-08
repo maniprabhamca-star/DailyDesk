@@ -7,7 +7,8 @@ export function generateStaticParams() {
   return BANK_PAGES.map((b) => ({ bank: b.slug }));
 }
 
-export function generateMetadata({ params }: { params: { bank: string } }): Metadata {
+export async function generateMetadata(props: { params: Promise<{ bank: string }> }): Promise<Metadata> {
+  const params = await props.params;
   const b = getBankPage(params.bank);
   if (!b) return {};
   return {
@@ -24,7 +25,8 @@ export function generateMetadata({ params }: { params: { bank: string } }): Meta
   };
 }
 
-export default function Page({ params }: { params: { bank: string } }) {
+export default async function Page(props: { params: Promise<{ bank: string }> }) {
+  const params = await props.params;
   const b = getBankPage(params.bank);
   if (!b) notFound();
 

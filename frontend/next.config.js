@@ -3,9 +3,18 @@ const nextConfig = {
   // Allow a per-instance build dir so multiple `next dev` can run concurrently
   // (used for the hero A/B/C preview servers on separate ports). Defaults to .next.
   distDir: process.env.NEXT_DIST_DIR || '.next',
-  images: {
-    domains: ['localhost'],
-  },
+  // No `images` config at all, deliberately.
+  //
+  // It used to say `domains: ['localhost']`, which Next 16 deprecates in favour
+  // of remotePatterns. Neither is the right answer here: every one of the 30
+  // <Image> uses in this app points at a local path under public/, so no remote
+  // host should be optimisable at all. Converting the deprecation to
+  // remotePatterns would have carried a permission we do not use into a config
+  // that outlives whoever remembers why.
+  //
+  // This is also the advisory that was waived until 2026-11-30 — a DoS through
+  // the Image Optimizer's remote fetching. Allowing no remote host closes it by
+  // construction rather than by version number.
   // /for/government was renamed to /for/public-sector so the URL matches the
   // label the whole site already used. It was live for four days and is in a
   // published sitemap, so it gets a permanent redirect rather than a 404 —
@@ -15,8 +24,19 @@ const nextConfig = {
       { source: '/for/government', destination: '/for/public-sector', permanent: true },
     ];
   },
+  // pdfjs-dist has an optional Node "canvas" dependency that is never used in
+  // the browser. Both bundlers need telling, because Next 16 builds with
+  // Turbopack by default and refuses to start at all if a webpack config is
+  // present without a turbopack one — it cannot know whether the webpack config
+  // still matters.
+  //
+  // Both are kept rather than dropping webpack: `--webpack` is still a supported
+  // escape hatch, and if a pdf.js upgrade ever needs it, the alias has to be
+  // there or every PDF tool breaks on a build nobody thought was risky.
+  turbopack: {
+    resolveAlias: { canvas: './lib/empty-module.js' },
+  },
   webpack: (config) => {
-    // pdfjs-dist has an optional Node "canvas" dependency that isn't used in the browser.
     config.resolve.alias = { ...config.resolve.alias, canvas: false };
     return config;
   },

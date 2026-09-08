@@ -12,26 +12,40 @@ const SIZES = [
 ];
 
 /**
- * Open the mega-menu, retrying the click until the panel is actually there.
+ * Open the mega-menu: wait for hydration, then click once.
  *
- * These tests used to click once and assume. They passed for a bad reason: the
- * first-visit splash was playing over the page (the specs guarded it with a key
- * nothing read), so Playwright waited for the overlay to lift before the button
- * became actionable — roughly two seconds, which happened to be long enough for
- * React to hydrate. Fixing the splash key removed that accidental pause and the
- * click started landing on a button whose handler was not attached yet.
+ * The history is worth keeping, because the fix twice made things worse. These
+ * tests originally clicked once and assumed, and passed for a bad reason — the
+ * first-visit splash was playing over the page, so Playwright waited for the
+ * overlay to lift before the button became actionable, roughly two seconds,
+ * which happened to be long enough for React to hydrate. Fixing the splash
+ * removed that accidental pause and the click started landing on a button whose
+ * handler was not attached yet.
  *
- * Waiting on hydration directly is the honest fix; there is no marker for it, so
- * retry the click until the menu opens. A click that DID register just makes the
- * first assertion pass and no retry happens.
+ * The next version wrapped the click in `toPass`, on the reasoning that a click
+ * which DID register makes the assertion pass so no retry happens. That is only
+ * true when the first click works. This button is a TOGGLE, so once a click does
+ * register late, every retry flips it back — open, closed, open — and whether
+ * the run passes depends on which phase the assertion happens to sample. It held
+ * on a quiet machine and fell over inside a 974-test run, which is the signature
+ * of a race, not of a broken menu. Verified: the three failures reproduce only in
+ * the full suite, and all ten specs pass on their own.
+ *
+ * Never retry a toggle. `window.__ddHydrated` is set by the file-picker rescue
+ * once React owns the page — the marker the previous comment said did not exist —
+ * so wait for the real condition and click exactly once.
  */
 async function openToolsMenu(page: import('@playwright/test').Page) {
+  await page.waitForFunction(
+    () => (window as unknown as { __ddHydrated?: boolean }).__ddHydrated === true,
+    null,
+    { timeout: 30_000 },
+  );
   const button = page.getByRole('button', { name: /^tools$/i });
   const panel = page.locator('#dd-tools-menu');
-  await expect(async () => {
-    await button.click();
-    await expect(panel).toBeVisible({ timeout: 2_000 });
-  }).toPass({ timeout: 20_000 });
+  await button.click();
+  await expect(panel).toBeVisible({ timeout: 10_000 });
+  await expect(button).toHaveAttribute('aria-expanded', 'true');
   return panel;
 }
 

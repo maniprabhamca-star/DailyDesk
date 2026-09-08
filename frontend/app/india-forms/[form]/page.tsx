@@ -12,7 +12,8 @@ export function generateStaticParams() {
 const ALL_TOOLS = catalog.flatMap((g) => g.tools);
 const toolHref = (name: string) => ALL_TOOLS.find((t) => t.name === name)?.href;
 
-export function generateMetadata({ params }: { params: { form: string } }): Metadata {
+export async function generateMetadata(props: { params: Promise<{ form: string }> }): Promise<Metadata> {
+  const params = await props.params;
   const f = getForm(params.form);
   if (!f) return {};
   return {
@@ -28,7 +29,8 @@ export function generateMetadata({ params }: { params: { form: string } }): Meta
   };
 }
 
-export default function Page({ params }: { params: { form: string } }) {
+export default async function Page(props: { params: Promise<{ form: string }> }) {
+  const params = await props.params;
   const f = getForm(params.form);
   if (!f) notFound();
 
