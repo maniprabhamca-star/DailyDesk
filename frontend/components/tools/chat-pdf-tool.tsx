@@ -276,9 +276,9 @@ function PrivacyNote() {
     <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3.5 text-[13px] leading-relaxed text-foreground">
       <Lock className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
       <p>
-        <b>Straight talk on privacy:</b> AI is the one DiemDesk feature where something leaves your device. We read the PDF's
+        <b>Straight talk on privacy:</b> AI is the one DiemDesk feature where something leaves your device. We read the PDF’s
         text <b>in your browser</b>, then send only the <b>relevant snippets</b> — never the file — to our server, which asks
-        Claude. We don't store it or train on it. Everything else on DiemDesk stays 100% on your device.
+        Claude. We don’t store it or train on it. Everything else on DiemDesk stays 100% on your device.
       </p>
     </div>
   );

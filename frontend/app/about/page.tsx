@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ShieldCheck, CloudOff, Heart, Sparkles, Mail } from 'lucide-react';
+import { ShieldCheck, Mail } from 'lucide-react';
 import { LegalPage, Section, Callout } from '@/components/legal/legal-page';
 import { liveToolCount } from '@/components/app/catalog';
 

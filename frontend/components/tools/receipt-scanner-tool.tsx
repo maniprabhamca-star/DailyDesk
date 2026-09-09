@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
-  Camera, ImagePlus, Loader2, ScanLine, Check, X, Cloud, CameraOff, ReceiptText, Wallet, RotateCcw, AlertTriangle,
+  Camera, ImagePlus, Loader2, ScanLine, Check, Cloud, CameraOff, ReceiptText, Wallet, RotateCcw, AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CATEGORIES, addExpense, budgetSignedIn, BudgetApiError } from '@/lib/budget-api';

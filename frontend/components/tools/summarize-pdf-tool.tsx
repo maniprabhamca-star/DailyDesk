@@ -14,7 +14,7 @@ const docxLib = () => import('@/lib/docx');
 const downloadText = (text: string, filename: string, mime = 'text/plain') =>
   downloadBlob(new Blob([text], { type: `${mime};charset=utf-8` }), filename);
 import {
-  useAiDoc, AiDropzone, AiDocPanel, AiPrivacyNote, NoTextNote, Ctl, Seg, Toggle, CiteText, CapChip,
+  useAiDoc, AiDropzone, AiDocPanel, AiPrivacyNote, NoTextNote, Ctl, Seg, CiteText, CapChip,
 } from './ai-doc-shell';
 
 type KeyPoint = { text: string; page: number };

@@ -14,6 +14,8 @@
  * values, which keeps whatever else the packet held (rights, ICC intent, an
  * editing history) intact.
  */
+import type { PDFDocument, PDFRef, PDFRawStream } from 'pdf-lib';
+
 
 export type DocInfo = {
   title: string;
@@ -131,10 +133,14 @@ function patchXmp(xml: string, v: DocInfo): string {
   return stripped.slice(0, close) + desc + stripped.slice(close);
 }
 
-async function xmpOf(doc: any): Promise<{ xml: string; ref: any } | null> {
-  const { PDFName, PDFRawStream } = await import('pdf-lib');
+async function xmpOf(doc: PDFDocument): Promise<{ xml: string; ref: PDFRef } | null> {
+  const { PDFName, PDFRawStream, PDFRef } = await import('pdf-lib');
   const ref = doc.catalog.get(PDFName.of('Metadata'));
-  if (!ref) return null;
+  // catalog.get() is typed as PDFObject: /Metadata may legitimately be an
+  // inline stream rather than an indirect reference, and we can only patch it
+  // in place if it is a reference. Narrowing here rather than casting means a
+  // PDF that stores it inline is refused rather than mangled.
+  if (!(ref instanceof PDFRef)) return null;
   const stream = doc.context.lookup(ref);
   if (!(stream instanceof PDFRawStream)) return null;
   try {
@@ -146,7 +152,7 @@ async function xmpOf(doc: any): Promise<{ xml: string; ref: any } | null> {
 
 export async function readDocInfo(bytes: ArrayBuffer | Uint8Array): Promise<DocInfoRead> {
   const { PDFDocument } = await import('pdf-lib');
-  const doc = await PDFDocument.load(bytes as any, { ignoreEncryption: true, updateMetadata: false });
+  const doc = await PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false });
 
   const info: DocInfo = {
     title: doc.getTitle() ?? '',
@@ -184,7 +190,7 @@ export async function readDocInfo(bytes: ArrayBuffer | Uint8Array): Promise<DocI
 
 export async function writeDocInfo(bytes: ArrayBuffer | Uint8Array, v: DocInfo): Promise<Uint8Array> {
   const { PDFDocument, PDFName, PDFRawStream, PDFNumber } = await import('pdf-lib');
-  const doc = await PDFDocument.load(bytes as any, { ignoreEncryption: true, updateMetadata: false });
+  const doc = await PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false });
 
   // pdf-lib has no "unset" — writing '' leaves an empty entry, which is both
   // honest (the field exists and is blank) and what the user asked for.
@@ -206,10 +212,10 @@ export async function writeDocInfo(bytes: ArrayBuffer | Uint8Array, v: DocInfo):
   if (xmp) {
     const patched = patchXmp(xmp.xml, v);
     const raw = new TextEncoder().encode(patched);
-    const old = doc.context.lookup(xmp.ref) as any;
+    const old = doc.context.lookup(xmp.ref) as PDFRawStream;
     const dict = old.dict;
     dict.set(PDFName.of('Length'), PDFNumber.of(raw.length));
-    doc.context.assign(xmp.ref as any, PDFRawStream.of(dict, raw));
+    doc.context.assign(xmp.ref, PDFRawStream.of(dict, raw));
   }
 
   // No updateMetadata here: it is a LOAD option, not a save one. Loading with

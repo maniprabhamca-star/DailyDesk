@@ -3,7 +3,7 @@ import { useFileSession, clearSession, MAX_FILE_SESSION } from '@/lib/editor-ses
 
 import { useEffect, useRef, useState } from 'react';
 import { useFileHandoff } from '@/lib/file-handoff';
-import { Upload, FileText, X, Download, Loader2, Zap, Shrink, CheckCircle2, Coffee, Sparkles, Type, Eye, Lock, RefreshCw, RotateCcw } from 'lucide-react';
+import { Upload, FileText, X, Loader2, Zap, Shrink, CheckCircle2, Coffee, Sparkles, Type, Eye, Lock, RefreshCw, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 import { Card, CardContent } from '@/components/ui/card';
@@ -24,7 +24,6 @@ import { subsetFonts } from '@/lib/pdf-fontgut';
 import { stripDocMetadata } from '@/lib/pdf-sanitize';
 import { PageStrip } from '@/components/pdf/page-strip';
 import { BeforeAfter, type TouchedInfo } from '@/components/pdf/before-after';
-import { SavingsRing } from '@/components/app/savings-ring';
 import { BigFileHint } from '@/components/app/big-file-hint';
 import { BatchRunner } from '@/components/app/batch-runner';
 
@@ -454,7 +453,6 @@ export function CompressTool() {
       }
     }, 250);
     return () => { cancelled = true; clearTimeout(t); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [srcHandle, kind, level, done, busy, p1StoredPx]);
 
   // Free pdf.js handles (and their cached page bitmaps) on unmount.
@@ -772,7 +770,6 @@ export function CompressTool() {
       const tPrep = performance.now();
       let outBytes: Uint8Array;
       let rasterized = 0;
-      let copied = 0;
       if (scanPages.size === 0) {
         // No page needs rasterizing — skip pdf.js entirely so efficient files
         // finish near-instantly (just the surgical result + structural save).
@@ -869,7 +866,7 @@ export function CompressTool() {
               renderedPages.delete(i); // free buffered bytes as we go
             }
             if (!placed) {
-              try { const [cp] = await outDoc.copyPages(doc, [i]); outDoc.addPage(cp); copied++; } catch { /* unrenderable page — skip */ }
+              try { const [cp] = await outDoc.copyPages(doc, [i]); outDoc.addPage(cp); } catch { /* unrenderable page — skip */ }
               progressed++;
               setProgress({ done: Math.min(progressed, pageCount), total: pageCount });
             }

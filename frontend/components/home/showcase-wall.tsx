@@ -25,9 +25,16 @@ const Bar = ({ w, c = 'rgba(255,255,255,.14)' }: { w: string; c?: string }) => (
 );
 
 function Poster({
-  href, tint, eyebrow, title, children, tall, cta = 'Open',
+  href, tint, eyebrow, title, children, tall,
 }: {
   href: string; tint: string; eyebrow: string; title: string;
+  // `cta` is accepted and deliberately not read. Nine call sites below pass a
+  // label — "Compress", "Edit", "Make one" — and the footer renders only an
+  // arrow, so none of them has ever appeared on screen. Either the labels
+  // should be shown or they should go, and that is a design decision about a
+  // section whose future is still open (see the home redesign notes), not
+  // something to settle by deleting one side of it to quieten a linter.
+  // Keeping the prop means the call sites still say what they meant.
   children: React.ReactNode; tall?: boolean; cta?: string;
 }) {
   return (

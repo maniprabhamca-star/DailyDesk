@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import {
-  BadgeCheck, CalendarClock, Mail, CreditCard, XCircle, RotateCcw, ShieldCheck, Clock,
+  BadgeCheck, CalendarClock, CreditCard, XCircle, RotateCcw, ShieldCheck, Clock,
   CheckCircle2, BellRing, Repeat, RefreshCw,
 } from 'lucide-react';
 import { LegalPage, Section, Callout, FlowStep } from '@/components/legal/legal-page';

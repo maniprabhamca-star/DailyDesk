@@ -113,7 +113,6 @@ export function MergeTool() {
       setHandoffNote(`${pdfs.length} PDF${pdfs.length === 1 ? '' : 's'} brought straight over from ${h.from} — add more to merge.`);
       addPdfFiles(pdfs);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // While organizing, keep the grid in sync when more files are dropped: open

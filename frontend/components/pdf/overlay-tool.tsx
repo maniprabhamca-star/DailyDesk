@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Upload, FileText, X, Download, Loader2, Layers, Zap } from 'lucide-react';
+import { Upload, FileText, X, Loader2, Layers, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';

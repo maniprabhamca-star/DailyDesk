@@ -47,7 +47,6 @@ function when(date: string, now: Date): string {
 export function LastImproved({ max = 3 }: { max?: number }) {
   const pathname = usePathname() || '';
   const entries = CHANGELOG.filter((e) => e.href === pathname).slice(0, max);
-  if (!entries.length) return null;
 
   // "days ago" is filled in AFTER mount, not during render.
   //
@@ -67,6 +66,15 @@ export function LastImproved({ max = 3 }: { max?: number }) {
   // degrades to something true rather than to a blank.
   const [now, setNow] = useState<Date | null>(null);
   useEffect(() => { setNow(new Date()); }, []);
+
+  // AFTER the hooks, not before. When this fix was first written the early
+  // return sat above them, which made both hooks conditional — on a route with
+  // no changelog entry React would run zero hooks, on one with entries it would
+  // run two, and the hook order that React relies on is then different between
+  // renders of the same component. It survived the whole E2E suite because
+  // pathname does not change without a remount. ESLint caught it; nothing else
+  // did.
+  if (!entries.length) return null;
 
   return (
     <section className="mt-14">

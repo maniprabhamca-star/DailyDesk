@@ -650,7 +650,6 @@ export function RedactTool() {
       ],
     });
     return () => clearEditorContext();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [file, pageCount]);
 
   const removeFile = () => { clearSession('redact'); if (handle) void handle.destroy(); setHandle(null); setFile(null); setDone(null); setError(null); setBoxes({}); setAiFindings(null); setAiDone(null); setScanNote(null); };

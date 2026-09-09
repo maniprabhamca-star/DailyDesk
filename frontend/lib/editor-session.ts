@@ -167,7 +167,6 @@ export function useFileSession(
       });
     }, 250); // let a hand-off or instant user pick win first
     return () => { alive = false; clearTimeout(t); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
   return restorable;

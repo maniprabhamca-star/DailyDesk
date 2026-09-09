@@ -1,6 +1,6 @@
 // Saved Workflows — types, runner, templates, and local persistence.
 export * from './steps';
-import { STEPS, type StepId, type WorkflowStep } from './steps';
+import { STEPS, type WorkflowStep } from './steps';
 
 export type Workflow = { id: string; name: string; steps: WorkflowStep[] };
 export type StepState = 'idle' | 'running' | 'done' | 'error';

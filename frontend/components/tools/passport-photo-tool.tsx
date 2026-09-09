@@ -1,12 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Upload, X, Download, Loader2, Search, Info, RotateCcw, ImagePlus, Printer } from 'lucide-react';
+import { X, Download, Loader2, Search, Info, RotateCcw, ImagePlus, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { downloadBlob as download } from '@/lib/download';
 import { BigFileHint } from '@/components/app/big-file-hint';
 import { KeepGoing } from '@/components/app/keep-going';
-import { PASSPORT_SPECS, SPEC_GROUPS, isVerified, type PassportSpec } from '@/lib/passport-specs';
+import { PASSPORT_SPECS, isVerified, type PassportSpec } from '@/lib/passport-specs';
 import { renderPassport, prepareCutout, buildPrintSheet, type Crop } from '@/lib/passport-photo';
 import { decodeToBitmap } from '@/lib/image-for-pdf';
 

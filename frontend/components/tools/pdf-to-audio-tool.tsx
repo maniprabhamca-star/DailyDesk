@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useClientCapability } from '@/lib/use-client-capability';
-import { Upload, FileText, Loader2, Play, Pause, Square, X, Volume2, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { Upload, FileText, Loader2, Play, Pause, Square, X, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { extractSpeechText } from '@/lib/pdf-speech';
 import { splitSegments } from '@/lib/speech-core';

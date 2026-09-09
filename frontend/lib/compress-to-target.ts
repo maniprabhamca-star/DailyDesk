@@ -79,13 +79,12 @@ export async function compressImageToTarget(
       if (!smallest || low.size < smallest.size) smallest = low;
       if (low.size > targetBytes) continue; // still too big at this size — go smaller
       // Lowest quality fits at this scale → binary-search the highest quality that fits.
-      let lo = Q_MIN + 1, hi = Q_MAX, fit = low, fitScaleUsed = scale;
+      let lo = Q_MIN + 1, hi = Q_MAX, fit = low;
       while (lo <= hi) {
         const mid = (lo + hi) >> 1;
         const b = await render(scale, mid);
         if (b.size <= targetBytes) { fit = b; lo = mid + 1; } else hi = mid - 1;
       }
-      void fitScaleUsed;
       return { blob: fit, name, before, after: fit.size, reached: true };
     }
     // Never fit, even at the smallest size — hand back the smallest we produced.

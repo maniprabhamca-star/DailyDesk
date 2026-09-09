@@ -191,7 +191,7 @@ export function TranslatePdfTool() {
             ))}
             {!result && !busy && !doc.noText && !tooLong && doc.status === 'ready' && (
               <p className="text-sm text-muted-foreground">
-                Pick a language and hit <b>Translate</b>. You get clean, faithful translated text page by page — the original layout isn't reproduced (that's an honest v1 limit, not a bug).
+                Pick a language and hit <b>Translate</b>. You get clean, faithful translated text page by page — the original layout isn’t reproduced (that’s an honest v1 limit, not a bug).
               </p>
             )}
           </div>

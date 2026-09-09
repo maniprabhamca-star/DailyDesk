@@ -4,7 +4,7 @@ import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 
 import { useEffect, useRef, useState } from 'react';
 import { useFileHandoff } from '@/lib/file-handoff';
-import { Upload, FileText, X, Download, Loader2, Stamp, Zap, Type as TypeIcon, Image as ImageIcon, Bold, Italic } from 'lucide-react';
+import { Upload, FileText, X, Loader2, Stamp, Zap, Type as TypeIcon, Image as ImageIcon, Bold, Italic } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { takeHandoff } from '@/lib/handoff';

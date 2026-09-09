@@ -53,7 +53,6 @@ export function useQualityPreview(opts: {
       }
     }, delay);
     return () => { ac.abort(); clearTimeout(t); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, signature, delay]);
 
   // Release the last preview URL when the component unmounts.

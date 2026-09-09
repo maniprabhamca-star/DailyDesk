@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { downloadBlob as download } from '@/lib/download';
-import { formatDuration } from '@/lib/format';
 import { PdfDone } from '@/components/app/pdf-done';
 import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 import { openPdf, yieldToLoop, type PdfHandle } from '@/lib/pdf-render';

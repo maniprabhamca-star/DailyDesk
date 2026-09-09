@@ -8,9 +8,7 @@ import { useEffect } from 'react';
 const API = process.env.NEXT_PUBLIC_API_URL || '';
 
 declare global {
-  // eslint-disable-next-line no-var
   var __ddHydrated: boolean | undefined;
-  // eslint-disable-next-line no-var
   var __ddEarlyPick: number | undefined;
 }
 

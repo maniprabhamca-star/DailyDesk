@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Upload, Play, Plus, X, ArrowUp, ArrowDown, Save, Trash2, Download, Loader2, Check, ShieldCheck, GripVertical } from 'lucide-react';
+import { Upload, Play, Plus, X, ArrowUp, ArrowDown, Save, Download, Loader2, Check, ShieldCheck } from 'lucide-react';
 import { downloadBlob } from '@/lib/download';
 import { SignaturePad } from '@/components/tools/signature-pad';
 import {
   STEPS, STEP_ORDER, TEMPLATES, runWorkflow, runnableSteps, loadWorkflows, upsertWorkflow, deleteWorkflow, newWorkflowId,
-  type Workflow, type WorkflowStep, type StepId, type StepState, type StepConfig, type StepField,
+  type Workflow, type WorkflowStep, type StepId, type StepState, type StepField,
 } from '@/lib/workflows';
 
 // Map the engine layer's colour tokens to real hex (theme-independent accents).

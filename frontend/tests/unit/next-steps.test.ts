@@ -1,4 +1,4 @@
-import { readdirSync, existsSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { NEXT_STEPS, nextStepsFor } from '@/lib/next-steps';

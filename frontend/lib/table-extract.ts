@@ -159,7 +159,7 @@ function dropPhantomColumns(rows: string[][]): string[][] {
 
 // Drop fully-empty rows and fully-empty columns.
 export function trimGrid(rows: string[][]): string[][] {
-  let out = rows.filter((r) => r.some((c) => c.trim() !== ''));
+  const out = rows.filter((r) => r.some((c) => c.trim() !== ''));
   if (!out.length) return out;
   const nCols = Math.max(...out.map((r) => r.length));
   const keep: number[] = [];
