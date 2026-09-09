@@ -20,7 +20,8 @@ async function fetchBio(slug: string): Promise<{ slug: string; config: BioConfig
   } catch { return null; }
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const params = await props.params;
   const page = await fetchBio(params.slug);
   if (!page) return { title: 'Page not found | DiemDesk', robots: { index: false } };
   const name = page.config.displayName || page.slug;
@@ -34,7 +35,8 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   };
 }
 
-export default async function PublicBioPage({ params }: { params: { slug: string } }) {
+export default async function PublicBioPage(props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   const page = await fetchBio(params.slug);
   if (!page) notFound();
   return (

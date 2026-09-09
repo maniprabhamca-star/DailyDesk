@@ -17,7 +17,8 @@ export function generateStaticParams() {
   return SECTORS.map((s) => ({ sector: s.slug }));
 }
 
-export function generateMetadata({ params }: { params: { sector: string } }): Metadata {
+export async function generateMetadata(props: { params: Promise<{ sector: string }> }): Promise<Metadata> {
+  const params = await props.params;
   const s = sectorBySlug(params.sector);
   if (!s) return {};
   return {
@@ -28,7 +29,8 @@ export function generateMetadata({ params }: { params: { sector: string } }): Me
   };
 }
 
-export default function SectorPage({ params }: { params: { sector: string } }) {
+export default async function SectorPage(props: { params: Promise<{ sector: string }> }) {
+  const params = await props.params;
   const s = sectorBySlug(params.sector);
   if (!s) notFound();
 

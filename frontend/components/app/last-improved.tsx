@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { CHANGELOG, type ChangeKind } from '@/lib/changelog';
@@ -25,6 +26,13 @@ const KIND_LABEL: Record<ChangeKind, string> = {
   new: 'New tool', feature: 'New feature', improved: 'Improved', fixed: 'Fixed', ai: 'AI', launch: 'Milestone',
 };
 
+/** The plain date. Safe to render anywhere: it depends on nothing but the entry. */
+function absolute(date: string): string {
+  const then = new Date(`${date}T00:00:00`);
+  if (Number.isNaN(then.getTime())) return date;
+  return then.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
 /** "2 days ago" for the recent past, a plain date once that stops being useful. */
 function when(date: string, now: Date): string {
   const then = new Date(`${date}T00:00:00`);
@@ -33,7 +41,7 @@ function when(date: string, now: Date): string {
   if (days <= 0) return 'Today';
   if (days === 1) return 'Yesterday';
   if (days < 30) return `${days} days ago`;
-  return then.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  return absolute(date);
 }
 
 export function LastImproved({ max = 3 }: { max?: number }) {
@@ -41,9 +49,24 @@ export function LastImproved({ max = 3 }: { max?: number }) {
   const entries = CHANGELOG.filter((e) => e.href === pathname).slice(0, max);
   if (!entries.length) return null;
 
-  // Rendered client-side, so "days ago" is the reader's own clock rather than a
-  // build-time snapshot that silently goes stale on a statically exported page.
-  const now = new Date();
+  // "days ago" is filled in AFTER mount, not during render.
+  //
+  // This used to be a bare `new Date()` with a comment saying it was rendered
+  // client-side. It is a 'use client' component, but that does not mean it only
+  // runs in the browser — it is still rendered on the server when the page is
+  // prerendered. So the server baked in "9 days ago" at build time and the
+  // browser produced "10 days ago" the moment the clock passed midnight, and
+  // the two disagreed. React 18 logged a warning nobody saw; React 19 throws
+  // (#418) and re-renders the whole subtree on the client, so every statically
+  // built tool page carrying a changelog entry breaks its own hydration every
+  // day after the build. Our own E2E only caught it because the chromium run
+  // finished before midnight and the mobile run started after.
+  //
+  // Null on the server and on the first client render, which is what makes
+  // those two identical. The date shown until then is the real one, so this
+  // degrades to something true rather than to a blank.
+  const [now, setNow] = useState<Date | null>(null);
+  useEffect(() => { setNow(new Date()); }, []);
 
   return (
     <section className="mt-14">
@@ -59,7 +82,9 @@ export function LastImproved({ max = 3 }: { max?: number }) {
           <li key={e.date + e.title} className="rounded-xl border bg-card p-4 shadow-soft">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${KIND_STYLE[e.kind]}`}>{KIND_LABEL[e.kind]}</span>
-              <span className="text-xs tabular-nums text-muted-foreground">{when(e.date, now)}</span>
+              <time dateTime={e.date} className="text-xs tabular-nums text-muted-foreground">
+                {now ? when(e.date, now) : absolute(e.date)}
+              </time>
             </div>
             <p className="mt-2 text-sm font-semibold">{e.title}</p>
             <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{e.detail}</p>

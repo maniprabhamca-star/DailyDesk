@@ -20,7 +20,13 @@ import path from 'node:path';
  * with DD_ALLOW_PLAIN_HTTP=1. Checking the built artifact is the only honest
  * way to know it was, so check it here and say so plainly. */
 export default function globalSetup() {
-  const manifest = path.join(process.cwd(), '.next', 'routes-manifest.json');
+  // Respect NEXT_DIST_DIR, because next.config.js does: `distDir` is
+  // `process.env.NEXT_DIST_DIR || '.next'` so that several preview servers can
+  // build side by side. Hardcoding '.next' here would make this check silently
+  // pass against a build it never looked at — a guard that cannot fail is worse
+  // than no guard, because it is also reassuring.
+  const distDir = process.env.NEXT_DIST_DIR || '.next';
+  const manifest = path.join(process.cwd(), distDir, 'routes-manifest.json');
   if (!existsSync(manifest)) return; // no build yet; webServer will report that far better than we can
   if (!readFileSync(manifest, 'utf8').includes('upgrade-insecure-requests')) return;
 

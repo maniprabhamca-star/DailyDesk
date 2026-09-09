@@ -3,9 +3,18 @@ const nextConfig = {
   // Allow a per-instance build dir so multiple `next dev` can run concurrently
   // (used for the hero A/B/C preview servers on separate ports). Defaults to .next.
   distDir: process.env.NEXT_DIST_DIR || '.next',
-  images: {
-    domains: ['localhost'],
-  },
+  // No `images` config at all, deliberately.
+  //
+  // It used to say `domains: ['localhost']`, which Next 16 deprecates in favour
+  // of remotePatterns. Neither is the right answer here: every one of the 30
+  // <Image> uses in this app points at a local path under public/, so no remote
+  // host should be optimisable at all. Converting the deprecation to
+  // remotePatterns would have carried a permission we do not use into a config
+  // that outlives whoever remembers why.
+  //
+  // This is also the advisory that was waived until 2026-11-30 — a DoS through
+  // the Image Optimizer's remote fetching. Allowing no remote host closes it by
+  // construction rather than by version number.
   // /for/government was renamed to /for/public-sector so the URL matches the
   // label the whole site already used. It was live for four days and is in a
   // published sitemap, so it gets a permanent redirect rather than a 404 —
@@ -15,8 +24,37 @@ const nextConfig = {
       { source: '/for/government', destination: '/for/public-sector', permanent: true },
     ];
   },
+  // pdfjs-dist has an optional Node "canvas" dependency that is never used in
+  // the browser. Both bundlers are configured for it, because Next 16 refuses to
+  // start if a webpack config is present without a turbopack one — it cannot know
+  // whether the webpack config still matters.
+  //
+  // ── We build with --webpack, deliberately, and it is not inertia ───────────
+  //
+  // Next 16 makes Turbopack the default. Measured on this app, same commit:
+  //
+  //     webpack    6,672,425 bytes of client chunks
+  //     turbopack  7,850,041 bytes   (+1.12 MB, +17.6%)
+  //
+  // Turbopack also kept modules webpack eliminated entirely. One of them is
+  // get-intrinsic, whose feature probe does
+  // `try { Function('"use strict"; return (' + e + ').constructor')() } catch {}`
+  // — harmless in itself, it fails closed, but our CSP has no 'unsafe-eval' so
+  // Firefox logs a violation on /pdf-to-excel and /q*, and the whole 127KB
+  // module is dead weight shipped to every visitor of those pages.
+  //
+  // Every DiemDesk tool runs in the browser. Client JS is not a build statistic
+  // here, it is the product's startup cost on someone's phone. 17.6% is not a
+  // price worth paying for a faster build on our machines, and the alternative
+  // — adding 'unsafe-eval' to the CSP so the probe stops complaining — trades a
+  // real security boundary for a console message.
+  //
+  // Revisit when Turbopack's production tree-shaking catches up: rerun the
+  // comparison above rather than assuming it has.
+  turbopack: {
+    resolveAlias: { canvas: './lib/empty-module.js' },
+  },
   webpack: (config) => {
-    // pdfjs-dist has an optional Node "canvas" dependency that isn't used in the browser.
     config.resolve.alias = { ...config.resolve.alias, canvas: false };
     return config;
   },
