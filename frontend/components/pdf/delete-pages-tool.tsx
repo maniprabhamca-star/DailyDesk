@@ -129,7 +129,6 @@ export function DeletePagesTool() {
       setHandoffNote(`PDF brought straight over from ${h.from} — no re-upload needed.`);
       void loadOne(pdf);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function clear() {

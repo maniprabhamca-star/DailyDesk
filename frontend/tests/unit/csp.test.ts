@@ -21,8 +21,16 @@ async function policy(env: Record<string, string | undefined>): Promise<string> 
   const saved = { ...process.env };
   Object.assign(process.env, env);
   try {
+    // require(), deliberately, and it has to stay require().
+    //
+    // These tests read next.config.js twice with different process.env values,
+    // because the whole point is that DD_ALLOW_PLAIN_HTTP changes the CSP the
+    // build emits. import() caches by specifier and gives no way to evict, so
+    // the second read would return the first result and the test would pass
+    // whatever the config did. require.cache can be cleared, which is the only
+    // reason this is not an ESM import.
     delete require.cache[require.resolve('../../next.config.js')];
-    // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const config = require('../../next.config.js');
     const rules = await config.headers();
     const root = rules.find((r: { source: string }) => r.source === '/:path*');

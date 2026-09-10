@@ -8,7 +8,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { usePlan } from '@/lib/plan';
 import {
-  classify, unsupportedReason, isTextual, TEXT_READ_CAP, KIND_META, KIND_GROUP,
+  unsupportedReason, isTextual, TEXT_READ_CAP, KIND_META, KIND_GROUP,
   type FileKind,
 } from '@/lib/file-classify';
 import {
@@ -37,7 +37,6 @@ import {
 
 const FREE_MAX_FILES = 30;
 const MAX_CONCURRENT = 3;
-const MAX_LIVE = 24;
 
 type Rendered =
   | { state: 'idle' }

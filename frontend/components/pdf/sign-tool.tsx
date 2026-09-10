@@ -175,7 +175,7 @@ export function SignTool() {
     adoptCanvas(trimmed);
   }
 
-  async function useTyped() {
+  async function applyTyped() {
     const text = typed.trim();
     if (!text) { setError('Type your name first.'); return; }
     const font = TYPE_FONTS.find((f) => f.id === typeFont)!;
@@ -362,7 +362,7 @@ export function SignTool() {
                         className={`size-7 rounded-full border-2 ${ink === i2 ? 'border-primary ring-2 ring-primary/30' : 'border-transparent'}`}
                         style={{ backgroundColor: INKS[i2] }} />
                     ))}
-                    <Button size="sm" className="ml-auto" onClick={() => void useTyped()}><Check className="size-4" /> Use signature</Button>
+                    <Button size="sm" className="ml-auto" onClick={() => void applyTyped()}><Check className="size-4" /> Use signature</Button>
                   </div>
                 </div>
               )}

@@ -47,7 +47,6 @@ export function DocInfoTool() {
       setHandoffNote(`PDF brought straight over from ${h.from} — no re-upload needed.`);
       void load(pdf);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const tooBig = !!file && !canProcessSize(file.size, plan);

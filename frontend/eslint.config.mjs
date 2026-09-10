@@ -36,4 +36,51 @@ export default [
       'tests/.reports/**',
     ],
   },
+  {
+    // The React Compiler rules, held at 'warn' rather than 'error'.
+    //
+    // eslint-plugin-react-hooks 6 (which arrives with eslint-config-next 16)
+    // turns on a second family of rules that exist to prepare a codebase for the
+    // React Compiler: set-state-in-effect, refs, purity, immutability,
+    // static-components, preserve-manual-memoization. They fire 116 times here.
+    // We have not adopted the compiler, and they are not the classic
+    // "this is a bug" hooks rules — rules-of-hooks and exhaustive-deps are, and
+    // those stay exactly as the Next config sets them.
+    //
+    // set-state-in-effect is the clearest case for not treating these as errors
+    // yet. It flags components/app/last-improved.tsx, where setting state in an
+    // effect is the CORRECT fix — reading a client-only value after mount is how
+    // you avoid a hydration mismatch, and that exact change fixed a real bug on
+    // 2026-09-08 where every prerendered tool page disagreed with itself about
+    // what day it was. A rule that flags the fix for a real bug is not something
+    // to obey silently, and it is not something to switch off silently either.
+    //
+    // So: visible on every run, not blocking. Revisit as one piece of work if we
+    // ever adopt the compiler — that is when these become worth obeying, because
+    // that is when they start describing real constraints rather than
+    // preferences.
+    rules: {
+      'react-hooks/set-state-in-effect': 'warn',
+      'react-hooks/refs': 'warn',
+      'react-hooks/purity': 'warn',
+      'react-hooks/immutability': 'warn',
+      'react-hooks/static-components': 'warn',
+      'react-hooks/preserve-manual-memoization': 'warn',
+    },
+  },
+  {
+    // An underscore prefix means "deliberately unused" — a positional argument
+    // that must exist for the ones after it, or a destructured value kept for
+    // documentation. Without this the only way to satisfy the rule is to delete
+    // something whose absence changes meaning, or to bury it under a disable
+    // comment. edit-tool.tsx uses _a and _h exactly this way.
+    rules: {
+      '@typescript-eslint/no-unused-vars': ['warn', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_',
+        destructuredArrayIgnorePattern: '^_',
+      }],
+    },
+  },
 ];

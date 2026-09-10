@@ -60,7 +60,6 @@ export function MobileAppBar() {
     load();
     window.addEventListener(PINS_CHANGED, load);
     return () => window.removeEventListener(PINS_CHANGED, load);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recentOpen]);
 
   // Close the sheet whenever the route changes, including a back gesture.

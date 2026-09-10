@@ -84,7 +84,7 @@ console.log('\n1. RULE 1 — a cached document is NEVER served under another URL
   try {
     const res = await sw.fire('fetch', req('/compress-pdf', { mode: 'navigate' }));
     body = res && res.body;
-  } catch (e) { threw = true; }
+  } catch { threw = true; }
   check('offline miss does NOT return the home shell', body !== 'HOME PAGE', `got: ${body}`);
   check('it fails honestly instead', threw || body === null, `threw=${threw} body=${body}`);
 }
@@ -122,13 +122,21 @@ console.log('\n4. RULE 3 — activate does NOT purge dd-immutable (live tabs kee
 
 console.log('\n5. Online users always get fresh documents (never a cache hit)');
 {
-  let served = 0;
-  const sw = makeSW({ net: async (u) => { served++; return new MockResponse('BUILD N+1', { url: u }); } });
+  const servedUrls = [];
+  const sw = makeSW({ net: async (u) => { servedUrls.push(u); return new MockResponse('BUILD N+1', { url: u }); } });
   const docs = await sw.caches.open('dd-docs');
   await docs.put(ORIGIN + '/compress-pdf', new MockResponse('BUILD N (STALE)'));
   const res = await sw.fire('fetch', req('/compress-pdf', { mode: 'navigate' }));
   check('network wins while online', res && res.body === 'BUILD N+1', `got: ${res && res.body}`);
   check('cache was refreshed', (await docs.match(ORIGIN + '/compress-pdf')).body === 'BUILD N+1');
+  // served was counted and never checked. Counting it is only worth doing if
+  // something asserts on it: one network call, not two, is the difference
+  // between 'went to the network' and 'went to the network twice per page'.
+  // Count the DOCUMENT fetches, not every network call. The worker also pulls
+  // sw-kill.json on a navigation, so a bare counter says 2 and means nothing.
+  // What matters is that the page itself is fetched once per navigation.
+  const docFetches = servedUrls.filter((u) => String(u).includes('/compress-pdf')).length;
+  check('the document is fetched once per navigation', docFetches === 1, 'docFetches=' + docFetches + ' of ' + JSON.stringify(servedUrls));
 }
 
 console.log('\n6. Offline, a previously-visited route is served from cache');

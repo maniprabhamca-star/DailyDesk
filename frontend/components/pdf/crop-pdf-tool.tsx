@@ -2,7 +2,7 @@
 import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 
 import { useEffect, useRef, useState } from 'react';
-import { Upload, FileText, X, Download, Loader2, Crop, RotateCcw } from 'lucide-react';
+import { Upload, FileText, X, Loader2, Crop, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { downloadBlob as download } from '@/lib/download';

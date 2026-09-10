@@ -218,7 +218,6 @@ export function PdfToJpgTool() {
       }
     }, 300);
     return () => { cancelled = true; clearTimeout(t); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [file, format, preset, ranges, pageCount, previewReady]);
 
   // Release preview URLs on unmount.

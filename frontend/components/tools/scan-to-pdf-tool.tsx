@@ -1,11 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Camera, ImagePlus, Loader2, Download, X, Trash2, ScanLine, Check, RotateCw, CameraOff } from 'lucide-react';
+import { Camera, ImagePlus, Loader2, Download, Trash2, ScanLine, RotateCw, CameraOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { downloadBlob } from '@/lib/download';
 import { KeepGoing } from '@/components/app/keep-going';
-import { processFrame, buildScanPdf, newId, type ScanPage } from '@/lib/scan-to-pdf';
+import { processFrame, buildScanPdf, type ScanPage } from '@/lib/scan-to-pdf';
 import { rasterize, describeImageFailure, isHeic, readPickedFile, toSource } from '@/lib/image-for-pdf';
 
 // Decode a picked file to something canvas can draw. Goes through the shared

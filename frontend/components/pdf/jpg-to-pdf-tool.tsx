@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Upload, X, ArrowUp, ArrowDown, Download, Loader2, ImageIcon, Zap, ClipboardPaste, Sparkles } from 'lucide-react';
+import { Upload, X, ArrowUp, ArrowDown, Download, Loader2, Zap, ClipboardPaste, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { takeHandoff } from '@/lib/handoff';

@@ -2090,7 +2090,6 @@ export function EditTool() {
       ],
     });
     return () => clearEditorContext();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [file, pageCount]);
 
   return (

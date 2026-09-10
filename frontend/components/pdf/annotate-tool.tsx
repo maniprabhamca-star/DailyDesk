@@ -4,7 +4,6 @@ import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Upload, X, Loader2, Highlighter, Pen, Square, Circle, Minus, ArrowUpRight, ChevronDown, ChevronUp, Type, Trash2, Zap, Bold, Italic, Underline, Signature as SignatureIcon, ImagePlus, Plus, Copy, Star, MoveDiagonal, MousePointer2, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, Eye, EyeOff, Layers as LayersIcon, RotateCw, FileMinus, ArrowLeftRight, History, ShieldCheck, Sparkles } from 'lucide-react';
 import { SignatureMaker } from './signature-maker';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
@@ -978,7 +977,6 @@ export function AnnotateTool() {
       ],
     });
     return () => clearEditorContext();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [file, pageCount]);
 
   // Remove the loaded file and reset the editing state (used by the shell's × and

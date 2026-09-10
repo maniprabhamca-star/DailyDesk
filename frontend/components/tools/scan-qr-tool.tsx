@@ -109,7 +109,6 @@ export function ScanQrTool() {
     };
     window.addEventListener('paste', onPaste);
     return () => window.removeEventListener('paste', onPaste);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const href = result?.href;

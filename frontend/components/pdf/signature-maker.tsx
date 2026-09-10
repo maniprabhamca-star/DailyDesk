@@ -98,7 +98,7 @@ export function SignatureMaker({ onClose, onCreate }: { onClose: () => void; onC
   function adopt(c: HTMLCanvasElement) { onCreate(c.toDataURL('image/png'), c.height / c.width); onClose(); }
 
   function useDrawn() { const c = drawRef.current; if (!c || !strokes.current.length) { setErr('Draw your signature first.'); return; } const t = trimCanvas(c); if (!t) { setErr('Draw your signature first.'); return; } adopt(t); }
-  async function useTyped() {
+  async function applyTyped() {
     const text = typed.trim(); if (!text) { setErr('Type your name first.'); return; }
     const font = TYPE_FONTS.find((f) => f.id === typeFont)!;
     const spec = `${font.css.startsWith('italic') ? 'italic ' : ''}72px ${font.css.replace(/^italic /, '')}`;
@@ -108,7 +108,7 @@ export function SignatureMaker({ onClose, onCreate }: { onClose: () => void; onC
     const ctx = c.getContext('2d')!; ctx.font = spec; ctx.fillStyle = INKS[ink]; ctx.textBaseline = 'middle'; ctx.fillText(text, 20, 64);
     adopt(trimCanvas(c) || c);
   }
-  function useUpload(files: FileList | null) {
+  function applyUpload(files: FileList | null) {
     const f = files?.[0]; if (!f) return;
     setErr(null);
     // Shared decoder: iPhone HEIC and mislabelled Android HEIF included. On a
@@ -138,7 +138,7 @@ export function SignatureMaker({ onClose, onCreate }: { onClose: () => void; onC
           <h3 className="text-base font-semibold">Add a signature</h3>
           <button onClick={onClose} aria-label="Close" className="text-muted-foreground hover:text-foreground"><X className="size-5" /></button>
         </div>
-        <input ref={uploadRef} type="file" accept={ACCEPT.image} aria-label="Choose an image file" className="dd-file-input" onChange={(e) => { useUpload(e.target.files); e.currentTarget.value = ''; }} />
+        <input ref={uploadRef} type="file" accept={ACCEPT.image} aria-label="Choose an image file" className="dd-file-input" onChange={(e) => { applyUpload(e.target.files); e.currentTarget.value = ''; }} />
         <div className="grid grid-cols-3 gap-2">
           {tab('draw', <PenTool className="size-4" />, 'Draw')}
           {tab('type', <TypeIcon className="size-4" />, 'Type')}
@@ -175,7 +175,7 @@ export function SignatureMaker({ onClose, onCreate }: { onClose: () => void; onC
               {(Object.keys(INKS) as Ink[]).map((i) => (
                 <button key={i} onClick={() => setInk(i)} aria-label={`${i} ink`} aria-pressed={ink === i} className={`size-7 rounded-full border-2 ${ink === i ? 'border-primary ring-2 ring-primary/30' : 'border-transparent'}`} style={{ backgroundColor: INKS[i] }} />
               ))}
-              <Button size="sm" className="ml-auto" onClick={() => void useTyped()}><Check className="size-4" /> Add</Button>
+              <Button size="sm" className="ml-auto" onClick={() => void applyTyped()}><Check className="size-4" /> Add</Button>
             </div>
           </div>
         )}

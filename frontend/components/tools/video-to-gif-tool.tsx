@@ -124,7 +124,6 @@ export function VideoToGifTool() {
             </div>
 
             {previewUrl && !result && (
-              // eslint-disable-next-line jsx-a11y/media-has-caption
               <video src={previewUrl} controls muted playsInline className="mt-3 max-h-64 w-full rounded-lg bg-black" />
             )}
           </>

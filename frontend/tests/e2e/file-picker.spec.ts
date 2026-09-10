@@ -52,7 +52,7 @@ test.describe('REG-015 — file inputs must stay clickable in every engine', () 
 });
 
 test.describe('REG-016 — the picker works before React hydrates', () => {
-  test('the rescue script is served, parses, and is early', async ({ page, request }) => {
+  test('the rescue script is served, parses, and is early', async ({ request }) => {
     const html = await (await request.get('/compress-pdf')).text();
     expect(html, 'the rescue script must be inline in the document').toContain('__ddHydrated');
 
