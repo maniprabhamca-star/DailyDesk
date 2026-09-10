@@ -220,6 +220,23 @@ Three changes, in order of how much they buy:
 - [ ] ⏳ AVIF / WebP convert
 - [ ] ⏳ Subtitle editor
 - [ ] ⏳ Apple iWork → PDF/Office · mail-merge / doc-assembly
+- [ ] ⏳ **Video frame → image / PDF** ⭐ (added 2026-09-10, owner-requested)
+  - **The gap this closes.** A Live Photo taken to a PDF already works *on an
+    iPhone*: iOS hands a web file input only the still frame, and `sniffFormat`
+    in `lib/image-for-pdf.ts` decodes the HEIC — the decoder deliberately takes
+    `images[0]` because "a burst or live photo holds several". So JPG to PDF and
+    Scan to PDF cover it today, on the phone, with no new tool.
+  - It breaks the moment the photo leaves the phone. AirDrop a Live Photo to a
+    Mac or PC and you get a `.HEIC` **and** a `.MOV`; the HEIC works, the MOV is
+    refused, because `jpg-to-pdf` accepts `image/*` only.
+  - **Scope is wider than Live Photos and that is the point:** drop any video,
+    scrub to a frame (default: first non-black frame), export as JPG/PNG or
+    straight into a PDF. Screen recordings, a still from a clip, a receipt
+    filmed rather than photographed.
+  - **Cost is low** — `compress-video` and `video-to-gif` already decode video
+    on-device, so this is a picker and an export path over an existing pipeline.
+  - ⚠ **HEVC in `.MOV` is the patent-encumbered case** (see the legal notes).
+    H.264 MP4/WebM are clean. Decide the HEVC line before building, not after.
 - ~~RAW → JPG~~ · ~~MOBI/AZW3~~ — **deliberately not building** (heavy decoders; Amazon deprecated MOBI). Anything needing a server round-trip is out too: it breaks the on-device promise.
 
 ## 5b. Converter expansion ⭐ (agreed 2026-08-06 — the next build queue, in order)

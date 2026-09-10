@@ -23,6 +23,14 @@ export type ChangeEntry = {
 // flags flip, dated then.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-09-10',
+    kind: 'improved',
+    title: 'Scan to PDF: a viewfinder you can actually aim',
+    detail:
+      'On a phone the camera preview was a squat little strip. The app asked the camera for a wide, landscape picture even though you were holding the phone upright, so what you were photographing ended up postage-stamp sized between two black bars. It now asks for a picture shaped like your screen and the preview is about three times bigger. Taking a page also tells you it worked: the screen flashes, the phone gives a short buzz, and “Page 1 captured” appears across the top with a thumbnail of what you just took and a running count beside the shutter. Before, the only evidence was a list further down the page you had to go and find. And if you press the button before the camera has warmed up, it now says so instead of doing nothing at all.',
+    href: '/scan-to-pdf',
+  },
+  {
     date: '2026-09-07',
     kind: 'fixed',
     title: 'Printing works again in Safari',

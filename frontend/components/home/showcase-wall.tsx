@@ -25,16 +25,9 @@ const Bar = ({ w, c = 'rgba(255,255,255,.14)' }: { w: string; c?: string }) => (
 );
 
 function Poster({
-  href, tint, eyebrow, title, children, tall,
+  href, tint, eyebrow, title, children, tall, cta = 'Open',
 }: {
   href: string; tint: string; eyebrow: string; title: string;
-  // `cta` is accepted and deliberately not read. Nine call sites below pass a
-  // label — "Compress", "Edit", "Make one" — and the footer renders only an
-  // arrow, so none of them has ever appeared on screen. Either the labels
-  // should be shown or they should go, and that is a design decision about a
-  // section whose future is still open (see the home redesign notes), not
-  // something to settle by deleting one side of it to quieten a linter.
-  // Keeping the prop means the call sites still say what they meant.
   children: React.ReactNode; tall?: boolean; cta?: string;
 }) {
   return (
@@ -55,8 +48,22 @@ function Poster({
           <p className="font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-white/40">{eyebrow}</p>
           <p className="mt-0.5 text-[15px] font-semibold text-white">{title}</p>
         </div>
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/5 text-white/60 transition-colors group-hover:bg-white/15 group-hover:text-white">
-          <ArrowUpRight className="size-4" />
+        {/* The verb, then the arrow. Nine posters carried a `cta` label —
+            "Compress", "Edit", "Make one" — that the footer never rendered, so
+            every card said the same nothing with the same arrow. A wall whose
+            job is answering "what can I do here?" should use the word.
+
+            Text, not a button: the whole poster is already the link, so a
+            button would imply a second target that does not exist, and nine
+            filled buttons would fight the masonry. Muted and small, matching
+            the eyebrow, so a card reads the same at a glance and gains the verb
+            when you actually look at it. It also gives the arrow some text of
+            its own, which it did not have. */}
+        <span className="flex shrink-0 items-center gap-2">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-white/45 transition-colors group-hover:text-white/70">{cta}</span>
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/5 text-white/60 transition-colors group-hover:bg-white/15 group-hover:text-white">
+            <ArrowUpRight className="size-4" />
+          </span>
         </span>
       </div>
     </Link>
