@@ -1,8 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { X, Check, Zap, ZapOff, Loader2, RotateCw } from 'lucide-react';
-import { detectDocument, flattenDocument, quadStability, fillTransform, suggestedTurns, type Quad } from '@/lib/doc-scan';
+import { X, Check, Zap, ZapOff, Loader2, RotateCw, ScanLine } from 'lucide-react';
+import { detectDocument, flattenDocument, quadStability, fillTransform, type Quad } from '@/lib/doc-scan';
 
 /**
  * Full-screen document scanner.
@@ -83,7 +83,10 @@ export function DocScanner({
   const turnsRef = useRef(0);
   useEffect(() => { turnsRef.current = turns; }, [turns]);
   const chosenRef = useRef(false);
-  const suggestedRef = useRef(false);
+  const sizeReported = useRef(false);
+  // Shown in the corner. What the camera actually handed over differs by phone
+  // and by browser, and every wrong layout so far came from assuming it.
+  const [streamInfo, setStreamInfo] = useState('');
   useEffect(() => {
     try {
       // getItem returns null when nothing is stored, and Number(null) is 0 —
@@ -292,21 +295,33 @@ export function DocScanner({
       const octx = overlay.getContext('2d');
       if (!octx) return;
 
-      // Edge to edge, like a camera app. The controls float on top of the
-      // picture rather than sitting in a bar beside it.
-      const box = overlay.getBoundingClientRect();
-      const cssW = box.width, cssH = box.height;
-      if (!cssW || !cssH) return;
+      // The picture is shown WHOLE, centred, with the controls floating over
+      // the screen around it — which is what a phone camera app looks like at
+      // 1x. Cropping to the screen shape was reported as zooming, twice.
+      const holder = overlay.parentElement;
+      if (!holder) return;
+      const avail = holder.getBoundingClientRect();
+      if (!avail.width || !avail.height) return;
 
       // First frame: adopt the shape-based suggestion unless a choice is stored.
       // Turning the frame upright is what makes filling the screen affordable —
       // untouched, a sideways frame loses three quarters of its width to the
       // crop; turned, it loses almost nothing.
-      if (!chosenRef.current && !suggestedRef.current) {
-        suggestedRef.current = true;
-        const s = suggestedTurns(v.videoWidth, v.videoHeight, cssW, cssH);
-        if (s !== turnsRef.current) { turnsRef.current = s; setTurns(s); }
+      // No automatic turning. It was tried, and on a real phone it produced a
+      // sideways preview — that browser hands over an already-upright frame, so
+      // turning it again lays it on its side. Guessing here has now been wrong
+      // in both directions; the button is the honest answer, because the person
+      // holding the phone can see which way up it is and this code cannot.
+      if (!sizeReported.current && v.videoWidth) {
+        sizeReported.current = true;
+        setStreamInfo(`${v.videoWidth}×${v.videoHeight}`);
       }
+
+      const shape = fillTransform(v.videoWidth, v.videoHeight, avail.width, avail.height, turnsRef.current);
+      const cssW = shape.boxW, cssH = shape.boxH;
+      if (!cssW || !cssH) return;
+      if (overlay.style.width !== `${cssW}px`) overlay.style.width = `${cssW}px`;
+      if (overlay.style.height !== `${cssH}px`) overlay.style.height = `${cssH}px`;
       const dpr = window.devicePixelRatio || 1;
       const bw = Math.round(cssW * dpr), bh = Math.round(cssH * dpr);
       if (overlay.width !== bw || overlay.height !== bh) { overlay.width = bw; overlay.height = bh; }
@@ -417,7 +432,7 @@ export function DocScanner({
 
   return (
     <div className="fixed inset-0 z-[100] flex flex-col bg-black" role="dialog" aria-modal="true" aria-label="Document scanner">
-      <div className="relative flex-1 overflow-hidden">
+      <div className="relative flex flex-1 items-center justify-center overflow-hidden">
         <video
           ref={videoRef}
           playsInline
@@ -428,7 +443,7 @@ export function DocScanner({
         />
         {/* The one visible surface: the camera frame is painted here upright,
             then the highlight on top of it. */}
-        <canvas ref={overlayRef} className="absolute inset-0 size-full" />
+        <canvas ref={overlayRef} className="block" />
         {flash && <div aria-hidden className="pointer-events-none absolute inset-0 bg-white/80" />}
 
         {/* close */}
@@ -439,6 +454,12 @@ export function DocScanner({
         >
           <X className="size-6" />
         </button>
+
+        {streamInfo && (
+          <span className="pointer-events-none absolute left-4 top-[8.25rem] rounded-full bg-black/55 px-2.5 py-1 font-mono text-[10px] text-white/80 backdrop-blur">
+            {streamInfo}
+          </span>
+        )}
 
         {/* turn the picture upright */}
         <button
@@ -459,10 +480,16 @@ export function DocScanner({
           {auto ? 'Auto' : 'Manual'}
         </button>
 
-        {/* guidance */}
+        {/* Mode chip and guidance, floating over the picture. The chip says
+            what this screen is for at a glance — the reference app has the same
+            thing and it is the first thing you read. */}
         {!error && (
-          <div className="pointer-events-none absolute inset-x-0 top-20 flex justify-center px-4">
-            <span className="rounded-full bg-black/55 px-4 py-2 text-sm font-medium text-white backdrop-blur">
+          <div className="pointer-events-none absolute inset-x-0 bottom-32 flex flex-col items-center gap-2 px-4">
+            <span className="flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-neutral-900 shadow-lg">
+              <ScanLine className="size-4 text-primary" />
+              Scan document
+            </span>
+            <span className="rounded-full bg-black/60 px-3.5 py-1.5 text-[13px] font-medium text-white backdrop-blur">
               {ready ? hint : 'Starting camera…'}
             </span>
           </div>

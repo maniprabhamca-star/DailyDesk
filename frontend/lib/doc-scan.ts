@@ -257,8 +257,42 @@ const pointSegmentDistance = (p: Point, a: Point, b: Point): number => {
  * nearest edge of the quad, as a fraction of the quad's size. A page is a few
  * per cent; a circle or an L-shape is not, and the caller rejects it.
  */
-function quadFromContour(contour: Point[]): { quad: Point[]; fit: number } | null {
-  if (contour.length < 8) return null;
+/**
+ * Andrew's monotone chain convex hull.
+ *
+ * The contour of a page is not a clean quadrilateral, and assuming it is was the
+ * bug. Blurring and thresholding joins the sheet's border to the print inside
+ * it, so border-following walks the outline AND wanders up into the text. The
+ * four corners pulled from that are still right, but the outline strays far
+ * from the straight lines between them — measured on a real preview frame, the
+ * page scored 0.0949 against a 0.035 tolerance and was thrown away as "not
+ * really a quadrilateral". It was a quadrilateral with writing on it.
+ *
+ * A hull fixes it at the root rather than by loosening the tolerance: anything
+ * INSIDE the sheet is inside the hull and stops counting, while the sheet's own
+ * outline is exactly what the hull traces. A looser tolerance would have let
+ * genuinely bad shapes through in exchange.
+ */
+function convexHull(points: Point[]): Point[] {
+  if (points.length < 4) return points;
+  const pts = [...points].sort((a, b) => (a.x - b.x) || (a.y - b.y));
+  const cross = (o: Point, a: Point, b: Point) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+  const half = (src: Point[]): Point[] => {
+    const out: Point[] = [];
+    for (const pt of src) {
+      while (out.length >= 2 && cross(out[out.length - 2], out[out.length - 1], pt) <= 0) out.pop();
+      out.push(pt);
+    }
+    out.pop();
+    return out;
+  };
+  return half(pts).concat(half([...pts].reverse()));
+}
+
+function quadFromContour(rawContour: Point[]): { quad: Point[]; fit: number } | null {
+  if (rawContour.length < 8) return null;
+  const contour = convexHull(rawContour);
+  if (contour.length < 4) return null;
 
   let cx = 0, cy = 0;
   for (const p of contour) { cx += p.x; cy += p.y; }
@@ -493,21 +527,6 @@ export function quadStability(a: Quad | null, b: Quad | null, frameDiagonal: num
 
 
 
-/**
- * Whether a frame needs turning to sit upright on this screen.
- *
- * A guess, and labelled as one. Browsers disagree: some hand over the sensor's
- * own orientation, so a phone held upright yields a frame lying on its side and
- * this is correct; others rotate it first, and then this is wrong. It is the
- * better default because the first behaviour is the common one on Android, and
- * because a person can undo it with one button press and the app will remember
- * — whereas an unusable preview cannot be undone at all.
- */
-export function suggestedTurns(frameW: number, frameH: number, screenW: number, screenH: number): number {
-  const frameLandscape = frameW > frameH;
-  const screenLandscape = screenW > screenH;
-  return frameLandscape === screenLandscape ? 0 : 1;
-}
 
 /**
  * Fill a screen with a camera frame, turning it upright first.
@@ -528,18 +547,28 @@ export function suggestedTurns(frameW: number, frameH: number, screenW: number, 
  */
 export function fillTransform(
   frameW: number, frameH: number, outW: number, outH: number, quarterTurns = 0,
-): { rotate: number; drawW: number; drawH: number; visibleFraction: number } {
+): { rotate: number; drawW: number; drawH: number; visibleFraction: number; boxW: number; boxH: number } {
   const swaps = quarterTurns % 2 !== 0;
   const effW = swaps ? frameH : frameW;
   const effH = swaps ? frameW : frameH;
-  if (effW <= 0 || effH <= 0) return { rotate: 0, drawW: outW, drawH: outH, visibleFraction: 1 };
-  const scale = Math.max(outW / effW, outH / effH);
-  const shownW = Math.min(1, outW / (effW * scale));
-  const shownH = Math.min(1, outH / (effH * scale));
+  if (effW <= 0 || effH <= 0) {
+    return { rotate: 0, drawW: outW, drawH: outH, visibleFraction: 1, boxW: outW, boxH: outH };
+  }
+  // `min`, not `max`: the ENTIRE frame is shown. Any crop at all reads as the
+  // camera having zoomed in, and that was reported twice — "overzoomed", then
+  // "it's auto zooming". A phone camera app shows its whole sensor at 1x and
+  // puts black around it where the shapes disagree; it does not silently take a
+  // crop and call it the picture.
+  const scale = Math.min(outW / effW, outH / effH);
   return {
     rotate: quarterTurns * (Math.PI / 2),
     drawW: frameW * scale,
     drawH: frameH * scale,
-    visibleFraction: shownW * shownH,
+    // Nothing is ever cut off now, by construction.
+    visibleFraction: 1,
+    // The area the picture actually occupies, so the caller can put the canvas
+    // exactly there and keep the detector's coordinates honest.
+    boxW: Math.round(effW * scale),
+    boxH: Math.round(effH * scale),
   };
 }

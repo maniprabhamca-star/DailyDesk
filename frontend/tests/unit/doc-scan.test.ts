@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { detectDocument, flattenDocument, quadStability, suggestedTurns, fillTransform, type Quad, type Point } from '@/lib/doc-scan';
+import { detectDocument, flattenDocument, quadStability, fillTransform, type Quad, type Point } from '@/lib/doc-scan';
 
 /* Document detection, tested against frames whose answer is already known.
  *
@@ -199,42 +199,108 @@ describe('quadStability', () => {
 
 
 
-describe('suggestedTurns', () => {
-  it('proposes a quarter turn for a landscape frame on a portrait screen', () => {
-    expect(suggestedTurns(1280, 720, 390, 844)).toBe(1);
-  });
-  it('leaves a frame that already matches the screen alone', () => {
-    expect(suggestedTurns(1440, 2560, 390, 844)).toBe(0);
-    expect(suggestedTurns(1280, 720, 1440, 900)).toBe(0);
-  });
-});
 
 describe('fillTransform', () => {
-  it('turning the frame upright is what makes filling the screen affordable', () => {
-    // The reported case, both ways round. Filling is what a native camera does;
-    // the question is only how much of the frame survives it.
-    const raw = fillTransform(1280, 720, 390, 844, 0);
-    const turned = fillTransform(1280, 720, 390, 844, 1);
-    expect(raw.visibleFraction, 'filling with a sideways frame is the "overzoomed" bug').toBeLessThan(0.3);
-    expect(turned.visibleFraction, 'turned upright first, almost all of it survives').toBeGreaterThan(0.8);
-  });
-
-  it('covers the screen completely — no bands, whichever way it is turned', () => {
-    for (const turns of [0, 1, 2, 3]) {
-      const t = fillTransform(1280, 720, 390, 844, turns);
-      const w = turns % 2 ? t.drawH : t.drawW;
-      const h = turns % 2 ? t.drawW : t.drawH;
-      expect(w, `turns=${turns} must cover the width`).toBeGreaterThanOrEqual(390 - 0.01);
-      expect(h, `turns=${turns} must cover the height`).toBeGreaterThanOrEqual(844 - 0.01);
+  it('never crops — reported as "overzoomed", then as "it is auto zooming"', () => {
+    // Every orientation, every turn: the whole frame is on screen. A crop reads
+    // as the camera having zoomed in by itself, and no amount of it is wanted.
+    for (const [fw, fh] of [[1280, 720], [720, 1280], [1920, 1080], [1440, 2560]]) {
+      for (const turns of [0, 1, 2, 3]) {
+        const t = fillTransform(fw, fh, 390, 844, turns);
+        expect(t.visibleFraction, `${fw}x${fh} turns=${turns}`).toBe(1);
+        expect(t.boxW, 'must fit the width available').toBeLessThanOrEqual(390);
+        expect(t.boxH, 'must fit the height available').toBeLessThanOrEqual(844);
+      }
     }
   });
 
-  it('an already-upright frame loses very little', () => {
-    const t = fillTransform(1440, 2560, 390, 844, 0);
-    expect(t.visibleFraction).toBeGreaterThan(0.8);
+  it('turning a sideways frame upright is what makes it big', () => {
+    // The same 1280x720 frame: lying down it is a band, turned it is most of
+    // the screen. This is why the turn matters even without any cropping.
+    const raw = fillTransform(1280, 720, 390, 844, 0);
+    const turned = fillTransform(1280, 720, 390, 844, 1);
+    const area = (b: { boxW: number; boxH: number }) => (b.boxW * b.boxH) / (390 * 844);
+    expect(area(raw), 'a sideways frame fitted is a thin band').toBeLessThan(0.3);
+    expect(area(turned), 'turned upright it fills most of the screen').toBeGreaterThan(0.8);
+  });
+
+  it('keeps the proportions of the frame exactly', () => {
+    const t = fillTransform(1280, 720, 390, 844, 1);
+    expect(t.boxW / t.boxH).toBeCloseTo(720 / 1280, 2);
   });
 
   it('survives a camera that has reported nothing yet', () => {
-    expect(fillTransform(0, 0, 390, 844).visibleFraction).toBe(1);
+    const t = fillTransform(0, 0, 390, 844);
+    expect(t.visibleFraction).toBe(1);
+    expect(t.boxW).toBe(390);
+  });
+});
+
+describe('a frame captured from the running scanner', () => {
+  /* The regression that mattered.
+   *
+   * Every test above uses a frame this file drew, and all of them passed while
+   * the owner was reporting "it is not detecting the document". So this one is
+   * different in the only way that counts: the pixels were taken OUT of the
+   * running scanner — the camera preview, painted, turned upright, downscaled
+   * exactly as the detection loop does it — and saved.
+   *
+   * On those pixels the page was found, measured at 29% of the frame and
+   * convex, and then thrown away for scoring 0.0949 against a 0.035 shape
+   * tolerance. Blurring joins a sheet's border to the print inside it, so the
+   * traced outline wanders up into the text and stops resembling a rectangle.
+   * The corners were right the whole time; the shape test was reading the
+   * writing on the page as evidence that it was not a page.
+   *
+   * Taking the convex hull first fixes it at the root — anything inside the
+   * sheet is inside the hull — and the same frame now scores 0.0076. The
+   * alternative was loosening the tolerance, which would have bought this frame
+   * by admitting genuinely bad shapes everywhere else.
+   */
+  function frameFromFixture(): ImageData {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { w, h, rle } = require('../fixtures/preview-frame.json') as { w: number; h: number; rle: number[] };
+    const data = new Uint8ClampedArray(w * h * 4);
+    let p = 0;
+    for (let i = 0; i < rle.length; i += 2) {
+      const value = rle[i];
+      for (let n = 0; n < rle[i + 1]; n++) {
+        data[p] = data[p + 1] = data[p + 2] = value;
+        data[p + 3] = 255;
+        p += 4;
+      }
+    }
+    return { width: w, height: h, data, colorSpace: 'srgb' } as ImageData;
+  }
+
+  it('finds the page — the case that was failing in the real app', () => {
+    const found = detectDocument(frameFromFixture());
+    expect(found, 'this frame came out of the running scanner and must be detected').not.toBeNull();
+
+    // Roughly where the page is, generously: this guards "found the page"
+    // rather than pinning exact pixels that a threshold tweak may legitimately
+    // move by a few.
+    const xs = found!.map((p) => p.x), ys = found!.map((p) => p.y);
+    expect(Math.min(...xs)).toBeLessThan(120);
+    expect(Math.max(...xs)).toBeGreaterThan(260);
+    expect(Math.min(...ys)).toBeLessThan(300);
+    expect(Math.max(...ys)).toBeGreaterThan(400);
+  });
+
+  it('and flattens it into a page rather than a slice of desk', () => {
+    const frame = frameFromFixture();
+    const quad = detectDocument(frame)!;
+    const flat = flattenDocument(frame, quad);
+    expect(flat).not.toBeNull();
+    const at = (x: number, y: number) => flat!.data[(y * flat!.width + x) * 4];
+    const inset = 8;
+    for (const [x, y] of [
+      [inset, inset],
+      [flat!.width - 1 - inset, inset],
+      [flat!.width - 1 - inset, flat!.height - 1 - inset],
+      [inset, flat!.height - 1 - inset],
+    ]) {
+      expect(at(x, y), `corner ${x},${y} should be paper`).toBeGreaterThan(120);
+    }
   });
 });
