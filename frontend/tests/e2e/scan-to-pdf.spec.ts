@@ -52,10 +52,26 @@ test.describe('Scan to PDF — the scanner', () => {
     expect(Math.round(box!.width)).toBe(vp.width);
     expect(Math.round(box!.height)).toBe(vp.height);
 
-    // And the video inside it must be most of that, not a strip in a corner.
-    const video = await page.locator('video').boundingBox();
-    const share = (video!.width * video!.height) / (vp.width * vp.height);
-    expect(share, `video covers ${(share * 100).toFixed(1)}% of the screen`).toBeGreaterThan(0.6);
+    // The visible surface is the CANVAS, not the <video>. The camera frame is
+    // painted into it — upright and covering — and the highlight drawn on top,
+    // so preview, detection and capture share one coordinate space. The video
+    // element is a hidden source. Measuring it here would measure 1px.
+    const surface = await page.locator('canvas').first().boundingBox();
+    const share = (surface!.width * surface!.height) / (vp.width * vp.height);
+    expect(share, `preview covers ${(share * 100).toFixed(1)}% of the screen`).toBeGreaterThan(0.6);
+
+    // And it must genuinely COVER rather than fit: a landscape camera frame
+    // letterboxed into a portrait screen is the bug that started all this —
+    // "the scanner is opening in horizontal mode and it's not going to work".
+    const filled = await page.locator('canvas').first().evaluate((c: HTMLCanvasElement) => {
+      const ctx = c.getContext('2d');
+      if (!ctx) return 0;
+      const d = ctx.getImageData(0, 0, c.width, c.height).data;
+      let lit = 0;
+      for (let i = 0; i < d.length; i += 4) if (d[i] || d[i + 1] || d[i + 2]) lit++;
+      return lit / (c.width * c.height);
+    });
+    expect(filled, `only ${(filled * 100).toFixed(1)}% of the preview has picture in it`).toBeGreaterThan(0.9);
   });
 
   test('draws an overlay sized to the screen, ready for the highlight', async ({ page }) => {
@@ -90,8 +106,8 @@ test.describe('Scan to PDF — the scanner', () => {
 
     // Tracks released — a scanner that keeps the camera running after you leave
     // is the kind of thing that gets a site a permission warning.
-    const live = await page.evaluate(() => document.querySelectorAll('video').length);
-    expect(live, 'the scanner video element should be gone with the dialog').toBe(0);
+    const left = await page.evaluate(() => document.querySelectorAll('video, canvas').length);
+    expect(left, 'the scanner surface and its camera source both go with the dialog').toBe(0);
   });
 
   test('the page behind cannot scroll while the scanner is over it', async ({ page }) => {
@@ -109,6 +125,28 @@ test.describe('Scan to PDF — the scanner', () => {
     await expect(toggle).toHaveAttribute('aria-pressed', 'true');
     await toggle.click();
     await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  test('the picture can be turned, and it is remembered', async ({ page }) => {
+    // Whether a landscape camera frame needs turning depends on the browser —
+    // some hand over the sensor's own orientation, some correct it first — so
+    // this is a control rather than a guess. It has to persist, because a
+    // device that needs it needs it every single time.
+    await openScanner(page);
+    await page.getByRole('button', { name: /rotate the camera picture/i }).click();
+    expect(await page.evaluate(() => localStorage.getItem('dd-scan-turns'))).toBe('1');
+
+    await page.keyboard.press('Escape');
+    await page.getByRole('button', { name: /open scanner/i }).click();
+    await expect(page.getByRole('dialog', { name: /document scanner/i })).toBeVisible();
+    expect(
+      await page.evaluate(() => localStorage.getItem('dd-scan-turns')),
+      'the chosen orientation must survive closing the scanner',
+    ).toBe('1');
+
+    // Four presses come back round to where it started.
+    for (let i = 0; i < 3; i++) await page.getByRole('button', { name: /rotate the camera picture/i }).click();
+    expect(await page.evaluate(() => localStorage.getItem('dd-scan-turns'))).toBe('0');
   });
 
   test('a screen-reader is told the count', async ({ page }) => {

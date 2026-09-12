@@ -490,3 +490,46 @@ export function quadStability(a: Quad | null, b: Quad | null, frameDiagonal: num
   const avg = total / 4 / frameDiagonal;
   return Math.max(0, Math.min(1, 1 - avg * 25));
 }
+
+/**
+ * How to paint a camera frame so it fills a target, rotating it upright first
+ * when the sensor and the screen disagree about which way is up.
+ *
+ * Phone cameras hand a browser a LANDSCAPE frame no matter how the phone is
+ * being held, and asking for a portrait one in the constraints does not
+ * reliably change that — Android ignores it. That leaves two bad options and
+ * one good one. Fitting the landscape frame into a portrait screen letterboxes
+ * it into a band with the document tiny in the middle. Cropping it to fill
+ * throws away most of the frame's width, so the page's own edges end up
+ * off-screen. Rotating it upright first is what a native scanner does, and then
+ * covering the screen costs almost nothing.
+ *
+ * Returns the numbers to apply to a canvas: rotate by `rotate` radians about
+ * the centre, then draw the frame at `scale`. Callers that use this for BOTH
+ * the preview and the capture get one coordinate space for free, which is the
+ * real reason it exists — a highlight that is drawn in one space and captured
+ * in another is a highlight that floats next to the document.
+ */
+export function coverTransform(
+  frameW: number, frameH: number, outW: number, outH: number, quarterTurns = 0,
+): { rotate: number; scale: number; drawW: number; drawH: number } {
+  // Rotation is CALLER-CONTROLLED, and defaults to none, because there is no
+  // way to tell from here whether a landscape frame needs it.
+  //
+  // Some browsers hand back the sensor's own orientation, so a phone held
+  // upright produces a landscape frame whose contents are lying on their side
+  // and rotating is correct. Others correct it first, and the same landscape
+  // frame contains an upright picture — rotating that produces a sideways
+  // preview, which is worse than the letterboxing it was meant to fix. Guessing
+  // gets it right on half the devices in the world.
+  //
+  // So: covering (which is always right) happens automatically, and turning
+  // (which depends on the device) is a control the person holding the phone can
+  // press. They can see which way up it is; this function cannot.
+  const rotate = ((quarterTurns % 4) + 4) % 4 * (Math.PI / 2);
+  const swaps = quarterTurns % 2 !== 0;
+  const effW = swaps ? frameH : frameW;
+  const effH = swaps ? frameW : frameH;
+  const scale = Math.max(outW / effW, outH / effH);
+  return { rotate, scale, drawW: frameW * scale, drawH: frameH * scale };
+}

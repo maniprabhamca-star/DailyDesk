@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { detectDocument, flattenDocument, quadStability, type Quad, type Point } from '@/lib/doc-scan';
+import { detectDocument, flattenDocument, quadStability, coverTransform, type Quad, type Point } from '@/lib/doc-scan';
 
 /* Document detection, tested against frames whose answer is already known.
  *
@@ -194,5 +194,49 @@ describe('quadStability', () => {
   it('is 0 when there is nothing to compare', () => {
     expect(quadStability(null, q, diag)).toBe(0);
     expect(quadStability(q, null, diag)).toBe(0);
+  });
+});
+
+describe('coverTransform', () => {
+  it('covers a portrait screen from a landscape frame without rotating by default', () => {
+    // The reported case: a 1280x720 sensor frame on a 390x844 phone. Covering
+    // is unconditionally right — it is what removes the black bands. Rotating
+    // is NOT, because whether the picture inside that frame is upright depends
+    // on the browser, so it is left to the person who can see the screen.
+    const t = coverTransform(1280, 720, 390, 844);
+    expect(t.rotate, 'must not turn the picture on a guess').toBe(0);
+    expect(t.drawW, 'must cover the width, or the bands come back').toBeGreaterThanOrEqual(390 - 0.01);
+    expect(t.drawH, 'must cover the height').toBeGreaterThanOrEqual(844 - 0.01);
+  });
+
+  it('turns the frame when asked, and swaps which side has to cover what', () => {
+    const t = coverTransform(1280, 720, 390, 844, 1);
+    expect(t.rotate).toBeCloseTo(Math.PI / 2);
+    // Turned a quarter, the frame is effectively 720 wide by 1280 tall.
+    expect(t.scale).toBeCloseTo(Math.max(390 / 720, 844 / 1280), 4);
+    // The frame's HEIGHT now spans the screen's width, and vice versa.
+    expect(t.drawH).toBeGreaterThanOrEqual(390 - 0.01);
+    expect(t.drawW).toBeGreaterThanOrEqual(844 - 0.01);
+  });
+
+  it('a half turn covers the same way an untouched frame does', () => {
+    const a = coverTransform(1280, 720, 390, 844, 0);
+    const b = coverTransform(1280, 720, 390, 844, 2);
+    expect(b.scale).toBeCloseTo(a.scale, 6);
+    expect(b.rotate).toBeCloseTo(Math.PI);
+  });
+
+  it('an upright frame on an upright screen covers without fuss', () => {
+    const t = coverTransform(1440, 2560, 390, 844);
+    expect(t.rotate).toBe(0);
+    expect(t.drawW).toBeGreaterThanOrEqual(390 - 0.01);
+    expect(t.drawH).toBeGreaterThanOrEqual(844 - 0.01);
+  });
+
+  it('handles a landscape screen too', () => {
+    const t = coverTransform(1280, 720, 1440, 900);
+    expect(t.rotate).toBe(0);
+    expect(t.drawW).toBeGreaterThanOrEqual(1440 - 0.01);
+    expect(t.drawH).toBeGreaterThanOrEqual(900 - 0.01);
   });
 });
