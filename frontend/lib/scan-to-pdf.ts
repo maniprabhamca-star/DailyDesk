@@ -72,3 +72,37 @@ export async function buildScanPdf(pages: ScanPage[]): Promise<Blob> {
   const bytes = await doc.save();
   return new Blob([bytes as unknown as BlobPart], { type: 'application/pdf' });
 }
+
+/**
+ * Turn an already-flattened page (from lib/doc-scan) into a ScanPage.
+ *
+ * The scanner hands back ImageData that has already had its perspective and
+ * background removed, so it must NOT go through processFrame's downscale-from-
+ * a-video-element path — it is finished pixels, not a frame to sample. The
+ * enhance pass is the same one, because a flattened page still benefits from
+ * having the paper lifted toward white.
+ */
+export function pageFromImageData(img: ImageData, enhance: boolean): ScanPage {
+  const c = document.createElement('canvas');
+  c.width = img.width; c.height = img.height;
+  const ctx = c.getContext('2d')!;
+  ctx.putImageData(img, 0, 0);
+
+  if (enhance) {
+    const data = ctx.getImageData(0, 0, c.width, c.height);
+    const d = data.data;
+    const contrast = 1.35, mid = 128;
+    for (let i = 0; i < d.length; i += 4) {
+      const g = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+      let v = (g - mid) * contrast + mid + 12;
+      v = v < 0 ? 0 : v > 255 ? 255 : v;
+      d[i] = d[i + 1] = d[i + 2] = v;
+    }
+    ctx.putImageData(data, 0, 0);
+  }
+
+  const dataUrl = c.toDataURL('image/jpeg', 0.82);
+  const w = c.width, h = c.height;
+  c.width = c.height = 0;
+  return { id: newId(), dataUrl, w, h };
+}

@@ -23,6 +23,14 @@ export type ChangeEntry = {
 // flags flip, dated then.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-09-12',
+    kind: 'feature',
+    title: 'Scan to PDF is a real document scanner now',
+    detail:
+      'Tap Open scanner and the camera fills the screen. Point it at a page and it finds the edges of the document itself, draws a green outline around it and dims the desk around it, so you can see exactly what it has got. Hold still for a moment and it takes the shot on its own — then waits for the next page rather than firing again at the one you are still holding. What it saves is the document, not the photograph: the page is straightened out of whatever angle you held the phone at and everything around it is cut away, so a sheet photographed askew on a kitchen table comes out as a clean rectangular page. There is still a shutter button if you would rather take it yourself, and a switch to turn the automatic capture off. All of it runs on your device — the camera never leaves your browser.',
+    href: '/scan-to-pdf',
+  },
+  {
     date: '2026-09-10',
     kind: 'improved',
     title: 'Scan to PDF: a viewfinder you can actually aim',
