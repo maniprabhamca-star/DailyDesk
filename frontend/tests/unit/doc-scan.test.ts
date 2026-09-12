@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { detectDocument, flattenDocument, quadStability, fillTransform, type Quad, type Point } from '@/lib/doc-scan';
+import { detectDocument, flattenDocument, quadStability, coverCrop, uprightTurns, type Quad, type Point } from '@/lib/doc-scan';
 
 /* Document detection, tested against frames whose answer is already known.
  *
@@ -200,39 +200,71 @@ describe('quadStability', () => {
 
 
 
-describe('fillTransform', () => {
-  it('never crops — reported as "overzoomed", then as "it is auto zooming"', () => {
-    // Every orientation, every turn: the whole frame is on screen. A crop reads
-    // as the camera having zoomed in by itself, and no amount of it is wanted.
-    for (const [fw, fh] of [[1280, 720], [720, 1280], [1920, 1080], [1440, 2560]]) {
-      for (const turns of [0, 1, 2, 3]) {
-        const t = fillTransform(fw, fh, 390, 844, turns);
-        expect(t.visibleFraction, `${fw}x${fh} turns=${turns}`).toBe(1);
-        expect(t.boxW, 'must fit the width available').toBeLessThanOrEqual(390);
-        expect(t.boxH, 'must fit the height available').toBeLessThanOrEqual(844);
+describe('uprightTurns', () => {
+  it('leaves a frame the browser already turned alone — the regression', () => {
+    // A portrait frame on a portrait phone is a browser that applied the sensor
+    // rotation itself. The previous auto-turn rotated regardless and laid the
+    // preview on its side on a real phone. This case must return 0.
+    expect(uprightTurns(1080, 1920, 390, 844)).toBe(0);
+    expect(uprightTurns(720, 1280, 390, 844)).toBe(0);
+  });
+
+  it('turns a frame the browser did not', () => {
+    // Landscape out of the camera, upright screen — the only case it can prove.
+    expect(uprightTurns(1280, 720, 390, 844)).toBe(1);
+    expect(uprightTurns(1920, 1080, 390, 844)).toBe(1);
+  });
+
+  it('reads a landscape screen the same way round', () => {
+    expect(uprightTurns(1280, 720, 844, 390)).toBe(0);
+    expect(uprightTurns(720, 1280, 844, 390)).toBe(1);
+  });
+
+  it('never guesses without evidence', () => {
+    expect(uprightTurns(1000, 1000, 390, 844), 'square frame').toBe(0);
+    expect(uprightTurns(1280, 720, 500, 500), 'square screen').toBe(0);
+    expect(uprightTurns(0, 0, 390, 844), 'camera has reported nothing yet').toBe(0);
+  });
+});
+
+describe('coverCrop', () => {
+  it('keeps most of an upright frame — why covering is affordable at all', () => {
+    // 9:16 camera on a 390x844 phone. The "overzoomed" complaint was covering
+    // with a SIDEWAYS frame; turned upright first, covering costs ~15%.
+    const c = coverCrop(1080, 1920, 390, 844);
+    expect(c.visibleFraction).toBeGreaterThan(0.8);
+  });
+
+  it('fills the box exactly, in the box own shape', () => {
+    for (const [fw, fh] of [[1280, 720], [1080, 1920], [640, 480]]) {
+      for (const [bw, bh] of [[390, 844], [844, 390], [500, 500]]) {
+        const c = coverCrop(fw, fh, bw, bh);
+        // The sampled rectangle has the box's aspect ratio, so nothing is
+        // stretched — and it lies inside the frame, so nothing is invented.
+        expect(c.sw / c.sh, `${fw}x${fh} -> ${bw}x${bh}`).toBeCloseTo(bw / bh, 2);
+        expect(c.sx).toBeGreaterThanOrEqual(0);
+        expect(c.sy).toBeGreaterThanOrEqual(0);
+        expect(c.sx + c.sw).toBeLessThanOrEqual(fw + 0.01);
+        expect(c.sy + c.sh).toBeLessThanOrEqual(fh + 0.01);
       }
     }
   });
 
-  it('turning a sideways frame upright is what makes it big', () => {
-    // The same 1280x720 frame: lying down it is a band, turned it is most of
-    // the screen. This is why the turn matters even without any cropping.
-    const raw = fillTransform(1280, 720, 390, 844, 0);
-    const turned = fillTransform(1280, 720, 390, 844, 1);
-    const area = (b: { boxW: number; boxH: number }) => (b.boxW * b.boxH) / (390 * 844);
-    expect(area(raw), 'a sideways frame fitted is a thin band').toBeLessThan(0.3);
-    expect(area(turned), 'turned upright it fills most of the screen').toBeGreaterThan(0.8);
+  it('centres the crop', () => {
+    const c = coverCrop(1280, 720, 390, 844);
+    expect(c.sx).toBeCloseTo((1280 - c.sw) / 2, 4);
+    expect(c.sy).toBeCloseTo((720 - c.sh) / 2, 4);
   });
 
-  it('keeps the proportions of the frame exactly', () => {
-    const t = fillTransform(1280, 720, 390, 844, 1);
-    expect(t.boxW / t.boxH).toBeCloseTo(720 / 1280, 2);
+  it('takes the whole frame when the shapes already agree', () => {
+    const c = coverCrop(390, 844, 390, 844);
+    expect(c.visibleFraction).toBeCloseTo(1, 4);
   });
 
   it('survives a camera that has reported nothing yet', () => {
-    const t = fillTransform(0, 0, 390, 844);
-    expect(t.visibleFraction).toBe(1);
-    expect(t.boxW).toBe(390);
+    const c = coverCrop(0, 0, 390, 844);
+    expect(c.visibleFraction).toBe(1);
+    expect(Number.isFinite(c.sw)).toBe(true);
   });
 });
 

@@ -529,46 +529,57 @@ export function quadStability(a: Quad | null, b: Quad | null, frameDiagonal: num
 
 
 /**
- * Fill a screen with a camera frame, turning it upright first.
+ * Which way up the camera's picture needs turning, in quarter turns.
  *
- * This is what a native camera app does and it is why one looks the way it
- * does: the picture goes edge to edge and the controls float on top of it.
- * Google's camera crops the sensor to the screen too — it simply does not show
- * because Android hands it a frame already turned, so covering a portrait
- * screen with a portrait frame trims almost nothing.
+ * Guessed once before and it was wrong, so be precise about what is guessed.
+ * The earlier attempt turned the frame whenever the phone was upright, which
+ * broke every browser that had ALREADY turned it — the picture came out on its
+ * side. This compares the two shapes instead:
  *
- * The whole difficulty here was doing that with a frame arriving sideways.
- * Covering a 390x844 screen with an untouched 1280x720 frame keeps 26% of its
- * width, which is the "overzoomed" complaint. Turning it upright first makes it
- * 720x1280 — the same shape as the screen — and covering then keeps 82%.
+ *   frame landscape + screen portrait  -> the browser did not turn it. Turn it.
+ *   frame portrait  + screen portrait  -> already upright. Leave it alone.
  *
- * Returns what to give ctx.drawImage after rotating about the centre, plus how
- * much of the frame ends up visible, which is the number worth asserting on.
+ * So a browser that hands over an upright frame is untouched, which is the case
+ * that regressed. Square frames and missing dimensions mean no turn.
+ *
+ * It is still only a suggestion: a phone held sideways deliberately, or a webcam
+ * mounted rotated, can defeat it, which is why the scanner keeps a manual
+ * control and remembers what was chosen.
  */
-export function fillTransform(
-  frameW: number, frameH: number, outW: number, outH: number, quarterTurns = 0,
-): { rotate: number; drawW: number; drawH: number; visibleFraction: number; boxW: number; boxH: number } {
-  const swaps = quarterTurns % 2 !== 0;
-  const effW = swaps ? frameH : frameW;
-  const effH = swaps ? frameW : frameH;
-  if (effW <= 0 || effH <= 0) {
-    return { rotate: 0, drawW: outW, drawH: outH, visibleFraction: 1, boxW: outW, boxH: outH };
+export function uprightTurns(frameW: number, frameH: number, screenW: number, screenH: number): 0 | 1 {
+  if (frameW <= 0 || frameH <= 0 || screenW <= 0 || screenH <= 0) return 0;
+  if (frameW === frameH || screenW === screenH) return 0;
+  return (frameW > frameH) === (screenW > screenH) ? 0 : 1;
+}
+
+/**
+ * The part of a camera frame visible inside a box under `object-fit: cover`.
+ *
+ * The scanner shows the live <video> element itself now rather than repainting
+ * it, so the browser owns the preview and CSS owns the framing. Detection and
+ * capture then have exactly one job: sample the same rectangle CSS is showing.
+ * That is this function, and it is the ONLY place the two can disagree.
+ *
+ * Cover crops, and cropping was complained about twice — but what was actually
+ * complained about was cropping a SIDEWAYS frame to an upright screen, which
+ * throws away three quarters of it. Turn it upright first (uprightTurns) and a
+ * 9:16 frame on a 9:19.5 screen keeps 82% of its area, which is what a phone
+ * camera app looks like. Letterboxing instead is the band that was rejected.
+ */
+export function coverCrop(
+  frameW: number, frameH: number, boxW: number, boxH: number,
+): { sx: number; sy: number; sw: number; sh: number; visibleFraction: number } {
+  if (frameW <= 0 || frameH <= 0 || boxW <= 0 || boxH <= 0) {
+    return { sx: 0, sy: 0, sw: Math.max(0, frameW), sh: Math.max(0, frameH), visibleFraction: 1 };
   }
-  // `min`, not `max`: the ENTIRE frame is shown. Any crop at all reads as the
-  // camera having zoomed in, and that was reported twice — "overzoomed", then
-  // "it's auto zooming". A phone camera app shows its whole sensor at 1x and
-  // puts black around it where the shapes disagree; it does not silently take a
-  // crop and call it the picture.
-  const scale = Math.min(outW / effW, outH / effH);
+  const scale = Math.max(boxW / frameW, boxH / frameH);
+  const sw = Math.min(frameW, boxW / scale);
+  const sh = Math.min(frameH, boxH / scale);
   return {
-    rotate: quarterTurns * (Math.PI / 2),
-    drawW: frameW * scale,
-    drawH: frameH * scale,
-    // Nothing is ever cut off now, by construction.
-    visibleFraction: 1,
-    // The area the picture actually occupies, so the caller can put the canvas
-    // exactly there and keep the detector's coordinates honest.
-    boxW: Math.round(effW * scale),
-    boxH: Math.round(effH * scale),
+    sx: (frameW - sw) / 2,
+    sy: (frameH - sh) / 2,
+    sw,
+    sh,
+    visibleFraction: (sw * sh) / (frameW * frameH),
   };
 }

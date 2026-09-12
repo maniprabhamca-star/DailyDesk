@@ -1,43 +1,33 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { X, Check, Zap, ZapOff, Loader2, RotateCw, ScanLine } from 'lucide-react';
-import { detectDocument, flattenDocument, quadStability, fillTransform, type Quad } from '@/lib/doc-scan';
+import { detectDocument, flattenDocument, quadStability, coverCrop, uprightTurns, type Quad } from '@/lib/doc-scan';
 
 /**
  * Full-screen document scanner.
  *
- * The previous version was a small camera preview embedded in the page with a
- * shutter button, and the owner's verdict on it was fair: "the view of the
- * camera is not good... I need the native camera full screen to scan the
- * document and during the scanning it should automatically detect the document
- * and highlight". So this takes over the whole viewport, draws the detected
- * page edge live while you frame it, and captures the DOCUMENT rather than the
- * photograph — perspective removed, desk removed.
+ * ── The change that matters, after five layouts the owner rejected ──────────
+ * The <video> element is VISIBLE now, and it is the preview.
  *
- * ── How it hangs together ───────────────────────────────────────────────────
- *   • A detection loop samples the video into a small offscreen canvas and asks
- *     lib/doc-scan for the page's four corners. Throttled, because 60fps of
- *     edge detection would heat a phone for no benefit — the page is not moving
- *     that fast.
- *   • An overlay canvas draws those corners over the video.
- *   • Capture takes the FULL resolution frame and flattens it through the same
- *     corners, so the preview is a guide and the output is the real thing.
+ * Every earlier version hid it and repainted each frame into a canvas, which
+ * meant this code had to decide which way up the picture went and how much of
+ * it to show — and it was wrong five times running, in both directions: a band,
+ * an overzoom, a sideways frame, a boxed-in frame, a band again. It could not
+ * be right, because a browser either hands over the sensor's own orientation or
+ * corrects it first, and the same 1280x720 means opposite things on the two.
  *
- * ── One coordinate space, on purpose ────────────────────────────────────────
- * The <video> is hidden. Every frame is painted into a canvas through
- * fillTransform(), and the preview, the detector and the capture all read that
- * same upright, screen-shaped picture. Earlier versions kept three spaces —
- * detector pixels, sensor pixels, and CSS pixels — and converting between them
- * is where this kind of code goes wrong: a highlight drawn in one space and
- * captured in another floats next to the document instead of round it.
+ * The browser already knows which of those it did. A <video> shown directly
+ * renders upright, edge to edge, GPU-composited at the camera's own frame rate
+ * — the reason a native scanner feels native. So CSS frames the preview, and
+ * this file's only remaining job is to sample the SAME rectangle CSS is showing
+ * (lib/doc-scan coverCrop) for detection and for capture. One formula, used by
+ * both, so the highlight cannot drift off the page it is drawn around.
  *
- * It also fixes the orientation outright. Phone cameras hand back a LANDSCAPE
- * frame however the phone is held and whatever the constraints ask for, so
- * fitting it to a portrait screen letterboxed it into a band ("the scanner is
- * opening in horizontal mode"), and cropping it to fill cut the page's own
- * edges off. fillTransform turns it upright first, which is what a native
- * scanner does, and then covering costs nothing.
+ * uprightTurns still offers a quarter turn, but only for the case it can prove:
+ * a landscape frame on an upright screen is a browser that did not rotate. A
+ * portrait frame is left alone — that is the case the last auto-turn broke.
+ * Whoever is holding the phone can override it, and the choice is remembered.
  */
 
 /** Detector input width. Bigger is not better — lib/doc-scan downsamples anyway. */
@@ -48,6 +38,8 @@ const DETECT_INTERVAL = 80;
 const STEADY_FRAMES_NEEDED = 8;
 /** Below this, the page is still being moved. */
 const STEADY_THRESHOLD = 0.82;
+/** Longest edge of a captured page, in pixels — never upscaled past the sensor. */
+const CAPTURE_LONG_EDGE = 2000;
 
 export type ScannerCapture = { data: ImageData; auto: boolean };
 
@@ -62,6 +54,7 @@ export function DocScanner({
   pageCount: number;
   lastThumb: string | null;
 }) {
+  const holderRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
   const detectCanvas = useRef<HTMLCanvasElement | null>(null);
@@ -72,18 +65,35 @@ export function DocScanner({
   const [auto, setAuto] = useState(true);
   const [flash, setFlash] = useState(false);
   const [hint, setHint] = useState('Point the camera at your document');
-  // Which way up the camera's picture needs turning, in quarter turns.
-  //
-  // Not detected, because it cannot be: some browsers hand over the sensor's
-  // own orientation and some correct it first, and the same landscape frame
-  // means opposite things on the two. Whoever is holding the phone can see
-  // which way up it is, so they get the control — and it is remembered, because
-  // a device that needs it will need it every time.
+
+  // The viewport the preview fills. Measured, not assumed — a phone's browser
+  // chrome slides away as you scroll and 100vh lies about it on iOS.
+  const [box, setBox] = useState({ w: 0, h: 0 });
+  const boxRef = useRef(box);
+  useLayoutEffect(() => { boxRef.current = box; }, [box]);
+  useLayoutEffect(() => {
+    const el = holderRef.current;
+    if (!el) return;
+    const read = () => {
+      const r = el.getBoundingClientRect();
+      setBox((prev) => (Math.abs(prev.w - r.width) < 1 && Math.abs(prev.h - r.height) < 1
+        ? prev
+        : { w: r.width, h: r.height }));
+    };
+    read();
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(read);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Quarter turns applied to the camera picture. Suggested once from the two
+  // shapes, overridable, remembered — a device that needs it needs it always.
   const [turns, setTurns] = useState(0);
   const turnsRef = useRef(0);
   useEffect(() => { turnsRef.current = turns; }, [turns]);
   const chosenRef = useRef(false);
-  const sizeReported = useRef(false);
+  const suggestedRef = useRef(false);
   // Shown in the corner. What the camera actually handed over differs by phone
   // and by browser, and every wrong layout so far came from assuming it.
   const [streamInfo, setStreamInfo] = useState('');
@@ -91,7 +101,7 @@ export function DocScanner({
     try {
       // getItem returns null when nothing is stored, and Number(null) is 0 —
       // which read as "the person chose not to rotate" and suppressed the
-      // automatic suggestion entirely. Check for the absence first.
+      // suggestion entirely. Check for the absence first.
       const raw = localStorage.getItem('dd-scan-turns');
       if (raw !== null) {
         const saved = Number(raw);
@@ -142,37 +152,25 @@ export function DocScanner({
         setError('This browser doesn’t offer camera capture. Close this and use “Add photos” instead.');
         return;
       }
-      try {
-        // Ask for a frame shaped like the screen being held — a landscape
-        // request on an upright phone is what made the old preview a letterboxed
-        // strip. And ask for plenty of pixels: this is the image that becomes
-        // the page, so detail here is detail in the PDF.
-        // aspectRatio as well as width/height, because width/height alone get
-        // ignored. Asking for 1440x2560 on an Android phone reliably returns a
-        // landscape frame anyway; aspectRatio is the constraint browsers tend to
-        // honour, and a stream already shaped like the screen needs no cropping
-        // and no turning. When it is ignored too, fillTransform still fills the
-        // screen and the rotate control is there for the rest.
-        const portrait = window.innerHeight > window.innerWidth;
-        const ratio = portrait
-          ? window.innerWidth / window.innerHeight
-          : window.innerWidth / window.innerHeight;
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: { ideal: 'environment' },
-            aspectRatio: { ideal: ratio },
-            width: portrait ? { ideal: 1440 } : { ideal: 2560 },
-            height: portrait ? { ideal: 2560 } : { ideal: 1440 },
-          },
-          audio: false,
-        });
-        if (cancelled) { stream.getTracks().forEach((t) => t.stop()); return; }
-        streamRef.current = stream;
-        const v = videoRef.current;
-        if (v) { v.srcObject = stream; await v.play().catch(() => {}); }
-        setReady(true);
-      } catch (e) {
-        const name = e instanceof Error ? e.name : '';
+      // Ask for the back camera and plenty of pixels — this frame becomes the
+      // page, so detail here is detail in the PDF. Nothing is asked about
+      // orientation or aspect ratio any more: those requests were routinely
+      // ignored, and acting on the answer is what produced the bands and the
+      // overzoom. Whatever arrives, CSS frames it and coverCrop samples it.
+      const attempts: MediaStreamConstraints[] = [
+        { video: { facingMode: { ideal: 'environment' }, width: { ideal: 2560 }, height: { ideal: 1440 } }, audio: false },
+        { video: { facingMode: { ideal: 'environment' } }, audio: false },
+        { video: true, audio: false },
+      ];
+      let stream: MediaStream | null = null;
+      let last: unknown = null;
+      for (const constraints of attempts) {
+        try { stream = await navigator.mediaDevices.getUserMedia(constraints); break; }
+        catch (e) { last = e; }
+      }
+      if (cancelled) { stream?.getTracks().forEach((t) => t.stop()); return; }
+      if (!stream) {
+        const name = last instanceof Error ? last.name : '';
         setError(
           name === 'NotAllowedError' || name === 'SecurityError'
             ? 'Camera access is blocked for this site. Tap the padlock next to the address → Permissions → allow Camera.'
@@ -182,7 +180,12 @@ export function DocScanner({
                 ? 'Another app is using the camera. Close it and try again.'
                 : 'Couldn’t start the camera.',
         );
+        return;
       }
+      streamRef.current = stream;
+      const v = videoRef.current;
+      if (v) { v.srcObject = stream; await v.play().catch(() => {}); }
+      setReady(true);
     })();
     return () => {
       cancelled = true;
@@ -204,42 +207,46 @@ export function DocScanner({
   }, [onClose]);
 
   /**
-   * Paint one camera frame, upright and covering, into a canvas.
+   * Paint what is ON SCREEN into a canvas of the same shape.
    *
-   * The single place the sensor's orientation is dealt with. Everything
-   * downstream — what is shown, what is detected, what is captured — reads the
-   * result of this, so they cannot disagree.
+   * The mirror image of the CSS below: same quarter turn, same cover crop. It
+   * is used for detection and for capture, so both see the picture the person
+   * framed rather than some other field of view.
    */
   const paintFrame = useCallback((ctx: CanvasRenderingContext2D, outW: number, outH: number) => {
     const v = videoRef.current;
-    if (!v || !v.videoWidth) return false;
-    const { rotate, drawW, drawH } = fillTransform(v.videoWidth, v.videoHeight, outW, outH, turnsRef.current);
+    if (!v || !v.videoWidth || !v.videoHeight || outW <= 0 || outH <= 0) return false;
+    const t = turnsRef.current;
+    // The <video> element's own box, before CSS rotates it.
+    const elW = t % 2 ? outH : outW;
+    const elH = t % 2 ? outW : outH;
+    const { sx, sy, sw, sh } = coverCrop(v.videoWidth, v.videoHeight, elW, elH);
     ctx.save();
     ctx.translate(outW / 2, outH / 2);
-    if (rotate) ctx.rotate(rotate);
-    ctx.drawImage(v, -drawW / 2, -drawH / 2, drawW, drawH);
+    if (t) ctx.rotate(t * (Math.PI / 2));
+    ctx.drawImage(v, sx, sy, sw, sh, -elW / 2, -elH / 2, elW, elH);
     ctx.restore();
     return true;
   }, []);
 
   const capture = useCallback((isAuto: boolean) => {
     const v = videoRef.current;
-    if (!v || !v.videoWidth || busyRef.current) return;
+    const { w: bw, h: bh } = boxRef.current;
+    if (!v || !v.videoWidth || !bw || !bh || busyRef.current) return;
     busyRef.current = true;
     try {
-      // Capture the SAME picture that is on screen — upright, covered, cropped
-      // identically — just at far higher resolution. Sampling the raw sensor
-      // frame instead would capture a different field of view from the one that
-      // was framed, and the corners would be in the wrong space.
-      const overlay = overlayRef.current;
-      const box = overlay?.getBoundingClientRect();
-      if (!box || !box.width || !box.height) return;
-      const LONG_EDGE = 2000;
       // Same shape as the preview, just larger — so the corners the detector
-      // found on screen mean the same thing here.
-      const k = LONG_EDGE / Math.max(box.width, box.height);
-      const outW = Math.max(1, Math.round(box.width * k));
-      const outH = Math.max(1, Math.round(box.height * k));
+      // found on screen mean the same thing here. Never larger than the pixels
+      // the sensor actually gave through the visible crop: upscaling a phone
+      // frame to 2000px only makes a bigger blur and a bigger PDF.
+      const t = turnsRef.current;
+      const elW = t % 2 ? bh : bw;
+      const elH = t % 2 ? bw : bh;
+      const crop = coverCrop(v.videoWidth, v.videoHeight, elW, elH);
+      const native = Math.max(crop.sw / elW, crop.sh / elH);
+      const k = Math.max(1, Math.min(CAPTURE_LONG_EDGE / Math.max(bw, bh), native));
+      const outW = Math.max(1, Math.round(bw * k));
+      const outH = Math.max(1, Math.round(bh * k));
 
       const full = document.createElement('canvas');
       full.width = outW; full.height = outH;
@@ -279,7 +286,7 @@ export function DocScanner({
 
   // ── detection loop ────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!ready) return;
+    if (!ready || !box.w || !box.h) return;
     let raf = 0;
     let last = 0;
 
@@ -291,54 +298,39 @@ export function DocScanner({
       const v = videoRef.current;
       const overlay = overlayRef.current;
       if (!v || !v.videoWidth || !overlay) return;
-
       const octx = overlay.getContext('2d');
       if (!octx) return;
 
-      // The picture is shown WHOLE, centred, with the controls floating over
-      // the screen around it — which is what a phone camera app looks like at
-      // 1x. Cropping to the screen shape was reported as zooming, twice.
-      const holder = overlay.parentElement;
-      if (!holder) return;
-      const avail = holder.getBoundingClientRect();
-      if (!avail.width || !avail.height) return;
-
-      // First frame: adopt the shape-based suggestion unless a choice is stored.
-      // Turning the frame upright is what makes filling the screen affordable —
-      // untouched, a sideways frame loses three quarters of its width to the
-      // crop; turned, it loses almost nothing.
-      // No automatic turning. It was tried, and on a real phone it produced a
-      // sideways preview — that browser hands over an already-upright frame, so
-      // turning it again lays it on its side. Guessing here has now been wrong
-      // in both directions; the button is the honest answer, because the person
-      // holding the phone can see which way up it is and this code cannot.
-      if (!sizeReported.current && v.videoWidth) {
-        sizeReported.current = true;
+      // First frame with real dimensions: report them, and offer the turn if
+      // the two shapes prove the browser did not apply one.
+      if (!suggestedRef.current) {
+        suggestedRef.current = true;
         setStreamInfo(`${v.videoWidth}×${v.videoHeight}`);
+        if (!chosenRef.current) {
+          const want = uprightTurns(v.videoWidth, v.videoHeight, box.w, box.h);
+          if (want) setTurns(want);
+        }
       }
 
-      const shape = fillTransform(v.videoWidth, v.videoHeight, avail.width, avail.height, turnsRef.current);
-      const cssW = shape.boxW, cssH = shape.boxH;
-      if (!cssW || !cssH) return;
-      if (overlay.style.width !== `${cssW}px`) overlay.style.width = `${cssW}px`;
-      if (overlay.style.height !== `${cssH}px`) overlay.style.height = `${cssH}px`;
-      const dpr = window.devicePixelRatio || 1;
-      const bw = Math.round(cssW * dpr), bh = Math.round(cssH * dpr);
-      if (overlay.width !== bw || overlay.height !== bh) { overlay.width = bw; overlay.height = bh; }
+      // The overlay covers the whole preview and carries ONLY the highlight —
+      // the picture underneath is the live <video>, drawn by the browser.
+      const cssW = box.w, cssH = box.h;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const pw = Math.round(cssW * dpr), ph = Math.round(cssH * dpr);
+      if (overlay.width !== pw || overlay.height !== ph) { overlay.width = pw; overlay.height = ph; }
       octx.setTransform(dpr, 0, 0, dpr, 0, 0);
       octx.clearRect(0, 0, cssW, cssH);
-      if (!paintFrame(octx, cssW, cssH)) return;
 
-      // Detect on a small copy of exactly what is on screen — upright, covered,
-      // cropped the same way. What you see is what is detected.
+      // Detect on a small copy of exactly what is on screen — same turn, same
+      // crop. What you see is what is detected.
       if (!detectCanvas.current) detectCanvas.current = document.createElement('canvas');
       const dc = detectCanvas.current;
-      const dw = Math.min(DETECT_WIDTH, Math.round(cssW));
+      const dw = Math.max(1, Math.min(DETECT_WIDTH, Math.round(cssW)));
       const dh = Math.max(1, Math.round((cssH / cssW) * dw));
       if (dc.width !== dw || dc.height !== dh) { dc.width = dw; dc.height = dh; }
       const dctx = dc.getContext('2d', { willReadFrequently: true });
       if (!dctx) return;
-      dctx.drawImage(overlay, 0, 0, dw, dh);
+      if (!paintFrame(dctx, dw, dh)) return;
 
       const quad = detectDocument(dctx.getImageData(0, 0, dw, dh));
       const diagonal = Math.hypot(dw, dh);
@@ -379,12 +371,12 @@ export function DocScanner({
             ? 'Hold still…'
             : 'Document found — hold steady');
 
-      // ── draw: video first, then the highlight, same canvas ──────────────
+      // ── draw the highlight over the live video ──────────────────────────
       if (quad) {
         const locked = steadyRef.current >= STEADY_FRAMES_NEEDED / 2;
-        // Detector space -> canvas space. Both are the SAME upright, screen-
-        // shaped picture at different scales, so this is one multiply and
-        // cannot drift out of register with what is on screen.
+        // Detector space -> overlay space. Both are the SAME picture at
+        // different scales, so this is one multiply and cannot drift out of
+        // register with what is on screen.
         const kx = cssW / dw, ky = cssH / dh;
         const pts = quad.map((pt) => ({ x: pt.x * kx, y: pt.y * ky }));
 
@@ -428,22 +420,39 @@ export function DocScanner({
 
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [ready, capture, paintFrame]);
+  }, [ready, capture, paintFrame, box.w, box.h]);
+
+  // The CSS side of the transform paintFrame applies. Sizing the element to the
+  // SWAPPED box and then rotating it is what lets a turned picture still reach
+  // every edge of the screen.
+  const rotated = turns % 2 === 1;
+  const videoStyle: React.CSSProperties = box.w
+    ? {
+        width: rotated ? box.h : box.w,
+        height: rotated ? box.w : box.h,
+        transform: `translate(-50%, -50%) rotate(${turns * 90}deg)`,
+      }
+    : { width: '100%', height: '100%', transform: 'translate(-50%, -50%)' };
 
   return (
     <div className="fixed inset-0 z-[100] flex flex-col bg-black" role="dialog" aria-modal="true" aria-label="Document scanner">
-      <div className="relative flex flex-1 items-center justify-center overflow-hidden">
+      <div ref={holderRef} className="relative flex flex-1 items-center justify-center overflow-hidden">
+        {/* The preview IS this element. The browser renders it the right way up,
+            at the camera's own frame rate — do not hide it and repaint it. */}
         <video
           ref={videoRef}
           playsInline
           muted
           autoPlay
-          className="pointer-events-none absolute size-px opacity-0"
-          aria-hidden
+          style={videoStyle}
+          className="absolute left-1/2 top-1/2 max-w-none object-cover"
         />
-        {/* The one visible surface: the camera frame is painted here upright,
-            then the highlight on top of it. */}
-        <canvas ref={overlayRef} className="block" />
+        {/* Highlight only, transparent, exactly over the preview. */}
+        <canvas
+          ref={overlayRef}
+          aria-hidden
+          className="pointer-events-none absolute inset-0 size-full"
+        />
         {flash && <div aria-hidden className="pointer-events-none absolute inset-0 bg-white/80" />}
 
         {/* close */}

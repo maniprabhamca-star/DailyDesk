@@ -24,6 +24,14 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-09-12',
+    kind: 'fixed',
+    title: 'The scanner viewfinder now behaves like your phone camera',
+    detail:
+      'On some phones the scanner opened sideways, or in a band across the middle of the screen, or zoomed so far in that the page would not fit. The preview was being redrawn by hand, and which way up a camera picture arrives differs between phones and browsers, so the guess was wrong as often as it was right. The camera now shows through directly, the way it does in your phone’s own camera app: edge to edge, the right way up, and moving at the camera’s own speed rather than in steps. If your camera hands its picture over sideways, the scanner turns it upright on its own; the rotate button is still there for anything unusual, and it remembers what you chose. The outline it draws around the page sits exactly on the page, because what you see and what it saves are now the same picture.',
+    href: '/scan-to-pdf',
+  },
+  {
+    date: '2026-09-12',
     kind: 'feature',
     title: 'Scan to PDF is a real document scanner now',
     detail:

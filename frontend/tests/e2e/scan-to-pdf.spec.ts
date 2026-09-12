@@ -52,26 +52,32 @@ test.describe('Scan to PDF — the scanner', () => {
     expect(Math.round(box!.width)).toBe(vp.width);
     expect(Math.round(box!.height)).toBe(vp.height);
 
-    // The visible surface is the CANVAS, not the <video>. The camera frame is
-    // painted into it — upright and covering — and the highlight drawn on top,
-    // so preview, detection and capture share one coordinate space. The video
-    // element is a hidden source. Measuring it here would measure 1px.
+    // The visible surface is the <video> ITSELF. Five rejected layouts came out
+    // of hiding it and repainting each frame into a canvas, which forced this
+    // code to decide which way up the picture went; the browser already knows,
+    // so the element is shown directly and CSS frames it. A hidden video would
+    // measure 1px here, which is the regression this guards.
+    const preview = await page.locator('video').boundingBox();
+    expect(preview!.width, 'the video must be the preview, not a 1px source').toBeGreaterThan(50);
+
+    // And it must genuinely COVER the screen rather than sit in a band: a
+    // landscape camera frame letterboxed into a portrait screen is the bug that
+    // started all this — "the scanner is opening in horizontal mode and it's
+    // not going to work".
+    const covers = await page.locator('video').evaluate((v: HTMLVideoElement) => {
+      const r = v.getBoundingClientRect();
+      return { w: r.width, h: r.height, fit: getComputedStyle(v).objectFit };
+    });
+    expect(covers.w, 'the preview must reach both side edges').toBeGreaterThanOrEqual(vp.width - 1);
+    expect(covers.h, 'the preview must reach top and bottom').toBeGreaterThanOrEqual(vp.height - 1);
+    expect(covers.fit, 'contain would letterbox it back into a band').toBe('cover');
+
+    // The highlight is drawn on a transparent canvas laid over that preview, so
+    // the two share one coordinate space and the outline cannot drift off the
+    // page it is drawn around.
     const surface = await page.locator('canvas').first().boundingBox();
     const share = (surface!.width * surface!.height) / (vp.width * vp.height);
-    expect(share, `preview covers ${(share * 100).toFixed(1)}% of the screen`).toBeGreaterThan(0.6);
-
-    // And it must genuinely COVER rather than fit: a landscape camera frame
-    // letterboxed into a portrait screen is the bug that started all this —
-    // "the scanner is opening in horizontal mode and it's not going to work".
-    const filled = await page.locator('canvas').first().evaluate((c: HTMLCanvasElement) => {
-      const ctx = c.getContext('2d');
-      if (!ctx) return 0;
-      const d = ctx.getImageData(0, 0, c.width, c.height).data;
-      let lit = 0;
-      for (let i = 0; i < d.length; i += 4) if (d[i] || d[i + 1] || d[i + 2]) lit++;
-      return lit / (c.width * c.height);
-    });
-    expect(filled, `only ${(filled * 100).toFixed(1)}% of the preview has picture in it`).toBeGreaterThan(0.9);
+    expect(share, `overlay covers ${(share * 100).toFixed(1)}% of the screen`).toBeGreaterThan(0.95);
   });
 
   test('draws an overlay sized to the screen, ready for the highlight', async ({ page }) => {
@@ -127,14 +133,16 @@ test.describe('Scan to PDF — the scanner', () => {
     await expect(toggle).toHaveAttribute('aria-pressed', 'false');
   });
 
-  test('the picture can be turned, and it is remembered', async ({ page }) => {
-    // Whether a landscape camera frame needs turning depends on the browser —
-    // some hand over the sensor's own orientation, some correct it first — so
-    // this is a control rather than a guess. It has to persist, because a
-    // device that needs it needs it every single time.
+  test('the picture can be turned, and the choice is remembered', async ({ page }) => {
+    // Which way up a camera frame arrives depends on the browser — some hand
+    // over the sensor's own orientation, some correct it first. uprightTurns
+    // suggests a quarter turn only when the two shapes prove one is missing;
+    // this control is the override, and it has to persist, because a device
+    // that needs it needs it every single time.
     await openScanner(page);
     await page.getByRole('button', { name: /rotate the camera picture/i }).click();
-    expect(await page.evaluate(() => localStorage.getItem('dd-scan-turns'))).toBe('1');
+    const chosen = await page.evaluate(() => localStorage.getItem('dd-scan-turns'));
+    expect(chosen, 'pressing it must record a choice').toMatch(/^[0-3]$/);
 
     await page.keyboard.press('Escape');
     await page.getByRole('button', { name: /open scanner/i }).click();
@@ -142,11 +150,31 @@ test.describe('Scan to PDF — the scanner', () => {
     expect(
       await page.evaluate(() => localStorage.getItem('dd-scan-turns')),
       'the chosen orientation must survive closing the scanner',
-    ).toBe('1');
+    ).toBe(chosen);
 
-    // Four presses come back round to where it started.
-    for (let i = 0; i < 3; i++) await page.getByRole('button', { name: /rotate the camera picture/i }).click();
-    expect(await page.evaluate(() => localStorage.getItem('dd-scan-turns'))).toBe('0');
+    // Four presses come back round to where they started.
+    for (let i = 0; i < 4; i++) await page.getByRole('button', { name: /rotate the camera picture/i }).click();
+    expect(await page.evaluate(() => localStorage.getItem('dd-scan-turns'))).toBe(chosen);
+  });
+
+  test('a sideways camera frame is turned upright by itself', async ({ page }) => {
+    // Chromium's fake camera hands over a landscape frame on a 390x844 screen,
+    // which is exactly the case that opened the scanner "in horizontal mode".
+    // It must come out upright without anyone pressing anything — and the
+    // element is sized to the SWAPPED box before being rotated, which is what
+    // lets a turned picture still reach every edge.
+    await openScanner(page);
+    const shape = await page.locator('video').evaluate((v: HTMLVideoElement) => ({
+      frameLandscape: v.videoWidth > v.videoHeight,
+      transform: getComputedStyle(v).transform,
+      elW: parseFloat(getComputedStyle(v).width),
+      elH: parseFloat(getComputedStyle(v).height),
+      rect: v.getBoundingClientRect().width + 'x' + v.getBoundingClientRect().height,
+    }));
+    expect(shape.frameLandscape, 'the fake camera is landscape — the premise of this test').toBe(true);
+    // rotate(90deg) is matrix(0, 1, -1, 0, …); an unrotated element is matrix(1, 0, …).
+    expect(shape.transform, 'a landscape frame on an upright screen must be turned').toMatch(/^matrix\(0,/);
+    expect(shape.elW, 'the element is laid out sideways, then rotated into place').toBeGreaterThan(shape.elH);
   });
 
   test('a screen-reader is told the count', async ({ page }) => {
