@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { detectDocument, flattenDocument, quadStability, coverTransform, type Quad, type Point } from '@/lib/doc-scan';
+import { detectDocument, flattenDocument, quadStability, coverTransform, previewBox, suggestedTurns, type Quad, type Point } from '@/lib/doc-scan';
 
 /* Document detection, tested against frames whose answer is already known.
  *
@@ -238,5 +238,56 @@ describe('coverTransform', () => {
     expect(t.rotate).toBe(0);
     expect(t.drawW).toBeGreaterThanOrEqual(1440 - 0.01);
     expect(t.drawH).toBeGreaterThanOrEqual(900 - 0.01);
+  });
+});
+
+describe('previewBox', () => {
+  it('shows the WHOLE landscape frame, turned upright, on a portrait phone', () => {
+    // The reported case. 1280x720 turned a quarter is 720x1280; fitted into the
+    // 390x844 preview area that is 390 wide and 693 tall.
+    const b = previewBox(1280, 720, 390, 844, 1);
+    expect(b.w).toBe(390);
+    expect(b.h).toBe(693);
+    // The frame's aspect is preserved exactly — that is what "nothing cropped"
+    // means, and it is the difference from coverTransform.
+    expect(b.w / b.h).toBeCloseTo(720 / 1280, 2);
+  });
+
+  it('uses most of the screen, which the letterboxed version did not', () => {
+    const b = previewBox(1280, 720, 390, 844, 1);
+    const share = (b.w * b.h) / (390 * 844);
+    // Fitting the same frame WITHOUT turning it gave 390x219 — about 26%.
+    expect(share, `preview is ${(share * 100).toFixed(0)}% of the screen`).toBeGreaterThan(0.75);
+  });
+
+  it('never crops: fitting an untouched landscape frame is small but complete', () => {
+    const b = previewBox(1280, 720, 390, 844, 0);
+    expect(b.w).toBe(390);
+    expect(b.h).toBe(219);
+    expect(b.w / b.h).toBeCloseTo(1280 / 720, 2);
+  });
+
+  it('is limited by the narrower dimension, which on a phone is the width', () => {
+    // A 9:16 frame is WIDER in proportion than a 390x844 screen (0.5625 vs
+    // 0.462), so the width runs out first and there is a little space left
+    // under it — which is where the shutter lives.
+    const b = previewBox(1440, 2560, 390, 844, 0);
+    expect(b.w).toBe(390);
+    expect(b.h).toBe(693);
+    expect((b.w * b.h) / (390 * 844)).toBeGreaterThan(0.8);
+  });
+
+  it('survives a camera that reports nothing yet', () => {
+    expect(previewBox(0, 0, 390, 844)).toEqual({ w: 390, h: 844 });
+  });
+});
+
+describe('suggestedTurns', () => {
+  it('proposes a quarter turn for a landscape frame on a portrait screen', () => {
+    expect(suggestedTurns(1280, 720, 390, 844)).toBe(1);
+  });
+  it('leaves a frame that already matches the screen alone', () => {
+    expect(suggestedTurns(1440, 2560, 390, 844)).toBe(0);
+    expect(suggestedTurns(1280, 720, 1440, 900)).toBe(0);
   });
 });

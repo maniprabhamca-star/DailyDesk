@@ -533,3 +533,50 @@ export function coverTransform(
   const scale = Math.max(outW / effW, outH / effH);
   return { rotate, scale, drawW: frameW * scale, drawH: frameH * scale };
 }
+
+/**
+ * The size a preview should be so the WHOLE camera frame is visible, upright,
+ * and as large as the space allows.
+ *
+ * Neither fitting nor cropping a landscape frame into a portrait screen works.
+ * Fitting leaves black bands with the document small in the middle — "the
+ * scanner is opening in horizontal mode". Cropping fills the screen but throws
+ * away three-quarters of the frame's width, so the page's own edges go
+ * off-screen — "the scanner is overzoomed... we cannot use this". Both were
+ * shipped and both were right to reject.
+ *
+ * What a native scanner actually does is turn the frame upright first, at which
+ * point it is roughly the shape of the screen, and then give the picture its own
+ * area and put the controls in whatever is left. Nothing is cropped, nothing is
+ * shrunk to fit around black bars, and the leftover space is useful rather than
+ * empty.
+ *
+ * Returns the box the preview should occupy inside `availW` x `availH`.
+ */
+export function previewBox(
+  frameW: number, frameH: number, availW: number, availH: number, quarterTurns = 0,
+): { w: number; h: number } {
+  const swaps = quarterTurns % 2 !== 0;
+  const effW = swaps ? frameH : frameW;
+  const effH = swaps ? frameW : frameH;
+  if (effW <= 0 || effH <= 0) return { w: availW, h: availH };
+  // Fit, not fill: every pixel of the frame stays visible.
+  const scale = Math.min(availW / effW, availH / effH);
+  return { w: Math.round(effW * scale), h: Math.round(effH * scale) };
+}
+
+/**
+ * Whether a frame needs turning to sit upright on this screen.
+ *
+ * A guess, and labelled as one. Browsers disagree: some hand over the sensor's
+ * own orientation, so a phone held upright yields a frame lying on its side and
+ * this is correct; others rotate it first, and then this is wrong. It is the
+ * better default because the first behaviour is the common one on Android, and
+ * because a person can undo it with one button press and the app will remember
+ * — whereas an unusable preview cannot be undone at all.
+ */
+export function suggestedTurns(frameW: number, frameH: number, screenW: number, screenH: number): number {
+  const frameLandscape = frameW > frameH;
+  const screenLandscape = screenW > screenH;
+  return frameLandscape === screenLandscape ? 0 : 1;
+}

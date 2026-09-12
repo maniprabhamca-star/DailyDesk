@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { X, Check, Zap, ZapOff, Loader2, RotateCw } from 'lucide-react';
-import { detectDocument, flattenDocument, quadStability, coverTransform, type Quad } from '@/lib/doc-scan';
+import { detectDocument, flattenDocument, quadStability, previewBox, suggestedTurns, type Quad } from '@/lib/doc-scan';
 
 /**
  * Full-screen document scanner.
@@ -82,13 +82,22 @@ export function DocScanner({
   const [turns, setTurns] = useState(0);
   const turnsRef = useRef(0);
   useEffect(() => { turnsRef.current = turns; }, [turns]);
+  const chosenRef = useRef(false);
+  const suggestedRef = useRef(false);
   useEffect(() => {
     try {
-      const saved = Number(localStorage.getItem('dd-scan-turns'));
-      if (Number.isFinite(saved) && saved >= 0 && saved < 4) setTurns(saved);
-    } catch { /* private mode: default to none */ }
+      // getItem returns null when nothing is stored, and Number(null) is 0 —
+      // which read as "the person chose not to rotate" and suppressed the
+      // automatic suggestion entirely. Check for the absence first.
+      const raw = localStorage.getItem('dd-scan-turns');
+      if (raw !== null) {
+        const saved = Number(raw);
+        if (Number.isInteger(saved) && saved >= 0 && saved < 4) { chosenRef.current = true; setTurns(saved); }
+      }
+    } catch { /* private mode: fall back to the suggestion */ }
   }, []);
   const turn = useCallback(() => {
+    chosenRef.current = true;
     setTurns((n) => {
       const next = (n + 1) % 4;
       try { localStorage.setItem('dd-scan-turns', String(next)); } catch { /* ignore */ }
@@ -201,10 +210,19 @@ export function DocScanner({
   const paintFrame = useCallback((ctx: CanvasRenderingContext2D, outW: number, outH: number) => {
     const v = videoRef.current;
     if (!v || !v.videoWidth) return false;
-    const { rotate, drawW, drawH } = coverTransform(v.videoWidth, v.videoHeight, outW, outH, turnsRef.current);
+    const turns = turnsRef.current;
+    const swaps = turns % 2 !== 0;
+    // The canvas has already been given the frame's own shape, so fitting and
+    // filling are the same thing here and NOTHING is cropped. That is the whole
+    // difference from the version that "over-zoomed": it cropped a landscape
+    // frame into a portrait screen and threw away three quarters of the width.
+    const effW = swaps ? v.videoHeight : v.videoWidth;
+    const effH = swaps ? v.videoWidth : v.videoHeight;
+    const scale = Math.min(outW / effW, outH / effH);
+    const drawW = v.videoWidth * scale, drawH = v.videoHeight * scale;
     ctx.save();
     ctx.translate(outW / 2, outH / 2);
-    if (rotate) ctx.rotate(rotate);
+    if (turns) ctx.rotate(turns * (Math.PI / 2));
     ctx.drawImage(v, -drawW / 2, -drawH / 2, drawW, drawH);
     ctx.restore();
     return true;
@@ -223,6 +241,8 @@ export function DocScanner({
       const box = overlay?.getBoundingClientRect();
       if (!box || !box.width || !box.height) return;
       const LONG_EDGE = 2000;
+      // Same shape as the preview, just larger — so the corners the detector
+      // found on screen mean the same thing here.
       const k = LONG_EDGE / Math.max(box.width, box.height);
       const outW = Math.max(1, Math.round(box.width * k));
       const outH = Math.max(1, Math.round(box.height * k));
@@ -281,10 +301,26 @@ export function DocScanner({
       const octx = overlay.getContext('2d');
       if (!octx) return;
 
-      // The visible surface, in CSS pixels and at device resolution.
-      const box = overlay.getBoundingClientRect();
-      const cssW = box.width, cssH = box.height;
+      // Take the shape of the frame, inside whatever space the preview area
+      // has. This is what stops the picture being cropped: the surface is made
+      // to fit the camera, rather than the camera being cut to fit the surface.
+      const holder = overlay.parentElement;
+      if (!holder) return;
+      const avail = holder.getBoundingClientRect();
+      if (!avail.width || !avail.height) return;
+
+      // First frame: adopt the shape-based suggestion unless a choice is stored.
+      if (!chosenRef.current && !suggestedRef.current) {
+        suggestedRef.current = true;
+        const s = suggestedTurns(v.videoWidth, v.videoHeight, avail.width, avail.height);
+        if (s !== turnsRef.current) { turnsRef.current = s; setTurns(s); }
+      }
+
+      const fit = previewBox(v.videoWidth, v.videoHeight, avail.width, avail.height, turnsRef.current);
+      const cssW = fit.w, cssH = fit.h;
       if (!cssW || !cssH) return;
+      if (overlay.style.width !== `${cssW}px`) overlay.style.width = `${cssW}px`;
+      if (overlay.style.height !== `${cssH}px`) overlay.style.height = `${cssH}px`;
       const dpr = window.devicePixelRatio || 1;
       const bw = Math.round(cssW * dpr), bh = Math.round(cssH * dpr);
       if (overlay.width !== bw || overlay.height !== bh) { overlay.width = bw; overlay.height = bh; }
@@ -395,7 +431,7 @@ export function DocScanner({
 
   return (
     <div className="fixed inset-0 z-[100] flex flex-col bg-black" role="dialog" aria-modal="true" aria-label="Document scanner">
-      <div className="relative flex-1 overflow-hidden">
+      <div className="relative flex flex-1 items-center justify-center overflow-hidden">
         <video
           ref={videoRef}
           playsInline
@@ -406,7 +442,7 @@ export function DocScanner({
         />
         {/* The one visible surface: the camera frame is painted here upright,
             then the highlight on top of it. */}
-        <canvas ref={overlayRef} className="absolute inset-0 size-full" />
+        <canvas ref={overlayRef} className="block" />
         {flash && <div aria-hidden className="pointer-events-none absolute inset-0 bg-white/80" />}
 
         {/* close */}
