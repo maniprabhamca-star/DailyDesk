@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { detectDocument, flattenDocument, quadStability, coverTransform, previewBox, suggestedTurns, type Quad, type Point } from '@/lib/doc-scan';
+import { detectDocument, flattenDocument, quadStability, suggestedTurns, fillTransform, type Quad, type Point } from '@/lib/doc-scan';
 
 /* Document detection, tested against frames whose answer is already known.
  *
@@ -197,90 +197,7 @@ describe('quadStability', () => {
   });
 });
 
-describe('coverTransform', () => {
-  it('covers a portrait screen from a landscape frame without rotating by default', () => {
-    // The reported case: a 1280x720 sensor frame on a 390x844 phone. Covering
-    // is unconditionally right — it is what removes the black bands. Rotating
-    // is NOT, because whether the picture inside that frame is upright depends
-    // on the browser, so it is left to the person who can see the screen.
-    const t = coverTransform(1280, 720, 390, 844);
-    expect(t.rotate, 'must not turn the picture on a guess').toBe(0);
-    expect(t.drawW, 'must cover the width, or the bands come back').toBeGreaterThanOrEqual(390 - 0.01);
-    expect(t.drawH, 'must cover the height').toBeGreaterThanOrEqual(844 - 0.01);
-  });
 
-  it('turns the frame when asked, and swaps which side has to cover what', () => {
-    const t = coverTransform(1280, 720, 390, 844, 1);
-    expect(t.rotate).toBeCloseTo(Math.PI / 2);
-    // Turned a quarter, the frame is effectively 720 wide by 1280 tall.
-    expect(t.scale).toBeCloseTo(Math.max(390 / 720, 844 / 1280), 4);
-    // The frame's HEIGHT now spans the screen's width, and vice versa.
-    expect(t.drawH).toBeGreaterThanOrEqual(390 - 0.01);
-    expect(t.drawW).toBeGreaterThanOrEqual(844 - 0.01);
-  });
-
-  it('a half turn covers the same way an untouched frame does', () => {
-    const a = coverTransform(1280, 720, 390, 844, 0);
-    const b = coverTransform(1280, 720, 390, 844, 2);
-    expect(b.scale).toBeCloseTo(a.scale, 6);
-    expect(b.rotate).toBeCloseTo(Math.PI);
-  });
-
-  it('an upright frame on an upright screen covers without fuss', () => {
-    const t = coverTransform(1440, 2560, 390, 844);
-    expect(t.rotate).toBe(0);
-    expect(t.drawW).toBeGreaterThanOrEqual(390 - 0.01);
-    expect(t.drawH).toBeGreaterThanOrEqual(844 - 0.01);
-  });
-
-  it('handles a landscape screen too', () => {
-    const t = coverTransform(1280, 720, 1440, 900);
-    expect(t.rotate).toBe(0);
-    expect(t.drawW).toBeGreaterThanOrEqual(1440 - 0.01);
-    expect(t.drawH).toBeGreaterThanOrEqual(900 - 0.01);
-  });
-});
-
-describe('previewBox', () => {
-  it('shows the WHOLE landscape frame, turned upright, on a portrait phone', () => {
-    // The reported case. 1280x720 turned a quarter is 720x1280; fitted into the
-    // 390x844 preview area that is 390 wide and 693 tall.
-    const b = previewBox(1280, 720, 390, 844, 1);
-    expect(b.w).toBe(390);
-    expect(b.h).toBe(693);
-    // The frame's aspect is preserved exactly — that is what "nothing cropped"
-    // means, and it is the difference from coverTransform.
-    expect(b.w / b.h).toBeCloseTo(720 / 1280, 2);
-  });
-
-  it('uses most of the screen, which the letterboxed version did not', () => {
-    const b = previewBox(1280, 720, 390, 844, 1);
-    const share = (b.w * b.h) / (390 * 844);
-    // Fitting the same frame WITHOUT turning it gave 390x219 — about 26%.
-    expect(share, `preview is ${(share * 100).toFixed(0)}% of the screen`).toBeGreaterThan(0.75);
-  });
-
-  it('never crops: fitting an untouched landscape frame is small but complete', () => {
-    const b = previewBox(1280, 720, 390, 844, 0);
-    expect(b.w).toBe(390);
-    expect(b.h).toBe(219);
-    expect(b.w / b.h).toBeCloseTo(1280 / 720, 2);
-  });
-
-  it('is limited by the narrower dimension, which on a phone is the width', () => {
-    // A 9:16 frame is WIDER in proportion than a 390x844 screen (0.5625 vs
-    // 0.462), so the width runs out first and there is a little space left
-    // under it — which is where the shutter lives.
-    const b = previewBox(1440, 2560, 390, 844, 0);
-    expect(b.w).toBe(390);
-    expect(b.h).toBe(693);
-    expect((b.w * b.h) / (390 * 844)).toBeGreaterThan(0.8);
-  });
-
-  it('survives a camera that reports nothing yet', () => {
-    expect(previewBox(0, 0, 390, 844)).toEqual({ w: 390, h: 844 });
-  });
-});
 
 describe('suggestedTurns', () => {
   it('proposes a quarter turn for a landscape frame on a portrait screen', () => {
@@ -289,5 +206,35 @@ describe('suggestedTurns', () => {
   it('leaves a frame that already matches the screen alone', () => {
     expect(suggestedTurns(1440, 2560, 390, 844)).toBe(0);
     expect(suggestedTurns(1280, 720, 1440, 900)).toBe(0);
+  });
+});
+
+describe('fillTransform', () => {
+  it('turning the frame upright is what makes filling the screen affordable', () => {
+    // The reported case, both ways round. Filling is what a native camera does;
+    // the question is only how much of the frame survives it.
+    const raw = fillTransform(1280, 720, 390, 844, 0);
+    const turned = fillTransform(1280, 720, 390, 844, 1);
+    expect(raw.visibleFraction, 'filling with a sideways frame is the "overzoomed" bug').toBeLessThan(0.3);
+    expect(turned.visibleFraction, 'turned upright first, almost all of it survives').toBeGreaterThan(0.8);
+  });
+
+  it('covers the screen completely — no bands, whichever way it is turned', () => {
+    for (const turns of [0, 1, 2, 3]) {
+      const t = fillTransform(1280, 720, 390, 844, turns);
+      const w = turns % 2 ? t.drawH : t.drawW;
+      const h = turns % 2 ? t.drawW : t.drawH;
+      expect(w, `turns=${turns} must cover the width`).toBeGreaterThanOrEqual(390 - 0.01);
+      expect(h, `turns=${turns} must cover the height`).toBeGreaterThanOrEqual(844 - 0.01);
+    }
+  });
+
+  it('an already-upright frame loses very little', () => {
+    const t = fillTransform(1440, 2560, 390, 844, 0);
+    expect(t.visibleFraction).toBeGreaterThan(0.8);
+  });
+
+  it('survives a camera that has reported nothing yet', () => {
+    expect(fillTransform(0, 0, 390, 844).visibleFraction).toBe(1);
   });
 });

@@ -491,79 +491,7 @@ export function quadStability(a: Quad | null, b: Quad | null, frameDiagonal: num
   return Math.max(0, Math.min(1, 1 - avg * 25));
 }
 
-/**
- * How to paint a camera frame so it fills a target, rotating it upright first
- * when the sensor and the screen disagree about which way is up.
- *
- * Phone cameras hand a browser a LANDSCAPE frame no matter how the phone is
- * being held, and asking for a portrait one in the constraints does not
- * reliably change that — Android ignores it. That leaves two bad options and
- * one good one. Fitting the landscape frame into a portrait screen letterboxes
- * it into a band with the document tiny in the middle. Cropping it to fill
- * throws away most of the frame's width, so the page's own edges end up
- * off-screen. Rotating it upright first is what a native scanner does, and then
- * covering the screen costs almost nothing.
- *
- * Returns the numbers to apply to a canvas: rotate by `rotate` radians about
- * the centre, then draw the frame at `scale`. Callers that use this for BOTH
- * the preview and the capture get one coordinate space for free, which is the
- * real reason it exists — a highlight that is drawn in one space and captured
- * in another is a highlight that floats next to the document.
- */
-export function coverTransform(
-  frameW: number, frameH: number, outW: number, outH: number, quarterTurns = 0,
-): { rotate: number; scale: number; drawW: number; drawH: number } {
-  // Rotation is CALLER-CONTROLLED, and defaults to none, because there is no
-  // way to tell from here whether a landscape frame needs it.
-  //
-  // Some browsers hand back the sensor's own orientation, so a phone held
-  // upright produces a landscape frame whose contents are lying on their side
-  // and rotating is correct. Others correct it first, and the same landscape
-  // frame contains an upright picture — rotating that produces a sideways
-  // preview, which is worse than the letterboxing it was meant to fix. Guessing
-  // gets it right on half the devices in the world.
-  //
-  // So: covering (which is always right) happens automatically, and turning
-  // (which depends on the device) is a control the person holding the phone can
-  // press. They can see which way up it is; this function cannot.
-  const rotate = ((quarterTurns % 4) + 4) % 4 * (Math.PI / 2);
-  const swaps = quarterTurns % 2 !== 0;
-  const effW = swaps ? frameH : frameW;
-  const effH = swaps ? frameW : frameH;
-  const scale = Math.max(outW / effW, outH / effH);
-  return { rotate, scale, drawW: frameW * scale, drawH: frameH * scale };
-}
 
-/**
- * The size a preview should be so the WHOLE camera frame is visible, upright,
- * and as large as the space allows.
- *
- * Neither fitting nor cropping a landscape frame into a portrait screen works.
- * Fitting leaves black bands with the document small in the middle — "the
- * scanner is opening in horizontal mode". Cropping fills the screen but throws
- * away three-quarters of the frame's width, so the page's own edges go
- * off-screen — "the scanner is overzoomed... we cannot use this". Both were
- * shipped and both were right to reject.
- *
- * What a native scanner actually does is turn the frame upright first, at which
- * point it is roughly the shape of the screen, and then give the picture its own
- * area and put the controls in whatever is left. Nothing is cropped, nothing is
- * shrunk to fit around black bars, and the leftover space is useful rather than
- * empty.
- *
- * Returns the box the preview should occupy inside `availW` x `availH`.
- */
-export function previewBox(
-  frameW: number, frameH: number, availW: number, availH: number, quarterTurns = 0,
-): { w: number; h: number } {
-  const swaps = quarterTurns % 2 !== 0;
-  const effW = swaps ? frameH : frameW;
-  const effH = swaps ? frameW : frameH;
-  if (effW <= 0 || effH <= 0) return { w: availW, h: availH };
-  // Fit, not fill: every pixel of the frame stays visible.
-  const scale = Math.min(availW / effW, availH / effH);
-  return { w: Math.round(effW * scale), h: Math.round(effH * scale) };
-}
 
 /**
  * Whether a frame needs turning to sit upright on this screen.
@@ -579,4 +507,39 @@ export function suggestedTurns(frameW: number, frameH: number, screenW: number, 
   const frameLandscape = frameW > frameH;
   const screenLandscape = screenW > screenH;
   return frameLandscape === screenLandscape ? 0 : 1;
+}
+
+/**
+ * Fill a screen with a camera frame, turning it upright first.
+ *
+ * This is what a native camera app does and it is why one looks the way it
+ * does: the picture goes edge to edge and the controls float on top of it.
+ * Google's camera crops the sensor to the screen too — it simply does not show
+ * because Android hands it a frame already turned, so covering a portrait
+ * screen with a portrait frame trims almost nothing.
+ *
+ * The whole difficulty here was doing that with a frame arriving sideways.
+ * Covering a 390x844 screen with an untouched 1280x720 frame keeps 26% of its
+ * width, which is the "overzoomed" complaint. Turning it upright first makes it
+ * 720x1280 — the same shape as the screen — and covering then keeps 82%.
+ *
+ * Returns what to give ctx.drawImage after rotating about the centre, plus how
+ * much of the frame ends up visible, which is the number worth asserting on.
+ */
+export function fillTransform(
+  frameW: number, frameH: number, outW: number, outH: number, quarterTurns = 0,
+): { rotate: number; drawW: number; drawH: number; visibleFraction: number } {
+  const swaps = quarterTurns % 2 !== 0;
+  const effW = swaps ? frameH : frameW;
+  const effH = swaps ? frameW : frameH;
+  if (effW <= 0 || effH <= 0) return { rotate: 0, drawW: outW, drawH: outH, visibleFraction: 1 };
+  const scale = Math.max(outW / effW, outH / effH);
+  const shownW = Math.min(1, outW / (effW * scale));
+  const shownH = Math.min(1, outH / (effH * scale));
+  return {
+    rotate: quarterTurns * (Math.PI / 2),
+    drawW: frameW * scale,
+    drawH: frameH * scale,
+    visibleFraction: shownW * shownH,
+  };
 }

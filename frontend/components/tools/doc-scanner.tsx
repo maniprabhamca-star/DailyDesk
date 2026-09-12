@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { X, Check, Zap, ZapOff, Loader2, RotateCw } from 'lucide-react';
-import { detectDocument, flattenDocument, quadStability, previewBox, suggestedTurns, type Quad } from '@/lib/doc-scan';
+import { detectDocument, flattenDocument, quadStability, fillTransform, suggestedTurns, type Quad } from '@/lib/doc-scan';
 
 /**
  * Full-screen document scanner.
@@ -26,7 +26,7 @@ import { detectDocument, flattenDocument, quadStability, previewBox, suggestedTu
  *
  * ── One coordinate space, on purpose ────────────────────────────────────────
  * The <video> is hidden. Every frame is painted into a canvas through
- * coverTransform(), and the preview, the detector and the capture all read that
+ * fillTransform(), and the preview, the detector and the capture all read that
  * same upright, screen-shaped picture. Earlier versions kept three spaces —
  * detector pixels, sensor pixels, and CSS pixels — and converting between them
  * is where this kind of code goes wrong: a highlight drawn in one space and
@@ -36,7 +36,7 @@ import { detectDocument, flattenDocument, quadStability, previewBox, suggestedTu
  * frame however the phone is held and whatever the constraints ask for, so
  * fitting it to a portrait screen letterboxed it into a band ("the scanner is
  * opening in horizontal mode"), and cropping it to fill cut the page's own
- * edges off. coverTransform rotates it upright first, which is what a native
+ * edges off. fillTransform turns it upright first, which is what a native
  * scanner does, and then covering costs nothing.
  */
 
@@ -148,7 +148,7 @@ export function DocScanner({
         // ignored. Asking for 1440x2560 on an Android phone reliably returns a
         // landscape frame anyway; aspectRatio is the constraint browsers tend to
         // honour, and a stream already shaped like the screen needs no cropping
-        // and no turning. When it is ignored too, coverTransform still fills the
+        // and no turning. When it is ignored too, fillTransform still fills the
         // screen and the rotate control is there for the rest.
         const portrait = window.innerHeight > window.innerWidth;
         const ratio = portrait
@@ -210,19 +210,10 @@ export function DocScanner({
   const paintFrame = useCallback((ctx: CanvasRenderingContext2D, outW: number, outH: number) => {
     const v = videoRef.current;
     if (!v || !v.videoWidth) return false;
-    const turns = turnsRef.current;
-    const swaps = turns % 2 !== 0;
-    // The canvas has already been given the frame's own shape, so fitting and
-    // filling are the same thing here and NOTHING is cropped. That is the whole
-    // difference from the version that "over-zoomed": it cropped a landscape
-    // frame into a portrait screen and threw away three quarters of the width.
-    const effW = swaps ? v.videoHeight : v.videoWidth;
-    const effH = swaps ? v.videoWidth : v.videoHeight;
-    const scale = Math.min(outW / effW, outH / effH);
-    const drawW = v.videoWidth * scale, drawH = v.videoHeight * scale;
+    const { rotate, drawW, drawH } = fillTransform(v.videoWidth, v.videoHeight, outW, outH, turnsRef.current);
     ctx.save();
     ctx.translate(outW / 2, outH / 2);
-    if (turns) ctx.rotate(turns * (Math.PI / 2));
+    if (rotate) ctx.rotate(rotate);
     ctx.drawImage(v, -drawW / 2, -drawH / 2, drawW, drawH);
     ctx.restore();
     return true;
@@ -301,26 +292,21 @@ export function DocScanner({
       const octx = overlay.getContext('2d');
       if (!octx) return;
 
-      // Take the shape of the frame, inside whatever space the preview area
-      // has. This is what stops the picture being cropped: the surface is made
-      // to fit the camera, rather than the camera being cut to fit the surface.
-      const holder = overlay.parentElement;
-      if (!holder) return;
-      const avail = holder.getBoundingClientRect();
-      if (!avail.width || !avail.height) return;
+      // Edge to edge, like a camera app. The controls float on top of the
+      // picture rather than sitting in a bar beside it.
+      const box = overlay.getBoundingClientRect();
+      const cssW = box.width, cssH = box.height;
+      if (!cssW || !cssH) return;
 
       // First frame: adopt the shape-based suggestion unless a choice is stored.
+      // Turning the frame upright is what makes filling the screen affordable —
+      // untouched, a sideways frame loses three quarters of its width to the
+      // crop; turned, it loses almost nothing.
       if (!chosenRef.current && !suggestedRef.current) {
         suggestedRef.current = true;
-        const s = suggestedTurns(v.videoWidth, v.videoHeight, avail.width, avail.height);
+        const s = suggestedTurns(v.videoWidth, v.videoHeight, cssW, cssH);
         if (s !== turnsRef.current) { turnsRef.current = s; setTurns(s); }
       }
-
-      const fit = previewBox(v.videoWidth, v.videoHeight, avail.width, avail.height, turnsRef.current);
-      const cssW = fit.w, cssH = fit.h;
-      if (!cssW || !cssH) return;
-      if (overlay.style.width !== `${cssW}px`) overlay.style.width = `${cssW}px`;
-      if (overlay.style.height !== `${cssH}px`) overlay.style.height = `${cssH}px`;
       const dpr = window.devicePixelRatio || 1;
       const bw = Math.round(cssW * dpr), bh = Math.round(cssH * dpr);
       if (overlay.width !== bw || overlay.height !== bh) { overlay.width = bw; overlay.height = bh; }
@@ -431,7 +417,7 @@ export function DocScanner({
 
   return (
     <div className="fixed inset-0 z-[100] flex flex-col bg-black" role="dialog" aria-modal="true" aria-label="Document scanner">
-      <div className="relative flex flex-1 items-center justify-center overflow-hidden">
+      <div className="relative flex-1 overflow-hidden">
         <video
           ref={videoRef}
           playsInline
@@ -442,7 +428,7 @@ export function DocScanner({
         />
         {/* The one visible surface: the camera frame is painted here upright,
             then the highlight on top of it. */}
-        <canvas ref={overlayRef} className="block" />
+        <canvas ref={overlayRef} className="absolute inset-0 size-full" />
         {flash && <div aria-hidden className="pointer-events-none absolute inset-0 bg-white/80" />}
 
         {/* close */}
@@ -497,37 +483,40 @@ export function DocScanner({
         <span className="sr-only" role="status" aria-live="polite">
           {pageCount === 0 ? 'No pages captured yet' : `${pageCount} ${pageCount === 1 ? 'page' : 'pages'} captured`}
         </span>
-      </div>
 
-      {/* controls */}
-      <div className="flex shrink-0 items-center justify-between gap-4 bg-black px-6 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-5">
-        <div className="flex size-16 items-center justify-center">
-          {lastThumb ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={lastThumb} alt="" className="size-14 rounded-lg border-2 border-white/80 object-cover" />
-          ) : null}
+        {/* Controls float ON the picture, like a camera app — a scrim for
+            legibility rather than a black bar taking a third of the screen. */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-16">
+          <div className="pointer-events-auto flex items-center justify-between gap-4 px-7">
+            <div className="flex size-14 items-center justify-center">
+              {lastThumb ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={lastThumb} alt="" className="size-13 rounded-lg border-2 border-white/80 object-cover" />
+              ) : null}
+            </div>
+
+            <button
+              onClick={() => capture(false)}
+              disabled={!ready}
+              aria-label="Capture page"
+              className="flex size-[74px] items-center justify-center rounded-full border-[5px] border-white bg-transparent disabled:opacity-40 active:scale-95"
+            >
+              <span className="size-[58px] rounded-full bg-white transition-transform active:scale-90" />
+            </button>
+
+            <button
+              onClick={onClose}
+              className="flex size-14 flex-col items-center justify-center gap-1 text-white active:scale-95"
+            >
+              <span className="flex size-10 items-center justify-center rounded-full bg-emerald-600">
+                <Check className="size-5" strokeWidth={3} />
+              </span>
+              <span className="text-[11px] font-semibold">
+                Done{pageCount > 0 ? ` (${pageCount})` : ''}
+              </span>
+            </button>
+          </div>
         </div>
-
-        <button
-          onClick={() => capture(false)}
-          disabled={!ready}
-          aria-label="Capture page"
-          className="flex size-[72px] items-center justify-center rounded-full border-4 border-white bg-white/20 disabled:opacity-40 active:scale-95"
-        >
-          <span className="size-14 rounded-full bg-white" />
-        </button>
-
-        <button
-          onClick={onClose}
-          className="flex size-16 flex-col items-center justify-center gap-1 rounded-xl text-white active:scale-95"
-        >
-          <span className="flex size-9 items-center justify-center rounded-full bg-emerald-600">
-            <Check className="size-5" strokeWidth={3} />
-          </span>
-          <span className="text-[11px] font-semibold">
-            Done{pageCount > 0 ? ` (${pageCount})` : ''}
-          </span>
-        </button>
       </div>
     </div>
   );
