@@ -157,24 +157,36 @@ test.describe('Scan to PDF — the scanner', () => {
     expect(await page.evaluate(() => localStorage.getItem('dd-scan-turns'))).toBe(chosen);
   });
 
-  test('a sideways camera frame is turned upright by itself', async ({ page }) => {
-    // Chromium's fake camera hands over a landscape frame on a 390x844 screen,
-    // which is exactly the case that opened the scanner "in horizontal mode".
-    // It must come out upright without anyone pressing anything — and the
-    // element is sized to the SWAPPED box before being rotated, which is what
-    // lets a turned picture still reach every edge.
+  test('nothing turns the picture on its own', async ({ page }) => {
+    // Two automatic rules shipped here and both were disproved on the owner's
+    // phone, in OPPOSITE directions — the second came back as "the camera angle
+    // is totally inverted". The shapes do not carry the answer: a phone can
+    // hand over a wide frame whose content is already upright. So the preview
+    // must be exactly what the browser renders until someone presses rotate.
     await openScanner(page);
     const shape = await page.locator('video').evaluate((v: HTMLVideoElement) => ({
       frameLandscape: v.videoWidth > v.videoHeight,
       transform: getComputedStyle(v).transform,
-      elW: parseFloat(getComputedStyle(v).width),
-      elH: parseFloat(getComputedStyle(v).height),
-      rect: v.getBoundingClientRect().width + 'x' + v.getBoundingClientRect().height,
     }));
     expect(shape.frameLandscape, 'the fake camera is landscape — the premise of this test').toBe(true);
-    // rotate(90deg) is matrix(0, 1, -1, 0, …); an unrotated element is matrix(1, 0, …).
-    expect(shape.transform, 'a landscape frame on an upright screen must be turned').toMatch(/^matrix\(0,/);
-    expect(shape.elW, 'the element is laid out sideways, then rotated into place').toBeGreaterThan(shape.elH);
+    // rotate(90deg) would be matrix(0, 1, -1, 0, …); untouched is matrix(1, 0, …).
+    expect(shape.transform, 'a landscape frame must NOT be turned behind the user’s back').toMatch(/^matrix\(1,/);
+
+    // And pressing rotate must visibly do something, since it is now the only
+    // way a sideways camera gets corrected.
+    await page.getByRole('button', { name: /rotate the camera picture/i }).click();
+    await expect
+      .poll(async () => page.locator('video').evaluate((v: HTMLVideoElement) => getComputedStyle(v).transform))
+      .toMatch(/^matrix\(0,/);
+  });
+
+  test('the "Scan document" chip appears only once a document is detected', async ({ page }) => {
+    // Asked for directly. The fake camera shows a rolling pattern, not a page,
+    // so detection legitimately finds nothing and the chip must stay away —
+    // a label that is always on screen is decoration, not feedback.
+    const dialog = await openScanner(page);
+    await expect(dialog.getByText(/point the camera at your document/i)).toBeVisible();
+    await expect(dialog.getByText('Scan document', { exact: true })).toHaveCount(0);
   });
 
   test('a screen-reader is told the count', async ({ page }) => {

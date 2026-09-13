@@ -34,8 +34,30 @@ export type Quad = [Point, Point, Point, Point];
 
 /** How much of the frame a candidate must cover before it is believable. */
 const MIN_AREA_FRACTION = 0.12;
-/** ...and how much is so much that it is probably the frame border itself. */
-const MAX_AREA_FRACTION = 0.98;
+/**
+ * ...and how much is so much that it is probably the frame border itself.
+ *
+ * 0.98 was too generous and it showed: point the camera at a bare desk and the
+ * detector drew a confident green rectangle round the whole screen. The image
+ * boundary is a perfect rectangle, so it passes the shape test better than any
+ * real page does — and with no document present, grain is the strongest signal
+ * there is. A page someone is photographing always leaves some margin.
+ */
+const MAX_AREA_FRACTION = 0.9;
+/**
+ * A quad every one of whose corners sits this close to the edge of the picture
+ * is the picture, not a page in it. Belt and braces with the area cap above,
+ * because a frame-shaped quad inset by a few pixels would slip under it.
+ */
+const FRAME_MARGIN_FRACTION = 0.04;
+/**
+ * Mean grey-level step across the outline, below which there is no real edge
+ * there. Paper on a desk clears this by a wide margin even in poor light; grain
+ * on a bare desk scores close to zero, because inside and outside are the same
+ * desk. Deliberately low — the job is to refuse nothing, not to insist on
+ * bright white paper.
+ */
+const MIN_EDGE_CONTRAST = 10;
 /** Working width for detection. Big enough to keep page edges, small enough to be cheap. */
 const WORK_WIDTH = 320;
 
@@ -355,6 +377,45 @@ function quadFromContour(rawContour: Point[]): { quad: Point[]; fit: number } | 
  * factor. Null means nothing convincing was found — which is a normal answer,
  * not a failure, and the UI should say "no document yet" rather than guess.
  */
+/**
+ * How strong a luminance step there actually is along a candidate's outline.
+ *
+ * The shape tests answer "is this a rectangle"; they cannot answer "is there
+ * anything here". On a bare desk the contour tracer will happily find a
+ * rectangle in grain, and it passes every shape test there is — which is what
+ * put a locked green outline around an empty table, with the document long
+ * since taken away.
+ *
+ * A sheet of paper has a physical boundary: sample just inside and just outside
+ * the outline and the two differ. Noise does not — inside and outside are the
+ * same desk. Returns the mean absolute difference in grey levels, 0-255.
+ */
+function edgeContrast(gray: Float32Array, w: number, h: number, q: Quad, probe = 3): number {
+  const cx = (q[0].x + q[1].x + q[2].x + q[3].x) / 4;
+  const cy = (q[0].y + q[1].y + q[2].y + q[3].y) / 4;
+  const at = (x: number, y: number) => {
+    const ix = Math.max(0, Math.min(w - 1, Math.round(x)));
+    const iy = Math.max(0, Math.min(h - 1, Math.round(y)));
+    return gray[iy * w + ix];
+  };
+  let total = 0, n = 0;
+  for (let e = 0; e < 4; e++) {
+    const a = q[e], b = q[(e + 1) % 4];
+    for (let s = 1; s < 8; s++) {
+      const t = s / 8;
+      const px = a.x + (b.x - a.x) * t, py = a.y + (b.y - a.y) * t;
+      // Outward is away from the middle of the quad — good enough for a convex
+      // shape, and these have already been checked for convexity.
+      const ox = px - cx, oy = py - cy;
+      const len = Math.hypot(ox, oy) || 1;
+      const nx = (ox / len) * probe, ny = (oy / len) * probe;
+      total += Math.abs(at(px - nx, py - ny) - at(px + nx, py + ny));
+      n++;
+    }
+  }
+  return n ? total / n : 0;
+}
+
 export function detectDocument(frame: ImageData): Quad | null {
   const { width: fw, height: fh } = frame;
   if (fw < 32 || fh < 32) return null;
@@ -374,7 +435,8 @@ export function detectDocument(frame: ImageData): Quad | null {
     }
   }
 
-  const bin = edges(blur(toGray(small, w, h), w, h), w, h);
+  const gray = blur(toGray(small, w, h), w, h);
+  const bin = edges(gray, w, h);
   const frameArea = w * h;
   let best: { quad: Quad; area: number } | null = null;
 
@@ -392,12 +454,20 @@ export function detectDocument(frame: ImageData): Quad | null {
       const area = polygonArea(pts);
       if (area < frameArea * MIN_AREA_FRACTION || area > frameArea * MAX_AREA_FRACTION) continue;
 
+      // Reject the picture's own border masquerading as a page.
+      const mx = w * FRAME_MARGIN_FRACTION, my = h * FRAME_MARGIN_FRACTION;
+      if (pts.every((p) => (p.x < mx || p.x > w - mx) && (p.y < my || p.y > h - my))) continue;
+
       // Reject slivers: a page seen from any usable angle still has sides that
       // are within about 6:1 of each other.
       const q = orderCorners(pts);
       const sides = [dist(q[0], q[1]), dist(q[1], q[2]), dist(q[2], q[3]), dist(q[3], q[0])];
       const shortest = Math.min(...sides), longest = Math.max(...sides);
       if (shortest <= 0 || longest / shortest > 6) continue;
+
+      // Finally: is there actually an edge there, or is this a rectangle drawn
+      // in noise? Everything above this line can be satisfied by an empty desk.
+      if (edgeContrast(gray, w, h, q) < MIN_EDGE_CONTRAST) continue;
 
       if (!best || area > best.area) best = { quad: q, area };
     }
@@ -529,27 +599,30 @@ export function quadStability(a: Quad | null, b: Quad | null, frameDiagonal: num
 
 
 /**
- * Which way up the camera's picture needs turning, in quarter turns.
+ * Damp the detected outline so it stops dancing.
  *
- * Guessed once before and it was wrong, so be precise about what is guessed.
- * The earlier attempt turned the frame whenever the phone was upright, which
- * broke every browser that had ALREADY turned it — the picture came out on its
- * side. This compares the two shapes instead:
+ * Edge detection re-decides the corners from scratch on every frame, and camera
+ * noise moves each one a few pixels each time. Drawn raw, the outline shimmers
+ * — reported as "fluctuating and dancing very frequently and not stable" — and
+ * the flattened page inherits whichever jitter happened to be on the shutter
+ * frame. An exponential blend fixes both: the outline settles, and the corners
+ * that get captured are an average rather than one noisy sample.
  *
- *   frame landscape + screen portrait  -> the browser did not turn it. Turn it.
- *   frame portrait  + screen portrait  -> already upright. Leave it alone.
- *
- * So a browser that hands over an upright frame is untouched, which is the case
- * that regressed. Square frames and missing dimensions mean no turn.
- *
- * It is still only a suggestion: a phone held sideways deliberately, or a webcam
- * mounted rotated, can defeat it, which is why the scanner keeps a manual
- * control and remembers what was chosen.
+ * Blending unconditionally would be worse than the jitter, though: showing a
+ * new sheet would crawl the outline across the screen over half a second. So a
+ * corner that has moved further than `snap` of the frame diagonal is treated as
+ * a different document and adopted immediately.
  */
-export function uprightTurns(frameW: number, frameH: number, screenW: number, screenH: number): 0 | 1 {
-  if (frameW <= 0 || frameH <= 0 || screenW <= 0 || screenH <= 0) return 0;
-  if (frameW === frameH || screenW === screenH) return 0;
-  return (frameW > frameH) === (screenW > screenH) ? 0 : 1;
+export function smoothQuad(
+  prev: Quad | null, next: Quad, frameDiagonal: number, alpha = 0.3, snap = 0.12,
+): Quad {
+  if (!prev || frameDiagonal <= 0) return next;
+  for (let i = 0; i < 4; i++) if (dist(prev[i], next[i]) > frameDiagonal * snap) return next;
+  const a = Math.max(0, Math.min(1, alpha));
+  return prev.map((p, i) => ({
+    x: p.x + (next[i].x - p.x) * a,
+    y: p.y + (next[i].y - p.y) * a,
+  })) as Quad;
 }
 
 /**
@@ -560,11 +633,10 @@ export function uprightTurns(frameW: number, frameH: number, screenW: number, sc
  * capture then have exactly one job: sample the same rectangle CSS is showing.
  * That is this function, and it is the ONLY place the two can disagree.
  *
- * Cover crops, and cropping was complained about twice — but what was actually
- * complained about was cropping a SIDEWAYS frame to an upright screen, which
- * throws away three quarters of it. Turn it upright first (uprightTurns) and a
- * 9:16 frame on a 9:19.5 screen keeps 82% of its area, which is what a phone
- * camera app looks like. Letterboxing instead is the band that was rejected.
+ * Cover crops, and cropping was complained about twice — but a browser that has
+ * already turned the frame for us hands over a 9:16 picture, and covering a
+ * 9:19.5 screen with that keeps 82% of it, which is what a phone camera app
+ * looks like. Letterboxing instead is the band that was rejected.
  */
 export function coverCrop(
   frameW: number, frameH: number, boxW: number, boxH: number,

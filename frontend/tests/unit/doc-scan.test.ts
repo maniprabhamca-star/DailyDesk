@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { detectDocument, flattenDocument, quadStability, coverCrop, uprightTurns, type Quad, type Point } from '@/lib/doc-scan';
+import { detectDocument, flattenDocument, quadStability, coverCrop, smoothQuad, type Quad, type Point } from '@/lib/doc-scan';
 
 /* Document detection, tested against frames whose answer is already known.
  *
@@ -122,6 +122,28 @@ describe('detectDocument', () => {
     expect(detectDocument(empty)).toBeNull();
   });
 
+  it('does not mistake the edge of the picture for a page', () => {
+    // Found in the running scanner: with the document taken away, the outline
+    // stayed on screen and locked green around the whole frame. The image
+    // boundary is a PERFECT rectangle, so it passes the shape test better than
+    // any real page — and with nothing else in view, grain is the strongest
+    // signal there is. Both the area cap and the border test must refuse it.
+    const edgeToEdge: Quad = [{ x: 1, y: 1 }, { x: 638, y: 1 }, { x: 638, y: 778 }, { x: 1, y: 778 }];
+    expect(detectDocument(synthFrame(640, 780, edgeToEdge))).toBeNull();
+
+    // Inset by a few pixels is the same thing and must also be refused.
+    const almost: Quad = [{ x: 8, y: 10 }, { x: 631, y: 10 }, { x: 631, y: 770 }, { x: 8, y: 770 }];
+    expect(detectDocument(synthFrame(640, 780, almost))).toBeNull();
+  });
+
+  it('still finds a page held close, filling most of the frame', () => {
+    // The other side of that cap: someone scanning a full sheet fills the
+    // viewfinder with it, and refusing THAT would be the worse bug.
+    const big: Quad = [{ x: 40, y: 50 }, { x: 600, y: 50 }, { x: 600, y: 730 }, { x: 40, y: 730 }];
+    const found = detectDocument(synthFrame(640, 780, big));
+    expect(found, 'a page at 76% of the frame is a page, not the frame').not.toBeNull();
+  });
+
   it('ignores something far too small to be the page being scanned', () => {
     // A business card on the desk: real, high-contrast, and not what you are
     // scanning. MIN_AREA_FRACTION is what keeps the highlight off it.
@@ -200,30 +222,56 @@ describe('quadStability', () => {
 
 
 
-describe('uprightTurns', () => {
-  it('leaves a frame the browser already turned alone — the regression', () => {
-    // A portrait frame on a portrait phone is a browser that applied the sensor
-    // rotation itself. The previous auto-turn rotated regardless and laid the
-    // preview on its side on a real phone. This case must return 0.
-    expect(uprightTurns(1080, 1920, 390, 844)).toBe(0);
-    expect(uprightTurns(720, 1280, 390, 844)).toBe(0);
+describe('smoothQuad', () => {
+  const at = (x: number, y: number): Quad => [
+    { x, y }, { x: x + 200, y }, { x: x + 200, y: y + 280 }, { x, y: y + 280 },
+  ];
+  const diag = Math.hypot(480, 812);
+  const spread = (a: Quad, b: Quad) => Math.max(...a.map((p, i) => Math.hypot(p.x - b[i].x, p.y - b[i].y)));
+
+  it('damps camera jitter — the "dancing" report', () => {
+    // A stationary page whose corners are re-decided every frame with a few
+    // pixels of noise on each. Raw, the outline shimmers by the full noise
+    // amplitude; smoothed, by a fraction of it.
+    const truth = at(100, 200);
+    const noisy = (f: number) => truth.map((p) => ({
+      x: p.x + (f % 2 ? 4 : -4),
+      y: p.y + (f % 3 ? 3 : -3),
+    })) as Quad;
+
+    let held: Quad | null = null;
+    let smoothed = 0, rawShimmer = 0;
+    for (let f = 0; f < 40; f++) {
+      if (f) rawShimmer = Math.max(rawShimmer, spread(noisy(f - 1), noisy(f)));
+      const next = smoothQuad(held, noisy(f), diag);
+      if (held) smoothed = Math.max(smoothed, spread(held, next));
+      held = next;
+    }
+    // The property that matters is the RATIO: what the eye reads as dancing is
+    // how far the outline moves between frames while the page sits still.
+    expect(smoothed, `raw shimmer ${rawShimmer.toFixed(1)}px`).toBeLessThan(rawShimmer / 3);
   });
 
-  it('turns a frame the browser did not', () => {
-    // Landscape out of the camera, upright screen — the only case it can prove.
-    expect(uprightTurns(1280, 720, 390, 844)).toBe(1);
-    expect(uprightTurns(1920, 1080, 390, 844)).toBe(1);
+  it('settles onto a page that has stopped moving', () => {
+    const truth = at(100, 200);
+    let held: Quad | null = at(140, 250);
+    for (let f = 0; f < 40; f++) held = smoothQuad(held, truth, diag);
+    expect(spread(held!, truth), 'it must converge, not orbit').toBeLessThan(0.5);
   });
 
-  it('reads a landscape screen the same way round', () => {
-    expect(uprightTurns(1280, 720, 844, 390)).toBe(0);
-    expect(uprightTurns(720, 1280, 844, 390)).toBe(1);
+  it('snaps to a different sheet instead of crawling across the screen', () => {
+    // Blending unconditionally would drag the outline over half a second every
+    // time a new page is presented, which looks broken in its own way.
+    const first = at(60, 120);
+    const second = at(60, 600);
+    const out = smoothQuad(first, second, diag);
+    expect(spread(out, second), 'a big jump is adopted immediately').toBe(0);
   });
 
-  it('never guesses without evidence', () => {
-    expect(uprightTurns(1000, 1000, 390, 844), 'square frame').toBe(0);
-    expect(uprightTurns(1280, 720, 500, 500), 'square screen').toBe(0);
-    expect(uprightTurns(0, 0, 390, 844), 'camera has reported nothing yet').toBe(0);
+  it('adopts the first outline as-is and survives a missing diagonal', () => {
+    const q = at(10, 10);
+    expect(smoothQuad(null, q, diag)).toBe(q);
+    expect(smoothQuad(at(0, 0), q, 0)).toBe(q);
   });
 });
 

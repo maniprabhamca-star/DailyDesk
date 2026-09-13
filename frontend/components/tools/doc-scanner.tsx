@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { X, Check, Zap, ZapOff, Loader2, RotateCw, ScanLine } from 'lucide-react';
-import { detectDocument, flattenDocument, quadStability, coverCrop, uprightTurns, type Quad } from '@/lib/doc-scan';
+import { detectDocument, flattenDocument, quadStability, coverCrop, smoothQuad, type Quad } from '@/lib/doc-scan';
 
 /**
  * Full-screen document scanner.
@@ -24,10 +24,18 @@ import { detectDocument, flattenDocument, quadStability, coverCrop, uprightTurns
  * (lib/doc-scan coverCrop) for detection and for capture. One formula, used by
  * both, so the highlight cannot drift off the page it is drawn around.
  *
- * uprightTurns still offers a quarter turn, but only for the case it can prove:
- * a landscape frame on an upright screen is a browser that did not rotate. A
- * portrait frame is left alone — that is the case the last auto-turn broke.
- * Whoever is holding the phone can override it, and the choice is remembered.
+ * ── Rotation is a control, never a guess. Twice now. ───────────────────────
+ * A rule that turned a landscape frame on an upright screen shipped here and
+ * came back as "the camera angle is totally inverted". It was the second
+ * automatic rule to be disproved on the same phone, in the opposite direction
+ * to the first. The shapes do not carry the answer: a phone can hand over a
+ * wide frame whose CONTENT is already the right way up, and nothing in
+ * 1280x720 distinguishes that from a frame lying on its side.
+ *
+ * So the picture is shown exactly as the browser renders it, and the quarter
+ * turn belongs to whoever is holding the phone — they can see which way up it
+ * is and this code cannot. The button shows the turn it is on, so a wrong one
+ * is obvious rather than mysterious, and the choice is remembered per device.
  */
 
 /** Detector input width. Bigger is not better — lib/doc-scan downsamples anyway. */
@@ -38,6 +46,23 @@ const DETECT_INTERVAL = 80;
 const STEADY_FRAMES_NEEDED = 8;
 /** Below this, the page is still being moved. */
 const STEADY_THRESHOLD = 0.82;
+/**
+ * Frames the last outline survives a detection miss before it is dropped.
+ *
+ * Detection misses the odd frame on a real desk — a hand shadow, a reflection,
+ * one bad exposure — and hiding the outline each time is half of what reads as
+ * "dancing". ~0.4s of memory covers the gaps without leaving a stale rectangle
+ * on screen after the page has actually gone.
+ */
+const HOLD_FRAMES = 5;
+/**
+ * Consecutive detections before an outline is shown at all.
+ *
+ * The other half of the hysteresis. Without it a single lucky frame of grain
+ * lights up a green rectangle, which is the flicker the owner saw from the
+ * other direction: appearing when there was nothing there.
+ */
+const HITS_TO_SHOW = 2;
 /** Longest edge of a captured page, in pixels — never upscaled past the sensor. */
 const CAPTURE_LONG_EDGE = 2000;
 
@@ -65,6 +90,10 @@ export function DocScanner({
   const [auto, setAuto] = useState(true);
   const [flash, setFlash] = useState(false);
   const [hint, setHint] = useState('Point the camera at your document');
+  // Drives the chip: the owner asked for it only once a page is actually on
+  // screen — a permanent label is decoration, the same label appearing the
+  // moment the outline locks on is feedback.
+  const [found, setFound] = useState(false);
 
   // The viewport the preview fills. Measured, not assumed — a phone's browser
   // chrome slides away as you scroll and 100vh lies about it on iOS.
@@ -87,30 +116,25 @@ export function DocScanner({
     return () => ro.disconnect();
   }, []);
 
-  // Quarter turns applied to the camera picture. Suggested once from the two
-  // shapes, overridable, remembered — a device that needs it needs it always.
+  // Quarter turns applied to the camera picture. Set by hand only, and
+  // remembered — a device that needs it needs it every time.
   const [turns, setTurns] = useState(0);
   const turnsRef = useRef(0);
   useEffect(() => { turnsRef.current = turns; }, [turns]);
-  const chosenRef = useRef(false);
-  const suggestedRef = useRef(false);
+  const reportedRef = useRef(false);
   // Shown in the corner. What the camera actually handed over differs by phone
   // and by browser, and every wrong layout so far came from assuming it.
   const [streamInfo, setStreamInfo] = useState('');
   useEffect(() => {
     try {
-      // getItem returns null when nothing is stored, and Number(null) is 0 —
-      // which read as "the person chose not to rotate" and suppressed the
-      // suggestion entirely. Check for the absence first.
       const raw = localStorage.getItem('dd-scan-turns');
       if (raw !== null) {
         const saved = Number(raw);
-        if (Number.isInteger(saved) && saved >= 0 && saved < 4) { chosenRef.current = true; setTurns(saved); }
+        if (Number.isInteger(saved) && saved >= 0 && saved < 4) setTurns(saved);
       }
-    } catch { /* private mode: fall back to the suggestion */ }
+    } catch { /* private mode: start from no turn */ }
   }, []);
   const turn = useCallback(() => {
-    chosenRef.current = true;
     setTurns((n) => {
       const next = (n + 1) % 4;
       try { localStorage.setItem('dd-scan-turns', String(next)); } catch { /* ignore */ }
@@ -120,8 +144,13 @@ export function DocScanner({
 
   // Refs, not state: the detection loop reads these every frame and re-running
   // it on every React render would defeat the throttle entirely.
+  // quadRef is the SMOOTHED outline — what is drawn, and what is captured.
+  // Capturing the raw per-frame corners meant the page inherited whatever
+  // jitter happened to land on the shutter frame.
   const quadRef = useRef<Quad | null>(null);
   const prevQuadRef = useRef<Quad | null>(null);
+  const missesRef = useRef(0);
+  const hitsRef = useRef(0);
   const steadyRef = useRef(0);
   const autoRef = useRef(auto);
   const busyRef = useRef(false);
@@ -301,15 +330,11 @@ export function DocScanner({
       const octx = overlay.getContext('2d');
       if (!octx) return;
 
-      // First frame with real dimensions: report them, and offer the turn if
-      // the two shapes prove the browser did not apply one.
-      if (!suggestedRef.current) {
-        suggestedRef.current = true;
+      // First frame with real dimensions: report them. Nothing is decided from
+      // them — see the rotation note at the top of this file.
+      if (!reportedRef.current) {
+        reportedRef.current = true;
         setStreamInfo(`${v.videoWidth}×${v.videoHeight}`);
-        if (!chosenRef.current) {
-          const want = uprightTurns(v.videoWidth, v.videoHeight, box.w, box.h);
-          if (want) setTurns(want);
-        }
       }
 
       // The overlay covers the whole preview and carries ONLY the highlight —
@@ -332,14 +357,32 @@ export function DocScanner({
       if (!dctx) return;
       if (!paintFrame(dctx, dw, dh)) return;
 
-      const quad = detectDocument(dctx.getImageData(0, 0, dw, dh));
+      const raw = detectDocument(dctx.getImageData(0, 0, dw, dh));
       const diagonal = Math.hypot(dw, dh);
+
+      // Hysteresis both ways, then damping. Between them these are the whole of
+      // "fluctuating and dancing": an outline that needs corroborating before it
+      // appears, survives a dropped frame or two, and moves smoothly in between.
+      if (raw) {
+        missesRef.current = 0;
+        hitsRef.current += 1;
+        if (hitsRef.current >= HITS_TO_SHOW) quadRef.current = smoothQuad(quadRef.current, raw, diagonal);
+      } else if (quadRef.current && missesRef.current < HOLD_FRAMES) {
+        missesRef.current += 1;
+      } else {
+        hitsRef.current = 0;
+        quadRef.current = null;
+      }
+      const quad = quadRef.current;
+
+      // Steadiness is measured on the smoothed outline, so noise alone can no
+      // longer keep resetting the count and blocking automatic capture.
       const stability = quadStability(quad, prevQuadRef.current, diagonal);
       prevQuadRef.current = quad;
-      quadRef.current = quad;
 
-      if (quad && stability >= STEADY_THRESHOLD) steadyRef.current += 1;
-      else steadyRef.current = 0;
+      if (quad && raw && stability >= STEADY_THRESHOLD) steadyRef.current += 1;
+      else if (!quad) steadyRef.current = 0;
+      setFound(!!quad);
 
       // Re-arm auto-capture once there is evidence of a different sheet.
       if (!quad) {
@@ -470,13 +513,21 @@ export function DocScanner({
           </span>
         )}
 
-        {/* turn the picture upright */}
+        {/* Turn the picture upright. Nothing turns it automatically — two
+            different automatic rules were disproved on a real phone, in
+            opposite directions. The badge shows the turn it is on so a wrong
+            one is visibly a setting rather than a mystery. */}
         <button
           onClick={turn}
           aria-label="Rotate the camera picture"
           className="absolute left-4 top-[4.75rem] flex size-11 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur active:scale-95"
         >
           <RotateCw className="size-5" />
+          {turns > 0 && (
+            <span className="absolute -right-1 -top-1 rounded-full bg-primary px-1.5 py-px text-[9px] font-bold leading-tight text-primary-foreground">
+              {turns * 90}°
+            </span>
+          )}
         </button>
 
         {/* auto-capture toggle */}
@@ -489,15 +540,19 @@ export function DocScanner({
           {auto ? 'Auto' : 'Manual'}
         </button>
 
-        {/* Mode chip and guidance, floating over the picture. The chip says
-            what this screen is for at a glance — the reference app has the same
-            thing and it is the first thing you read. */}
+        {/* Guidance, floating over the picture. The white chip appears only
+            once a page is actually detected — asked for directly: "don't show
+            the scan document chip always, it should show only when the document
+            has been detected". Sitting there permanently it was a label; timed
+            to the outline it tells you the scanner has found something. */}
         {!error && (
           <div className="pointer-events-none absolute inset-x-0 bottom-32 flex flex-col items-center gap-2 px-4">
-            <span className="flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-neutral-900 shadow-lg">
-              <ScanLine className="size-4 text-primary" />
-              Scan document
-            </span>
+            {found && (
+              <span className="flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-neutral-900 shadow-lg">
+                <ScanLine className="size-4 text-primary" />
+                Scan document
+              </span>
+            )}
             <span className="rounded-full bg-black/60 px-3.5 py-1.5 text-[13px] font-medium text-white backdrop-blur">
               {ready ? hint : 'Starting camera…'}
             </span>
