@@ -1,11 +1,11 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
-import { Camera, Loader2, Download, Trash2, ScanLine, RotateCw } from 'lucide-react';
+import { Camera, Loader2, Download, Trash2, ScanLine, RotateCw, ChevronUp, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { downloadBlob } from '@/lib/download';
 import { KeepGoing } from '@/components/app/keep-going';
-import { processFrame, pageFromImageData, buildScanPdf, type ScanPage } from '@/lib/scan-to-pdf';
+import { processFrame, pageFromImageData, buildScanPdf, rotatePage, type ScanPage } from '@/lib/scan-to-pdf';
 import { DocScanner, type ScannerCapture } from '@/components/tools/doc-scanner';
 import { rasterize, describeImageFailure, isHeic, readPickedFile, toSource } from '@/lib/image-for-pdf';
 
@@ -93,6 +93,20 @@ export function ScanToPdfTool() {
   }, [enhance]);
 
   const remove = (id: string) => setPages((p) => p.filter((x) => x.id !== id));
+  // Turning a page happens HERE, not in the camera. The scanner has no rotate
+  // control any more — turning a live preview was got wrong three times, and
+  // the reason is that a moving picture gives you nothing to judge "right"
+  // against. A captured page does: tap, look at the thumbnail, done.
+  const rotate = useCallback(async (id: string) => {
+    const page = pages.find((x) => x.id === id);
+    if (!page) return;
+    try {
+      const turned = await rotatePage(page);
+      setPages((p) => p.map((x) => (x.id === id ? turned : x)));
+    } catch (err) {
+      setNote(err instanceof Error ? err.message : 'Could not turn that page.');
+    }
+  }, [pages]);
   const move = (id: string, dir: -1 | 1) => setPages((p) => {
     const i = p.findIndex((x) => x.id === id); const j = i + dir;
     if (i < 0 || j < 0 || j >= p.length) return p;
@@ -156,16 +170,20 @@ export function ScanToPdfTool() {
             <span className="rounded-full border bg-muted/40 px-2 py-0.5 text-[11px] text-muted-foreground">{pages.length}</span>
           </div>
           <div className="mt-3 flex-1 space-y-2 overflow-auto" style={{ maxHeight: 340 }}>
-            {pages.length === 0 && <p className="py-8 text-center text-xs text-muted-foreground">Captured pages show here — reorder or delete before you save.</p>}
+            {pages.length === 0 && <p className="py-8 text-center text-xs text-muted-foreground">Captured pages show here — reorder, turn or delete them before you save.</p>}
             {pages.map((p, i) => (
               <div key={p.id} className="group flex items-center gap-2 rounded-lg border bg-muted/20 p-1.5">
                 <span className="w-5 text-center text-[11px] font-semibold text-muted-foreground">{i + 1}</span>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={p.dataUrl} alt={`Page ${i + 1}`} className="h-14 w-11 rounded border bg-white object-cover" />
                 <div className="ml-auto flex items-center gap-0.5">
-                  <button onClick={() => move(p.id, -1)} disabled={i === 0} className="rounded p-1 text-muted-foreground hover:text-foreground disabled:opacity-30" aria-label="Move up"><RotateCw className="size-3.5 -rotate-90" /></button>
-                  <button onClick={() => move(p.id, 1)} disabled={i === pages.length - 1} className="rounded p-1 text-muted-foreground hover:text-foreground disabled:opacity-30" aria-label="Move down"><RotateCw className="size-3.5 rotate-90" /></button>
-                  <button onClick={() => remove(p.id)} className="rounded p-1 text-muted-foreground hover:text-red-600" aria-label="Delete page"><Trash2 className="size-3.5" /></button>
+                  {/* Chevrons for reorder, a rotate glyph for rotate. These
+                      were all the same RotateCw icon before, which made "move
+                      up" and "turn the page" look like the same control. */}
+                  <button onClick={() => move(p.id, -1)} disabled={i === 0} className="rounded p-1 text-muted-foreground hover:text-foreground disabled:opacity-30" aria-label={`Move page ${i + 1} up`}><ChevronUp className="size-4" /></button>
+                  <button onClick={() => move(p.id, 1)} disabled={i === pages.length - 1} className="rounded p-1 text-muted-foreground hover:text-foreground disabled:opacity-30" aria-label={`Move page ${i + 1} down`}><ChevronDown className="size-4" /></button>
+                  <button onClick={() => void rotate(p.id)} className="rounded p-1 text-muted-foreground hover:text-foreground" aria-label={`Turn page ${i + 1} a quarter turn`}><RotateCw className="size-3.5" /></button>
+                  <button onClick={() => remove(p.id)} className="rounded p-1 text-muted-foreground hover:text-red-600" aria-label={`Delete page ${i + 1}`}><Trash2 className="size-3.5" /></button>
                 </div>
               </div>
             ))}

@@ -40,6 +40,36 @@ export function processFrame(source: CanvasImageSource, sw: number, sh: number, 
   return { id: newId(), dataUrl, w, h };
 }
 
+/**
+ * Turn a captured page a quarter turn clockwise.
+ *
+ * This is where rotation belongs, and the scanner no longer has any: turning
+ * the live camera preview was tried three times and went wrong three times,
+ * because nobody can see whether a moving picture is "right" until they have
+ * something to compare it against. A captured page is still, the thumbnail
+ * shows the result immediately, and a wrong tap costs one more tap.
+ */
+export async function rotatePage(page: ScanPage): Promise<ScanPage> {
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const i = new Image();
+    i.onload = () => resolve(i);
+    i.onerror = () => reject(new Error('Could not re-open this page to turn it.'));
+    i.src = page.dataUrl;
+  });
+  const w = img.naturalHeight || page.h, h = img.naturalWidth || page.w;
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d')!;
+  ctx.translate(w / 2, h / 2);
+  ctx.rotate(Math.PI / 2);
+  ctx.drawImage(img, -h / 2, -w / 2);
+  const dataUrl = c.toDataURL('image/jpeg', 0.82);
+  c.width = c.height = 0;
+  // Same id: this is the same page, turned — not a new one. Keeping the id
+  // means it stays where it is in the list instead of jumping to the end.
+  return { id: page.id, dataUrl, w, h };
+}
+
 const dataUrlToBytes = (u: string): Uint8Array => {
   const b64 = u.slice(u.indexOf(',') + 1);
   const bin = atob(b64);

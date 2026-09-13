@@ -133,51 +133,84 @@ test.describe('Scan to PDF — the scanner', () => {
     await expect(toggle).toHaveAttribute('aria-pressed', 'false');
   });
 
-  test('the picture can be turned, and the choice is remembered', async ({ page }) => {
-    // Which way up a camera frame arrives depends on the browser — some hand
-    // over the sensor's own orientation, some correct it first. uprightTurns
-    // suggests a quarter turn only when the two shapes prove one is missing;
-    // this control is the override, and it has to persist, because a device
-    // that needs it needs it every single time.
+  test('the preview is never turned, scaled or moved by this code', async ({ page }) => {
+    // THE regression to guard. Three rounds went on rotation: two automatic
+    // rules disproved in opposite directions, then a manual control whose
+    // stored choice turned the preview on every later visit — "the camera is
+    // really inverted". The requirement, as stated: "the position should not
+    // change unless I tilt the phone."
+    //
+    // A browser already does that with a <video> it renders itself. Anything
+    // this component adds — a transform, a measured pixel size — is what breaks
+    // it, so the assertion is that it adds nothing.
     await openScanner(page);
-    await page.getByRole('button', { name: /rotate the camera picture/i }).click();
-    const chosen = await page.evaluate(() => localStorage.getItem('dd-scan-turns'));
-    expect(chosen, 'pressing it must record a choice').toMatch(/^[0-3]$/);
+    const el = await page.locator('video').evaluate((v: HTMLVideoElement) => {
+      const cs = getComputedStyle(v);
+      return {
+        transform: cs.transform,
+        inlineStyle: v.getAttribute('style') ?? '',
+        fit: cs.objectFit,
+      };
+    });
+    expect(el.transform, 'no rotation, ever — not even a “helpful” one').toBe('none');
+    expect(el.inlineStyle, 'no JS-measured size: an address bar sliding away must not move the picture').toBe('');
+    expect(el.fit).toBe('cover');
 
-    await page.keyboard.press('Escape');
-    await page.getByRole('button', { name: /open scanner/i }).click();
-    await expect(page.getByRole('dialog', { name: /document scanner/i })).toBeVisible();
-    expect(
-      await page.evaluate(() => localStorage.getItem('dd-scan-turns')),
-      'the chosen orientation must survive closing the scanner',
-    ).toBe(chosen);
-
-    // Four presses come back round to where they started.
-    for (let i = 0; i < 4; i++) await page.getByRole('button', { name: /rotate the camera picture/i }).click();
-    expect(await page.evaluate(() => localStorage.getItem('dd-scan-turns'))).toBe(chosen);
+    // There must be no control offering to turn the live camera either.
+    await expect(page.getByRole('button', { name: /rotate the camera picture/i })).toHaveCount(0);
   });
 
-  test('nothing turns the picture on its own', async ({ page }) => {
-    // Two automatic rules shipped here and both were disproved on the owner's
-    // phone, in OPPOSITE directions — the second came back as "the camera angle
-    // is totally inverted". The shapes do not carry the answer: a phone can
-    // hand over a wide frame whose content is already upright. So the preview
-    // must be exactly what the browser renders until someone presses rotate.
+  test('asks the camera for a frame shaped like the screen it has to fill', async ({ page }) => {
+    // A screenshot from the owner's phone showed a 2560x1440 stream — because
+    // that is what this code was asking for, explicitly landscape, on an
+    // upright phone. Covering a portrait screen with a 16:9 frame keeps about a
+    // quarter of its width, and no layout work fixes a frame that is the wrong
+    // shape to start with. Plenty of devices ignore the request; asking for the
+    // wrong thing guarantees the wrong answer.
+    const asked: unknown[] = [];
+    await page.exposeFunction('__recordConstraints', (c: unknown) => { asked.push(c); });
+    await page.addInitScript(() => {
+      const real = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+      navigator.mediaDevices.getUserMedia = (c?: MediaStreamConstraints) => {
+        (window as unknown as { __recordConstraints: (c: unknown) => void }).__recordConstraints(JSON.parse(JSON.stringify(c ?? {})));
+        return real(c);
+      };
+    });
+    await page.reload({ waitUntil: 'domcontentloaded' });
     await openScanner(page);
-    const shape = await page.locator('video').evaluate((v: HTMLVideoElement) => ({
-      frameLandscape: v.videoWidth > v.videoHeight,
-      transform: getComputedStyle(v).transform,
-    }));
-    expect(shape.frameLandscape, 'the fake camera is landscape — the premise of this test').toBe(true);
-    // rotate(90deg) would be matrix(0, 1, -1, 0, …); untouched is matrix(1, 0, …).
-    expect(shape.transform, 'a landscape frame must NOT be turned behind the user’s back').toMatch(/^matrix\(1,/);
 
-    // And pressing rotate must visibly do something, since it is now the only
-    // way a sideways camera gets corrected.
-    await page.getByRole('button', { name: /rotate the camera picture/i }).click();
-    await expect
-      .poll(async () => page.locator('video').evaluate((v: HTMLVideoElement) => getComputedStyle(v).transform))
-      .toMatch(/^matrix\(0,/);
+    const first = asked[0] as { video?: { width?: { ideal?: number }; height?: { ideal?: number } } };
+    const vp = page.viewportSize()!;
+    expect(vp.height, 'this test is about a portrait screen').toBeGreaterThan(vp.width);
+    expect(first?.video?.height?.ideal, 'a tall screen must ask for a tall frame')
+      .toBeGreaterThan(first?.video?.width?.ideal ?? Infinity);
+  });
+
+  test('a stored rotation from the old control is cleared, not honoured', async ({ page }) => {
+    // Anyone who pressed the old button is still carrying its answer, and it
+    // would go on turning their preview for ever.
+    await page.evaluate(() => localStorage.setItem('dd-scan-turns', '2'));
+    await openScanner(page);
+    expect(await page.evaluate(() => localStorage.getItem('dd-scan-turns'))).toBeNull();
+    expect(await page.locator('video').evaluate((v: HTMLVideoElement) => getComputedStyle(v).transform)).toBe('none');
+  });
+
+  test('a captured page can be turned in the list, where you can see the result', async ({ page }) => {
+    // Rotation moved here from the camera: a still picture gives you something
+    // to judge "right way up" against, which a moving preview never did.
+    await openScanner(page);
+    await page.getByRole('button', { name: /capture page/i }).click();
+    await expect(page.getByRole('button', { name: /done \(1\)/i })).toBeVisible({ timeout: 10_000 });
+    await page.getByRole('button', { name: /close scanner/i }).click();
+
+    const thumb = page.getByRole('img', { name: /page 1/i });
+    const before = await thumb.getAttribute('src');
+    await page.getByRole('button', { name: /turn page 1 a quarter turn/i }).click();
+    await expect.poll(async () => thumb.getAttribute('src')).not.toBe(before);
+
+    // And it stays page 1 rather than jumping to the end of the list.
+    await expect(page.getByRole('img', { name: /page 1/i })).toHaveCount(1);
+    await expect(page.getByRole('button', { name: /save pdf.*1 page/i })).toBeEnabled();
   });
 
   test('the "Scan document" chip appears only once a document is detected', async ({ page }) => {

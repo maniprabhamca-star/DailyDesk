@@ -25,9 +25,17 @@ export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-09-13',
     kind: 'fixed',
+    title: 'The scanner picture stays put unless you move the phone',
+    detail:
+      'The camera could open upside down, and the picture could shift or rescale while the phone had not moved at all. Both came from this app trying to help. There was a rotate button, and whatever you last set it to was remembered — so one press while trying to fix something else left the scanner opening turned on every visit afterwards. And the preview was being given a size measured in code, which changes every time a phone’s address bar slides away, moving the picture with it. Neither is there now. The camera is shown exactly as your browser gives it, sized by nothing but the screen, so it reacts when you turn the phone and at no other time. Any rotation you had saved is cleared the next time you open it. If a scan does come out the wrong way round, there is now a turn button on each captured page in the list beside the scanner — where the picture is still and you can see what the tap did. The scanner also stops asking your camera for a wide, cinema-shaped picture when you are holding the phone upright: it asks for one shaped like your screen, so less of what the camera can see is cut off at the sides.',
+    href: '/scan-to-pdf',
+  },
+  {
+    date: '2026-09-13',
+    kind: 'fixed',
     title: 'The scanner outline holds still, and only appears when it should',
     detail:
-      'The outline round your page shimmered and jumped about — it was being worked out from scratch on every frame, and a camera’s picture is never quite identical twice, so a page sitting perfectly still still looked like it was being redrawn constantly. It is now averaged over several frames, and it rides out the odd frame where the camera loses the page rather than blinking off and on. Pointing the camera at a bare desk could also produce a confident green rectangle round nothing at all: the edge of the picture is a perfect rectangle, so it passed every shape test better than a real page does. The scanner now checks there is an actual edge there before it believes it. The “Scan document” label has stopped sitting on screen permanently — it appears when a page has been found, so it tells you something instead of just being there. And nothing rotates the picture by itself any more, in either direction: the camera shows exactly what your browser gives it, and the rotate button, which now shows the angle it is on, is yours.',
+      'The outline round your page shimmered and jumped about — it was being worked out from scratch on every frame, and a camera’s picture is never quite identical twice, so a page sitting perfectly still still looked like it was being redrawn constantly. It is now averaged over several frames, and it rides out the odd frame where the camera loses the page rather than blinking off and on. Pointing the camera at a bare desk could also produce a confident green rectangle round nothing at all: the edge of the picture is a perfect rectangle, so it passed every shape test better than a real page does. The scanner now checks there is an actual edge there before it believes it. The “Scan document” label has stopped sitting on screen permanently — it appears when a page has been found, so it tells you something instead of just being there. And nothing rotates the picture by itself any more, in either direction: the camera shows exactly what your browser gives it.',
     href: '/scan-to-pdf',
   },
   {
@@ -35,7 +43,7 @@ export const CHANGELOG: ChangeEntry[] = [
     kind: 'fixed',
     title: 'The scanner viewfinder now behaves like your phone camera',
     detail:
-      'On some phones the scanner opened sideways, or in a band across the middle of the screen, or zoomed so far in that the page would not fit. The preview was being redrawn by hand, and which way up a camera picture arrives differs between phones and browsers, so the guess was wrong as often as it was right. The camera now shows through directly, the way it does in your phone’s own camera app: edge to edge, the right way up, and moving at the camera’s own speed rather than in steps. The rotate button is there if your camera hands its picture over sideways, and it remembers what you chose. The outline it draws around the page sits exactly on the page, because what you see and what it saves are now the same picture.',
+      'On some phones the scanner opened sideways, or in a band across the middle of the screen, or zoomed so far in that the page would not fit. The preview was being redrawn by hand, and which way up a camera picture arrives differs between phones and browsers, so the guess was wrong as often as it was right. The camera now shows through directly, the way it does in your phone’s own camera app: edge to edge, the right way up, and moving at the camera’s own speed rather than in steps. The outline it draws around the page sits exactly on the page, because what you see and what it saves are now the same picture.',
     href: '/scan-to-pdf',
   },
   {

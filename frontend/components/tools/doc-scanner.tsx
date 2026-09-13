@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { X, Check, Zap, ZapOff, Loader2, RotateCw, ScanLine } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { X, Check, Zap, ZapOff, Loader2, ScanLine } from 'lucide-react';
 import { detectDocument, flattenDocument, quadStability, coverCrop, smoothQuad, type Quad } from '@/lib/doc-scan';
 
 /**
@@ -24,18 +24,26 @@ import { detectDocument, flattenDocument, quadStability, coverCrop, smoothQuad, 
  * (lib/doc-scan coverCrop) for detection and for capture. One formula, used by
  * both, so the highlight cannot drift off the page it is drawn around.
  *
- * ── Rotation is a control, never a guess. Twice now. ───────────────────────
- * A rule that turned a landscape frame on an upright screen shipped here and
- * came back as "the camera angle is totally inverted". It was the second
- * automatic rule to be disproved on the same phone, in the opposite direction
- * to the first. The shapes do not carry the answer: a phone can hand over a
- * wide frame whose CONTENT is already the right way up, and nothing in
- * 1280x720 distinguishes that from a frame lying on its side.
+ * ── THERE IS NO ROTATION HERE. Do not add one. ─────────────────────────────
+ * Three rounds were spent on it. Two automatic rules were disproved on the
+ * owner's phone in opposite directions, and the manual control that replaced
+ * them was worse than both: its choice persisted, so the scanner opened turned
+ * on every later visit and the verdict was "the camera is really inverted".
  *
- * So the picture is shown exactly as the browser renders it, and the quarter
- * turn belongs to whoever is holding the phone — they can see which way up it
- * is and this code cannot. The button shows the turn it is on, so a wrong one
- * is obvious rather than mysterious, and the choice is remembered per device.
+ * The requirement, stated plainly: "the position should not change unless I
+ * tilt the phone. only when I turn the phone the camera should also react."
+ * That is precisely what a browser does with a <video> it is rendering itself,
+ * and it is what any rotation of ours breaks. So there is none: no turns, no
+ * transform, no stored key. The stale key is actively cleared on open, because
+ * anyone who pressed the old button is still living with its answer.
+ *
+ * Nor is the element SIZED from JavaScript any more. It was given pixel
+ * dimensions measured from the container, and on a phone that container
+ * changes height whenever the address bar slides — so the picture shifted and
+ * rescaled while the phone had not moved at all. It is `inset-0 size-full
+ * object-cover` now: CSS only, one layer, nothing for a measurement to get
+ * wrong. Detection and capture read the element's own box at the moment they
+ * run, so they cannot disagree with what is on screen either.
  */
 
 /** Detector input width. Bigger is not better — lib/doc-scan downsamples anyway. */
@@ -79,7 +87,6 @@ export function DocScanner({
   pageCount: number;
   lastThumb: string | null;
 }) {
-  const holderRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
   const detectCanvas = useRef<HTMLCanvasElement | null>(null);
@@ -95,51 +102,10 @@ export function DocScanner({
   // moment the outline locks on is feedback.
   const [found, setFound] = useState(false);
 
-  // The viewport the preview fills. Measured, not assumed — a phone's browser
-  // chrome slides away as you scroll and 100vh lies about it on iOS.
-  const [box, setBox] = useState({ w: 0, h: 0 });
-  const boxRef = useRef(box);
-  useLayoutEffect(() => { boxRef.current = box; }, [box]);
-  useLayoutEffect(() => {
-    const el = holderRef.current;
-    if (!el) return;
-    const read = () => {
-      const r = el.getBoundingClientRect();
-      setBox((prev) => (Math.abs(prev.w - r.width) < 1 && Math.abs(prev.h - r.height) < 1
-        ? prev
-        : { w: r.width, h: r.height }));
-    };
-    read();
-    if (typeof ResizeObserver === 'undefined') return;
-    const ro = new ResizeObserver(read);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
-  // Quarter turns applied to the camera picture. Set by hand only, and
-  // remembered — a device that needs it needs it every time.
-  const [turns, setTurns] = useState(0);
-  const turnsRef = useRef(0);
-  useEffect(() => { turnsRef.current = turns; }, [turns]);
-  const reportedRef = useRef(false);
-  // Shown in the corner. What the camera actually handed over differs by phone
-  // and by browser, and every wrong layout so far came from assuming it.
-  const [streamInfo, setStreamInfo] = useState('');
+  // Anyone who used the old rotate button still has its answer stored, and it
+  // would go on turning their preview for ever. Clear it on the way in.
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem('dd-scan-turns');
-      if (raw !== null) {
-        const saved = Number(raw);
-        if (Number.isInteger(saved) && saved >= 0 && saved < 4) setTurns(saved);
-      }
-    } catch { /* private mode: start from no turn */ }
-  }, []);
-  const turn = useCallback(() => {
-    setTurns((n) => {
-      const next = (n + 1) % 4;
-      try { localStorage.setItem('dd-scan-turns', String(next)); } catch { /* ignore */ }
-      return next;
-    });
+    try { localStorage.removeItem('dd-scan-turns'); } catch { /* private mode */ }
   }, []);
 
   // Refs, not state: the detection loop reads these every frame and re-running
@@ -181,13 +147,29 @@ export function DocScanner({
         setError('This browser doesn’t offer camera capture. Close this and use “Add photos” instead.');
         return;
       }
-      // Ask for the back camera and plenty of pixels — this frame becomes the
-      // page, so detail here is detail in the PDF. Nothing is asked about
-      // orientation or aspect ratio any more: those requests were routinely
-      // ignored, and acting on the answer is what produced the bands and the
-      // overzoom. Whatever arrives, CSS frames it and coverCrop samples it.
+      // Ask for the back camera, and for a frame shaped like the screen it is
+      // going to fill.
+      //
+      // The previous list asked for 2560x1440 — explicitly LANDSCAPE — and a
+      // screenshot from the owner's phone showed exactly that coming back, a
+      // wide frame whose content was already the right way up. Covering an
+      // upright screen with it keeps about a quarter of its width, which is the
+      // "overzoomed" complaint, and no amount of layout work fixes a frame that
+      // is the wrong shape to begin with. Asking for a tall one is the only
+      // honest lever there is.
+      //
+      // Devices vary in which constraint they honour and several ignore all of
+      // them, so this walks from most specific to plain `video: true` and takes
+      // the first that opens. Whatever arrives, CSS frames it and coverCrop
+      // samples it — nothing downstream depends on the answer.
+      const tall = window.innerHeight >= window.innerWidth;
       const attempts: MediaStreamConstraints[] = [
-        { video: { facingMode: { ideal: 'environment' }, width: { ideal: 2560 }, height: { ideal: 1440 } }, audio: false },
+        // Shaped like the screen, at a resolution worth putting in a PDF.
+        { video: { facingMode: { ideal: 'environment' }, width: { ideal: tall ? 1440 : 2560 }, height: { ideal: tall ? 2560 : 1440 } }, audio: false },
+        // Same shape, asked the other way, since some devices honour only this.
+        { video: { facingMode: { ideal: 'environment' }, aspectRatio: { ideal: window.innerWidth / window.innerHeight } }, audio: false },
+        // 4:3 is squarer than 16:9, so it crops less on a tall screen.
+        { video: { facingMode: { ideal: 'environment' }, width: { ideal: tall ? 1080 : 1440 }, height: { ideal: tall ? 1440 : 1080 } }, audio: false },
         { video: { facingMode: { ideal: 'environment' } }, audio: false },
         { video: true, audio: false },
       ];
@@ -238,29 +220,23 @@ export function DocScanner({
   /**
    * Paint what is ON SCREEN into a canvas of the same shape.
    *
-   * The mirror image of the CSS below: same quarter turn, same cover crop. It
-   * is used for detection and for capture, so both see the picture the person
-   * framed rather than some other field of view.
+   * The mirror image of the CSS: object-fit cover, nothing else. It is used for
+   * detection and for capture, so both see the picture the person framed rather
+   * than some other field of view.
    */
   const paintFrame = useCallback((ctx: CanvasRenderingContext2D, outW: number, outH: number) => {
     const v = videoRef.current;
     if (!v || !v.videoWidth || !v.videoHeight || outW <= 0 || outH <= 0) return false;
-    const t = turnsRef.current;
-    // The <video> element's own box, before CSS rotates it.
-    const elW = t % 2 ? outH : outW;
-    const elH = t % 2 ? outW : outH;
-    const { sx, sy, sw, sh } = coverCrop(v.videoWidth, v.videoHeight, elW, elH);
-    ctx.save();
-    ctx.translate(outW / 2, outH / 2);
-    if (t) ctx.rotate(t * (Math.PI / 2));
-    ctx.drawImage(v, sx, sy, sw, sh, -elW / 2, -elH / 2, elW, elH);
-    ctx.restore();
+    const { sx, sy, sw, sh } = coverCrop(v.videoWidth, v.videoHeight, outW, outH);
+    ctx.drawImage(v, sx, sy, sw, sh, 0, 0, outW, outH);
     return true;
   }, []);
 
   const capture = useCallback((isAuto: boolean) => {
     const v = videoRef.current;
-    const { w: bw, h: bh } = boxRef.current;
+    const overlay = overlayRef.current;
+    // The element's own box, read now — never a remembered measurement.
+    const bw = overlay?.clientWidth ?? 0, bh = overlay?.clientHeight ?? 0;
     if (!v || !v.videoWidth || !bw || !bh || busyRef.current) return;
     busyRef.current = true;
     try {
@@ -268,11 +244,8 @@ export function DocScanner({
       // found on screen mean the same thing here. Never larger than the pixels
       // the sensor actually gave through the visible crop: upscaling a phone
       // frame to 2000px only makes a bigger blur and a bigger PDF.
-      const t = turnsRef.current;
-      const elW = t % 2 ? bh : bw;
-      const elH = t % 2 ? bw : bh;
-      const crop = coverCrop(v.videoWidth, v.videoHeight, elW, elH);
-      const native = Math.max(crop.sw / elW, crop.sh / elH);
+      const crop = coverCrop(v.videoWidth, v.videoHeight, bw, bh);
+      const native = Math.max(crop.sw / bw, crop.sh / bh);
       const k = Math.max(1, Math.min(CAPTURE_LONG_EDGE / Math.max(bw, bh), native));
       const outW = Math.max(1, Math.round(bw * k));
       const outH = Math.max(1, Math.round(bh * k));
@@ -315,7 +288,7 @@ export function DocScanner({
 
   // ── detection loop ────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!ready || !box.w || !box.h) return;
+    if (!ready) return;
     let raf = 0;
     let last = 0;
 
@@ -330,16 +303,13 @@ export function DocScanner({
       const octx = overlay.getContext('2d');
       if (!octx) return;
 
-      // First frame with real dimensions: report them. Nothing is decided from
-      // them — see the rotation note at the top of this file.
-      if (!reportedRef.current) {
-        reportedRef.current = true;
-        setStreamInfo(`${v.videoWidth}×${v.videoHeight}`);
-      }
-
       // The overlay covers the whole preview and carries ONLY the highlight —
-      // the picture underneath is the live <video>, drawn by the browser.
-      const cssW = box.w, cssH = box.h;
+      // the picture underneath is the live <video>, drawn by the browser. Its
+      // box is read every pass rather than remembered, so an address bar
+      // sliding away costs a frame's accuracy instead of a re-render that
+      // resizes the picture under the person's hands.
+      const cssW = overlay.clientWidth, cssH = overlay.clientHeight;
+      if (!cssW || !cssH) return;
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const pw = Math.round(cssW * dpr), ph = Math.round(cssH * dpr);
       if (overlay.width !== pw || overlay.height !== ph) { overlay.width = pw; overlay.height = ph; }
@@ -463,32 +433,21 @@ export function DocScanner({
 
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [ready, capture, paintFrame, box.w, box.h]);
-
-  // The CSS side of the transform paintFrame applies. Sizing the element to the
-  // SWAPPED box and then rotating it is what lets a turned picture still reach
-  // every edge of the screen.
-  const rotated = turns % 2 === 1;
-  const videoStyle: React.CSSProperties = box.w
-    ? {
-        width: rotated ? box.h : box.w,
-        height: rotated ? box.w : box.h,
-        transform: `translate(-50%, -50%) rotate(${turns * 90}deg)`,
-      }
-    : { width: '100%', height: '100%', transform: 'translate(-50%, -50%)' };
+  }, [ready, capture, paintFrame]);
 
   return (
     <div className="fixed inset-0 z-[100] flex flex-col bg-black" role="dialog" aria-modal="true" aria-label="Document scanner">
-      <div ref={holderRef} className="relative flex flex-1 items-center justify-center overflow-hidden">
-        {/* The preview IS this element. The browser renders it the right way up,
-            at the camera's own frame rate — do not hide it and repaint it. */}
+      <div className="relative flex flex-1 items-center justify-center overflow-hidden">
+        {/* The preview IS this element, framed entirely by CSS. No transform,
+            no measured size, nothing this component can get wrong — it reacts
+            to the phone being turned because the browser turns it, and to
+            nothing else. */}
         <video
           ref={videoRef}
           playsInline
           muted
           autoPlay
-          style={videoStyle}
-          className="absolute left-1/2 top-1/2 max-w-none object-cover"
+          className="absolute inset-0 size-full object-cover"
         />
         {/* Highlight only, transparent, exactly over the preview. */}
         <canvas
@@ -507,28 +466,11 @@ export function DocScanner({
           <X className="size-6" />
         </button>
 
-        {streamInfo && (
-          <span className="pointer-events-none absolute left-4 top-[8.25rem] rounded-full bg-black/55 px-2.5 py-1 font-mono text-[10px] text-white/80 backdrop-blur">
-            {streamInfo}
-          </span>
-        )}
-
-        {/* Turn the picture upright. Nothing turns it automatically — two
-            different automatic rules were disproved on a real phone, in
-            opposite directions. The badge shows the turn it is on so a wrong
-            one is visibly a setting rather than a mystery. */}
-        <button
-          onClick={turn}
-          aria-label="Rotate the camera picture"
-          className="absolute left-4 top-[4.75rem] flex size-11 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur active:scale-95"
-        >
-          <RotateCw className="size-5" />
-          {turns > 0 && (
-            <span className="absolute -right-1 -top-1 rounded-full bg-primary px-1.5 py-px text-[9px] font-bold leading-tight text-primary-foreground">
-              {turns * 90}°
-            </span>
-          )}
-        </button>
+        {/* No rotate control, and no stream-size readout. Both existed to work
+            around a problem this component was causing itself; see the note at
+            the top of the file. Pages that come out the wrong way round are
+            turned in the page list afterwards, where the picture is still and
+            the result of a tap is obvious. */}
 
         {/* auto-capture toggle */}
         <button
