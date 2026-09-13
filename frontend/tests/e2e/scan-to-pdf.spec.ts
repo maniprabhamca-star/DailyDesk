@@ -60,17 +60,15 @@ test.describe('Scan to PDF — the scanner', () => {
     const preview = await page.locator('video').boundingBox();
     expect(preview!.width, 'the video must be the preview, not a 1px source').toBeGreaterThan(50);
 
-    // And it must genuinely COVER the screen rather than sit in a band: a
-    // landscape camera frame letterboxed into a portrait screen is the bug that
-    // started all this — "the scanner is opening in horizontal mode and it's
-    // not going to work".
+    // The element itself always spans the whole screen; how much of the camera
+    // frame lands inside it is the zoom's business, not the layout's.
     const covers = await page.locator('video').evaluate((v: HTMLVideoElement) => {
       const r = v.getBoundingClientRect();
       return { w: r.width, h: r.height, fit: getComputedStyle(v).objectFit };
     });
-    expect(covers.w, 'the preview must reach both side edges').toBeGreaterThanOrEqual(vp.width - 1);
-    expect(covers.h, 'the preview must reach top and bottom').toBeGreaterThanOrEqual(vp.height - 1);
-    expect(covers.fit, 'contain would letterbox it back into a band').toBe('cover');
+    expect(covers.w, 'the preview element must span the screen').toBeGreaterThanOrEqual(vp.width - 1);
+    expect(covers.h, 'the preview element must span the screen').toBeGreaterThanOrEqual(vp.height - 1);
+    expect(covers.fit, 'contain + scale(zoom) is what makes zooming out possible').toBe('contain');
 
     // The highlight is drawn on a transparent canvas laid over that preview, so
     // the two share one coordinate space and the outline cannot drift off the
@@ -152,9 +150,17 @@ test.describe('Scan to PDF — the scanner', () => {
         fit: cs.objectFit,
       };
     });
-    expect(el.transform, 'no rotation, ever — not even a “helpful” one').toBe('none');
-    expect(el.inlineStyle, 'no JS-measured size: an address bar sliding away must not move the picture').toBe('');
-    expect(el.fit).toBe('cover');
+    // A scale is allowed (that is the zoom); a ROTATION never is. matrix(a,b,c,d,…)
+    // with b or c non-zero is a rotation or a skew.
+    const m = el.transform.match(/^matrix\(([-\d.e]+), ([-\d.e]+), ([-\d.e]+), ([-\d.e]+)/);
+    if (m) {
+      expect(Number(m[2]), 'no rotation, ever — not even a “helpful” one').toBeCloseTo(0, 6);
+      expect(Number(m[3]), 'no rotation, ever — not even a “helpful” one').toBeCloseTo(0, 6);
+      expect(Number(m[1]), 'and no mirroring').toBeGreaterThan(0);
+      expect(Number(m[4]), 'and no mirroring').toBeGreaterThan(0);
+    }
+    expect(el.inlineStyle, 'no JS-measured pixel size: an address bar sliding away must not move the picture')
+      .not.toMatch(/width|height|top|left/);
 
     // There must be no control offering to turn the live camera either.
     await expect(page.getByRole('button', { name: /rotate the camera picture/i })).toHaveCount(0);
@@ -192,7 +198,48 @@ test.describe('Scan to PDF — the scanner', () => {
     await page.evaluate(() => localStorage.setItem('dd-scan-turns', '2'));
     await openScanner(page);
     expect(await page.evaluate(() => localStorage.getItem('dd-scan-turns'))).toBeNull();
-    expect(await page.locator('video').evaluate((v: HTMLVideoElement) => getComputedStyle(v).transform)).toBe('none');
+    const t = await page.locator('video').evaluate((v: HTMLVideoElement) => getComputedStyle(v).transform);
+    const m = t.match(/^matrix\(([-\d.e]+), ([-\d.e]+), ([-\d.e]+), ([-\d.e]+)/);
+    if (m) {
+      expect(Number(m[2])).toBeCloseTo(0, 6);
+      expect(Number(m[3])).toBeCloseTo(0, 6);
+    }
+  });
+
+  test('zoom can be reduced, the way a camera app does it', async ({ page }) => {
+    // "the scanner is over zooming by default. pls make an option to reduce the
+    // zoom like in the camera app." A camera whose frame is a different shape
+    // from the screen cannot fill it without discarding most of the picture,
+    // and which camera you have decides how bad that is — so it is a control.
+    const dialog = await openScanner(page);
+    const chips = dialog.getByRole('button', { name: /zoom [\d.]+ times/i });
+    // The stops are worked out on the first detection pass, a beat after the
+    // camera reports its size, so this has to wait rather than count once.
+    await expect
+      .poll(async () => chips.count(), { timeout: 10_000 })
+      .toBeGreaterThan(1);
+
+    const scaleNow = () => page.locator('video').evaluate((v: HTMLVideoElement) => {
+      const m = getComputedStyle(v).transform.match(/^matrix\(([-\d.e]+)/);
+      return m ? Number(m[1]) : 1;
+    });
+
+    // The widest stop must show strictly more of the frame than the last one.
+    await chips.last().click();
+    const filled = await scaleNow();
+    await chips.first().click();
+    const widest = await scaleNow();
+    expect(widest, 'the first stop must zoom OUT relative to the last').toBeLessThan(filled);
+    expect(widest, 'and the widest is the whole frame, scale 1').toBeCloseTo(1, 2);
+
+    // The choice must stick, and the pressed state must say which one is on.
+    await expect(chips.first()).toHaveAttribute('aria-pressed', 'true');
+    await expect(chips.last()).toHaveAttribute('aria-pressed', 'false');
+
+    // Capturing at a zoomed-out stop still produces a page rather than failing
+    // on the black bars either side of the picture.
+    await page.getByRole('button', { name: /capture page/i }).click();
+    await expect(page.getByRole('button', { name: /done \(1\)/i })).toBeVisible({ timeout: 10_000 });
   });
 
   test('a captured page can be turned in the list, where you can see the result', async ({ page }) => {

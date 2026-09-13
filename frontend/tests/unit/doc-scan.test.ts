@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { detectDocument, flattenDocument, quadStability, coverCrop, smoothQuad, type Quad, type Point } from '@/lib/doc-scan';
+import { detectDocument, flattenDocument, quadStability, viewRect, fillZoom, defaultZoom, smoothQuad, type Quad, type Point } from '@/lib/doc-scan';
 
 /* Document detection, tested against frames whose answer is already known.
  *
@@ -275,44 +275,108 @@ describe('smoothQuad', () => {
   });
 });
 
-describe('coverCrop', () => {
-  it('keeps most of an upright frame — why covering is affordable at all', () => {
-    // 9:16 camera on a 390x844 phone. The "overzoomed" complaint was covering
-    // with a SIDEWAYS frame; turned upright first, covering costs ~15%.
-    const c = coverCrop(1080, 1920, 390, 844);
-    expect(c.visibleFraction).toBeGreaterThan(0.8);
+describe('viewRect', () => {
+  // The owner's phone: a 2560x1440 camera on a 375x812 screen. Filling that
+  // screen means showing a quarter of the picture, which is the "over zooming
+  // by default" report and the reason zoom exists at all.
+  const PHONE = [2560, 1440, 375, 812] as const;
+
+  it('shows the WHOLE frame at zoom 1 — the widest the camera can go', () => {
+    const r = viewRect(...PHONE, 1);
+    expect(r.visibleFraction, 'nothing may be cropped at the widest stop').toBeCloseTo(1, 4);
+    expect(r.sw).toBeCloseTo(2560, 4);
+    expect(r.sh).toBeCloseTo(1440, 4);
+    // Letterboxed: full width of the screen, a band of its height.
+    expect(r.dw).toBeCloseTo(375, 4);
+    expect(r.dh).toBeLessThan(812);
+    expect(r.dy, 'and centred in the black').toBeCloseTo((812 - r.dh) / 2, 4);
   });
 
-  it('fills the box exactly, in the box own shape', () => {
-    for (const [fw, fh] of [[1280, 720], [1080, 1920], [640, 480]]) {
+  it('fills the screen exactly at fillZoom, and no further', () => {
+    const max = fillZoom(...PHONE);
+    const r = viewRect(...PHONE, max);
+    expect(r.dw).toBeCloseTo(375, 3);
+    expect(r.dh).toBeCloseTo(812, 3);
+    expect(r.dx).toBeCloseTo(0, 3);
+    expect(r.dy).toBeCloseTo(0, 3);
+    // Past the end is clamped, not extrapolated — zooming in beyond "fills the
+    // screen" would just crop for no reason.
+    const past = viewRect(...PHONE, max * 3);
+    expect(past.visibleFraction).toBeCloseTo(r.visibleFraction, 6);
+  });
+
+  it('shows more of the frame the further you zoom out', () => {
+    const max = fillZoom(...PHONE);
+    const seen = [1, 1.5, 2, 3, max].map((z) => viewRect(...PHONE, z).visibleFraction);
+    for (let i = 1; i < seen.length; i++) {
+      expect(seen[i], `zooming in must never reveal more (step ${i})`).toBeLessThanOrEqual(seen[i - 1] + 1e-9);
+    }
+    expect(seen[0]).toBeCloseTo(1, 4);
+    expect(seen[seen.length - 1], 'filling this screen costs three quarters of the picture').toBeLessThan(0.3);
+  });
+
+  it('never stretches, never samples outside the frame, always centres', () => {
+    for (const [fw, fh] of [[1280, 720], [1080, 1920], [640, 480], [2560, 1440]]) {
       for (const [bw, bh] of [[390, 844], [844, 390], [500, 500]]) {
-        const c = coverCrop(fw, fh, bw, bh);
-        // The sampled rectangle has the box's aspect ratio, so nothing is
-        // stretched — and it lies inside the frame, so nothing is invented.
-        expect(c.sw / c.sh, `${fw}x${fh} -> ${bw}x${bh}`).toBeCloseTo(bw / bh, 2);
-        expect(c.sx).toBeGreaterThanOrEqual(0);
-        expect(c.sy).toBeGreaterThanOrEqual(0);
-        expect(c.sx + c.sw).toBeLessThanOrEqual(fw + 0.01);
-        expect(c.sy + c.sh).toBeLessThanOrEqual(fh + 0.01);
+        for (const z of [1, 1.3, 2, 8]) {
+          const r = viewRect(fw, fh, bw, bh, z);
+          const where = `${fw}x${fh} -> ${bw}x${bh} @${z}`;
+          // The source rectangle and its destination have the same shape, so
+          // nothing on screen is squashed.
+          expect(r.sw / r.sh, where).toBeCloseTo(r.dw / r.dh, 2);
+          expect(r.sx, where).toBeGreaterThanOrEqual(0);
+          expect(r.sy, where).toBeGreaterThanOrEqual(0);
+          expect(r.sx + r.sw, where).toBeLessThanOrEqual(fw + 0.01);
+          expect(r.sy + r.sh, where).toBeLessThanOrEqual(fh + 0.01);
+          // And the picture never spills out of the box.
+          expect(r.dx, where).toBeGreaterThanOrEqual(-0.01);
+          expect(r.dy, where).toBeGreaterThanOrEqual(-0.01);
+          expect(r.dx + r.dw, where).toBeLessThanOrEqual(bw + 0.01);
+          expect(r.dy + r.dh, where).toBeLessThanOrEqual(bh + 0.01);
+        }
       }
     }
   });
 
-  it('centres the crop', () => {
-    const c = coverCrop(1280, 720, 390, 844);
-    expect(c.sx).toBeCloseTo((1280 - c.sw) / 2, 4);
-    expect(c.sy).toBeCloseTo((720 - c.sh) / 2, 4);
-  });
-
-  it('takes the whole frame when the shapes already agree', () => {
-    const c = coverCrop(390, 844, 390, 844);
-    expect(c.visibleFraction).toBeCloseTo(1, 4);
-  });
-
   it('survives a camera that has reported nothing yet', () => {
-    const c = coverCrop(0, 0, 390, 844);
-    expect(c.visibleFraction).toBe(1);
-    expect(Number.isFinite(c.sw)).toBe(true);
+    const r = viewRect(0, 0, 390, 844, 1);
+    expect(r.visibleFraction).toBe(1);
+    expect(Number.isFinite(r.sw)).toBe(true);
+  });
+});
+
+describe('fillZoom and defaultZoom', () => {
+  it('is 1 when the camera and the screen are the same shape', () => {
+    expect(fillZoom(390, 844, 390, 844)).toBeCloseTo(1, 4);
+    expect(defaultZoom(390, 844, 390, 844)).toBeCloseTo(1, 4);
+  });
+
+  it('still opens filling the screen when filling is nearly free', () => {
+    // 9:16 camera on a 9:19.5 phone: covering costs ~18%, which is what a phone
+    // camera app looks like. Backing off here would be a regression.
+    const max = fillZoom(1080, 1920, 390, 844);
+    expect(defaultZoom(1080, 1920, 390, 844)).toBeCloseTo(max, 4);
+  });
+
+  it('backs off when filling would throw most of the picture away', () => {
+    // The owner's phone. Opening at fill is the "over zooming by default" bug.
+    const max = fillZoom(2560, 1440, 375, 812);
+    const start = defaultZoom(2560, 1440, 375, 812);
+    expect(max, 'this screen can be filled only by a 3.8x zoom').toBeGreaterThan(3);
+    expect(start, 'so it must not open there').toBeLessThan(max - 0.5);
+    expect(viewRect(2560, 1440, 375, 812, start).visibleFraction,
+      'and must open showing at least half the picture').toBeGreaterThanOrEqual(0.5 - 1e-6);
+  });
+
+  it('never returns a zoom outside what the control can offer', () => {
+    for (const [fw, fh] of [[2560, 1440], [1080, 1920], [640, 480], [1920, 1080]]) {
+      for (const [bw, bh] of [[375, 812], [812, 375], [500, 500]]) {
+        const max = fillZoom(fw, fh, bw, bh);
+        const start = defaultZoom(fw, fh, bw, bh);
+        expect(start, `${fw}x${fh} -> ${bw}x${bh}`).toBeGreaterThanOrEqual(1);
+        expect(start, `${fw}x${fh} -> ${bw}x${bh}`).toBeLessThanOrEqual(max + 1e-9);
+      }
+    }
   });
 });
 

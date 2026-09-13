@@ -24,6 +24,14 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-09-13',
+    kind: 'feature',
+    title: 'Zoom in the scanner, like the one in your camera app',
+    detail:
+      'Some phones hand the browser a wide, cinema-shaped picture even when you are holding them upright. Filling the screen with one of those means cutting off about three quarters of what the camera can see — which is why the scanner looked zoomed in from the moment it opened, on some phones and not others. There is now a row of zoom stops above the shutter, the way your camera app has them. 1× is everything the camera can see, with black bars above and below; the last stop fills the screen. It opens at whichever stop shows you a sensible amount, so on phones where filling the screen costs nothing it still fills the screen. The edge detection follows whatever you pick, and what you save is what you framed. If your camera happens to match the shape of your screen, the stops do not appear at all — there would be nothing for them to change.',
+    href: '/scan-to-pdf',
+  },
+  {
+    date: '2026-09-13',
     kind: 'fixed',
     title: 'The scanner picture stays put unless you move the phone',
     detail:

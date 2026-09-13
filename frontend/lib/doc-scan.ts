@@ -626,28 +626,79 @@ export function smoothQuad(
 }
 
 /**
- * The part of a camera frame visible inside a box under `object-fit: cover`.
+ * How far the preview can be zoomed IN before it exactly fills the box.
  *
- * The scanner shows the live <video> element itself now rather than repainting
- * it, so the browser owns the preview and CSS owns the framing. Detection and
- * capture then have exactly one job: sample the same rectangle CSS is showing.
- * That is this function, and it is the ONLY place the two can disagree.
- *
- * Cover crops, and cropping was complained about twice — but a browser that has
- * already turned the frame for us hands over a 9:16 picture, and covering a
- * 9:19.5 screen with that keeps 82% of it, which is what a phone camera app
- * looks like. Letterboxing instead is the band that was rejected.
+ * Zoom here is measured from the widest possible view: 1 shows the whole camera
+ * frame (letterboxed, `object-fit: contain`), and this value fills the screen
+ * edge to edge (`object-fit: cover`). It is the ratio between those two scales,
+ * so it is 1 when the frame and the screen are the same shape and grows as they
+ * diverge — 3.85 for a 2560x1440 camera on a 375x812 phone, which is why
+ * filling that screen throws away three quarters of the picture.
  */
-export function coverCrop(
-  frameW: number, frameH: number, boxW: number, boxH: number,
-): { sx: number; sy: number; sw: number; sh: number; visibleFraction: number } {
+export function fillZoom(frameW: number, frameH: number, boxW: number, boxH: number): number {
+  if (frameW <= 0 || frameH <= 0 || boxW <= 0 || boxH <= 0) return 1;
+  const contain = Math.min(boxW / frameW, boxH / frameH);
+  const cover = Math.max(boxW / frameW, boxH / frameH);
+  return contain > 0 ? cover / contain : 1;
+}
+
+/**
+ * Where to start, before anyone touches the zoom control.
+ *
+ * Filling the screen is the right default when it is nearly free, and it is
+ * what a phone camera app looks like. It is the wrong default when the camera's
+ * frame is a completely different shape from the screen, because "fill" then
+ * means "throw away three quarters of the view" — reported, twice, as the
+ * scanner being zoomed in by itself.
+ *
+ * So: fill when filling still shows most of the frame; otherwise back off to
+ * the zoom that keeps `floor` of it, and let the control do the rest. On a
+ * matched 9:16 camera this returns fill; on a 16:9 camera held upright it
+ * returns about 2, which is a viewfinder you can actually aim a page into.
+ */
+export function defaultZoom(
+  frameW: number, frameH: number, boxW: number, boxH: number, floor = 0.5,
+): number {
+  const max = fillZoom(frameW, frameH, boxW, boxH);
+  if (max <= 1) return 1;
+  if (viewRect(frameW, frameH, boxW, boxH, max).visibleFraction >= floor) return max;
+  // Only one axis is ever cropped, so the visible fraction is linear in 1/zoom
+  // and the zoom that shows exactly `floor` of the frame is this.
+  const atFull = viewRect(frameW, frameH, boxW, boxH, 1).visibleFraction; // 1 by construction
+  return Math.min(max, Math.max(1, atFull / floor));
+}
+
+/**
+ * Which part of the camera frame is on screen, and where it sits in the box.
+ *
+ * One function for the whole preview geometry, because the alternative is the
+ * highlight being drawn in a different space from the picture it is drawn
+ * around. CSS does `object-fit: contain` plus `transform: scale(zoom)`; this is
+ * the same arithmetic, and detection and capture both read it.
+ *
+ * `zoom` is 1 at the widest (whole frame visible, letterboxed) and
+ * `fillZoom(...)` when the picture reaches every edge. Returns the destination
+ * rectangle inside the box — which is the whole box once zoom reaches fill —
+ * and the source rectangle of the frame that lands in it.
+ */
+export function viewRect(
+  frameW: number, frameH: number, boxW: number, boxH: number, zoom = 1,
+): { dx: number; dy: number; dw: number; dh: number; sx: number; sy: number; sw: number; sh: number; visibleFraction: number } {
   if (frameW <= 0 || frameH <= 0 || boxW <= 0 || boxH <= 0) {
-    return { sx: 0, sy: 0, sw: Math.max(0, frameW), sh: Math.max(0, frameH), visibleFraction: 1 };
+    return { dx: 0, dy: 0, dw: Math.max(0, boxW), dh: Math.max(0, boxH), sx: 0, sy: 0, sw: Math.max(0, frameW), sh: Math.max(0, frameH), visibleFraction: 1 };
   }
-  const scale = Math.max(boxW / frameW, boxH / frameH);
-  const sw = Math.min(frameW, boxW / scale);
-  const sh = Math.min(frameH, boxH / scale);
+  const contain = Math.min(boxW / frameW, boxH / frameH);
+  const cover = Math.max(boxW / frameW, boxH / frameH);
+  const scale = Math.max(contain, Math.min(cover, contain * (zoom > 0 ? zoom : 1)));
+  const dw = Math.min(boxW, frameW * scale);
+  const dh = Math.min(boxH, frameH * scale);
+  const sw = Math.min(frameW, dw / scale);
+  const sh = Math.min(frameH, dh / scale);
   return {
+    dx: (boxW - dw) / 2,
+    dy: (boxH - dh) / 2,
+    dw,
+    dh,
     sx: (frameW - sw) / 2,
     sy: (frameH - sh) / 2,
     sw,

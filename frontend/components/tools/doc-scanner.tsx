@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { X, Check, Zap, ZapOff, Loader2, ScanLine } from 'lucide-react';
-import { detectDocument, flattenDocument, quadStability, coverCrop, smoothQuad, type Quad } from '@/lib/doc-scan';
+import { detectDocument, flattenDocument, quadStability, viewRect, fillZoom, defaultZoom, smoothQuad, type Quad } from '@/lib/doc-scan';
 
 /**
  * Full-screen document scanner.
@@ -37,13 +37,24 @@ import { detectDocument, flattenDocument, quadStability, coverCrop, smoothQuad, 
  * transform, no stored key. The stale key is actively cleared on open, because
  * anyone who pressed the old button is still living with its answer.
  *
- * Nor is the element SIZED from JavaScript any more. It was given pixel
- * dimensions measured from the container, and on a phone that container
- * changes height whenever the address bar slides — so the picture shifted and
- * rescaled while the phone had not moved at all. It is `inset-0 size-full
- * object-cover` now: CSS only, one layer, nothing for a measurement to get
- * wrong. Detection and capture read the element's own box at the moment they
- * run, so they cannot disagree with what is on screen either.
+ * Nor is the element SIZED from JavaScript. It was given pixel dimensions
+ * measured from the container, and on a phone that container changes height
+ * whenever the address bar slides — so the picture shifted and rescaled while
+ * the phone had not moved at all. It is `inset-0 size-full` with a fit and a
+ * single scale factor: CSS only, nothing for a measurement to get wrong.
+ *
+ * ── Zoom, because filling the screen is not always affordable ───────────────
+ * A phone that hands over a 2560x1440 frame while held upright cannot fill a
+ * 375x812 screen without discarding three quarters of its width. That is the
+ * "over zooming by default" report, and no default setting fixes it for
+ * everyone — it depends entirely on the shape of the frame the camera gives.
+ *
+ * So the preview is `object-fit: contain` plus `transform: scale(zoom)`, where
+ * zoom 1 shows the whole frame and `fillZoom()` reaches every edge, and the
+ * stops in between are offered as chips the way a camera app offers 0.5x/1x/2x.
+ * `defaultZoom()` starts at fill when filling is nearly free and backs off when
+ * it is not. Detection and capture read the same `viewRect()` the CSS mirrors,
+ * so the highlight stays on the page at every stop.
  */
 
 /** Detector input width. Bigger is not better — lib/doc-scan downsamples anyway. */
@@ -107,6 +118,15 @@ export function DocScanner({
   useEffect(() => {
     try { localStorage.removeItem('dd-scan-turns'); } catch { /* private mode */ }
   }, []);
+
+  // How much of the camera's view is on screen. 1 is the whole frame; the last
+  // stop fills the screen. Set from the frame's shape the first time the camera
+  // reports one, then owned by whoever is holding the phone.
+  const [zoom, setZoom] = useState(1);
+  const zoomRef = useRef(1);
+  useEffect(() => { zoomRef.current = zoom; }, [zoom]);
+  const [stops, setStops] = useState<number[]>([]);
+  const stopsSetRef = useRef(false);
 
   // Refs, not state: the detection loop reads these every frame and re-running
   // it on every React render would defeat the throttle entirely.
@@ -226,8 +246,15 @@ export function DocScanner({
    */
   const paintFrame = useCallback((ctx: CanvasRenderingContext2D, outW: number, outH: number) => {
     const v = videoRef.current;
-    if (!v || !v.videoWidth || !v.videoHeight || outW <= 0 || outH <= 0) return false;
-    const { sx, sy, sw, sh } = coverCrop(v.videoWidth, v.videoHeight, outW, outH);
+    const overlay = overlayRef.current;
+    const bw = overlay?.clientWidth ?? 0, bh = overlay?.clientHeight ?? 0;
+    if (!v || !v.videoWidth || !v.videoHeight || !bw || !bh || outW <= 0 || outH <= 0) return false;
+    // outW x outH is the PICTURE, not the screen — the caller sizes it to
+    // viewRect's dw:dh, so the black bars either side of a zoomed-out preview
+    // are never sampled. Feeding those to the detector would hand it a
+    // perfect high-contrast rectangle to find, which is a bug already fixed
+    // once (see MIN_EDGE_CONTRAST in lib/doc-scan).
+    const { sx, sy, sw, sh } = viewRect(v.videoWidth, v.videoHeight, bw, bh, zoomRef.current);
     ctx.drawImage(v, sx, sy, sw, sh, 0, 0, outW, outH);
     return true;
   }, []);
@@ -244,11 +271,11 @@ export function DocScanner({
       // found on screen mean the same thing here. Never larger than the pixels
       // the sensor actually gave through the visible crop: upscaling a phone
       // frame to 2000px only makes a bigger blur and a bigger PDF.
-      const crop = coverCrop(v.videoWidth, v.videoHeight, bw, bh);
-      const native = Math.max(crop.sw / bw, crop.sh / bh);
-      const k = Math.max(1, Math.min(CAPTURE_LONG_EDGE / Math.max(bw, bh), native));
-      const outW = Math.max(1, Math.round(bw * k));
-      const outH = Math.max(1, Math.round(bh * k));
+      const r = viewRect(v.videoWidth, v.videoHeight, bw, bh, zoomRef.current);
+      const native = Math.max(r.sw / r.dw, r.sh / r.dh);
+      const k = Math.max(1, Math.min(CAPTURE_LONG_EDGE / Math.max(r.dw, r.dh), native));
+      const outW = Math.max(1, Math.round(r.dw * k));
+      const outH = Math.max(1, Math.round(r.dh * k));
 
       const full = document.createElement('canvas');
       full.width = outW; full.height = outH;
@@ -310,18 +337,47 @@ export function DocScanner({
       // resizes the picture under the person's hands.
       const cssW = overlay.clientWidth, cssH = overlay.clientHeight;
       if (!cssW || !cssH) return;
+
+      // First frame with real dimensions: work out how far this camera CAN be
+      // zoomed on this screen, and where to start. Frozen after that — a
+      // sliding address bar must not re-derive it and move the picture.
+      if (!stopsSetRef.current) {
+        stopsSetRef.current = true;
+        const max = fillZoom(v.videoWidth, v.videoHeight, cssW, cssH);
+        // No control when the frame already matches the screen: filling costs
+        // nothing and a chip row offering two identical views is clutter.
+        const next = max <= 1.08 ? [] : [1, Math.cbrt(max), Math.cbrt(max) ** 2, max]
+          .map((z) => Math.min(max, Math.max(1, z)))
+          .filter((z, i, a) => a.findIndex((o) => Math.abs(o - z) < 0.06) === i);
+        setStops(next);
+        // Start on a STOP, not merely near one, or the row opens with nothing
+        // highlighted and the control looks broken before it is touched.
+        const want = defaultZoom(v.videoWidth, v.videoHeight, cssW, cssH);
+        const start = next.length
+          ? next.reduce((best, z) => (Math.abs(z - want) < Math.abs(best - want) ? z : best), next[0])
+          : max;
+        setZoom(start);
+        zoomRef.current = start;
+      }
+
+      // The picture's own rectangle inside the screen. At full zoom it IS the
+      // screen; zoomed out there are black bars, and everything below works in
+      // the picture's space so nothing ever samples or highlights a bar.
+      const rect = viewRect(v.videoWidth, v.videoHeight, cssW, cssH, zoomRef.current);
+      if (rect.dw < 2 || rect.dh < 2) return;
+
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const pw = Math.round(cssW * dpr), ph = Math.round(cssH * dpr);
       if (overlay.width !== pw || overlay.height !== ph) { overlay.width = pw; overlay.height = ph; }
       octx.setTransform(dpr, 0, 0, dpr, 0, 0);
       octx.clearRect(0, 0, cssW, cssH);
 
-      // Detect on a small copy of exactly what is on screen — same turn, same
-      // crop. What you see is what is detected.
+      // Detect on a small copy of exactly what is on screen — same crop, same
+      // zoom. What you see is what is detected.
       if (!detectCanvas.current) detectCanvas.current = document.createElement('canvas');
       const dc = detectCanvas.current;
-      const dw = Math.max(1, Math.min(DETECT_WIDTH, Math.round(cssW)));
-      const dh = Math.max(1, Math.round((cssH / cssW) * dw));
+      const dw = Math.max(1, Math.min(DETECT_WIDTH, Math.round(rect.dw)));
+      const dh = Math.max(1, Math.round((rect.dh / rect.dw) * dw));
       if (dc.width !== dw || dc.height !== dh) { dc.width = dw; dc.height = dh; }
       const dctx = dc.getContext('2d', { willReadFrequently: true });
       if (!dctx) return;
@@ -387,18 +443,19 @@ export function DocScanner({
       // ── draw the highlight over the live video ──────────────────────────
       if (quad) {
         const locked = steadyRef.current >= STEADY_FRAMES_NEEDED / 2;
-        // Detector space -> overlay space. Both are the SAME picture at
-        // different scales, so this is one multiply and cannot drift out of
-        // register with what is on screen.
-        const kx = cssW / dw, ky = cssH / dh;
-        const pts = quad.map((pt) => ({ x: pt.x * kx, y: pt.y * ky }));
+        // Detector space -> overlay space: the same picture at a different
+        // scale, shifted by wherever the picture sits on screen. One multiply
+        // and one add, so it cannot drift out of register with what is shown.
+        const kx = rect.dw / dw, ky = rect.dh / dh;
+        const pts = quad.map((pt) => ({ x: rect.dx + pt.x * kx, y: rect.dy + pt.y * ky }));
 
         // Dim everything that is NOT the document, so the page lifts off the
         // desk the way it does in a bank's cheque scanner. Even-odd fill: the
-        // whole screen, minus the quad.
+        // picture, minus the quad — the black bars are already black and
+        // dimming them would only make the edge of the picture look grubby.
         octx.save();
         octx.beginPath();
-        octx.rect(0, 0, cssW, cssH);
+        octx.rect(rect.dx, rect.dy, rect.dw, rect.dh);
         octx.moveTo(pts[0].x, pts[0].y);
         for (let n = 1; n < 4; n++) octx.lineTo(pts[n].x, pts[n].y);
         octx.closePath();
@@ -438,16 +495,18 @@ export function DocScanner({
   return (
     <div className="fixed inset-0 z-[100] flex flex-col bg-black" role="dialog" aria-modal="true" aria-label="Document scanner">
       <div className="relative flex flex-1 items-center justify-center overflow-hidden">
-        {/* The preview IS this element, framed entirely by CSS. No transform,
-            no measured size, nothing this component can get wrong — it reacts
-            to the phone being turned because the browser turns it, and to
-            nothing else. */}
+        {/* The preview IS this element, framed entirely by CSS: fit the whole
+            frame, then scale it up by the chosen zoom. No rotation and no
+            measured pixel size — it reacts to the phone being turned because
+            the browser turns it, and to the zoom chips, and to nothing else.
+            `viewRect()` is the same arithmetic, for detection and capture. */}
         <video
           ref={videoRef}
           playsInline
           muted
           autoPlay
-          className="absolute inset-0 size-full object-cover"
+          style={{ transform: `scale(${zoom})` }}
+          className="absolute inset-0 size-full object-contain"
         />
         {/* Highlight only, transparent, exactly over the preview. */}
         <canvas
@@ -489,6 +548,36 @@ export function DocScanner({
             to the outline it tells you the scanner has found something. */}
         {!error && (
           <div className="pointer-events-none absolute inset-x-0 bottom-32 flex flex-col items-center gap-2 px-4">
+            {/* Zoom, the way a camera app does it: a row of stops, the current
+                one filled in. It exists because a camera that hands over a 16:9
+                frame cannot fill an upright screen without throwing three
+                quarters of the picture away — "the scanner is over zooming by
+                default". 1× is the whole of what the camera can see; the last
+                stop reaches every edge. Hidden when the frame already matches
+                the screen, because then every stop shows the same thing.
+                It lives INSIDE this column rather than at its own offset: two
+                absolutely-positioned rows guessing at each other's height is
+                how the first version ended up drawn behind the chip. */}
+            {stops.length > 1 && (
+              <div className="pointer-events-auto mb-1 flex items-center gap-1 rounded-full bg-black/55 p-1 backdrop-blur">
+                {stops.map((z) => {
+                  const on = Math.abs(z - zoom) < 0.06;
+                  return (
+                    <button
+                      key={z}
+                      onClick={() => setZoom(z)}
+                      aria-pressed={on}
+                      aria-label={`Zoom ${z.toFixed(1)} times`}
+                      className={`min-w-11 rounded-full px-3 py-1.5 text-xs font-semibold tabular-nums transition ${
+                        on ? 'bg-white text-neutral-900' : 'text-white/85 active:scale-95'
+                      }`}
+                    >
+                      {z < 1.05 ? '1×' : `${z.toFixed(1)}×`}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
             {found && (
               <span className="flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-neutral-900 shadow-lg">
                 <ScanLine className="size-4 text-primary" />
