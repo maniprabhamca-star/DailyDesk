@@ -642,31 +642,12 @@ export function fillZoom(frameW: number, frameH: number, boxW: number, boxH: num
   return contain > 0 ? cover / contain : 1;
 }
 
-/**
- * Where to start, before anyone touches the zoom control.
- *
- * Filling the screen is the right default when it is nearly free, and it is
- * what a phone camera app looks like. It is the wrong default when the camera's
- * frame is a completely different shape from the screen, because "fill" then
- * means "throw away three quarters of the view" — reported, twice, as the
- * scanner being zoomed in by itself.
- *
- * So: fill when filling still shows most of the frame; otherwise back off to
- * the zoom that keeps `floor` of it, and let the control do the rest. On a
- * matched 9:16 camera this returns fill; on a 16:9 camera held upright it
- * returns about 2, which is a viewfinder you can actually aim a page into.
- */
-export function defaultZoom(
-  frameW: number, frameH: number, boxW: number, boxH: number, floor = 0.5,
-): number {
-  const max = fillZoom(frameW, frameH, boxW, boxH);
-  if (max <= 1) return 1;
-  if (viewRect(frameW, frameH, boxW, boxH, max).visibleFraction >= floor) return max;
-  // Only one axis is ever cropped, so the visible fraction is linear in 1/zoom
-  // and the zoom that shows exactly `floor` of the frame is this.
-  const atFull = viewRect(frameW, frameH, boxW, boxH, 1).visibleFraction; // 1 by construction
-  return Math.min(max, Math.max(1, atFull / floor));
-}
+/* There was a `defaultZoom()` here that picked a starting zoom from how much of
+ * the frame filling the screen would cost. It is gone: the scanner opens on the
+ * lowest stop, full stop. Zoomed out you can see the whole page and reach for
+ * the control; opened too tight the page is off the edges and nothing on screen
+ * says zoom is why. Every complaint about this screen was that it was too far
+ * in. A cleverer rule is not wanted — asked for directly. */
 
 /**
  * Which part of the camera frame is on screen, and where it sits in the box.

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { X, Check, Zap, ZapOff, Loader2, ScanLine } from 'lucide-react';
-import { detectDocument, flattenDocument, quadStability, viewRect, fillZoom, defaultZoom, smoothQuad, type Quad } from '@/lib/doc-scan';
+import { detectDocument, flattenDocument, quadStability, viewRect, fillZoom, smoothQuad, type Quad } from '@/lib/doc-scan';
 
 /**
  * Full-screen document scanner.
@@ -52,9 +52,14 @@ import { detectDocument, flattenDocument, quadStability, viewRect, fillZoom, def
  * So the preview is `object-fit: contain` plus `transform: scale(zoom)`, where
  * zoom 1 shows the whole frame and `fillZoom()` reaches every edge, and the
  * stops in between are offered as chips the way a camera app offers 0.5x/1x/2x.
- * `defaultZoom()` starts at fill when filling is nearly free and backs off when
- * it is not. Detection and capture read the same `viewRect()` the CSS mirrors,
- * so the highlight stays on the page at every stop.
+ * It opens on the LOWEST stop: every complaint about this screen has been that
+ * it was too far in, never too far out, and zoomed out you can at least SEE
+ * that there is a zoom control to reach for. Detection and capture read the
+ * same `viewRect()` the CSS mirrors, so the highlight stays on the page at
+ * every stop.
+ *
+ * The stops are rebuilt when the screen changes SHAPE, because turning the
+ * phone changes what filling it costs — 3.8x upright, 1.2x on its side.
  */
 
 /** Detector input width. Bigger is not better — lib/doc-scan downsamples anyway. */
@@ -126,7 +131,11 @@ export function DocScanner({
   const zoomRef = useRef(1);
   useEffect(() => { zoomRef.current = zoom; }, [zoom]);
   const [stops, setStops] = useState<number[]>([]);
-  const stopsSetRef = useRef(false);
+  // The screen shape the stops were worked out for. Turning the phone changes
+  // it completely — a 16:9 camera that needs a 3.8x zoom to fill an upright
+  // screen needs 1.2x to fill the same screen on its side — so the range has to
+  // be rebuilt, not carried over.
+  const stopShapeRef = useRef(0);
 
   // Refs, not state: the detection loop reads these every frame and re-running
   // it on every React render would defeat the throttle entirely.
@@ -338,24 +347,49 @@ export function DocScanner({
       const cssW = overlay.clientWidth, cssH = overlay.clientHeight;
       if (!cssW || !cssH) return;
 
-      // First frame with real dimensions: work out how far this camera CAN be
-      // zoomed on this screen, and where to start. Frozen after that — a
-      // sliding address bar must not re-derive it and move the picture.
-      if (!stopsSetRef.current) {
-        stopsSetRef.current = true;
+      // Work out how far this camera CAN be zoomed on this screen, and where to
+      // start — on the first real frame, and again whenever the screen changes
+      // SHAPE, which means the phone was turned.
+      //
+      // Freezing it outright was the first attempt and it left the scanner
+      // stuck in portrait: the range and the chosen stop both belonged to the
+      // old shape, so turning the phone did nothing useful. Recomputing on
+      // every frame is the other extreme and re-frames the picture under the
+      // person's hands as the address bar slides.
+      //
+      // So: compare shapes, on a log ratio so it reads the same in either
+      // direction. An address bar sliding away moves it by ~0.15; turning the
+      // phone moves it by ~1.55. 0.35 sits clear of one and well under the
+      // other.
+      const shape = cssW / cssH;
+      if (Math.abs(Math.log(shape / (stopShapeRef.current || shape))) > 0.35 || !stopShapeRef.current) {
+        stopShapeRef.current = shape;
         const max = fillZoom(v.videoWidth, v.videoHeight, cssW, cssH);
-        // No control when the frame already matches the screen: filling costs
-        // nothing and a chip row offering two identical views is clutter.
-        const next = max <= 1.08 ? [] : [1, Math.cbrt(max), Math.cbrt(max) ** 2, max]
+        // How many stops is worth offering depends on how wide the range is.
+        // Four geometric stops across a 1.2x range gave "1x 1.1x 1.1x 1.2x" on
+        // a phone turned sideways — two chips with the same label, showing
+        // views nobody could tell apart. Deduplicating on the LABEL rather than
+        // the number is the part that matters: what the eye compares is what is
+        // printed on the chip.
+        const ladder = max <= 1.08 ? []
+          : max < 1.3 ? [1, max]
+            : max < 2 ? [1, Math.sqrt(max), max]
+              : [1, Math.cbrt(max), Math.cbrt(max) ** 2, max];
+        const label = (z: number) => (z < 1.05 ? '1' : z.toFixed(1));
+        const next = ladder
           .map((z) => Math.min(max, Math.max(1, z)))
-          .filter((z, i, a) => a.findIndex((o) => Math.abs(o - z) < 0.06) === i);
+          .filter((z, i, a) => a.findIndex((o) => label(o) === label(z)) === i);
         setStops(next);
-        // Start on a STOP, not merely near one, or the row opens with nothing
-        // highlighted and the control looks broken before it is touched.
-        const want = defaultZoom(v.videoWidth, v.videoHeight, cssW, cssH);
-        const start = next.length
-          ? next.reduce((best, z) => (Math.abs(z - want) < Math.abs(best - want) ? z : best), next[0])
-          : max;
+        // Open on the LOWEST stop — asked for directly, and it is the right
+        // default anyway. Zoomed all the way out you can see the whole page and
+        // zoom in if you want to; opened too tight, the page is off the edges
+        // of the screen and there is nothing on screen to tell you that zoom is
+        // why. Every complaint about this scanner has been that it was too far
+        // in, never that it was too far out.
+        //
+        // When there are no stops the camera already matches the screen, so
+        // filling it and showing everything are the same picture.
+        const start = next.length ? next[0] : max;
         setZoom(start);
         zoomRef.current = start;
       }
@@ -547,7 +581,7 @@ export function DocScanner({
             has been detected". Sitting there permanently it was a label; timed
             to the outline it tells you the scanner has found something. */}
         {!error && (
-          <div className="pointer-events-none absolute inset-x-0 bottom-32 flex flex-col items-center gap-2 px-4">
+          <div className="pointer-events-none absolute inset-x-0 bottom-32 flex flex-col items-center gap-2 px-4 [@media(max-height:480px)]:bottom-[5.5rem] [@media(max-height:480px)]:gap-1">
             {/* Zoom, the way a camera app does it: a row of stops, the current
                 one filled in. It exists because a camera that hands over a 16:9
                 frame cannot fill an upright screen without throwing three
@@ -608,7 +642,7 @@ export function DocScanner({
 
         {/* Controls float ON the picture, like a camera app — a scrim for
             legibility rather than a black bar taking a third of the screen. */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-16">
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-16 [@media(max-height:480px)]:pb-[max(0.5rem,env(safe-area-inset-bottom))] [@media(max-height:480px)]:pt-6">
           <div className="pointer-events-auto flex items-center justify-between gap-4 px-7">
             <div className="flex size-14 items-center justify-center">
               {lastThumb ? (
@@ -621,9 +655,9 @@ export function DocScanner({
               onClick={() => capture(false)}
               disabled={!ready}
               aria-label="Capture page"
-              className="flex size-[74px] items-center justify-center rounded-full border-[5px] border-white bg-transparent disabled:opacity-40 active:scale-95"
+              className="flex size-[74px] items-center justify-center rounded-full border-[5px] border-white bg-transparent disabled:opacity-40 active:scale-95 [@media(max-height:480px)]:size-[58px]"
             >
-              <span className="size-[58px] rounded-full bg-white transition-transform active:scale-90" />
+              <span className="size-[58px] rounded-full bg-white transition-transform active:scale-90 [@media(max-height:480px)]:size-[44px]" />
             </button>
 
             <button

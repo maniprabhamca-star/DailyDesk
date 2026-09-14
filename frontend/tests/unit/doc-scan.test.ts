@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { detectDocument, flattenDocument, quadStability, viewRect, fillZoom, defaultZoom, smoothQuad, type Quad, type Point } from '@/lib/doc-scan';
+import { detectDocument, flattenDocument, quadStability, viewRect, fillZoom, smoothQuad, type Quad, type Point } from '@/lib/doc-scan';
 
 /* Document detection, tested against frames whose answer is already known.
  *
@@ -345,38 +345,32 @@ describe('viewRect', () => {
   });
 });
 
-describe('fillZoom and defaultZoom', () => {
+describe('fillZoom', () => {
   it('is 1 when the camera and the screen are the same shape', () => {
     expect(fillZoom(390, 844, 390, 844)).toBeCloseTo(1, 4);
-    expect(defaultZoom(390, 844, 390, 844)).toBeCloseTo(1, 4);
   });
 
-  it('still opens filling the screen when filling is nearly free', () => {
-    // 9:16 camera on a 9:19.5 phone: covering costs ~18%, which is what a phone
-    // camera app looks like. Backing off here would be a regression.
-    const max = fillZoom(1080, 1920, 390, 844);
-    expect(defaultZoom(1080, 1920, 390, 844)).toBeCloseTo(max, 4);
+  it('is small when filling is nearly free', () => {
+    // 9:16 camera on a 9:19.5 phone — covering costs ~18%.
+    expect(fillZoom(1080, 1920, 390, 844)).toBeLessThan(1.3);
   });
 
-  it('backs off when filling would throw most of the picture away', () => {
-    // The owner's phone. Opening at fill is the "over zooming by default" bug.
-    const max = fillZoom(2560, 1440, 375, 812);
-    const start = defaultZoom(2560, 1440, 375, 812);
-    expect(max, 'this screen can be filled only by a 3.8x zoom').toBeGreaterThan(3);
-    expect(start, 'so it must not open there').toBeLessThan(max - 0.5);
-    expect(viewRect(2560, 1440, 375, 812, start).visibleFraction,
-      'and must open showing at least half the picture').toBeGreaterThanOrEqual(0.5 - 1e-6);
+  it('is large when filling would throw most of the picture away', () => {
+    // The owner's phone: a 16:9 camera on an upright screen. This number IS the
+    // "over zooming by default" report, expressed as a multiplier.
+    expect(fillZoom(2560, 1440, 375, 812)).toBeGreaterThan(3);
   });
 
-  it('never returns a zoom outside what the control can offer', () => {
-    for (const [fw, fh] of [[2560, 1440], [1080, 1920], [640, 480], [1920, 1080]]) {
-      for (const [bw, bh] of [[375, 812], [812, 375], [500, 500]]) {
-        const max = fillZoom(fw, fh, bw, bh);
-        const start = defaultZoom(fw, fh, bw, bh);
-        expect(start, `${fw}x${fh} -> ${bw}x${bh}`).toBeGreaterThanOrEqual(1);
-        expect(start, `${fw}x${fh} -> ${bw}x${bh}`).toBeLessThanOrEqual(max + 1e-9);
-      }
-    }
+  it('collapses when the same phone is turned on its side', () => {
+    // Why the stops have to be rebuilt on rotation rather than carried over:
+    // the same camera and the same screen, one quarter turn apart, differ by
+    // more than 3x in what filling costs.
+    expect(fillZoom(2560, 1440, 812, 375)).toBeLessThan(1.3);
+  });
+
+  it('survives a camera or a screen that has reported nothing yet', () => {
+    expect(fillZoom(0, 0, 375, 812)).toBe(1);
+    expect(fillZoom(2560, 1440, 0, 0)).toBe(1);
   });
 });
 

@@ -25,6 +25,14 @@ export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-09-13',
     kind: 'fixed',
+    title: 'Turn your phone sideways and the scanner comes with you',
+    detail:
+      'Two separate things stopped the scanner working in landscape. If you had added DiemDesk to your home screen, the app was locked to upright — turning the phone did nothing at all, anywhere in DiemDesk. That lock is gone. And inside the scanner, how far the picture could be zoomed was worked out once when it opened and then kept, even though turning the phone changes it completely: filling an upright screen with a wide camera takes a 3.8× zoom, and filling the same screen on its side takes 1.2×. The zoom stops are now rebuilt when you turn the phone, and the edge detection re-frames with them. The controls also take up less room on a screen that is short and wide, so the page is not buried under them.',
+    href: '/scan-to-pdf',
+  },
+  {
+    date: '2026-09-13',
+    kind: 'fixed',
     title: 'DiemDesk now tells you when there is a newer version',
     detail:
       'If you kept a DiemDesk tab open, your browser could go on running an older copy of the site for days — so fixes that were live on our end simply never reached you, with nothing on screen to say so. A small bar now appears at the top when a newer version has downloaded and is waiting, with a Reload button that switches to it. Nothing swaps underneath you while you are in the middle of something: the page only changes when you tap it. You can dismiss the bar and carry on, and the new version will be picked up next time you open the site anyway.',
@@ -34,7 +42,7 @@ export const CHANGELOG: ChangeEntry[] = [
     kind: 'feature',
     title: 'Zoom in the scanner, like the one in your camera app',
     detail:
-      'Some phones hand the browser a wide, cinema-shaped picture even when you are holding them upright. Filling the screen with one of those means cutting off about three quarters of what the camera can see — which is why the scanner looked zoomed in from the moment it opened, on some phones and not others. There is now a row of zoom stops above the shutter, the way your camera app has them. 1× is everything the camera can see, with black bars above and below; the last stop fills the screen. It opens at whichever stop shows you a sensible amount, so on phones where filling the screen costs nothing it still fills the screen. The edge detection follows whatever you pick, and what you save is what you framed. If your camera happens to match the shape of your screen, the stops do not appear at all — there would be nothing for them to change.',
+      'Some phones hand the browser a wide, cinema-shaped picture even when you are holding them upright. Filling the screen with one of those means cutting off about three quarters of what the camera can see — which is why the scanner looked zoomed in from the moment it opened, on some phones and not others. There is now a row of zoom stops above the shutter, the way your camera app has them. 1× is everything the camera can see, with black bars above and below; the last stop fills the screen. It opens at 1× — zoomed right out, so you can see the whole page and zoom in if you want to, rather than opening too close with nothing on screen to tell you why. The edge detection follows whatever you pick, and what you save is what you framed. If your camera happens to match the shape of your screen, the stops do not appear at all — there would be nothing for them to change.',
     href: '/scan-to-pdf',
   },
   {

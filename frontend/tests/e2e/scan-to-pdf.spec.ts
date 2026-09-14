@@ -242,6 +242,46 @@ test.describe('Scan to PDF — the scanner', () => {
     await expect(page.getByRole('button', { name: /done \(1\)/i })).toBeVisible({ timeout: 10_000 });
   });
 
+  test('turning the phone re-frames the scanner instead of staying portrait', async ({ page }) => {
+    // "if i tilt the phone horizontally the scanner is not turning up" — the
+    // zoom range was worked out once, on the shape the screen had when the
+    // scanner opened, and then frozen. Turning the phone changes that shape
+    // completely: a 16:9 camera needs ~3.8x to fill an upright screen and ~1.2x
+    // to fill the same screen on its side, so the old range and the old chosen
+    // stop are both meaningless afterwards.
+    const dialog = await openScanner(page);
+    const chips = dialog.getByRole('button', { name: /zoom [\d.]+ times/i });
+    await expect.poll(async () => chips.count(), { timeout: 10_000 }).toBeGreaterThan(0);
+    const portraitStops = await chips.allInnerTexts();
+
+    // Turn the phone.
+    await page.setViewportSize({ width: 844, height: 390 });
+
+    // The preview element must still span the (now landscape) screen. Measured
+    // with offsetWidth, NOT getBoundingClientRect: the rect includes the zoom
+    // transform, so a scaled element reports 844*zoom and the assertion reads
+    // as a layout failure when nothing is wrong.
+    await expect.poll(async () => page.locator('video').evaluate((v: HTMLVideoElement) =>
+      v.offsetWidth + 'x' + v.offsetHeight), { timeout: 10_000 }).toBe('844x390');
+
+    // ...and the stops must have been rebuilt for it. Filling a landscape
+    // screen with a landscape camera is nearly free, so the range collapses —
+    // which is exactly why carrying the portrait one over was wrong.
+    await expect
+      .poll(async () => (await chips.allInnerTexts()).join(','), { timeout: 10_000 })
+      .not.toBe(portraitStops.join(','));
+
+    // Whatever stop it lands on must be one that exists, or the row shows
+    // nothing selected and the control looks broken.
+    const pressed = await dialog.getByRole('button', { name: /zoom [\d.]+ times/i, pressed: true }).count();
+    const remaining = await chips.count();
+    expect(pressed === 1 || remaining === 0, 'a live stop row must have exactly one stop selected').toBe(true);
+
+    // And it still works: the shutter must produce a page in landscape.
+    await page.getByRole('button', { name: /capture page/i }).click();
+    await expect(page.getByRole('button', { name: /done \(1\)/i })).toBeVisible({ timeout: 10_000 });
+  });
+
   test('a captured page can be turned in the list, where you can see the result', async ({ page }) => {
     // Rotation moved here from the camera: a still picture gives you something
     // to judge "right way up" against, which a moving preview never did.
