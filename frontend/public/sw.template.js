@@ -253,4 +253,19 @@ self.addEventListener('fetch', (event) => {
 // browser see a byte-difference and install the new worker after a deploy.
 self.addEventListener('message', (event) => {
   if (event.data === 'build-id' && event.source) event.source.postMessage(BUILD_ID);
+
+  /* Skip waiting ONLY when a tab asks, never on install.
+   *
+   * The rule above stands: an automatic skipWaiting swaps the worker under a
+   * live tab whose chunks then vanish, which is the incident this file was
+   * rewritten for. But the opposite extreme has its own failure, and it cost
+   * the owner a day: a phone with the tab left open kept build N while builds
+   * N+1 and N+2 sat in `waiting`, so a fix that was demonstrably live on the
+   * server was invisible on the device, and the report was "you still haven't
+   * fixed it". Nobody closes all their tabs.
+   *
+   * A person tapping "Reload" has agreed to the reload that follows it, so the
+   * live-tab objection does not apply. components/pwa-register.tsx offers that
+   * tap and reloads on controllerchange. */
+  if (event.data && event.data.type === 'DD_SKIP_WAITING') self.skipWaiting();
 });

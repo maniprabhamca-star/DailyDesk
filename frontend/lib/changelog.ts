@@ -24,6 +24,13 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-09-13',
+    kind: 'fixed',
+    title: 'DiemDesk now tells you when there is a newer version',
+    detail:
+      'If you kept a DiemDesk tab open, your browser could go on running an older copy of the site for days — so fixes that were live on our end simply never reached you, with nothing on screen to say so. A small bar now appears at the top when a newer version has downloaded and is waiting, with a Reload button that switches to it. Nothing swaps underneath you while you are in the middle of something: the page only changes when you tap it. You can dismiss the bar and carry on, and the new version will be picked up next time you open the site anyway.',
+  },
+  {
+    date: '2026-09-13',
     kind: 'feature',
     title: 'Zoom in the scanner, like the one in your camera app',
     detail:
