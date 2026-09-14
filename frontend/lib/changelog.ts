@@ -58,7 +58,7 @@ export const CHANGELOG: ChangeEntry[] = [
     kind: 'fixed',
     title: 'The scanner viewfinder now behaves like your phone camera',
     detail:
-      'On some phones the scanner opened sideways, or in a band across the middle of the screen, or zoomed so far in that the page would not fit. The preview was being redrawn by hand, and which way up a camera picture arrives differs between phones and browsers, so the guess was wrong as often as it was right. The camera now shows through directly, the way it does in your phone’s own camera app: edge to edge, the right way up, and moving at the camera’s own speed rather than in steps. The outline it draws around the page sits exactly on the page, because what you see and what it saves are now the same picture.',
+      'On some phones the scanner opened sideways, or in a band across the middle of the screen, or zoomed so far in that the page would not fit. The preview was being redrawn by hand, and which way up a camera picture arrives differs between phones and browsers, so the guess was wrong as often as it was right. The camera now shows through directly, the way it does in your phone’s own camera app: the right way up, and moving at the camera’s own speed rather than in steps. The outline it draws around the page sits exactly on the page, because what you see and what it saves are now the same picture. (How much of the screen the picture fills became your choice a day later — see the zoom stops above.)',
     href: '/scan-to-pdf',
   },
   {
@@ -66,7 +66,7 @@ export const CHANGELOG: ChangeEntry[] = [
     kind: 'feature',
     title: 'Scan to PDF is a real document scanner now',
     detail:
-      'Tap Open scanner and the camera fills the screen. Point it at a page and it finds the edges of the document itself, draws a green outline around it and dims the desk around it, so you can see exactly what it has got. Hold still for a moment and it takes the shot on its own — then waits for the next page rather than firing again at the one you are still holding. What it saves is the document, not the photograph: the page is straightened out of whatever angle you held the phone at and everything around it is cut away, so a sheet photographed askew on a kitchen table comes out as a clean rectangular page. There is still a shutter button if you would rather take it yourself, and a switch to turn the automatic capture off. All of it runs on your device — the camera never leaves your browser.',
+      'Tap Open scanner and the camera takes over the whole screen. Point it at a page and it finds the edges of the document itself, draws a green outline around it and dims the desk around it, so you can see exactly what it has got. Hold still for a moment and it takes the shot on its own — then waits for the next page rather than firing again at the one you are still holding. What it saves is the document, not the photograph: the page is straightened out of whatever angle you held the phone at and everything around it is cut away, so a sheet photographed askew on a kitchen table comes out as a clean rectangular page. There is still a shutter button if you would rather take it yourself, and a switch to turn the automatic capture off. All of it runs on your device — the camera never leaves your browser.',
     href: '/scan-to-pdf',
   },
   {
