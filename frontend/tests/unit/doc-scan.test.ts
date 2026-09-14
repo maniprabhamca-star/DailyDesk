@@ -144,6 +144,46 @@ describe('detectDocument', () => {
     expect(found, 'a page at 76% of the frame is a page, not the frame').not.toBeNull();
   });
 
+  it('says a page is CLIPPED when it runs off the frame, not just "nothing"', () => {
+    // The first real photograph anyone sent: an envelope on a bed, held close
+    // enough that its left and right edges were outside the picture. The
+    // detector needs four corners and had two, so it returned null — correctly
+    // — while the screen went on saying "Point the camera at your document" at
+    // someone doing exactly that. Returning null is honest and useless.
+    //
+    // Measured before the fix: a page fully inside is FOUND; touching both side
+    // edges, running off both sides, and running off all four are all null.
+    const clipped: Quad = [{ x: -60, y: 60 }, { x: 700, y: 58 }, { x: 700, y: 210 }, { x: -60, y: 212 }];
+    const notes = { clipped: false };
+    expect(detectDocument(synthFrame(640, 270, clipped), notes), 'still no quad — two corners is not four').toBeNull();
+    expect(notes.clipped, 'but it must say WHY, because "move back" fixes it').toBe(true);
+  });
+
+  it('does not cry "clipped" at an empty desk', () => {
+    // The picture's own border traced around a bare surface spans BOTH pairs of
+    // edges. Telling someone to move back from nothing is worse than silence,
+    // so only spanning ONE pair counts — which is what a page held too close
+    // does and what the frame border never does.
+    const empty = makeImageData(640, 270);
+    let s = 11;
+    for (let i = 0; i < empty.data.length; i += 4) {
+      s = (s * 1103515245 + 12345) & 0x7fffffff;
+      const v = 70 + (s / 0x7fffffff) * 16 - 8;
+      empty.data[i] = empty.data[i + 1] = empty.data[i + 2] = v;
+      empty.data[i + 3] = 255;
+    }
+    const notes = { clipped: false };
+    expect(detectDocument(empty, notes)).toBeNull();
+    expect(notes.clipped, 'an empty desk is not a page held too close').toBe(false);
+  });
+
+  it('leaves the notes alone when the page is found', () => {
+    const quad: Quad = [{ x: 90, y: 60 }, { x: 550, y: 60 }, { x: 550, y: 700 }, { x: 90, y: 700 }];
+    const notes = { clipped: false };
+    expect(detectDocument(synthFrame(640, 780, quad), notes)).not.toBeNull();
+    expect(notes.clipped).toBe(false);
+  });
+
   it('ignores something far too small to be the page being scanned', () => {
     // A business card on the desk: real, high-contrast, and not what you are
     // scanning. MIN_AREA_FRACTION is what keeps the highlight off it.

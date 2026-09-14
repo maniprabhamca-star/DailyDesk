@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { X, Check, Zap, ZapOff, Loader2, ScanLine } from 'lucide-react';
-import { detectDocument, flattenDocument, quadStability, viewRect, fillZoom, smoothQuad, type Quad } from '@/lib/doc-scan';
+import { detectDocument, flattenDocument, quadStability, viewRect, fillZoom, smoothQuad, type Quad, type DetectNotes } from '@/lib/doc-scan';
 
 /**
  * Full-screen document scanner.
@@ -161,6 +161,10 @@ export function DocScanner({
   const prevQuadRef = useRef<Quad | null>(null);
   const missesRef = useRef(0);
   const hitsRef = useRef(0);
+  // When the detector last found nothing, and whether it looked clipped — the
+  // two facts the guidance under the shutter is built from.
+  const missSinceRef = useRef(0);
+  const clippedRef = useRef(false);
   const steadyRef = useRef(0);
   const autoRef = useRef(auto);
   const busyRef = useRef(false);
@@ -473,8 +477,12 @@ export function DocScanner({
       if (!dctx) return;
       if (!paintFrame(dctx, dw, dh)) return;
 
-      const raw = detectDocument(dctx.getImageData(0, 0, dw, dh));
+      const notes: DetectNotes = { clipped: false };
+      const raw = detectDocument(dctx.getImageData(0, 0, dw, dh), notes);
       const diagonal = Math.hypot(dw, dh);
+      if (raw) missSinceRef.current = 0;
+      else if (!missSinceRef.current) missSinceRef.current = now;
+      clippedRef.current = notes.clipped;
 
       // Hysteresis both ways, then damping. Between them these are the whole of
       // "fluctuating and dancing": an outline that needs corroborating before it
@@ -522,8 +530,19 @@ export function DocScanner({
         }
       }
 
+      // Nothing found is the state that needed the most work. It used to say
+      // "Point the camera at your document" for ever, including while pointed
+      // squarely at one — the detector needs all four corners, and a page held
+      // close enough to run off the sides gives it two. Say the thing that
+      // fixes it, and after a few seconds of nothing say the next most likely
+      // thing, rather than repeating an instruction already being followed.
+      const stuckFor = missSinceRef.current ? now - missSinceRef.current : 0;
       setHint(!quad
-        ? 'Point the camera at your document'
+        ? clippedRef.current
+          ? 'Move back — the page runs off the edge'
+          : stuckFor > 4000
+            ? 'Fit all four corners in view, on a surface that isn’t the same colour'
+            : 'Point the camera at your document'
         : autoRef.current && !armedRef.current
           ? 'Captured — show the next page'
           : steadyRef.current >= STEADY_FRAMES_NEEDED / 2

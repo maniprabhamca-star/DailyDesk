@@ -23,6 +23,14 @@ export type ChangeEntry = {
 // flags flip, dated then.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-09-14',
+    kind: 'improved',
+    title: 'The scanner tells you why it cannot see your document',
+    detail:
+      'The scanner needs all four corners of a page in view — it works out where the edges are, and two edges is not enough to straighten anything. Hold the phone too close and the page runs off the sides, and until now the screen just said “Point the camera at your document” at someone pointing the camera straight at their document. It now says “Move back — the page runs off the edge”, which is the thing that actually fixes it. And if nothing is found for a few seconds it suggests the next most likely cause instead of repeating an instruction you are already following: get all four corners in, and put the page on something that is not the same colour as the page.',
+    href: '/scan-to-pdf',
+  },
+  {
     date: '2026-09-13',
     kind: 'fixed',
     title: 'Turn your phone sideways and the scanner comes with you',

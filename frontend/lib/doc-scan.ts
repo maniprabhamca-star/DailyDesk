@@ -416,7 +416,21 @@ function edgeContrast(gray: Float32Array, w: number, h: number, q: Quad, probe =
   return n ? total / n : 0;
 }
 
-export function detectDocument(frame: ImageData): Quad | null {
+/**
+ * What the detector noticed while failing to find a page.
+ *
+ * Returning `null` is honest but useless to the person holding the phone: a
+ * real envelope on a real bed, photographed close enough that it ran off both
+ * sides of the frame, produced nothing at all while the screen went on saying
+ * "Point the camera at your document". It WAS pointed at the document. The
+ * detector needs four corners and only two were in view.
+ *
+ * `clipped` is the one distinction worth reporting, because it is the one with
+ * an action attached: move back.
+ */
+export type DetectNotes = { clipped: boolean };
+
+export function detectDocument(frame: ImageData, notes?: DetectNotes): Quad | null {
   const { width: fw, height: fh } = frame;
   if (fw < 32 || fh < 32) return null;
 
@@ -443,6 +457,27 @@ export function detectDocument(frame: ImageData): Quad | null {
   for (const contour of findContours(bin, w, h)) {
     const perimeter = contour.reduce((s, p, i) => s + (i ? dist(contour[i - 1], p) : 0), 0);
     if (perimeter < (w + h) * 0.5) continue;             // too small to be a page
+
+    // Is this something large running off ONE pair of edges? That is a page
+    // held too close, and the only failure this detector can give useful advice
+    // about. Spanning BOTH pairs is not reported: that is the picture's own
+    // border traced around an empty desk, where "move back" would be nonsense.
+    if (notes && !notes.clipped) {
+      let minx = Infinity, maxx = -Infinity, miny = Infinity, maxy = -Infinity;
+      for (const p of contour) {
+        if (p.x < minx) minx = p.x; if (p.x > maxx) maxx = p.x;
+        if (p.y < miny) miny = p.y; if (p.y > maxy) maxy = p.y;
+      }
+      // Area is the wrong measure here, and assuming otherwise cost a test
+      // run: a page running off both sides leaves no vertical boundary inside
+      // the picture at all, so what the tracer gets is the page's TOP and
+      // BOTTOM edges — two long, flat contours enclosing almost nothing. Their
+      // span is the signal. The perimeter gate above already means this is a
+      // substantial piece of edge and not a speck.
+      const spansW = minx <= 1 && maxx >= w - 2;
+      const spansH = miny <= 1 && maxy >= h - 2;
+      if (spansW !== spansH) notes.clipped = true;
+    }
 
     const candidate = quadFromContour(contour);
     // 0.035 = the traced outline sits, on average, within 3.5% of the quad's

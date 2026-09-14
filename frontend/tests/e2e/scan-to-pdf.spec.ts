@@ -308,6 +308,44 @@ test.describe('Scan to PDF — the scanner', () => {
     await expect(page.getByRole('button', { name: /done \(1\)/i })).toBeVisible({ timeout: 10_000 });
   });
 
+  test('says MOVE BACK when the page runs off the frame, and finds it when it does not', async ({ page }) => {
+    // The first real photograph anyone sent: an envelope on a patterned bed,
+    // held close enough that its left and right edges were out of shot. The
+    // detector needs four corners, had two, and returned nothing — while the
+    // screen went on saying "Point the camera at your document" to someone
+    // doing exactly that. The detection behaviour is right; the silence was
+    // not.
+    //
+    // Chromium's fake camera shows a rolling pattern, so this drives a canvas
+    // whose page can be made to overflow the frame and then fit inside it.
+    await page.addInitScript(() => {
+      const W = 1280, H = 720;
+      const c = document.createElement('canvas'); c.width = W; c.height = H;
+      const x = c.getContext('2d')!;
+      (window as unknown as { __tooClose: boolean }).__tooClose = true;
+      setInterval(() => {
+        x.fillStyle = '#3a3630'; x.fillRect(0, 0, W, H);
+        const pageH = H * 0.45;
+        const pageW = (window as unknown as { __tooClose: boolean }).__tooClose ? W * 1.3 : W * 0.55;
+        x.save(); x.translate(W / 2, H / 2);
+        x.fillStyle = '#f4f2ee'; x.fillRect(-pageW / 2, -pageH / 2, pageW, pageH);
+        x.restore();
+      }, 60);
+      navigator.mediaDevices.getUserMedia = async () => c.captureStream(20);
+    });
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    const dialog = await openScanner(page);
+
+    await expect(dialog.getByText(/move back/i), 'a page running off the frame must say so')
+      .toBeVisible({ timeout: 15_000 });
+
+    // Back off so all four edges are in shot: it must find it.
+    await page.evaluate(() => { (window as unknown as { __tooClose: boolean }).__tooClose = false; });
+    await expect(dialog.getByText(/document found|hold still|captured/i), 'and then actually detect it')
+      .toBeVisible({ timeout: 15_000 });
+    await expect(dialog.getByText(/move back/i)).toHaveCount(0);
+  });
+
   test('a captured page can be turned in the list, where you can see the result', async ({ page }) => {
     // Rotation moved here from the camera: a still picture gives you something
     // to judge "right way up" against, which a moving preview never did.
