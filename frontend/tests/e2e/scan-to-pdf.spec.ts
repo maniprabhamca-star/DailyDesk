@@ -254,8 +254,34 @@ test.describe('Scan to PDF — the scanner', () => {
     await expect.poll(async () => chips.count(), { timeout: 10_000 }).toBeGreaterThan(0);
     const portraitStops = await chips.allInnerTexts();
 
+    // Watch what the camera track is asked for. The layout turning is not the
+    // fix and never was: the scanner's controls moved to the sides of a
+    // landscape screen while the camera went on shooting the TALL frame it was
+    // asked for at open, and a 9:16 picture in a 16:9 screen is a strip down
+    // the middle — reported as "the scanner is still in vertical".
+    await page.evaluate(() => {
+      const w = window as unknown as { __applied: unknown[] };
+      w.__applied = [];
+      const proto = MediaStreamTrack.prototype as unknown as {
+        applyConstraints: (c?: MediaTrackConstraints) => Promise<void>;
+      };
+      const real = proto.applyConstraints;
+      proto.applyConstraints = function (c?: MediaTrackConstraints) {
+        w.__applied.push(JSON.parse(JSON.stringify(c ?? {})));
+        return real.call(this, c);
+      };
+    });
+
     // Turn the phone.
     await page.setViewportSize({ width: 844, height: 390 });
+
+    // The camera must be asked for a WIDE frame now.
+    const asked = await page.waitForFunction(() => {
+      const w = window as unknown as { __applied: { width?: { ideal?: number }; height?: { ideal?: number } }[] };
+      const last = w.__applied[w.__applied.length - 1];
+      return last && (last.width?.ideal ?? 0) > (last.height?.ideal ?? 0) ? last : null;
+    }, undefined, { timeout: 10_000 }).then((h) => h.jsonValue());
+    expect(asked, 'turning the phone must re-ask the camera, not just move the buttons').toBeTruthy();
 
     // The preview element must still span the (now landscape) screen. Measured
     // with offsetWidth, NOT getBoundingClientRect: the rect includes the zoom

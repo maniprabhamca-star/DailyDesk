@@ -58,8 +58,20 @@ import { detectDocument, flattenDocument, quadStability, viewRect, fillZoom, smo
  * same `viewRect()` the CSS mirrors, so the highlight stays on the page at
  * every stop.
  *
- * The stops are rebuilt when the screen changes SHAPE, because turning the
- * phone changes what filling it costs — 3.8x upright, 1.2x on its side.
+ * ── Turning the phone: the CAMERA has to be told, not just the layout ──────
+ * "i am doing in the landscape or tilting the phone horizontal, but the
+ * scanner is still in vertical."
+ *
+ * The scanner had turned — its controls were at the sides of a landscape
+ * screen. What had not turned was the camera. It was still shooting the tall
+ * frame it was asked for when the scanner opened, and a 9:16 picture fitted
+ * into a 16:9 screen is a narrow strip down the middle with black either side,
+ * which is indistinguishable from "still in portrait" and is worse than it.
+ *
+ * No amount of rotating our own layout reaches that. `reshapeStream()` calls
+ * applyConstraints on the live track so the camera itself re-shoots wide, and
+ * the stops are rebuilt when EITHER shape changes — the screen's on the turn,
+ * the frame's a moment later when the track has re-negotiated.
  */
 
 /** Detector input width. Bigger is not better — lib/doc-scan downsamples anyway. */
@@ -131,11 +143,14 @@ export function DocScanner({
   const zoomRef = useRef(1);
   useEffect(() => { zoomRef.current = zoom; }, [zoom]);
   const [stops, setStops] = useState<number[]>([]);
-  // The screen shape the stops were worked out for. Turning the phone changes
-  // it completely — a 16:9 camera that needs a 3.8x zoom to fill an upright
-  // screen needs 1.2x to fill the same screen on its side — so the range has to
-  // be rebuilt, not carried over.
-  const stopShapeRef = useRef(0);
+  // The two shapes the stops were worked out for: the screen's, and the camera
+  // frame's. Either one changing invalidates the range — a 16:9 camera needs a
+  // 3.8x zoom to fill an upright screen and 1.2x to fill the same screen on its
+  // side — so it is rebuilt rather than carried over.
+  const shapeRef = useRef<{ box: number; frame: number } | null>(null);
+  // Which way up the camera was last ASKED to shoot. Re-asking costs a moment
+  // of the track re-negotiating, so it must happen on a turn and not per frame.
+  const askedShapeRef = useRef<'tall' | 'wide' | null>(null);
 
   // Refs, not state: the detection loop reads these every frame and re-running
   // it on every React render would defeat the throttle entirely.
@@ -192,6 +207,7 @@ export function DocScanner({
       // the first that opens. Whatever arrives, CSS frames it and coverCrop
       // samples it — nothing downstream depends on the answer.
       const tall = window.innerHeight >= window.innerWidth;
+      askedShapeRef.current = tall ? 'tall' : 'wide';
       const attempts: MediaStreamConstraints[] = [
         // Shaped like the screen, at a resolution worth putting in a PDF.
         { video: { facingMode: { ideal: 'environment' }, width: { ideal: tall ? 1440 : 2560 }, height: { ideal: tall ? 2560 : 1440 } }, audio: false },
@@ -245,6 +261,35 @@ export function DocScanner({
       document.body.style.overflow = prev;
     };
   }, [onClose]);
+
+  /**
+   * Ask the camera to shoot the way the phone is now being held.
+   *
+   * This is what "the scanner is still in vertical" actually was. The scanner
+   * DID turn — the controls moved to the sides of a landscape screen — but the
+   * camera was still handing over the tall frame it was asked for when the
+   * scanner opened, and a 9:16 picture fitted into a 16:9 screen is a narrow
+   * strip down the middle with black either side. Rotating our own layout can
+   * never fix that; only the camera can, and nobody had told it.
+   *
+   * applyConstraints re-negotiates the live track in place. Re-calling
+   * getUserMedia would work too but tears the stream down and builds another,
+   * which flickers and on some devices re-runs the permission plumbing for no
+   * reason. A device that refuses is not an error: the picture stays the shape
+   * it was and the zoom control still covers it, which is the state this
+   * already shipped in.
+   */
+  const reshapeStream = useCallback((tall: boolean) => {
+    const want = tall ? 'tall' : 'wide';
+    if (askedShapeRef.current === want) return;
+    askedShapeRef.current = want;
+    const track = streamRef.current?.getVideoTracks?.()[0];
+    if (!track?.applyConstraints) return;
+    void track.applyConstraints({
+      width: { ideal: tall ? 1440 : 2560 },
+      height: { ideal: tall ? 2560 : 1440 },
+    }).catch(() => { /* the camera kept its shape; the zoom stops absorb it */ });
+  }, []);
 
   /**
    * Paint what is ON SCREEN into a canvas of the same shape.
@@ -361,9 +406,20 @@ export function DocScanner({
       // direction. An address bar sliding away moves it by ~0.15; turning the
       // phone moves it by ~1.55. 0.35 sits clear of one and well under the
       // other.
-      const shape = cssW / cssH;
-      if (Math.abs(Math.log(shape / (stopShapeRef.current || shape))) > 0.35 || !stopShapeRef.current) {
-        stopShapeRef.current = shape;
+      //
+      // BOTH shapes matter. The screen's changes when the phone is turned; the
+      // camera frame's changes a moment later, once applyConstraints has
+      // re-negotiated the track. Watching only the screen meant the stops were
+      // rebuilt from the OLD frame size and were wrong again immediately.
+      const boxShape = cssW / cssH;
+      const frameShape = v.videoWidth / v.videoHeight;
+      const was = shapeRef.current;
+      const turned = !was || Math.abs(Math.log(boxShape / was.box)) > 0.35;
+      if (turned || Math.abs(Math.log(frameShape / was!.frame)) > 0.15) {
+        // The phone was turned: ask the camera to follow. Everything below then
+        // reruns when its new frame size arrives.
+        if (turned) reshapeStream(cssH >= cssW);
+        shapeRef.current = { box: boxShape, frame: frameShape };
         const max = fillZoom(v.videoWidth, v.videoHeight, cssW, cssH);
         // How many stops is worth offering depends on how wide the range is.
         // Four geometric stops across a 1.2x range gave "1x 1.1x 1.1x 1.2x" on
@@ -524,7 +580,7 @@ export function DocScanner({
 
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [ready, capture, paintFrame]);
+  }, [ready, capture, paintFrame, reshapeStream]);
 
   return (
     <div className="fixed inset-0 z-[100] flex flex-col bg-black" role="dialog" aria-modal="true" aria-label="Document scanner">
