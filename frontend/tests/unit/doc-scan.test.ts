@@ -144,6 +144,33 @@ describe('detectDocument', () => {
     expect(found, 'a page at 76% of the frame is a page, not the frame').not.toBeNull();
   });
 
+  it('refuses a quad with a corner ON the edge of the picture', () => {
+    // THE worst output this scanner has produced, from a real photograph: an
+    // envelope running off both sides of the frame, outlined as a green wedge
+    // cutting diagonally across it — one corner on the left edge, one on the
+    // bottom — and five of them captured and saved before anyone stopped it.
+    //
+    // The rule that let it through only rejected a quad when ALL FOUR corners
+    // hugged the border. A single corner on the border is already fatal: it is
+    // not a corner of the document, it is where the document left the frame.
+    const wedge: Quad = [
+      { x: 0, y: 470 },      // on the left edge — the giveaway
+      { x: 300, y: 300 },
+      { x: 600, y: 330 },
+      { x: 600, y: 470 },
+    ];
+    expect(detectDocument(synthFrame(640, 480, wedge)), 'a corner on the border is not a corner').toBeNull();
+
+    // One corner is enough to sink it, from any edge.
+    for (const bad of [
+      [{ x: 320, y: 0 }, { x: 600, y: 90 }, { x: 580, y: 400 }, { x: 60, y: 380 }],
+      [{ x: 60, y: 90 }, { x: 639, y: 90 }, { x: 600, y: 400 }, { x: 60, y: 380 }],
+      [{ x: 60, y: 90 }, { x: 580, y: 90 }, { x: 560, y: 479 }, { x: 60, y: 380 }],
+    ] as Quad[]) {
+      expect(detectDocument(synthFrame(640, 480, bad)), 'every edge counts').toBeNull();
+    }
+  });
+
   it('says a page is CLIPPED when it runs off the frame, not just "nothing"', () => {
     // The first real photograph anyone sent: an envelope on a bed, held close
     // enough that its left and right edges were outside the picture. The

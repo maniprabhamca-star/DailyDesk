@@ -14,6 +14,27 @@ export default defineConfig({
     // when the project path contains a space (e.g. "Mani Documents" on Windows,
     // where the file:// URL encodes it as %20). threads works everywhere.
     pool: 'threads',
+    // Cap the workers. Uncapped, one run in four lost a whole FILE:
+    //
+    //   Error: [vitest-pool]: Failed to start threads worker for test files
+    //          tests/unit/pdf-outline.test.ts
+    //   Caused by: [vitest-pool-runner]: Timeout waiting for worker to respond
+    //   Test Files  26 passed (26)   Tests  270 passed (270)   Errors  1 error
+    //
+    // "26 passed" where there are 27 files, "270 passed" where there are 285
+    // tests, and the word "passed" on both lines. The error line is the only
+    // thing separating that from a clean run, and nobody reads past a green
+    // summary. This box is 4 cores shared with another project; spawning a
+    // worker per file starves the ones trying to start.
+    poolOptions: { threads: { maxThreads: 4 } },
+    // 5s (the default) is too tight for the tests that read the whole source
+    // tree off disk — the accept-list and SEO-metadata suites walk several
+    // hundred .ts/.tsx files each, and when 27 files run in parallel on a busy
+    // machine they took 9.4s and 6.4s. They were failing about one run in four
+    // and getting waved through as "the known flake", which is how a green run
+    // stops meaning anything. Nothing is wrong with those assertions; the
+    // budget was wrong. A real hang still fails, 25 seconds later.
+    testTimeout: 30_000,
     coverage: { provider: 'v8', reportsDirectory: 'tests/.coverage', include: ['lib/**', 'components/**'] },
   },
   resolve: { alias: { '@': path.resolve(__dirname, '.') } },

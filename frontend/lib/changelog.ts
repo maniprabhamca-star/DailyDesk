@@ -25,9 +25,9 @@ export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-09-14',
     kind: 'improved',
-    title: 'The scanner tells you why it cannot see your document',
+    title: 'The scanner stops outlining things that are not your document',
     detail:
-      'The scanner needs all four corners of a page in view — it works out where the edges are, and two edges is not enough to straighten anything. Hold the phone too close and the page runs off the sides, and until now the screen just said “Point the camera at your document” at someone pointing the camera straight at their document. It now says “Move back — the page runs off the edge”, which is the thing that actually fixes it. And if nothing is found for a few seconds it suggests the next most likely cause instead of repeating an instruction you are already following: get all four corners in, and put the page on something that is not the same colour as the page.',
+      'Hold the phone too close and your page runs off the sides of the picture. The scanner needs all four corners to work out where a page is, and it had two — so it either found nothing, or worse, drew a confident green outline across a wedge of the page and captured that. Several of those could pile up in the page list before you noticed. An outline whose corner sits on the very edge of the picture is now refused outright: that is not a corner of your document, it is the point where your document left the frame. And instead of repeating “Point the camera at your document” to someone doing exactly that, it now says “Move back — the page runs off the edge”, which is the thing that fixes it. If nothing is found for a few seconds it suggests the next most likely cause: get all four corners in, and put the page on something that is not the same colour as the page.',
     href: '/scan-to-pdf',
   },
   {

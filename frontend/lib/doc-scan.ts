@@ -45,11 +45,20 @@ const MIN_AREA_FRACTION = 0.12;
  */
 const MAX_AREA_FRACTION = 0.9;
 /**
- * A quad every one of whose corners sits this close to the edge of the picture
- * is the picture, not a page in it. Belt and braces with the area cap above,
- * because a frame-shaped quad inset by a few pixels would slip under it.
+ * How close a corner may come to the edge of the picture and still be believed.
+ *
+ * EVERY corner has to clear this, and that strictness is the point. The rule it
+ * replaces only rejected a quad when ALL FOUR corners hugged the border, which
+ * let through the worst output this scanner has produced: an envelope running
+ * off both sides of the frame, outlined as a green wedge cutting diagonally
+ * across it, with two corners sitting on the left and bottom edges of the
+ * picture. Five of those were captured and saved before anyone stopped it.
+ *
+ * A corner lying on the border is not a corner of the document. It is the point
+ * where the document left the frame, and there is nothing behind it to measure.
+ * A page you can actually scan has four corners you can actually see.
  */
-const FRAME_MARGIN_FRACTION = 0.04;
+const EDGE_TOUCH_FRACTION = 0.02;
 /**
  * Mean grey-level step across the outline, below which there is no real edge
  * there. Paper on a desk clears this by a wide margin even in poor light; grain
@@ -489,9 +498,20 @@ export function detectDocument(frame: ImageData, notes?: DetectNotes): Quad | nu
       const area = polygonArea(pts);
       if (area < frameArea * MIN_AREA_FRACTION || area > frameArea * MAX_AREA_FRACTION) continue;
 
-      // Reject the picture's own border masquerading as a page.
-      const mx = w * FRAME_MARGIN_FRACTION, my = h * FRAME_MARGIN_FRACTION;
-      if (pts.every((p) => (p.x < mx || p.x > w - mx) && (p.y < my || p.y > h - my))) continue;
+      // Every corner must be clear of the picture's edge. One that is not
+      // belongs to something leaving the frame, not to a page — and a quad
+      // built from it is a wedge across whatever part happened to be in shot.
+      // `clipped` is left to the contour test above, which can tell a page
+      // held too close from the frame border traced round an empty desk; this
+      // only has to refuse the quad.
+      // The floor of 6 is not slack, it is the blur. Two box passes at radius 2
+      // smear every boundary inward, so a corner sitting exactly ON the edge of
+      // the picture is traced about four pixels inside it — measured: a quad
+      // with a corner at y=0 came back with that corner at y=4 in work space,
+      // and a 2px margin waved it through.
+      const ex = Math.max(6, w * EDGE_TOUCH_FRACTION);
+      const ey = Math.max(6, h * EDGE_TOUCH_FRACTION);
+      if (pts.some((p) => p.x <= ex || p.x >= w - ex || p.y <= ey || p.y >= h - ey)) continue;
 
       // Reject slivers: a page seen from any usable angle still has sides that
       // are within about 6:1 of each other.
