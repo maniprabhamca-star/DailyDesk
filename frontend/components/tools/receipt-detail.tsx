@@ -81,9 +81,21 @@ export const hasReceiptDetail = (d: ReceiptDetail | null | undefined): boolean =
   !!d && (d.lines.length > 0 || d.taxes.length > 0 || d.identifiers.length > 0 || d.payments.length > 0);
 
 export function ReceiptDetailPanel({
-  detail, merchant, date, currency,
-}: { detail: ReceiptDetail; merchant: string; date: string; currency: string }) {
-  const [open, setOpen] = useState(true);
+  detail, merchant, date, currency, defaultOpen = true,
+}: {
+  detail: ReceiptDetail; merchant: string; date: string; currency: string;
+  /**
+   * Whether the breakdown starts expanded.
+   *
+   * True on the scan you just took, where seeing what was read IS the step.
+   * False in the budget list, where the panel sits inside a row of a list: a
+   * receipt opened there unfolded twenty line items and shoved the rest of the
+   * month off the screen. There it opens as its summary line — item count and
+   * the arithmetic check — and unfolds on a second tap.
+   */
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
   const [showCard, setShowCard] = useState(false);
 
   const cur = currency || detail.currency || '';

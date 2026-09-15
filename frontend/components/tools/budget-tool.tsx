@@ -167,6 +167,10 @@ export function BudgetTool() {
                       merchant={e.merchant || e.description}
                       date={e.date}
                       currency={e.detail.currency || ''}
+                      // Collapsed here. Expanded, one receipt's line items push
+                      // the rest of the month off the screen, and the list is
+                      // what you came to the page for.
+                      defaultOpen={false}
                     />
                   )}
                 </li>
