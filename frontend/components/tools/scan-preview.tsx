@@ -1,8 +1,9 @@
 'use client';
 
-import { useCallback, useEffect } from 'react';
-import { X, ChevronLeft, ChevronRight, RotateCw, Trash2 } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { X, ChevronLeft, ChevronRight, RotateCw, Trash2, Crop, Check } from 'lucide-react';
 import type { ScanPage } from '@/lib/scan-to-pdf';
+import type { Quad } from '@/lib/doc-scan';
 
 /**
  * Full-screen look at a captured page before the PDF is built.
@@ -33,6 +34,7 @@ export function ScanPreview({
   onIndex,
   onRotate,
   onDelete,
+  onCrop,
   onClose,
 }: {
   pages: ScanPage[];
@@ -40,9 +42,69 @@ export function ScanPreview({
   onIndex: (i: number) => void;
   onRotate: (id: string) => void;
   onDelete: (id: string) => void;
+  onCrop: (id: string, corners: Quad) => Promise<void>;
   onClose: () => void;
 }) {
   const page = pages[index];
+
+  /* Hand-placed corners, as fractions of the page so they survive the picture
+   * being shown at any size.
+   *
+   * This exists because automatic detection cannot find an edge that is not in
+   * the photograph. Measured across the owner's own capture — a white envelope
+   * on a white quilt — the paper and the bedspread differ by two or three grey
+   * levels, which is under the sensor noise. Nothing can find that. Someone
+   * looking at it can see exactly where the envelope is, so let them say.
+   */
+  const [cropping, setCropping] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [corners, setCorners] = useState<Quad>([
+    { x: 0.08, y: 0.08 }, { x: 0.92, y: 0.08 }, { x: 0.92, y: 0.92 }, { x: 0.08, y: 0.92 },
+  ]);
+  const dragging = useRef<number | null>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
+
+  // Leaving crop mode whenever the page changes, so the handles never belong to
+  // a page you are no longer looking at.
+  useEffect(() => { setCropping(false); }, [index, page?.id]);
+
+  const moveCorner = useCallback((clientX: number, clientY: number) => {
+    const i = dragging.current;
+    const box = sheetRef.current?.getBoundingClientRect();
+    if (i === null || !box || !box.width || !box.height) return;
+    const x = Math.min(1, Math.max(0, (clientX - box.left) / box.width));
+    const y = Math.min(1, Math.max(0, (clientY - box.top) / box.height));
+    setCorners((c) => c.map((p, n) => (n === i ? { x, y } : p)) as Quad);
+  }, []);
+
+  useEffect(() => {
+    if (!cropping) return;
+    const onMove = (e: PointerEvent) => {
+      if (dragging.current === null) return;
+      e.preventDefault();
+      moveCorner(e.clientX, e.clientY);
+    };
+    const onUp = () => { dragging.current = null; };
+    window.addEventListener('pointermove', onMove, { passive: false });
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+    };
+  }, [cropping, moveCorner]);
+
+  const applyCrop = useCallback(async () => {
+    if (!page || busy) return;
+    setBusy(true);
+    try {
+      await onCrop(page.id, corners);
+      setCropping(false);
+    } finally {
+      setBusy(false);
+    }
+  }, [page, corners, onCrop, busy]);
   const go = useCallback((delta: number) => {
     if (!pages.length) return;
     onIndex((index + delta + pages.length) % pages.length);
@@ -118,12 +180,40 @@ export function ScanPreview({
             padding: `${(PDF_MARGIN / sheetW) * 100}%`,
           }}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={page.dataUrl}
-            alt={`Page ${index + 1}`}
-            className="size-full object-contain"
-          />
+          {/* The picture, and — in crop mode — four handles over it. The
+              handles sit on THIS box, so their fractions map straight onto the
+              page's own pixels however large it is drawn. */}
+          <div ref={sheetRef} className="relative size-full touch-none">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={page.dataUrl}
+              alt={`Page ${index + 1}`}
+              className="size-full object-contain"
+              draggable={false}
+            />
+            {cropping && (
+              <>
+                <svg className="pointer-events-none absolute inset-0 size-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                  <polygon
+                    points={corners.map((p) => `${p.x * 100},${p.y * 100}`).join(' ')}
+                    fill="rgba(109,94,246,0.16)"
+                    stroke="rgb(109,94,246)"
+                    strokeWidth="0.6"
+                    vectorEffect="non-scaling-stroke"
+                  />
+                </svg>
+                {corners.map((p, i) => (
+                  <button
+                    key={i}
+                    onPointerDown={(e) => { e.preventDefault(); dragging.current = i; }}
+                    aria-label={`Corner ${i + 1}`}
+                    style={{ left: `${p.x * 100}%`, top: `${p.y * 100}%` }}
+                    className="absolute size-9 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-primary shadow-lg"
+                  />
+                ))}
+              </>
+            )}
+          </div>
         </div>
 
         {pages.length > 1 && (
@@ -139,19 +229,50 @@ export function ScanPreview({
 
       {/* Fix it from here rather than closing, going back to the list and
           finding the row again. */}
-      <div className="flex items-center justify-center gap-2 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2">
-        <button
-          onClick={() => onRotate(page.id)}
-          className="flex items-center gap-1.5 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-medium text-white hover:bg-white/20 active:scale-95"
-        >
-          <RotateCw className="size-4" /> Turn
-        </button>
-        <button
-          onClick={() => onDelete(page.id)}
-          className="flex items-center gap-1.5 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-medium text-white hover:bg-red-600/80 active:scale-95"
-        >
-          <Trash2 className="size-4" /> Delete
-        </button>
+      <div className="flex flex-wrap items-center justify-center gap-2 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2">
+        {cropping ? (
+          <>
+            <span className="w-full text-center text-xs text-white/70">
+              Drag the four dots to the corners of your page
+            </span>
+            <button
+              onClick={() => setCropping(false)}
+              className="rounded-xl bg-white/10 px-4 py-2.5 text-sm font-medium text-white hover:bg-white/20 active:scale-95"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => void applyCrop()}
+              disabled={busy}
+              className="flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60 active:scale-95"
+            >
+              <Check className="size-4" /> {busy ? 'Cropping…' : 'Crop to this'}
+            </button>
+          </>
+        ) : (
+          <>
+            {/* The way out when detection finds nothing — which on white paper
+                against a white surface it genuinely cannot. */}
+            <button
+              onClick={() => setCropping(true)}
+              className="flex items-center gap-1.5 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-medium text-white hover:bg-white/20 active:scale-95"
+            >
+              <Crop className="size-4" /> Crop
+            </button>
+            <button
+              onClick={() => onRotate(page.id)}
+              className="flex items-center gap-1.5 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-medium text-white hover:bg-white/20 active:scale-95"
+            >
+              <RotateCw className="size-4" /> Turn
+            </button>
+            <button
+              onClick={() => onDelete(page.id)}
+              className="flex items-center gap-1.5 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-medium text-white hover:bg-red-600/80 active:scale-95"
+            >
+              <Trash2 className="size-4" /> Delete
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

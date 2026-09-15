@@ -110,3 +110,40 @@ describe('enhanceScan', () => {
     }
   });
 });
+
+describe('colour mode must not wreck things that are not paper', () => {
+  it('leaves a dark subject alone instead of bleaching it', () => {
+    /* The bug the owner photographed: a laptop screen, dark, filling the frame.
+     * Flat-fielding assumes the background is paper, so on a dark subject the
+     * ratio comes back near 1, the lift pushes it to white, and the screen is
+     * returned as a pale wash — "what is this? my laptop screen. you made it
+     * very badly."
+     */
+    const W = 160, H = 120;
+    const d = new Uint8ClampedArray(W * H * 4);
+    for (let i = 0; i < W * H; i++) {
+      const o = i * 4;
+      d[o] = 18; d[o + 1] = 34; d[o + 2] = 52; d[o + 3] = 255;  // a dark blue UI
+    }
+    const before = [d[0], d[1], d[2]];
+    enhanceScan(d, W, H, 'colour');
+    expect(d[0], 'dark stays dark').toBeLessThan(before[0] + 12);
+    expect(d[2], 'and does not blow out').toBeLessThan(before[2] + 12);
+    expect(d[2] - d[0], 'the hue survives').toBeGreaterThan(20);
+  });
+
+  it('still whitens paper, which is the point of the mode', () => {
+    const W = 160, H = 120;
+    const d = new Uint8ClampedArray(W * H * 4);
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const o = (y * W + x) * 4;
+        const beige = 196 - (x / W) * 40;       // paper, unevenly lit and warm
+        d[o] = beige; d[o + 1] = beige * 0.97; d[o + 2] = beige * 0.9; d[o + 3] = 255;
+      }
+    }
+    enhanceScan(d, W, H, 'colour');
+    expect(d[(60 * W + 20) * 4], 'paper goes white').toBeGreaterThan(240);
+    expect(d[(60 * W + W - 20) * 4], 'on the dim side too').toBeGreaterThan(235);
+  });
+});

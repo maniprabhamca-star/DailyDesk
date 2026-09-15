@@ -7,6 +7,7 @@
 // on its own page.
 
 import { enhanceScan, type ScanMode } from '@/lib/scan-enhance';
+import { flattenDocument, type Quad } from '@/lib/doc-scan';
 
 export type { ScanMode };
 /**
@@ -165,4 +166,54 @@ export async function recolourPage(page: ScanPage, mode: ScanMode): Promise<Scan
   c.width = c.height = 0;
   // Same id and same raw pixels: this is the same page, processed differently.
   return { id: page.id, dataUrl, rawUrl: page.rawUrl, w, h };
+}
+
+/**
+ * Crop a captured page to four corners the person placed by hand.
+ *
+ * Automatic detection cannot find an edge that is not in the picture, and on a
+ * white envelope lying on a white quilt it is genuinely not there — measured
+ * across all three visible edges of the owner's own capture, the paper and the
+ * bedspread differ by two or three grey levels, which is less than the sensor
+ * noise. No amount of thresholding invents a boundary, so the honest answer is
+ * to let someone who CAN see it say where it is. Every scanner app has this;
+ * ours should have had it before it had anything else.
+ *
+ * `corners` are fractions of the page's own width and height, so they survive
+ * the image being displayed at any size. They run through the same
+ * flattenDocument the automatic path uses, so a hand-placed quad is corrected
+ * for perspective exactly like a detected one.
+ */
+export async function cropPage(page: ScanPage, corners: Quad, mode: ScanMode): Promise<ScanPage> {
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const i = new Image();
+    i.onload = () => resolve(i);
+    i.onerror = () => reject(new Error('Could not re-open this page to crop it.'));
+    i.src = page.rawUrl;
+  });
+  const sw = img.naturalWidth || page.w, sh = img.naturalHeight || page.h;
+  const c = document.createElement('canvas');
+  c.width = sw; c.height = sh;
+  const ctx = c.getContext('2d', { willReadFrequently: true })!;
+  ctx.drawImage(img, 0, 0);
+
+  const quad = corners.map((p) => ({ x: p.x * sw, y: p.y * sh })) as Quad;
+  const flat = flattenDocument(ctx.getImageData(0, 0, sw, sh), quad);
+  c.width = c.height = 0;
+  if (!flat) throw new Error('Those corners do not make a page — try again.');
+
+  // From here it is an ordinary captured page: keep the flattened pixels as the
+  // new raw, so the mode buttons still work on it afterwards.
+  const out = document.createElement('canvas');
+  out.width = flat.width; out.height = flat.height;
+  const octx = out.getContext('2d')!;
+  octx.putImageData(flat, 0, 0);
+  const rawUrl = out.toDataURL('image/jpeg', 0.9);
+  const data = octx.getImageData(0, 0, out.width, out.height);
+  enhanceScan(data.data, out.width, out.height, mode);
+  octx.putImageData(data, 0, 0);
+  const dataUrl = out.toDataURL('image/jpeg', 0.82);
+  const w = out.width, h = out.height;
+  out.width = out.height = 0;
+  return { id: page.id, dataUrl, rawUrl, w, h };
 }

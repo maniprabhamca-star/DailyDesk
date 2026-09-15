@@ -25,6 +25,14 @@ export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-09-15',
     kind: 'feature',
+    title: 'Set the corners yourself when the scanner cannot see them',
+    detail:
+      'A white page on a white bedspread cannot be detected, and it is worth being plain about why: there is no edge there to find. Measured across a real capture, the paper and the quilt under it differ by two or three shades — less than the speckle your camera adds. No scanner can find a boundary that is not in the photograph. So when the outline does not appear, open the page in Preview and press Crop: four dots appear over the picture, you drag them to the corners of your document, and it is straightened and cut out exactly as if the edges had been found on their own. The same perspective correction, the same result. Detection on a dark surface still works as before and is quicker when it does.',
+    href: '/scan-to-pdf',
+  },
+  {
+    date: '2026-09-15',
+    kind: 'feature',
     title: 'See a scan full size before you save it',
     detail:
       'There is now a Preview button above Save PDF, and tapping any page in the list opens the same thing. It shows the actual page as it will appear in the file — the white A4 sheet, the margin, portrait or landscape chosen exactly the way the PDF chooses it — rather than just the photo, so what you check is what you get. Flick between pages with the arrows or the arrow keys, turn or delete a page without leaving, and press Escape to come back. The thumbnail in the list is about a centimetre wide, which is enough to know a page is there and not enough to tell whether the text came out readable. Colour is now the mode a scan starts in, and switching mode re-does the pages you have already taken instead of only applying to the next one.',
@@ -35,7 +43,7 @@ export const CHANGELOG: ChangeEntry[] = [
     kind: 'improved',
     title: 'Scans now look scanned, and you can pick the mode',
     detail:
-      'A scan of an envelope came out looking like exactly what it was — a photo of an envelope lying on a bed, grey and shadowed. The old cleanup was a single brightness-and-contrast adjustment applied to the whole picture, and that cannot fix a photograph of paper, because the trouble is not the overall level: it is that the level is different in different places. Your phone throws a shadow, a lamp lights one corner, and paper that reads as white at the top of the frame is the same grey as the ink at the bottom. Lift it until the shadowed half goes white and the lit half blows out. The scanner now works out how bright the paper is in each part of the picture and divides that out, so the page comes back evenly white wherever the light was falling, with the text dark and crisp. And there are three modes instead of one tickbox: Colour, which keeps stamps and highlighter while still putting them on white paper; Greyscale, which is what most people mean by a scan; and Black & white, for the crispest text and the smallest file.',
+      'A scan of an envelope came out looking like exactly what it was — a photo of an envelope lying on a bed, grey and shadowed. The old cleanup was a single brightness-and-contrast adjustment applied to the whole picture, and that cannot fix a photograph of paper, because the trouble is not the overall level: it is that the level is different in different places. Your phone throws a shadow, a lamp lights one corner, and paper that reads as white at the top of the frame is the same grey as the ink at the bottom. Lift it until the shadowed half goes white and the lit half blows out. The scanner now works out how bright the paper is in each part of the picture and divides that out, so the page comes back evenly white wherever the light was falling, with the text dark and crisp. And there are three modes instead of one tickbox: Colour, which keeps stamps and highlighter and only whitens what is actually paper; Greyscale, which is what most people mean by a scan; and Black & white, for the crispest text and the smallest file.',
     href: '/scan-to-pdf',
   },
   {

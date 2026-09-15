@@ -109,20 +109,37 @@ export function enhanceScan(d: Uint8ClampedArray, w: number, h: number, mode: Sc
       continue;
     }
 
-    // A little headroom above parity, so ordinary paper lands on pure white
-    // instead of 250-ish, which is what makes the result read as a scan rather
-    // than a photograph of a page.
-    const lifted = Math.min(255, ratio * 255 * 1.08);
     if (mode === 'grey') {
-      d[p] = d[p + 1] = d[p + 2] = lifted;
-    } else {
-      // Keep the hue, take the new brightness: scale each channel by however
-      // much the grey moved. Ink stays black, a red stamp stays red, and the
-      // paper under both goes white.
-      const k = gray[i] > 1 ? lifted / gray[i] : 1;
-      d[p] = Math.min(255, d[p] * k);
-      d[p + 1] = Math.min(255, d[p + 1] * k);
-      d[p + 2] = Math.min(255, d[p + 2] * k);
+      // A little headroom above parity, so ordinary paper lands on pure white
+      // instead of 250-ish, which is what makes the result read as a scan
+      // rather than a photograph of a page.
+      d[p] = d[p + 1] = d[p + 2] = Math.min(255, ratio * 255 * 1.08);
+      continue;
     }
+
+    /* Colour is NOT "grey mode with the hues put back", and shipping it that
+     * way was wrong.
+     *
+     * Dividing by the local background assumes the background IS paper. Point
+     * the camera at something that is not paper — a laptop screen, which is
+     * exactly what the owner photographed — and the assumption inverts: the
+     * local background is dark, the ratio comes back near 1, the lift pushes it
+     * to 255, and a dark screen is returned as a pale cyan wash. "what is this?
+     * my laptop screen. you made it very badly." Quite.
+     *
+     * So colour only WHITENS THINGS THAT LOOK LIKE PAPER. Where the local
+     * background is already bright, lift it the rest of the way to white and
+     * carry the hues with it, so a coloured form comes out on white rather than
+     * beige. Where it is dark, leave it completely alone — there is nothing
+     * there this pass can helpfully do, and plenty it can ruin. The gain is
+     * capped and eased in across the middle so there is no seam where the two
+     * regimes meet.
+     */
+    const b = bg[i];
+    const paperness = b <= 90 ? 0 : b >= 150 ? 1 : (b - 90) / 60;
+    const gain = 1 + paperness * (Math.min(255 / Math.max(b, 1), 1.8) - 1);
+    d[p] = Math.min(255, d[p] * gain);
+    d[p + 1] = Math.min(255, d[p + 1] * gain);
+    d[p + 2] = Math.min(255, d[p + 2] * gain);
   }
 }

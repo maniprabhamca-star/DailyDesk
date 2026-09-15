@@ -5,7 +5,8 @@ import { Camera, Loader2, Download, Trash2, ScanLine, RotateCw, ChevronUp, Chevr
 import { Button } from '@/components/ui/button';
 import { downloadBlob } from '@/lib/download';
 import { KeepGoing } from '@/components/app/keep-going';
-import { processFrame, pageFromImageData, buildScanPdf, rotatePage, recolourPage, type ScanPage, type ScanMode } from '@/lib/scan-to-pdf';
+import { processFrame, pageFromImageData, buildScanPdf, rotatePage, recolourPage, cropPage, type ScanPage, type ScanMode } from '@/lib/scan-to-pdf';
+import type { Quad } from '@/lib/doc-scan';
 import { DocScanner, type ScannerCapture } from '@/components/tools/doc-scanner';
 import { ScanPreview } from '@/components/tools/scan-preview';
 import { rasterize, describeImageFailure, isHeic, readPickedFile, toSource } from '@/lib/image-for-pdf';
@@ -132,6 +133,20 @@ export function ScanToPdfTool() {
       return current;
     });
   }, []);
+
+  // Hand-placed corners from the preview. Automatic detection cannot find an
+  // edge that is not in the photograph, and on white paper against a white
+  // surface it genuinely is not there — so this is the way through.
+  const crop = useCallback(async (id: string, corners: Quad) => {
+    const page = pages.find((x) => x.id === id);
+    if (!page) return;
+    try {
+      const cropped = await cropPage(page, corners, mode);
+      setPages((p) => p.map((x) => (x.id === id ? cropped : x)));
+    } catch (err) {
+      setNote(err instanceof Error ? err.message : 'Could not crop that page.');
+    }
+  }, [pages, mode]);
 
   const move = (id: string, dir: -1 | 1) => setPages((p) => {
     const i = p.findIndex((x) => x.id === id); const j = i + dir;
@@ -276,6 +291,7 @@ export function ScanToPdfTool() {
           onIndex={setPreviewAt}
           onRotate={(id) => void rotate(id)}
           onDelete={(id) => remove(id)}
+          onCrop={crop}
           onClose={() => setPreviewAt(null)}
         />
       )}

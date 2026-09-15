@@ -420,6 +420,41 @@ test.describe('Scan to PDF — the scanner', () => {
     await expect(page.getByRole('button', { name: /black & white/i })).toHaveAttribute('aria-pressed', 'true');
   });
 
+  test('a page can be cropped by hand when detection finds nothing', async ({ page }) => {
+    /* The honest answer to white paper on a white surface. Measured across the
+     * owner's own capture, the envelope and the bedspread differ by two or
+     * three grey levels — under the sensor noise. No detector finds an edge
+     * that is not in the photograph, so the person who can see it says where
+     * it is, and it goes through the same perspective correction.
+     */
+    await openScanner(page);
+    await page.getByRole('button', { name: /capture page/i }).click();
+    await expect(page.getByRole('button', { name: /done \(1\)/i })).toBeVisible({ timeout: 10_000 });
+    await page.getByRole('button', { name: /close scanner/i }).click();
+    await page.getByRole('button', { name: /preview the page/i }).click();
+
+    const thumb = page.getByRole('img', { name: /page 1/i }).last();
+    const before = await thumb.getAttribute('src');
+    await page.getByRole('button', { name: /^crop$/i }).click();
+
+    // Four handles, and the instruction that says what to do with them.
+    await expect(page.getByText(/drag the four dots/i)).toBeVisible();
+    await expect(page.getByRole('button', { name: /^corner [1-4]$/i })).toHaveCount(4);
+
+    // Drag one corner inward, then apply.
+    const handle = page.getByRole('button', { name: 'Corner 1' });
+    const box = (await handle.boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + 50, box.y + 40, { steps: 8 });
+    await page.mouse.up();
+
+    await page.getByRole('button', { name: /crop to this/i }).click();
+    await expect.poll(async () => thumb.getAttribute('src'), { timeout: 20_000 }).not.toBe(before);
+    // Back to the normal buttons once it has been applied.
+    await expect(page.getByRole('button', { name: /^crop$/i })).toBeVisible();
+  });
+
   test('a screen-reader is told the count', async ({ page }) => {
     await openScanner(page);
     const live = page.locator('[role="status"][aria-live="polite"]');
