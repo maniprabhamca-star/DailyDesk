@@ -24,6 +24,14 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-09-15',
+    kind: 'fixed',
+    title: 'Colour scans come out the right colour',
+    detail:
+      'Scanning something lit by a screen or a warm lamp came back tinted — a bluish page turned cyan. The cleanup was brightening all three colour channels by the same amount, and that cannot remove a colour cast: it amplifies one. A photo of a screen measured 178 red, 190 green, 206 blue; multiplying all three to bring the page up to white clipped green and blue at the top of the scale and left red trailing, which is a cyan page. Each channel is now balanced against its own background, so whatever the paper was lit by, the three come up to white together and the cast goes with them. Ink and stamps keep their own colour. And the Crop button in Preview now explains itself: when the edges were not found, the page says so and offers cropping as the next step rather than as an unlabelled option.',
+    href: '/scan-to-pdf',
+  },
+  {
+    date: '2026-09-15',
     kind: 'feature',
     title: 'Set the corners yourself when the scanner cannot see them',
     detail:

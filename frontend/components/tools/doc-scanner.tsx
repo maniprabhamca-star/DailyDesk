@@ -102,7 +102,13 @@ const HITS_TO_SHOW = 2;
 /** Longest edge of a captured page, in pixels — never upscaled past the sensor. */
 const CAPTURE_LONG_EDGE = 2000;
 
-export type ScannerCapture = { data: ImageData; auto: boolean };
+/**
+ * `detected` says whether the edges were actually found. A capture without it
+ * is the whole camera frame, desk and all — useful, but it needs cropping, and
+ * the person needs telling that rather than being left to wonder what the crop
+ * button is for.
+ */
+export type ScannerCapture = { data: ImageData; auto: boolean; detected: boolean };
 
 export function DocScanner({
   onCapture,
@@ -355,7 +361,7 @@ export function DocScanner({
       // No document found is not a reason to refuse the shot — someone pressing
       // the shutter wants the picture. They get the whole frame instead, which
       // is what the tool did before this existed.
-      onCapture({ data: out ?? frame, auto: isAuto });
+      onCapture({ data: out ?? frame, auto: isAuto, detected: !!out });
 
       full.width = full.height = 0;
       setFlash(true);

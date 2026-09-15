@@ -117,29 +117,48 @@ export function enhanceScan(d: Uint8ClampedArray, w: number, h: number, mode: Sc
       continue;
     }
 
-    /* Colour is NOT "grey mode with the hues put back", and shipping it that
-     * way was wrong.
-     *
-     * Dividing by the local background assumes the background IS paper. Point
-     * the camera at something that is not paper — a laptop screen, which is
-     * exactly what the owner photographed — and the assumption inverts: the
-     * local background is dark, the ratio comes back near 1, the lift pushes it
-     * to 255, and a dark screen is returned as a pale cyan wash. "what is this?
-     * my laptop screen. you made it very badly." Quite.
-     *
-     * So colour only WHITENS THINGS THAT LOOK LIKE PAPER. Where the local
-     * background is already bright, lift it the rest of the way to white and
-     * carry the hues with it, so a coloured form comes out on white rather than
-     * beige. Where it is dark, leave it completely alone — there is nothing
-     * there this pass can helpfully do, and plenty it can ruin. The gain is
-     * capped and eased in across the middle so there is no seam where the two
-     * regimes meet.
-     */
-    const b = bg[i];
-    const paperness = b <= 90 ? 0 : b >= 150 ? 1 : (b - 90) / 60;
-    const gain = 1 + paperness * (Math.min(255 / Math.max(b, 1), 1.8) - 1);
-    d[p] = Math.min(255, d[p] * gain);
-    d[p + 1] = Math.min(255, d[p + 1] * gain);
-    d[p + 2] = Math.min(255, d[p + 2] * gain);
+    // Colour is finished below, one channel at a time. Doing it here, with a
+    // single gain for all three, is what produced the cast.
+  }
+
+  if (mode !== 'colour') return;
+
+  /* Colour is NOT "grey mode with the hues put back", and shipping it that way
+   * was wrong twice over. Both mistakes were reported, both from the same
+   * photograph of a laptop screen.
+   *
+   * First: dividing by the local background assumes the background IS paper.
+   * Photograph something that is not and the assumption inverts — the local
+   * background is dark, the ratio comes back near 1, the lift pushes it to 255,
+   * and a dark screen is returned as a pale wash. So the lift now only applies
+   * where the background is already bright enough to BE paper, eased in so
+   * there is no seam, and dark subjects are left entirely alone.
+   *
+   * Second, and this is the tint that came next: ONE GAIN FOR ALL THREE
+   * CHANNELS CANNOT REMOVE A COLOUR CAST, IT AMPLIFIES ONE. A screen photo is
+   * slightly blue — measured 178/190/206 — and a single 1.4x gain clips green
+   * and blue at 255 while red lands on 241. That is a cyan page, arrived at by
+   * multiplying every channel by the same number.
+   *
+   * So each channel is divided by ITS OWN background. Whatever the paper is lit
+   * by — a warm lamp, a blue screen, daylight — all three backgrounds map to
+   * white together and the cast goes with them, which is what white balance
+   * means. Ink and stamps keep their hue, because they sit far from their own
+   * local background in a way paper does not.
+   *
+   * One channel at a time, so only one background map is alive at once: a
+   * 2000x1125 page is 9MB of floats per map, and holding three on a phone is
+   * not worth the handful of lines it would save.
+   */
+  const chan = new Float32Array(n);
+  for (let c = 0; c < 3; c++) {
+    for (let i = 0, p = c; i < n; i++, p += 4) chan[i] = d[p];
+    const bgC = boxBlur(chan, w, h, radius);
+    for (let i = 0, p = c; i < n; i++, p += 4) {
+      const lum = bg[i];
+      const paperness = lum <= 90 ? 0 : lum >= 150 ? 1 : (lum - 90) / 60;
+      const gain = 1 + paperness * (Math.min(255 / Math.max(bgC[i], 1), 2.2) - 1);
+      d[p] = Math.min(255, d[p] * gain);
+    }
   }
 }

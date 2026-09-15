@@ -19,7 +19,7 @@ export type { ScanMode };
  * means to anyone. It costs one extra JPEG per page in memory and nothing on
  * disk: it never reaches the PDF.
  */
-export type ScanPage = { id: string; dataUrl: string; rawUrl: string; w: number; h: number };
+export type ScanPage = { id: string; dataUrl: string; rawUrl: string; w: number; h: number; detected: boolean };
 
 let idc = 0;
 export const newId = () => `p${++idc}-${performance.now().toFixed(0)}`;
@@ -45,7 +45,9 @@ export function processFrame(source: CanvasImageSource, sw: number, sh: number, 
 
   const dataUrl = c.toDataURL('image/jpeg', 0.82);
   c.width = c.height = 0;
-  return { id: newId(), dataUrl, rawUrl, w, h };
+  // A photo someone chose from their gallery was never edge-detected, so it is
+  // offered the crop tool the same way an undetected capture is.
+  return { id: newId(), dataUrl, rawUrl, w, h, detected: false };
 }
 
 /**
@@ -75,7 +77,7 @@ export async function rotatePage(page: ScanPage): Promise<ScanPage> {
   c.width = c.height = 0;
   // Same id: this is the same page, turned — not a new one. Keeping the id
   // means it stays where it is in the list instead of jumping to the end.
-  return { id: page.id, dataUrl, rawUrl: page.rawUrl, w, h };
+  return { id: page.id, dataUrl, rawUrl: page.rawUrl, w, h, detected: page.detected };
 }
 
 const dataUrlToBytes = (u: string): Uint8Array => {
@@ -120,7 +122,7 @@ export async function buildScanPdf(pages: ScanPage[]): Promise<Blob> {
  * enhance pass is the same one, because a flattened page still benefits from
  * having the paper lifted toward white.
  */
-export function pageFromImageData(img: ImageData, mode: ScanMode): ScanPage {
+export function pageFromImageData(img: ImageData, mode: ScanMode, detected: boolean): ScanPage {
   const c = document.createElement('canvas');
   c.width = img.width; c.height = img.height;
   const ctx = c.getContext('2d')!;
@@ -136,7 +138,7 @@ export function pageFromImageData(img: ImageData, mode: ScanMode): ScanPage {
   const dataUrl = c.toDataURL('image/jpeg', 0.82);
   const w = c.width, h = c.height;
   c.width = c.height = 0;
-  return { id: newId(), dataUrl, rawUrl, w, h };
+  return { id: newId(), dataUrl, rawUrl, w, h, detected };
 }
 
 /**
@@ -165,7 +167,7 @@ export async function recolourPage(page: ScanPage, mode: ScanMode): Promise<Scan
   const dataUrl = c.toDataURL('image/jpeg', 0.82);
   c.width = c.height = 0;
   // Same id and same raw pixels: this is the same page, processed differently.
-  return { id: page.id, dataUrl, rawUrl: page.rawUrl, w, h };
+  return { id: page.id, dataUrl, rawUrl: page.rawUrl, w, h, detected: page.detected };
 }
 
 /**
@@ -215,5 +217,5 @@ export async function cropPage(page: ScanPage, corners: Quad, mode: ScanMode): P
   const dataUrl = out.toDataURL('image/jpeg', 0.82);
   const w = out.width, h = out.height;
   out.width = out.height = 0;
-  return { id: page.id, dataUrl, rawUrl, w, h };
+  return { id: page.id, dataUrl, rawUrl, w, h, detected: true };
 }

@@ -147,3 +147,38 @@ describe('colour mode must not wreck things that are not paper', () => {
     expect(d[(60 * W + W - 20) * 4], 'on the dim side too').toBeGreaterThan(235);
   });
 });
+
+describe('colour mode must not leave a cast behind', () => {
+  it('white-balances instead of amplifying the cast it was given', () => {
+    /* A photograph of a screen is slightly blue. The first version applied ONE
+     * gain to all three channels, which cannot remove a cast — it amplifies
+     * one: 178/190/206 with a 1.4x lift clips green and blue at 255 and leaves
+     * red at 241, i.e. a cyan page. Reported as "still it showing the same
+     * tinted color".
+     *
+     * Dividing each channel by its own background makes the three land on white
+     * together, which is what white balance means.
+     */
+    const W = 200, H = 140;
+    const d = new Uint8ClampedArray(W * H * 4);
+    for (let i = 0; i < W * H; i++) {
+      const o = i * 4;
+      d[o] = 178; d[o + 1] = 190; d[o + 2] = 206; d[o + 3] = 255;
+    }
+    expect(d[2] - d[0], 'the scene really is blue to start with').toBe(28);
+    enhanceScan(d, W, H, 'colour');
+    expect(d[2] - d[0], 'and comes back neutral, not more blue').toBeLessThanOrEqual(2);
+    expect(d[0], 'paper is white').toBeGreaterThan(245);
+  });
+
+  it('does the same for a warm cast, not just a cool one', () => {
+    const W = 200, H = 140;
+    const d = new Uint8ClampedArray(W * H * 4);
+    for (let i = 0; i < W * H; i++) {
+      const o = i * 4;
+      d[o] = 214; d[o + 1] = 196; d[o + 2] = 168; d[o + 3] = 255;  // tungsten
+    }
+    enhanceScan(d, W, H, 'colour');
+    expect(Math.abs(d[0] - d[2]), 'a warm lamp is balanced out too').toBeLessThanOrEqual(2);
+  });
+});

@@ -251,13 +251,27 @@ export function ScanPreview({
           </>
         ) : (
           <>
-            {/* The way out when detection finds nothing — which on white paper
-                against a white surface it genuinely cannot. */}
+            {/* A crop button sitting there unexplained got "i dont know what is
+                the use of crop doing here", which is fair — on a page whose
+                edges WERE found there is nothing obvious for it to do. So the
+                page says which it is. When the edges were not found the capture
+                is the whole camera frame, desk and all, and cropping is the
+                next step rather than an option: it says so, and it is the
+                filled button. */}
+            {!page.detected && (
+              <span className="w-full text-center text-xs text-amber-300/90">
+                Edges weren’t found, so this is the whole picture — crop it to your page
+              </span>
+            )}
             <button
               onClick={() => setCropping(true)}
-              className="flex items-center gap-1.5 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-medium text-white hover:bg-white/20 active:scale-95"
+              className={`flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm active:scale-95 ${
+                page.detected
+                  ? 'bg-white/10 font-medium text-white hover:bg-white/20'
+                  : 'bg-primary font-semibold text-primary-foreground'
+              }`}
             >
-              <Crop className="size-4" /> Crop
+              <Crop className="size-4" /> {page.detected ? 'Crop' : 'Crop to your page'}
             </button>
             <button
               onClick={() => onRotate(page.id)}

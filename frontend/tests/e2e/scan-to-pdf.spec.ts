@@ -435,7 +435,11 @@ test.describe('Scan to PDF — the scanner', () => {
 
     const thumb = page.getByRole('img', { name: /page 1/i }).last();
     const before = await thumb.getAttribute('src');
-    await page.getByRole('button', { name: /^crop$/i }).click();
+    // Chromium's fake camera shows a rolling pattern, so nothing is detected
+    // and the page says so — which is when cropping is the next step, not an
+    // unexplained option.
+    await expect(page.getByText(/edges weren.t found/i)).toBeVisible();
+    await page.getByRole('button', { name: /crop to your page/i }).click();
 
     // Four handles, and the instruction that says what to do with them.
     await expect(page.getByText(/drag the four dots/i)).toBeVisible();
@@ -452,7 +456,7 @@ test.describe('Scan to PDF — the scanner', () => {
     await page.getByRole('button', { name: /crop to this/i }).click();
     await expect.poll(async () => thumb.getAttribute('src'), { timeout: 20_000 }).not.toBe(before);
     // Back to the normal buttons once it has been applied.
-    await expect(page.getByRole('button', { name: /^crop$/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /crop/i }).first()).toBeVisible();
   });
 
   test('a screen-reader is told the count', async ({ page }) => {

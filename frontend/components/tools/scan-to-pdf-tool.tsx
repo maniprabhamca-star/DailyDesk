@@ -67,11 +67,11 @@ export function ScanToPdfTool() {
   // Which page the full-size preview is showing, or null when it is closed.
   const [previewAt, setPreviewAt] = useState<number | null>(null);
 
-  const onScannerCapture = useCallback(({ data }: ScannerCapture) => {
+  const onScannerCapture = useCallback(({ data, detected }: ScannerCapture) => {
     // Already flattened by the scanner. pageFromImageData applies the same
     // readability pass and nothing else — running it back through processFrame
     // would resample finished pixels for no reason.
-    setPages((prev) => [...prev, pageFromImageData(data, mode)]);
+    setPages((prev) => [...prev, pageFromImageData(data, mode, detected)]);
     setNote(null);
   }, [mode]);
 
