@@ -23,6 +23,14 @@ export type ChangeEntry = {
 // flags flip, dated then.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-09-15',
+    kind: 'improved',
+    title: 'Scans now look scanned, and you can pick the mode',
+    detail:
+      'A scan of an envelope came out looking like exactly what it was — a photo of an envelope lying on a bed, grey and shadowed. The old cleanup was a single brightness-and-contrast adjustment applied to the whole picture, and that cannot fix a photograph of paper, because the trouble is not the overall level: it is that the level is different in different places. Your phone throws a shadow, a lamp lights one corner, and paper that reads as white at the top of the frame is the same grey as the ink at the bottom. Lift it until the shadowed half goes white and the lit half blows out. The scanner now works out how bright the paper is in each part of the picture and divides that out, so the page comes back evenly white wherever the light was falling, with the text dark and crisp. And there are three modes instead of one tickbox: Greyscale, which is what most people mean by a scan; Black & white, for the crispest text and the smallest file; and Colour, which keeps stamps and highlighter while still putting them on white paper.',
+    href: '/scan-to-pdf',
+  },
+  {
     date: '2026-09-14',
     kind: 'fixed',
     title: 'The scanner can see a printed page again',

@@ -5,7 +5,7 @@ import { Camera, Loader2, Download, Trash2, ScanLine, RotateCw, ChevronUp, Chevr
 import { Button } from '@/components/ui/button';
 import { downloadBlob } from '@/lib/download';
 import { KeepGoing } from '@/components/app/keep-going';
-import { processFrame, pageFromImageData, buildScanPdf, rotatePage, type ScanPage } from '@/lib/scan-to-pdf';
+import { processFrame, pageFromImageData, buildScanPdf, rotatePage, type ScanPage, type ScanMode } from '@/lib/scan-to-pdf';
 import { DocScanner, type ScannerCapture } from '@/components/tools/doc-scanner';
 import { rasterize, describeImageFailure, isHeic, readPickedFile, toSource } from '@/lib/image-for-pdf';
 
@@ -48,7 +48,9 @@ async function decodeImage(file: File): Promise<{ src: CanvasImageSource; w: num
 
 export function ScanToPdfTool() {
   const [pages, setPages] = useState<ScanPage[]>([]);
-  const [enhance, setEnhance] = useState(true);
+  // Greyscale by default: it is what most people mean by "scan", and it keeps
+  // faint pencil and thermal-receipt text that black-and-white would drop.
+  const [mode, setMode] = useState<ScanMode>('grey');
   const [note, setNote] = useState<string | null>(null);
   const [building, setBuilding] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -64,9 +66,9 @@ export function ScanToPdfTool() {
     // Already flattened by the scanner. pageFromImageData applies the same
     // readability pass and nothing else — running it back through processFrame
     // would resample finished pixels for no reason.
-    setPages((prev) => [...prev, pageFromImageData(data, enhance)]);
+    setPages((prev) => [...prev, pageFromImageData(data, mode)]);
     setNote(null);
-  }, [enhance]);
+  }, [mode]);
 
   const addPhotos = useCallback(async (files: FileList | null) => {
     if (!files?.length) return;
@@ -80,7 +82,7 @@ export function ScanToPdfTool() {
         // updater function later (or twice), by which point the decoded source
         // has been released — that threw during render and took the whole page
         // down with "a client-side exception has occurred".
-        const page = processFrame(decoded.src, decoded.w, decoded.h, enhance);
+        const page = processFrame(decoded.src, decoded.w, decoded.h, mode);
         setPages((p) => [...p, page]);
       } catch (err) {
         rejected.push(describeImageFailure(f, err));
@@ -90,7 +92,7 @@ export function ScanToPdfTool() {
     }
     // Never drop a file in silence.
     if (rejected.length) setNote(`Couldn’t add ${rejected.join('; ')}`);
-  }, [enhance]);
+  }, [mode]);
 
   const remove = (id: string) => setPages((p) => p.filter((x) => x.id !== id));
   // Turning a page happens HERE, not in the camera. The scanner has no rotate
@@ -151,11 +153,34 @@ export function ScanToPdfTool() {
                 and hides the gallery, which is the opposite of "Add photos". */}
             <input ref={fileRef} type="file" accept="image/*" multiple aria-label="Choose an image file" className="dd-file-input" onChange={(e) => { void addPhotos(e.target.files); e.currentTarget.value = ''; }} />
           </div>
-          <div className="flex items-center justify-between gap-2 border-t p-3">
-            <label className="flex cursor-pointer items-center gap-2 text-xs font-medium">
-              <input type="checkbox" checked={enhance} onChange={(e) => setEnhance(e.target.checked)} className="size-4 accent-[hsl(var(--primary))]" />
-              Enhance for readability
-            </label>
+          {/* Three modes, the way every scanner has them. It replaced a single
+              "Enhance for readability" tickbox, which gave no way to say what
+              you wanted and left the owner asking why the scanner was "in
+              colour mode" — a fair question to ask of a result that looks like
+              a photograph. All three flatten the lighting; they differ only in
+              what they do with colour. */}
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t p-3">
+            <div className="flex items-center gap-1" role="group" aria-label="Scan mode">
+              {([
+                ['grey', 'Greyscale', 'Like a scanner: white paper, dark text'],
+                ['bw', 'Black & white', 'Two tones — crispest text, smallest file'],
+                ['colour', 'Colour', 'Keeps stamps, highlighter and coloured forms'],
+              ] as const).map(([value, label, why]) => (
+                <button
+                  key={value}
+                  onClick={() => setMode(value)}
+                  aria-pressed={mode === value}
+                  title={why}
+                  className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${
+                    mode === value
+                      ? 'bg-primary text-primary-foreground'
+                      : 'border text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
             <span className="text-[11px] text-muted-foreground">{pages.length} captured</span>
           </div>
           {note && (

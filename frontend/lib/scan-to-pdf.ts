@@ -1,19 +1,22 @@
 'use client';
 
 // Scan to PDF — turn phone-camera shots (or chosen photos) into a clean PDF,
-// 100% on-device. Each captured page is drawn to a canvas, optionally enhanced
-// for legibility (a light grayscale + contrast lift that makes a photographed
-// document read like a scan), re-encoded as JPEG, and placed on its own page.
+// 100% on-device. Each captured page is drawn to a canvas, put through the
+// lighting-flattening pass in lib/scan-enhance (which is what makes a photo of
+// paper look scanned rather than photographed), re-encoded as JPEG, and placed
+// on its own page.
 
+import { enhanceScan, type ScanMode } from '@/lib/scan-enhance';
+
+export type { ScanMode };
 export type ScanPage = { id: string; dataUrl: string; w: number; h: number };
 
 let idc = 0;
 export const newId = () => `p${++idc}-${performance.now().toFixed(0)}`;
 
-// Downscale a captured frame to a sane print resolution and, if asked, boost it
-// toward a document scan: desaturate, then push contrast so paper goes white and
-// ink goes dark. Kept deliberately mild — aggressive thresholding eats faint text.
-export function processFrame(source: CanvasImageSource, sw: number, sh: number, enhance: boolean): ScanPage {
+// Downscale a captured frame to a sane print resolution, then flatten its
+// lighting so the paper reads as white wherever it sits in the picture.
+export function processFrame(source: CanvasImageSource, sw: number, sh: number, mode: ScanMode): ScanPage {
   const MAX = 2200; // long edge — ~150-200 DPI on a page, small file, sharp text
   const scale = Math.min(1, MAX / Math.max(sw, sh));
   const w = Math.round(sw * scale), h = Math.round(sh * scale);
@@ -22,16 +25,10 @@ export function processFrame(source: CanvasImageSource, sw: number, sh: number, 
   const ctx = c.getContext('2d')!;
   ctx.drawImage(source, 0, 0, w, h);
 
-  if (enhance) {
+  {
+    // Every mode flattens the lighting; only the colour handling differs.
     const img = ctx.getImageData(0, 0, w, h);
-    const d = img.data;
-    const contrast = 1.35, mid = 128;
-    for (let i = 0; i < d.length; i += 4) {
-      const g = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-      let v = (g - mid) * contrast + mid + 12; // +12 lifts the paper toward white
-      v = v < 0 ? 0 : v > 255 ? 255 : v;
-      d[i] = d[i + 1] = d[i + 2] = v;
-    }
+    enhanceScan(img.data, w, h, mode);
     ctx.putImageData(img, 0, 0);
   }
 
@@ -112,22 +109,15 @@ export async function buildScanPdf(pages: ScanPage[]): Promise<Blob> {
  * enhance pass is the same one, because a flattened page still benefits from
  * having the paper lifted toward white.
  */
-export function pageFromImageData(img: ImageData, enhance: boolean): ScanPage {
+export function pageFromImageData(img: ImageData, mode: ScanMode): ScanPage {
   const c = document.createElement('canvas');
   c.width = img.width; c.height = img.height;
   const ctx = c.getContext('2d')!;
   ctx.putImageData(img, 0, 0);
 
-  if (enhance) {
+  {
     const data = ctx.getImageData(0, 0, c.width, c.height);
-    const d = data.data;
-    const contrast = 1.35, mid = 128;
-    for (let i = 0; i < d.length; i += 4) {
-      const g = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-      let v = (g - mid) * contrast + mid + 12;
-      v = v < 0 ? 0 : v > 255 ? 255 : v;
-      d[i] = d[i + 1] = d[i + 2] = v;
-    }
+    enhanceScan(data.data, c.width, c.height, mode);
     ctx.putImageData(data, 0, 0);
   }
 
