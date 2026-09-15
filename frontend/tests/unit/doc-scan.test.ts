@@ -171,6 +171,50 @@ describe('detectDocument', () => {
     }
   });
 
+  it('finds a WHITE page on a PALE surface that is covered in print', () => {
+    /* The fifteenth round, and the one that was actually wrong all along.
+     *
+     * A white AAA envelope on a cream quilt. Nothing detected, no outline, over
+     * and over. The cause was not the framing, the orientation or the zoom: it
+     * was the edge threshold, which kept "the top 8% of gradients in the whole
+     * picture". On a document that budget is spent by the PRINT — black address
+     * lines and a red banner produce enormous gradients — so the cut landed
+     * above them and the envelope's own edge, white paper against cream fabric
+     * and perhaps thirty grey levels, fell underneath it and disappeared.
+     *
+     * The detector went blind on the document precisely because the document
+     * had writing on it. Measured, same page, same position, same contrast:
+     *
+     *     without print -> FOUND        with print -> null
+     *
+     * Hysteresis fixed it: strict seeds, loose growth along connected pixels.
+     * A page boundary is one long connected curve, so its strong stretches pull
+     * its faint stretches in.
+     */
+    const w = 640, h = 360;
+    const page: Quad = [{ x: 40, y: 60 }, { x: 600, y: 55 }, { x: 600, y: 300 }, { x: 40, y: 305 }];
+    const img = makeImageData(w, h);
+    let s = 3;
+    const rnd = () => { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; };
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const o = (y * w + x) * 4;
+      const onPage = inside(page, x + 0.5, y + 0.5);
+      // 245 on 215 — the whole page/desk step is thirty levels.
+      let v = onPage ? 245 + rnd() * 4 - 2 : 215 + rnd() * 10 - 5;
+      if (onPage) {
+        const ry = y - h * 0.42, rx = x - w * 0.55;
+        if (ry > 0 && ry < h * 0.09 && rx > 0 && rx < w * 0.33) v = 90;   // the red banner
+        if (y % 9 === 0 && x > w * 0.08 && x < w * 0.45) v = 30;          // address lines
+      }
+      v = Math.max(0, Math.min(255, v));
+      img.data[o] = img.data[o + 1] = img.data[o + 2] = v;
+      img.data[o + 3] = 255;
+    }
+    const found = detectDocument(img);
+    expect(found, 'print inside the page must not hide the edge of the page').not.toBeNull();
+    expect(cornerError(found!, page), 'and it must be the PAGE, not a slice of it').toBeLessThan(25);
+  });
+
   it('says a page is CLIPPED when it runs off the frame, not just "nothing"', () => {
     // The first real photograph anyone sent: an envelope on a bed, held close
     // enough that its left and right edges were outside the picture. The

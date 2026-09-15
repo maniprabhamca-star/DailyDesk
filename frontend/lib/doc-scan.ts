@@ -43,7 +43,7 @@ const MIN_AREA_FRACTION = 0.12;
  * real page does — and with no document present, grain is the strongest signal
  * there is. A page someone is photographing always leaves some margin.
  */
-const MAX_AREA_FRACTION = 0.9;
+const MAX_AREA_FRACTION = 0.86;
 /**
  * How close a corner may come to the edge of the picture and still be believed.
  *
@@ -69,6 +69,26 @@ const EDGE_TOUCH_FRACTION = 0.02;
 const MIN_EDGE_CONTRAST = 10;
 /** Working width for detection. Big enough to keep page edges, small enough to be cheap. */
 const WORK_WIDTH = 320;
+/**
+ * How much of the picture to treat as edge, tried in order until a page turns up.
+ *
+ * No single value works, and that is the whole finding of the fifteenth round.
+ * The threshold keeps a fixed share of the strongest gradients, so on a page
+ * with PRINT on it the ink spends the budget: black address lines against white
+ * paper dwarf a page edge of white paper against a cream quilt, worth about
+ * thirty grey levels. Measured on that scene, the same page either way:
+ *
+ *     keep 0.08 (what shipped)   blank page FOUND   printed page null
+ *     keep 0.30                  blank page null    printed page FOUND, corners right
+ *
+ * Neither is right on its own, so try the strict one first and loosen only if
+ * it finds nothing. Every gate downstream — area, convexity, shape fit, edge
+ * contrast, corners clear of the border — still has to be satisfied, so a
+ * looser pass can only ADD candidates, never admit a worse one. And the cost
+ * lands where it is free: as soon as a page is found the sweep stops, so the
+ * extra passes only happen in the frames where nothing was being captured.
+ */
+const EDGE_KEEP_STEPS = [0.08, 0.16, 0.30];
 
 // ── small helpers ───────────────────────────────────────────────────────────
 
@@ -173,7 +193,7 @@ function blur(src: Float32Array, w: number, h: number, radius = 2): Float32Array
  * different gradient magnitudes, so a fixed number works for one and not the
  * other; keeping the strongest few per cent of gradients works for both.
  */
-function edges(gray: Float32Array, w: number, h: number): Uint8Array {
+function edges(gray: Float32Array, w: number, h: number, keep: number): Uint8Array {
   const mag = new Float32Array(w * h);
   let max = 0;
   for (let y = 1; y < h - 1; y++) {
@@ -194,7 +214,7 @@ function edges(gray: Float32Array, w: number, h: number): Uint8Array {
   const BINS = 256;
   const hist = new Uint32Array(BINS);
   for (let i = 0; i < mag.length; i++) hist[Math.min(BINS - 1, (mag[i] / max * (BINS - 1)) | 0)]++;
-  const wanted = Math.floor(mag.length * 0.08);
+  const wanted = Math.floor(mag.length * keep);
   let acc = 0, bin = BINS - 1;
   for (; bin > 0; bin--) { acc += hist[bin]; if (acc >= wanted) break; }
   const threshold = (bin / (BINS - 1)) * max;
@@ -459,75 +479,99 @@ export function detectDocument(frame: ImageData, notes?: DetectNotes): Quad | nu
   }
 
   const gray = blur(toGray(small, w, h), w, h);
-  const bin = edges(gray, w, h);
   const frameArea = w * h;
   let best: { quad: Quad; area: number } | null = null;
 
-  for (const contour of findContours(bin, w, h)) {
-    const perimeter = contour.reduce((s, p, i) => s + (i ? dist(contour[i - 1], p) : 0), 0);
-    if (perimeter < (w + h) * 0.5) continue;             // too small to be a page
-
-    // Is this something large running off ONE pair of edges? That is a page
-    // held too close, and the only failure this detector can give useful advice
-    // about. Spanning BOTH pairs is not reported: that is the picture's own
-    // border traced around an empty desk, where "move back" would be nonsense.
-    if (notes && !notes.clipped) {
+  for (const [pass, keep] of EDGE_KEEP_STEPS.entries()) {
+    const bin = edges(gray, w, h, keep);
+  
+    for (const contour of findContours(bin, w, h)) {
+      const perimeter = contour.reduce((s, p, i) => s + (i ? dist(contour[i - 1], p) : 0), 0);
+      if (perimeter < (w + h) * 0.5) continue;             // too small to be a page
+  
+      // Is this something large running off ONE pair of edges? That is a page
+      // held too close, and the only failure this detector can give useful advice
+      // about. Spanning BOTH pairs is not reported: that is the picture's own
+      // border traced around an empty desk, where "move back" would be nonsense.
       let minx = Infinity, maxx = -Infinity, miny = Infinity, maxy = -Infinity;
       for (const p of contour) {
         if (p.x < minx) minx = p.x; if (p.x > maxx) maxx = p.x;
         if (p.y < miny) miny = p.y; if (p.y > maxy) maxy = p.y;
       }
-      // Area is the wrong measure here, and assuming otherwise cost a test
-      // run: a page running off both sides leaves no vertical boundary inside
-      // the picture at all, so what the tracer gets is the page's TOP and
-      // BOTTOM edges — two long, flat contours enclosing almost nothing. Their
-      // span is the signal. The perimeter gate above already means this is a
-      // substantial piece of edge and not a speck.
-      const spansW = minx <= 1 && maxx >= w - 2;
-      const spansH = miny <= 1 && maxy >= h - 2;
-      if (spansW !== spansH) notes.clipped = true;
+
+      if (notes && !notes.clipped) {
+        // Area is the wrong measure here, and assuming otherwise cost a test
+        // run: a page running off both sides leaves no vertical boundary inside
+        // the picture at all, so what the tracer gets is the page's TOP and
+        // BOTTOM edges — two long, flat contours enclosing almost nothing. Their
+        // span is the signal. The perimeter gate above already means this is a
+        // substantial piece of edge and not a speck.
+        const spansW = minx <= 1 && maxx >= w - 2;
+        const spansH = miny <= 1 && maxy >= h - 2;
+        if (spansW !== spansH) notes.clipped = true;
+      }
+  
+      /* If the outline runs into the edge of the picture, part of whatever it
+       * belongs to is outside the picture and there is nothing there to measure.
+       *
+       * This has to hold at every sensitivity, which is why it tests the CONTOUR
+       * rather than the finished quad. The looser passes below exist to find a
+       * page whose edge the strict pass missed, and they also surface more
+       * rubbish — including, on the owner's envelope, a confident wedge across
+       * the part of it that was still in shot, captured five times before anyone
+       * stopped it. A corner margin was tried for that and drifted with the blur;
+       * whether the traced outline touches the border does not drift.
+       */
+      if (minx <= 1 || maxx >= w - 2 || miny <= 1 || maxy >= h - 2) continue;
+
+      const candidate = quadFromContour(contour);
+      // 0.035 = the traced outline sits, on average, within 3.5% of the quad's
+      // own size of one of its four edges. A page clears this comfortably; a
+      // rounded or irregular blob does not, which is what stops the detector
+      // drawing a confident rectangle around a coffee cup.
+      if (candidate && candidate.fit < 0.035 && isConvex(candidate.quad)) {
+        const pts = candidate.quad;
+        const area = polygonArea(pts);
+        if (area < frameArea * MIN_AREA_FRACTION || area > frameArea * MAX_AREA_FRACTION) continue;
+  
+        // Every corner must be clear of the picture's edge. One that is not
+        // belongs to something leaving the frame, not to a page — and a quad
+        // built from it is a wedge across whatever part happened to be in shot.
+        // `clipped` is left to the contour test above, which can tell a page
+        // held too close from the frame border traced round an empty desk; this
+        // only has to refuse the quad.
+        // The floor of 6 is not slack, it is the blur. Two box passes at radius 2
+        // smear every boundary inward, so a corner sitting exactly ON the edge of
+        // the picture is traced about four pixels inside it — measured: a quad
+        // with a corner at y=0 came back with that corner at y=4 in work space,
+        // and a 2px margin waved it through.
+        const ex = Math.max(6, w * EDGE_TOUCH_FRACTION);
+        const ey = Math.max(6, h * EDGE_TOUCH_FRACTION);
+        if (pts.some((p) => p.x <= ex || p.x >= w - ex || p.y <= ey || p.y >= h - ey)) continue;
+  
+        // Reject slivers: a page seen from any usable angle still has sides that
+        // are within about 6:1 of each other.
+        const q = orderCorners(pts);
+        const sides = [dist(q[0], q[1]), dist(q[1], q[2]), dist(q[2], q[3]), dist(q[3], q[0])];
+        const shortest = Math.min(...sides), longest = Math.max(...sides);
+        if (shortest <= 0 || longest / shortest > 6) continue;
+  
+        // Finally: is there actually an edge there, or is this a rectangle drawn
+        // in noise? Everything above this line can be satisfied by an empty desk.
+        // A candidate that only appears once the detector is turned up has to
+        // clear a higher bar. The looser passes exist to rescue a page whose
+        // edge the strict pass could not see past the print on it; they also
+        // surface things that are not pages at all, and those arrive with weak
+        // boundaries. Paper against a desk clears double the floor easily.
+        const floor = pass === 0 ? MIN_EDGE_CONTRAST : MIN_EDGE_CONTRAST * 2;
+        if (edgeContrast(gray, w, h, q) < floor) continue;
+  
+        if (!best || area > best.area) best = { quad: q, area };
+      }
     }
-
-    const candidate = quadFromContour(contour);
-    // 0.035 = the traced outline sits, on average, within 3.5% of the quad's
-    // own size of one of its four edges. A page clears this comfortably; a
-    // rounded or irregular blob does not, which is what stops the detector
-    // drawing a confident rectangle around a coffee cup.
-    if (candidate && candidate.fit < 0.035 && isConvex(candidate.quad)) {
-      const pts = candidate.quad;
-      const area = polygonArea(pts);
-      if (area < frameArea * MIN_AREA_FRACTION || area > frameArea * MAX_AREA_FRACTION) continue;
-
-      // Every corner must be clear of the picture's edge. One that is not
-      // belongs to something leaving the frame, not to a page — and a quad
-      // built from it is a wedge across whatever part happened to be in shot.
-      // `clipped` is left to the contour test above, which can tell a page
-      // held too close from the frame border traced round an empty desk; this
-      // only has to refuse the quad.
-      // The floor of 6 is not slack, it is the blur. Two box passes at radius 2
-      // smear every boundary inward, so a corner sitting exactly ON the edge of
-      // the picture is traced about four pixels inside it — measured: a quad
-      // with a corner at y=0 came back with that corner at y=4 in work space,
-      // and a 2px margin waved it through.
-      const ex = Math.max(6, w * EDGE_TOUCH_FRACTION);
-      const ey = Math.max(6, h * EDGE_TOUCH_FRACTION);
-      if (pts.some((p) => p.x <= ex || p.x >= w - ex || p.y <= ey || p.y >= h - ey)) continue;
-
-      // Reject slivers: a page seen from any usable angle still has sides that
-      // are within about 6:1 of each other.
-      const q = orderCorners(pts);
-      const sides = [dist(q[0], q[1]), dist(q[1], q[2]), dist(q[2], q[3]), dist(q[3], q[0])];
-      const shortest = Math.min(...sides), longest = Math.max(...sides);
-      if (shortest <= 0 || longest / shortest > 6) continue;
-
-      // Finally: is there actually an edge there, or is this a rectangle drawn
-      // in noise? Everything above this line can be satisfied by an empty desk.
-      if (edgeContrast(gray, w, h, q) < MIN_EDGE_CONTRAST) continue;
-
-      if (!best || area > best.area) best = { quad: q, area };
-    }
+  
+    if (best) break;
   }
-
   if (!best) return null;
   return best.quad.map((p) => ({ x: p.x / scale, y: p.y / scale })) as Quad;
 }

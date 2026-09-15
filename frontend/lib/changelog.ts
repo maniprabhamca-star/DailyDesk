@@ -24,6 +24,14 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-09-14',
+    kind: 'fixed',
+    title: 'The scanner can see a printed page again',
+    detail:
+      'A white envelope on a pale bedspread would not be recognised at all — no outline, nothing, however it was held. The cause turned out to have nothing to do with framing or lighting: it was the printing on the envelope. The scanner looks for the sharpest boundaries in the picture and keeps a fixed share of them, and on a document covered in black address lines and a red banner, the ink is far sharper than the edge of the paper itself. White paper on a cream quilt is a difference of about thirty shades; the print used up the whole budget and the edge of the page fell below the line. The scanner was going blind on documents precisely because they had writing on them. It now looks again, more sensitively, when the first pass finds nothing — and anything that only turns up on the second look has to prove itself against a higher bar before an outline is drawn around it.',
+    href: '/scan-to-pdf',
+  },
+  {
+    date: '2026-09-14',
     kind: 'improved',
     title: 'The scanner stops outlining things that are not your document',
     detail:
