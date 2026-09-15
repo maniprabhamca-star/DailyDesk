@@ -24,6 +24,14 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-09-15',
+    kind: 'feature',
+    title: 'Scanned receipts keep their line items in the budget',
+    detail:
+      'The receipt scanner reads everything on the paper — every line item, the tax lines, the payment method, the reference numbers — and shows it to you before you save. Saving to the budget then kept only the total, so the same expense opened a week later was a bare number and all of that was gone. It is now stored with the expense: any scanned entry in Budget Tracker has a Receipt button that opens the full breakdown you approved, including the arithmetic check and the CSV download. Expenses you typed in by hand are unchanged, and so is everything logged before today — there was nothing to keep. Card numbers are still stored as the last four digits only.',
+    href: '/budget',
+  },
+  {
+    date: '2026-09-15',
     kind: 'improved',
     title: 'Undo a crop and place the corners again',
     detail:

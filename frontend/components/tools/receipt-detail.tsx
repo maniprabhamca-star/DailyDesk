@@ -69,6 +69,17 @@ function toCsv(d: ReceiptDetail, merchant: string, date: string, cur: string, wi
   return rows.map((r) => r.map(esc).join(',')).join('\n');
 }
 
+/**
+ * Whether there is a breakdown here worth opening, as opposed to a total with
+ * nothing behind it.
+ *
+ * Exported because the budget list needs the same answer this panel does: it
+ * decides whether to offer a "Receipt" button, and a button that opens onto an
+ * empty box is worse than no button. One predicate, so the two cannot disagree.
+ */
+export const hasReceiptDetail = (d: ReceiptDetail | null | undefined): boolean =>
+  !!d && (d.lines.length > 0 || d.taxes.length > 0 || d.identifiers.length > 0 || d.payments.length > 0);
+
 export function ReceiptDetailPanel({
   detail, merchant, date, currency,
 }: { detail: ReceiptDetail; merchant: string; date: string; currency: string }) {
@@ -76,7 +87,7 @@ export function ReceiptDetailPanel({
   const [showCard, setShowCard] = useState(false);
 
   const cur = currency || detail.currency || '';
-  const hasDetail = detail.lines.length > 0 || detail.taxes.length > 0 || detail.identifiers.length > 0 || detail.payments.length > 0;
+  const hasDetail = hasReceiptDetail(detail);
 
   // Say when the detailed read did not happen, rather than showing nothing.
   // Silence here is what made a failed detailed read look like a missing

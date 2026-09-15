@@ -61,6 +61,12 @@ jobs:
         run: npm run test:mcp-token
         working-directory: backend
 
+      # The receipt breakdown is client JSON on its way into a JSONB column.
+      # What the sanitiser refuses is the whole of the protection.
+      - name: Receipt breakdown sanitising
+        run: npm run test:budget-detail
+        working-directory: backend
+
       # The webpage-to-PDF renderer takes a URL from the user. This is the only
       # thing standing between that and the VPS metadata endpoint, so it runs on
       # every backend change, not just when the guard itself is touched.

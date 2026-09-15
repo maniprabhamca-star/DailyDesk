@@ -131,13 +131,26 @@ export function ReceiptScannerTool() {
     if (!budgetSignedIn()) { setError('Please sign in to save to your budget.'); return; }
     setError(null);
     try {
-      await addExpense({ amount: amt, category, description: merchant, merchant, date: date || new Date().toISOString().slice(0, 10) });
+      // The breakdown goes WITH the expense. It used to be dropped here, so
+      // an expense opened later was a bare total and everything the scan had
+      // read — the line items, the tax lines, the reference numbers — was
+      // gone. Extracting it and then discarding it is worse than not
+      // extracting it: the work was done and the answer thrown away.
+      await addExpense({
+        amount: amt, category, description: merchant, merchant,
+        date: date || new Date().toISOString().slice(0, 10),
+        detail,
+      });
       setPhase('saved');
     } catch (e) {
       if (e instanceof BudgetApiError && e.code === 'expense-cap') { setError('You’ve hit your monthly free expense limit — upgrade to Pro for unlimited.'); return; }
       setError(e instanceof BudgetApiError ? e.message : 'Could not save to your budget.');
     }
-  }, [amount, category, merchant, date]);
+    // `detail` belongs in here with the rest: without it this callback keeps
+    // whatever breakdown existed when it was last built, and a second scan in
+    // the same session would file the first receipt's line items under the
+    // second receipt's total.
+  }, [amount, category, merchant, date, detail]);
 
   const reset = () => { setPhase('capture'); setPending(null); setMerchant(''); setAmount(''); setCategory('Other'); setDate(''); setError(null); setScanFound({ amount: false, merchant: false }); setDetail(null); };
 

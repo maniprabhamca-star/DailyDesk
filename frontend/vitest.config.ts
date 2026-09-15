@@ -26,7 +26,13 @@ export default defineConfig({
     // thing separating that from a clean run, and nobody reads past a green
     // summary. This box is 4 cores shared with another project; spawning a
     // worker per file starves the ones trying to start.
-    poolOptions: { threads: { maxThreads: 4 } },
+    // Vitest 4 moved this to the top level; it was still written as
+    // `poolOptions: { threads: { maxThreads: 4 } }` here, which the runner
+    // prints a deprecation for and then IGNORES — so the cap was off again and
+    // the dropped-file failure above was free to come back. A setting that
+    // stops applying without failing is the same class of problem as the bug
+    // it was fixing.
+    maxWorkers: 4,
     // 5s (the default) is too tight for the tests that read the whole source
     // tree off disk — the accept-list and SEO-metadata suites walk several
     // hundred .ts/.tsx files each, and when 27 files run in parallel on a busy

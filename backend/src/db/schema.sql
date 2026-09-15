@@ -76,6 +76,16 @@ CREATE TABLE IF NOT EXISTS expenses (
 -- title/avatar_url columns — was removed here. The authoritative Link in Bio
 -- schema is the "Link in Bio (Pro)" block further down.)
 
+-- What the receipt scanner read off the paper: line items, tax lines, payment
+-- method, reference numbers, and whether the arithmetic checked out. The
+-- scanner extracted all of this and then threw it away at save time, so an
+-- expense opened later was a bare total — "it shows only the plain total and
+-- not same as the inital details". Kept as JSONB because its shape belongs to
+-- the receipt, not to the ledger: a supermarket receipt and a taxi receipt do
+-- not have the same fields, and columns for each would be wrong the first time
+-- someone scans something new. NULL for anything typed in by hand.
+ALTER TABLE expenses ADD COLUMN IF NOT EXISTS detail JSONB;
+
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_files_user_id ON files(user_id);
 CREATE INDEX IF NOT EXISTS idx_notes_user_id ON notes(user_id);

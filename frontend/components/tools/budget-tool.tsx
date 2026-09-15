@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Loader2, Plus, Trash2, Wallet, LogIn, Cloud, Sparkles, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, Plus, Trash2, Wallet, LogIn, Cloud, Sparkles, X, ChevronLeft, ChevronRight, ReceiptText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   getMonth, addExpense, deleteExpense, budgetSignedIn, BudgetApiError, CATEGORIES, type BudgetMonth,
 } from '@/lib/budget-api';
+import { ReceiptDetailPanel, hasReceiptDetail } from '@/components/tools/receipt-detail';
 
 const CAT_COLOR: Record<string, string> = {
   Food: '#f97316', Transport: '#0ea5e9', Bills: '#dc2626', Shopping: '#a855f7',
@@ -26,6 +27,9 @@ export function BudgetTool() {
   const [currency, setCurrency] = useState('₹');
   // add form
   const [amount, setAmount] = useState('');
+  // Which expense has its receipt open. One at a time: the list is the point,
+  // and every breakdown expanded at once buries it.
+  const [openId, setOpenId] = useState<string | null>(null);
   const [category, setCategory] = useState<string>('Food');
   const [desc, setDesc] = useState('');
 
@@ -130,14 +134,41 @@ export function BudgetTool() {
           ) : (
             <ul className="divide-y">
               {data.expenses.map((e) => (
-                <li key={e.id} className="group flex items-center gap-3 px-4 py-2.5">
-                  <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: CAT_COLOR[e.category] || CAT_COLOR.Other }} />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{e.description || e.category}</p>
-                    <p className="text-[11px] text-muted-foreground">{e.category} · {new Date(e.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</p>
+                <li key={e.id} className="group px-4 py-2.5">
+                  <div className="flex items-center gap-3">
+                    <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: CAT_COLOR[e.category] || CAT_COLOR.Other }} />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{e.description || e.category}</p>
+                      <p className="text-[11px] text-muted-foreground">{e.category} · {new Date(e.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</p>
+                    </div>
+                    {/* A scanned expense keeps everything the scan read, so it
+                        can be opened instead of just totted up. Before this the
+                        breakdown was shown once, at save time, and then thrown
+                        away — the same expense reopened was a bare number. */}
+                    {hasReceiptDetail(e.detail) && (
+                      <button
+                        onClick={() => setOpenId((id) => (id === e.id ? null : e.id))}
+                        aria-expanded={openId === e.id}
+                        className="flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium text-muted-foreground hover:text-foreground"
+                      >
+                        <ReceiptText className="size-3" />
+                        {openId === e.id ? 'Hide' : 'Receipt'}
+                      </button>
+                    )}
+                    <span className="text-sm font-semibold tabular-nums">{fmt(e.amount)}</span>
+                    <button onClick={() => void remove(e.id)} className="opacity-0 transition group-hover:opacity-100" aria-label="Delete"><Trash2 className="size-3.5 text-muted-foreground hover:text-red-600" /></button>
                   </div>
-                  <span className="text-sm font-semibold tabular-nums">{fmt(e.amount)}</span>
-                  <button onClick={() => void remove(e.id)} className="opacity-0 transition group-hover:opacity-100" aria-label="Delete"><Trash2 className="size-3.5 text-muted-foreground hover:text-red-600" /></button>
+                  {e.detail && openId === e.id && hasReceiptDetail(e.detail) && (
+                    // The scanner's own panel, not a second rendering of the
+                    // same data: one place decides how a receipt reads, so the
+                    // breakdown here cannot drift from the one you approved.
+                    <ReceiptDetailPanel
+                      detail={e.detail}
+                      merchant={e.merchant || e.description}
+                      date={e.date}
+                      currency={e.detail.currency || ''}
+                    />
+                  )}
                 </li>
               ))}
             </ul>

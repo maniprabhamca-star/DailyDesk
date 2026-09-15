@@ -1,8 +1,15 @@
 import { reportSessionExpired } from './session';
+import type { ReceiptDetail } from '@/components/tools/receipt-detail';
 const API = process.env.NEXT_PUBLIC_API_URL || '';
 
 export type Expense = {
   id: string; amount: number; category: string; description: string; merchant: string; date: string;
+  /**
+   * What the receipt scanner read off the paper, when it was scanned rather
+   * than typed. Null for a hand-entered expense, and for everything logged
+   * before the column existed.
+   */
+  detail?: ReceiptDetail | null;
 };
 export type BudgetMonth = {
   month: string; expenses: Expense[]; total: number;
@@ -38,6 +45,6 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const getMonth = (month: string) => call<BudgetMonth>(`?month=${encodeURIComponent(month)}`);
-export const addExpense = (e: Pick<Expense, 'amount' | 'category' | 'description' | 'merchant' | 'date'>) =>
+export const addExpense = (e: Pick<Expense, 'amount' | 'category' | 'description' | 'merchant' | 'date' | 'detail'>) =>
   call<{ expense: Expense }>('', { method: 'POST', body: JSON.stringify(e) });
 export const deleteExpense = (id: string) => call<{ ok: true }>(`/${id}`, { method: 'DELETE' });

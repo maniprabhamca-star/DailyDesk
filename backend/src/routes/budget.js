@@ -10,6 +10,7 @@ const { clientKey } = require('../utils/rateLimitKey');
 const { makeStore, redisDown } = require('../utils/rateLimitStore');
 const { isCanaryReq } = require('../utils/canary');
 const db = require('../db');
+const { sanitiseDetail } = require('../utils/receiptDetail');
 
 const router = express.Router();
 
@@ -33,6 +34,7 @@ async function isPro(userId) {
 }
 
 const clean = (v, n) => String(v == null ? '' : v).replace(/\p{Cc}/gu, '').slice(0, n).trim();
+
 const CATS = ['Food', 'Transport', 'Bills', 'Shopping', 'Health', 'Fun', 'Home', 'Other'];
 const monthOf = (d) => String(d || '').slice(0, 7); // YYYY-MM
 
@@ -41,7 +43,7 @@ router.get('/', async (req, res) => {
   const month = /^\d{4}-\d{2}$/.test(req.query.month) ? req.query.month : new Date().toISOString().slice(0, 7);
   try {
     const { rows } = await db.query(
-      `SELECT id, amount::float8 AS amount, category, description, merchant,
+      `SELECT id, amount::float8 AS amount, category, description, merchant, detail,
               to_char(expense_date, 'YYYY-MM-DD') AS date
        FROM expenses
        WHERE user_id = $1 AND to_char(expense_date, 'YYYY-MM') = $2
@@ -63,6 +65,7 @@ router.post('/', async (req, res) => {
   const description = clean(req.body && req.body.description, 200);
   const merchant = clean(req.body && req.body.merchant, 120);
   const date = /^\d{4}-\d{2}-\d{2}$/.test(req.body && req.body.date) ? req.body.date : new Date().toISOString().slice(0, 10);
+  const detail = sanitiseDetail(req.body && req.body.detail);
   try {
     if (!(await isPro(req.user.userId))) {
       const { rows } = await db.query(
@@ -71,10 +74,10 @@ router.post('/', async (req, res) => {
       if (rows[0].n >= FREE_EXPENSE_CAP) return res.status(402).json({ error: 'expense-cap', limit: FREE_EXPENSE_CAP, message: `Free accounts log up to ${FREE_EXPENSE_CAP} expenses a month. Upgrade to Pro for unlimited.` });
     }
     const { rows } = await db.query(
-      `INSERT INTO expenses (user_id, amount, category, description, merchant, expense_date)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING id, amount::float8 AS amount, category, description, merchant, to_char(expense_date, 'YYYY-MM-DD') AS date`,
-      [req.user.userId, amount, category, description, merchant, date]);
+      `INSERT INTO expenses (user_id, amount, category, description, merchant, expense_date, detail)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING id, amount::float8 AS amount, category, description, merchant, detail, to_char(expense_date, 'YYYY-MM-DD') AS date`,
+      [req.user.userId, amount, category, description, merchant, date, detail ? JSON.stringify(detail) : null]);
     return res.status(201).json({ expense: rows[0] });
   } catch (e) { console.error('budget create:', e.message); return res.status(500).json({ error: 'server' }); }
 });
