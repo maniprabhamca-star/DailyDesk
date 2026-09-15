@@ -373,6 +373,53 @@ test.describe('Scan to PDF — the scanner', () => {
     await expect(dialog.getByText('Scan document', { exact: true })).toHaveCount(0);
   });
 
+  test('a captured page can be seen full size before the PDF is built', async ({ page }) => {
+    // "before i click on save pdf give me an option to preview or see in the
+    // large window how the scan will looks like". The thumbnail in the list is
+    // 44px wide — enough to know a page exists, not enough to judge whether the
+    // text is readable, which is the thing you want to check before saving.
+    await openScanner(page);
+    await page.getByRole('button', { name: /capture page/i }).click();
+    await expect(page.getByRole('button', { name: /done \(1\)/i })).toBeVisible({ timeout: 10_000 });
+    await page.getByRole('button', { name: /close scanner/i }).click();
+
+    // Both ways in: the button above Save, and the thumbnail itself.
+    await page.getByRole('button', { name: /preview the page/i }).click();
+    const preview = page.getByRole('dialog', { name: /page 1 of 1, full size/i });
+    await expect(preview).toBeVisible();
+    await expect(preview.getByRole('img', { name: /page 1/i })).toBeVisible();
+
+    // Escape closes it, and the page list is still there afterwards.
+    await page.keyboard.press('Escape');
+    await expect(preview).toHaveCount(0);
+    await page.getByRole('button', { name: /preview page 1 full size/i }).click();
+    await expect(page.getByRole('dialog', { name: /full size/i })).toBeVisible();
+
+    // Deleting the last page from inside the preview must close it rather than
+    // leave an empty lightbox open.
+    await page.getByRole('button', { name: /^delete$/i }).click();
+    await expect(page.getByRole('dialog', { name: /full size/i })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /save pdf/i })).toBeDisabled();
+  });
+
+  test('the scan mode is a real control: it re-renders pages already taken', async ({ page }) => {
+    // A mode that only applied to the NEXT capture would look broken — you tap
+    // it, nothing you can see changes. Colour is the default, asked for.
+    await openScanner(page);
+    await page.getByRole('button', { name: /capture page/i }).click();
+    await expect(page.getByRole('button', { name: /done \(1\)/i })).toBeVisible({ timeout: 10_000 });
+    await page.getByRole('button', { name: /close scanner/i }).click();
+
+    await expect(page.getByRole('button', { name: /^colour$/i }), 'colour is the default')
+      .toHaveAttribute('aria-pressed', 'true');
+
+    const thumb = page.getByRole('img', { name: /page 1/i });
+    const before = await thumb.getAttribute('src');
+    await page.getByRole('button', { name: /black & white/i }).click();
+    await expect.poll(async () => thumb.getAttribute('src'), { timeout: 10_000 }).not.toBe(before);
+    await expect(page.getByRole('button', { name: /black & white/i })).toHaveAttribute('aria-pressed', 'true');
+  });
+
   test('a screen-reader is told the count', async ({ page }) => {
     await openScanner(page);
     const live = page.locator('[role="status"][aria-live="polite"]');

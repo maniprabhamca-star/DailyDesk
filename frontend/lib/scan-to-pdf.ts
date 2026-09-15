@@ -9,7 +9,16 @@
 import { enhanceScan, type ScanMode } from '@/lib/scan-enhance';
 
 export type { ScanMode };
-export type ScanPage = { id: string; dataUrl: string; w: number; h: number };
+/**
+ * A captured page.
+ *
+ *  is the SAME pixels before the lighting pass. It is kept so that
+ * changing the mode re-renders pages you have already taken — without it the
+ * control only affects the next capture, which is not what a mode control
+ * means to anyone. It costs one extra JPEG per page in memory and nothing on
+ * disk: it never reaches the PDF.
+ */
+export type ScanPage = { id: string; dataUrl: string; rawUrl: string; w: number; h: number };
 
 let idc = 0;
 export const newId = () => `p${++idc}-${performance.now().toFixed(0)}`;
@@ -25,6 +34,7 @@ export function processFrame(source: CanvasImageSource, sw: number, sh: number, 
   const ctx = c.getContext('2d')!;
   ctx.drawImage(source, 0, 0, w, h);
 
+  const rawUrl = c.toDataURL('image/jpeg', 0.9);
   {
     // Every mode flattens the lighting; only the colour handling differs.
     const img = ctx.getImageData(0, 0, w, h);
@@ -34,7 +44,7 @@ export function processFrame(source: CanvasImageSource, sw: number, sh: number, 
 
   const dataUrl = c.toDataURL('image/jpeg', 0.82);
   c.width = c.height = 0;
-  return { id: newId(), dataUrl, w, h };
+  return { id: newId(), dataUrl, rawUrl, w, h };
 }
 
 /**
@@ -64,7 +74,7 @@ export async function rotatePage(page: ScanPage): Promise<ScanPage> {
   c.width = c.height = 0;
   // Same id: this is the same page, turned — not a new one. Keeping the id
   // means it stays where it is in the list instead of jumping to the end.
-  return { id: page.id, dataUrl, w, h };
+  return { id: page.id, dataUrl, rawUrl: page.rawUrl, w, h };
 }
 
 const dataUrlToBytes = (u: string): Uint8Array => {
@@ -115,6 +125,7 @@ export function pageFromImageData(img: ImageData, mode: ScanMode): ScanPage {
   const ctx = c.getContext('2d')!;
   ctx.putImageData(img, 0, 0);
 
+  const rawUrl = c.toDataURL('image/jpeg', 0.9);
   {
     const data = ctx.getImageData(0, 0, c.width, c.height);
     enhanceScan(data.data, c.width, c.height, mode);
@@ -124,5 +135,34 @@ export function pageFromImageData(img: ImageData, mode: ScanMode): ScanPage {
   const dataUrl = c.toDataURL('image/jpeg', 0.82);
   const w = c.width, h = c.height;
   c.width = c.height = 0;
-  return { id: newId(), dataUrl, w, h };
+  return { id: newId(), dataUrl, rawUrl, w, h };
+}
+
+/**
+ * Re-apply a mode to a page that was already captured.
+ *
+ * Without this the mode control is a lie: you tap "Black & white", the pages
+ * you can see do not change, and the setting silently applies only to the next
+ * capture. `rawUrl` exists so this can work — the original pixels are still
+ * there to run the pass over again.
+ */
+export async function recolourPage(page: ScanPage, mode: ScanMode): Promise<ScanPage> {
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const i = new Image();
+    i.onload = () => resolve(i);
+    i.onerror = () => reject(new Error('Could not re-open this page.'));
+    i.src = page.rawUrl;
+  });
+  const w = img.naturalWidth || page.w, h = img.naturalHeight || page.h;
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d')!;
+  ctx.drawImage(img, 0, 0);
+  const data = ctx.getImageData(0, 0, w, h);
+  enhanceScan(data.data, w, h, mode);
+  ctx.putImageData(data, 0, 0);
+  const dataUrl = c.toDataURL('image/jpeg', 0.82);
+  c.width = c.height = 0;
+  // Same id and same raw pixels: this is the same page, processed differently.
+  return { id: page.id, dataUrl, rawUrl: page.rawUrl, w, h };
 }

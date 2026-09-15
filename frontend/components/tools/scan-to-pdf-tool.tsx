@@ -1,12 +1,13 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
-import { Camera, Loader2, Download, Trash2, ScanLine, RotateCw, ChevronUp, ChevronDown } from 'lucide-react';
+import { Camera, Loader2, Download, Trash2, ScanLine, RotateCw, ChevronUp, ChevronDown, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { downloadBlob } from '@/lib/download';
 import { KeepGoing } from '@/components/app/keep-going';
-import { processFrame, pageFromImageData, buildScanPdf, rotatePage, type ScanPage, type ScanMode } from '@/lib/scan-to-pdf';
+import { processFrame, pageFromImageData, buildScanPdf, rotatePage, recolourPage, type ScanPage, type ScanMode } from '@/lib/scan-to-pdf';
 import { DocScanner, type ScannerCapture } from '@/components/tools/doc-scanner';
+import { ScanPreview } from '@/components/tools/scan-preview';
 import { rasterize, describeImageFailure, isHeic, readPickedFile, toSource } from '@/lib/image-for-pdf';
 
 // Decode a picked file to something canvas can draw. Goes through the shared
@@ -48,9 +49,10 @@ async function decodeImage(file: File): Promise<{ src: CanvasImageSource; w: num
 
 export function ScanToPdfTool() {
   const [pages, setPages] = useState<ScanPage[]>([]);
-  // Greyscale by default: it is what most people mean by "scan", and it keeps
-  // faint pencil and thermal-receipt text that black-and-white would drop.
-  const [mode, setMode] = useState<ScanMode>('grey');
+  // Colour by default, asked for directly. It is also the safe default: colour
+  // still flattens the lighting, so a page comes out on white paper either
+  // way, and nothing is thrown away that the other two modes would have kept.
+  const [mode, setMode] = useState<ScanMode>('colour');
   const [note, setNote] = useState<string | null>(null);
   const [building, setBuilding] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -61,6 +63,8 @@ export function ScanToPdfTool() {
   // component keeps what it always did: the list of pages, reordering, and the
   // PDF at the end.
   const [scanning, setScanning] = useState(false);
+  // Which page the full-size preview is showing, or null when it is closed.
+  const [previewAt, setPreviewAt] = useState<number | null>(null);
 
   const onScannerCapture = useCallback(({ data }: ScannerCapture) => {
     // Already flattened by the scanner. pageFromImageData applies the same
@@ -109,6 +113,26 @@ export function ScanToPdfTool() {
       setNote(err instanceof Error ? err.message : 'Could not turn that page.');
     }
   }, [pages]);
+  // Changing the mode re-renders every page you have already taken. A control
+  // that only affected the NEXT capture would look broken: you tap it, nothing
+  // on screen changes, and the setting has quietly applied to nothing you can
+  // see. lib/scan-to-pdf keeps the unprocessed pixels so this can be real.
+  const changeMode = useCallback(async (next: ScanMode) => {
+    setMode(next);
+    setPages((current) => {
+      if (!current.length) return current;
+      void (async () => {
+        try {
+          const redone = await Promise.all(current.map((p) => recolourPage(p, next)));
+          setPages((live) => live.map((p) => redone.find((r) => r.id === p.id) ?? p));
+        } catch {
+          setNote('Could not change the mode of the pages already taken.');
+        }
+      })();
+      return current;
+    });
+  }, []);
+
   const move = (id: string, dir: -1 | 1) => setPages((p) => {
     const i = p.findIndex((x) => x.id === id); const j = i + dir;
     if (i < 0 || j < 0 || j >= p.length) return p;
@@ -168,7 +192,7 @@ export function ScanToPdfTool() {
               ] as const).map(([value, label, why]) => (
                 <button
                   key={value}
-                  onClick={() => setMode(value)}
+                  onClick={() => void changeMode(value)}
                   aria-pressed={mode === value}
                   title={why}
                   className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${
@@ -199,8 +223,17 @@ export function ScanToPdfTool() {
             {pages.map((p, i) => (
               <div key={p.id} className="group flex items-center gap-2 rounded-lg border bg-muted/20 p-1.5">
                 <span className="w-5 text-center text-[11px] font-semibold text-muted-foreground">{i + 1}</span>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={p.dataUrl} alt={`Page ${i + 1}`} className="h-14 w-11 rounded border bg-white object-cover" />
+                {/* The thumbnail is the obvious thing to tap when you want a
+                    better look at it, so make it do that. 44px of page tells
+                    you it exists and nothing else. */}
+                <button
+                  onClick={() => setPreviewAt(i)}
+                  aria-label={`Preview page ${i + 1} full size`}
+                  className="rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={p.dataUrl} alt={`Page ${i + 1}`} className="h-14 w-11 rounded border bg-white object-cover transition hover:brightness-95" />
+                </button>
                 <div className="ml-auto flex items-center gap-0.5">
                   {/* Chevrons for reorder, a rotate glyph for rotate. These
                       were all the same RotateCw icon before, which made "move
@@ -213,7 +246,19 @@ export function ScanToPdfTool() {
               </div>
             ))}
           </div>
-          <Button onClick={() => void build()} disabled={!pages.length || building} className="mt-3 w-full bg-primary text-primary-foreground">
+          {/* Preview sits ABOVE Save and is not a filled button: checking the
+              scan is the step before saving it, and there is one filled button
+              on this screen. */}
+          {pages.length > 0 && (
+            <button
+              onClick={() => setPreviewAt(0)}
+              className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border py-2.5 text-sm font-medium hover:bg-muted/50 active:scale-[0.99]"
+            >
+              <Eye className="size-4" />
+              Preview {pages.length === 1 ? 'the page' : `all ${pages.length} pages`}
+            </button>
+          )}
+          <Button onClick={() => void build()} disabled={!pages.length || building} className="mt-2 w-full bg-primary text-primary-foreground">
             {building ? <Loader2 className="mr-1.5 size-4 animate-spin" /> : <Download className="mr-1.5 size-4" />}
             {building ? 'Building…' : `Save PDF${pages.length ? ` · ${pages.length} page${pages.length === 1 ? '' : 's'}` : ''}`}
           </Button>
@@ -224,6 +269,16 @@ export function ScanToPdfTool() {
         <ScanLine className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
         <p><b>Scanned entirely on your device.</b> The camera stream and every page stay in your browser — nothing is uploaded. Your ID, your signature, your receipts never touch a server.</p>
       </div>
+      {previewAt !== null && (
+        <ScanPreview
+          pages={pages}
+          index={Math.min(previewAt, Math.max(0, pages.length - 1))}
+          onIndex={setPreviewAt}
+          onRotate={(id) => void rotate(id)}
+          onDelete={(id) => remove(id)}
+          onClose={() => setPreviewAt(null)}
+        />
+      )}
       {scanning && (
         <DocScanner
           onCapture={onScannerCapture}
