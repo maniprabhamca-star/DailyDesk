@@ -457,6 +457,16 @@ test.describe('Scan to PDF — the scanner', () => {
     await expect.poll(async () => thumb.getAttribute('src'), { timeout: 20_000 }).not.toBe(before);
     // Back to the normal buttons once it has been applied.
     await expect(page.getByRole('button', { name: /crop/i }).first()).toBeVisible();
+
+    // And it can be taken back. Cropping by hand is a judgement, and one you
+    // cannot revise means re-scanning the document over a misplaced corner.
+    const cropped = await thumb.getAttribute('src');
+    await page.getByRole('button', { name: /undo crop/i }).click();
+    await expect.poll(async () => thumb.getAttribute('src'), { timeout: 20_000 }).not.toBe(cropped);
+    // Nothing left to undo, so the button goes.
+    await expect(page.getByRole('button', { name: /undo crop/i })).toHaveCount(0);
+    // ...and the original is back, so it offers cropping again.
+    await expect(page.getByText(/edges weren.t found/i)).toBeVisible();
   });
 
   test('a screen-reader is told the count', async ({ page }) => {

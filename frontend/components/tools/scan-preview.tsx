@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { X, ChevronLeft, ChevronRight, RotateCw, Trash2, Crop, Check } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, RotateCw, Trash2, Crop, Check, Undo2 } from 'lucide-react';
 import type { ScanPage } from '@/lib/scan-to-pdf';
 import type { Quad } from '@/lib/doc-scan';
 
@@ -35,6 +35,7 @@ export function ScanPreview({
   onRotate,
   onDelete,
   onCrop,
+  onUncrop,
   onClose,
 }: {
   pages: ScanPage[];
@@ -43,6 +44,7 @@ export function ScanPreview({
   onRotate: (id: string) => void;
   onDelete: (id: string) => void;
   onCrop: (id: string, corners: Quad) => Promise<void>;
+  onUncrop: (id: string) => Promise<void>;
   onClose: () => void;
 }) {
   const page = pages[index];
@@ -273,6 +275,18 @@ export function ScanPreview({
             >
               <Crop className="size-4" /> {page.detected ? 'Crop' : 'Crop to your page'}
             </button>
+            {/* Cropping by hand is a judgement, and a judgement you cannot
+                revise is a trap: before this, one corner dropped in the wrong
+                place meant scanning the document again. Only offered on a page
+                that has actually been cropped. */}
+            {page.preCrop && (
+              <button
+                onClick={() => void onUncrop(page.id)}
+                className="flex items-center gap-1.5 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-medium text-white hover:bg-white/20 active:scale-95"
+              >
+                <Undo2 className="size-4" /> Undo crop
+              </button>
+            )}
             <button
               onClick={() => onRotate(page.id)}
               className="flex items-center gap-1.5 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-medium text-white hover:bg-white/20 active:scale-95"

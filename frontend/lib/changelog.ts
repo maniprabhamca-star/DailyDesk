@@ -24,6 +24,14 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-09-15',
+    kind: 'improved',
+    title: 'Undo a crop and place the corners again',
+    detail:
+      'Cropping by hand is a judgement, and until now it was one you could not revise — a corner dropped in the wrong place meant scanning the document again. A cropped page now has an Undo crop button in Preview, which puts the whole picture back so you can drag the corners where you actually wanted them. It always returns to the original capture, not to the attempt before, because placing the corners again is the point. It is only offered on a page that has been cropped, and it disappears once there is nothing left to undo.',
+    href: '/scan-to-pdf',
+  },
+  {
+    date: '2026-09-15',
     kind: 'fixed',
     title: 'Colour scans come out the right colour',
     detail:

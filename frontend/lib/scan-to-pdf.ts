@@ -11,15 +11,31 @@ import { flattenDocument, type Quad } from '@/lib/doc-scan';
 
 export type { ScanMode };
 /**
- * A captured page.
+ * What a cropped page needs to remember to be uncroppable.
  *
- *  is the SAME pixels before the lighting pass. It is kept so that
- * changing the mode re-renders pages you have already taken — without it the
- * control only affects the next capture, which is not what a mode control
- * means to anyone. It costs one extra JPEG per page in memory and nothing on
- * disk: it never reaches the PDF.
+ * Only the untouched pixels and whether the edges had been found — everything
+ * else is rebuilt from them, so undoing a crop cannot restore a stale-looking
+ * page rendered in a mode you have since changed away from.
  */
-export type ScanPage = { id: string; dataUrl: string; rawUrl: string; w: number; h: number; detected: boolean };
+export type PreCrop = { rawUrl: string; w: number; h: number; detected: boolean };
+
+export type ScanPage = {
+  id: string;
+  dataUrl: string;
+  rawUrl: string;
+  w: number;
+  h: number;
+  detected: boolean;
+  /**
+   * The capture as it was before the FIRST crop, if it has been cropped.
+   *
+   * Deliberately the first and not the most recent: the point of undoing is to
+   * place the corners again, and to do that you need the whole picture back,
+   * not the slightly-better-cropped version from the attempt before. Cropping a
+   * crop and then undoing it once should not leave you halfway.
+   */
+  preCrop?: PreCrop;
+};
 
 let idc = 0;
 export const newId = () => `p${++idc}-${performance.now().toFixed(0)}`;
@@ -77,7 +93,7 @@ export async function rotatePage(page: ScanPage): Promise<ScanPage> {
   c.width = c.height = 0;
   // Same id: this is the same page, turned — not a new one. Keeping the id
   // means it stays where it is in the list instead of jumping to the end.
-  return { id: page.id, dataUrl, rawUrl: page.rawUrl, w, h, detected: page.detected };
+  return { id: page.id, dataUrl, rawUrl: page.rawUrl, w, h, detected: page.detected, preCrop: page.preCrop };
 }
 
 const dataUrlToBytes = (u: string): Uint8Array => {
@@ -167,7 +183,8 @@ export async function recolourPage(page: ScanPage, mode: ScanMode): Promise<Scan
   const dataUrl = c.toDataURL('image/jpeg', 0.82);
   c.width = c.height = 0;
   // Same id and same raw pixels: this is the same page, processed differently.
-  return { id: page.id, dataUrl, rawUrl: page.rawUrl, w, h, detected: page.detected };
+  // preCrop rides along, or changing mode would quietly cancel the undo.
+  return { id: page.id, dataUrl, rawUrl: page.rawUrl, w, h, detected: page.detected, preCrop: page.preCrop };
 }
 
 /**
@@ -217,5 +234,47 @@ export async function cropPage(page: ScanPage, corners: Quad, mode: ScanMode): P
   const dataUrl = out.toDataURL('image/jpeg', 0.82);
   const w = out.width, h = out.height;
   out.width = out.height = 0;
-  return { id: page.id, dataUrl, rawUrl, w, h, detected: true };
+  return {
+    id: page.id, dataUrl, rawUrl, w, h, detected: true,
+    // Keep the first one. Cropping a crop must still undo to the whole
+    // picture, because that is what you need in order to try again.
+    preCrop: page.preCrop ?? { rawUrl: page.rawUrl, w: page.w, h: page.h, detected: page.detected },
+  };
+}
+
+/**
+ * Put a cropped page back the way it was, so the corners can be placed again.
+ *
+ * Asked for directly: "add one more option to undo crop so that user want to
+ * crop again correctly they can do that". Cropping by hand is a judgement, and
+ * a judgement you cannot revise is a trap — before this, a corner dropped in
+ * the wrong place meant re-scanning the document.
+ *
+ * It re-renders from the remembered ORIGINAL pixels through the CURRENT mode,
+ * rather than restoring a picture kept from before. Otherwise undoing a crop
+ * made in colour, after switching to black and white, would hand back a colour
+ * page and quietly disagree with the mode buttons.
+ */
+export async function uncropPage(page: ScanPage, mode: ScanMode): Promise<ScanPage> {
+  const before = page.preCrop;
+  if (!before) return page;
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const i = new Image();
+    i.onload = () => resolve(i);
+    i.onerror = () => reject(new Error('Could not undo the crop on this page.'));
+    i.src = before.rawUrl;
+  });
+  const w = img.naturalWidth || before.w, h = img.naturalHeight || before.h;
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d')!;
+  ctx.drawImage(img, 0, 0);
+  const data = ctx.getImageData(0, 0, w, h);
+  enhanceScan(data.data, w, h, mode);
+  ctx.putImageData(data, 0, 0);
+  const dataUrl = c.toDataURL('image/jpeg', 0.82);
+  c.width = c.height = 0;
+  // preCrop is dropped: there is nothing left to undo, and leaving it would
+  // offer the button on a page that is already the original.
+  return { id: page.id, dataUrl, rawUrl: before.rawUrl, w, h, detected: before.detected };
 }

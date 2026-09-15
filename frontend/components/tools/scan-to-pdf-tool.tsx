@@ -5,7 +5,7 @@ import { Camera, Loader2, Download, Trash2, ScanLine, RotateCw, ChevronUp, Chevr
 import { Button } from '@/components/ui/button';
 import { downloadBlob } from '@/lib/download';
 import { KeepGoing } from '@/components/app/keep-going';
-import { processFrame, pageFromImageData, buildScanPdf, rotatePage, recolourPage, cropPage, type ScanPage, type ScanMode } from '@/lib/scan-to-pdf';
+import { processFrame, pageFromImageData, buildScanPdf, rotatePage, recolourPage, cropPage, uncropPage, type ScanPage, type ScanMode } from '@/lib/scan-to-pdf';
 import type { Quad } from '@/lib/doc-scan';
 import { DocScanner, type ScannerCapture } from '@/components/tools/doc-scanner';
 import { ScanPreview } from '@/components/tools/scan-preview';
@@ -145,6 +145,18 @@ export function ScanToPdfTool() {
       setPages((p) => p.map((x) => (x.id === id ? cropped : x)));
     } catch (err) {
       setNote(err instanceof Error ? err.message : 'Could not crop that page.');
+    }
+  }, [pages, mode]);
+
+  // Put a cropped page back so the corners can be placed again.
+  const uncrop = useCallback(async (id: string) => {
+    const page = pages.find((x) => x.id === id);
+    if (!page) return;
+    try {
+      const back = await uncropPage(page, mode);
+      setPages((p) => p.map((x) => (x.id === id ? back : x)));
+    } catch (err) {
+      setNote(err instanceof Error ? err.message : 'Could not undo that crop.');
     }
   }, [pages, mode]);
 
@@ -292,6 +304,7 @@ export function ScanToPdfTool() {
           onRotate={(id) => void rotate(id)}
           onDelete={(id) => remove(id)}
           onCrop={crop}
+          onUncrop={uncrop}
           onClose={() => setPreviewAt(null)}
         />
       )}
