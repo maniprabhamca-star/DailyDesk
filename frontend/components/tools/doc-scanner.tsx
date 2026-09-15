@@ -537,11 +537,25 @@ export function DocScanner({
       // fixes it, and after a few seconds of nothing say the next most likely
       // thing, rather than repeating an instruction already being followed.
       const stuckFor = missSinceRef.current ? now - missSinceRef.current : 0;
+      // "Move back" is the right instruction and, on its own, the wrong advice
+      // for the thing people actually scan. A DL envelope is about 2.3:1. A
+      // phone held upright shows a 16:9 camera frame letterboxed, so the widest
+      // view available is 1.78:1 — narrower than the envelope. Backing off far
+      // enough to fit it leaves the page a smear across a band a quarter of the
+      // screen tall. Turning the phone is the move, and it is not obvious from
+      // inside a portrait viewfinder, so say it.
+      const portraitView = cssH > cssW;
       setHint(!quad
         ? clippedRef.current
-          ? 'Move back — the page runs off the edge'
+          ? portraitView
+            ? 'Turn the phone sideways, or move back — the page runs off the edge'
+            : 'Move back — the page runs off the edge'
+          // Never a dead end: the shutter has always taken the whole frame when
+          // nothing is detected, and nothing on screen said so. Someone who has
+          // been staring at "point the camera at your document" for four
+          // seconds needs to know there is a way through.
           : stuckFor > 4000
-            ? 'Fit all four corners in view, on a surface that isn’t the same colour'
+            ? 'No edges found — press the shutter to keep the picture as it is'
             : 'Point the camera at your document'
         : autoRef.current && !armedRef.current
           ? 'Captured — show the next page'
