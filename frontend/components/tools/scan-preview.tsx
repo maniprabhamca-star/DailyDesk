@@ -37,6 +37,7 @@ export function ScanPreview({
   onCrop,
   onUncrop,
   onClose,
+  startCropping = false,
 }: {
   pages: ScanPage[];
   index: number;
@@ -46,6 +47,12 @@ export function ScanPreview({
   onCrop: (id: string, corners: Quad) => Promise<void>;
   onUncrop: (id: string) => Promise<void>;
   onClose: () => void;
+  /**
+   * Open with the corner handles already live, for the Crop button in the page
+   * list. That button means "crop this page"; landing on a view of it and
+   * having to find Crop again would be one tap of nothing.
+   */
+  startCropping?: boolean;
 }) {
   const page = pages[index];
 
@@ -58,7 +65,7 @@ export function ScanPreview({
    * levels, which is under the sensor noise. Nothing can find that. Someone
    * looking at it can see exactly where the envelope is, so let them say.
    */
-  const [cropping, setCropping] = useState(false);
+  const [cropping, setCropping] = useState(startCropping);
   const [busy, setBusy] = useState(false);
   const [corners, setCorners] = useState<Quad>([
     { x: 0.08, y: 0.08 }, { x: 0.92, y: 0.08 }, { x: 0.92, y: 0.92 }, { x: 0.08, y: 0.92 },
@@ -66,9 +73,16 @@ export function ScanPreview({
   const dragging = useRef<number | null>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
 
-  // Leaving crop mode whenever the page changes, so the handles never belong to
-  // a page you are no longer looking at.
-  useEffect(() => { setCropping(false); }, [index, page?.id]);
+  // Leaving crop mode whenever the page CHANGES, so the handles never belong to
+  // a page you are no longer looking at. Deliberately not on the first render:
+  // opening straight into cropping is a thing this does now, and an effect that
+  // fired on mount would undo it before it was visible.
+  const shownId = useRef(page?.id);
+  useEffect(() => {
+    if (shownId.current === page?.id) return;
+    shownId.current = page?.id;
+    setCropping(false);
+  }, [page?.id]);
 
   const moveCorner = useCallback((clientX: number, clientY: number) => {
     const i = dragging.current;

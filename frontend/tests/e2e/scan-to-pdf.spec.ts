@@ -469,9 +469,83 @@ test.describe('Scan to PDF — the scanner', () => {
     await expect(page.getByText(/edges weren.t found/i)).toBeVisible();
   });
 
+  test('an uncropped page says so in the list, and can be cropped without opening Preview', async ({ page }) => {
+    /* "sometimes user may not click on the preview and they might directly
+     * convert to pdf." Cropping lived only inside Preview, so a page captured
+     * with no edges found — the whole camera frame, desk and all — went
+     * straight into the PDF for anyone who took the obvious path from the
+     * shutter to Save. The page list now says which pages are in that state
+     * and offers the fix on the row itself.
+     */
+    await openScanner(page);
+    await page.getByRole('button', { name: /capture page/i }).click();
+    await expect(page.getByRole('button', { name: /done \(1\)/i })).toBeVisible({ timeout: 10_000 });
+    await page.getByRole('button', { name: /close scanner/i }).click();
+
+    // Chromium's fake camera shows a rolling pattern: nothing is detected, so
+    // this page is exactly the case being warned about.
+    await expect(page.getByText(/one page has no edges found/i)).toBeVisible();
+    // The row itself is marked, so the warning is attached to the page it is
+    // about and not only to a banner at the bottom.
+    await expect(page.getByRole('button', { name: /^not cropped$/i })).toBeVisible();
+
+    // Straight into cropping — no Preview, no second hunt for the control.
+    const thumb = page.getByRole('img', { name: /page 1/i }).last();
+    const before = await thumb.getAttribute('src');
+    await page.getByRole('button', { name: /crop (it|them) now/i }).click();
+    await expect(page.getByText(/drag the four dots/i)).toBeVisible();
+    await expect(page.getByRole('button', { name: /^corner [1-4]$/i })).toHaveCount(4);
+
+    const handle = page.getByRole('button', { name: 'Corner 1' });
+    const box = (await handle.boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + 50, box.y + 40, { steps: 8 });
+    await page.mouse.up();
+    await page.getByRole('button', { name: /crop to this/i }).click();
+    await expect.poll(async () => thumb.getAttribute('src'), { timeout: 20_000 }).not.toBe(before);
+
+    // Cropped, so the warning has nothing left to say. It must go — a banner
+    // that stays after you have done what it asked trains people to ignore it.
+    await page.keyboard.press('Escape');
+    await expect(page.getByText(/no edges found/i)).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /^not cropped$/i })).toHaveCount(0);
+
+    // And the per-row Crop button is always there, flagged page or not.
+    await expect(page.getByRole('button', { name: /^crop page 1$/i })).toBeVisible();
+  });
+
+  test('says what it is doing in the middle of the screen, not only under your thumb', async ({ page }) => {
+    /* "The screen should say in the middle with flash Document detected and
+     * then Capture success". The running instruction lives in a small pill next
+     * to the shutter, which is under your hand and nowhere near where you are
+     * looking — you are watching the page you are photographing, in the middle.
+     */
+    const dialog = await openScanner(page);
+    const middle = dialog.locator('.dd-scan-banner');
+
+    await page.getByRole('button', { name: /capture page/i }).click();
+    await expect(middle).toBeVisible({ timeout: 10_000 });
+    // Chromium's fake camera is a rolling pattern with no edges in it, so this
+    // is the uncropped wording. "Captured", not "capture success" — the second
+    // is a status code with a space in it and nobody says it out loud.
+    await expect(middle).toContainText(/captured/i);
+
+    // It clears itself. A banner that stays sits on top of the one part of a
+    // viewfinder that has to stay clear.
+    await expect(middle).toHaveCount(0, { timeout: 10_000 });
+
+    // And a screen reader hears it too, which is otherwise nothing at all.
+    await expect(dialog.locator('[role="status"][aria-live="polite"]').first()).toBeAttached();
+  });
+
   test('a screen-reader is told the count', async ({ page }) => {
     await openScanner(page);
-    const live = page.locator('[role="status"][aria-live="polite"]');
+    // Scoped to the sr-only one: the middle banner ("Receipt found",
+    // "Captured") is also a polite live region, and it should be — a camera
+    // gives a screen reader nothing otherwise. Two of them is correct; a
+    // locator that cannot tell them apart is not.
+    const live = page.locator('span.sr-only[role="status"][aria-live="polite"]');
     await expect(live).toHaveText(/no pages captured yet/i);
     await page.getByRole('button', { name: /capture page/i }).click();
     await expect(live).toHaveText(/1 page captured/i, { timeout: 10_000 });

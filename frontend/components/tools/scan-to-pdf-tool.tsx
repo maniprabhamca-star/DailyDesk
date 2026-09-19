@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
-import { Camera, Loader2, Download, Trash2, ScanLine, RotateCw, ChevronUp, ChevronDown, Eye } from 'lucide-react';
+import { Camera, Loader2, Download, Trash2, ScanLine, RotateCw, ChevronUp, ChevronDown, Eye, Crop } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { downloadBlob } from '@/lib/download';
 import { KeepGoing } from '@/components/app/keep-going';
@@ -64,8 +64,27 @@ export function ScanToPdfTool() {
   // component keeps what it always did: the list of pages, reordering, and the
   // PDF at the end.
   const [scanning, setScanning] = useState(false);
-  // Which page the full-size preview is showing, or null when it is closed.
+  // Which page the full-size preview is showing, or null when it is closed, and
+  // whether it should open with the corner handles already live.
   const [previewAt, setPreviewAt] = useState<number | null>(null);
+  const [previewCropping, setPreviewCropping] = useState(false);
+  const openPreview = useCallback((i: number, crop = false) => {
+    setPreviewCropping(crop);
+    setPreviewAt(i);
+  }, []);
+
+  /**
+   * A page whose edges were never found and which has not been cropped by hand
+   * is still the whole camera frame — the document plus the desk it was lying
+   * on. Saving that to a PDF is almost never what anyone meant.
+   *
+   * Cropping used to live only inside Preview, so this went unnoticed by anyone
+   * who went straight from the shutter to Save PDF, which is the obvious path
+   * and the one most people take. The page list now says which pages are in
+   * this state and offers the fix on the row itself.
+   */
+  const needsCrop = (p: ScanPage) => !p.detected && !p.preCrop;
+  const uncropped = pages.filter(needsCrop);
 
   const onScannerCapture = useCallback(({ data, detected }: ScannerCapture) => {
     // Already flattened by the scanner. pageFromImageData applies the same
@@ -254,14 +273,29 @@ export function ScanToPdfTool() {
                     better look at it, so make it do that. 44px of page tells
                     you it exists and nothing else. */}
                 <button
-                  onClick={() => setPreviewAt(i)}
+                  onClick={() => openPreview(i)}
                   aria-label={`Preview page ${i + 1} full size`}
                   className="rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={p.dataUrl} alt={`Page ${i + 1}`} className="h-14 w-11 rounded border bg-white object-cover transition hover:brightness-95" />
+                  <img src={p.dataUrl} alt={`Page ${i + 1}`} className={`h-14 w-11 rounded border bg-white object-cover transition hover:brightness-95 ${needsCrop(p) ? 'border-amber-500' : ''}`} />
                 </button>
+                {/* Said on the row, where the page is, rather than only behind
+                    a button someone may never press. */}
+                {needsCrop(p) && (
+                  <button
+                    onClick={() => openPreview(i, true)}
+                    className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold leading-tight text-amber-700 hover:bg-amber-500/25 dark:text-amber-400"
+                  >
+                    Not cropped
+                  </button>
+                )}
                 <div className="ml-auto flex items-center gap-0.5">
+                  {/* Crop is on every page, not just the ones we flagged: the
+                      detector can find AN edge and still find the wrong one,
+                      and there was no way to fix that without opening Preview
+                      and hunting for the control. */}
+                  <button onClick={() => openPreview(i, true)} className={`rounded p-1 hover:text-foreground ${needsCrop(p) ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}`} aria-label={`Crop page ${i + 1}`}><Crop className="size-3.5" /></button>
                   {/* Chevrons for reorder, a rotate glyph for rotate. These
                       were all the same RotateCw icon before, which made "move
                       up" and "turn the page" look like the same control. */}
@@ -276,10 +310,29 @@ export function ScanToPdfTool() {
           {/* Preview sits ABOVE Save and is not a filled button: checking the
               scan is the step before saving it, and there is one filled button
               on this screen. */}
+          {/* The one thing on this screen worth interrupting for. Everything
+              else here is a preference; this is a page that will go into the
+              PDF with a desk around it. It names the count, and the button
+              lands on the first offender with the handles already up. */}
+          {uncropped.length > 0 && (
+            <div className="mt-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-[13px] leading-relaxed">
+              <p className="text-amber-700 dark:text-amber-400">
+                <b>{uncropped.length === 1 ? 'One page has no edges found' : `${uncropped.length} pages have no edges found`}</b>
+                {' — '}
+                {uncropped.length === 1 ? 'it is' : 'they are'} still the whole picture, desk and all.
+              </p>
+              <button
+                onClick={() => openPreview(pages.indexOf(uncropped[0]), true)}
+                className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg bg-amber-500/20 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-500/30 active:scale-[0.99] dark:text-amber-300"
+              >
+                <Crop className="size-4" /> Crop {uncropped.length === 1 ? 'it' : 'them'} now
+              </button>
+            </div>
+          )}
           {pages.length > 0 && (
             <button
-              onClick={() => setPreviewAt(0)}
-              className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border py-2.5 text-sm font-medium hover:bg-muted/50 active:scale-[0.99]"
+              onClick={() => openPreview(0)}
+              className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl border py-2.5 text-sm font-medium hover:bg-muted/50 active:scale-[0.99]"
             >
               <Eye className="size-4" />
               Preview {pages.length === 1 ? 'the page' : `all ${pages.length} pages`}
@@ -305,6 +358,7 @@ export function ScanToPdfTool() {
           onDelete={(id) => remove(id)}
           onCrop={crop}
           onUncrop={uncrop}
+          startCropping={previewCropping}
           onClose={() => setPreviewAt(null)}
         />
       )}

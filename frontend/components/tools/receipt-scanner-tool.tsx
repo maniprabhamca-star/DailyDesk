@@ -1,14 +1,15 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
-  Camera, ImagePlus, Loader2, ScanLine, Check, Cloud, CameraOff, ReceiptText, Wallet, RotateCcw, AlertTriangle,
+  Camera, ImagePlus, Loader2, ScanLine, Check, Cloud, ReceiptText, Wallet, RotateCcw, AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CATEGORIES, addExpense, budgetSignedIn, BudgetApiError } from '@/lib/budget-api';
 import { ReceiptDetailPanel, type ReceiptDetail } from '@/components/tools/receipt-detail';
 import { ReceiptPreview } from '@/components/tools/receipt-preview';
+import { DocScanner, type ScannerCapture } from '@/components/tools/doc-scanner';
 
 const API = process.env.NEXT_PUBLIC_API_URL || '';
 type Parsed = ReceiptDetail & { merchant: string; total: number | null; date: string | null; category: string; text: string };
@@ -25,8 +26,10 @@ export function ReceiptScannerTool() {
   // to straighten it and partly to let you see what is about to be read.
   const [phase, setPhase] = useState<'capture' | 'preview' | 'scanning' | 'review' | 'saved'>('capture');
   const [pending, setPending] = useState<File | null>(null);
-  const [camOn, setCamOn] = useState(false);
-  const [camError, setCamError] = useState<string | null>(null);
+  // The full-screen scanner is open. The same component /scan-to-pdf uses, so
+  // a receipt gets the edge detection, the green outline and the perspective
+  // correction that were already built and were sitting behind another tool.
+  const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // editable fields after a scan
   const [merchant, setMerchant] = useState('');
@@ -40,49 +43,7 @@ export function ReceiptScannerTool() {
   // Everything the receipt says beyond the single figure the Budget entry needs:
   // line items, tax lines, references, how it was paid.
   const [detail, setDetail] = useState<ReceiptDetail | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-
-  const stopCam = useCallback(() => { streamRef.current?.getTracks().forEach((t) => t.stop()); streamRef.current = null; setCamOn(false); }, []);
-
-  const startCam = useCallback(async () => {
-    setCamError(null);
-    if (!navigator.mediaDevices?.getUserMedia) {
-      setCamError('This browser cannot open a camera here — use “Upload photo” instead.');
-      return;
-    }
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 2000 } }, audio: false });
-      streamRef.current = stream;
-      // Only flip the flag. The <video> does not exist yet — it renders on
-      // camOn — so attaching the stream here silently did nothing and left a
-      // black rectangle with a working camera behind it. The effect below
-      // attaches it on the render where the element actually exists.
-      setCamOn(true);
-    } catch (e) {
-      const name = (e as { name?: string })?.name;
-      setCamError(
-        name === 'NotAllowedError'
-          ? 'Camera permission was blocked. Allow it in your browser’s site settings, or use “Upload photo”.'
-          : name === 'NotFoundError'
-            ? 'No camera found on this device — use “Upload photo” instead.'
-            : 'Could not open the camera — use “Upload photo” instead.',
-      );
-    }
-  }, []);
-
-  // Attach the stream once the <video> is on the page, not before it exists.
-  useEffect(() => {
-    const v = videoRef.current;
-    const s = streamRef.current;
-    if (!camOn || !v || !s) return;
-    v.srcObject = s;
-    void v.play().catch(() => {});
-  }, [camOn]);
-
-  // A stream left running holds the camera light on after you navigate away.
-  useEffect(() => () => { streamRef.current?.getTracks().forEach((t) => t.stop()); }, []);
 
   const scanBlob = useCallback(async (blob: Blob, wantCard = false) => {
     setPhase('scanning'); setError(null);
@@ -116,14 +77,27 @@ export function ReceiptScannerTool() {
     } catch { setError('Could not reach the scanner — check your connection.'); setPhase('capture'); }
   }, []);
 
-  const capture = useCallback(() => {
-    const v = videoRef.current;
-    if (!v || !v.videoWidth) return;
-    const c = document.createElement('canvas'); c.width = v.videoWidth; c.height = v.videoHeight;
-    c.getContext('2d')!.drawImage(v, 0, 0);
-    stopCam();
-    c.toBlob((b) => { if (b) { setPending(new File([b], 'receipt.jpg', { type: 'image/jpeg' })); setPhase('preview'); } c.width = c.height = 0; }, 'image/jpeg', 0.9);
-  }, [scanBlob, stopCam]);
+  /**
+   * A capture from the full-screen scanner, turned back into the JPEG the
+   * reader expects.
+   *
+   * The scanner hands over pixels that have already been straightened and cut
+   * to the edges of the receipt, which matters more here than it does for a
+   * PDF: the reader is charged per image and does better on a receipt filling
+   * the frame than on a receipt lying in the middle of a table. When no edges
+   * were found it hands over the whole frame instead — still a usable photo,
+   * and the preview step is where that gets looked at.
+   */
+  const onScannerCapture = useCallback(({ data }: ScannerCapture) => {
+    setScanning(false);
+    const c = document.createElement('canvas');
+    c.width = data.width; c.height = data.height;
+    c.getContext('2d')!.putImageData(data, 0, 0);
+    c.toBlob((b) => {
+      if (b) { setPending(new File([b], 'receipt.jpg', { type: 'image/jpeg' })); setPhase('preview'); }
+      c.width = c.height = 0;
+    }, 'image/jpeg', 0.92);
+  }, []);
 
   const save = useCallback(async () => {
     const amt = Number(amount);
@@ -167,31 +141,22 @@ export function ReceiptScannerTool() {
 
       {phase === 'capture' && (
         <div className="overflow-hidden rounded-2xl border bg-card shadow-soft">
-          {/* The black 4:3 frame belongs to a running camera and nothing else.
-              It used to render whether or not the camera was on, so on a wide
-              screen the first thing you met was a 1400px black rectangle with
-              one line of text floating in it. The width cap keeps the
-              viewfinder sane on a desktop too — 4:3 of a full-width column is
-              taller than most screens. */}
-          <div className={camOn ? 'relative mx-auto aspect-[4/3] w-full max-w-2xl bg-black' : 'relative'}>
-            {camOn ? <video ref={videoRef} playsInline muted className="size-full object-contain" />
-              : (
-                <div className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
-                  <ReceiptText className="size-10 text-muted-foreground/70" />
-                  <p className="max-w-sm text-sm text-muted-foreground">Snap a receipt, or upload a photo. We’ll pull out the amount, store and date.</p>
-                  {camError && <p className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400"><CameraOff className="size-3.5" /> {camError}</p>}
-                </div>
-              )}
-            {camOn && (
-              <button onClick={capture} aria-label="Capture receipt"
-                className="absolute bottom-4 left-1/2 flex size-16 -translate-x-1/2 items-center justify-center rounded-full border-4 border-white bg-white/20 backdrop-blur transition active:scale-95">
-                <span className="size-11 rounded-full bg-white" />
-              </button>
-            )}
+          {/* The camera is no longer a pane inside this card.
+              "its showing only half screen" — it was: a 4:3 box capped at
+              672px, so on a phone the receipt lived in the top third of the
+              page with the privacy notice and two buttons around it, and a
+              receipt is the one document shaped so that you need the height.
+              It now opens the same full-screen scanner as /scan-to-pdf, which
+              already finds the edges, draws them in green, straightens what it
+              captures, and says what it is doing in the middle of the screen. */}
+          <div className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
+            <ReceiptText className="size-10 text-muted-foreground/70" />
+            <p className="max-w-sm text-sm text-muted-foreground">
+              Scan a receipt, or upload a photo. We’ll find its edges, straighten it, and pull out the amount, store and date.
+            </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 border-t p-3">
-            {camOn ? <Button size="sm" variant="outline" onClick={stopCam}><CameraOff className="mr-1 size-4" /> Stop camera</Button>
-              : <Button size="sm" onClick={() => void startCam()} className="bg-primary text-primary-foreground"><Camera className="mr-1 size-4" /> Use camera</Button>}
+            <Button size="sm" onClick={() => setScanning(true)} className="bg-primary text-primary-foreground"><Camera className="mr-1 size-4" /> Scan receipt</Button>
             <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()}><ImagePlus className="mr-1 size-4" /> Upload photo</Button>
             {/* NO `capture` attribute. It forces the camera app instead of the
                 file picker, so "Upload photo" opened the camera and gave you no
@@ -313,6 +278,17 @@ export function ReceiptScannerTool() {
         <ReceiptText className="mt-0.5 size-4 shrink-0 text-primary" />
         <p>Snap it, check it, save it — the scanned expense drops straight into your <Link href="/budget" className="font-semibold underline">Budget Tracker</Link>. The photo itself is never kept.</p>
       </div>
+
+      {scanning && (
+        <DocScanner
+          onCapture={onScannerCapture}
+          onClose={() => setScanning(false)}
+          subject="Receipt"
+          single
+          pageCount={0}
+          lastThumb={null}
+        />
+      )}
     </div>
   );
 }

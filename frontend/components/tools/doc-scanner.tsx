@@ -115,11 +115,26 @@ export function DocScanner({
   onClose,
   pageCount,
   lastThumb,
+  subject = 'Document',
+  single = false,
 }: {
   onCapture: (c: ScannerCapture) => void;
   onClose: () => void;
   pageCount: number;
   lastThumb: string | null;
+  /**
+   * What this scanner is pointed at, for the wording. "Receipt found — hold
+   * still" on the receipt scanner; "Document found" on scan-to-PDF. Naming the
+   * thing is the difference between the screen talking to you and the screen
+   * describing itself.
+   */
+  subject?: string;
+  /**
+   * One shot and done — the receipt scanner reads a single receipt, so there
+   * is no page count, no Done button and no reason to stay open. Scan-to-PDF
+   * keeps the multi-page behaviour it has always had.
+   */
+  single?: boolean;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
@@ -130,11 +145,34 @@ export function DocScanner({
   const [ready, setReady] = useState(false);
   const [auto, setAuto] = useState(true);
   const [flash, setFlash] = useState(false);
-  const [hint, setHint] = useState('Point the camera at your document');
+  const [hint, setHint] = useState(`Point the camera at your ${subject.toLowerCase()}`);
   // Drives the chip: the owner asked for it only once a page is actually on
   // screen — a permanent label is decoration, the same label appearing the
   // moment the outline locks on is feedback.
   const [found, setFound] = useState(false);
+  // Last announced detection state, so the middle banner fires on the EDGE.
+  const foundRef = useRef(false);
+
+  /* The banner across the MIDDLE of the screen.
+   *
+   * The running instruction lives in a small pill at the bottom, next to the
+   * shutter, and it is genuinely easy to miss — you are looking at the page you
+   * are photographing, which is in the middle of the screen, not at a caption
+   * under your thumb. Asked for directly: say it in the middle.
+   *
+   * Only the two moments that change what you should do next get to appear
+   * here, each for about a second: the document being found, and the shot being
+   * taken. A permanent banner in the middle would cover the thing you are
+   * trying to frame, which is the one place a viewfinder must stay clear.
+   */
+  const [banner, setBanner] = useState<{ text: string; tone: 'found' | 'shot' | 'warn'; key: number } | null>(null);
+  const bannerTimer = useRef<number | undefined>(undefined);
+  const say = useCallback((text: string, tone: 'found' | 'shot' | 'warn', ms = 1100) => {
+    setBanner({ text, tone, key: Date.now() });
+    window.clearTimeout(bannerTimer.current);
+    bannerTimer.current = window.setTimeout(() => setBanner(null), ms);
+  }, []);
+  useEffect(() => () => window.clearTimeout(bannerTimer.current), []);
 
   // Anyone who used the old rotate button still has its answer stored, and it
   // would go on turning their preview for ever. Clear it on the way in.
@@ -362,6 +400,9 @@ export function DocScanner({
       // the shutter wants the picture. They get the whole frame instead, which
       // is what the tool did before this existed.
       onCapture({ data: out ?? frame, auto: isAuto, detected: !!out });
+      // Said where you are looking. "Captured" rather than "capture success" —
+      // the second is a status code with a space in it, and nobody says it.
+      say(out ? 'Captured' : 'Captured — no edges found', out ? 'shot' : 'warn', out ? 1000 : 2200);
 
       full.width = full.height = 0;
       setFlash(true);
@@ -375,7 +416,7 @@ export function DocScanner({
       // identical pages while the page is still sitting steady in frame.
       window.setTimeout(() => { busyRef.current = false; }, 1200);
     }
-  }, [onCapture, paintFrame]);
+  }, [onCapture, paintFrame, say]);
 
   // ── detection loop ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -512,6 +553,13 @@ export function DocScanner({
 
       if (quad && raw && stability >= STEADY_THRESHOLD) steadyRef.current += 1;
       else if (!quad) steadyRef.current = 0;
+      // The moment it locks on, said once, in the middle. Driven off the edge
+      // of the signal and not its level, or it would re-announce on every
+      // frame for as long as the page sits in view.
+      if (!!quad !== foundRef.current) {
+        foundRef.current = !!quad;
+        if (quad) say(`${subject} found — hold still`, 'found');
+      }
       setFound(!!quad);
 
       // Re-arm auto-capture once there is evidence of a different sheet.
@@ -562,7 +610,7 @@ export function DocScanner({
           // seconds needs to know there is a way through.
           : stuckFor > 4000
             ? 'No edges found — press the shutter to keep the picture as it is'
-            : 'Point the camera at your document'
+            : `Point the camera at your ${subject.toLowerCase()}`
         : autoRef.current && !armedRef.current
           ? 'Captured — show the next page'
           : steadyRef.current >= STEADY_FRAMES_NEEDED / 2
@@ -619,10 +667,12 @@ export function DocScanner({
 
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [ready, capture, paintFrame, reshapeStream]);
+  // say and subject are stable (a useCallback with no deps, and a literal
+  // prop), so listing them cannot restart the detection loop mid-scan.
+  }, [ready, capture, paintFrame, reshapeStream, say, subject]);
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col bg-black" role="dialog" aria-modal="true" aria-label="Document scanner">
+    <div className="fixed inset-0 z-[100] flex flex-col bg-black" role="dialog" aria-modal="true" aria-label={`${subject} scanner`}>
       <div className="relative flex flex-1 items-center justify-center overflow-hidden">
         {/* The preview IS this element, framed entirely by CSS: fit the whole
             frame, then scale it up by the chosen zoom. No rotation and no
@@ -644,6 +694,29 @@ export function DocScanner({
           className="pointer-events-none absolute inset-0 size-full"
         />
         {flash && <div aria-hidden className="pointer-events-none absolute inset-0 bg-white/80" />}
+
+        {/* The middle banner. `key` restarts the animation when one message
+            replaces another, so "found" turning into "captured" reads as a new
+            thing being said rather than a word swap in a box that never moved.
+            aria-live carries the same news to a screen reader, which otherwise
+            gets nothing from a camera at all. */}
+        <div className="pointer-events-none absolute inset-x-0 top-1/2 flex -translate-y-1/2 justify-center px-6" role="status" aria-live="polite">
+          {banner && (
+            <span
+              key={banner.key}
+              className={`dd-scan-banner flex items-center gap-2 rounded-full px-5 py-3 text-base font-semibold shadow-2xl backdrop-blur ${
+                banner.tone === 'found'
+                  ? 'bg-emerald-500/95 text-white'
+                  : banner.tone === 'shot'
+                    ? 'bg-white/95 text-neutral-900'
+                    : 'bg-amber-500/95 text-neutral-900'
+              }`}
+            >
+              {banner.tone === 'found' ? <ScanLine className="size-5" /> : banner.tone === 'shot' ? <Check className="size-5" /> : <ScanLine className="size-5" />}
+              {banner.text}
+            </span>
+          )}
+        </div>
 
         {/* close */}
         <button
@@ -710,7 +783,7 @@ export function DocScanner({
             {found && (
               <span className="flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-neutral-900 shadow-lg">
                 <ScanLine className="size-4 text-primary" />
-                Scan document
+                Scan {subject.toLowerCase()}
               </span>
             )}
             <span className="rounded-full bg-black/60 px-3.5 py-1.5 text-[13px] font-medium text-white backdrop-blur">
@@ -732,7 +805,7 @@ export function DocScanner({
         )}
 
         <span className="sr-only" role="status" aria-live="polite">
-          {pageCount === 0 ? 'No pages captured yet' : `${pageCount} ${pageCount === 1 ? 'page' : 'pages'} captured`}
+          {single ? '' : pageCount === 0 ? 'No pages captured yet' : `${pageCount} ${pageCount === 1 ? 'page' : 'pages'} captured`}
         </span>
 
         {/* Controls float ON the picture, like a camera app — a scrim for
@@ -749,23 +822,31 @@ export function DocScanner({
             <button
               onClick={() => capture(false)}
               disabled={!ready}
-              aria-label="Capture page"
+              aria-label={single ? `Capture ${subject.toLowerCase()}` : 'Capture page'}
               className="flex size-[74px] items-center justify-center rounded-full border-[5px] border-white bg-transparent disabled:opacity-40 active:scale-95 [@media(max-height:480px)]:size-[58px]"
             >
               <span className="size-[58px] rounded-full bg-white transition-transform active:scale-90 [@media(max-height:480px)]:size-[44px]" />
             </button>
 
-            <button
-              onClick={onClose}
-              className="flex size-14 flex-col items-center justify-center gap-1 text-white active:scale-95"
-            >
-              <span className="flex size-10 items-center justify-center rounded-full bg-emerald-600">
-                <Check className="size-5" strokeWidth={3} />
-              </span>
-              <span className="text-[11px] font-semibold">
-                Done{pageCount > 0 ? ` (${pageCount})` : ''}
-              </span>
-            </button>
+            {/* One shot and the scanner closes by itself, so there is nothing
+                to be Done with — a tick that ends a session you have already
+                left would only invite a second tap on a screen that has gone.
+                The spacer keeps the shutter centred. */}
+            {single ? (
+              <div className="size-14" aria-hidden />
+            ) : (
+              <button
+                onClick={onClose}
+                className="flex size-14 flex-col items-center justify-center gap-1 text-white active:scale-95"
+              >
+                <span className="flex size-10 items-center justify-center rounded-full bg-emerald-600">
+                  <Check className="size-5" strokeWidth={3} />
+                </span>
+                <span className="text-[11px] font-semibold">
+                  Done{pageCount > 0 ? ` (${pageCount})` : ''}
+                </span>
+              </button>
+            )}
           </div>
         </div>
       </div>

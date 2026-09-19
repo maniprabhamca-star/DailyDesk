@@ -23,6 +23,22 @@ export type ChangeEntry = {
 // flags flip, dated then.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-09-19',
+    kind: 'improved',
+    title: 'The receipt scanner now uses the whole screen, and finds the receipt for you',
+    detail:
+      'Photographing a receipt happened in a small box inside the page — about a third of a phone screen, with the privacy notice above it and two buttons below. A receipt is the one document shaped so that you need the height. It now opens the same full-screen scanner as Scan to PDF: it finds the edges of the receipt while you hold the camera, draws them in green, and straightens and cuts out the receipt when it takes the shot, so what goes to the reader is the receipt rather than the receipt and your table. It captures on its own once the picture is steady. And it says what it is doing in the middle of the screen, where you are actually looking — "Receipt found — hold still", then "Captured" — instead of only in a small line under your thumb.',
+    href: '/receipt-scanner',
+  },
+  {
+    date: '2026-09-19',
+    kind: 'improved',
+    title: 'Crop a scan without opening the preview first',
+    detail:
+      'Cropping lived only inside Preview, and not everyone opens Preview — plenty of people go straight from the shutter to Save PDF. A page whose edges could not be found is still the whole picture, desk and all, so that page went into the PDF uncropped and nothing had said so. The page list now marks those pages, says how many there are, and has a Crop button on every row that opens straight onto the corner handles. The scanner says it at the moment of the shot too.',
+    href: '/scan-to-pdf',
+  },
+  {
     date: '2026-09-15',
     kind: 'feature',
     title: 'Scanned receipts keep their line items in the budget',
