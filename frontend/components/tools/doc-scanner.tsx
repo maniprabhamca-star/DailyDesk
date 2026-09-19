@@ -117,6 +117,7 @@ export function DocScanner({
   lastThumb,
   subject = 'Document',
   single = false,
+  long = false,
 }: {
   onCapture: (c: ScannerCapture) => void;
   onClose: () => void;
@@ -135,6 +136,13 @@ export function DocScanner({
    * keeps the multi-page behaviour it has always had.
    */
   single?: boolean;
+  /**
+   * Expect something long and thin. A till receipt is commonly 1:8, which the
+   * detector's sliver rule was written to reject — it is the shape a pen makes.
+   * Only the receipt scanner turns this on; scanning A4 keeps the stricter
+   * rules, which are what stop a cable being outlined as a document.
+   */
+  long?: boolean;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
@@ -496,7 +504,24 @@ export function DocScanner({
         //
         // When there are no stops the camera already matches the screen, so
         // filling it and showing everything are the same picture.
-        const start = next.length ? next[0] : max;
+        //
+        // ── ...except for a receipt, where the lowest stop is unusable ──────
+        // "i scan the receipt and it shows horizontal on my mobile and its not
+        // showing fully". That is this line. Most phone cameras hand over a
+        // landscape frame whatever the phone is doing, and `object-fit:
+        // contain` at zoom 1 fits that whole frame inside a portrait screen —
+        // a horizontal band across the middle with black above and below it.
+        // For an A4 page that is merely wide; for a till receipt, which is tall
+        // and thin, the band is a few centimetres of usable height and the
+        // receipt cannot fit in it at all.
+        //
+        // The "open at the lowest stop" rule was asked for and is right for the
+        // page scanner — the complaint there was always too far IN. It was
+        // never a rule about receipts. Here the frame fills the screen, which
+        // is what every camera app does and what the shape of the subject
+        // needs: a receipt wants height, and height is the axis being thrown
+        // away. The zoom chips still work in both directions.
+        const start = long ? max : next.length ? next[0] : max;
         setZoom(start);
         zoomRef.current = start;
       }
@@ -525,7 +550,7 @@ export function DocScanner({
       if (!paintFrame(dctx, dw, dh)) return;
 
       const notes: DetectNotes = { clipped: false };
-      const raw = detectDocument(dctx.getImageData(0, 0, dw, dh), notes);
+      const raw = detectDocument(dctx.getImageData(0, 0, dw, dh), notes, { long });
       const diagonal = Math.hypot(dw, dh);
       if (raw) missSinceRef.current = 0;
       else if (!missSinceRef.current) missSinceRef.current = now;
@@ -669,7 +694,7 @@ export function DocScanner({
     return () => cancelAnimationFrame(raf);
   // say and subject are stable (a useCallback with no deps, and a literal
   // prop), so listing them cannot restart the detection loop mid-scan.
-  }, [ready, capture, paintFrame, reshapeStream, say, subject]);
+  }, [ready, capture, paintFrame, reshapeStream, say, subject, long]);
 
   return (
     <div className="fixed inset-0 z-[100] flex flex-col bg-black" role="dialog" aria-modal="true" aria-label={`${subject} scanner`}>

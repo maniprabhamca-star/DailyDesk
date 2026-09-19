@@ -285,6 +285,7 @@ export function ReceiptScannerTool() {
           onClose={() => setScanning(false)}
           subject="Receipt"
           single
+          long
           pageCount={0}
           lastThumb={null}
         />

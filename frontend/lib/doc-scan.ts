@@ -35,6 +35,41 @@ export type Quad = [Point, Point, Point, Point];
 /** How much of the frame a candidate must cover before it is believable. */
 const MIN_AREA_FRACTION = 0.12;
 /**
+ * The same floor for something long and thin, which cannot reach the normal one.
+ *
+ * A till receipt is roughly 1:8, and area is the wrong measure for it. Held so
+ * that it spans the whole height of a 9:16 portrait frame it still covers only
+ * about 22% — and held at a comfortable distance, filling perhaps 70% of the
+ * height, it covers 7%, which the 12% floor throws away. The receipt is in
+ * frame, obviously in frame, and the detector calls it noise.
+ *
+ * Lowering the floor for everything is the wrong trade: the floor is what keeps
+ * a bright patch on a desk from being outlined, and small bright patches are
+ * common. So this applies only to a candidate that has EARNED it by being long
+ * and thin AND by spanning the frame (LONG_SPAN_FRACTION below) — a long thin
+ * thing is properly measured by its span, not by its area.
+ */
+const LONG_MIN_AREA_FRACTION = 0.05;
+/**
+ * How much of the frame's matching dimension an elongated candidate must cross.
+ *
+ * This is what stops the lower area floor becoming a licence for any small
+ * sliver: a pen on the desk is long and thin too. A receipt you are
+ * photographing runs most of the way across the picture; a pen lying next to it
+ * does not have to.
+ */
+const LONG_SPAN_FRACTION = 0.55;
+/**
+ * Sliver cap: a page seen from any usable angle keeps its sides within this.
+ *
+ * 6:1 is right for a page and wrong for a receipt. A supermarket till roll is
+ * commonly 1:8 and a long one is 1:12, so the rule written to reject slivers
+ * was rejecting the actual document — the one shape this tool exists to read.
+ */
+const MAX_SIDE_RATIO = 6;
+/** ...and the cap when we have been told to expect something long. */
+const LONG_MAX_SIDE_RATIO = 14;
+/**
  * ...and how much is so much that it is probably the frame border itself.
  *
  * 0.98 was too generous and it showed: point the camera at a bare desk and the
@@ -459,7 +494,20 @@ function edgeContrast(gray: Float32Array, w: number, h: number, q: Quad, probe =
  */
 export type DetectNotes = { clipped: boolean };
 
-export function detectDocument(frame: ImageData, notes?: DetectNotes): Quad | null {
+/**
+ * `long` tells the detector to expect something long and thin — a till receipt
+ * rather than a sheet of paper.
+ *
+ * Deliberately something the caller opts into rather than a rule applied
+ * everywhere. The area floor and the 6:1 sliver cap are what keep the detector
+ * from outlining a pen, a cable or a bright strip of desk, and /scan-to-pdf has
+ * no reason to give those up: A4 is 1:1.41. The receipt scanner does, because
+ * for it the sliver IS the document.
+ */
+export type DetectOptions = { long?: boolean };
+
+export function detectDocument(frame: ImageData, notes?: DetectNotes, opts?: DetectOptions): Quad | null {
+  const allowLong = !!opts?.long;
   const { width: fw, height: fh } = frame;
   if (fw < 32 || fh < 32) return null;
 
@@ -532,7 +580,16 @@ export function detectDocument(frame: ImageData, notes?: DetectNotes): Quad | nu
       if (candidate && candidate.fit < 0.035 && isConvex(candidate.quad)) {
         const pts = candidate.quad;
         const area = polygonArea(pts);
-        if (area < frameArea * MIN_AREA_FRACTION || area > frameArea * MAX_AREA_FRACTION) continue;
+        if (area > frameArea * MAX_AREA_FRACTION) continue;
+        // The area floor, with the long-and-thin exemption. `spansFrame` is the
+        // price of the lower floor: cross most of the picture, or be judged on
+        // area like everything else.
+        if (area < frameArea * MIN_AREA_FRACTION) {
+          if (!allowLong) continue;
+          const bw = maxx - minx, bh = maxy - miny;
+          const spansFrame = bw >= w * LONG_SPAN_FRACTION || bh >= h * LONG_SPAN_FRACTION;
+          if (!spansFrame || area < frameArea * LONG_MIN_AREA_FRACTION) continue;
+        }
   
         // Every corner must be clear of the picture's edge. One that is not
         // belongs to something leaving the frame, not to a page — and a quad
@@ -554,7 +611,7 @@ export function detectDocument(frame: ImageData, notes?: DetectNotes): Quad | nu
         const q = orderCorners(pts);
         const sides = [dist(q[0], q[1]), dist(q[1], q[2]), dist(q[2], q[3]), dist(q[3], q[0])];
         const shortest = Math.min(...sides), longest = Math.max(...sides);
-        if (shortest <= 0 || longest / shortest > 6) continue;
+        if (shortest <= 0 || longest / shortest > (allowLong ? LONG_MAX_SIDE_RATIO : MAX_SIDE_RATIO)) continue;
   
         // Finally: is there actually an edge there, or is this a rectangle drawn
         // in noise? Everything above this line can be satisfied by an empty desk.

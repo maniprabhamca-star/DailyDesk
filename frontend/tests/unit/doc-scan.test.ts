@@ -261,6 +261,60 @@ describe('detectDocument', () => {
     const tiny: Quad = [{ x: 300, y: 360 }, { x: 380, y: 360 }, { x: 380, y: 410 }, { x: 300, y: 410 }];
     expect(detectDocument(synthFrame(640, 780, tiny))).toBeNull();
   });
+
+  /* Long receipts.
+   *
+   * A till roll is commonly 1:8 and a long one 1:12, which runs into two rules
+   * written for a sheet of paper: the 12% area floor and the 6:1 sliver cap.
+   * Both were rejecting the one shape the receipt scanner exists to read. The
+   * relaxation is opt-in and has to be earned — see `long` in lib/doc-scan.
+   */
+  describe('the long-and-thin exemption', () => {
+    // 80x640 in a 640x780 frame: 8:1, spanning 82% of the height, covering
+    // 10.3% of the area. It fails the page rules twice over — under the 12%
+    // floor and over the 6:1 sliver cap — and is exactly the thing the receipt
+    // scanner is pointed at.
+    const receipt: Quad = [{ x: 280, y: 70 }, { x: 360, y: 70 }, { x: 360, y: 710 }, { x: 280, y: 710 }];
+
+    it('a receipt is rejected by the page rules — which is the bug', () => {
+      expect(detectDocument(synthFrame(640, 780, receipt))).toBeNull();
+    });
+
+    it('...and found once the detector is told to expect one', () => {
+      const found = detectDocument(synthFrame(640, 780, receipt), undefined, { long: true });
+      expect(found, 'a receipt spanning the frame must be found').not.toBeNull();
+      expect(cornerError(found!, receipt)).toBeLessThan(18);
+    });
+
+    it('still refuses a sliver that does NOT span the frame', () => {
+      // A pen on the desk beside the receipt: long, thin, high-contrast, and
+      // not what you are scanning. Chosen to clear the lower area floor (5.3%)
+      // and fail ONLY the span rule (49% of the height), so this test pins the
+      // span rule itself rather than passing for some other reason. That rule
+      // is the whole reason a lower floor is safe to offer.
+      const pen: Quad = [{ x: 290, y: 200 }, { x: 360, y: 200 }, { x: 360, y: 580 }, { x: 290, y: 580 }];
+      expect(detectDocument(synthFrame(640, 780, pen), undefined, { long: true })).toBeNull();
+    });
+
+    it('still refuses something too small, however long the caller says to expect', () => {
+      // The lower floor is a floor, not an opening. This one spans 64% of the
+      // height and is 11:1 — it passes every other relaxed rule — and is
+      // refused on area alone at 4.5%.
+      const scrap: Quad = [{ x: 295, y: 140 }, { x: 340, y: 140 }, { x: 340, y: 640 }, { x: 295, y: 640 }];
+      expect(detectDocument(synthFrame(640, 780, scrap), undefined, { long: true })).toBeNull();
+    });
+
+    it('leaves ordinary page detection exactly as it was', () => {
+      // The exemption must not change the answer for A4 — /scan-to-pdf keeps
+      // the strict rules, and this is what says so.
+      const page: Quad = [{ x: 90, y: 60 }, { x: 550, y: 60 }, { x: 550, y: 700 }, { x: 90, y: 700 }];
+      const strict = detectDocument(synthFrame(640, 780, page));
+      const lenient = detectDocument(synthFrame(640, 780, page), undefined, { long: true });
+      expect(strict).not.toBeNull();
+      expect(lenient).not.toBeNull();
+      expect(cornerError(lenient!, strict!)).toBeLessThan(2);
+    });
+  });
 });
 
 describe('flattenDocument', () => {
