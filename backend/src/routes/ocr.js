@@ -45,7 +45,7 @@ function safeLang(raw) {
 
 router.use(rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 200, // batched: a large doc = many small requests
+  limit: 200, // batched: a large doc = many small requests
   keyGenerator: clientKey,
   store: makeStore('rl:ocr:'),
   // Canary is a health probe, not a user — never metered (utils/canary.js).

@@ -44,7 +44,7 @@ const FREE_DAILY = Number(process.env.FREE_DAILY_CONVERSIONS || 3);
 // Stricter than the global limiter: conversions cost real CPU.
 router.use(rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  limit: 20,
   keyGenerator: clientKey,
   store: makeStore('rl:convert:'),
   skip: (req) => redisDown() || isCanaryReq(req),

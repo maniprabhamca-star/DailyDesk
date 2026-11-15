@@ -17,7 +17,7 @@ const router = express.Router();
 // Beacons are frequent-ish but cheap; cap per-client (POST only).
 const trackLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 120,
+  limit: 120,
   keyGenerator: clientKey,
   store: makeStore('rl:events:'),
   skip: () => redisDown(),
@@ -57,7 +57,7 @@ function ensureErrorTable() {
 // Client errors are rarer but a broken build could burst them; cap hard.
 const errorLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 40,
+  limit: 40,
   keyGenerator: clientKey,
   store: makeStore('rl:cerr:'),
   skip: () => redisDown(),

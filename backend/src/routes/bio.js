@@ -67,7 +67,7 @@ async function requirePro(req, res, next) {
 // ---- public page (no auth) --------------------------------------------------
 // A gentle limiter so the view counter can't be hammered.
 const publicLimiter = rateLimit({
-  windowMs: 60 * 1000, max: 120, keyGenerator: clientKey,
+  windowMs: 60 * 1000, limit: 120, keyGenerator: clientKey,
   store: makeStore('rl:bio-pub:'), skip: (req) => redisDown() || isCanaryReq(req),
   message: { error: 'rate' },
 });

@@ -41,7 +41,7 @@ const keyFor = (who, req) => `stmt:pages:${who.userId || clientKey(req)}:${month
 
 router.use(rateLimit({
   windowMs: 60 * 1000,
-  max: 60,
+  limit: 60,
   keyGenerator: clientKey,
   store: makeStore('rl:stmt:'),
   skip: (req) => redisDown() || isCanaryReq(req),

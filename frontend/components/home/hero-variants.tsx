@@ -85,21 +85,30 @@ export function FramedSlider() {
       onPointerLeave={() => { paused.current = false; }}
       className="group block overflow-hidden rounded-2xl border bg-card shadow-lift transition-shadow hover:shadow-card"
     >
-      <div className="flex items-center gap-2 border-b px-3 py-2.5">
+      {/* All of this is decoration: a drawn browser frame, a fake address bar
+          and an animated demonstration of the tool. It is hidden from assistive
+          technology so the link is announced by its aria-label alone.
+          Previously the simulated URL and the scene's own captions were part of
+          the link's content, which meant a screen reader read out
+          "diemdesk.com/compress-pdf" and a pile of mock UI text, and WCAG 2.5.3
+          failed because none of that visible text appears in the accessible
+          name. Hiding it is both the accessible answer and the honest one —
+          there is nothing here for a non-sighted reader to act on. */}
+      <div className="flex items-center gap-2 border-b px-3 py-2.5" aria-hidden>
         <span className="size-2 rounded-full bg-red-400" />
         <span className="size-2 rounded-full bg-amber-400" />
         <span className="size-2 rounded-full bg-emerald-400" />
         <span className="ml-2 flex-1 truncate rounded-md border bg-background px-2 py-1 text-center text-[11px] text-muted-foreground">diemdesk.com/{s.slug}</span>
         <ArrowRight className="size-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
       </div>
-      <div className="relative h-[200px] md:h-[212px]">
+      <div className="relative h-[200px] md:h-[212px]" aria-hidden>
         {SLIDES.map((sl, idx) => (
-          <div key={sl.slug} className={`absolute inset-0 transition-opacity duration-500 ${idx === i ? 'opacity-100' : 'opacity-0'}`} aria-hidden={idx !== i}>
+          <div key={sl.slug} className={`absolute inset-0 transition-opacity duration-500 ${idx === i ? 'opacity-100' : 'opacity-0'}`}>
             <ToolScene {...sl} />
           </div>
         ))}
       </div>
-      <div className="flex items-center justify-center gap-1.5 pb-3">
+      <div className="flex items-center justify-center gap-1.5 pb-3" aria-hidden>
         {SLIDES.map((_, idx) => (
           <span key={idx} className={`h-1.5 rounded-full transition-all ${idx === i ? 'w-4 bg-primary' : 'w-1.5 bg-border'}`} />
         ))}

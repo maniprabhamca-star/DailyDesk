@@ -15,7 +15,7 @@ const router = express.Router();
 // Cap submissions per client so the form can't be spammed (POST only).
 const submitLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
-  max: 20,
+  limit: 20,
   keyGenerator: clientKey,
   store: makeStore('rl:feedback:'),
   skip: () => redisDown(),

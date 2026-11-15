@@ -128,7 +128,7 @@ const FAIL = { error: 'ai-failed', message: 'The assistant is unavailable right 
 // AI calls cost money — a tight per-client burst limit on top of the daily caps.
 router.use(rateLimit({
   windowMs: 60 * 1000,
-  max: 15,
+  limit: 15,
   keyGenerator: clientKey,
   store: makeStore('rl:ai:'),
   skip: (req) => redisDown() || isCanaryReq(req),

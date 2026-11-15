@@ -20,9 +20,9 @@ name: QA
 on:
   push:
     branches: [main]
-    paths: ['frontend/**', '.github/workflows/qa.yml']
+    paths: ['frontend/**', 'backend/**', '.github/workflows/qa.yml']
   pull_request:
-    paths: ['frontend/**', '.github/workflows/qa.yml']
+    paths: ['frontend/**', 'backend/**', '.github/workflows/qa.yml']
   workflow_dispatch: {}
   schedule:
     # Nightly full run: every browser, plus the throttled pass. Catches the
@@ -38,6 +38,54 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # The backend had six test scripts and 150 assertions that nothing ever ran —
+  # subscription refund windows, the checkout fallback chain, receipt parsing,
+  # MCP token properties, budget validation, and the HTTP stack. They covered
+  # money and credentials and were only ever run by hand, on one machine, when
+  # somebody remembered. `backend/**` did not even trigger this workflow.
+  #
+  # None of them needs Postgres or Redis: the pure logic is separated from the
+  # IO, and test-http-stack asserts the fail-open path that a missing Redis
+  # produces. So there is no infrastructure excuse for leaving them out.
+  backend:
+    name: Backend suites + audit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      # express + helmet + express-rate-limit sit under every request, and a
+      # major in any of them changes behaviour without failing a build. This
+      # boots the real app (which parses every route through path-to-regexp),
+      # checks the security headers off a live response, proves the limiter
+      # still limits — including that IPv6 addresses in one /56 share a bucket —
+      # and that the Stripe webhook still gets byte-exact JSON it can verify.
+      - name: HTTP stack (express / helmet / rate-limit / stripe webhook)
+        run: npm run test:http-stack
+      - name: Subscriptions — refund window + describe()
+        run: npm run test:subs
+      - name: Checkout fallbacks — every failure still ends in a URL
+        run: npm run test:checkout
+      - name: Receipt parsing
+        run: npm run test:receipt
+      - name: MCP connect tokens
+        run: npm run test:mcp-token
+      - name: Budget receipt detail
+        run: npm run test:budget-detail
+      # The frontend has scripts/audit-gate.mjs; the backend had nothing, so a
+      # high advisory in express or stripe could be merged without a word.
+      # Shipping deps only — a dev-only advisory never reaches a user, and
+      # failing on one teaches people to skip the step.
+      - name: Dependency audit (production deps)
+        run: npm audit --omit=dev --audit-level=high
+
   quality:
     name: Typecheck + unit + build
     runs-on: ubuntu-latest

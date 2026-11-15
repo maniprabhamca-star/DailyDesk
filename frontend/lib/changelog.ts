@@ -23,6 +23,20 @@ export type ChangeEntry = {
 // flags flip, dated then.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-11-15',
+    kind: 'fixed',
+    title: 'The search shortcut button can be used by voice, and reads properly aloud',
+    detail:
+      'The small ⌘K button beside the search box was announced to screen readers as "Open command palette" — words that appear nowhere on it. If you drive your computer by voice, saying "click ⌘K" matched nothing, because the name the computer had for that button was not the name printed on it. It now reads "Open command palette, ⌘K", and says Ctrl K rather than ⌘K when you are not on a Mac. The illustrated browser window on the home page is also no longer read out item by item — a fake address bar and a sample file size are decoration, and a screen reader now gets the name of the tool it links to instead.',
+  },
+  {
+    date: '2026-11-15',
+    kind: 'fixed',
+    title: 'Rate limits count a visitor, not an address',
+    detail:
+      'The limits that keep the site standing up — how many sign-in attempts, how many conversions in a quarter of an hour — were counted against the exact address a request arrived from. On IPv6 that barely means anything: a home connection is handed a whole block of addresses and may use a different one for every request, so the limits really only ever applied to people on IPv4. They are now counted against the block a connection belongs to. Nothing changes if you are using the site normally. The same change fixes the opposite case, where one person could be counted twice because two parts of the stack wrote their address down differently.',
+  },
+  {
     date: '2026-09-19',
     kind: 'improved',
     title: 'The receipt scanner now uses the whole screen, and finds the receipt for you',

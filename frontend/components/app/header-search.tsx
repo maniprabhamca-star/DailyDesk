@@ -129,7 +129,20 @@ export function HeaderSearch({ visible }: { visible: boolean }) {
           aria-activedescendant={open && active >= 0 ? `${LIST_ID}-opt-${active}` : undefined}
           className="w-full bg-transparent outline-none placeholder:text-foreground/60"
         />
-        <button onClick={openCommand} aria-label="Open command palette" className="ml-auto shrink-0 whitespace-nowrap rounded border px-1.5 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-accent">{modKey}</button>
+        {/* The label has to contain the visible text — WCAG 2.5.3, Label in Name.
+            It read "Open command palette" while the button showed "⌘K", so
+            someone driving the page by voice who said "click ⌘K" matched
+            nothing, and a screen reader announced a name with no relationship to
+            what was on screen.
+            ⚠ The shortcut must sit OUTSIDE brackets. "Open command palette
+            (⌘K)" looks like it satisfies the rule and does not: axe strips
+            parenthetical text from the name before comparing (its
+            removeParentheticals), on the grounds that a bracketed aside is not
+            part of the name a person would actually speak. Measured, not
+            guessed — the bracketed version still failed on all 11 routes.
+            Interpolated rather than hardcoded because modKey becomes "Ctrl K"
+            off a Mac, and a label correct on one platform is the same bug. */}
+        <button onClick={openCommand} aria-label={`Open command palette, ${modKey}`} aria-keyshortcuts="Meta+K Control+K" className="ml-auto shrink-0 whitespace-nowrap rounded border px-1.5 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-accent">{modKey}</button>
       </div>
 
       {/* Results dropdown — animate-fade-in (plain rise), NOT dialog-in: that

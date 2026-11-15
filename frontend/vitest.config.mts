@@ -43,5 +43,8 @@ export default defineConfig({
     testTimeout: 30_000,
     coverage: { provider: 'v8', reportsDirectory: 'tests/.coverage', include: ['lib/**', 'components/**'] },
   },
-  resolve: { alias: { '@': path.resolve(__dirname, '.') } },
+  // import.meta.dirname, not __dirname: this file is .mts (ESM), and Vite's
+  // native config loader — already the behaviour vite 8 warns about and the
+  // planned default — has no CommonJS __dirname to hand it.
+  resolve: { alias: { '@': path.resolve(import.meta.dirname, '.') } },
 });

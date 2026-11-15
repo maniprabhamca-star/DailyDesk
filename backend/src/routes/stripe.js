@@ -27,11 +27,19 @@ const FRONTEND = process.env.FRONTEND_URL || 'https://diemdesk.com';
 // launch and remove it (or let Stripe exhaust it) when the window closes.
 const FOUNDING_COUPON = process.env.STRIPE_FOUNDING_COUPON;
 
+// The API version is pinned here on purpose. Left unset, the version is whatever
+// the installed SDK happens to pin, so a routine `npm update` would quietly move
+// live checkout and webhook calls onto a different Stripe API — the kind of
+// change that shows up as a customer who could not pay, not as a failing test.
+// Keep this equal to the SDK's own pinned version (stripe/cjs/apiVersion.js) when
+// taking a stripe major, and read that release's breaking changes first.
+const STRIPE_API_VERSION = '2026-10-28.endive';
+
 let stripe = null;
 function getStripe() {
   if (stripe) return stripe;
   if (!process.env.STRIPE_SECRET_KEY) return null;
-  stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+  stripe = require('stripe')(process.env.STRIPE_SECRET_KEY, { apiVersion: STRIPE_API_VERSION });
   return stripe;
 }
 

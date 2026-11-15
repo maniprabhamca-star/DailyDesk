@@ -5,7 +5,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   Loader2, RefreshCw, ShieldCheck, BarChart3, Users, UserPlus, MousePointerClick, Repeat,
   AlertTriangle, Activity, Crown, Play, CalendarDays, Globe, Link2, MonitorSmartphone,
-  Chrome, MessageSquare, Star, TrendingUp, SearchX, ServerCog,
+  PanelsTopLeft, MessageSquare, Star, TrendingUp, SearchX, ServerCog,
 } from 'lucide-react';
 import { SiteHeader } from '@/components/app/site-header';
 import { SiteFooter } from '@/components/app/site-footer';
@@ -285,7 +285,7 @@ export default function DashboardPage() {
             <Section icon={Globe} title="Audience"
               right={
                 <div className="flex gap-1 rounded-lg border bg-muted/40 p-1 text-xs">
-                  {([['country', 'Country', Globe], ['sources', 'Sources', Link2], ['devices', 'Devices', MonitorSmartphone], ['browsers', 'Browsers', Chrome]] as const).map(([k, lbl, Icon]) => (
+                  {([['country', 'Country', Globe], ['sources', 'Sources', Link2], ['devices', 'Devices', MonitorSmartphone], ['browsers', 'Browsers', PanelsTopLeft]] as const).map(([k, lbl, Icon]) => (
                     <button key={k} onClick={() => setAudTab(k)} className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 font-semibold transition ${audTab === k ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-card'}`}><Icon className="size-3.5" />{lbl}</button>
                   ))}
                 </div>

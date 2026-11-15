@@ -39,7 +39,7 @@ const OWNER_EMAILS = (process.env.AI_OWNER_EMAILS || 'maniprabhamca@gmail.com,mr
   .split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
 
 router.use(rateLimit({
-  windowMs: 15 * 60 * 1000, max: 40, keyGenerator: clientKey,
+  windowMs: 15 * 60 * 1000, limit: 40, keyGenerator: clientKey,
   store: makeStore('rl:receipt:'), skip: (req) => redisDown() || isCanaryReq(req),
   message: { error: 'rate', message: 'Too many scans — try again in a few minutes.' },
 }));

@@ -12,7 +12,7 @@ const { isCanaryReq } = require('../utils/canary');
 // (spoof-proof: the origin only accepts traffic from Cloudflare).
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  limit: 20,
   keyGenerator: clientKey,
   store: makeStore('rl:auth:'),
   skip: (req) => redisDown() || isCanaryReq(req),

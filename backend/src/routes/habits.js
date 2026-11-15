@@ -18,7 +18,7 @@ const OWNER_EMAILS = (process.env.AI_OWNER_EMAILS || 'maniprabhamca@gmail.com,mr
 
 router.use(requireAuth);
 router.use(rateLimit({
-  windowMs: 60 * 1000, max: 180, keyGenerator: clientKey,
+  windowMs: 60 * 1000, limit: 180, keyGenerator: clientKey,
   store: makeStore('rl:habits:'), skip: (req) => redisDown() || isCanaryReq(req),
   message: { error: 'rate', message: 'Slow down a moment and try again.' },
 }));

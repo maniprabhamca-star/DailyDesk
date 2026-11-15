@@ -1,4 +1,7 @@
-require('dotenv').config();
+// quiet: dotenv 17+ announces 'injected env (N) from .env' on stdout, which lands
+// in the pm2 log above every real line and in the output of any script that
+// requires this file. The load either works or throws; the banner adds nothing.
+require('dotenv').config({ quiet: true });
 const express = require('express');
 const { startTempSweeper } = require('./utils/tempSweeper');
 const cors = require('cors');
@@ -40,7 +43,7 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), requi
 // to stop them from draining a user's global budget.
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 300,
+  limit: 300,
   keyGenerator: clientKey,
   store: makeStore('rl:global:'),
   message: { error: 'Too many requests, please try again later.' },

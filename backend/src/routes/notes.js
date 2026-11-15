@@ -20,7 +20,7 @@ const MAX = { title: 255, content: 20000, tags: 12, tag: 40 };
 
 router.use(requireAuth);
 router.use(rateLimit({
-  windowMs: 60 * 1000, max: 120, keyGenerator: clientKey,
+  windowMs: 60 * 1000, limit: 120, keyGenerator: clientKey,
   store: makeStore('rl:notes:'), skip: (req) => redisDown() || isCanaryReq(req),
   message: { error: 'rate', message: 'Slow down a moment and try again.' },
 }));
