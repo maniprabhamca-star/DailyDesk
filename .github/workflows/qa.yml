@@ -179,6 +179,53 @@ jobs:
           path: frontend/playwright-report
           retention-days: 7
 
+  # ── Tell somebody. ──────────────────────────────────────────────────────────
+  #
+  # On 2026-11-14 and again on 2026-11-15 the nightly run went red because the
+  # audit gate had found a CRITICAL advisory in `next` that was live on
+  # production. The gate worked exactly as designed, both times. Nobody found
+  # out for nearly three days, because a scheduled run's conclusion is visible
+  # only to whoever goes and reads it, and there is no reason for anyone to go
+  # and read a thing that is green most mornings.
+  #
+  # Detection was never the gap. Delivery was. The same reasoning as the
+  # `continue-on-error` note at the top of this file: a result nobody receives
+  # is a result nobody has.
+  #
+  # Scheduled runs and pushes to main only — those are the ones with nobody
+  # watching. A pull request already shows its own red tick to the person who
+  # opened it.
+  notify:
+    name: Tell the owner it failed
+    runs-on: ubuntu-latest
+    needs: [backend, quality, e2e]
+    if: ${{ failure() && (github.event_name == 'schedule' || github.event_name == 'push') }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      # One package, pinned, rather than a third-party marketplace action: this
+      # step is handed the mail password, and the fewer people that is true of
+      # the better. nodemailer is already what the backend sends mail with.
+      - name: Install the mailer
+        working-directory: .github/scripts
+        run: npm install --no-save --no-package-lock nodemailer@10.5.0
+      - name: Send the alert
+        working-directory: .github/scripts
+        env:
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
+          ALERT_TO: ${{ secrets.ALERT_TO }}
+          DD_EVENT: ${{ github.event_name }}
+          # The whole needs context, so the email can name the job that went red
+          # instead of saying only that something did.
+          DD_FAILED: ${{ toJSON(needs) }}
+        run: node notify-failure.mjs
+
   throttled:
     name: E2E — slow device (nightly)
     runs-on: ubuntu-latest
