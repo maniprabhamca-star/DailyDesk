@@ -23,6 +23,14 @@ export type ChangeEntry = {
 // flags flip, dated then.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-11-18',
+    kind: 'fixed',
+    title: 'The receipt scanner stopped throwing away most of what the camera could see',
+    detail:
+      'If you had to hold the phone a long way back to get a whole till receipt on screen, this was why. The scanner opened magnified — not with the lens, but by enlarging the middle of the picture and discarding the rest, which on a typical phone meant about nine tenths of the camera’s view was gone before you pointed it at anything. The only way to make that back up was to move the phone further away, and a receipt photographed from that distance was then too small for the scanner to find its edges, so the green outline would not settle either. It now opens showing everything the camera can see. Two other things changed with it: the camera is asked for its own natural picture shape rather than a widescreen one, which is about a third more view for nothing, and on a phone with an ultra-wide lens the scanner now opens on it and offers 0.5× and 1× the way a camera app does — an ultra-wide fits the same receipt from roughly half the distance.',
+    href: '/receipt-scanner',
+  },
+  {
     date: '2026-11-15',
     kind: 'fixed',
     title: 'The search shortcut button can be used by voice, and reads properly aloud',

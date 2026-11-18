@@ -200,9 +200,34 @@ export function DocScanner({
   // 3.8x zoom to fill an upright screen and 1.2x to fill the same screen on its
   // side — so it is rebuilt rather than carried over.
   const shapeRef = useRef<{ box: number; frame: number } | null>(null);
-  // Which way up the camera was last ASKED to shoot. Re-asking costs a moment
-  // of the track re-negotiating, so it must happen on a turn and not per frame.
-  const askedShapeRef = useRef<'tall' | 'wide' | null>(null);
+  /**
+   * The LENS, which is a different thing from the zoom above and the one that
+   * actually decides whether a long receipt fits.
+   *
+   * `zoom` is a CSS magnification of the frame we were given — it can only ever
+   * show LESS of the world. `lens` is `MediaStreamTrack`'s own zoom constraint,
+   * which drives the hardware: on a phone with an ultra-wide, its reported
+   * minimum is below 1, and asking for that minimum is how a browser reaches
+   * the 0.5x camera. That is roughly twice the coverage along every axis, so
+   * the same receipt fits at about half the distance.
+   *
+   * `lensStops` is empty on a device whose track reports no zoom range, which
+   * is most iPhones and plenty of Androids. Nothing below depends on it being
+   * there; the digital stops remain the fallback, as they were.
+   */
+  const [lensStops, setLensStops] = useState<number[]>([]);
+  const [lens, setLens] = useState(1);
+  const lensRef = useRef(1);
+  const pickLens = useCallback((z: number) => {
+    setLens(z);
+    lensRef.current = z;
+    const track = streamRef.current?.getVideoTracks?.()[0];
+    // Bare value, not {exact}: the spec reads it as `ideal`, so a device that
+    // cannot reach this stop gives its nearest instead of rejecting. The frame
+    // size can change with the lens, which the stop-rebuilding below notices on
+    // its own — it watches the frame's shape, not just the screen's.
+    void track?.applyConstraints?.({ zoom: z } as MediaTrackConstraints).catch(() => {});
+  }, []);
 
   // Refs, not state: the detection loop reads these every frame and re-running
   // it on every React render would defeat the throttle entirely.
@@ -247,30 +272,45 @@ export function DocScanner({
         setError('This browser doesn’t offer camera capture. Close this and use “Add photos” instead.');
         return;
       }
-      // Ask for the back camera, and for a frame shaped like the screen it is
-      // going to fill.
+      // Ask for the back camera and for THE WIDEST VIEW IT HAS. Not a shape.
       //
-      // The previous list asked for 2560x1440 — explicitly LANDSCAPE — and a
-      // screenshot from the owner's phone showed exactly that coming back, a
-      // wide frame whose content was already the right way up. Covering an
-      // upright screen with it keeps about a quarter of its width, which is the
-      // "overzoomed" complaint, and no amount of layout work fixes a frame that
-      // is the wrong shape to begin with. Asking for a tall one is the only
-      // honest lever there is.
+      // Every previous version of this list asked for a particular aspect
+      // ratio — 2560x1440, then 1440x2560 when that filled an upright screen
+      // badly — on the theory that a frame shaped like the screen is the one
+      // that displays well. It does display well, and it is the wrong thing to
+      // ask a camera for.
       //
-      // Devices vary in which constraint they honour and several ignore all of
-      // them, so this walks from most specific to plain `video: true` and takes
-      // the first that opens. Whatever arrives, CSS frames it and coverCrop
-      // samples it — nothing downstream depends on the answer.
-      const tall = window.innerHeight >= window.innerWidth;
-      askedShapeRef.current = tall ? 'tall' : 'wide';
+      // A phone sensor is natively about 4:3, and that is the only shape at
+      // which its whole field of view is available. Any other ratio is
+      // delivered by cropping the sensor and throwing the rest away: a 16:9
+      // frame is a 4:3 one with the top and bottom removed. So asking for a
+      // shape to suit the screen spends FIELD OF VIEW on LAYOUT, and field of
+      // view is the entire reason a bill does or does not fit in the picture.
+      // Layout is free; it is CSS, a few lines further down.
+      //
+      // So: native shape, highest resolution the device will give, and
+      // `resizeMode: 'none'`, which exists precisely to say "do not crop or
+      // rescale to satisfy me". Safari does not implement resizeMode, so it is
+      // `ideal` — a mandatory form would fail the whole request on iOS.
+      //
+      // Devices vary in which constraint they honour, so this still walks from
+      // most specific to plain `video: true`. Whatever arrives, CSS frames it
+      // and viewRect samples it — nothing downstream depends on the answer.
+      type WideVideo = MediaTrackConstraints & { resizeMode?: { ideal: string } };
+      const wide = (width: number, height: number): MediaStreamConstraints => ({
+        video: {
+          facingMode: { ideal: 'environment' },
+          width: { ideal: width },
+          height: { ideal: height },
+          resizeMode: { ideal: 'none' },
+        } as WideVideo,
+        audio: false,
+      });
       const attempts: MediaStreamConstraints[] = [
-        // Shaped like the screen, at a resolution worth putting in a PDF.
-        { video: { facingMode: { ideal: 'environment' }, width: { ideal: tall ? 1440 : 2560 }, height: { ideal: tall ? 2560 : 1440 } }, audio: false },
-        // Same shape, asked the other way, since some devices honour only this.
-        { video: { facingMode: { ideal: 'environment' }, aspectRatio: { ideal: window.innerWidth / window.innerHeight } }, audio: false },
-        // 4:3 is squarer than 16:9, so it crops less on a tall screen.
-        { video: { facingMode: { ideal: 'environment' }, width: { ideal: tall ? 1080 : 1440 }, height: { ideal: tall ? 1440 : 1080 } }, audio: false },
+        // 4:3, the sensor's own shape, at more than any screen can show — the
+        // extra pixels are for the crop that flattenDocument does later.
+        wide(4096, 3072),
+        wide(2048, 1536),
         { video: { facingMode: { ideal: 'environment' } }, audio: false },
         { video: true, audio: false },
       ];
@@ -295,6 +335,45 @@ export function DocScanner({
         return;
       }
       streamRef.current = stream;
+
+      /* Now ask the TRACK what lenses it has, and take the widest.
+       *
+       * This is the one lever that adds field of view rather than
+       * redistributing it. `getCapabilities().zoom` is the hardware's own
+       * range; on a phone whose back camera is a logical multi-camera the
+       * minimum sits below 1 and selecting it is how a browser reaches the
+       * ultra-wide. 0.5x is twice the linear coverage, which is the difference
+       * between holding a long bill at arm's length and standing up to
+       * photograph it.
+       *
+       * Nothing here is assumed. The range is read from the device, the stops
+       * are built from what it reported, and a device that reports nothing gets
+       * no lens row and behaves exactly as it did before. The constraint is
+       * sent in its bare form, which the spec treats as `ideal`, so a camera
+       * that changes its mind mid-session cannot throw.
+       */
+      const track0 = stream.getVideoTracks()[0];
+      type ZoomCaps = MediaTrackCapabilities & { zoom?: { min: number; max: number; step?: number } };
+      const caps = (track0?.getCapabilities?.() ?? {}) as ZoomCaps;
+      const zr = caps.zoom;
+      if (zr && typeof zr.min === 'number' && typeof zr.max === 'number' && zr.max > zr.min) {
+        // Offer the lenses a camera app would: the widest the device has, 1x,
+        // and one step in. Anything the range does not actually contain is
+        // dropped rather than clamped, so a chip never lies about the view it
+        // will give.
+        const candidates = [zr.min, 1, 2, 3].filter((z) => z >= zr.min && z <= zr.max);
+        const uniq = candidates.filter((z, i, a) => a.findIndex((o) => Math.abs(o - z) < 0.04) === i);
+        if (uniq.length > 1) setLensStops(uniq);
+        // Open on the widest. For a receipt that is the whole point; for a
+        // page it is the same rule this scanner already follows for digital
+        // zoom, and for the same reason — every complaint has been that it was
+        // too far in.
+        const start = uniq.length ? uniq[0] : zr.min;
+        setLens(start);
+        lensRef.current = start;
+        try { await track0.applyConstraints({ zoom: start } as MediaTrackConstraints); } catch { /* kept its lens */ }
+      }
+
       const v = videoRef.current;
       if (v) { v.srcObject = stream; await v.play().catch(() => {}); }
       setReady(true);
@@ -318,34 +397,22 @@ export function DocScanner({
     };
   }, [onClose]);
 
-  /**
-   * Ask the camera to shoot the way the phone is now being held.
+  /* ── There is no reshapeStream any more, and there must not be one. ────────
    *
-   * This is what "the scanner is still in vertical" actually was. The scanner
-   * DID turn — the controls moved to the sides of a landscape screen — but the
-   * camera was still handing over the tall frame it was asked for when the
-   * scanner opened, and a 9:16 picture fitted into a 16:9 screen is a narrow
-   * strip down the middle with black either side. Rotating our own layout can
-   * never fix that; only the camera can, and nobody had told it.
+   * It used to re-ask the camera for a tall frame when the phone was turned
+   * upright and a wide one when it was turned on its side, so that the frame
+   * would match the screen. It did work, and it was the same mistake as the
+   * constraint list above in a different place: a camera asked for a shape it
+   * does not natively have answers by cropping its sensor, so every turn of
+   * the phone threw away part of the view to improve the layout.
    *
-   * applyConstraints re-negotiates the live track in place. Re-calling
-   * getUserMedia would work too but tears the stream down and builds another,
-   * which flickers and on some devices re-runs the permission plumbing for no
-   * reason. A device that refuses is not an error: the picture stays the shape
-   * it was and the zoom control still covers it, which is the state this
-   * already shipped in.
+   * The frame's shape is now fixed for the session — whatever the sensor's
+   * own is — and the LAYOUT follows the frame rather than the other way round
+   * (see the aspect-ratio'd preview box in the markup). That holds in both
+   * orientations with nothing to re-negotiate, which also removes the window
+   * where the stops had been rebuilt from a frame size that was about to
+   * change.
    */
-  const reshapeStream = useCallback((tall: boolean) => {
-    const want = tall ? 'tall' : 'wide';
-    if (askedShapeRef.current === want) return;
-    askedShapeRef.current = want;
-    const track = streamRef.current?.getVideoTracks?.()[0];
-    if (!track?.applyConstraints) return;
-    void track.applyConstraints({
-      width: { ideal: tall ? 1440 : 2560 },
-      height: { ideal: tall ? 2560 : 1440 },
-    }).catch(() => { /* the camera kept its shape; the zoom stops absorb it */ });
-  }, []);
 
   /**
    * Paint what is ON SCREEN into a canvas of the same shape.
@@ -475,9 +542,10 @@ export function DocScanner({
       const was = shapeRef.current;
       const turned = !was || Math.abs(Math.log(boxShape / was.box)) > 0.35;
       if (turned || Math.abs(Math.log(frameShape / was!.frame)) > 0.15) {
-        // The phone was turned: ask the camera to follow. Everything below then
-        // reruns when its new frame size arrives.
-        if (turned) reshapeStream(cssH >= cssW);
+        // The camera is NOT asked to follow the turn any more; see the note
+        // where reshapeStream used to be. The frame keeps its native shape and
+        // the preview box keeps the frame's, so a turn only changes how large
+        // that box can be — which is what is recomputed here.
         shapeRef.current = { box: boxShape, frame: frameShape };
         const max = fillZoom(v.videoWidth, v.videoHeight, cssW, cssH);
         // How many stops is worth offering depends on how wide the range is.
@@ -505,23 +573,38 @@ export function DocScanner({
         // When there are no stops the camera already matches the screen, so
         // filling it and showing everything are the same picture.
         //
-        // ── ...except for a receipt, where the lowest stop is unusable ──────
-        // "i scan the receipt and it shows horizontal on my mobile and its not
-        // showing fully". That is this line. Most phone cameras hand over a
-        // landscape frame whatever the phone is doing, and `object-fit:
-        // contain` at zoom 1 fits that whole frame inside a portrait screen —
-        // a horizontal band across the middle with black above and below it.
-        // For an A4 page that is merely wide; for a till receipt, which is tall
-        // and thin, the band is a few centimetres of usable height and the
-        // receipt cannot fit in it at all.
+        // ⚠ RECEIPTS USED TO OPEN AT `max` HERE, AND THAT WAS THE BUG.
         //
-        // The "open at the lowest stop" rule was asked for and is right for the
-        // page scanner — the complaint there was always too far IN. It was
-        // never a rule about receipts. Here the frame fills the screen, which
-        // is what every camera app does and what the shape of the subject
-        // needs: a receipt wants height, and height is the axis being thrown
-        // away. The zoom chips still work in both directions.
-        const start = long ? max : next.length ? next[0] : max;
+        // The reasoning was sound as far as it went: a landscape frame fitted
+        // into an upright screen is a band across the middle, and a till
+        // receipt cannot fit in a band. So the receipt scanner opened at
+        // `fillZoom`, which reaches every edge of the screen.
+        //
+        // But `fillZoom` on a 16:9 frame in a 9:16 screen is about 3.1, and
+        // this zoom is a CSS magnification — the only way it can fill the
+        // screen is by discarding everything outside the middle ninth of the
+        // picture. The scanner was therefore opening with roughly 90% of the
+        // camera's field of view thrown away, and the person holding the phone
+        // had to make that back up by moving the phone away. Reported exactly
+        // that way: "I have to keep very long distance to cover the entire bill
+        // and not easy to handle it." It also put the receipt so far off that
+        // it fell under the detector's area floor, which is the other half of
+        // the same report — "really too bad in scanning the dimension".
+        //
+        // So the band stays, and it is no longer the problem it was:
+        //
+        //   · the camera is now asked for its native 4:3 instead of 16:9, and
+        //     a 4:3 frame contained in a 390px-wide phone screen is a 292px
+        //     band rather than a 219px one — a third more usable height, for
+        //     free, because 4:3 is the shape the sensor had all along;
+        //   · on a phone with an ultra-wide the lens row above opens at 0.5x,
+        //     which fits the same receipt from about half the distance;
+        //   · and the controls sit over the black, which is what the black is
+        //     for.
+        //
+        // What is NOT done here is cropping the picture to make the screen look
+        // full. A full screen is worth nothing if the bill is not in it.
+        const start = next.length ? next[0] : 1;
         setZoom(start);
         zoomRef.current = start;
       }
@@ -694,7 +777,7 @@ export function DocScanner({
     return () => cancelAnimationFrame(raf);
   // say and subject are stable (a useCallback with no deps, and a literal
   // prop), so listing them cannot restart the detection loop mid-scan.
-  }, [ready, capture, paintFrame, reshapeStream, say, subject, long]);
+  }, [ready, capture, paintFrame, say, subject, long]);
 
   return (
     <div className="fixed inset-0 z-[100] flex flex-col bg-black" role="dialog" aria-modal="true" aria-label={`${subject} scanner`}>
@@ -785,6 +868,34 @@ export function DocScanner({
                 It lives INSIDE this column rather than at its own offset: two
                 absolutely-positioned rows guessing at each other's height is
                 how the first version ended up drawn behind the chip. */}
+            {/* THE LENS ROW — the control that decides whether a long bill
+                fits, and the reason the digital row below it matters less than
+                it used to. These stops are the hardware's own zoom range, read
+                off the track; 0.5x appears only on a phone that really has an
+                ultra-wide, and on one that reports no range at all this row is
+                simply absent. Shown above the digital stops because it is the
+                one to reach for first: it adds view, where the other can only
+                ever take view away. */}
+            {lensStops.length > 1 && (
+              <div className="pointer-events-auto mb-1 flex items-center gap-1 rounded-full bg-black/55 p-1 backdrop-blur">
+                {lensStops.map((z) => {
+                  const on = Math.abs(z - lens) < 0.04;
+                  return (
+                    <button
+                      key={z}
+                      onClick={() => pickLens(z)}
+                      aria-pressed={on}
+                      aria-label={z < 1 ? 'Ultra-wide lens, fits more in' : `Zoom ${z} times`}
+                      className={`min-w-11 rounded-full px-3 py-1.5 text-xs font-semibold tabular-nums transition ${
+                        on ? 'bg-white text-neutral-900' : 'text-white/85 active:scale-95'
+                      }`}
+                    >
+                      {z < 1 ? `${z.toFixed(1)}×` : `${z}×`}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
             {stops.length > 1 && (
               <div className="pointer-events-auto mb-1 flex items-center gap-1 rounded-full bg-black/55 p-1 backdrop-blur">
                 {stops.map((z) => {
