@@ -1,3 +1,10 @@
+/**
+ * @vitest-environment jsdom
+ *
+ * One of only three files here that needs a DOM: tablesFromHtml parses markup with DOMParser.
+ * The suite default is `node`, because building a jsdom for each of the
+ * other twenty-six cost about 36 seconds apiece and bought nothing.
+ */
 import { describe, it, expect } from 'vitest';
 import { tablesFromHtml, sheetName } from '@/lib/html-tables';
 

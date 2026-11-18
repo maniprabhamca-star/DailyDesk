@@ -7,7 +7,26 @@ import path from 'node:path';
 //   npm run test:unit
 export default defineConfig({
   test: {
-    environment: 'jsdom',
+    // `node`, not `jsdom` — and this is most of why a local run used to drop
+    // files.
+    //
+    // jsdom was the default for the whole suite, and building one costs real
+    // time per file: vitest reported ~36s of spawn-plus-environment EACH on a
+    // 4-core box shared with another project. Nine of twenty-nine files then
+    // timed out waiting for a worker, and the run still printed
+    // `Test Files 20 passed (20)` — 208 tests where there are 305. Ninety-seven
+    // tests went missing behind the word "passed".
+    //
+    // Measured, not assumed: with `node` all 29 files run, and exactly THREE
+    // of them actually want a DOM. Those three say so themselves with a
+    // `@vitest-environment jsdom` docblock, which is per-file and visible at
+    // the top of the file that needs it — app-bar (localStorage), html-tables
+    // and sheet-io (DOMParser).
+    //
+    // ⚠ Adding a test that touches document/window/localStorage? Give that
+    // FILE the docblock. Do not move this back to a suite-wide jsdom to make
+    // one file work.
+    environment: 'node',
     include: ['tests/unit/**/*.test.{ts,tsx}', 'lib/**/*.test.ts'],
     globals: true,
     // 'threads' not 'forks': the default forks pool fails to start its worker

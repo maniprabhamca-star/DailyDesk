@@ -1,3 +1,10 @@
+/**
+ * @vitest-environment jsdom
+ *
+ * One of only three files here that needs a DOM: the pinned-tools store reads and writes localStorage.
+ * The suite default is `node`, because building a jsdom for each of the
+ * other twenty-six cost about 36 seconds apiece and bought nothing.
+ */
 import { describe, expect, it, beforeEach } from 'vitest';
 import { routeForFile, ROUTE_BY_EXT } from '@/lib/route-for-file';
 import { getPinned, pin, unpin, togglePin, isPinned, MAX_PINS } from '@/lib/pinned-tools';
