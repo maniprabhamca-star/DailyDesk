@@ -35,10 +35,21 @@ const {
   GITHUB_REF_NAME = '',
   DD_EVENT = '',
   DD_FAILED = '',
+  DD_TEST = '',
 } = process.env;
 
+// A test send has to be unmistakable in the inbox. An alert that might be real
+// and might be a drill teaches people to check before reacting, which is the
+// hesitation the whole thing exists to remove.
+const isTest = DD_TEST === '1';
+
 const runUrl = `${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}`;
-const when = DD_EVENT === 'schedule' ? 'The nightly QA run' : `QA on ${GITHUB_REF_NAME}`;
+// A test is shown as the nightly run, because that is the alert whose arrival
+// is actually being proven — a drill that looks unlike the real thing proves
+// less than it appears to.
+const when = (DD_EVENT === 'schedule' || isTest)
+  ? 'The nightly QA run'
+  : `QA on ${GITHUB_REF_NAME || 'main'}`;
 
 // `DD_FAILED` is the needs context as JSON. Naming the job that went red is the
 // difference between "go and look" and "go and look at this" — and the audit
@@ -54,8 +65,22 @@ try {
 
 const detail = failed.length ? failed.join('\n  ') : '(could not read which job failed — open the run)';
 
-const subject = `${when} failed`;
+const subject = isTest ? 'TEST — ignore. Checking the QA failure alert works' : `${when} failed`;
 const text = [
+  // Spread an array rather than a multi-line string literal: the lines stay
+  // readable here and nothing depends on getting an escape right.
+  ...(isTest
+    ? [
+      'This is a TEST. Nothing is broken.',
+      '',
+      'It was sent on purpose, from Actions > QA > Run workflow, to prove that',
+      'a real failure would reach you. If you are reading this, it will.',
+      'Everything below is the shape a real one takes.',
+      '',
+      '--------------------------------------------------------------',
+      '',
+    ]
+    : []),
   `${when} failed.`,
   '',
   'Failed jobs:',
