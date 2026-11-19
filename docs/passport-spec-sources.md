@@ -303,3 +303,30 @@ the same shape as Greece's size and the UK's “light grey”. Specs that came f
 aggregators drift toward the memorable version of the rule.
 
 Guard countdown **20 → 19**.
+
+---
+
+## Asia pt.2 + Oceania — read 2026-11-19
+
+| Country | Authority page read | Outcome |
+|---|---|---|
+| **New Zealand** | [DIA — Passport photos](https://www.passports.govt.nz/passport-photos) (updated 4 Mar 2026) | ⚠ **FIXED.** Background was **White**; the DIA asks for a **plain, light-coloured** background contrasting strongly with the face, and the PAS205 form says **light but NOT white**. We were pointing people at the one colour the form excludes. Also: the digital photo is specified by **aspect ratio (3:4)** and pixel bounds, not millimetres — 900–4500 × 1200–6000 px, 250 KB–5 MB. No chin-to-crown figure is published on that page → `headCaveat`. Marked verified. |
+| **Indonesia** | [Direktorat Jenderal Imigrasi — Kantor Imigrasi Karawang](https://karawang.imigrasi.go.id/fakta-penting-yang-harus-kamu-ketahui-saat-foto-paspor-di-kantor-imigrasi/) (14 Jul 2026) | Photographed at the immigration office during the interview and fingerprinting. Left unverified, row relabelled generic, `photographedOnSite` added. **Carries the single most missable rule found so far: no contact lenses, even natural-coloured** — immigration treats them as altering the eye profile. Also: do not wear white, because the backdrop is white. |
+
+**Three background errors in one day — this is now the dominant failure mode.**
+Malaysia (we said blue, it is white), New Zealand (we said white, it must not be
+white), on top of Spain, Poland, Australia and the UK from the earlier passes.
+**Background is wrong more often than size is.** It is a single word on a page,
+so nobody re-checks it, and the aggregators all copy each other.
+
+**On the Indonesian source.** `karawang.imigrasi.go.id` is a Kantor Imigrasi —
+a Directorate General of Immigration office, so an authority rather than an
+aggregator — but it is a *regional* office, not the central ministry. Recorded
+here so the next person knows the standing of the citation.
+
+Guard countdown **19 → 17**.
+
+### Running tally for the 2026-11-19 pass
+11 countries read. **5 live spec errors fixed** (Singapore head band, Malaysia
+head band + background, New Zealand background, and 4 rows relabelled generic).
+**7 countries found to photograph you at the counter** and now say so.

@@ -161,7 +161,12 @@ export const PASSPORT_SPECS: PassportSpec[] = [
   { id: 'philippines', label: 'Philippines', group: 'Asia', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm (generic)',
     photographedOnSite: 'For a Philippine passport the DFA says plainly that you do not need to bring a passport-sized photo — the Consular Office captures your photo and biometrics at the appointment. Use this for a visa or another document that does ask for a supplied photo.',
     headCaveat: 'The DFA publishes no photo specification, because it does not ask for a supplied photo. The 35×45 mm shown here is the generic international size, not a Philippine rule.' },
-  { id: 'indonesia', label: 'Indonesia', group: 'Asia', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '3×4 / 4×6 cm variants' },
+  // Indonesia: the photo is taken at the immigration office during the interview,
+  // alongside fingerprints. The background there is white — which is why the
+  // office tells you NOT to wear white clothing.
+  { id: 'indonesia', label: 'Indonesia', group: 'Asia', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm (generic)',
+    photographedOnSite: 'For an Indonesian passport your face is photographed at the immigration office, during the interview and fingerprinting — you do not supply one. Use this for a visa or another document that does ask for a photo.',
+    headCaveat: 'Indonesian immigration publishes how you must look rather than a photo size, because it takes the picture itself. The 35×45 mm shown here is the generic international size.' },
   { id: 'thailand', label: 'Thailand', group: 'Asia', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm' },
   { id: 'pakistan', label: 'Pakistan', group: 'Asia', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm' },
   { id: 'bangladesh', label: 'Bangladesh', group: 'Asia', wPx: mm(45), hPx: mm(55), wMM: 45, hMM: 55, headMin: 0.62, headMax: 0.78, bg: WHITE, bgName: 'White', note: '45×55 mm' },
@@ -180,7 +185,12 @@ export const PASSPORT_SPECS: PassportSpec[] = [
   { id: 'kenya', label: 'Kenya', group: 'Middle East & Africa', wPx: 600, hPx: 600, wMM: 51, hMM: 51, headMin: 0.55, headMax: 0.75, bg: WHITE, bgName: 'White', note: 'square, white' },
 
   // ---- Oceania ----
-  { id: 'newzealand', label: 'New Zealand', group: 'Oceania', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm' },
+  // ⚠ New Zealand's background is NOT white. The DIA asks for a plain,
+  // light-coloured background with strong contrast against the face, and its
+  // application form says plainly: light, but not white. The digital photo is
+  // specified by ASPECT RATIO (3:4) and pixel bounds rather than millimetres.
+  { id: 'newzealand', label: 'New Zealand', group: 'Oceania', wPx: 1200, hPx: 1600, wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: LIGHTGREY, bgName: 'Plain light colour, NOT white', maxKB: 5120, note: '3:4 digital, 900–4500 × 1200–6000 px, 250 KB–5 MB',
+    headCaveat: 'The DIA’s photo page gives the aspect ratio, the pixel bounds and the file size but no chin-to-crown measurement; it asks instead for a clear gap above and beside your head with your shoulders and upper chest in frame. The band shown is the generic one.' },
 ];
 
 export const SPEC_GROUPS = ['Popular', 'Americas', 'Europe (Schengen)', 'Asia', 'Middle East & Africa', 'Oceania'];
@@ -195,7 +205,7 @@ export function getSpec(id: string): PassportSpec | undefined {
 export const VERIFIED_SPECS = new Set<string>([
   'us-visa', 'us-passport', 'uk-passport', 'schengen-visa', 'india-passport', 'india-evisa',
   'canada', 'australia', 'china-visa', 'japan', 'biometric',
-  'brazil', 'argentina', 'singapore', 'malaysia',
+  'brazil', 'argentina', 'singapore', 'malaysia', 'newzealand',
   'germany', 'france', 'italy', 'spain', 'netherlands', 'portugal', 'belgium', 'switzerland', 'austria', 'sweden', 'norway', 'poland', 'greece', 'ireland',
 ]);
 export const isVerified = (id: string): boolean => VERIFIED_SPECS.has(id);
@@ -704,6 +714,50 @@ export const EDITORIAL: Record<string, CountryEditorial> = {
       'Not applicable to a supplied photo. Regular processing runs about ten working days in the National Capital Region and twelve outside it.',
     sourceName: 'DFA Office of Consular Affairs — Passport FAQs',
     sourceUrl: 'https://consular.dfa.gov.ph/passport-faq/',
+    checkedOn: '2026-11-19',
+  },
+
+  newzealand: {
+    authority:
+      'New Zealand passports are issued by the Department of Internal Affairs, and its photo page is written for someone holding a phone rather than someone standing in a photo booth. It specifies the digital file — 3:4 aspect ratio, JPEG, 250 KB to 5 MB, 900–4500 pixels wide and 1200–6000 high — and gives no millimetre measurement at all for the head.',
+    quirk:
+      'The background is the thing to get right, and it is the opposite of what most people assume: plain and light-coloured, with strong contrast against your face, and the application form says in as many words that it must not be white. There must be no shadow and nothing behind your head, which is why the DIA tells you to stand at least half a metre in front of the wall rather than against it.',
+    background:
+      'Plain and light-coloured, not white, with a strong contrast between it and your face. No shadows and no objects behind your head. Stand at least half a metre clear of it.',
+    expression:
+      'Neutral, no smiling, mouth closed, eyes open, face fully visible and neither tilted nor turned. Hair out of your eyes and away from your face. Your head is centred with a clear gap above and beside it, and your shoulders and upper chest are in the frame.',
+    glasses:
+      'Prescription glasses are allowed if they are neither tinted nor thick-framed, with a clear gap between your eyes and the frames and no glare on the lenses. Sunglasses are refused.',
+    headCovering:
+      'Hats, hoods and headbands come off. A head covering is allowed only for religious or medical reasons, and then your face must be fully visible.',
+    children:
+      'Babies are photographed lying down: put the child on a plain, light-coloured sheet and shoot from directly above, showing the whole face with the eyes open and nobody and nothing else in the frame.',
+    exceptions:
+      'Selfies are rejected outright, and so is any edited image — the DIA names filters and AI tools specifically and asks for your natural appearance. It wants the photographer 1.5 m away holding the camera at your eye level, because a photo taken too close enlarges the nose and forehead and hides the ears. A scan of a printed photo is not accepted either; the file has to be the original digital one.',
+    recency:
+      'Less than six months old.',
+    sourceName: 'Department of Internal Affairs — Passport photos',
+    sourceUrl: 'https://www.passports.govt.nz/passport-photos',
+    checkedOn: '2026-11-19',
+  },
+
+  indonesia: {
+    authority:
+      'Indonesian passports are issued by the Directorate General of Immigration, and the photograph is taken at the immigration office itself — you are called up by queue number for the interview, the face photograph and the fingerprints together. So the rules Indonesian immigration publishes are about how you turn up, not about a file you bring.',
+    quirk:
+      'The most useful of them is about your clothes. The passport photo background there is white, so the office asks you not to wear white — wear something that contrasts with it, and formal rather than casual, because this picture becomes your identity document abroad. It is a small thing that nobody thinks about until they are sitting in front of the camera in a white shirt.',
+    background:
+      'White, applied by the office. Your clothing is what has to contrast with it.',
+    expression:
+      'Sit upright, face the camera, neutral expression, face clearly visible so the officer can match the photo against the holder.',
+    glasses:
+      'Glasses are not worn for the photograph. Nor are hats, masks or any accessory that covers the face — and nor are contact lenses, even natural-coloured ones, because immigration treats them as altering the profile of the eye. That last rule is close to unique on this list and is easy to overlook if you wear lenses daily.',
+    headCovering:
+      'A hijab may be worn, provided it does not cover the face — the forehead, the eyebrows and the chin all have to stay visible.',
+    exceptions:
+      'Original documents must be brought with A4 photocopies that are not cut off at the edges, and the interviewing officer may suspend the process if anything about the identity does not check out.',
+    sourceName: 'Direktorat Jenderal Imigrasi — Kantor Imigrasi Karawang',
+    sourceUrl: 'https://karawang.imigrasi.go.id/fakta-penting-yang-harus-kamu-ketahui-saat-foto-paspor-di-kantor-imigrasi/',
     checkedOn: '2026-11-19',
   },
 };

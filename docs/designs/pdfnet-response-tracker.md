@@ -17,7 +17,7 @@ Status values: `todo` · `in progress` · `shipped` · `blocked` · `parked`
 | 1 | Centralise file-accept lists (+`.ppsx`, HEIC everywhere) | 0 | **shipped** | 2026-08-29 |
 | 1b | HEIC in the 5 PDF-embed tools (sign/watermark/annotate/edit/signature) | 0 | **shipped** | 2026-08-29 |
 | 2 | Stripe ToS consent checkbox | 0 | **shipped** | 2026-08-29 · self-arming when the URL is set |
-| 3 | Passport differentiation + verify 21 specs | 0 | **in progress** | Tier 1 2026-08-29 · Americas + Asia pt.1 2026-11-19 (7 verified/described; 2 spec errors fixed) |
+| 3 | Passport differentiation + verify 21 specs | 0 | **in progress** | Tier 1 2026-08-29 · 2026-11-19 pass: 11 countries, **5 spec errors fixed**, 7 found to photograph on site |
 | 4 | Bank statement guides 11 → 40 | 28 | **shipped** | 2026-08-29 · 39 pages |
 | 5 | Competitor alternatives 4 → 10 | 5 | **shipped** | 2026-08-29 (9 of 10; Canva pending a source) |
 | 6 | Sector pages 4 → 12 | 5 | **in progress** | 9 of 12 · government renamed to public-sector |
@@ -208,6 +208,21 @@ Guard countdown **24 → 19**. Full detail and URLs in
   one. Relabelled generic.
 - **South Korea** · attempted, **left alone** — no domestic passport spec page
   found on MOFA, only embassy and visa pages.
+
+### Asia pt.2 + Oceania — 2026-11-19
+
+- **New Zealand** · ⚠ we said **White**; the DIA asks for a plain light colour
+  and its form says **not white**. We were steering people at the one excluded
+  colour. Fixed; its digital spec is an aspect ratio and pixel bounds, not mm.
+  Verified.
+- **Indonesia** · photographed at the office. Relabelled generic. Brings the
+  most missable rule yet: **no contact lenses**, even natural-coloured.
+
+**Background is now the dominant failure mode** — wrong more often than size.
+Malaysia, New Zealand, Spain, Poland, Australia, the UK. One word on a page that
+nobody re-checks, and every aggregator copies the others.
+
+Guard countdown **24 → 17**.
 
 ---
 
