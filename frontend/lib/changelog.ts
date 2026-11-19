@@ -24,6 +24,14 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-11-18',
+    kind: 'improved',
+    title: 'The scanner outlines your receipt in green the moment it finds it',
+    detail:
+      'The scanner has always drawn a box around what it has found, but it drew it in white and only turned it green at the last moment, once you had held the phone still long enough for it to shoot. That answered the wrong question. The one you are actually asking, while waving a phone over a receipt, is whether it has seen the thing at all — and a white line reads as part of the furniture rather than as an answer. Green now means one thing, this is your receipt, from the moment it finds it; it thickens, glows and washes the receipt in green when it is about to take the shot. The zoom controls also stopped stacking into two rows of nearly identical buttons across the middle of the viewfinder. There is one row, and on a phone with an ultra-wide lens it is the real lens, so 0.5× shows you more of the room rather than simply enlarging the middle of the picture.',
+    href: '/receipt-scanner',
+  },
+  {
+    date: '2026-11-18',
     kind: 'fixed',
     title: 'The receipt scanner stopped throwing away most of what the camera could see',
     detail:

@@ -759,15 +759,43 @@ export function DocScanner({
         octx.moveTo(pts[0].x, pts[0].y);
         for (let n = 1; n < 4; n++) octx.lineTo(pts[n].x, pts[n].y);
         octx.closePath();
-        octx.strokeStyle = locked ? '#22c55e' : 'rgba(255,255,255,0.9)';
-        octx.lineWidth = locked ? 4 : 2.5;
-        octx.shadowColor = locked ? 'rgba(34,197,94,0.65)' : 'transparent';
-        octx.shadowBlur = locked ? 14 : 0;
+        // Green AS SOON AS IT IS FOUND, not only once it has been held still.
+        //
+        // It used to draw white on detection and turn green only after four
+        // steady frames, on the reasoning that green should mean "about to
+        // shoot". But the question someone is actually asking while they wave a
+        // phone over a receipt is the earlier one — has it seen it at all? A
+        // white outline is the scanner's answer to that, and white reads as
+        // chrome rather than as an answer. Asked for directly: show the green
+        // border once it judges the receipt.
+        //
+        // So green carries ONE meaning, "this is your receipt", and the
+        // difference between found and held is weight rather than hue: a
+        // thinner line while you are still moving, thicker with a glow and a
+        // wash through it when it is about to fire.
+        octx.strokeStyle = '#22c55e';
+        octx.lineWidth = locked ? 4 : 3;
+        octx.shadowColor = 'rgba(34,197,94,0.65)';
+        octx.shadowBlur = locked ? 14 : 6;
         octx.stroke();
         octx.shadowBlur = 0;
 
+        // The wash — "covered", asked for in those words. Faint on purpose: it
+        // has to read as a tint over the receipt, not as a colour cast you then
+        // have to look through to check the shot is framed.
+        if (locked) {
+          octx.save();
+          octx.beginPath();
+          octx.moveTo(pts[0].x, pts[0].y);
+          for (let n = 1; n < 4; n++) octx.lineTo(pts[n].x, pts[n].y);
+          octx.closePath();
+          octx.fillStyle = 'rgba(34,197,94,0.16)';
+          octx.fill();
+          octx.restore();
+        }
+
         // Corner ticks — the visual grammar every scanner app uses for "locked".
-        octx.fillStyle = locked ? '#22c55e' : '#fff';
+        octx.fillStyle = '#22c55e';
         for (const pt of pts) {
           octx.beginPath();
           octx.arc(pt.x, pt.y, locked ? 7 : 5, 0, Math.PI * 2);
@@ -903,7 +931,18 @@ export function DocScanner({
                 })}
               </div>
             )}
-            {stops.length > 1 && (
+            {/* ⚠ ONE ROW ONLY — never both.
+                Shipping the lens row alongside the digital one put two rows of
+                near-identical pills across the viewfinder: "its show 2 sizes in
+                2 row and its colading the screen". They are different
+                mechanisms, and that is our problem rather than the viewer's —
+                nobody holding a phone over a receipt wants to be told which of
+                two zooms they are adjusting. A camera app shows one row.
+                The lens wins where it exists, because it is strictly the better
+                control: it ADDS field of view, where the digital one can only
+                ever take it away. The digital stops remain for cameras that
+                report no zoom range of their own. */}
+            {lensStops.length <= 1 && stops.length > 1 && (
               <div className="pointer-events-auto mb-1 flex items-center gap-1 rounded-full bg-black/55 p-1 backdrop-blur">
                 {stops.map((z) => {
                   const on = Math.abs(z - zoom) < 0.06;
@@ -929,9 +968,15 @@ export function DocScanner({
                 Scan {subject.toLowerCase()}
               </span>
             )}
-            <span className="rounded-full bg-black/60 px-3.5 py-1.5 text-[13px] font-medium text-white backdrop-blur">
-              {ready ? hint : 'Starting camera…'}
-            </span>
+            {/* The running hint steps aside while the found chip is up. Both
+                at once is three stacked pills under a viewfinder that is
+                already carrying a shutter and a zoom row, and the second one
+                never says anything the first has not. */}
+            {!found && (
+              <span className="rounded-full bg-black/60 px-3.5 py-1.5 text-[13px] font-medium text-white backdrop-blur">
+                {ready ? hint : 'Starting camera…'}
+              </span>
+            )}
           </div>
         )}
 
