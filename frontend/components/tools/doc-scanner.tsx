@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { X, Check, Zap, ZapOff, Loader2, ScanLine } from 'lucide-react';
+import { playShutter, primeShutter, releaseShutter } from '@/lib/shutter-sound';
 import { detectDocument, flattenDocument, quadStability, viewRect, fillZoom, openingZoom, shouldAutoCapture, smoothQuad, type Quad, type DetectNotes } from '@/lib/doc-scan';
 
 /**
@@ -301,6 +302,12 @@ export function DocScanner({
   // ── camera ────────────────────────────────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
+    // Open the audio device NOW, while the tap that opened the scanner still
+    // counts as a user gesture. Browsers refuse to start audio without one,
+    // and an automatic capture is not one — so leaving this until the click
+    // itself would make the scanner silent in exactly the case where nobody
+    // is watching the screen.
+    primeShutter();
     (async () => {
       if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
         setError('This browser doesn’t offer camera capture. Close this and use “Add photos” instead.');
@@ -423,6 +430,10 @@ export function DocScanner({
       cancelled = true;
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
+      // Hand the audio device back with the camera. Leaving a context open
+      // keeps the phone's audio hardware awake for a sound nobody is waiting
+      // for any more.
+      releaseShutter();
     };
   }, []);
 
@@ -524,6 +535,13 @@ export function DocScanner({
       setFlash(true);
       window.setTimeout(() => setFlash(false), 160);
       try { navigator.vibrate?.(isAuto ? [20, 40, 20] : 35); } catch { /* not supported */ }
+      // The click fires only on `out` — a capture whose edges were found and
+      // straightened. A shot taken with nothing detected is still a shot, and
+      // still useful, but it is not the thing this sound means. Keeping it to
+      // the clean ones makes it information rather than noise: you can hold
+      // the phone over a receipt, hear the click, and know it went well
+      // without looking at the screen.
+      if (out) playShutter();
       steadyRef.current = 0;
       capturedQuadRef.current = quadRef.current;
       if (isAuto) armedRef.current = false;

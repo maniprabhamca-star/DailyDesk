@@ -24,6 +24,14 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-11-18',
+    kind: 'improved',
+    title: 'The scanner clicks when it gets a clean scan',
+    detail:
+      'Holding a phone over a receipt, you are looking at the receipt, not at the screen — so the scanner now tells you with a sound instead. It makes a camera shutter click the moment it captures a page whose edges it found and straightened. The click is deliberately not given to every shot: press the shutter when no edges have been found and you still get your picture, but in silence, with the reason on screen. So the click means something specific — that one came out clean — rather than simply marking that a button was pressed. It is generated in the browser rather than downloaded, so it costs nothing to load and works offline, and the scanner releases the audio device as soon as you close it.',
+    href: '/receipt-scanner',
+  },
+  {
+    date: '2026-11-18',
     kind: 'fixed',
     title: 'The receipt reader was reading your receipt correctly and then throwing the answer away',
     detail:
