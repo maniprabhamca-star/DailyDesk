@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { X, Check, Zap, ZapOff, Loader2, ScanLine } from 'lucide-react';
-import { detectDocument, flattenDocument, quadStability, viewRect, fillZoom, openingZoom, smoothQuad, type Quad, type DetectNotes } from '@/lib/doc-scan';
+import { detectDocument, flattenDocument, quadStability, viewRect, fillZoom, openingZoom, shouldAutoCapture, smoothQuad, type Quad, type DetectNotes } from '@/lib/doc-scan';
 
 /**
  * Full-screen document scanner.
@@ -95,6 +95,13 @@ const DETECT_LONG_EDGE = 720;
 const DETECT_INTERVAL = 80;
 /** Consecutive steady frames before an automatic capture fires. */
 const STEADY_FRAMES_NEEDED = 8;
+/**
+ * Consecutive passes a NEW frame/screen shape must be reported for before the
+ * zoom ladder is rebuilt around it. At DETECT_INTERVAL this is about a third
+ * of a second: unnoticeable when a phone is genuinely turned, and longer than
+ * the wobble some cameras emit while the stream settles.
+ */
+const SHAPE_SETTLE_FRAMES = 4;
 /** Below this, the page is still being moved. */
 const STEADY_THRESHOLD = 0.82;
 /**
@@ -166,7 +173,18 @@ export function DocScanner({
 
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
-  const [auto, setAuto] = useState(true);
+  // Auto-capture is for a STACK. A one-shot scan starts in Manual.
+  //
+  // Asked for in as many words — "why immediately its judgeing and capturig
+  // the half recept and not waiting for the user to confrim?" — and right on
+  // its own terms. Automatic capture earns its place when there are ten pages
+  // to get through and stopping to press a button ten times is the chore. A
+  // receipt is one picture: you line it up, you look at it, you take it. The
+  // shutter firing on its own while you are still framing is not a help, and
+  // the cost of a bad shot is not a retake, it is a wrong number in a budget.
+  // The Auto/Manual control is unchanged and one tap away for anyone who
+  // wants it back.
+  const [auto, setAuto] = useState(!single);
   const [flash, setFlash] = useState(false);
   const [hint, setHint] = useState(`Point the camera at your ${subject.toLowerCase()}`);
   // Drives the chip: the owner asked for it only once a page is actually on
@@ -258,6 +276,7 @@ export function DocScanner({
   const missSinceRef = useRef(0);
   const clippedRef = useRef(false);
   const steadyRef = useRef(0);
+  const shapeSettleRef = useRef<{ box: number; frame: number; seen: number } | null>(null);
   const autoRef = useRef(auto);
   const busyRef = useRef(false);
   useEffect(() => { autoRef.current = auto; }, [auto]);
@@ -563,7 +582,37 @@ export function DocScanner({
       const frameShape = v.videoWidth / v.videoHeight;
       const was = shapeRef.current;
       const turned = !was || Math.abs(Math.log(boxShape / was.box)) > 0.35;
-      if (turned || Math.abs(Math.log(frameShape / was!.frame)) > 0.15) {
+      const changed = turned || Math.abs(Math.log(frameShape / was!.frame)) > 0.15;
+
+      // A CHANGE HAS TO HOLD STILL BEFORE IT COUNTS.
+      //
+      // Rebuilding the ladder replaces the row of chips and moves the zoom, so
+      // doing it on a single frame's reading makes both of those visible as a
+      // flicker. That is fine when the trigger is a phone being turned, which
+      // happens once. It is not fine when the trigger is the camera itself:
+      // some devices report a frame size that wobbles for the first second or
+      // two while the stream settles, and every wobble past the threshold
+      // rebuilt the row and reset the zoom again. Reported on a OnePlus 5T as
+      // the stops "shaking and showing double double".
+      //
+      // So a new shape has to be seen for several consecutive passes — about
+      // a third of a second — before it is acted on. A real turn still lands
+      // within a few frames and nobody can tell; a wobble never lands at all,
+      // because the next reading disagrees with it and the count starts over.
+      if (!changed) {
+        shapeSettleRef.current = null;
+      } else {
+        const settling = shapeSettleRef.current;
+        if (!settling || Math.abs(Math.log(frameShape / settling.frame)) > 0.05
+            || Math.abs(Math.log(boxShape / settling.box)) > 0.05) {
+          shapeSettleRef.current = { box: boxShape, frame: frameShape, seen: 1 };
+        } else {
+          settling.seen += 1;
+        }
+      }
+      const settled = shapeSettleRef.current;
+      if (changed && settled && settled.seen >= SHAPE_SETTLE_FRAMES) {
+        shapeSettleRef.current = null;
         // The camera is NOT asked to follow the turn any more; see the note
         // where reshapeStream used to be. The frame keeps its native shape and
         // the preview box keeps the frame's, so a turn only changes how large
@@ -746,9 +795,16 @@ export function DocScanner({
             : `Point the camera at your ${subject.toLowerCase()}`
         : autoRef.current && !armedRef.current
           ? 'Captured — show the next page'
-          : steadyRef.current >= STEADY_FRAMES_NEEDED / 2
-            ? 'Hold still…'
-            : 'Document found — hold steady');
+          // Found SOMETHING, but part of the subject is outside the picture —
+          // so what was found is a piece of it. Saying "hold steady" here
+          // invited exactly the shot nobody wanted.
+          : clippedRef.current
+            ? portraitView
+              ? `Move back — part of the ${subject.toLowerCase()} is off the screen`
+              : `Move back — part of the ${subject.toLowerCase()} is off the edge`
+            : steadyRef.current >= STEADY_FRAMES_NEEDED / 2
+              ? 'Hold still…'
+              : `${subject} found — hold steady`);
 
       // ── draw the highlight over the live video ──────────────────────────
       if (quad) {
@@ -821,7 +877,32 @@ export function DocScanner({
         }
       }
 
-      if (autoRef.current && armedRef.current && quad && steadyRef.current >= STEADY_FRAMES_NEEDED && !busyRef.current) {
+      // `!clippedRef.current` — DO NOT REMOVE. It is the difference between
+      // photographing a receipt and photographing part of one.
+      //
+      // A contour that runs into the border is rejected by the detector, so
+      // the quad that comes back never touches the edge. That is not the same
+      // as the SUBJECT being inside the picture: when a till roll overshoots
+      // the top and bottom, its own outline is thrown away and the next best
+      // thing inside the frame is accepted instead — a block of the printing,
+      // a panel of it, half the bill. Perfectly steady, perfectly rectangular,
+      // and the wrong object. `clipped` is the detector telling us something
+      // substantial runs off one pair of edges, which is exactly the state in
+      // which no automatic shot can be correct.
+      //
+      // This has happened before. The note in lib/doc-scan.ts records an
+      // envelope "captured five times before anyone stopped it" — and the fix
+      // that time changed the MESSAGE on screen while leaving the shutter
+      // alone, so it stayed broken and did it again here, on a receipt.
+      if (shouldAutoCapture({
+        auto: autoRef.current,
+        armed: armedRef.current,
+        hasQuad: !!quad,
+        clipped: clippedRef.current,
+        steady: steadyRef.current,
+        needed: STEADY_FRAMES_NEEDED,
+        busy: busyRef.current,
+      })) {
         capture(true);
       }
     };
@@ -831,6 +912,12 @@ export function DocScanner({
   // say and subject are stable (a useCallback with no deps, and a literal
   // prop), so listing them cannot restart the detection loop mid-scan.
   }, [ready, capture, paintFrame, say, subject, long]);
+
+  // The top stop IS the filled view, so "is the picture covering the screen"
+  // is a comparison against it rather than a second computation that could
+  // drift away from the one the geometry uses.
+  const fillStop = stops.length ? stops[stops.length - 1] : 1;
+  const atFill = fillStop > 1 && Math.abs(zoom - fillStop) < 0.02;
 
   return (
     <div className="fixed inset-0 z-[100] flex flex-col bg-black" role="dialog" aria-modal="true" aria-label={`${subject} scanner`}>
@@ -845,8 +932,25 @@ export function DocScanner({
           playsInline
           muted
           autoPlay
-          style={{ transform: `scale(${zoom})` }}
-          className="absolute inset-0 size-full object-contain"
+          // FILLING THE SCREEN IS DONE WITH object-fit, NOT A TRANSFORM.
+          //
+          // `contain` + `scale(fillZoom)` and `cover` put exactly the same
+          // pixels in exactly the same place — `viewRect()` at fillZoom IS the
+          // cover rectangle — but they do not cost the same. A transform on a
+          // <video> forces it onto its own composited layer, and on older
+          // Android hardware that layer can come out BLACK while the frames
+          // themselves decode perfectly well. Reported on a OnePlus 5T as a
+          // blank viewfinder with the green outline drawn over it, which is
+          // the signature of exactly that: the outline comes from a canvas
+          // that reads frames through drawImage, so detection was working on
+          // pictures the screen was refusing to show.
+          //
+          // Receipts open filled, so before this they opened straight into a
+          // transform. Now the common case carries none at all, and the
+          // transform is used only for the in-between stops, where there is no
+          // object-fit that expresses them.
+          style={atFill ? undefined : zoom === 1 ? undefined : { transform: `scale(${zoom})` }}
+          className={`absolute inset-0 size-full ${atFill ? 'object-cover' : 'object-contain'}`}
         />
         {/* Highlight only, transparent, exactly over the preview. */}
         <canvas

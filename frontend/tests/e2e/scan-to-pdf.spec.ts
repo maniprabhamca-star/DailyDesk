@@ -259,18 +259,38 @@ test.describe('Scan to PDF — the scanner', () => {
       .poll(async () => chips.count(), { timeout: 10_000 })
       .toBeGreaterThan(1);
 
-    const scaleNow = () => page.locator('video').evaluate((v: HTMLVideoElement) => {
-      const m = getComputedStyle(v).transform.match(/^matrix\(([-\d.e]+)/);
-      return m ? Number(m[1]) : 1;
+    /**
+     * How much of the CAMERA FRAME is on screen at the moment, as a fraction.
+     *
+     * This used to read the CSS transform and compare scale factors, which
+     * tested the mechanism rather than the behaviour — and broke the day the
+     * mechanism changed, while the behaviour was still correct. Filling the
+     * screen is now expressed with `object-fit: cover` and no transform at
+     * all, because a transform puts the <video> on its own composited layer
+     * and on some Android hardware that layer renders black. Both spellings
+     * put the same pixels in the same place, so the only honest question is
+     * the one the person actually cares about: how much of the picture can
+     * they see?
+     */
+    const visibleNow = () => page.locator('video').evaluate((v: HTMLVideoElement) => {
+      const cs = getComputedStyle(v);
+      const zoom = new DOMMatrixReadOnly(cs.transform).a || 1;
+      const boxW = v.offsetWidth, boxH = v.offsetHeight;
+      const base = cs.objectFit === 'cover'
+        ? Math.max(boxW / v.videoWidth, boxH / v.videoHeight)
+        : Math.min(boxW / v.videoWidth, boxH / v.videoHeight);
+      const scale = base * zoom;
+      return Math.min(1, boxW / (v.videoWidth * scale)) * Math.min(1, boxH / (v.videoHeight * scale));
     });
 
     // The widest stop must show strictly more of the frame than the last one.
     await chips.last().click();
-    const filled = await scaleNow();
+    const filled = await visibleNow();
     await chips.first().click();
-    const widest = await scaleNow();
-    expect(widest, 'the first stop must zoom OUT relative to the last').toBeLessThan(filled);
-    expect(widest, 'and the widest is the whole frame, scale 1').toBeCloseTo(1, 2);
+    const widest = await visibleNow();
+    expect(widest, 'the first stop must show MORE of the frame than the last').toBeGreaterThan(filled);
+    expect(widest, 'and the widest stop is the whole frame, nothing cropped away').toBeCloseTo(1, 2);
+    expect(filled, 'the filled stop reaches the screen edges by cropping').toBeLessThan(1);
 
     // The choice must stick, and the pressed state must say which one is on.
     await expect(chips.first()).toHaveAttribute('aria-pressed', 'true');

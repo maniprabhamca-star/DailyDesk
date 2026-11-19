@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { detectDocument, flattenDocument, quadStability, viewRect, fillZoom, openingZoom, smoothQuad, type Quad, type Point } from '@/lib/doc-scan';
+import { detectDocument, flattenDocument, quadStability, viewRect, fillZoom, openingZoom, shouldAutoCapture, smoothQuad, type Quad, type Point } from '@/lib/doc-scan';
 
 /* Document detection, tested against frames whose answer is already known.
  *
@@ -681,5 +681,45 @@ describe('openingZoom', () => {
     // picture, so there is no stop to move to.
     expect(openingZoom(780, 1688, BOX_W, BOX_H, [], true)).toBe(1);
     expect(openingZoom(0, 0, BOX_W, BOX_H, stops, true)).toBe(stops[0]);
+  });
+});
+
+describe('shouldAutoCapture', () => {
+  /* The shutter firing on its own, on the wrong object. Reported twice:
+   * an envelope "captured five times before anyone stopped it", then a
+   * receipt — "why immediately its judgeing and capturig the half recept and
+   * not waiting for the user to confrim?". The first fix changed the message
+   * on screen and left the trigger alone, which is why there was a second. */
+  const ready = { auto: true, armed: true, hasQuad: true, clipped: false, steady: 8, needed: 8, busy: false };
+
+  it('fires when the document is whole, still and not yet taken', () => {
+    expect(shouldAutoCapture(ready)).toBe(true);
+  });
+
+  it('NEVER fires while part of the subject is off the picture', () => {
+    // The one that matters. Everything else about this frame says go: an
+    // outline is drawn, it is rock steady, the scanner is armed. The outline
+    // is just not the receipt — it is a piece of it, because the receipt's own
+    // edge ran off the screen and was thrown away.
+    expect(shouldAutoCapture({ ...ready, clipped: true })).toBe(false);
+    // Not even if it is held still for a very long time.
+    expect(shouldAutoCapture({ ...ready, clipped: true, steady: 500 })).toBe(false);
+  });
+
+  it('waits for the frames it asked for', () => {
+    expect(shouldAutoCapture({ ...ready, steady: 7 })).toBe(false);
+    expect(shouldAutoCapture({ ...ready, steady: 0 })).toBe(false);
+  });
+
+  it('respects Manual, the one-shot latch, and a capture already running', () => {
+    expect(shouldAutoCapture({ ...ready, auto: false }), 'Manual means manual').toBe(false);
+    expect(shouldAutoCapture({ ...ready, armed: false }), 'one shot per document').toBe(false);
+    expect(shouldAutoCapture({ ...ready, busy: true }), 'no second shot mid-capture').toBe(false);
+  });
+
+  it('does not fire on nothing', () => {
+    expect(shouldAutoCapture({ ...ready, hasQuad: false })).toBe(false);
+    // And a missing outline cannot be excused by a long steady count.
+    expect(shouldAutoCapture({ ...ready, hasQuad: false, steady: 99 })).toBe(false);
   });
 });

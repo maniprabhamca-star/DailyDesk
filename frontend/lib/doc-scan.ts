@@ -799,6 +799,48 @@ export function fillZoom(frameW: number, frameH: number, boxW: number, boxH: num
 }
 
 /**
+ * May the shutter fire by itself right now?
+ *
+ * Out here, and tested, because getting it wrong is expensive and quiet: the
+ * scanner takes a photograph nobody asked for, of something that is not the
+ * document, and the person finds out later when a number is wrong.
+ *
+ * `clipped` is the condition that has now been missed twice. A contour
+ * touching the picture border is rejected by the detector, so the quad handed
+ * back never touches the edge — which is NOT the same as the subject being
+ * inside the picture. When a till roll overshoots top and bottom, its own
+ * outline is discarded and something inside the frame is accepted instead: a
+ * block of the printing, half the bill. It is steady and rectangular and it is
+ * the wrong object. `clipped` says something substantial runs off one pair of
+ * edges, and in that state no automatic shot can be right.
+ *
+ * The first time this happened it was an envelope, "captured five times before
+ * anyone stopped it", and the fix changed the words on screen rather than the
+ * shutter — so it stayed broken and did it again on a receipt.
+ */
+export function shouldAutoCapture(s: {
+  /** The Auto/Manual control. */
+  auto: boolean;
+  /** Armed = this document has not been shot yet. One shot per document. */
+  armed: boolean;
+  /** An outline is currently being drawn. */
+  hasQuad: boolean;
+  /** Part of the subject is outside the picture. */
+  clipped: boolean;
+  /** Consecutive steady frames. */
+  steady: number;
+  /** How many steady frames this scanner asks for. */
+  needed: number;
+  /** A capture is already running. */
+  busy: boolean;
+}): boolean {
+  if (!s.auto || !s.armed || s.busy) return false;
+  if (!s.hasQuad) return false;
+  if (s.clipped) return false;
+  return s.steady >= s.needed;
+}
+
+/**
  * Which stop the scanner opens on.
  *
  * This lived inside a component effect, where it was rewritten twice in
