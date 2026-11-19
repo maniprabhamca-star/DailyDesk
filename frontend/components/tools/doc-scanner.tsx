@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { X, Check, Zap, ZapOff, Loader2, ScanLine } from 'lucide-react';
 import { playShutter, primeShutter, releaseShutter } from '@/lib/shutter-sound';
+import { readPreviewMode, writePreviewMode, hasChosenPreviewMode, type PreviewMode } from '@/lib/preview-mode';
 import { detectDocument, flattenDocument, quadStability, viewRect, fillZoom, openingZoom, shouldAutoCapture, smoothQuad, type Quad, type DetectNotes } from '@/lib/doc-scan';
 
 /**
@@ -277,6 +278,39 @@ export function DocScanner({
   const missSinceRef = useRef(0);
   const clippedRef = useRef(false);
   const steadyRef = useRef(0);
+  // Which way the camera is put on screen, and the one-time offer to change
+  // it. Read in an effect rather than at first render: localStorage is not
+  // available during server rendering, and reading it inline would make the
+  // markup differ between server and client.
+  const [preview, setPreview] = useState<PreviewMode>('video');
+  const [offerSafePreview, setOfferSafePreview] = useState(false);
+  const previewRef = useRef<HTMLCanvasElement | null>(null);
+  const previewModeRef = useRef<PreviewMode>('video');
+  useEffect(() => { previewModeRef.current = preview; }, [preview]);
+  useEffect(() => { setPreview(readPreviewMode()); }, []);
+  useEffect(() => {
+    // Offered once per device, and only to someone who has never answered. A
+    // person looking at a black rectangle needs a way out that is ON the black
+    // rectangle; everyone else sees one short line the first time they open
+    // the scanner and never again.
+    //
+    // Timed from READY, not from mount. A cold camera on a slow phone can take
+    // several seconds to hand over its first frame, and starting the clock at
+    // mount would let the offer expire before there was anything to look at —
+    // on exactly the hardware this exists for.
+    if (!ready || hasChosenPreviewMode()) return;
+    setOfferSafePreview(true);
+    const t = window.setTimeout(() => setOfferSafePreview(false), 9000);
+    return () => window.clearTimeout(t);
+  }, [ready]);
+
+  const chooseSafePreview = useCallback(() => {
+    setPreview('canvas');
+    previewModeRef.current = 'canvas';
+    writePreviewMode('canvas');
+    setOfferSafePreview(false);
+  }, []);
+
   const shapeSettleRef = useRef<{ box: number; frame: number; seen: number } | null>(null);
   const autoRef = useRef(auto);
   const busyRef = useRef(false);
@@ -488,6 +522,37 @@ export function DocScanner({
     return true;
   }, []);
 
+  /**
+   * The fallback preview: the same picture, drawn by us instead of by the
+   * browser's video compositor.
+   *
+   * Deliberately built on `viewRect` — the same call `paintFrame` and
+   * `capture` make — so what is shown, what is detected and what is saved
+   * cannot drift apart. There is no decision in here about orientation,
+   * scale or which way up anything goes: it copies the visible crop to the
+   * place CSS would have put it. That is what makes this safe to have, where
+   * five earlier canvas layouts were not.
+   */
+  const paintPreview = useCallback(() => {
+    const pc = previewRef.current;
+    const v = videoRef.current;
+    const overlay = overlayRef.current;
+    if (!pc || !v || !v.videoWidth || !v.videoHeight || !overlay) return;
+    const cssW = overlay.clientWidth, cssH = overlay.clientHeight;
+    if (!cssW || !cssH) return;
+    // Capped at 2: beyond that it is more pixels than the sensor gave and
+    // more blitting than a phone on this path can spare.
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const w = Math.max(1, Math.round(cssW * dpr));
+    const h = Math.max(1, Math.round(cssH * dpr));
+    if (pc.width !== w || pc.height !== h) { pc.width = w; pc.height = h; }
+    const ctx = pc.getContext('2d');
+    if (!ctx) return;
+    const r = viewRect(v.videoWidth, v.videoHeight, cssW, cssH, zoomRef.current);
+    ctx.clearRect(0, 0, w, h);
+    ctx.drawImage(v, r.sx, r.sy, r.sw, r.sh, r.dx * dpr, r.dy * dpr, r.dw * dpr, r.dh * dpr);
+  }, []);
+
   const capture = useCallback((isAuto: boolean) => {
     const v = videoRef.current;
     const overlay = overlayRef.current;
@@ -542,6 +607,10 @@ export function DocScanner({
       // the phone over a receipt, hear the click, and know it went well
       // without looking at the screen.
       if (out) playShutter();
+      // Capturing something cleanly means the preview is working here, so the
+      // offer above stops being made. Recorded rather than inferred each
+      // time, so it survives the scanner being closed and reopened.
+      if (out && !hasChosenPreviewMode()) { writePreviewMode('video'); setOfferSafePreview(false); }
       steadyRef.current = 0;
       capturedQuadRef.current = quadRef.current;
       if (isAuto) armedRef.current = false;
@@ -560,6 +629,10 @@ export function DocScanner({
 
     const tick = (now: number) => {
       raf = requestAnimationFrame(tick);
+      // Ahead of the gate below: detection runs ~12 times a second, which is
+      // plenty for finding edges and far too few for a picture someone is
+      // aiming with.
+      if (previewModeRef.current === 'canvas') paintPreview();
       if (now - last < DETECT_INTERVAL) return;
       last = now;
 
@@ -617,7 +690,16 @@ export function DocScanner({
       // a third of a second — before it is acted on. A real turn still lands
       // within a few frames and nobody can tell; a wobble never lands at all,
       // because the next reading disagrees with it and the count starts over.
-      if (!changed) {
+      // ...EXCEPT THE FIRST ONE, which has nothing to settle against.
+      //
+      // The gate is there to stop a wobbling camera REBUILDING the row over
+      // and over. On the opening frame there is no previous row to flicker
+      // from — there is only a scanner that has not decided its zoom yet. Made
+      // to wait, it opened letterboxed and jumped to filled a third of a
+      // second later, every single time. Caught by the e2e, which measured 26%
+      // of the screen covered where it wanted 100.
+      const first = !was;
+      if (!changed || first) {
         shapeSettleRef.current = null;
       } else {
         const settling = shapeSettleRef.current;
@@ -629,7 +711,7 @@ export function DocScanner({
         }
       }
       const settled = shapeSettleRef.current;
-      if (changed && settled && settled.seen >= SHAPE_SETTLE_FRAMES) {
+      if (changed && (first || (settled && settled.seen >= SHAPE_SETTLE_FRAMES))) {
         shapeSettleRef.current = null;
         // The camera is NOT asked to follow the turn any more; see the note
         // where reshapeStream used to be. The frame keeps its native shape and
@@ -929,7 +1011,7 @@ export function DocScanner({
     return () => cancelAnimationFrame(raf);
   // say and subject are stable (a useCallback with no deps, and a literal
   // prop), so listing them cannot restart the detection loop mid-scan.
-  }, [ready, capture, paintFrame, say, subject, long]);
+  }, [ready, capture, paintFrame, paintPreview, say, subject, long]);
 
   // The top stop IS the filled view, so "is the picture covering the screen"
   // is a comparison against it rather than a second computation that could
@@ -968,8 +1050,14 @@ export function DocScanner({
           // transform is used only for the in-between stops, where there is no
           // object-fit that expresses them.
           style={atFill ? undefined : zoom === 1 ? undefined : { transform: `scale(${zoom})` }}
-          className={`absolute inset-0 size-full ${atFill ? 'object-cover' : 'object-contain'}`}
+          // `opacity-0`, not `hidden`: the element has to keep decoding, and a
+          // display:none video is entitled to stop. It stays the source of
+          // every frame — only who paints it to the screen changes.
+          className={`absolute inset-0 size-full ${atFill ? 'object-cover' : 'object-contain'} ${preview === 'canvas' ? 'opacity-0' : ''}`}
         />
+        {preview === 'canvas' && (
+          <canvas ref={previewRef} aria-hidden data-preview-canvas className="pointer-events-none absolute inset-0 size-full" />
+        )}
         {/* Highlight only, transparent, exactly over the preview. */}
         <canvas
           ref={overlayRef}
@@ -1116,6 +1204,21 @@ export function DocScanner({
               <span className="rounded-full bg-black/60 px-3.5 py-1.5 text-[13px] font-medium text-white backdrop-blur">
                 {ready ? hint : 'Starting camera…'}
               </span>
+            )}
+            {/* The way out of a black rectangle has to BE on the black
+                rectangle — someone whose viewfinder shows nothing cannot be
+                sent to a settings page to find this. Offered only to a device
+                that has never answered, and answered for them the first time
+                they capture something, since a good capture is proof enough
+                that they can see what they are aiming at. */}
+            {offerSafePreview && preview === 'video' && (
+              <button
+                type="button"
+                onClick={chooseSafePreview}
+                className="pointer-events-auto rounded-full border border-white/35 bg-black/70 px-3.5 py-1.5 text-[13px] font-medium text-white backdrop-blur active:scale-95"
+              >
+                Picture not showing? Tap to fix
+              </button>
             )}
           </div>
         )}

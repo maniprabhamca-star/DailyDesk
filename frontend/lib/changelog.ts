@@ -23,6 +23,14 @@ export type ChangeEntry = {
 // flags flip, dated then.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-11-19',
+    kind: 'fixed',
+    title: 'A way out for phones whose camera preview shows black',
+    detail:
+      'On a small number of older Android phones the scanner opened on a black rectangle — with the green outline drawn over it, which was the clue: the outline is drawn by code that reads the camera frames directly, so the camera was working and only the picture was missing. Some older graphics hardware does this to video on a web page. The scanner now offers a second way of showing the same picture, drawn frame by frame instead of handed to the phone to display, and on the affected phones it cannot come out black. You will see a small “Picture not showing? Tap to fix” button in the viewfinder; tap it and that phone remembers. Everyone else keeps the normal preview, which is faster and is working fine — and if your first scan comes out cleanly, the question is answered for you and never asked again.',
+    href: '/scan-to-pdf',
+  },
+  {
     date: '2026-11-18',
     kind: 'improved',
     title: 'The scanner clicks when it gets a clean scan',

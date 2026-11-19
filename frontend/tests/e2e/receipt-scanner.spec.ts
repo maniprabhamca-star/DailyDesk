@@ -92,6 +92,9 @@ test.describe('Receipt scanner — the mode with no coverage', () => {
   test('fills the screen — a receipt does not get a band with black around it', async ({ page }) => {
     await openScanner(page);
 
+    // Measured ONCE, immediately. Polling here would hide the bug this test
+    // exists for: a scanner that opens letterboxed and corrects itself a
+    // third of a second later has still shown the person a band.
     const fill = await pictureFill(page);
     // The guard the measurement itself depends on: filling is only the right
     // answer while the frame is wider than the screen, which is the case for
@@ -145,6 +148,74 @@ test.describe('Receipt scanner — the mode with no coverage', () => {
       page.getByText(/check the details|could not reach the scanner|could not scan|pro feature|please sign in/i).first(),
       'the capture must reach the reader, or say why it could not',
     ).toBeVisible({ timeout: 20_000 });
+  });
+
+  test('the safe preview actually paints, for a phone whose video renders black', async ({ page }) => {
+    // One device (a OnePlus 5T) shows a blank viewfinder with the green
+    // outline drawn over it. The outline is the proof that frames are
+    // arriving: it comes from a canvas reading them through drawImage. So
+    // canvas works there and video does not, and this is the way out.
+    //
+    // The only assertion worth making is that it PAINTS. A fallback that
+    // renders its own black rectangle would satisfy every structural check
+    // and help nobody, so this reads the pixels.
+    const dialog = await openScanner(page);
+
+    const offer = dialog.getByRole('button', { name: /picture not showing/i });
+    await expect(offer, 'a device that has never answered must be offered the way out').toBeVisible();
+    await offer.click();
+
+    // The <video> stays — it is still where every frame comes from — but it
+    // stops being what anyone looks at. `opacity-0` rather than `hidden`,
+    // because a display:none video is entitled to stop decoding.
+    await expect(page.locator('video')).toHaveClass(/opacity-0/);
+
+    const canvas = page.locator('[data-preview-canvas]');
+    await expect(canvas).toBeAttached();
+
+    // Painting happens on animation frames, so poll rather than look once.
+    const painted = await expect.poll(async () => canvas.evaluate((c: HTMLCanvasElement) => {
+      if (!c.width || !c.height) return 0;
+      const ctx = c.getContext('2d');
+      if (!ctx) return 0;
+      // A grid of samples across the whole surface: enough to tell a picture
+      // from an empty rectangle without reading a megapixel back every poll.
+      const seen = new Set<string>();
+      for (let y = 1; y < 8; y++) {
+        for (let x = 1; x < 8; x++) {
+          const px = ctx.getImageData(Math.floor(c.width * x / 8), Math.floor(c.height * y / 8), 1, 1).data;
+          if (px[3] > 0) seen.add(`${px[0]},${px[1]},${px[2]}`);
+        }
+      }
+      return seen.size;      // 0 = nothing drawn, 1 = a flat fill, >1 = a picture
+    }), 'the fallback has to put a PICTURE on screen, not a rectangle')
+      .toBeGreaterThan(1)
+      .then(() => canvas.evaluate((c: HTMLCanvasElement) => ({ w: c.width, h: c.height })));
+
+    // And it must be sized for the device, or the picture is a blurry upscale.
+    expect(painted.w, 'the backing store is sized for the screen').toBeGreaterThan(300);
+    expect(painted.h).toBeGreaterThan(600);
+
+    // The choice sticks, so that phone is not asked again every time.
+    const stored = await page.evaluate(() => localStorage.getItem('dd-scanner-preview'));
+    expect(stored).toBe('canvas');
+  });
+
+  test('a device that has answered is not asked again', async ({ page }) => {
+    // The offer is a one-time thing per device. Asking every time would be
+    // its own small bug — a line of text over the viewfinder, for ever, on
+    // every phone that ever saw it.
+    const dialog = await openScanner(page);
+    await dialog.getByRole('button', { name: /picture not showing/i }).click();
+    await expect(page.evaluate(() => localStorage.getItem('dd-scanner-preview'))).resolves.toBe('canvas');
+
+    // Close and reopen: same device, question already answered.
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden({ timeout: 10_000 });
+    const again = await openScanner(page);
+    await expect(again.getByRole('button', { name: /picture not showing/i })).toBeHidden();
+    // And the choice is still in force.
+    await expect(page.locator('[data-preview-canvas]')).toBeAttached();
   });
 
   test('document mode is NOT changed by any of this', async ({ page }) => {
