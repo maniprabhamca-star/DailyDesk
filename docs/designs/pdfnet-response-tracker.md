@@ -17,7 +17,7 @@ Status values: `todo` · `in progress` · `shipped` · `blocked` · `parked`
 | 1 | Centralise file-accept lists (+`.ppsx`, HEIC everywhere) | 0 | **shipped** | 2026-08-29 |
 | 1b | HEIC in the 5 PDF-embed tools (sign/watermark/annotate/edit/signature) | 0 | **shipped** | 2026-08-29 |
 | 2 | Stripe ToS consent checkbox | 0 | **shipped** | 2026-08-29 · self-arming when the URL is set |
-| 3 | Passport differentiation + verify 21 specs | 0 | **in progress** | Tier 1: UK/Canada/Australia done 2026-08-29 |
+| 3 | Passport differentiation + verify 21 specs | 0 | **in progress** | Tier 1 2026-08-29 · Americas tranche 2026-11-19 (4 of 5; Colombia blocked) |
 | 4 | Bank statement guides 11 → 40 | 28 | **shipped** | 2026-08-29 · 39 pages |
 | 5 | Competitor alternatives 4 → 10 | 5 | **shipped** | 2026-08-29 (9 of 10; Canva pending a source) |
 | 6 | Sector pages 4 → 12 | 5 | **in progress** | 9 of 12 · government renamed to public-sector |
@@ -170,6 +170,29 @@ Scope and method already written up in
 editorial fields per country, each sourced from the issuing authority with the
 URL and read-date recorded in `docs/passport-spec-sources.md`. Aggregator sites
 are acceptable for finding a rule and unacceptable as the source of one.
+
+### Americas tranche — 2026-11-19
+
+Brazil, Mexico, Argentina, Chile, Colombia, each read at the issuing authority.
+**Four of the five do not ask for a photograph at all** — they photograph you at
+the appointment — and our pages said nothing about it.
+
+- **Brazil** · 5×7 cm white confirmed, but **only for under-fives**; everyone else
+  is captured at the Polícia Federal counter. Verified + editorial.
+- **Argentina** · 4×4 cm white confirmed **in law** (Decreto 749/2019 art. 30).
+  Verified + editorial. The decree says “medio busto” rather than a chin-to-crown
+  band, so a caveat went on the head figure instead of a guessed conversion.
+- **Mexico** · the SRE publishes **no size**, only rules about you: no glasses,
+  head uncovered. Left unverified, row relabelled generic.
+- **Chile** · the Registro Civil's list has **one item**, a valid cédula. Left
+  unverified, row relabelled generic.
+- **Colombia** · **blocked.** Resolución 10829 de 2024 reportedly says 4×5 cm,
+  not the 35×45 mm we ship — so this one may be actively wrong. The Cancillería
+  sits behind a Cloudflare bot check we do not bypass. Row left alone and
+  flagged in code; it needs a human to open the page.
+
+Guard countdown **24 → 20**. Full detail and URLs in
+[passport-spec-sources.md](../passport-spec-sources.md).
 
 ---
 

@@ -24,6 +24,14 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-11-19',
+    kind: 'improved',
+    title: 'Four countries that do not want your passport photo',
+    detail:
+      'We read the issuing authority’s own page for Brazil, Mexico, Argentina and Chile — and found that none of them asks you to bring a photograph for a passport. They take it at the appointment. Our pages had been quietly describing prints that nobody had asked for, which is a wasted trip to the photo booth. Each of those four now says so at the top, and says what the tool is still genuinely useful for there: visas and the other paperwork that does ask. Along the way Brazil’s 5×7 cm turned out to apply only to children under five, and Argentina’s photo rule turned out to be written into law — Decreto 749/2019 — including the right to be photographed in a private room by staff of the same sex. Mexico’s is the one to remember if you are going: no glasses, head uncovered. Colombia we could not check, because its ministry blocks automated reading, so we have changed nothing there rather than guess.',
+    href: '/passport-photo',
+  },
+  {
+    date: '2026-11-19',
     kind: 'fixed',
     title: 'A way out for phones whose camera preview shows black',
     detail:

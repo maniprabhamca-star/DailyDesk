@@ -251,3 +251,31 @@ authority's own page. Japan, the US and Nepal could not be read automatically
 (Cloudflare interstitial, a 10.8 MB PDF, and a page whose body does not render
 without its scripts). They are the next three to do by hand, and doing them
 clears the last two failing pairs.
+
+---
+
+## Americas tranche — read 2026-11-19
+
+Five countries, and the headline is not a measurement: **four of the five do not
+ask for a photograph at all.** Our rows described prints that those authorities
+never request, with no hint on the page that turning up with them is a wasted
+trip to the photo shop.
+
+| Country | Authority page read | Outcome |
+|---|---|---|
+| **Brazil** | [Polícia Federal — Documentação necessária](https://www.gov.br/pf/pt-br/assuntos/passaporte/documentacao/lista-brasileiro) | Size **confirmed** (5×7 cm, white) — but the list asks for it **only for applicants under five**, who must still attend in person. Everyone else is photographed at the appointment. Marked verified; editorial written; `photographedOnSite` added. |
+| **Argentina** | [Decreto 749/2019, arts. 30–31](https://www.argentina.gob.ar/normativa/nacional/decreto-749-2019-330996/texto) | Size **confirmed** in law (4×4 cm, *fondo uniforme blanco y liso*). Marked verified. The decree frames it as **“medio busto”**, head and upper chest, which is looser than any crown-to-chin band — `headCaveat` added rather than converting by guesswork. Art. 31 gives real exceptions: hair covered for religious or medical reasons, and a private room with same-sex staff where religion covers the face. |
+| **Mexico** | [SRE — Trámite de Pasaporte](https://www.gob.mx/sre/acciones-y-programas/tramite-de-pasaporte-8014) | **No size published at all.** Requirement 5 is to allow the SRE to take your photograph, fingerprints, irises and signature. It publishes rules about *you*, not the picture: **no glasses**, head completely uncovered, nothing covering the face. Left **unverified** — our 2×2 in is generic and is now labelled as such. |
+| **Chile** | [ChileAtiende / Registro Civil — Pasaporte](https://www.chileatiende.gob.cl/fichas/3445-pasaporte) (page updated 19 Jan 2026) | The requirement list has **one item on it**: a valid *cédula de identidad*. No photograph, no size, no background. Left **unverified**; the 35×45 mm is now labelled generic. |
+| **Colombia** | ❌ **blocked** | Resolución 10829 de 2024 is reported to publish **4×5 cm**, against the 35×45 mm we ship — so this row may be wrong. The Cancillería's own site (including its normograma) serves a **Cloudflare bot interstitial**, which we do not bypass. Decreto 1067 de 2015 on Función Pública's gestor normativo carries a 4×5 cm figure but for a refugee procedure, not the passport. **Row left unchanged and flagged in code** rather than edited on the strength of a search summary. |
+
+**Why four countries with no photo spec is a feature, not a gap.** A page that
+prints a confident 35×45 mm for Chile is worse than one that says the Registro
+Civil does not ask for a photograph, because the first sends someone to a photo
+booth for nothing. The `photographedOnSite` field already existed for Sweden,
+Norway and India; it now carries the four Americas cases too, and each says what
+the tool *is* still good for there — visas and the other paperwork that does ask.
+
+**Still to do in this item:** Colombia (needs a human to open the Cancillería
+page), plus the 23 remaining unverified specs in Asia, the Middle East and
+Africa. The guard test's countdown moved **24 → 20**.

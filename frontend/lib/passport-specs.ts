@@ -64,10 +64,31 @@ export const PASSPORT_SPECS: PassportSpec[] = [
   { id: 'biometric', label: 'Biometric (generic)', group: 'Popular', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: LIGHTGREY, bgName: 'Light grey', note: 'ICAO 35×45 mm' },
 
   // ---- Americas ----
-  { id: 'brazil', label: 'Brazil', group: 'Americas', wPx: mm(50), hPx: mm(70), wMM: 50, hMM: 70, headMin: 0.50, headMax: 0.70, bg: WHITE, bgName: 'White', note: '5×7 cm' },
-  { id: 'mexico', label: 'Mexico', group: 'Americas', wPx: 600, hPx: 600, wMM: 51, hMM: 51, headMin: 0.50, headMax: 0.69, bg: WHITE, bgName: 'White', note: '2×2 in' },
-  { id: 'argentina', label: 'Argentina', group: 'Americas', wPx: mm(40), hPx: mm(40), wMM: 40, hMM: 40, headMin: 0.60, headMax: 0.80, bg: WHITE, bgName: 'White', note: '4×4 cm' },
-  { id: 'chile', label: 'Chile', group: 'Americas', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm' },
+  // Brazil: the 5×7 cm print is ONLY for applicants under five. Everyone else is
+  // photographed at the Polícia Federal appointment — see docs/passport-spec-sources.md.
+  { id: 'brazil', label: 'Brazil', group: 'Americas', wPx: mm(50), hPx: mm(70), wMM: 50, hMM: 70, headMin: 0.50, headMax: 0.70, bg: WHITE, bgName: 'White', note: '5×7 cm, under‑5s only',
+    photographedOnSite: 'For a Brazilian passport you are photographed at the Polícia Federal appointment — you do not bring a photo. The 5×7 cm print is required only for an applicant under five years old, who still has to attend in person.',
+    headCaveat: 'The Polícia Federal publishes the size and the background but no head measurement, because this print is for infants. The band shown is a generic one.' },
+  // Mexico: the SRE takes the photograph with its own equipment at the appointment
+  // and publishes no size for a supplied one. This row is a generic 2×2 in.
+  { id: 'mexico', label: 'Mexico', group: 'Americas', wPx: 600, hPx: 600, wMM: 51, hMM: 51, headMin: 0.50, headMax: 0.69, bg: WHITE, bgName: 'White', note: '2×2 in (generic)',
+    photographedOnSite: 'For a Mexican passport the SRE photographs you at the appointment, along with your fingerprints, irises and signature. No photograph is brought and none is charged for. Use this only for a visa or another document that does ask for a supplied photo.',
+    headCaveat: 'The SRE publishes rules for how you must look — no glasses, head uncovered — but no size or head band, because it takes the picture itself. The numbers shown are a generic 2×2 inch.' },
+  // Argentina: Decreto 749/2019 art. 30 gives the size (4×4 cm) and the background
+  // (uniform white, plain) but frames it as "medio busto" — head and upper chest —
+  // which is looser than any crown-to-chin band, so the band below stays generic.
+  { id: 'argentina', label: 'Argentina', group: 'Americas', wPx: mm(40), hPx: mm(40), wMM: 40, hMM: 40, headMin: 0.60, headMax: 0.80, bg: WHITE, bgName: 'White', note: '4×4 cm, white',
+    photographedOnSite: 'For an Argentine passport or DNI the photograph is taken by RENAPER staff when you attend — the decree describes the image as captured at the moment the document is applied for. Use this for a visa or another document that does ask you to supply one.',
+    headCaveat: 'The decree frames the photo as “medio busto” — head and upper chest — rather than giving a chin-to-crown measurement. The band shown is the generic one and is tighter than the words require.' },
+  // Chile: the Registro Civil's own service page lists exactly one requirement for
+  // a passport — a valid cédula de identidad. No photograph is asked for at all.
+  { id: 'chile', label: 'Chile', group: 'Americas', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm (generic)',
+    photographedOnSite: 'For a Chilean passport you book an appointment and attend the Registro Civil; the only thing its service page asks you to bring is a valid cédula de identidad. No photograph appears on the list. Use this for a visa or another document that does ask for one.',
+    headCaveat: 'Chile publishes no photo specification for the passport, because it does not ask for a supplied photo. The 35×45 mm shown here is the generic international size, not a Chilean rule.' },
+  // ⚠ Colombia is UNVERIFIED and possibly wrong: Resolución 10829 de 2024 is
+  // reported to publish 4×5 cm, not 35×45 mm. The Cancillería's own site sits
+  // behind a Cloudflare bot check that we do not bypass, so the figure has not
+  // been read at source and the row is left alone rather than changed on hearsay.
   { id: 'colombia', label: 'Colombia', group: 'Americas', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '3.5×4.5 cm' },
 
   // ---- Europe (Schengen 35×45) ----
@@ -161,6 +182,7 @@ export function getSpec(id: string): PassportSpec | undefined {
 export const VERIFIED_SPECS = new Set<string>([
   'us-visa', 'us-passport', 'uk-passport', 'schengen-visa', 'india-passport', 'india-evisa',
   'canada', 'australia', 'china-visa', 'japan', 'biometric',
+  'brazil', 'argentina',
   'germany', 'france', 'italy', 'spain', 'netherlands', 'portugal', 'belgium', 'switzerland', 'austria', 'sweden', 'norway', 'poland', 'greece', 'ireland',
 ]);
 export const isVerified = (id: string): boolean => VERIFIED_SPECS.has(id);
@@ -542,6 +564,78 @@ export const EDITORIAL: Record<string, CountryEditorial> = {
     sourceName: 'Australian Passport Office \u2014 Passport photos',
     sourceUrl: 'https://www.passports.gov.au/getting-passport-how-it-works/photo-guidelines',
     checkedOn: '2026-08-29',
+  },
+
+  brazil: {
+    authority:
+      'The Brazilian passport is issued by the Polícia Federal, and its document list makes the photograph part of the appointment rather than part of the paperwork. You book a slot, attend in person, and your face is captured there. A printed photograph appears on the list exactly once, for applicants under five years old.',
+    quirk:
+      'That one exception is the whole story for Brazil. A child under five must bring a recent 5×7 cm print on a white background — and must still attend the appointment in person anyway, because the print does not replace being there. Everyone five and over brings nothing: turning up with photographs is a wasted trip to the photo shop, not a rejected application.',
+    background:
+      'White, for the under-five print. The Polícia Federal states the background and the size and leaves it there — there is no published head measurement, because the subject is an infant.',
+    expression:
+      'A photograph with the eyes closed is refused, with one exception: a newborn. For every other age the eyes must be open.',
+    children:
+      'The face may not be covered, even partly, by accessories, trinkets or ornaments — the list names hair clips and bows. A photograph is also refused if enough time has passed that the image no longer identifies the child, which for a small child can be a matter of months rather than years.',
+    recency:
+      'Recent, with no fixed window given. Brazil replaces the usual “not older than six months” with a test of whether the child still looks like the picture.',
+    sourceName: 'Polícia Federal — Documentação necessária (Fotografia 5x7)',
+    sourceUrl: 'https://www.gov.br/pf/pt-br/assuntos/passaporte/documentacao/lista-brasileiro',
+    checkedOn: '2026-11-19',
+  },
+
+  mexico: {
+    authority:
+      'Mexican passports are issued by the Secretaría de Relaciones Exteriores. Its published requirements run to five numbered items, and the fifth is to allow your biometrics to be taken: photograph, fingerprints, iris scan and signature. The photograph is taken there, with the SRE’s own equipment, which is why no size, resolution or file format is published anywhere.',
+    quirk:
+      'So Mexico is a country where getting the photo right means arriving looking right, not printing something correctly. The rules describe you rather than the picture, and two of them catch people out on the day: take your glasses off, and uncover your head. Both are absolute in the text — glasses are named, not merely discouraged.',
+    glasses:
+      'The photograph is taken without glasses. The SRE states it flatly, with no reflection or frame-thickness carve-out to work around, so remove them before you sit down.',
+    headCovering:
+      'The head must be completely uncovered, facing forward, with nothing covering the face.',
+    background:
+      'White, where a photograph is supplied — the regulation describes the picture the SRE takes as front-facing, in colour, on a white background, with the head uncovered.',
+    children:
+      'Minors follow the same route: an appointment through Mexitel, the same documents, and the same capture on the day.',
+    exceptions:
+      'There is no published exceptions list, because there is no supplied photograph to make exceptions about. Anything you cannot comply with is a conversation with the officer at the counter.',
+    sourceName: 'Secretaría de Relaciones Exteriores — Trámite de Pasaporte',
+    sourceUrl: 'https://www.gob.mx/sre/acciones-y-programas/tramite-de-pasaporte-8014',
+    checkedOn: '2026-11-19',
+  },
+
+  argentina: {
+    authority:
+      'Argentina writes its photo rule into law rather than a guidance page: article 30 of Decreto 749/2019 governs the image that goes into the passport and into RENAPER’s records. That makes it unusually precise and unusually brief — one paragraph covering size, framing, background and what may not be altered.',
+    quirk:
+      'The framing is the part worth knowing. The decree asks for “medio busto” — head and upper chest — on a 4×4 cm square, which is looser than the tight chin-to-crown crop most countries specify. Crop as hard as you would for a European 35×45 photo and you have gone past what Argentina describes.',
+    background:
+      'Uniform white and plain. The decree says fondo uniforme blanco y liso, and gives no alternative shade.',
+    expression:
+      'Current, facing forward, in colour, with the head entirely uncovered, and showing the face fully and faithfully. The eyes must be open in every case, and no third party’s hands may be visible holding the subject — a rule aimed squarely at photographs of babies.',
+    headCovering:
+      'The head must be uncovered, with two exceptions in article 31. Hair may be covered for religious reasons or because of medical treatment, provided the main features of the face stay visible. And where religion means the face is partly or wholly covered, you may ask for the whole appointment and the photograph to be taken in a private room by staff of the same sex.',
+    exceptions:
+      'Article 30 also forbids altering or falsifying facial characteristics — while saying in the same sentence that this must not infringe the right to identity in its gender, cultural or religious aspects. Retouching a face is out; being yourself is not.',
+    sourceName: 'Decreto 749/2019, arts. 30–31 (RENAPER)',
+    sourceUrl: 'https://www.argentina.gob.ar/normativa/nacional/decreto-749-2019-330996/texto',
+    checkedOn: '2026-11-19',
+  },
+
+  chile: {
+    authority:
+      'The Chilean passport is issued by the Servicio de Registro Civil e Identificación, and its official service page is unusually short. You book an appointment online with your ClaveÚnica, you attend the office you booked, and the list of what to bring has one item on it.',
+    quirk:
+      'That item is your cédula de identidad, valid and in good condition. There is no photograph on the list, no size, no background colour and no file format — the picture is part of what happens at the counter. If you have no cédula you give your RUN and apply for both documents together. The 35×45 mm shown on this page is the generic international size, kept because people do need Chilean-sized photos for visas and other paperwork, and it is not a rule the Registro Civil publishes.',
+    children:
+      'Under-14s are booked differently: the same site, but the “Menores de edad” option, and one appointment per child. There are separate requirements for collecting a child’s passport afterwards.',
+    exceptions:
+      'None are published, for the same reason there are no photo rules — nothing is supplied. Anything unusual is handled at the appointment.',
+    recency:
+      'Not applicable to a supplied photo. The passport itself runs for ten years, which is the longest gap between pictures of any of the countries on this list.',
+    sourceName: 'ChileAtiende / Registro Civil — Pasaporte',
+    sourceUrl: 'https://www.chileatiende.gob.cl/fichas/3445-pasaporte',
+    checkedOn: '2026-11-19',
   },
 };
 
