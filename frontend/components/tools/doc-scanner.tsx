@@ -374,6 +374,13 @@ export function DocScanner({
         try { await track0.applyConstraints({ zoom: start } as MediaTrackConstraints); } catch { /* kept its lens */ }
       }
 
+      // Check again: the lens probe above awaits, and a scanner that is opened
+      // and closed quickly — which is every other test in the e2e suite, and a
+      // person changing their mind — can unmount during it. Without this the
+      // stream is handed to a video element belonging to a closed dialog and
+      // the camera is left running.
+      if (cancelled) { stream.getTracks().forEach((t) => t.stop()); return; }
+
       const v = videoRef.current;
       if (v) { v.srcObject = stream; await v.play().catch(() => {}); }
       setReady(true);

@@ -21,13 +21,24 @@
 // nobody has been told and here is how to fix that. The unconfigured path must
 // need nothing at all to work.
 
+// ⚠ `||`, not a destructuring default.
+//
+// An optional secret that was never created still arrives — as an EMPTY
+// STRING, because `${{ secrets.ALERT_TO }}` interpolates to nothing rather
+// than being left out. A default in the destructuring only fires on
+// `undefined`, so ALERT_TO came through as '' and nodemailer answered
+// `Error: No recipients defined` after authenticating perfectly well.
+//
+// Found by the test button on its first press, which is the entire argument
+// for having built one.
+const env = process.env;
+const SMTP_HOST = env.SMTP_HOST || '';
+const SMTP_USER = env.SMTP_USER || '';
+const SMTP_PASS = env.SMTP_PASS || '';
+const SMTP_PORT = env.SMTP_PORT || '465';
+const MAIL_FROM = env.MAIL_FROM || 'DiemDesk <support@diemdesk.com>';
+const ALERT_TO = env.ALERT_TO || 'maniprabhamca@gmail.com';
 const {
-  SMTP_HOST = '',
-  SMTP_USER = '',
-  SMTP_PASS = '',
-  SMTP_PORT = '465',
-  MAIL_FROM = 'DiemDesk <support@diemdesk.com>',
-  ALERT_TO = 'maniprabhamca@gmail.com',
   GITHUB_SERVER_URL = 'https://github.com',
   GITHUB_REPOSITORY = '',
   GITHUB_RUN_ID = '',

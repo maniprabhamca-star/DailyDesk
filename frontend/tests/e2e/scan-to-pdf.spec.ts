@@ -166,13 +166,21 @@ test.describe('Scan to PDF — the scanner', () => {
     await expect(page.getByRole('button', { name: /rotate the camera picture/i })).toHaveCount(0);
   });
 
-  test('asks the camera for a frame shaped like the screen it has to fill', async ({ page }) => {
-    // A screenshot from the owner's phone showed a 2560x1440 stream — because
-    // that is what this code was asking for, explicitly landscape, on an
-    // upright phone. Covering a portrait screen with a 16:9 frame keeps about a
-    // quarter of its width, and no layout work fixes a frame that is the wrong
-    // shape to start with. Plenty of devices ignore the request; asking for the
-    // wrong thing guarantees the wrong answer.
+  test('asks the camera for its widest view, never for a shape that suits the screen', async ({ page }) => {
+    // This test used to assert the exact opposite - 'a tall screen must ask
+    // for a tall frame' - and it was wrong, in a way that cost the owner real
+    // use of the tool before anyone measured it.
+    //
+    // A phone sensor is natively about 4:3, and that is the only shape at which
+    // its whole field of view exists. Every other ratio is produced by cropping
+    // the sensor and discarding the rest: a 16:9 frame is a 4:3 one with the
+    // top and bottom removed. So asking for a shape to suit the screen spends
+    // FIELD OF VIEW on LAYOUT - and field of view is the entire question of
+    // whether a long receipt fits in the picture at a distance a person can
+    // actually hold a phone. Layout is free; it is CSS.
+    //
+    // What the wrong answer looks like from outside: 'I have to keep very long
+    // distance to cover the entire bill and not easy to handle it.'
     const asked: unknown[] = [];
     await page.exposeFunction('__recordConstraints', (c: unknown) => { asked.push(c); });
     await page.addInitScript(() => {
@@ -185,11 +193,43 @@ test.describe('Scan to PDF — the scanner', () => {
     await page.reload({ waitUntil: 'domcontentloaded' });
     await openScanner(page);
 
-    const first = asked[0] as { video?: { width?: { ideal?: number }; height?: { ideal?: number } } };
+    type Asked = {
+      video?: {
+        width?: { ideal?: number };
+        height?: { ideal?: number };
+        aspectRatio?: { ideal?: number };
+        resizeMode?: { ideal?: string };
+      };
+    };
+    const first = asked[0] as Asked;
     const vp = page.viewportSize()!;
     expect(vp.height, 'this test is about a portrait screen').toBeGreaterThan(vp.width);
-    expect(first?.video?.height?.ideal, 'a tall screen must ask for a tall frame')
-      .toBeGreaterThan(first?.video?.width?.ideal ?? Infinity);
+
+    const aw = first?.video?.width?.ideal ?? 0;
+    const ah = first?.video?.height?.ideal ?? 0;
+    expect(aw, 'the first attempt must name a resolution').toBeGreaterThan(0);
+    expect(ah, 'the first attempt must name a resolution').toBeGreaterThan(0);
+
+    // The sensor's own shape, ~4:3 - NOT the screen's. What matters is that
+    // this number does not move when the viewport does.
+    expect(aw / ah, 'ask for the native ~4:3, not the screen shape').toBeGreaterThan(1.25);
+    expect(aw / ah, 'ask for the native ~4:3, not the screen shape').toBeLessThan(1.45);
+
+    // resizeMode 'none' is the constraint that says: do not crop or rescale to
+    // satisfy me. It must be an IDEAL - Safari does not implement it, and a
+    // mandatory form would fail the whole request on iOS, which is the one
+    // place a scanner cannot afford to simply not open.
+    expect(first?.video?.resizeMode?.ideal, 'ask the camera not to crop for us').toBe('none');
+
+    // And no attempt in the ladder may derive an aspect ratio from the
+    // viewport. That is the bug this test now exists to keep out.
+    const screenShape = vp.width / vp.height;
+    for (const a of asked as Asked[]) {
+      const ar = a?.video?.aspectRatio?.ideal;
+      if (typeof ar === 'number') {
+        expect(Math.abs(ar - screenShape), 'no attempt may ask for the SCREEN shape').toBeGreaterThan(0.05);
+      }
+    }
   });
 
   test('a stored rotation from the old control is cleared, not honoured', async ({ page }) => {
@@ -242,7 +282,7 @@ test.describe('Scan to PDF — the scanner', () => {
     await expect(page.getByRole('button', { name: /done \(1\)/i })).toBeVisible({ timeout: 10_000 });
   });
 
-  test('turning the phone re-frames the scanner instead of staying portrait', async ({ page }) => {
+  test('turning the phone re-frames the LAYOUT, and leaves the camera alone', async ({ page }) => {
     // "if i tilt the phone horizontally the scanner is not turning up" — the
     // zoom range was worked out once, on the shape the screen had when the
     // scanner opened, and then frozen. Turning the phone changes that shape
@@ -254,11 +294,16 @@ test.describe('Scan to PDF — the scanner', () => {
     await expect.poll(async () => chips.count(), { timeout: 10_000 }).toBeGreaterThan(0);
     const portraitStops = await chips.allInnerTexts();
 
-    // Watch what the camera track is asked for. The layout turning is not the
-    // fix and never was: the scanner's controls moved to the sides of a
-    // landscape screen while the camera went on shooting the TALL frame it was
-    // asked for at open, and a 9:16 picture in a 16:9 screen is a strip down
-    // the middle — reported as "the scanner is still in vertical".
+    // Watch what the camera track is asked for, because the answer must now be
+    // NOTHING about its shape.
+    //
+    // There used to be a reshapeStream() here, re-asking the camera for a tall
+    // frame upright and a wide one on its side so the frame would match the
+    // screen. It worked, and it was the same mistake as asking for a shape at
+    // open: a camera asked for a ratio it does not natively have answers by
+    // cropping its sensor, so every turn of the phone threw away part of the
+    // view to tidy the layout. The frame's shape is fixed for the session now,
+    // and the LAYOUT follows the frame instead.
     await page.evaluate(() => {
       const w = window as unknown as { __applied: unknown[] };
       w.__applied = [];
@@ -275,20 +320,23 @@ test.describe('Scan to PDF — the scanner', () => {
     // Turn the phone.
     await page.setViewportSize({ width: 844, height: 390 });
 
-    // The camera must be asked for a WIDE frame now.
-    const asked = await page.waitForFunction(() => {
-      const w = window as unknown as { __applied: { width?: { ideal?: number }; height?: { ideal?: number } }[] };
-      const last = w.__applied[w.__applied.length - 1];
-      return last && (last.width?.ideal ?? 0) > (last.height?.ideal ?? 0) ? last : null;
-    }, undefined, { timeout: 10_000 }).then((h) => h.jsonValue());
-    expect(asked, 'turning the phone must re-ask the camera, not just move the buttons').toBeTruthy();
-
-    // The preview element must still span the (now landscape) screen. Measured
-    // with offsetWidth, NOT getBoundingClientRect: the rect includes the zoom
-    // transform, so a scaled element reports 844*zoom and the assertion reads
-    // as a layout failure when nothing is wrong.
+    // Give the scanner time to react to the turn, then check what it did NOT
+    // do. A negative like this needs a settle: asserting immediately would
+    // pass even if the reshape came back, simply by looking too early.
     await expect.poll(async () => page.locator('video').evaluate((v: HTMLVideoElement) =>
       v.offsetWidth + 'x' + v.offsetHeight), { timeout: 10_000 }).toBe('844x390');
+
+    const reshapes = await page.evaluate(() => {
+      const w = window as unknown as { __applied: { width?: unknown; height?: unknown }[] };
+      return w.__applied.filter((c) => c.width !== undefined || c.height !== undefined).length;
+    });
+    expect(reshapes, 'turning the phone must NOT re-ask the camera for a different frame shape - that re-crops the sensor to tidy the layout')
+      .toBe(0);
+
+    // (The preview was already checked to span the now-landscape screen above.
+    // Measured with offsetWidth, NOT getBoundingClientRect: the rect includes
+    // the zoom transform, so a scaled element reports 844*zoom and reads as a
+    // layout failure when nothing is wrong.)
 
     // ...and the stops must have been rebuilt for it. Filling a landscape
     // screen with a landscape camera is nearly free, so the range collapses —
