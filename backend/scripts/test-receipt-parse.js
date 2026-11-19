@@ -7,7 +7,8 @@
  */
 
 'use strict';
-const { parseReceipt } = require('../src/utils/receiptParse');
+const { parseReceipt, findMerchant, findDate, findTotalDetailed } = require('../src/utils/receiptParse');
+const { parseModelJson } = require('../src/utils/modelJson');
 
 let pass = 0;
 const fails = [];
@@ -215,6 +216,119 @@ Total 55.00
   const r = parseReceipt(t);
   eq('adds up beats appears-later', r.total, 105);
   check('cash tendered is not the total', r.total !== 200, 'got ' + r.total);
+}
+
+// -- The reply-shape failures that killed every vision read -----------------
+// A $113.77 grocery receipt came back to the owner as "Rs 3, Transport, BY ae
+// er ae". The model had read it correctly; the server threw the answer away.
+// The old code assumed the whole reply was JSON and stripped a fence with
+// `.replace(/```$/, '')`, which matches only at the very END of the string.
+// Anything written after the closing brace left the fence and the prose
+// attached, and JSON.parse died at the character after the object. Each case
+// below is a reply shape that used to lose a receipt.
+{
+  const want = { merchant: 'Shivam Grocery', total: 113.77 };
+  const obj = JSON.stringify(want);
+  const fence = '```';
+
+  const shapes = {
+    'bare object': obj,
+    'fenced': fence + 'json\n' + obj + '\n' + fence,
+    'fenced with a sign-off AFTER the fence': fence + 'json\n' + obj + '\n' + fence + '\n\nLet me know if you want the line items!',
+    'prose first, then the object': 'Here is the receipt:\n\n' + obj,
+    'prose on both sides': 'Sure - reading it now.\n' + obj + '\nThat is the whole receipt.',
+    'no fence, trailing note': obj + '\nNote: the date was faint.',
+    'windows line endings': fence + 'json\r\n' + obj + '\r\n' + fence + '\r\n',
+  };
+  for (const name of Object.keys(shapes)) {
+    let got = null;
+    try { got = parseModelJson(shapes[name]); } catch (e) { got = { error: e.message }; }
+    eq('reads a reply shaped as ' + name, got && got.total, want.total);
+    eq('...and keeps the merchant (' + name + ')', got && got.merchant, want.merchant);
+  }
+}
+
+// Braces are counted, not matched by regex, so punctuation inside a string
+// cannot move the end of the object. A merchant really can be called this.
+{
+  const reply = JSON.stringify({ merchant: 'The {Brace} Cafe "Downtown"', total: 9.5, note: 'aisle 3}' }) + '\ndone';
+  const got = parseModelJson(reply);
+  eq('a brace inside a string does not end the object', got.total, 9.5);
+  eq('an escaped quote does not end the string', got.merchant, 'The {Brace} Cafe "Downtown"');
+  eq('a closing brace inside a string is ignored', got.note, 'aisle 3}');
+}
+
+// Nested objects: the first balanced run must be the WHOLE object, not the
+// first inner one to close.
+{
+  const payload = { merchant: 'A', totals: { sub: 10, tax: 1 }, total: 11 };
+  const got = parseModelJson(JSON.stringify(payload) + '\ntrailing');
+  eq('nesting does not truncate the object', got.total, 11);
+  eq('nested values survive', got.totals.tax, 1);
+}
+
+// A stray brace in the prose before the object costs an attempt, not the answer.
+{
+  const got = parseModelJson('I will use the schema {merchant, total} as asked.\n' + JSON.stringify({ merchant: 'B', total: 4 }));
+  eq('a half-brace in prose does not block the real object', got.total, 4);
+}
+
+// The three failures must stay distinguishable in the log. Collapsing them is
+// how this hid: "the detailed reader could not run" covered a parse bug for as
+// long as nobody could tell it from a missing API key.
+{
+  const codeOf = (reply) => { try { parseModelJson(reply); return 'no-throw'; } catch (e) { return e.code; } };
+  eq('a truncated object reports truncated', codeOf('{"merchant":"X","total":1'), 'truncated');
+  eq('prose with no object reports absent', codeOf('I cannot read this image.'), 'absent');
+  eq('an empty reply reports empty', codeOf('   '), 'empty');
+  eq('a malformed object reports malformed', codeOf('{"a": 1,, }'), 'malformed');
+  // And the reason must never carry the receipt into the server log.
+  let msg = '';
+  try { parseModelJson('{"merchant":"Shivam Grocery",,}'); } catch (e) { msg = e.message; }
+  check('the log line does not quote the receipt', msg.indexOf('Shivam') < 0, msg);
+}
+
+// -- The screenshot: a $113.77 grocery receipt read as "Rs 3, Transport" -----
+// Every field on that panel was wrong and every one of them was PRESENTED, in
+// a form with a Save to Budget button. These three guards are why each of
+// them no longer is. The inputs are what OCR actually produced.
+{
+  // The store name. OCR turned a header into fragments; the old check asked
+  // only for three letters somewhere and half the line being letters, which
+  // word-salad satisfies easily.
+  eq('word-salad is not a shop name', findMerchant(['BY ae er ae', 'x']), '');
+  eq('...nor are two-letter fragments', findMerchant(['ae er', 'oo']), '');
+  // And nothing real is lost to the guard.
+  eq('a real name still reads', findMerchant(['Shivam Grocery', '1012 Lower Roswell Road']), 'Shivam Grocery');
+  eq('a short real name still reads', findMerchant(['Lidl']), 'Lidl');
+
+  // The date. The receipt was from April; OCR produced digits that parsed as
+  // tomorrow, and tomorrow was accepted and shown.
+  const now = Date.parse('2026-11-18T00:00:00Z');
+  eq('a receipt cannot be dated next week', findDate('Date: 25/11/2026', now), null);
+  eq('nor tomorrow-plus-one', findDate('Date: 2026-11-20', now), null);
+  // One day of slack, for a till clock in a timezone ahead of the phone.
+  eq('today is fine', findDate('Date: 2026-11-18', now), '2026-11-18');
+  eq('tomorrow is allowed as clock slack', findDate('Date: 2026-11-19', now), '2026-11-19');
+  eq('a real past date is untouched', findDate('Date: 17/04/2026', now), '2026-04-17');
+
+  // The total. A number scavenged from the bottom of unreadable text must not
+  // arrive looking like a total the receipt proved.
+  const guessed = findTotalDetailed(['Shivam Grocery', 'a 1.00', 'b 2.00', 'xx 3']);
+  eq('a scavenged number is marked a guess', guessed.confidence, 'guess');
+  const labelled = findTotalDetailed(['ITEM 5.00', 'GRAND TOTAL 113.77']);
+  eq('a named total is marked labelled', labelled.confidence, 'labelled');
+  eq('...and is the right number', labelled.total, 113.77);
+  const checked = findTotalDetailed(['SUBTOTAL 111.46', 'Food Tax 2.19', 'Regular Tax 0.12', 'GRAND TOTAL 113.77']);
+  eq('a total the receipt proves is marked checked', checked.confidence, 'checked');
+  eq('...and is the right number', checked.total, 113.77);
+  eq('nothing found says so', findTotalDetailed(['hello']).confidence, 'none');
+
+  // Put together: the whole garbled read must not come back as a confident
+  // answer any more.
+  const r = parseReceipt(['BY ae er ae', 'oo ae', 'er 3'].join('\n'));
+  eq('the garbled scan reports no merchant', r.merchant, '');
+  check('the garbled scan does not claim a trustworthy total', r.totalConfidence !== 'checked' && r.totalConfidence !== 'labelled', r.totalConfidence);
 }
 
 console.log(`\nreceipt parsing: ${pass} passed, ${fails.length} failed`);

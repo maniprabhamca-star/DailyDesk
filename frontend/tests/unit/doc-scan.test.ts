@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { detectDocument, flattenDocument, quadStability, viewRect, fillZoom, smoothQuad, type Quad, type Point } from '@/lib/doc-scan';
+import { detectDocument, flattenDocument, quadStability, viewRect, fillZoom, openingZoom, smoothQuad, type Quad, type Point } from '@/lib/doc-scan';
 
 /* Document detection, tested against frames whose answer is already known.
  *
@@ -605,5 +605,81 @@ describe('a frame captured from the running scanner', () => {
     ]) {
       expect(at(x, y), `corner ${x},${y} should be paper`).toBeGreaterThan(120);
     }
+  });
+});
+
+describe('openingZoom', () => {
+  /* The stop the scanner opens on was changed twice, in opposite directions,
+   * on two different wrong readings of what the crop costs — and nothing
+   * failed either time, because the rule lived inside a component effect. It
+   * is a function now, so these are the assertions that were missing.
+   *
+   * A Pixel-class phone upright: a native 4:3 frame in a tall screen. */
+  const FRAME_W = 4096, FRAME_H = 3072;   // what the camera hands over
+  const BOX_W = 390, BOX_H = 844;         // the screen it has to sit in
+  const stops = [1, 1.4, 2, 2.9];
+
+  it('opens a receipt filled, because filling it costs no height', () => {
+    const z = openingZoom(FRAME_W, FRAME_H, BOX_W, BOX_H, stops, true);
+    expect(z, 'a receipt must not open letterboxed in a band').toBeGreaterThan(1);
+    expect(z).toBeCloseTo(fillZoom(FRAME_W, FRAME_H, BOX_W, BOX_H), 5);
+  });
+
+  it('gives up no row of the frame to do it — the claim the change rests on', () => {
+    // This is the whole argument, as arithmetic rather than prose: the earlier
+    // reasoning said filling the screen throws away ~90% of the picture, which
+    // is true by AREA and irrelevant to a vertical receipt, because what it
+    // throws away is at the sides. If this ever stops holding, the change
+    // above stops being justified.
+    const z = openingZoom(FRAME_W, FRAME_H, BOX_W, BOX_H, stops, true);
+    const filled = viewRect(FRAME_W, FRAME_H, BOX_W, BOX_H, z);
+    const wide = viewRect(FRAME_W, FRAME_H, BOX_W, BOX_H, 1);
+    expect(filled.sh, 'filling must keep every row the wide view had').toBeCloseTo(wide.sh, 5);
+    expect(filled.sh).toBeCloseTo(FRAME_H, 5);
+    expect(filled.sw, 'what it gives up is width').toBeLessThan(wide.sw);
+    // And no black left: the picture reaches both ends of the screen.
+    expect(filled.dh).toBeCloseTo(BOX_H, 5);
+    expect(filled.dy).toBeCloseTo(0, 5);
+  });
+
+  it('makes the subject big enough for the detector to believe it', () => {
+    // The other half of the same bug report. The detector samples the VISIBLE
+    // rectangle, so a contained frame hands it a 390x292 band; a receipt
+    // spanning 80% of that band covers ~6% of it, against a 5% floor — found
+    // or lost on a coin toss. Filled, the same receipt is near 17%.
+    const filled = viewRect(FRAME_W, FRAME_H, BOX_W, BOX_H, openingZoom(FRAME_W, FRAME_H, BOX_W, BOX_H, stops, true));
+    const wide = viewRect(FRAME_W, FRAME_H, BOX_W, BOX_H, 1);
+    const areaOf = (r: { dw: number; dh: number }) => {
+      const tall = r.dh * 0.8;              // a receipt spanning 80% of the view
+      return (tall * (tall / 8)) / (r.dw * r.dh);   // a 1:8 till receipt
+    };
+    expect(areaOf(wide), 'the contained band is where detection died').toBeLessThan(0.08);
+    expect(areaOf(filled), 'filled, it must clear the 5% floor several times over').toBeGreaterThan(0.15);
+  });
+
+  it('opens a PAGE wide, because filling would cut its sides off', () => {
+    // Not a preference — the same axis argument with the other answer. A
+    // filled 4:3 frame leaves room for something ~0.46 wide and a page is
+    // ~0.71, so a page keeps the whole frame, band and all.
+    const z = openingZoom(FRAME_W, FRAME_H, BOX_W, BOX_H, stops, false);
+    expect(z, 'documents open on the widest stop').toBe(stops[0]);
+    const view = viewRect(FRAME_W, FRAME_H, BOX_W, BOX_H, z);
+    expect(view.dw / view.dh, 'and a portrait page must fit in what is shown').toBeGreaterThan(0.71);
+  });
+
+  it('opens wide when filling WOULD eat the receipt’s own axis', () => {
+    // A frame narrower than the screen inverts the identity above: filling
+    // would crop height, which is the one thing a receipt cannot spare. No
+    // real phone does this; the guard is here so that if one ever does, it
+    // degrades to a band instead of cutting the bill in half.
+    const z = openingZoom(600, 2000, BOX_W, BOX_H, stops, true);
+    expect(z).toBe(stops[0]);
+  });
+
+  it('never invents a zoom when there is nothing to gain', () => {
+    // Frame and screen the same shape: filling and showing everything are one
+    // picture, so there is no stop to move to.
+    expect(openingZoom(780, 1688, BOX_W, BOX_H, [], true)).toBe(1);
+    expect(openingZoom(0, 0, BOX_W, BOX_H, stops, true)).toBe(stops[0]);
   });
 });

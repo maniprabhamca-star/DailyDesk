@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { X, Check, Zap, ZapOff, Loader2, ScanLine } from 'lucide-react';
-import { detectDocument, flattenDocument, quadStability, viewRect, fillZoom, smoothQuad, type Quad, type DetectNotes } from '@/lib/doc-scan';
+import { detectDocument, flattenDocument, quadStability, viewRect, fillZoom, openingZoom, smoothQuad, type Quad, type DetectNotes } from '@/lib/doc-scan';
 
 /**
  * Full-screen document scanner.
@@ -74,8 +74,23 @@ import { detectDocument, flattenDocument, quadStability, viewRect, fillZoom, smo
  * the frame's a moment later when the track has re-negotiated.
  */
 
-/** Detector input width. Bigger is not better — lib/doc-scan downsamples anyway. */
-const DETECT_WIDTH = 480;
+/**
+ * Detector input, capped on the LONG edge rather than the width.
+ *
+ * It used to cap `width`, which was the long edge only because the preview was
+ * a letterboxed band. A receipt now opens filling an upright screen, so the
+ * long edge is the HEIGHT: the same 480 cap on width would have fed the
+ * detector 390x844 and quietly tripled the work per pass, at ~12 passes a
+ * second, on a phone.
+ *
+ * 720 rather than 480 because the two numbers answer different questions. The
+ * area floor is a FRACTION, so downsampling never moves it — but the blur and
+ * gradient radii are in pixels, and a 1:8 receipt filling the view is only an
+ * eighth as wide as it is tall. At 480 that is ~48px across before blurring;
+ * at 720 it is ~72px, which leaves an edge to find. Cost is ~1.4x the band's
+ * pixel count, not 3x.
+ */
+const DETECT_LONG_EDGE = 720;
 /** Milliseconds between detection passes. ~12/sec is smooth to the eye and cheap. */
 const DETECT_INTERVAL = 80;
 /** Consecutive steady frames before an automatic capture fires. */
@@ -570,48 +585,50 @@ export function DocScanner({
           .map((z) => Math.min(max, Math.max(1, z)))
           .filter((z, i, a) => a.findIndex((o) => label(o) === label(z)) === i);
         setStops(next);
-        // Open on the LOWEST stop — asked for directly, and it is the right
-        // default anyway. Zoomed all the way out you can see the whole page and
-        // zoom in if you want to; opened too tight, the page is off the edges
-        // of the screen and there is nothing on screen to tell you that zoom is
-        // why. Every complaint about this scanner has been that it was too far
-        // in, never that it was too far out.
+        // WHICH STOP TO OPEN ON, AND THE DISTINCTION THAT DECIDES IT.
         //
-        // When there are no stops the camera already matches the screen, so
-        // filling it and showing everything are the same picture.
+        // This zoom is a crop: 1 shows the whole frame letterboxed, `max`
+        // (`fillZoom`) reaches every edge by throwing the rest away. Twice
+        // now the opening stop has been moved because of an argument about
+        // how much that crop costs, and both arguments measured the wrong
+        // thing — AREA, when what a receipt needs is one AXIS.
         //
-        // ⚠ RECEIPTS USED TO OPEN AT `max` HERE, AND THAT WAS THE BUG.
+        // Read `viewRect` and it is exact. When the frame is wider than the
+        // screen, which is every phone held upright, filling the screen
+        // gives `sh === frameH`:
         //
-        // The reasoning was sound as far as it went: a landscape frame fitted
-        // into an upright screen is a band across the middle, and a till
-        // receipt cannot fit in a band. So the receipt scanner opened at
-        // `fillZoom`, which reaches every edge of the screen.
+        //     sh = boxH / cover = boxH / (boxH / frameH) = frameH
         //
-        // But `fillZoom` on a 16:9 frame in a 9:16 screen is about 3.1, and
-        // this zoom is a CSS magnification — the only way it can fill the
-        // screen is by discarding everything outside the middle ninth of the
-        // picture. The scanner was therefore opening with roughly 90% of the
-        // camera's field of view thrown away, and the person holding the phone
-        // had to make that back up by moving the phone away. Reported exactly
-        // that way: "I have to keep very long distance to cover the entire bill
-        // and not easy to handle it." It also put the receipt so far off that
-        // it fell under the detector's area floor, which is the other half of
-        // the same report — "really too bad in scanning the dimension".
+        // Every row of the picture is still on screen. The ~90% discarded
+        // is discarded SIDEWAYS. So filling the screen costs a vertical
+        // receipt no field of view at all, and cannot be what made it need
+        // more distance. It only removes the black and makes the receipt
+        // about 2.9x bigger on screen.
         //
-        // So the band stays, and it is no longer the problem it was:
+        // What DID cost field of view was asking the camera for 16:9. That
+        // is a real crop of a 4:3 sensor, taken before the browser hands
+        // the frame over, and it is where "I have to keep very long
+        // distance to cover the entire bill" came from. The two were
+        // shipped together, so removing 16:9 and opening wide at the same
+        // time credited the fix to the wrong half — and opening wide then
+        // caused the other half of that same report, "really too bad in
+        // scanning the dimension": contained in a band, the receipt covers
+        // ~6% of the detector's input against a 5% floor, so it is found
+        // or lost on a coin toss. Filling the screen puts it near 17%.
         //
-        //   · the camera is now asked for its native 4:3 instead of 16:9, and
-        //     a 4:3 frame contained in a 390px-wide phone screen is a 292px
-        //     band rather than a 219px one — a third more usable height, for
-        //     free, because 4:3 is the shape the sensor had all along;
-        //   · on a phone with an ultra-wide the lens row above opens at 0.5x,
-        //     which fits the same receipt from about half the distance;
-        //   · and the controls sit over the black, which is what the black is
-        //     for.
+        // Hence: a receipt opens filled, a page opens wide.
         //
-        // What is NOT done here is cropping the picture to make the screen look
-        // full. A full screen is worth nothing if the bill is not in it.
-        const start = next.length ? next[0] : 1;
+        // The split is not a preference, it is the same axis argument. A
+        // till receipt is a vertical strip and what the crop removes is
+        // empty table either side of it. An A4 page is not: fitting the
+        // height of a filled 4:3 frame leaves room for something 0.46 wide
+        // and a page is 0.71, so filling the screen would cut its sides
+        // off. Pages keep the whole frame and the band with it.
+        //
+        // The rule itself is `openingZoom` in lib/doc-scan.ts, pure and
+        // under test — it was rewritten twice while it lived in here, and
+        // nothing failed either time.
+        const start = openingZoom(v.videoWidth, v.videoHeight, cssW, cssH, next, long);
         setZoom(start);
         zoomRef.current = start;
       }
@@ -632,8 +649,9 @@ export function DocScanner({
       // zoom. What you see is what is detected.
       if (!detectCanvas.current) detectCanvas.current = document.createElement('canvas');
       const dc = detectCanvas.current;
-      const dw = Math.max(1, Math.min(DETECT_WIDTH, Math.round(rect.dw)));
-      const dh = Math.max(1, Math.round((rect.dh / rect.dw) * dw));
+      const shrink = Math.min(1, DETECT_LONG_EDGE / Math.max(rect.dw, rect.dh));
+      const dw = Math.max(1, Math.round(rect.dw * shrink));
+      const dh = Math.max(1, Math.round(rect.dh * shrink));
       if (dc.width !== dw || dc.height !== dh) { dc.width = dw; dc.height = dh; }
       const dctx = dc.getContext('2d', { willReadFrequently: true });
       if (!dctx) return;

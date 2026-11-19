@@ -29,6 +29,7 @@ const { isCanaryReq } = require('../utils/canary');
 const { trackEvent } = require('../utils/trackEvent');
 const db = require('../db');
 const budget = require('../utils/aiBudget');
+const { parseModelJson } = require('../utils/modelJson');
 const { parseReceipt } = require('../utils/receiptParse');
 
 const router = express.Router();
@@ -173,8 +174,11 @@ async function readWithVision(buf, capKey, isOwner) {
     await budget.record(capKey, usage.input_tokens || 0, usage.output_tokens || 0).catch(() => {});
 
     const text = (data.content || []).filter((c) => c.type === 'text').map((c) => c.text).join('').trim();
-    const json = text.replace(/^\`\`\`(?:json)?/i, '').replace(/\`\`\`$/, '').trim();
-    const out = JSON.parse(json);
+    // Read the object out of the reply instead of assuming the reply IS the
+    // object. See utils/modelJson.js — stripping a fence off each end silently
+    // killed every receipt read the moment the model wrote anything after the
+    // closing brace.
+    const out = parseModelJson(text);
     // The model told us it could not read the image. Believe it, and let OCR
     // try rather than presenting a guess as a reading.
     if (out && out.unreadable === true) {
@@ -254,7 +258,7 @@ async function readWithVision(buf, capKey, isOwner) {
       category: CATS.includes(out.category) ? out.category : 'Other',
     };
   } catch (e) {
-    console.error('receipt vision failed:', e.message);
+    console.error('receipt vision failed:', e.code ? `[${e.code}] ${e.message}` : e.message);
     return null;
   }
 }
@@ -335,9 +339,19 @@ router.post('/scan', requirePro, (req, res) => {
       // line items off OCR text across every receipt layout in the world is not
       // something regular expressions do, and inventing rows would be worse than
       // showing none.
+      // The currency the receipt PRINTS, when it prints one. Returning null
+      // here left the form on whatever it already showed, which is how a
+      // Georgia grocery bill came back denominated in rupees. A symbol in the
+      // text is weak evidence, but it is evidence, and it beats a default
+      // carried over from the last thing the user looked at.
+      const sym = text.match(/[$€£₹¥]/);
+      const BY_SYMBOL = { '$': 'USD', '€': 'EUR', '£': 'GBP', '₹': 'INR', '¥': 'JPY' };
+      const spelled = /(usd|eur|gbp|inr|jpy|aud|cad)/i.exec(text);
+      const currency = spelled ? spelled[1].toUpperCase() : sym ? BY_SYMBOL[sym[0]] : null;
+
       return res.json({
         ...parsed,
-        merchantAddress: null, time: null, currency: null,
+        merchantAddress: null, time: null, currency,
         lines: [], subtotal: null, taxes: [], discounts: [],
         payments: [], identifiers: [],
         verified: { totalAddsUp: null, linesAddUp: null },

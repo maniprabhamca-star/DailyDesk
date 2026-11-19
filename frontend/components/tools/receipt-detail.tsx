@@ -112,9 +112,11 @@ export function ReceiptDetailPanel({
         <div>
           <p className="font-medium text-foreground">Basic read only — no line items this time</p>
           <p className="mt-1 leading-relaxed text-muted-foreground">
-            The detailed reader could not run, so this fell back to plain text recognition, which gets the total and
-            the store but not the individual items or reference numbers. A clearer, flatter photo of the whole receipt
-            usually gets the full read.
+            The detailed reader could not run, so this fell back to plain text recognition. That reads a clear,
+            flat receipt reasonably well, but it has no line items or reference numbers, and it only fills in the
+            amount when the receipt actually prints a line naming the total — anything it is not sure of is left
+            blank for you rather than guessed at. A clearer, flatter photo of the whole receipt usually gets the
+            full read.
           </p>
         </div>
       </div>

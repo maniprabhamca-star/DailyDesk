@@ -798,12 +798,47 @@ export function fillZoom(frameW: number, frameH: number, boxW: number, boxH: num
   return contain > 0 ? cover / contain : 1;
 }
 
-/* There was a `defaultZoom()` here that picked a starting zoom from how much of
- * the frame filling the screen would cost. It is gone: the scanner opens on the
- * lowest stop, full stop. Zoomed out you can see the whole page and reach for
- * the control; opened too tight the page is off the edges and nothing on screen
- * says zoom is why. Every complaint about this screen was that it was too far
- * in. A cleverer rule is not wanted — asked for directly. */
+/**
+ * Which stop the scanner opens on.
+ *
+ * This lived inside a component effect, where it was rewritten twice in
+ * opposite directions and no test ever saw it. It is here so it can be.
+ *
+ * `zoom` is a crop: 1 shows the whole frame letterboxed, `fillZoom(...)`
+ * reaches every edge by discarding the rest. The cost of that crop is the
+ * whole question, and the answer is not a quantity of picture — it is which
+ * AXIS the picture is lost along.
+ *
+ * When the frame is wider than the box, which is any phone camera on an
+ * upright phone, filling the box keeps every row of the frame:
+ *
+ *     sh = boxH / cover = boxH / (boxH / frameH) = frameH
+ *
+ * So for something tall and thin, filling costs no field of view whatsoever —
+ * it removes empty margin from the sides and the black bands with it, and
+ * makes the subject several times larger both on screen and in the detector's
+ * input, where a contained receipt sits right on the area floor.
+ *
+ * A page is the other case and gets the other answer. Fitting the height of a
+ * filled 4:3 frame leaves room for something about 0.46 wide; a page is 0.71,
+ * so filling would cut its sides off. Pages keep the whole frame.
+ *
+ * `long` is therefore the switch, and the guard is the condition the identity
+ * above relies on: should a device ever hand back a frame narrower than its
+ * screen, filling would begin eating the receipt's own axis, so that opens
+ * wide too.
+ */
+export function openingZoom(
+  frameW: number, frameH: number, boxW: number, boxH: number,
+  stops: number[], long: boolean,
+): number {
+  const widest = stops.length ? stops[0] : 1;
+  if (!long) return widest;
+  if (frameW <= 0 || frameH <= 0 || boxW <= 0 || boxH <= 0) return widest;
+  if (frameW / frameH < boxW / boxH) return widest;
+  const max = fillZoom(frameW, frameH, boxW, boxH);
+  return max > 1 ? max : widest;
+}
 
 /**
  * Which part of the camera frame is on screen, and where it sits in the box.

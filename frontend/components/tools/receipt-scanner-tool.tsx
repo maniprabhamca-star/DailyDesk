@@ -12,7 +12,35 @@ import { ReceiptPreview } from '@/components/tools/receipt-preview';
 import { DocScanner, type ScannerCapture } from '@/components/tools/doc-scanner';
 
 const API = process.env.NEXT_PUBLIC_API_URL || '';
-type Parsed = ReceiptDetail & { merchant: string; total: number | null; date: string | null; category: string; text: string };
+type Parsed = ReceiptDetail & {
+  merchant: string;
+  total: number | null;
+  /**
+   * How the total was arrived at, so this screen can tell a figure the
+   * receipt proves from one that was scavenged off the bottom of the text.
+   * 'checked' — the receipt's own subtotal + tax agree with a printed line.
+   * 'labelled' — a line named it (GRAND TOTAL, AMOUNT DUE...).
+   * 'guess' — the last money-looking value near the bottom. Not shown.
+   * Absent on the detailed-reader path, which verifies differently.
+   */
+  totalConfidence?: 'checked' | 'labelled' | 'guess' | 'none';
+  date: string | null;
+  category: string;
+  text: string;
+};
+
+/**
+ * Today, where the person actually is.
+ *
+ * `new Date().toISOString().slice(0,10)` is the UTC date, which is tomorrow
+ * for most of the Americas all evening. It filled the date box with tomorrow's
+ * date on a receipt from April and nobody could see why.
+ */
+function localToday(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
 
 // The receipt states its own currency; our default was rupees, so a US Walmart
 // slip showed its total against a ₹ sign.
@@ -64,10 +92,26 @@ export function ReceiptScannerTool() {
       }
       const p = data as Parsed;
       setMerchant(p.merchant || '');
-      setAmount(p.total != null ? String(p.total) : '');
+      // A GUESSED total is not offered as an answer.
+      //
+      // When the detailed reader cannot run, the fallback looks for a line
+      // that NAMES the total; failing that it takes the last money-looking
+      // value near the bottom of the text. That last step is a scavenge, and
+      // on a receipt OCR could not really read it returned 3 for a $113.77
+      // grocery bill — which then sat in this box, next to a Save to Budget
+      // button, looking exactly like a figure we had read. The reader now
+      // says which of the two it was, and a scavenge leaves the box empty for
+      // the person to fill in. An empty box asks a question; a wrong number
+      // does not.
+      const trustedTotal = p.total != null && p.totalConfidence !== 'guess';
+      setAmount(trustedTotal ? String(p.total) : '');
       setCategory(CATEGORIES.includes(p.category as (typeof CATEGORIES)[number]) ? p.category : 'Other');
-      setDate(p.date || new Date().toISOString().slice(0, 10));
-      setScanFound({ amount: p.total != null, merchant: !!p.merchant });
+      // `toISOString()` is UTC. For anyone west of Greenwich in the evening it
+      // is already tomorrow there, so "default to today" filled the date box
+      // with tomorrow's date — reported as exactly that, on a receipt from
+      // April. The local date is the one the person is living in.
+      setDate(p.date || localToday());
+      setScanFound({ amount: trustedTotal, merchant: !!p.merchant });
       setDetail(p);
       if (p.currency) {
         const sym = CURRENCY_SYMBOL[p.currency.toUpperCase()] || p.currency;
@@ -112,7 +156,7 @@ export function ReceiptScannerTool() {
       // extracting it: the work was done and the answer thrown away.
       await addExpense({
         amount: amt, category, description: merchant, merchant,
-        date: date || new Date().toISOString().slice(0, 10),
+        date: date || localToday(),
         detail,
       });
       setPhase('saved');

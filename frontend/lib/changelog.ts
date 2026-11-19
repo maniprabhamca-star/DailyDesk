@@ -24,6 +24,22 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-11-18',
+    kind: 'fixed',
+    title: 'The receipt reader was reading your receipt correctly and then throwing the answer away',
+    detail:
+      'If a scan came back with a wrong total, a store name that looked like typing noise, or a date that was not on the receipt, this was why — and it was not the reader. The reader was getting it right. Our server then failed to understand its reply, discarded the whole thing, and quietly fell back to plain text recognition, which on a photographed till roll can produce nearly anything. The reply is now read properly, so the detailed result comes through: line items, tax lines, the total and what it was paid with. Three things changed behind it as well, all of them about not showing you something we have not actually read. The fallback will no longer put a number in the amount box unless the receipt prints a line that names the total — before, it would take the last price-looking number near the bottom and present it exactly like a figure it had read. A store name now has to contain a real word. And the date box was filling itself in with tomorrow’s date for anyone in the Americas in the evening, because it was using UTC rather than the day you are actually in. A blank box asks you a question; a confident wrong number does not.',
+    href: '/receipt-scanner',
+  },
+  {
+    date: '2026-11-18',
+    kind: 'fixed',
+    title: 'The receipt scanner fills the screen again, and finds the receipt while it does',
+    detail:
+      'For a short while today the scanner showed the whole camera picture letterboxed — a strip across the middle of the screen with black above and below it, where your phone’s own camera app fills the glass. That was a bad trade made for a good reason, and the reason turned out not to apply. Fitting the picture to the screen does throw away most of it, but on an upright phone it throws it away at the SIDES: every bit of the picture from top to bottom is still there. For a till receipt, which is a tall strip with empty table either side of it, that costs you nothing at all — you do not have to hold the phone any further back than before. What it was costing was the black bands, and the receipt being small enough on screen that the scanner could no longer reliably make out its edges, so the green outline often never appeared however still you held it. The receipt now fills the screen and is found several times more reliably. Full pages still show the whole frame, because a sheet of paper is not a strip and filling the screen really would cut its sides off.',
+    href: '/receipt-scanner',
+  },
+  {
+    date: '2026-11-18',
     kind: 'improved',
     title: 'The scanner outlines your receipt in green the moment it finds it',
     detail:
@@ -35,7 +51,7 @@ export const CHANGELOG: ChangeEntry[] = [
     kind: 'fixed',
     title: 'The receipt scanner stopped throwing away most of what the camera could see',
     detail:
-      'If you had to hold the phone a long way back to get a whole till receipt on screen, this was why. The scanner opened magnified — not with the lens, but by enlarging the middle of the picture and discarding the rest, which on a typical phone meant about nine tenths of the camera’s view was gone before you pointed it at anything. The only way to make that back up was to move the phone further away, and a receipt photographed from that distance was then too small for the scanner to find its edges, so the green outline would not settle either. It now opens showing everything the camera can see. Two other things changed with it: the camera is asked for its own natural picture shape rather than a widescreen one, which is about a third more view for nothing, and on a phone with an ultra-wide lens the scanner now opens on it and offers 0.5× and 1× the way a camera app does — an ultra-wide fits the same receipt from roughly half the distance.',
+      'If you had to hold the phone a long way back to get a whole till receipt on screen, this was why. The scanner opened magnified — not with the lens, but by enlarging the middle of the picture and discarding the rest, which on a typical phone meant about nine tenths of the camera’s view was gone before you pointed it at anything. The only way to make that back up was to move the phone further away, and a receipt photographed from that distance was then too small for the scanner to find its edges, so the green outline would not settle either. Two things fixed it. The camera is now asked for its own natural picture shape instead of a widescreen one — a widescreen frame is a crop of the sensor, so that alone was about a third more view for nothing. And on a phone with an ultra-wide lens the scanner opens on the lens itself and offers 0.5× and 1× the way a camera app does, which fits the same receipt from roughly half the distance. Both give you more of the room; neither costs you any sharpness, because the camera was always able to see that much.',
     href: '/receipt-scanner',
   },
   {
