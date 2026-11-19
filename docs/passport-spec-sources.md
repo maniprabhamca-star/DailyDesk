@@ -279,3 +279,27 @@ the tool *is* still good for there — visas and the other paperwork that does a
 **Still to do in this item:** Colombia (needs a human to open the Cancillería
 page), plus the 23 remaining unverified specs in Asia, the Middle East and
 Africa. The guard test's countdown moved **24 → 20**.
+
+---
+
+## Asia tranche (part 1) — read 2026-11-19
+
+Three countries, **two live spec errors found and fixed**.
+
+| Country | Authority page read | Outcome |
+|---|---|---|
+| **Singapore** | [ICA — Photo Guidelines](https://www.ica.gov.sg/photo-guidelines) (updated 30 Oct 2026) + the [passport application form IMM(E)11](https://www.ica.gov.sg/docs/default-source/ica/forms/forms_form_imme_11_os.pdf) | ⚠ **FIXED.** ICA publishes the face as **25–35 mm chin to crown** on a 45 mm photo (0.556–0.778). We shipped **0.66–0.80** — the floor stricter than ICA asks and the ceiling **above its maximum**. Background corrected to “white, light grey if your hair is white”. Upload cap 1 MB → 8 MB. Marked verified. |
+| **Malaysia** | [Immigration Department — Passport Photo Requirements](https://esd.imi.gov.my/portal/photo-requirements/) | ⚠ **FIXED.** Published head height is **30–35 mm on 50 mm** (0.60–0.70); we shipped 0.66–0.80, overshooting the maximum. Background corrected from **“BLUE” to plain white** — blue appears only as an alternative for one visa category. Malaysia is also the only country on the list publishing explicit **margins** (≈5 mm above the head, 5–10 mm below the chin). Marked verified. |
+| **Philippines** | [DFA Office of Consular Affairs — Passport FAQs](https://consular.dfa.gov.ph/passport-faq/) | The DFA answers it directly: **“No. You do not need to bring a passport-sized photo… The DFA Consular Office will digitally capture your photo and biometrics.”** No size published. Left unverified, row relabelled generic, `photographedOnSite` added. |
+
+**South Korea was attempted and left alone.** Every page the search reached was
+an embassy or visa-category page on MOFA's overseas site, not a domestic
+passport-issuance specification. 3.5×4.5 cm is consistent across them but none
+is the issuing authority's own passport page, so nothing was changed.
+
+**Malaysia's blue background is worth recording as a pattern.** It is the kind
+of fact that is true enough to be repeated everywhere and wrong as a default —
+the same shape as Greece's size and the UK's “light grey”. Specs that came from
+aggregators drift toward the memorable version of the rule.
+
+Guard countdown **20 → 19**.

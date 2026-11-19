@@ -17,7 +17,7 @@ Status values: `todo` · `in progress` · `shipped` · `blocked` · `parked`
 | 1 | Centralise file-accept lists (+`.ppsx`, HEIC everywhere) | 0 | **shipped** | 2026-08-29 |
 | 1b | HEIC in the 5 PDF-embed tools (sign/watermark/annotate/edit/signature) | 0 | **shipped** | 2026-08-29 |
 | 2 | Stripe ToS consent checkbox | 0 | **shipped** | 2026-08-29 · self-arming when the URL is set |
-| 3 | Passport differentiation + verify 21 specs | 0 | **in progress** | Tier 1 2026-08-29 · Americas tranche 2026-11-19 (4 of 5; Colombia blocked) |
+| 3 | Passport differentiation + verify 21 specs | 0 | **in progress** | Tier 1 2026-08-29 · Americas + Asia pt.1 2026-11-19 (7 verified/described; 2 spec errors fixed) |
 | 4 | Bank statement guides 11 → 40 | 28 | **shipped** | 2026-08-29 · 39 pages |
 | 5 | Competitor alternatives 4 → 10 | 5 | **shipped** | 2026-08-29 (9 of 10; Canva pending a source) |
 | 6 | Sector pages 4 → 12 | 5 | **in progress** | 9 of 12 · government renamed to public-sector |
@@ -191,8 +191,23 @@ the appointment — and our pages said nothing about it.
   sits behind a Cloudflare bot check we do not bypass. Row left alone and
   flagged in code; it needs a human to open the page.
 
-Guard countdown **24 → 20**. Full detail and URLs in
+Guard countdown **24 → 19**. Full detail and URLs in
 [passport-spec-sources.md](../passport-spec-sources.md).
+
+### Asia tranche, part 1 — 2026-11-19
+
+**Two live spec errors found and fixed.**
+
+- **Singapore** · ⚠ ICA publishes the face as **25–35 mm** chin to crown; we
+  shipped 0.66–0.80, whose ceiling sat **above ICA's maximum**. Fixed, plus the
+  white-hair/light-grey background rule and an 8 MB upload cap. Verified.
+- **Malaysia** · ⚠ published head height is **30–35 mm on 50 mm**; we shipped
+  0.66–0.80. And the background is **white, not blue** — blue is an alternative
+  for one visa category only. Fixed. Verified.
+- **Philippines** · the DFA captures your photo and says in its FAQ not to bring
+  one. Relabelled generic.
+- **South Korea** · attempted, **left alone** — no domestic passport spec page
+  found on MOFA, only embassy and visa pages.
 
 ---
 

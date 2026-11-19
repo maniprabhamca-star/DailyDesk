@@ -35,7 +35,6 @@ const mm = (v: number) => Math.round((v / 25.4) * 300); // mm → px @ 300 DPI
 const WHITE = '#ffffff';
 const OFFWHITE = '#f3f3f0';
 const LIGHTGREY = '#e9e9e7';
-const LIGHTBLUE = '#dbe7f5';
 
 // Most Schengen states share 35×45 mm, ~70–80% head, light/neutral background.
 function schengen(id: string, label: string): PassportSpec {
@@ -145,9 +144,23 @@ export const PASSPORT_SPECS: PassportSpec[] = [
   // ---- Asia ----
   { id: 'japan', label: 'Japan', group: 'Asia', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.711, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm' },
   { id: 'south-korea', label: 'South Korea', group: 'Asia', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm' },
-  { id: 'singapore', label: 'Singapore', group: 'Asia', wPx: 400, hPx: 514, wMM: 35, hMM: 45, headMin: 0.66, headMax: 0.80, bg: WHITE, bgName: 'White', maxKB: 1024, note: '35×45 mm, 400×514 px' },
-  { id: 'malaysia', label: 'Malaysia', group: 'Asia', wPx: mm(35), hPx: mm(50), wMM: 35, hMM: 50, headMin: 0.66, headMax: 0.80, bg: LIGHTBLUE, bgName: 'Light blue', note: '35×50 mm, BLUE background' },
-  { id: 'philippines', label: 'Philippines', group: 'Asia', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm' },
+  // Singapore: ICA's own application form gives the face as 25–35 mm chin to
+  // crown on a 45 mm photo — 0.556–0.778. We shipped 0.66–0.80, so the floor was
+  // stricter than ICA requires AND the ceiling sat above its maximum. Background
+  // is plain white, with light grey reserved for white hair. The 1 MB cap was
+  // ours; the current guidelines page allows 8 MB.
+  { id: 'singapore', label: 'Singapore', group: 'Asia', wPx: 400, hPx: 514, wMM: 35, hMM: 45, headMin: 25 / 45, headMax: 35 / 45, bg: WHITE, bgName: 'White (light grey if your hair is white)', maxKB: 8192, note: '35×45 mm, face 25–35 mm, 400×514 px' },
+  // Malaysia: the Immigration Department's published specification is 35×50 mm
+  // with the head 30–35 mm chin to crown — 0.60–0.70, where we shipped 0.66–0.80,
+  // overshooting its maximum. The background is PLAIN WHITE; blue appears only as
+  // an alternative for one visa category, and the flat "BLUE background" this row
+  // used to carry is not what the department publishes.
+  { id: 'malaysia', label: 'Malaysia', group: 'Asia', wPx: mm(35), hPx: mm(50), wMM: 35, hMM: 50, headMin: 30 / 50, headMax: 35 / 50, bg: WHITE, bgName: 'White (blue accepted for some visa types)', note: '35×50 mm, head 30–35 mm' },
+  // Philippines: the DFA captures your photo and biometrics at the Consular
+  // Office and says in as many words not to bring one. No size is published.
+  { id: 'philippines', label: 'Philippines', group: 'Asia', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm (generic)',
+    photographedOnSite: 'For a Philippine passport the DFA says plainly that you do not need to bring a passport-sized photo — the Consular Office captures your photo and biometrics at the appointment. Use this for a visa or another document that does ask for a supplied photo.',
+    headCaveat: 'The DFA publishes no photo specification, because it does not ask for a supplied photo. The 35×45 mm shown here is the generic international size, not a Philippine rule.' },
   { id: 'indonesia', label: 'Indonesia', group: 'Asia', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '3×4 / 4×6 cm variants' },
   { id: 'thailand', label: 'Thailand', group: 'Asia', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm' },
   { id: 'pakistan', label: 'Pakistan', group: 'Asia', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm' },
@@ -182,7 +195,7 @@ export function getSpec(id: string): PassportSpec | undefined {
 export const VERIFIED_SPECS = new Set<string>([
   'us-visa', 'us-passport', 'uk-passport', 'schengen-visa', 'india-passport', 'india-evisa',
   'canada', 'australia', 'china-visa', 'japan', 'biometric',
-  'brazil', 'argentina',
+  'brazil', 'argentina', 'singapore', 'malaysia',
   'germany', 'france', 'italy', 'spain', 'netherlands', 'portugal', 'belgium', 'switzerland', 'austria', 'sweden', 'norway', 'poland', 'greece', 'ireland',
 ]);
 export const isVerified = (id: string): boolean => VERIFIED_SPECS.has(id);
@@ -635,6 +648,62 @@ export const EDITORIAL: Record<string, CountryEditorial> = {
       'Not applicable to a supplied photo. The passport itself runs for ten years, which is the longest gap between pictures of any of the countries on this list.',
     sourceName: 'ChileAtiende / Registro Civil — Pasaporte',
     sourceUrl: 'https://www.chileatiende.gob.cl/fichas/3445-pasaporte',
+    checkedOn: '2026-11-19',
+  },
+
+  singapore: {
+    authority:
+      'The Immigration & Checkpoints Authority sets the rules, and unusually for this list it publishes them in two places that do not quite agree in tone: a guidelines page for the online upload, and the passport application form itself for the printed photograph. The form is the stricter document and the one worth reading, because it carries the measurement everyone gets wrong.',
+    quirk:
+      'That measurement is the face: between 25 mm and 35 mm from chin to crown on a 45 mm photo. That is a notably smaller head than the 70–80% most of Europe asks for, and cropping a Singapore photo to European proportions overshoots the maximum. Both edges of your face and the top of your shoulders have to be visible, which is the same rule stated from the other direction — crop in far enough to lose your shoulders and the photo is wrong.',
+    background:
+      'Plain white, with one exception that is easy to miss: if your hair is white, the background must be light grey instead. Printed photos need a matte or semi-matte, non-reflective finish.',
+    expression:
+      'Full face, looking straight at the camera, head straight, eyes open, mouth closed, neutral expression, and no hair across or covering the eyes.',
+    glasses:
+      'Glasses are allowed as long as the frames cover no part of your eyes and there is no flash or reflection off the lenses. Tinted glasses and sunglasses are refused outright.',
+    headCovering:
+      'Only headgear habitually worn for religious or racial custom is permitted — and ICA adds a condition almost nobody else does: it must not be white.',
+    exceptions:
+      'ICA permits resizing a digital photo with image editing software and forbids altering it in any other way, naming photo filters and changes to facial features. Cropping and resizing to the stated dimensions is the sanctioned use; retouching is not. It also warns that phone selfies usually fail its requirements and will delay the application, and recommends asking someone else to take the picture.',
+    recency:
+      'Taken within the last three months — shorter than the six months most countries allow.',
+    sourceName: 'ICA — Photo Guidelines and the passport application form (IMM(E)11)',
+    sourceUrl: 'https://www.ica.gov.sg/photo-guidelines',
+    checkedOn: '2026-11-19',
+  },
+
+  malaysia: {
+    authority:
+      'The Immigration Department of Malaysia publishes a photo specification that is more precise than most, and precise in an unusual way: alongside the size and the head height it gives you the margins. That makes it one of the few countries where you can check a photo with a ruler and know before you submit it.',
+    quirk:
+      'The numbers are 35 mm wide by 50 mm high, with the head 30 to 35 mm from chin to crown, about 5 mm of space above the head and 5 to 10 mm below the chin. The 50 mm height is the thing to watch — Malaysia is taller than the 45 mm used across Europe and Asia, so a photo cut to a generic 35×45 is the wrong shape here, not merely the wrong crop.',
+    background:
+      'Plain white, with no border or frame around the photo. Plain blue appears as an accepted alternative for one category of application, which is where the idea that Malaysia wants a blue background comes from — white is what the department publishes for the rest.',
+    expression:
+      'Full face, front view, eyes open, neutral expression. The image must be sharp and correctly framed: not blurred, not tilted, not taken too far away and not too small.',
+    headCovering:
+      'No head covering, except where worn for religious reasons, and then only if the face remains fully visible.',
+    exceptions:
+      'Uploads to the department’s online service are capped at 25 KB, which is small enough that a photo straight from a phone will not fit and has to be resized properly rather than merely compressed until it passes. The department also offers its own photo check tool to verify an image before you submit it.',
+    sourceName: 'Immigration Department of Malaysia — Passport Photo Requirements',
+    sourceUrl: 'https://esd.imi.gov.my/portal/photo-requirements/',
+    checkedOn: '2026-11-19',
+  },
+
+  philippines: {
+    authority:
+      'The Department of Foreign Affairs issues the Philippine passport, and its Office of Consular Affairs answers the photo question directly in its FAQ: no, you do not need to bring a passport-sized photo. The Consular Office captures your photo and biometrics when you attend.',
+    quirk:
+      'So there is no Philippine photo specification to match, and the 35×45 mm on this page is the generic international size rather than a rule the DFA publishes. What matters instead is getting to the appointment. Applications are by appointment, booked free of charge through the DFA — and the department warns openly about people selling earlier slots, saying that dealing with fixers is at your own risk and expense. Appointments cost nothing; anyone charging you for one is not the DFA.',
+    children:
+      'Minors aged seven and below may walk in without an appointment, as may senior citizens and persons with disability, on proof of special lane eligibility. A court-appointed guardian may accompany a minor whose parents are absent or deemed unsuitable.',
+    exceptions:
+      'Escorts are not allowed inside Consular Offices at all, unless the applicant is a senior citizen, a minor or a person with a disability — so plan to attend alone. Documents do not need to be in an envelope, and a renewed passport is handed back to you along with the old one.',
+    recency:
+      'Not applicable to a supplied photo. Regular processing runs about ten working days in the National Capital Region and twelve outside it.',
+    sourceName: 'DFA Office of Consular Affairs — Passport FAQs',
+    sourceUrl: 'https://consular.dfa.gov.ph/passport-faq/',
     checkedOn: '2026-11-19',
   },
 };

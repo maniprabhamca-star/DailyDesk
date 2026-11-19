@@ -24,6 +24,14 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-11-19',
+    kind: 'fixed',
+    title: 'Singapore and Malaysia were cropping too tight',
+    detail:
+      'Both were wrong, and wrong in the way that costs you the application rather than the printing. Singapore’s own form asks for a face 25 to 35 mm from chin to crown; we were cropping up to 36 mm, past the maximum. Malaysia publishes 30 to 35 mm on its taller 50 mm photo; we were going to 40. Both are corrected to the published figures. Malaysia’s background was wrong too — we had it down as blue, which is an alternative for one kind of visa and not what the Immigration Department asks for otherwise; it is white. Singapore gains the rule people miss, that the background is light grey instead of white if your hair is white, and its upload limit is 8 MB rather than the 1 MB we were enforcing. The Philippines joins the list of countries that photograph you at the counter and would rather you did not bring a print.',
+    href: '/passport-photo',
+  },
+  {
+    date: '2026-11-19',
     kind: 'improved',
     title: 'Four countries that do not want your passport photo',
     detail:
