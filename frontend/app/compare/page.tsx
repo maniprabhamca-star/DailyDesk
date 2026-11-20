@@ -229,6 +229,12 @@ export default function ComparePage() {
             ))}
           </div>
         </section>
+
+        <p className="mx-auto mt-14 max-w-2xl border-t pt-6 text-center text-xs leading-relaxed text-muted-foreground">
+          DiemDesk is an independent product and is <strong>not affiliated with, endorsed by, or sponsored by</strong>{' '}
+          any of the companies compared here. All product and company names, including Adobe Acrobat, iLovePDF and
+          Smallpdf, are trademarks of their respective owners, used only for identification and honest comparison.
+        </p>
       </main>
       <SiteFooter />
     </div>

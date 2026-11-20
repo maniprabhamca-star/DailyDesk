@@ -121,6 +121,12 @@ export function AlternativePage({ data }: { data: AltData }) {
           <p className="max-w-md text-sm text-muted-foreground">No signup, no upload, no watermark. Drop in a file and watch it work entirely in your browser.</p>
           <Button asChild size="lg" className="mt-1"><Link href="/#tools">Browse all tools <ArrowRight className="size-4" /></Link></Button>
         </div>
+
+        <p className="mx-auto mt-14 max-w-2xl border-t pt-6 text-center text-xs leading-relaxed text-muted-foreground">
+          DiemDesk is an independent product and is <strong>not affiliated with, endorsed by, or sponsored by</strong>{' '}
+          {data.competitor}. {data.competitor} and other product names mentioned are trademarks of their respective
+          owners, used here only for identification and honest comparison.
+        </p>
       </main>
       <SiteFooter />
     </div>
