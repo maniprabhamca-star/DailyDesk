@@ -146,7 +146,9 @@ export const PASSPORT_SPECS: PassportSpec[] = [
 
   // ---- Asia ----
   { id: 'japan', label: 'Japan', group: 'Asia', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.711, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm' },
-  { id: 'south-korea', label: 'South Korea', group: 'Asia', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm' },
+  // South Korea: MOFA publishes head length (crown to chin) as 3.2–3.6 cm on a
+  // 4.5 cm photo — 0.711–0.80. Our floor was a shade loose. Online 413×531 px.
+  { id: 'south-korea', label: 'South Korea', group: 'Asia', wPx: 413, hPx: 531, wMM: 35, hMM: 45, headMin: 3.2 / 4.5, headMax: 3.6 / 4.5, bg: WHITE, bgName: 'White', note: '35×45 mm, head 32–36 mm, 413×531 px online' },
   // Singapore: ICA's own application form gives the face as 25–35 mm chin to
   // crown on a 45 mm photo — 0.556–0.778. We shipped 0.66–0.80, so the floor was
   // stricter than ICA requires AND the ceiling sat above its maximum. Background
@@ -170,22 +172,58 @@ export const PASSPORT_SPECS: PassportSpec[] = [
   { id: 'indonesia', label: 'Indonesia', group: 'Asia', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm (generic)',
     photographedOnSite: 'For an Indonesian passport your face is photographed at the immigration office, during the interview and fingerprinting — you do not supply one. Use this for a visa or another document that does ask for a photo.',
     headCaveat: 'Indonesian immigration publishes how you must look rather than a photo size, because it takes the picture itself. The 35×45 mm shown here is the generic international size.' },
-  { id: 'thailand', label: 'Thailand', group: 'Asia', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm' },
+  // Thailand: the MFA captures your picture and fingerprints at the office —
+  // and measures your height while you are there. No supplied photo, no spec.
+  { id: 'thailand', label: 'Thailand', group: 'Asia', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm (generic)',
+    photographedOnSite: 'For a Thai e-passport you must apply in person because your biometric data is captured there — staff photograph you, take your fingerprints and measure your height. Use this for a visa or another document that does ask for a supplied photo.',
+    headCaveat: 'Thailand publishes no photo size for the passport, because it takes the picture itself. The 35×45 mm shown here is the generic international size.' },
   { id: 'pakistan', label: 'Pakistan', group: 'Asia', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm' },
   { id: 'bangladesh', label: 'Bangladesh', group: 'Asia', wPx: mm(45), hPx: mm(55), wMM: 45, hMM: 55, headMin: 0.62, headMax: 0.78, bg: WHITE, bgName: 'White', note: '45×55 mm' },
-  { id: 'vietnam', label: 'Vietnam', group: 'Asia', wPx: mm(40), hPx: mm(60), wMM: 40, hMM: 60, headMin: 0.50, headMax: 0.70, bg: WHITE, bgName: 'White', note: '4×6 cm' },
-  { id: 'srilanka', label: 'Sri Lanka', group: 'Asia', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm' },
+  // Vietnam: confirmed 4×6 cm on a white background by the Ministry of Public
+  // Security. Its framing rule is given as a share of AREA and as an eye
+  // position, not as a chin-to-crown band, so the band here stays generic.
+  { id: 'vietnam', label: 'Vietnam', group: 'Asia', wPx: mm(40), hPx: mm(60), wMM: 40, hMM: 60, headMin: 0.50, headMax: 0.70, bg: WHITE, bgName: 'White', note: '4×6 cm, white background',
+    headCaveat: 'Vietnam sizes the face as a share of the photograph’s AREA — about 75% — and separately by where the eyes sit, rather than by a chin-to-crown height. The band shown is the generic one.' },
+  // ⚠ Sri Lanka does not accept a printed photograph for a passport AT ALL.
+  // Since 10 Aug 2015 the digital photo must come from a Department-authorised
+  // studio, which uploads it directly. Nothing you print is usable.
+  { id: 'srilanka', label: 'Sri Lanka', group: 'Asia', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm (visa only)',
+    photographedOnSite: 'For a Sri Lankan passport a printed photograph is not accepted at all. Since 2015 the digital photo must be taken by a studio authorised by the Department, which uploads it directly and gives you a Studio Acknowledgement Note to hand in. Use this for a visa or another document that does take a supplied photo.',
+    headCaveat: 'The Department publishes no size, because the authorised studio supplies the photograph directly. The 35×45 mm shown here is the size its VISA form asks for.' },
   { id: 'nepal', label: 'Nepal', group: 'Asia', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm' },
 
   // ---- Middle East & Africa ----
-  { id: 'uae', label: 'UAE visa', group: 'Middle East & Africa', wPx: mm(43), hPx: mm(55), wMM: 43, hMM: 55, headMin: 0.62, headMax: 0.78, bg: WHITE, bgName: 'White', maxKB: 1024, note: '43×55 mm, white' },
+  // ⚠ UAE: the ICP's own two documents DISAGREE. Its Personal Photo
+  // Specifications sheet says 35–40 mm wide on a "plain light-coloured"
+  // background; its FAQ says 3.5×4.5 cm white; and 43×55 is what the visa
+  // centres have long asked for. The one thing both ICP documents state is the
+  // framing: the face takes up 70–80%. That is fixed here (it was 0.62–0.78);
+  // the SIZE is left alone, because changing it on a conflict is how wrong
+  // numbers get in. Needs a human to settle — see docs/passport-spec-sources.md.
+  { id: 'uae', label: 'UAE visa', group: 'Middle East & Africa', wPx: mm(43), hPx: mm(55), wMM: 43, hMM: 55, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', maxKB: 1024, note: '43×55 mm, white',
+    headCaveat: 'The ICP’s own documents disagree on the size: its photo specification sheet says 35–40 mm wide on a plain light-coloured background, while its FAQ says 3.5×4.5 cm on white, and 43×55 mm is what visa centres have long asked for. Both ICP documents agree the face should fill 70–80%, which is what this page uses. Check with whoever is receiving your application before printing.' },
   { id: 'saudi', label: 'Saudi Arabia', group: 'Middle East & Africa', wPx: 600, hPx: 600, wMM: 51, hMM: 51, headMin: 0.55, headMax: 0.75, bg: WHITE, bgName: 'White', note: '2×2 in, white' },
   { id: 'qatar', label: 'Qatar', group: 'Middle East & Africa', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm' },
-  { id: 'turkey', label: 'Türkiye', group: 'Middle East & Africa', wPx: 500, hPx: 600, wMM: 50, hMM: 60, headMin: 0.55, headMax: 0.75, bg: WHITE, bgName: 'White', note: '50×60 mm' },
+  // Türkiye: 50×60 mm on plain white CONFIRMED by NVİ. It publishes no head
+  // measurement — only that the face is centred and fully visible with the hair.
+  { id: 'turkey', label: 'Türkiye', group: 'Middle East & Africa', wPx: 500, hPx: 600, wMM: 50, hMM: 60, headMin: 0.55, headMax: 0.75, bg: WHITE, bgName: 'White, plain, no pattern', note: '50×60 mm — do NOT cut to 35×45',
+    headCaveat: 'NVİ publishes no chin-to-crown measurement, only that the face is centred and fully visible together with the hair. The band shown is the generic one.' },
   { id: 'egypt', label: 'Egypt', group: 'Middle East & Africa', wPx: mm(40), hPx: mm(60), wMM: 40, hMM: 60, headMin: 0.50, headMax: 0.70, bg: WHITE, bgName: 'White', note: '4×6 cm' },
-  { id: 'nigeria', label: 'Nigeria', group: 'Middle East & Africa', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm' },
-  { id: 'southafrica', label: 'South Africa', group: 'Middle East & Africa', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm' },
-  { id: 'kenya', label: 'Kenya', group: 'Middle East & Africa', wPx: 600, hPx: 600, wMM: 51, hMM: 51, headMin: 0.55, headMax: 0.75, bg: WHITE, bgName: 'White', note: 'square, white' },
+  // Nigeria: a hybrid — you upload an "ICAO compliant picture" to the portal AND
+  // attend an Immigration Office for biometric capture. No millimetres published.
+  { id: 'nigeria', label: 'Nigeria', group: 'Middle East & Africa', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm (generic, ICAO)',
+    headCaveat: 'The Nigeria Immigration Service asks for an “ICAO compliant picture” uploaded to its portal and publishes no millimetre size of its own. The figures shown are the generic ICAO ones.' },
+  // ⚠ South Africa: the Department of Home Affairs photographic template gives
+  // the head as "at least 29mm, no more than 34mm" on a 45 mm photo —
+  // 0.644–0.756. Our ceiling of 0.80 sat ABOVE their maximum. And the
+  // background is "light grey or plain cream", not the white we shipped.
+  { id: 'southafrica', label: 'South Africa', group: 'Middle East & Africa', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 29 / 45, headMax: 34 / 45, bg: OFFWHITE, bgName: 'Light grey or plain cream', note: '35×45 mm, head 29–34 mm' },
+  // ⚠ Kenya: the Directorate of Immigration Services publishes 5.5×5.5 cm
+  // (207×207 px) with the face at 70–80%. We shipped a 2×2 inch square at
+  // 0.55–0.75 — the wrong square and the wrong band. Note this guideline is the
+  // one issued for VISA registration; the label says so rather than implying it
+  // covers the passport route too.
+  { id: 'kenya', label: 'Kenya visa', group: 'Middle East & Africa', wPx: 207, hPx: 207, wMM: 55, hMM: 55, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '5.5×5.5 cm, 207×207 px' },
 
   // ---- Oceania ----
   // ⚠ New Zealand's background is NOT white. The DIA asks for a plain,
@@ -209,6 +247,7 @@ export const VERIFIED_SPECS = new Set<string>([
   'us-visa', 'us-passport', 'uk-passport', 'schengen-visa', 'india-passport', 'india-evisa',
   'canada', 'australia', 'china-visa', 'japan', 'biometric',
   'brazil', 'argentina', 'colombia', 'singapore', 'malaysia', 'newzealand',
+  'south-korea', 'vietnam', 'southafrica', 'turkey', 'kenya',
   'germany', 'france', 'italy', 'spain', 'netherlands', 'portugal', 'belgium', 'switzerland', 'austria', 'sweden', 'norway', 'poland', 'greece', 'ireland',
 ]);
 export const isVerified = (id: string): boolean => VERIFIED_SPECS.has(id);
@@ -781,6 +820,172 @@ export const EDITORIAL: Record<string, CountryEditorial> = {
       'Taken no more than six months before the application.',
     sourceName: 'Resolución 10829 de 2024, parágrafo 4º — Ministerio de Relaciones Exteriores',
     sourceUrl: 'https://www.cancilleria.gov.co/normograma/compilacion/docs/resolucion_minrelaciones_10829_2024.htm',
+    checkedOn: '2026-11-20',
+  },
+
+  'south-korea': {
+    authority:
+      'The Ministry of Foreign Affairs publishes one of the most detailed photo standards anywhere — thirteen numbered sections covering everything from the shoulder line to what an infant may do with its mouth. It is worth reading in full if you are applying, because several of its rules appear on no other country’s list.',
+    quirk:
+      'Two stand out. **Both ears must be visible**, so that the outline of the face is clear — a fringe over the eyebrows or hair over the ears is a rejection, and the only exception is for someone whose ears genuinely do not show from the front. And **you may not wear white**: uniforms, military dress and white clothing are all refused, because white disappears into the white background. School uniforms, oddly, are fine for students.',
+    background:
+      'A uniform white background with nothing behind you, no border, no objects in shot, no outdoor settings, and no shadows or reflections.',
+    expression:
+      'As natural an expression as possible, mouth closed naturally, facing straight ahead with the head not tilted. Only the upper body to the shoulders is in frame, and the shoulder line should be horizontal.',
+    glasses:
+      'No tinted glasses. Thick horn-rimmed frames are discouraged outright — MOFA says they can be mistaken for a disguise and cause trouble at immigration. No reflections off the lenses, and the frames must not cover the eyes. Coloured contact lenses are refused, as is red-eye from the flash; an eye patch is allowed only for someone who always wears one or has an eye condition.',
+    headCovering:
+      'No hats and no scarves. Head coverings for religious or medical reasons are allowed if the whole face from forehead to chin is exposed, and the same goes for religious dress, which must be something worn every day rather than put on for the photograph. Wigs are allowed only for people who always wear one.',
+    children:
+      'Under sevens follow the adult rules, with the head measured at 2.3–3.6 cm instead. The child must be alone — no chairs, toys or parents in shot — with eyes open and looking forward. Under threes may show a little tooth if they cannot keep their mouth closed, and a newborn who cannot sit up may be photographed lying on a white blanket.',
+    exceptions:
+      'Copied photographs and anything retouched in Photoshop are refused, and the print itself must be on proper photographic paper — not creased, not damaged, not a low-quality or uneven surface.',
+    recency:
+      'Taken within the last six months.',
+    sourceName: 'Ministry of Foreign Affairs — 신규 여권사진 표준규격 안내 (30 Dec 2024)',
+    sourceUrl: 'https://www.mofa.go.kr/cn-xian-ko/brd/m_753/view.do?seq=1035220&page=1',
+    checkedOn: '2026-11-20',
+  },
+
+  thailand: {
+    authority:
+      'Thai e-passports are issued by the Ministry of Foreign Affairs, and the photograph is not something you bring. The Ministry sets out the application as three steps, and the second is simply biodata capture: an authorised member of staff photographs you and scans your fingerprints, right and left index fingers twice each.',
+    quirk:
+      'They also measure your height. It is the only passport process on this list that records how tall you are, and it happens at the same counter as the photograph. The consequence for anyone looking for a photo size is that there is not one — you must apply in person precisely because the biometric data has to go into the chip, so there is nothing to print and nothing to match.',
+    background:
+      'Applied by the office. Nothing is supplied.',
+    expression:
+      'Directed by the member of staff taking the picture.',
+    exceptions:
+      'What you do need to bring is your Thai Citizenship ID card carrying the 13-digit personal number. Without that number, bring your house registration together with other official documents instead. You take a queue number and fill in your name in English along with your date and place of birth before being called.',
+    recency:
+      'Not applicable to a supplied photo. Outside Bangkok the finished passport can be sent by EMS, which takes five to seven working days.',
+    children:
+      'The same rule applies — the applicant attends in person, whatever their age, because the biometrics have to be captured from the person themselves.',
+    sourceName: 'Ministry of Foreign Affairs, Kingdom of Thailand — Electronic Passport',
+    sourceUrl: 'https://www.mfa.go.th/en/publicservice/5d5bcc3415e39c306000a69e',
+    checkedOn: '2026-11-20',
+  },
+
+  vietnam: {
+    authority:
+      'Vietnamese passports are issued by the Ministry of Public Security, and its own guidance for applying through the national public service portal states the photograph plainly: a 4×6 cm portrait on a white background, uploaded with the front and back of your citizen identity card.',
+    quirk:
+      'The 4×6 centimetre size is the thing to get right. It is taller and wider than the 35×45 mm used across most of Asia and Europe, so a photo cut to the usual size is the wrong shape here rather than a slightly wrong crop — and 4×6 is a standard Vietnamese photo-shop size, so asking for it by name gets you the right thing.',
+    background:
+      'White. The Ministry states fence-plain white and offers no alternative.',
+    expression:
+      'Face square to the camera, head bare, looking straight ahead.',
+    children:
+      'A child under nine travelling on a parent’s passport is photographed at 3×4 cm rather than 4×6.',
+    exceptions:
+      'The whole application can be done through the national public service portal: you upload the photograph and your identity card, pay online once immigration has accepted the file, and choose whether to collect the passport or have it posted to you. If your current passport is still valid you have to hand it in — in person or by post — to the immigration office handling the application.',
+    recency:
+      'Newly taken, within six months of the application.',
+    sourceName: 'Bộ Công an — guidance for passport applications on the national public service portal',
+    sourceUrl: 'https://bocongan.gov.vn/bai-viet/huong-dan-dang-ky-ho-so-de-nghi-cap-ho-chieu-pho-thong-tren-cong-dich-vu-cong-quoc-gia-d3-t797',
+    checkedOn: '2026-11-20',
+  },
+
+  southafrica: {
+    authority:
+      'The Department of Home Affairs publishes a photographic template rather than a list, with the measurements drawn onto the picture: 35 mm wide, 45 mm high, and the head between 29 mm and 34 mm. The same template covers passports and ID documents, which is why it mentions black and white photographs at all — those are allowed for IDs, never for a passport.',
+    quirk:
+      'Two things catch people out. The background is **light grey or plain cream**, not white — and a white background is the single most common thing people turn up with. And the photographs must be **no more than one month old**, which is the shortest window of any country on this list; most allow six months. A photo that was fine for something else in the spring is not fine for this in the summer.',
+    background:
+      'Light grey or plain cream, with a strong definition between your face and the background behind it, lit evenly and with no shadows or flash reflections.',
+    expression:
+      'Looking directly at the camera with a neutral expression and your mouth closed — no obvious grinning, frowning or raised eyebrows. Square on to the camera rather than over one shoulder, head not tilted, both edges of the face clearly shown, no hair across your face.',
+    glasses:
+      'No dark-tinted lenses and no heavy frames, no flash reflecting off the lenses, and the frames must not cover any part of your eyes.',
+    headCovering:
+      'Not permitted except for religious reasons, and then your features from the bottom of the chin to the top of the forehead, and both edges of your face, must be clearly shown.',
+    exceptions:
+      'Two identical colour photographs are needed for a passport. They have to be printed professionally — the Department says in as many words that photographs printed at home are not likely to be of acceptable quality — on high-quality photo paper, with no ink marks, creases or damage.',
+    recency:
+      'Not more than one month old.',
+    sourceName: 'Department of Home Affairs — Passport & ID Photograph Specifications',
+    sourceUrl: 'https://www.dirco.gov.za/uk/wp-content/uploads/sites/5/2024/04/Passport_Photo_Requirements.pdf',
+    checkedOn: '2026-11-20',
+  },
+
+  turkey: {
+    authority:
+      'Türkiye’s photo rule comes from the Directorate General of Civil Registration and Nationality (NVİ), and it is the most emphatic on this list about one thing: the size. Fifty millimetres by sixty, on a plain white background with no pattern, no shadows behind you, taken within the last six months.',
+    quirk:
+      'NVİ spells out what happens if you get it wrong, which almost nobody else does. Bring a photo at a different size or on a different background and either the application cannot be completed, or it goes through and the card is then cancelled at quality control — and you start again. It goes further and tells you what to say to the photographer: **remind them not to cut your biometric photos to 35×45 mm.** That is the default on every photo-shop guillotine in Europe, and it is the single most likely way a Turkish application fails.',
+    background:
+      'Plain white with no pattern and no shadows falling on it.',
+    expression:
+      'The face centred and fully visible together with the hair, eyes open and clearly visible with hair not covering them, looking straight into the camera. Even lighting with no reflections or shadows, no red-eye, good contrast and sharp detail. No stains or creases on the print, and colours neutral and true to the face.',
+    glasses:
+      'The eyes must be clearly visible with no reflection on the lenses. No tinted lenses and no sunglasses. The rim or frame must not cover the eyes or be thick enough to.',
+    headCovering:
+      'No hat, cap, pipe or similar object, apart from glasses and comparable items worn out of necessity. In a photograph with a headscarf the face must be visible from the tip of the chin up to the forehead, with no shadows across it.',
+    children:
+      'A small child’s photograph must contain no other people and no objects.',
+    exceptions:
+      'Any photographer can take a biometric photograph — NVİ says so explicitly, so there is no approved-studio list to track down.',
+    recency:
+      'Taken within the last six months.',
+    sourceName: 'Nüfus ve Vatandaşlık İşleri Genel Müdürlüğü — Biyometrik Fotoğraf Özellikleri',
+    sourceUrl: 'https://www.nvi.gov.tr/istanbul/biyometrik-fotograf-nasil-olmalidir',
+    checkedOn: '2026-11-20',
+  },
+
+  srilanka: {
+    authority:
+      'The Department of Immigration and Emigration changed how Sri Lankan passport photographs work in August 2015, and the change is more interesting than any measurement: **printed photographs are no longer accepted at all.**',
+    quirk:
+      'The digital photograph has to come from a studio authorised by the Department — there are authorised studios island-wide, plus the Head Office and the regional offices in Kandy, Matara, Vavuniya, Kurunegala and Jaffna. The studio uploads your photograph straight into the Department’s system and hands you a Studio Acknowledgement Note, and it is that note, not a photograph, that you submit with your application. So for a Sri Lankan passport there is nothing to print and nothing to crop. This tool is useful to you for a visa or for other paperwork, and honestly not for the passport itself.',
+    background:
+      'Set by the authorised studio.',
+    children:
+      'Children need their own digital photograph from an authorised studio too, and can no longer be included on a parent’s passport — every child is issued a separate one.',
+    exceptions:
+      'Fingerprints are collected in person at the Head Office or a regional office from applicants aged 16 to 60. Applications submitted through a Sri Lankan diplomatic mission overseas are the exception to all of this: they can be made without fingerprints and without the digital photograph.',
+    recency:
+      'Only photographs taken within six months are valid.',
+    sourceName: 'Department of Immigration and Emigration — General Information on Passports',
+    sourceUrl: 'https://www.immigration.gov.lk/pages_e.php?id=7',
+    checkedOn: '2026-11-20',
+  },
+
+  kenya: {
+    authority:
+      'The Directorate of Immigration Services publishes its photo requirements on the eCitizen portal, and the specification there is for registration on a Kenyan visa application. It is unusually precise about the file as well as the print: 5.5 cm by 5.5 cm, or 207 by 207 pixels.',
+    quirk:
+      'A square, but not the square most people reach for. Kenya’s 5.5 cm is larger than the 2×2 inch (about 5.1 cm) used by the United States and India, so an American-sized photo is close enough to look right and small enough to be refused. The face should fill 70–80% of it.',
+    background:
+      'White, with the photograph in colour, showing your skin tone naturally and with appropriate brightness and contrast.',
+    expression:
+      'A close-up of your head and the top of your shoulders, in sharp focus, looking directly at the camera.',
+    headCovering:
+      'To be taken without headgear, and without a hat or cap. Headgear worn on religious grounds may be considered case by case, provided the main characteristics of the face are apparent — the chin, nose, eyes and eyebrows uncovered, and the forehead uncovered far enough that the shape of the face is clear.',
+    exceptions:
+      'Your hair must be tucked behind your ears. The photograph must carry no ink marks, no creases and no staple marks — and scanned images and colour photocopies are explicitly refused, so a copy of a photograph you already have will not do.',
+    recency:
+      'Not more than six months old.',
+    sourceName: 'Directorate of Immigration Services — Photo requirements and guidelines (eCitizen)',
+    sourceUrl: 'https://immigration.ecitizen.go.ke/index.php?id=9',
+    checkedOn: '2026-11-20',
+  },
+
+  nigeria: {
+    authority:
+      'The Nigeria Immigration Service runs its passport process as a portal application followed by an office visit, and the photograph belongs to the first half. You verify your NIN, pick a processing centre and a booklet size, and upload what the Service calls an “ICAO compliant picture”.',
+    quirk:
+      'Then you attend. The Service’s own instruction is plain — applicants are required to appear at the chosen Immigration Office for biometric data capture — so Nigeria is a hybrid: the photograph is supplied by you, the biometrics are taken there. The practical consequence is that the Service never publishes a size in millimetres; it points at the ICAO standard and leaves it there, which is why the figures on this page are the generic ones rather than a Nigerian rule.',
+    background:
+      'White, per the Service’s image compliance check on its application portal.',
+    expression:
+      'The ICAO standard: facing the camera, face centred, eyes open and clearly visible.',
+    children:
+      'Relaxed rules apply to children under five, though the child still needs to look at the camera with the face centred.',
+    exceptions:
+      'The portal has an image compliance checker you can run against your photograph before submitting it, which is worth using given that the written specification is a pointer to a standard rather than a list of numbers. Booklets come in 32 and 64 pages, chosen during the application, and payment and the biometric appointment are booked at the end of it.',
+    sourceName: 'Nigeria Immigration Service — How to Apply for Standard Passport',
+    sourceUrl: 'https://immigration.gov.ng/info-center/how-to-apply-for-standard-passport/',
     checkedOn: '2026-11-20',
   },
 };

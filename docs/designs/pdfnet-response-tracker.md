@@ -17,7 +17,7 @@ Status values: `todo` · `in progress` · `shipped` · `blocked` · `parked`
 | 1 | Centralise file-accept lists (+`.ppsx`, HEIC everywhere) | 0 | **shipped** | 2026-08-29 |
 | 1b | HEIC in the 5 PDF-embed tools (sign/watermark/annotate/edit/signature) | 0 | **shipped** | 2026-08-29 |
 | 2 | Stripe ToS consent checkbox | 0 | **shipped** | 2026-08-29 · self-arming when the URL is set |
-| 3 | Passport differentiation + verify 21 specs | 0 | **in progress** | Tier 1 2026-08-29 · 2026-11-19/20: 11 countries, **6 spec errors fixed** (incl. Colombia, wrong SIZE), 7 photograph on site |
+| 3 | Passport differentiation + verify 21 specs | 0 | **in progress** | Tier 1 2026-08-29 · 2026-11-19/20: **20 countries read at source, 10 spec errors fixed** (2 wrong SIZE), 10 photograph on site. 7 left, all need a human browser |
 | 4 | Bank statement guides 11 → 40 | 28 | **shipped** | 2026-08-29 · 39 pages |
 | 5 | Competitor alternatives 4 → 10 | 5 | **shipped** | 2026-08-29 (9 of 10; Canva pending a source) |
 | 6 | Sector pages 4 → 12 | 5 | **in progress** | 9 of 12 · government renamed to public-sector |
@@ -222,7 +222,34 @@ Guard countdown **24 → 19**. Full detail and URLs in
 Malaysia, New Zealand, Spain, Poland, Australia, the UK. One word on a page that
 nobody re-checks, and every aggregator copies the others.
 
-Guard countdown **24 → 16**.
+Guard countdown **24 → 7**.
+
+### Tranches 4 and 5 — 2026-11-20
+
+Nine more countries read at source. Four more errors:
+
+- **Kenya** — wrong size *and* wrong head band. We shipped a 2×2 inch square;
+  the Directorate publishes **5.5×5.5 cm, face 70–80%**. Four millimetres out,
+  which is the worst kind of wrong: it looks right in the hand. Relabelled
+  **Kenya visa**, because the guideline the Directorate publishes is the visa one.
+- **South Africa** — head band ceiling above the maximum (now 29–34 mm), and the
+  background is light grey or cream, **not white**.
+- **South Korea** — head band fixed to 32–36 mm, plus the 413×531 px online file.
+- **Sri Lanka** — not a measurement error. **A printed photograph has not been
+  accepted since 2015.** The photo must come from a Department-authorised studio
+  that uploads it directly. Nothing you print is usable for the passport.
+
+**Türkiye** needed no size change but is the single best piece of copy we found:
+NVİ tells you to remind the photographer *not* to cut the photo to 35×45 mm,
+because 50×60 is the Turkish size and the wrong one gets the card cancelled at
+quality control. **Thailand** and **Nigeria** joined the photograph-on-site and
+hybrid lists. **UAE** stays unresolved — the ICP's own documents disagree with
+each other on the size.
+
+**Running tally for item 3:** 20 countries read at source, **10 spec errors
+fixed** (two of them the wrong photo SIZE), 10 countries found not to accept a
+supplied photo at all. Seven countries remain and every one of them needs a page
+opened in a human browser, not more searching.
 
 ### Colombia — unblocked by the owner, 2026-11-20
 

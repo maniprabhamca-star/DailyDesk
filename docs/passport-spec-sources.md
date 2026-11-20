@@ -367,3 +367,45 @@ Holding the row rather than editing it on a search summary was right — but
 holding it meant shipping a wrong size for another day. **Where a spec is
 flagged as possibly wrong and the source is unreadable, ask the owner
 immediately rather than at the end of the tranche.**
+
+---
+
+## Tranche 4 — Asia pt.2 + Gulf + Africa, read 2026-11-20
+
+| Country | Source | Outcome |
+|---|---|---|
+| South Korea | [사진기준 — 여교비자과](https://www.passport.go.kr/) | **Head band fixed** 32–36 mm; 413×531 px for the online form |
+| Thailand | Dept. of Consular Affairs | **`photographedOnSite`** — staff photograph you, take fingerprints and measure your height |
+| Vietnam | Immigration Dept. | `headCaveat` — face sized as **~75% of the photo AREA**, plus an eye-line rule; not convertible to chin-to-crown |
+| UAE | ICP ICAO spec (read via pdf.js) | ⚠ **Unresolved** — the ICP's own documents disagree on the size. Left generic behind a caveat; needs a human |
+| South Africa | [DHA passport photo requirements (PDF)](https://www.dirco.gov.za/uk/wp-content/uploads/sites/5/2024/04/Passport_Photo_Requirements.pdf) | **Head band fixed** 29–34 mm; background **light grey or cream, not white** |
+
+## Tranche 5 — Türkiye, Nigeria, Kenya, Sri Lanka, read 2026-11-20
+
+| Country | Source | Outcome |
+|---|---|---|
+| Türkiye | [NVİ — Biyometrik Fotoğraf Özellikleri](https://www.nvi.gov.tr/istanbul/biyometrik-fotograf-nasil-olmalidir) (17.01.2020) | Size **confirmed** 50×60 white. No head measurement published → `headCaveat`. Marked verified |
+| Nigeria | [NIS — How to Apply for Standard Passport](https://immigration.gov.ng/info-center/how-to-apply-for-standard-passport/) | Hybrid: upload an “ICAO compliant picture”, then attend for biometrics. **No millimetres published** → `headCaveat` |
+| Kenya | [DIS photo requirements (eCitizen)](https://immigration.ecitizen.go.ke/index.php?id=9) | ⚠ **Wrong size AND wrong band.** We had 2×2 inch / 0.55–0.75. It is **5.5×5.5 cm (207×207 px), face 70–80%**. Relabelled **“Kenya visa”** — the published guideline is the visa one |
+| Sri Lanka | [Dept. of Immigration & Emigration](https://www.immigration.gov.lk/pages_e.php?id=7) | ⚠ **A printed photograph is not accepted at all** since 10 Aug 2015. Authorised-studio digital upload + Studio Acknowledgement Note. `photographedOnSite` |
+
+### Türkiye is worth quoting
+NVİ is the only authority in this whole audit that tells the applicant what to
+say to the photographer: **do not cut the biometric photo to 35×45 mm.** That is
+the default setting on every photo-shop guillotine in Europe, and NVİ also spells
+out the consequence — either the application cannot be completed, or the card is
+cancelled later at quality control. Our size was already right; the page now
+carries the warning.
+
+### Kenya's square is not America's square
+5.5 cm vs 2 inches (5.08 cm). Four millimetres. Close enough to look correct in
+the hand, far enough to be refused — exactly the Greece/Colombia failure mode,
+one more time.
+
+### Still unresolved after five tranches
+`pakistan`, `bangladesh`, `nepal`, `saudi`, `qatar`, `india-evisa`, and `uae`
+(size conflict in the ICP's own documents). Per the Colombia lesson, these go to
+the owner now rather than at the end: each needs a page opened in a human
+browser, not more searching.
+
+Guard countdown **16 → 11 → 7**.

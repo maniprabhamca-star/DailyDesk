@@ -25,6 +25,22 @@ export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-11-20',
     kind: 'fixed',
+    title: 'Kenya, South Africa and Korea were cropping too tight',
+    detail:
+      'Three more head-size ceilings sat above what the authority actually allows, which is the error that bites — too strict is an annoyance, too generous hands you a photo we call correct and the counter refuses. Kenya asks for 5.5 × 5.5 cm with the face at 70–80%; we had a 2×2 inch square, the American size, which looks close enough to pass and is not. South Africa publishes a 29–34 mm head on light grey or cream, not white. Korea sets 32–36 mm and a 413 × 531 pixel file for the online application. All three now match their source, and Korea, Vietnam, South Africa, Türkiye and Kenya carry the full written rule.',
+    href: '/passport-photo',
+  },
+  {
+    date: '2026-11-20',
+    kind: 'improved',
+    title: 'Three more countries that will not take your photo',
+    detail:
+      'Sri Lanka has not accepted a printed passport photograph since 2015 — the digital photo has to come from a studio the Department has authorised, which uploads it directly and gives you a note to hand in, so there is nothing to print. Thailand photographs you at the counter along with your fingerprints and your height. Nigeria is a hybrid: you upload a photo to the portal, then attend an office for biometrics. Türkiye takes a supplied photo but is the only authority we have read that tells you what to say to the photographer — do not let them cut it to 35 × 45 mm, because 50 × 60 is the Turkish size and the wrong one gets the card cancelled at quality control. Each of these now says so on its page before you spend time on a crop that cannot be used.',
+    href: '/passport-photo',
+  },
+  {
+    date: '2026-11-20',
+    kind: 'fixed',
     title: 'Colombia was the wrong size',
     detail:
       'We had Colombia down as 35×45 mm. Resolución 10829 de 2024 asks for four by five centimetres — 40×50 mm — which is neither the European size nor the American square, so a photo made here was the wrong shape rather than merely the wrong crop. It is an easy one to get wrong, because almost every neighbouring country uses something else. Now corrected, along with the rest of what the resolution sets out: white background, taken within six months, face in the foreground, frontal and neutral, eyes clearly visible with no glare if you wear glasses, and nothing covering the face. We could not read that resolution ourselves — the ministry’s site turns away automated readers, and we do not work around that — so this one was checked by hand.',
