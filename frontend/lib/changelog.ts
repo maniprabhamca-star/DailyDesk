@@ -23,6 +23,14 @@ export type ChangeEntry = {
 // flags flip, dated then.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-11-20',
+    kind: 'fixed',
+    title: 'Colombia was the wrong size',
+    detail:
+      'We had Colombia down as 35×45 mm. Resolución 10829 de 2024 asks for four by five centimetres — 40×50 mm — which is neither the European size nor the American square, so a photo made here was the wrong shape rather than merely the wrong crop. It is an easy one to get wrong, because almost every neighbouring country uses something else. Now corrected, along with the rest of what the resolution sets out: white background, taken within six months, face in the foreground, frontal and neutral, eyes clearly visible with no glare if you wear glasses, and nothing covering the face. We could not read that resolution ourselves — the ministry’s site turns away automated readers, and we do not work around that — so this one was checked by hand.',
+    href: '/passport-photo',
+  },
+  {
     date: '2026-11-19',
     kind: 'fixed',
     title: 'New Zealand does not want a white background',

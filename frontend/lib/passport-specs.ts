@@ -84,11 +84,14 @@ export const PASSPORT_SPECS: PassportSpec[] = [
   { id: 'chile', label: 'Chile', group: 'Americas', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm (generic)',
     photographedOnSite: 'For a Chilean passport you book an appointment and attend the Registro Civil; the only thing its service page asks you to bring is a valid cédula de identidad. No photograph appears on the list. Use this for a visa or another document that does ask for one.',
     headCaveat: 'Chile publishes no photo specification for the passport, because it does not ask for a supplied photo. The 35×45 mm shown here is the generic international size, not a Chilean rule.' },
-  // ⚠ Colombia is UNVERIFIED and possibly wrong: Resolución 10829 de 2024 is
-  // reported to publish 4×5 cm, not 35×45 mm. The Cancillería's own site sits
-  // behind a Cloudflare bot check that we do not bypass, so the figure has not
-  // been read at source and the row is left alone rather than changed on hearsay.
-  { id: 'colombia', label: 'Colombia', group: 'Americas', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '3.5×4.5 cm' },
+  // Colombia: Resolución 10829 de 2024, parágrafo 4º — "Tamaño de cuatro por
+  // cinco centímetros (4.0 cm x 5.0 cm) a color". We shipped 35×45 mm, which was
+  // simply the wrong photo, the same class of error as Greece. The resolution is
+  // behind a Cloudflare bot check we do not bypass; the owner read it and sent
+  // the text on 2026-11-20. It gives no head measurement, only "el rostro debe
+  // quedar en primer plano", so the band stays generic behind a caveat.
+  { id: 'colombia', label: 'Colombia', group: 'Americas', wPx: mm(40), hPx: mm(50), wMM: 40, hMM: 50, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '4×5 cm, colour, white background',
+    headCaveat: 'The resolution asks only that the face be in the foreground — “el rostro debe quedar en primer plano” — and publishes no chin-to-crown measurement. The band shown is the generic one.' },
 
   // ---- Europe (Schengen 35×45) ----
   schengen('germany', 'Germany'),
@@ -205,7 +208,7 @@ export function getSpec(id: string): PassportSpec | undefined {
 export const VERIFIED_SPECS = new Set<string>([
   'us-visa', 'us-passport', 'uk-passport', 'schengen-visa', 'india-passport', 'india-evisa',
   'canada', 'australia', 'china-visa', 'japan', 'biometric',
-  'brazil', 'argentina', 'singapore', 'malaysia', 'newzealand',
+  'brazil', 'argentina', 'colombia', 'singapore', 'malaysia', 'newzealand',
   'germany', 'france', 'italy', 'spain', 'netherlands', 'portugal', 'belgium', 'switzerland', 'austria', 'sweden', 'norway', 'poland', 'greece', 'ireland',
 ]);
 export const isVerified = (id: string): boolean => VERIFIED_SPECS.has(id);
@@ -759,6 +762,26 @@ export const EDITORIAL: Record<string, CountryEditorial> = {
     sourceName: 'Direktorat Jenderal Imigrasi — Kantor Imigrasi Karawang',
     sourceUrl: 'https://karawang.imigrasi.go.id/fakta-penting-yang-harus-kamu-ketahui-saat-foto-paspor-di-kantor-imigrasi/',
     checkedOn: '2026-11-19',
+  },
+
+  colombia: {
+    authority:
+      'Colombia puts its photo rule in a resolution rather than a help page: Resolución 10829 de 2024 of the Ministerio de Relaciones Exteriores. Parágrafo 4º lists what the photograph must meet, and says the list is the ICAO minimum rather than the whole of it — so treat these as the floor, not the ceiling.',
+    quirk:
+      'The size is the thing to get right, and it is not the one most people assume. Colombia asks for four by five centimetres — 40×50 mm — which is neither the European 35×45 nor the American two-inch square. A photo cut to 35×45 is the wrong shape here, not merely the wrong crop, and it is the single most common mistake because almost every neighbouring country uses something else. For an online application the photograph is digitised during the application itself.',
+    background:
+      'White. The resolution says fondo blanco and offers no alternative.',
+    expression:
+      'Frontal pose, looking directly into the camera, with a neutral expression, and the face in the foreground.',
+    glasses:
+      'Glasses may be worn, but the photograph has to show the eyes clearly with no light reflecting off the lenses.',
+    headCovering:
+      'No accessory or facial ornament that hides the face is permitted.',
+    recency:
+      'Taken no more than six months before the application.',
+    sourceName: 'Resolución 10829 de 2024, parágrafo 4º — Ministerio de Relaciones Exteriores',
+    sourceUrl: 'https://www.cancilleria.gov.co/normograma/compilacion/docs/resolucion_minrelaciones_10829_2024.htm',
+    checkedOn: '2026-11-20',
   },
 };
 

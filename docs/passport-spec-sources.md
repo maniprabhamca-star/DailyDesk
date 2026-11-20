@@ -330,3 +330,40 @@ Guard countdown **19 → 17**.
 11 countries read. **5 live spec errors fixed** (Singapore head band, Malaysia
 head band + background, New Zealand background, and 4 rows relabelled generic).
 **7 countries found to photograph you at the counter** and now say so.
+
+---
+
+## Colombia — UNBLOCKED and FIXED, 2026-11-20
+
+⚠ **It was wrong.** We shipped **35×45 mm**. Resolución 10829 de 2024,
+parágrafo 4º: *“Tamaño de cuatro por cinco centímetros (4.0 cm x 5.0 cm) a
+color”* — **40×50 mm**. Wrong SIZE, the same class of error as Greece.
+
+**How it was read.** The Cancillería serves a Cloudflare interstitial to
+automated readers, which we do not bypass, so this row sat flagged-but-unchanged
+from 2026-11-19. **The owner opened the page in their own browser on
+2026-11-20** and sent the text. That is the intended fallback, and it worked:
+the row was wrong, and it was wrong in a way no amount of careful searching
+would have settled — the aggregator consensus was the figure we already had.
+
+The resolution states the list is the **ICAO minimum**, not the whole rule:
+
+| | |
+|---|---|
+| a | 4.0 cm × 5.0 cm, colour |
+| b | taken at most **six months** before the application |
+| c | the face in the foreground (“en primer plano”) — **no chin-to-crown figure** → `headCaveat` |
+| d | frontal pose, looking into the camera, neutral expression |
+| e | if glasses are worn, the eyes must show clearly with no light reflections |
+| f | **fondo blanco** — white (the one thing we already had right) |
+| g | no accessory or facial ornament that hides the face |
+
+For an online application the photograph is **digitised during the application**.
+
+Marked verified. Guard countdown **17 → 16**.
+
+### Lesson for the remaining 16
+Holding the row rather than editing it on a search summary was right — but
+holding it meant shipping a wrong size for another day. **Where a spec is
+flagged as possibly wrong and the source is unreadable, ask the owner
+immediately rather than at the end of the tranche.**

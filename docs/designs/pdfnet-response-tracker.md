@@ -17,7 +17,7 @@ Status values: `todo` · `in progress` · `shipped` · `blocked` · `parked`
 | 1 | Centralise file-accept lists (+`.ppsx`, HEIC everywhere) | 0 | **shipped** | 2026-08-29 |
 | 1b | HEIC in the 5 PDF-embed tools (sign/watermark/annotate/edit/signature) | 0 | **shipped** | 2026-08-29 |
 | 2 | Stripe ToS consent checkbox | 0 | **shipped** | 2026-08-29 · self-arming when the URL is set |
-| 3 | Passport differentiation + verify 21 specs | 0 | **in progress** | Tier 1 2026-08-29 · 2026-11-19 pass: 11 countries, **5 spec errors fixed**, 7 found to photograph on site |
+| 3 | Passport differentiation + verify 21 specs | 0 | **in progress** | Tier 1 2026-08-29 · 2026-11-19/20: 11 countries, **6 spec errors fixed** (incl. Colombia, wrong SIZE), 7 photograph on site |
 | 4 | Bank statement guides 11 → 40 | 28 | **shipped** | 2026-08-29 · 39 pages |
 | 5 | Competitor alternatives 4 → 10 | 5 | **shipped** | 2026-08-29 (9 of 10; Canva pending a source) |
 | 6 | Sector pages 4 → 12 | 5 | **in progress** | 9 of 12 · government renamed to public-sector |
@@ -222,7 +222,23 @@ Guard countdown **24 → 19**. Full detail and URLs in
 Malaysia, New Zealand, Spain, Poland, Australia, the UK. One word on a page that
 nobody re-checks, and every aggregator copies the others.
 
-Guard countdown **24 → 17**.
+Guard countdown **24 → 16**.
+
+### Colombia — unblocked by the owner, 2026-11-20
+
+⚠ **It was wrong.** 35×45 mm shipped; Resolución 10829 de 2024 says **4×5 cm
+(40×50 mm)**. Wrong SIZE — the Greece class of error, and the second one in
+this audit.
+
+The Cancillería blocks automated readers, so this row was flagged and left
+alone on 19 Nov. The **owner opened it in their own browser** on 20 Nov and sent
+the text. The fallback worked, and it mattered: the aggregator consensus
+*agreed with the wrong figure we already had*, so no amount of searching would
+have caught it.
+
+**Process change:** when a spec is flagged possibly-wrong and the source is
+unreadable, ask the owner **immediately**, not at the end of the tranche. We
+shipped a wrong size for an extra day.
 
 ---
 
