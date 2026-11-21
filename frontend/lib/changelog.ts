@@ -25,6 +25,22 @@ export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-11-21',
     kind: 'fixed',
+    title: 'Twelve security advisories closed, and the reason nobody saw them',
+    detail:
+      'Twelve open advisories across the repo are now zero. None of them could ever have reached you — every one was in development tooling, the test runners and linters that never leave our machines, which is also why our build gate was built to ignore them on purpose: failing a build on a dev-only advisory just teaches people to skip the step. The part worth owning is why nine of the twelve, including both of the serious ones, had piled up in the same corner: our developer SDK was missing from the list of folders the update bot watches. Parked is not the same as finished. The bot watches it now.',
+    href: '/security',
+  },
+  {
+    date: '2026-11-21',
+    kind: 'improved',
+    title: 'Qatar now says we could not check it',
+    detail:
+      'Every other country on the passport photo tool has been read at its own government source. Qatar has not — the Ministry of Interior portal publishes no photo page and the Hukoomi services site returns an error on every URL we have tried, over several days. The 35×45 mm on white we show is the regional convention, which is almost certainly right, but it is a convention and not something we have watched Qatar state. The page says exactly that now, instead of sitting there looking as settled as the twenty-five we did verify.',
+    href: '/passport-photo',
+  },
+  {
+    date: '2026-11-21',
+    kind: 'fixed',
     title: 'Bangladesh and Nepal never wanted a photo either',
     detail:
       'Two more countries join the list that photograph you at the counter. Bangladesh says it outright in instruction 3 of its e-passport guidance — no photograph is attached to the form and none needs attesting — and the only photo it asks for anywhere is for a child under six: a 3R lab print on a **grey** background. We had Bangladesh down as 45×55 mm on white, which was neither the right size nor the right colour for the one photo that is actually wanted. Nepal lists “live enrolment — taking photograph and providing biometric information” as step three of your appointment, and publishes no specification at all, because it never receives one. Pakistan does take an uploaded photo, at 35×45 mm on white, with a **20 KB** file ceiling that is the tightest of any country we have read.',

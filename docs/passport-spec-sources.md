@@ -448,3 +448,15 @@ asked for this line explicitly.
 Guard countdown **7 → 4**. The four left — `us-visa` `us-passport`
 `schengen-visa` `biometric` — are the generic presets and share their clusters
 legitimately.
+
+### Qatar — now labelled unverified on the page, 2026-11-21
+Qatar is the only country in this audit we never read at source. Rather than
+leave it sitting among the twenty-five verified entries looking equally settled,
+the spec now carries a `headCaveat` saying plainly that we could not find a
+Qatari source, that 35×45 mm on white is the regional convention, and that the
+applicant should confirm with whoever receives the application. The `note` reads
+“35×45 mm (unverified)”.
+
+**The rule this sets:** an entry we could not verify gets labelled, not quietly
+shipped looking like the ones we could. A tool that cannot tell you which of its
+numbers it stands behind is worth less than one that admits the gap.

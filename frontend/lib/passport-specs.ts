@@ -230,7 +230,15 @@ export const PASSPORT_SPECS: PassportSpec[] = [
   // figure is the Enjaz work/visit-visa convention, not a published rule.
   { id: 'saudi', label: 'Saudi Arabia', group: 'Middle East & Africa', wPx: 600, hPx: 600, wMM: 51, hMM: 51, headMin: 0.55, headMax: 0.75, bg: WHITE, bgName: 'White', note: '2×2 in (Enjaz convention)',
     headCaveat: 'Saudi Arabia publishes no photo specification on its own visa portals — the tourist eVisa does not ask for a photograph at all. The 2×2 inch square shown is the long-standing Enjaz work and visit-visa convention. Check with your sponsor or the agency handling your application before printing.' },
-  { id: 'qatar', label: 'Qatar', group: 'Middle East & Africa', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm' },
+  // ⚠ Qatar is the one country on this list we have NOT been able to read at
+  // source. The Ministry of Interior portal publishes no photo page, and
+  // Hukoomi returns a server error on every service and search URL we have
+  // tried, across several attempts on different days. 35×45 mm on white is the
+  // regional convention and is what agencies ask for, but it is a convention,
+  // not something we have seen Qatar state. Say so rather than let it sit on
+  // the page looking as settled as the twenty-five we did verify.
+  { id: 'qatar', label: 'Qatar', group: 'Middle East & Africa', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm (unverified)',
+    headCaveat: 'We have not been able to find a photo specification published by Qatar itself — the Ministry of Interior portal has no photo page and the Hukoomi government services site returns an error. The 35×45 mm on white shown here is the regional convention and what agencies generally ask for, but we cannot point you at a Qatari source for it. Confirm with whoever is receiving your application before you print.' },
   // Türkiye: 50×60 mm on plain white CONFIRMED by NVİ. It publishes no head
   // measurement — only that the face is centred and fully visible with the hair.
   { id: 'turkey', label: 'Türkiye', group: 'Middle East & Africa', wPx: 500, hPx: 600, wMM: 50, hMM: 60, headMin: 0.55, headMax: 0.75, bg: WHITE, bgName: 'White, plain, no pattern', note: '50×60 mm — do NOT cut to 35×45',

@@ -47,6 +47,26 @@ updates:
       - dependency-name: '*'
         update-types: [version-update:semver-major]
 
+  # packages/sdk was MISSING from this file until 2026-11-21, and the omission
+  # is the reason nine of the twelve open advisories on the repo lived here —
+  # both of the highs among them. The SDK is parked, so nobody looked at it, so
+  # its dev toolchain (vitest, and vite underneath it) drifted far enough behind
+  # to collect advisories. Parked is not the same as finished: a package with a
+  # lockfile in the repo needs a bot watching it whether or not anyone is
+  # shipping from it.
+  - package-ecosystem: npm
+    directory: /packages/sdk
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 2
+    labels: [dependencies, sdk]
+    groups:
+      sdk:
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: '*'
+        update-types: [version-update:semver-major]
+
   - package-ecosystem: npm
     directory: /mcp
     schedule:
