@@ -52,7 +52,12 @@ export const PASSPORT_SPECS: PassportSpec[] = [
   { id: 'uk-passport', label: 'UK passport', group: 'Popular', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 29 / 45, headMax: 34 / 45, bg: LIGHTGREY, bgName: 'Cream or light grey', maxKB: 10240, note: '35×45 mm, head 29–34 mm, 600×750 px min' },
   { id: 'india-passport', label: 'India passport (Seva)', group: 'Popular', wPx: 630, hPx: 810, wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', maxKB: 250, note: '3.5×4.5 cm printed, white background',
     photographedOnSite: 'At a Passport Seva Kendra or POPSK no photograph is required — you are photographed there. Printed photos are for the routes that still ask for them: two colour copies, 3.5×4.5 cm, white background.' },
-  { id: 'india-evisa', label: 'India e-Visa', group: 'Popular', wPx: 600, hPx: 600, wMM: 51, hMM: 51, headMin: 0.60, headMax: 0.80, bg: WHITE, bgName: 'White', maxKB: 1024, note: 'square, JPEG 10 KB–1 MB' },
+  // India e-Visa, read at indianvisaonline.gov.in: JPEG, 10 KB–1 MB, height and
+  // width EQUAL, background "plain light colored or white" (not strictly white),
+  // and — unusually — no spectacles. No pixel or mm size is published at all,
+  // so 600×600 is our own sensible square, flagged as such.
+  { id: 'india-evisa', label: 'India e-Visa', group: 'Popular', wPx: 600, hPx: 600, wMM: 51, hMM: 51, headMin: 0.60, headMax: 0.80, bg: WHITE, bgName: 'Plain light colour or white', maxKB: 1024, note: 'square, JPEG 10 KB–1 MB, no glasses',
+    headCaveat: 'India publishes no head measurement and no pixel size for the e-Visa — only that the height and width must be equal and that the full head from the top of the hair to the bottom of the chin must be in frame. The square shown is our own.' },
   { id: 'canada', label: 'Canada passport/visa', group: 'Popular', wPx: mm(50), hPx: mm(70), wMM: 50, hMM: 70, headMin: 0.443, headMax: 0.514, bg: WHITE, bgName: 'White', note: '50×70 mm, head 31–36 mm' },
   // Australia publishes a RANGE, not a fixed size: 35–40 mm wide by 45–50 mm high,
   // with the face 32–36 mm chin to crown. We target the smallest valid rectangle
@@ -177,8 +182,19 @@ export const PASSPORT_SPECS: PassportSpec[] = [
   { id: 'thailand', label: 'Thailand', group: 'Asia', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm (generic)',
     photographedOnSite: 'For a Thai e-passport you must apply in person because your biometric data is captured there — staff photograph you, take your fingerprints and measure your height. Use this for a visa or another document that does ask for a supplied photo.',
     headCaveat: 'Thailand publishes no photo size for the passport, because it takes the picture itself. The 35×45 mm shown here is the generic international size.' },
-  { id: 'pakistan', label: 'Pakistan', group: 'Asia', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm' },
-  { id: 'bangladesh', label: 'Bangladesh', group: 'Asia', wPx: mm(45), hPx: mm(55), wMM: 45, hMM: 55, headMin: 0.62, headMax: 0.78, bg: WHITE, bgName: 'White', note: '45×55 mm' },
+  // Pakistan: 35×45 mm on plain white CONFIRMED at onlinemrp.dgip.gov.pk, read
+  // by the owner 2026-11-21. Two unusual things: a 20 KB file ceiling, which is
+  // the tightest on this whole list, and an explicit instruction not to edit the
+  // photo in other software. Both are on the page.
+  { id: 'pakistan', label: 'Pakistan', group: 'Asia', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', maxKB: 20, note: '35×45 mm, under 20 KB',
+    headCaveat: 'DGI&P gives the head size as a dimension diagram rather than a number, so the band shown is the generic one. The published rule in words is a close-up of your full head and shoulders.' },
+  // ⚠ Bangladesh: the e-passport form takes NO photograph — instruction 3 says
+  // so outright ("ই-পাসপোর্ট ফরমে কোন ছবি সংযোজন ... প্রয়োজন হবে না"). The ONLY photo
+  // it asks for is instruction 21: under-6s submit a 3R lab print on a GREY
+  // background. We shipped 45×55 white, which is neither. 3R = 3.5×5 in.
+  { id: 'bangladesh', label: 'Bangladesh', group: 'Asia', wPx: mm(89), hPx: mm(127), wMM: 89, hMM: 127, headMin: 0.50, headMax: 0.70, bg: LIGHTGREY, bgName: 'Grey (lab print)', note: '3R lab print, under-6s only',
+    photographedOnSite: 'The Bangladeshi e-passport form takes no photograph at all — you are photographed at the passport office during live enrolment. The 3R print on a grey background is required only for an applicant under six years old.',
+    headCaveat: 'The instruction gives the size as “3R” and the background as grey, with no head measurement at all. The band shown is a generic one for a print of this shape.' },
   // Vietnam: confirmed 4×6 cm on a white background by the Ministry of Public
   // Security. Its framing rule is given as a share of AREA and as an eye
   // position, not as a chin-to-crown band, so the band here stays generic.
@@ -190,7 +206,13 @@ export const PASSPORT_SPECS: PassportSpec[] = [
   { id: 'srilanka', label: 'Sri Lanka', group: 'Asia', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm (visa only)',
     photographedOnSite: 'For a Sri Lankan passport a printed photograph is not accepted at all. Since 2015 the digital photo must be taken by a studio authorised by the Department, which uploads it directly and gives you a Studio Acknowledgement Note to hand in. Use this for a visa or another document that does take a supplied photo.',
     headCaveat: 'The Department publishes no size, because the authorised studio supplies the photograph directly. The 35×45 mm shown here is the size its VISA form asks for.' },
-  { id: 'nepal', label: 'Nepal', group: 'Asia', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm' },
+  // Nepal: the Department of Passports lists step 3 of enrolment as "Live
+  // enrolment (Taking photograph and providing biometric information)". No
+  // photograph is submitted and none is specified. Kept at the generic size for
+  // the other uses people have for a Nepali photo.
+  { id: 'nepal', label: 'Nepal', group: 'Asia', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm (generic)',
+    photographedOnSite: 'You are photographed at the enrolment centre — the Department lists it as step 3, live enrolment, alongside your biometrics. Nothing is uploaded with the pre-enrolment form and no size is published. Use this for a visa or other paperwork that does take a supplied photo.',
+    headCaveat: 'The Department publishes no photo specification, because it takes the photograph itself. The figures shown are the generic regional ones.' },
 
   // ---- Middle East & Africa ----
   // ⚠ UAE: the ICP's own two documents DISAGREE. Its Personal Photo
@@ -202,7 +224,12 @@ export const PASSPORT_SPECS: PassportSpec[] = [
   // numbers get in. Needs a human to settle — see docs/passport-spec-sources.md.
   { id: 'uae', label: 'UAE visa', group: 'Middle East & Africa', wPx: mm(43), hPx: mm(55), wMM: 43, hMM: 55, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', maxKB: 1024, note: '43×55 mm, white',
     headCaveat: 'The ICP’s own documents disagree on the size: its photo specification sheet says 35–40 mm wide on a plain light-coloured background, while its FAQ says 3.5×4.5 cm on white, and 43×55 mm is what visa centres have long asked for. Both ICP documents agree the face should fill 70–80%, which is what this page uses. Check with whoever is receiving your application before printing.' },
-  { id: 'saudi', label: 'Saudi Arabia', group: 'Middle East & Africa', wPx: 600, hPx: 600, wMM: 51, hMM: 51, headMin: 0.55, headMax: 0.75, bg: WHITE, bgName: 'White', note: '2×2 in, white' },
+  // ⚠ Saudi Arabia: the official tourist eVisa portal publishes NO photo
+  // requirement — checked visa.mofa.gov.sa and visa.visitsaudi.com on
+  // 2026-11-21, including the FAQ, which never mentions a photograph. The 2×2 in
+  // figure is the Enjaz work/visit-visa convention, not a published rule.
+  { id: 'saudi', label: 'Saudi Arabia', group: 'Middle East & Africa', wPx: 600, hPx: 600, wMM: 51, hMM: 51, headMin: 0.55, headMax: 0.75, bg: WHITE, bgName: 'White', note: '2×2 in (Enjaz convention)',
+    headCaveat: 'Saudi Arabia publishes no photo specification on its own visa portals — the tourist eVisa does not ask for a photograph at all. The 2×2 inch square shown is the long-standing Enjaz work and visit-visa convention. Check with your sponsor or the agency handling your application before printing.' },
   { id: 'qatar', label: 'Qatar', group: 'Middle East & Africa', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: WHITE, bgName: 'White', note: '35×45 mm' },
   // Türkiye: 50×60 mm on plain white CONFIRMED by NVİ. It publishes no head
   // measurement — only that the face is centred and fully visible with the hair.
@@ -247,7 +274,7 @@ export const VERIFIED_SPECS = new Set<string>([
   'us-visa', 'us-passport', 'uk-passport', 'schengen-visa', 'india-passport', 'india-evisa',
   'canada', 'australia', 'china-visa', 'japan', 'biometric',
   'brazil', 'argentina', 'colombia', 'singapore', 'malaysia', 'newzealand',
-  'south-korea', 'vietnam', 'southafrica', 'turkey', 'kenya',
+  'south-korea', 'vietnam', 'southafrica', 'turkey', 'kenya', 'pakistan', 'bangladesh', 'nepal',
   'germany', 'france', 'italy', 'spain', 'netherlands', 'portugal', 'belgium', 'switzerland', 'austria', 'sweden', 'norway', 'poland', 'greece', 'ireland',
 ]);
 export const isVerified = (id: string): boolean => VERIFIED_SPECS.has(id);
@@ -536,7 +563,7 @@ export const EDITORIAL: Record<string, CountryEditorial> = {
       'JPEG only, between 10 KB and 1 MB. Files outside that range are refused by the upload form rather than by a person, so it is worth checking before you start the application.',
     sourceName: 'Bureau of Immigration — Indian e-Visa portal, photograph specifications',
     sourceUrl: 'https://indianvisaonline.gov.in/evisa/tvoa.html',
-    checkedOn: '2026-08-24',
+    checkedOn: '2026-11-21',
   },
 
   'india-passport': {
@@ -988,6 +1015,57 @@ export const EDITORIAL: Record<string, CountryEditorial> = {
     sourceUrl: 'https://immigration.gov.ng/info-center/how-to-apply-for-standard-passport/',
     checkedOn: '2026-11-20',
   },
+
+  pakistan: {
+    authority:
+      'Pakistan’s photo rule sits on the online machine-readable passport system run by the Directorate General of Immigration & Passports, and it is the ordinary 35 mm wide by 45 mm high on a plain white background. What is not ordinary is the file: the photograph has to come in **under 20 KB**, which is the tightest ceiling of any authority on this list by a wide margin — most sit between 240 KB and 5 MB.',
+    quirk:
+      'DGI&P also asks for something that deserves saying plainly: **the photograph should be professionally taken, must not be cut down from a larger picture, and must not be edited in other software.** We are other software. Use this page to check that your photographer’s print is the right shape and that the file will fit under 20 KB — not to manufacture the photograph itself from a snapshot. If your photo is already a proper studio portrait, reducing it to fit the limit is the job; recomposing a holiday picture into a passport photo is not, and Pakistan says so.',
+    background:
+      'Plain white.',
+    expression:
+      'In sharp focus and clear, facing forward and looking straight at the camera, showing a close-up of your full head and shoulders.',
+    children:
+      'Only you in the frame — no other people and no other objects in the photograph.',
+    exceptions:
+      'The application also needs a fingerprint form filled in as the site’s own fingerprint tutorial explains, so the photograph is only half of the biometric step.',
+    recency:
+      'Not more than six months old.',
+    sourceName: 'Directorate General of Immigration & Passports — Photo requirements, online MRP',
+    sourceUrl: 'https://onlinemrp.dgip.gov.pk/photo-requirements',
+    checkedOn: '2026-11-21',
+  },
+
+  bangladesh: {
+    authority:
+      'Bangladesh is the clearest case on this whole list of a country that does not want your photograph. Instruction 3 of the e-passport form guidance, issued by the Department of Immigration & Passports, says it outright: no photograph needs to be attached to the e-passport form, and no attestation of one is needed either. You are photographed at the passport office during enrolment.',
+    quirk:
+      'There is exactly one exception, and it is instruction 21: an applicant **under six years old** must submit a **3R print on a grey background**, lab printed. 3R is 3.5 by 5 inches — a small photo-shop print, not a passport photo — and grey is unusual enough that a white-background print will be sent back. If your child is under six, that is what this page is set up to make. If you are an adult, the only thing you need to bring is your National ID or online birth registration certificate.',
+    background:
+      'Grey, for the under-six print. Lab printed rather than home printed.',
+    children:
+      'The under-six 3R print is the only photograph the process asks for. For everyone else the photograph is taken at the office.',
+    exceptions:
+      'Applications are submitted at the divisional or regional passport office covering your present address, or at a Bangladeshi mission abroad, and your original National ID or birth registration certificate has to be shown there. No document needs attesting — that requirement was dropped with the e-passport.',
+    sourceName: 'Department of Immigration & Passports — e-Passport form instructions (last updated 3 August 2026)',
+    sourceUrl: 'https://www.epassport.gov.bd/instructions/instructions',
+    checkedOn: '2026-11-21',
+  },
+
+  nepal: {
+    authority:
+      'Nepal’s Department of Passports sets out the process in four steps, and the photograph is not one of the things you bring. You fill the pre-enrolment form online, pick an enrolment centre and an appointment, and then attend — and step three of the appointment is, in the Department’s own words, live enrolment: taking the photograph and providing biometric information.',
+    quirk:
+      'So there is no Nepali passport photo to prepare, and the Department publishes no size, because it never receives one. What you upload with the online form is your citizenship certificate, and for a renewal your previous passport. The one place a photograph does appear is a first application for a child born abroad to Nepali parents, which needs two recent passport-size photographs of the child submitted to the mission — and even there, no measurement is given.',
+    background:
+      'Not specified — the Department takes the photograph itself.',
+    exceptions:
+      'Urgent service runs only from the Department of Passports at Tripureshwor in Kathmandu; regular service runs from District and Area Administration Offices and from Nepali missions abroad. Bring the printed form with its barcode and QR code, or the PDF on your phone — a screenshot is explicitly not accepted.',
+    sourceName: 'Department of Passports, Government of Nepal — How to apply for an Ordinary Passport',
+    sourceUrl: 'https://nepalpassport.gov.np/en/process/process-7',
+    checkedOn: '2026-11-21',
+  },
+
 };
 
 export const getEditorial = (id: string): CountryEditorial | undefined => EDITORIAL[id];

@@ -409,3 +409,42 @@ the owner now rather than at the end: each needs a page opened in a human
 browser, not more searching.
 
 Guard countdown **16 → 11 → 7**.
+
+---
+
+## Tranche 6 — the blocked list, mostly unblocked, 2026-11-21
+
+| Country | Source | Outcome |
+|---|---|---|
+| **Pakistan** | [DGI&P online MRP photo requirements](https://onlinemrp.dgip.gov.pk/photo-requirements) — owner's browser | Size **confirmed** 35×45 white. New: **20 KB file ceiling** (tightest on the list) and an explicit “not edited in other software” instruction. Head given only as a diagram → `headCaveat` |
+| **Bangladesh** | [DIP e-Passport form instructions](https://www.epassport.gov.bd/instructions/instructions) (updated 3 Aug 2026) | ⚠ **Wrong on both counts.** Instruction 3: no photo is attached to the form at all. Instruction 21: under-6s submit a **3R lab print on GREY**. We shipped 45×55 white |
+| **Nepal** | [Dept. of Passports — How to apply](https://nepalpassport.gov.np/en/process/process-7) | **`photographedOnSite`.** Step 3 of the appointment is “live enrolment (taking photograph and providing biometric information)”. No spec published |
+| **India e-Visa** | [Bureau of Immigration instructions](https://indianvisaonline.gov.in/evisa/tvoa.html) | Re-read and **confirmed**: JPEG 10 KB–1 MB, height = width, **plain light coloured OR white**, **no spectacles**. No pixel or mm size published → `headCaveat`; `bgName` corrected from “White” |
+| **Saudi Arabia** | visa.mofa.gov.sa + visa.visitsaudi.com incl. FAQ | ⚠ **No photo specification published anywhere.** The tourist eVisa asks for no photograph. Our 2×2 in is the Enjaz convention → said so in a `headCaveat` rather than presenting it as a rule |
+| Qatar | portal.moi.gov.qa, hukoomi.gov.qa | ❌ **Still unreadable** — MOI portal has no photo page; Hukoomi returns HTTP 500 |
+| UAE | ICP documents | ❌ **Still unresolved** — the ICP's own documents disagree on the size |
+
+### Bangladesh is the strongest "no photo" finding yet
+Instruction 3, verbatim: *ই-পাসপোর্ট ফরমে কোন ছবি সংযোজন এবং তা সত্যায়নের প্রয়োজন হবে না — no photograph
+needs to be attached to the e-passport form, and no attestation of one is
+required. Instruction 21 is the single exception: under-6s, 3R size, lab print,
+**grey background**. A white print is refused.
+
+### A real bug, found by a data fix
+Pakistan's 20 KB is below what `encodeToCap` could reach: the binary search
+floored at JPEG quality 40 and, if that was still over the cap, returned the
+oversized file while the UI said “meets Pakistan”. Floor lowered to 10 and the
+result line now warns instead of asserting when the cap genuinely cannot be hit.
+**A spec audit found an engine bug — worth remembering as an argument for doing
+these at source.**
+
+### Honest copy, by request
+DGI&P tells applicants the photo must be professionally taken, not cropped from
+a larger picture, and *not edited in other software like photoshop*. We are
+other software. The Pakistan page now says so and frames the tool as a check on
+the crop and the file size, not a way to manufacture the photograph. The owner
+asked for this line explicitly.
+
+Guard countdown **7 → 4**. The four left — `us-visa` `us-passport`
+`schengen-visa` `biometric` — are the generic presets and share their clusters
+legitimately.

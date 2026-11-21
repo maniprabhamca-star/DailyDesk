@@ -8,12 +8,16 @@ import type { PassportSpec } from './passport-specs';
 // Crop rectangle in SOURCE-image pixels that maps to the whole output frame.
 export type Crop = { sx: number; sy: number; sw: number; sh: number };
 
+// Pakistan asks for under 20 KB, which quality 40 cannot reach at 413×531 — so
+// the old floor of 40 quietly handed back a file over the country's own limit.
+// Search the whole usable range instead, from 10 up, and only give up below it.
 async function encodeToCap(data: ImageData, maxKB?: number): Promise<Blob> {
   if (!maxKB) return encodeJpeg(data, 92);
   const cap = maxKB * 1024;
-  const low = await encodeJpeg(data, 40);
-  if (low.size > cap) return low; // can't get under — hand back the smallest
-  let lo = 41, hi = 95, best = low;
+  const FLOOR = 10;
+  const low = await encodeJpeg(data, FLOOR);
+  if (low.size > cap) return low; // genuinely unreachable — hand back the smallest
+  let lo = FLOOR + 1, hi = 95, best = low;
   while (lo <= hi) {
     const mid = (lo + hi) >> 1;
     const b = await encodeJpeg(data, mid);

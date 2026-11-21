@@ -300,7 +300,15 @@ export function PassportPhotoTool() {
                   <img src={result.url} alt="Your passport photo" className="h-24 rounded border" />
                   <div>
                     <p className="text-sm font-semibold">Ready — {fmtKB(result.size)}</p>
-                    <p className="text-xs text-muted-foreground">{spec.wPx}×{spec.hPx} px · meets {spec.label}</p>
+                    {spec.maxKB && result.size > spec.maxKB * 1024 ? (
+                      // Say so rather than claim it meets the spec: a few countries
+                      // (Pakistan at 20 KB) set a cap this crop genuinely can't hit.
+                      <p className="text-xs font-medium text-amber-600 dark:text-amber-500">
+                        {spec.wPx}×{spec.hPx} px · over {spec.label}’s {spec.maxKB} KB limit — crop a little tighter or use a less detailed background
+                      </p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">{spec.wPx}×{spec.hPx} px · meets {spec.label}</p>
+                    )}
                   </div>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">

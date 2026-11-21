@@ -88,6 +88,6 @@ describe('passport editorial', () => {
 
     // Snapshot of what is still to write. This number must go DOWN. Raising it
     // means a country was added to a shared-spec cluster without its editorial.
-    expect(undifferentiated.length).toBeLessThanOrEqual(7);
+    expect(undifferentiated.length).toBeLessThanOrEqual(4);
   });
 });

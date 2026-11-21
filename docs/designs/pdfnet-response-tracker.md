@@ -17,7 +17,7 @@ Status values: `todo` · `in progress` · `shipped` · `blocked` · `parked`
 | 1 | Centralise file-accept lists (+`.ppsx`, HEIC everywhere) | 0 | **shipped** | 2026-08-29 |
 | 1b | HEIC in the 5 PDF-embed tools (sign/watermark/annotate/edit/signature) | 0 | **shipped** | 2026-08-29 |
 | 2 | Stripe ToS consent checkbox | 0 | **shipped** | 2026-08-29 · self-arming when the URL is set |
-| 3 | Passport differentiation + verify 21 specs | 0 | **in progress** | Tier 1 2026-08-29 · 2026-11-19/20: **20 countries read at source, 10 spec errors fixed** (2 wrong SIZE), 10 photograph on site. 7 left, all need a human browser |
+| 3 | Passport differentiation + verify 21 specs | 0 | **in progress** | Tier 1 2026-08-29 · 2026-11-19/21: **25 countries read at source, 12 spec errors fixed** (3 wrong SIZE), 12 photograph on site. **Only Qatar + UAE left.** Also surfaced an engine bug (file-size cap) |
 | 4 | Bank statement guides 11 → 40 | 28 | **shipped** | 2026-08-29 · 39 pages |
 | 5 | Competitor alternatives 4 → 10 | 5 | **shipped** | 2026-08-29 (9 of 10; Canva pending a source) |
 | 6 | Sector pages 4 → 12 | 5 | **in progress** | 9 of 12 · government renamed to public-sector |
@@ -222,7 +222,37 @@ Guard countdown **24 → 19**. Full detail and URLs in
 Malaysia, New Zealand, Spain, Poland, Australia, the UK. One word on a page that
 nobody re-checks, and every aggregator copies the others.
 
-Guard countdown **24 → 7**.
+Guard countdown **24 → 4**.
+
+### Tranche 6 — 2026-11-21: the blocked list, mostly unblocked
+
+The owner opened Pakistan in their own browser; the rest came out of ours.
+
+- **Bangladesh** — wrong on both counts, and the strongest “no photo” finding in
+  the audit. The e-passport form takes **no photograph at all** (instruction 3),
+  and the only photo asked for anywhere is instruction 21: under-6s, **3R lab
+  print on GREY**. We shipped 45×55 mm on white.
+- **Nepal** — `photographedOnSite`. Step 3 of the appointment is live enrolment:
+  taking the photograph and the biometrics. No spec published, because none is
+  received.
+- **Pakistan** — size confirmed (35×45 white), plus a **20 KB** file ceiling,
+  the tightest of any country on the list.
+- **India e-Visa** — re-read and confirmed; background corrected to “plain light
+  colour **or** white”, which is more forgiving than we were showing.
+- **Saudi Arabia** — publishes **no photo rule at all**; the tourist eVisa asks
+  for no photograph. Our 2×2 in is the Enjaz convention, and the page now says
+  so instead of presenting it as a rule.
+
+**A spec audit found an engine bug.** Pakistan's 20 KB is below what the encoder
+could reach: it floored at JPEG quality 40 and, when that was still over the
+cap, returned the oversized file while the UI said “meets Pakistan”. Fixed, and
+the result line now warns rather than asserting. This is the argument for
+reading specs at source — the data work shook out a correctness bug in the tool.
+
+**Running tally for item 3:** 25 countries read at source, **12 spec errors
+fixed** (three the wrong photo SIZE), **12 countries found not to accept a
+supplied photo**. Only **Qatar** and **UAE** remain, and both are genuinely
+blocked rather than unresearched.
 
 ### Tranches 4 and 5 — 2026-11-20
 

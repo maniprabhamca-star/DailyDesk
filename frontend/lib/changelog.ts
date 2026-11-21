@@ -23,6 +23,22 @@ export type ChangeEntry = {
 // flags flip, dated then.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-11-21',
+    kind: 'fixed',
+    title: 'Bangladesh and Nepal never wanted a photo either',
+    detail:
+      'Two more countries join the list that photograph you at the counter. Bangladesh says it outright in instruction 3 of its e-passport guidance — no photograph is attached to the form and none needs attesting — and the only photo it asks for anywhere is for a child under six: a 3R lab print on a **grey** background. We had Bangladesh down as 45×55 mm on white, which was neither the right size nor the right colour for the one photo that is actually wanted. Nepal lists “live enrolment — taking photograph and providing biometric information” as step three of your appointment, and publishes no specification at all, because it never receives one. Pakistan does take an uploaded photo, at 35×45 mm on white, with a **20 KB** file ceiling that is the tightest of any country we have read.',
+    href: '/passport-photo',
+  },
+  {
+    date: '2026-11-21',
+    kind: 'improved',
+    title: 'The photo tool now admits when it cannot hit a file limit',
+    detail:
+      'Pakistan’s 20 KB cap turned up a bug worth owning: the encoder stopped searching at JPEG quality 40, and if that was still over the country’s limit it handed the file back anyway and labelled it “meets Pakistan”. It now searches the full usable quality range, and on the rare crop that genuinely cannot fit, it says so in plain words and suggests what to change rather than claiming a pass. Also, Pakistan’s own guidance asks for a professional photo that has not been edited in other software — we are other software, so the page now says that too, and tells you to use the tool to check the crop and the file size rather than to manufacture the photo.',
+    href: '/passport-photo',
+  },
+  {
     date: '2026-11-20',
     kind: 'fixed',
     title: 'Kenya, South Africa and Korea were cropping too tight',
