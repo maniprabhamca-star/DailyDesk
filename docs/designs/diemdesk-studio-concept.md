@@ -55,5 +55,26 @@ Compose, Frame, Maker. Avoid "Canvas" (too close to Canva / generic).
 - **Licensing** — templates/fonts/assets must be original or license-clean.
 - **AI cost** — non-AI first; AI only behind the budget kill-switch.
 
+## → Implementation plan (2026-11-23)
+
+This doc stays the **concept of record**. The build plan — phases, template counts,
+risks and the open decisions S1–S5 — now lives alongside it at
+**[studio-implementation-plan.html](studio-implementation-plan.html)**
+(published: https://claude.ai/artifact/SQeJHAY3p2z2EgJpZm1N3S).
+
+One thing it adds that this concept did not anticipate. Studio now has to carry
+**two template families, not one**: the design templates described above (canvas
+work — social posts, banners, certificates), and a second family of **document
+templates** (invoice, agenda, CV, cover letter, expense report) that arrived via
+decision D5 on the forms plan. The second family **does not need the canvas editor**
+— a document whose layout must not move is the wrong job for a canvas — and should
+route through the existing fill-and-export path instead.
+
+⚠ **Legal instruments are deliberately excluded** — bills of sale, agreements,
+by-laws, affidavits, leases. Competitors carry them; US Legal Forms is explicitly a
+legal-forms business with the counsel to match, and we are not. Our standing
+invariant is that we supply a tool, not advice. Not in Phase 1, and not at all
+without counsel signing off the category — a category decision, not a traffic one.
+
 ## Next
 Owner shares the Bonafide base → review it → build a mockup (matched exactly on approval) → phased build.

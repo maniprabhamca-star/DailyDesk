@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Studio Build Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Figtree:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --work:#eceef1; --board:#ffffff; --sunk:#f3f5f7;
+    --ink:#15181d; --body:#39414b; --slate:#646e7a; --faint:#919aa5;
+    --rule:#dfe3e8; --rule-strong:#c3cad2;
+    --coral:#cf4f32; --coral-bg:#fdeeea;
+    --amber:#9a6508; --amber-bg:#fdf3e2;
+    --keep:#167a4c; --keep-bg:#e6f3ec;
+    --lift:0 1px 1px rgba(21,24,29,.04), 0 10px 28px -16px rgba(21,24,29,.3);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --work:#0b0d11; --board:#15181e; --sunk:#1b1f26;
+      --ink:#f0f2f5; --body:#c6ccd4; --slate:#8d96a1; --faint:#69717c;
+      --rule:#242a32; --rule-strong:#39414b;
+      --coral:#f58463; --coral-bg:#2a160f;
+      --amber:#e3a94f; --amber-bg:#271c0c;
+      --keep:#4ec08a; --keep-bg:#102a1e;
+      --lift:0 1px 1px rgba(0,0,0,.5), 0 10px 28px -16px rgba(0,0,0,.9);
+    }
+  }
+  :root[data-theme="dark"]{
+    --work:#0b0d11; --board:#15181e; --sunk:#1b1f26;
+    --ink:#f0f2f5; --body:#c6ccd4; --slate:#8d96a1; --faint:#69717c;
+    --rule:#242a32; --rule-strong:#39414b;
+    --coral:#f58463; --coral-bg:#2a160f;
+    --amber:#e3a94f; --amber-bg:#271c0c;
+    --keep:#4ec08a; --keep-bg:#102a1e;
+    --lift:0 1px 1px rgba(0,0,0,.5), 0 10px 28px -16px rgba(0,0,0,.9);
+  }
+
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:var(--work); color:var(--body);
+    font-family:Figtree,ui-sans-serif,system-ui,sans-serif;
+    font-size:16.5px; line-height:1.62;
+  }
+  .wrap{max-width:1140px; margin:0 auto; padding:0 16px 88px}
+  .measure{max-width:66ch}
+
+  h1,h2,h3,h4{font-family:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif; color:var(--ink)}
+  h1{font-size:clamp(2.05rem,5.6vw,3.3rem); line-height:1.02; letter-spacing:-.028em; font-weight:700; margin:0 0 .55rem; text-wrap:balance}
+  h2{font-size:clamp(1.35rem,3vw,1.9rem); line-height:1.12; letter-spacing:-.02em; font-weight:600; margin:0 0 .3rem; text-wrap:balance}
+  h3{font-size:1.1rem; line-height:1.28; letter-spacing:-.014em; font-weight:600; margin:0 0 .35rem}
+  h4{font-size:.97rem; font-weight:600; letter-spacing:-.008em; margin:0 0 .2rem}
+  p{margin:0 0 1rem}
+  a{color:var(--coral); text-decoration:underline; text-underline-offset:2px; text-decoration-thickness:1px}
+  a:focus-visible{outline:2px solid var(--coral); outline-offset:3px; border-radius:3px}
+  strong{color:var(--ink); font-weight:600}
+  code,.mono{font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:.85em}
+  code{background:var(--sunk); padding:.12em .36em; border-radius:4px; color:var(--ink)}
+  .lbl{font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:.67rem; font-weight:500; letter-spacing:.14em; text-transform:uppercase; color:var(--faint)}
+
+  /* masthead — a ruler strip over the workspace */
+  header.top{padding:52px 0 26px; margin-bottom:34px; border-bottom:1px solid var(--rule-strong)}
+  .kicker{display:flex; flex-wrap:wrap; gap:9px; align-items:center; margin-bottom:18px}
+  .tag{font-family:"IBM Plex Mono",monospace; font-size:.64rem; font-weight:600; letter-spacing:.12em; text-transform:uppercase; border:1.5px solid currentColor; border-radius:3px; padding:4px 8px; line-height:1}
+  .tag.c{color:var(--coral)} .tag.a{color:var(--amber)} .tag.k{color:var(--keep)}
+  .dek{font-size:1.17rem; line-height:1.5; color:var(--slate); max-width:60ch; margin:0}
+
+  /* artboards */
+  .board{background:var(--board); border:1px solid var(--rule); border-radius:6px; padding:22px; box-shadow:var(--lift)}
+  section{margin:0 0 56px}
+  .sechead{display:flex; gap:13px; align-items:baseline; border-top:1px solid var(--rule-strong); padding-top:15px; margin-bottom:18px}
+  .sechead .no{font-family:"IBM Plex Mono",monospace; font-size:.78rem; font-weight:600; color:var(--faint); padding-top:.35em; flex:none}
+  .sub{font-size:.97rem; color:var(--slate); margin:.2rem 0 0}
+
+  .pitch{background:var(--board); border:1px solid var(--rule); border-left:3px solid var(--coral); border-radius:6px; padding:22px 24px; box-shadow:var(--lift); margin:28px 0 40px}
+  .pitch .big{font-family:"Bricolage Grotesque",sans-serif; font-weight:600; font-size:clamp(1.15rem,2.6vw,1.45rem); line-height:1.32; letter-spacing:-.018em; color:var(--ink); margin:0 0 10px}
+  .pitch p:last-child{margin:0; color:var(--slate); font-size:.97rem}
+
+  /* two-family split */
+  .fams{display:grid; gap:16px; margin:22px 0 10px}
+  @media(min-width:820px){.fams{grid-template-columns:1fr 1fr}}
+  .fam{background:var(--board); border:1px solid var(--rule); border-radius:6px; padding:20px; box-shadow:var(--lift); border-top:3px solid var(--coral)}
+  .fam.b{border-top-color:var(--amber)}
+  .fam .cnt{font-family:"Bricolage Grotesque",sans-serif; font-weight:700; font-size:2rem; line-height:1; letter-spacing:-.03em; color:var(--ink); font-variant-numeric:tabular-nums}
+  .fam .cnt small{font-size:.82rem; font-weight:500; color:var(--faint); letter-spacing:0}
+  .chips{display:flex; flex-wrap:wrap; gap:5px; margin-top:12px}
+  .chips span{font-family:"IBM Plex Mono",monospace; font-size:.68rem; background:var(--sunk); border:1px solid var(--rule); color:var(--slate); border-radius:3px; padding:3px 7px}
+
+  /* tables */
+  .scroll{overflow-x:auto; border:1px solid var(--rule); border-radius:6px; background:var(--board); box-shadow:var(--lift)}
+  table{border-collapse:collapse; width:100%; font-size:.92rem; min-width:540px}
+  th{text-align:left; font-family:"IBM Plex Mono",monospace; font-size:.67rem; font-weight:600; letter-spacing:.09em; text-transform:uppercase; color:var(--faint); padding:11px 14px; border-bottom:1px solid var(--rule-strong); background:var(--sunk); white-space:nowrap}
+  td{padding:12px 14px; border-bottom:1px solid var(--rule); vertical-align:top}
+  tr:last-child td{border-bottom:0}
+  td.n,th.n{text-align:right; font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; white-space:nowrap}
+  td.k{font-family:"Bricolage Grotesque",sans-serif; font-weight:600; color:var(--ink); white-space:nowrap}
+
+  /* callouts */
+  .call{border-radius:6px; padding:16px 18px; margin:20px 0; border:1px solid var(--rule)}
+  .call .lbl{display:block; margin-bottom:6px}
+  .call p:last-child{margin:0}
+  .call.stop{background:var(--coral-bg); border-color:color-mix(in srgb,var(--coral) 32%,transparent)}
+  .call.stop .lbl{color:var(--coral)}
+  .call.hold{background:var(--amber-bg); border-color:color-mix(in srgb,var(--amber) 34%,transparent)}
+  .call.hold .lbl{color:var(--amber)}
+  .call.win{background:var(--keep-bg); border-color:color-mix(in srgb,var(--keep) 32%,transparent)}
+  .call.win .lbl{color:var(--keep)}
+
+  /* phases */
+  .phase{border-top:1px solid var(--rule); padding:22px 0}
+  .phase:first-of-type{border-top:0}
+  .phead{display:flex; flex-wrap:wrap; gap:9px 13px; align-items:baseline; margin-bottom:10px}
+  .pno{font-family:"IBM Plex Mono",monospace; font-size:.67rem; font-weight:600; letter-spacing:.1em; color:var(--board); background:var(--ink); padding:4px 8px; border-radius:3px; line-height:1; flex:none}
+  .meta{display:flex; flex-wrap:wrap; gap:6px; margin-left:auto}
+  .chip{font-family:"IBM Plex Mono",monospace; font-size:.67rem; background:var(--sunk); color:var(--slate); border:1px solid var(--rule); border-radius:3px; padding:3px 7px; white-space:nowrap}
+  .chip.go{background:var(--keep-bg); color:var(--keep); border-color:transparent}
+  .chip.no{background:var(--coral-bg); color:var(--coral); border-color:transparent}
+
+  ul.tick{list-style:none; padding:0; margin:0}
+  ul.tick li{position:relative; padding-left:1.3em; margin-bottom:.5rem; font-size:.96rem}
+  ul.tick li::before{content:"—"; position:absolute; left:0; color:var(--faint); font-family:"IBM Plex Mono",monospace}
+  ul.tick li:last-child{margin-bottom:0}
+
+  footer.end{border-top:1px solid var(--rule-strong); margin-top:10px; padding-top:20px; font-size:.86rem; color:var(--faint)}
+  footer.end p{margin:0 0 .4rem}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <div class="kicker">
+    <span class="tag c">Build plan</span>
+    <span class="tag a">Not started</span>
+    <span class="tag k">Pro anchor</span>
+    <span class="lbl">DiemDesk Studio · 23 Nov 2026</span>
+  </div>
+  <h1>Studio, and what belongs in it</h1>
+  <p class="dek">The implementation plan for the design studio concept of 13 July 2026 — plus the question that reopened it: should we carry a template catalogue like pdfFiller’s, and if so, where does it live?</p>
+</header>
+
+<div class="pitch">
+  <p class="big">A private, no-watermark studio inside your document workspace — make the thing, on your device, and send it straight into the tools you already use here.</p>
+  <p>Canva makes you upload. Studio keeps your work on your device. That sentence is the entire product, and everything below either serves it or gets cut.</p>
+</div>
+
+<!-- 01 -->
+<section id="why">
+  <div class="sechead">
+    <span class="no">01</span>
+    <div>
+      <h2>The line we do not cross</h2>
+      <p class="sub">The failure mode here is obvious and it is worth naming before any scope is written down.</p>
+    </div>
+  </div>
+  <div class="measure">
+    <p><strong>We will not out-spend Canva on template volume, asset libraries or collaboration.</strong> They have thousands of designers and a decade of head start. Any plan whose success depends on catching up on count has already failed.</p>
+    <p>What we have that they structurally cannot copy without dismantling their own product:</p>
+    <ul class="tick">
+      <li><strong>On device.</strong> The design never leaves the browser. For a certificate with someone’s name on it, an invoice with your client list, or a letterhead with your address, that is not a preference.</li>
+      <li><strong>No watermark, ever.</strong> Not a trial limitation we later remove — a thing we never do.</li>
+      <li><strong>Deterministic.</strong> The same input gives the same output. No server-side “improvements” between sessions.</li>
+      <li><strong>Offline.</strong> It is a PWA. It works on a plane.</li>
+      <li><strong>Integrated.</strong> Export straight into compress, PDF, QR, background remover, and a saved brand kit — tools that already exist here rather than a second app to learn.</li>
+    </ul>
+  </div>
+  <div class="call win">
+    <span class="lbl">The one-line position</span>
+    <p>Not “a cheaper Canva”. <strong>The design tool for work you would rather not upload.</strong></p>
+  </div>
+</section>
+
+<!-- 02 -->
+<section id="families">
+  <div class="sechead">
+    <span class="no">02</span>
+    <div>
+      <h2>Two template families, and they are not the same product</h2>
+      <p class="sub">The pdfFiller catalogue mixes them freely. We should not, because they need different editors, carry different risk, and sell to different people.</p>
+    </div>
+  </div>
+
+  <div class="fams">
+    <div class="fam">
+      <span class="lbl">Family A</span>
+      <h3>Design templates</h3>
+      <div class="cnt">~40 <small>at launch</small></div>
+      <p style="margin:12px 0 0; font-size:.95rem; color:var(--slate)">Visual work on a canvas. Laid out by eye, exported as an image or a PDF. This is what the July concept described, and it needs the canvas editor.</p>
+      <div class="chips"><span>social posts</span><span>banners</span><span>posters</span><span>flyers</span><span>certificates</span><span>business cards</span><span>QR posters</span></div>
+    </div>
+    <div class="fam b">
+      <span class="lbl">Family B</span>
+      <h3>Document templates</h3>
+      <div class="cnt">~24 <small>at launch</small></div>
+      <p style="margin:12px 0 0; font-size:.95rem; color:var(--slate)">Text-shaped work with fields and a layout that should not move. These are what your screenshot showed. <strong>They do not need a canvas editor at all</strong> — they need a form-shaped fill and a clean PDF out, which is closer to tools we already have.</p>
+      <div class="chips"><span>invoice</span><span>quote</span><span>receipt</span><span>purchase order</span><span>letterhead</span><span>agenda</span><span>minutes</span><span>expense report</span><span>timesheet</span><span>CV</span><span>cover letter</span><span>budget</span></div>
+    </div>
+  </div>
+
+  <div class="call stop">
+    <span class="lbl">And a third group that should not ship</span>
+    <p><strong>Legal instruments — bills of sale, agreements, by-laws, affidavits, powers of attorney, leases.</strong> pdfFiller and US&nbsp;Legal&nbsp;Forms both carry them, and US&nbsp;Legal&nbsp;Forms is explicitly a legal-forms business with the positioning and the counsel to match. We are not, and our own standing invariant across the whole site is that we <em>supply a tool, not advice</em>. Handing someone a blank bill of sale is a materially different act from handing them a blank IRS form that the IRS itself publishes. <strong>Recommend: not in Phase 1, and not at all without counsel signing off on the category.</strong></p>
+  </div>
+
+  <div class="measure">
+    <h3>Why this belongs in Studio and not in the forms library</h3>
+    <p>This was decision <strong>D5</strong> on the forms plan, and it is worth restating because the two look superficially alike. A government form has an <strong>issuing authority</strong>, a <strong>revision the authority publishes</strong>, and a file we can re-read every Monday to prove we are still right about it. A cover-letter template has none of those things — there is no authority to cite, no revision to drift, nothing to verify.</p>
+    <p>Every piece of machinery that makes <code>/us-forms</code> credible — the live fetch, the revision marker, the field count, the date checked, the weekly job — <strong>applies to exactly none of these templates</strong>. Shelving them side by side would teach readers that our forms are “templates too”, which is the one impression the forms library exists to avoid.</p>
+  </div>
+</section>
+
+<!-- 03 -->
+<section id="phases">
+  <div class="sechead">
+    <span class="no">03</span>
+    <div>
+      <h2>The build</h2>
+      <p class="sub">Three phases. Phase 1 ships without a single AI call, deliberately — the concept doc already set that rule and it still holds.</p>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phead">
+      <span class="pno">PHASE 1</span>
+      <h3>The canvas, and enough templates to be useful</h3>
+      <div class="meta"><span class="chip">~64 templates</span><span class="chip">no AI</span><span class="chip go">MVP</span></div>
+    </div>
+    <div class="measure">
+      <ul class="tick">
+        <li><strong>Canvas editor</strong> — text, shapes, images, layers, align and distribute, colour, fonts, snapping and guides, undo. Built on the owner’s existing Bonafide banner studio rather than from nothing.</li>
+        <li><strong>Family A: ~40 design templates</strong> across the seven categories above, with preset canvas sizes per platform.</li>
+        <li><strong>Family B: ~24 document templates</strong> — and these route through the <em>existing</em> fill-and-export path, not the canvas. Building them twice would be the first scope mistake.</li>
+        <li><strong>Export</strong> PNG, JPG, PDF — reusing our compress and PDF-export engines rather than new ones.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phead">
+      <span class="pno">PHASE 2</span>
+      <h3>Power, and the integrations only we can offer</h3>
+      <div class="meta"><span class="chip">Pro levers</span></div>
+    </div>
+    <div class="measure">
+      <ul class="tick">
+        <li><strong>Brand kit</strong> — logo, colours, fonts saved once, applied in one click. Already on the Pro differentiator list independently of Studio.</li>
+        <li><strong>Magic resize</strong> — one design into every platform size. On device, so there is no per-render cost to us and no cap to impose.</li>
+        <li><strong>Background remover</strong> integration, and <strong>batch</strong> across a set of designs — the on-device batch that competitors cannot match without paying for every render.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phead">
+      <span class="pno">PHASE 3</span>
+      <h3>AI, behind the budget kill-switch</h3>
+      <div class="meta"><span class="chip">cost-gated</span><span class="chip no">not before 1 &amp; 2</span></div>
+    </div>
+    <div class="measure">
+      <p>Text-to-image, AI background, copy suggestions — all of it behind the existing AI guardrails: cheap model, per-user cap, and a global budget pegged to revenue with a kill-switch. Studio is the feature most likely to blow an AI budget, because image generation is the expensive kind, so it is last and it is metered from the first line of code rather than retrofitted.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 04 -->
+<section id="counts">
+  <div class="sechead">
+    <span class="no">04</span>
+    <div>
+      <h2>How many templates</h2>
+      <p class="sub">Counts are what we would <em>make and licence cleanly</em>, not what we would scrape. Every asset original or licence-clean for commercial use is a standing policy, not an aspiration.</p>
+    </div>
+  </div>
+  <div class="scroll">
+    <table>
+      <thead><tr><th>Family</th><th class="n">Phase 1</th><th class="n">Mature</th><th>Note</th></tr></thead>
+      <tbody>
+        <tr><td class="k">A — design</td><td class="n">~40</td><td class="n">~90</td><td>7 categories at launch; grows by category, not by reskinning the same layout.</td></tr>
+        <tr><td class="k">B — document</td><td class="n">~24</td><td class="n">~45</td><td>Business admin and career only. Routed through the existing fill/export path.</td></tr>
+        <tr><td class="k">Legal instruments</td><td class="n">0</td><td class="n">0</td><td>Deferred pending counsel. Not a volume decision — a category decision.</td></tr>
+        <tr><td class="k"><strong>Total</strong></td><td class="n"><strong>~64</strong></td><td class="n"><strong>~135</strong></td><td>Against Canva's hundreds of thousands. We are not competing on this axis.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="call hold" style="margin-top:18px">
+    <span class="lbl">Keep these numbers apart from the forms numbers</span>
+    <p>The forms plan targets <strong>~190 verified government forms</strong>. Studio targets <strong>~135 templates</strong>. They are different things measured in different ways — a form is <em>verified against an agency</em>, a template is <em>made by us</em> — and adding them into one headline figure would be the first step toward treating them as one library, which §2 argues against.</p>
+  </div>
+</section>
+
+<!-- 05 -->
+<section id="risk">
+  <div class="sechead">
+    <span class="no">05</span>
+    <div>
+      <h2>What could go wrong</h2>
+      <p class="sub">Three, in the order they are likely to bite.</p>
+    </div>
+  </div>
+  <div class="measure">
+    <ul class="tick">
+      <li><strong>Scope creep — the big one.</strong> Canva is enormous and every missing feature will feel like a gap. The phased output list above is the defence; anything not on it waits for a second opinion rather than a sprint.</li>
+      <li><strong>Licensing.</strong> Every template, font, icon and image original or licence-clean for commercial use. This has bitten projects far larger than ours, and a template catalogue is exactly where it bites.</li>
+      <li><strong>Legal-template liability.</strong> Covered in §2. The temptation will return the moment someone sees the search volume on “free bill of sale template”.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 06 -->
+<section id="open">
+  <div class="sechead">
+    <span class="no">06</span>
+    <div>
+      <h2>Open decisions</h2>
+      <p class="sub">S1 and S2 block the build; the rest can be settled while it runs.</p>
+    </div>
+  </div>
+  <div class="scroll">
+    <table>
+      <thead><tr><th>#</th><th>Question</th><th>My recommendation</th></tr></thead>
+      <tbody>
+        <tr><td class="k">S1</td><td><strong>Where is the Bonafide banner studio?</strong> Repo or folder, stack, canvas library. Still the open question from July — nothing can start without it.</td><td>Share the path; I review it and report whether it is a base or a rewrite before anything is committed to.</td></tr>
+        <tr><td class="k">S2</td><td>Family B through the existing fill/export path, or on the canvas?</td><td>Existing path. A canvas is the wrong tool for a document whose layout must not move, and building it twice is the first scope mistake available to us.</td></tr>
+        <tr><td class="k">S3</td><td>Legal instruments — ever?</td><td>Not without counsel signing off the category. Revisit after launch, never as a traffic decision.</td></tr>
+        <tr><td class="k">S4</td><td>Which Family A categories launch first?</td><td>Social posts and certificates. Both are high-frequency, both are things people currently make in tools that upload.</td></tr>
+        <tr><td class="k">S5</td><td>Is Studio Pro-only, or is there a free tier?</td><td>Free to make, Pro for brand kit, magic resize and batch. Gate scale, not quality — the same line the rest of the product holds.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<footer class="end">
+  <p>Implementation plan for <code>docs/designs/diemdesk-studio-concept.md</code> (13 July 2026), which stays as the concept of record. Opened by decision D5 on <code>docs/designs/forms-library-expansion.html</code>.</p>
+  <p>Nothing here is built. Template counts are targets, not measurements, and are marked as such.</p>
+</footer>
+
+</div>
+</body>
+</html>
