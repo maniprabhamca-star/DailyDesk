@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
-import { Scale, Stethoscope, Calculator, GraduationCap, Users, Receipt, Landmark, Building2, Home } from 'lucide-react';
+import { Scale, Stethoscope, Calculator, GraduationCap, Users, Receipt, Landmark, Building2, Home, Plane, Newspaper, Umbrella, HardHat } from 'lucide-react';
 
 // The sector pages exist for one reason: "the file never leaves your device" is
 // the sentence that gets a tool past a compliance review, and no competitor
@@ -319,6 +319,134 @@ export const SECTORS: Sector[] = [
       'Office conversions and OCR run on our servers and say so on their own pages.',
     ],
     close: 'Build one pack with the Network tab open. Nothing about the transaction leaves the machine.',
+  },
+  {
+    slug: 'immigration',
+    icon: Plane,
+    name: 'Immigration advisers',
+    headline: 'A client file that never leaves your office',
+    title: 'PDF Tools for Immigration Advisers | DiemDesk',
+    description:
+      'Build filing bundles, size photos to each country’s spec and redact client ID — all in your browser, with nothing uploaded.',
+    intro:
+      'An immigration file is the complete set of documents needed to prove who somebody is: passport bio page, birth certificate, marriage certificate, police and medical records, bank statements. It is the single most useful folder a fraudster could steal, and for an asylum client it is worse than that — it can identify family who are still in the country the client left.',
+    duty: {
+      label: 'How the government itself handles these files — 8 CFR § 208.6',
+      body:
+        'The regulation that governs asylum records is called, plainly, “Disclosure to third parties”. It says information contained in or pertaining to any application for refugee admission, asylum, withholding of removal or protection under the Convention Against Torture “shall not be disclosed without the written consent of the applicant”. It binds DHS and the Executive Office for Immigration Review, not you — your own confidentiality duty comes from your bar or accreditation rules instead. But it tells you how the agency receiving the claim treats these documents, and why: an asylum file in the wrong hands can reach the government the applicant is hiding from. Your copy of that file contains the same pages.',
+    },
+    jobs: [
+      { task: 'A photo to the receiving country’s spec', why: 'Every country publishes its own size, head height and background, and most of them differ from the American two-inch square. We read twenty-five of them at the issuing authority’s own page and say on each which ones we could not verify.', href: '/passport-photo', tool: 'Passport & ID photo' },
+      { task: 'Assembling the filing bundle', why: 'Combine evidence into one paginated file on your own machine, without a copy of the client’s identity documents landing on a file service in order to be stapled together.', href: '/merge-pdf', tool: 'Merge PDF' },
+      { task: 'Redacting before you share', why: 'Take an A-number, a passport number or a third party’s details out of the document rather than covering them, so a copy sent to a sponsor or an employer cannot give them back up.', href: '/redact-pdf', tool: 'Redact PDF' },
+      { task: 'Filling a form without retyping it', why: 'Complete a PDF form on your device and keep the filled copy, so the client’s details are not typed into a web form that posts them somewhere to render.', href: '/fill-pdf-form', tool: 'Fill PDF form' },
+    ],
+    toolkit: ['Passport & ID photo', 'Merge PDF', 'Redact PDF', 'Fill PDF form', 'Split PDF', 'Compress to size', 'Remove metadata', 'Scan to PDF', 'Share-Safe PDF Check', 'JPG to PDF', 'Rotate PDF', 'OCR'],
+    primary: { label: 'Make an application photo', href: '/passport-photo' },
+    limits: [
+      'We give no immigration advice and take no view on eligibility. These are document tools; the case is yours.',
+      'A photo that matches the published specification can still be refused for pose, expression, lighting or a head covering. We draw the crop and the head band; we cannot judge the photograph.',
+      'For two countries — Qatar and the UAE — we could not confirm the specification at source, and their pages say so rather than guess.',
+      'OCR runs on our servers and is labelled as such on its own page. For a document you have not yet reviewed, that distinction is worth reading.',
+      'We keep no copy of the bundle, which is the point, and also means we cannot send you one if you lose yours.',
+    ],
+    close: 'Size one photo and watch the Network tab. The passport never goes anywhere.',
+  },
+  {
+    slug: 'journalism',
+    icon: Newspaper,
+    name: 'Journalism',
+    headline: 'Documents that stay in your possession',
+    title: 'PDF Tools for Journalists | DiemDesk',
+    description:
+      'Redact, strip metadata and search documents on your own machine — so there is no copy on our servers for anyone to ask us for.',
+    intro:
+      'For most people the privacy question about an online tool is whether the company is careless. For a reporter working on a document someone took a risk to hand over, the question is narrower and harder: who else can be made to produce a copy, and would you even be told.',
+    duty: {
+      label: 'The Privacy Protection Act turns on who possesses the file',
+      body:
+        'The Privacy Protection Act of 1980, at 42 U.S.C. § 2000aa, makes it unlawful for a government officer to search for or seize “work product materials possessed by a person reasonably believed to have a purpose to disseminate to the public a newspaper, book, broadcast, or other similar form of public communication”, with narrow exceptions. Read the operative words: materials POSSESSED BY that person. A copy sitting on a web service is in that service’s possession, and the route to it is a subpoena or order served on them rather than a search of your newsroom. Worse, under the Stored Communications Act at 18 U.S.C. § 2705(b) a court may order a provider “not to notify any other person of the existence of the warrant, subpoena, or court order”. So the first thing you would know about it could be nothing at all. We are not your lawyers and this is not legal advice — but the architectural conclusion holds whoever is advising you: the safest copy is the one that only ever existed on your machine.',
+    },
+    jobs: [
+      { task: 'Redacting a source out of a document', why: 'The text is removed from the file rather than hidden behind a rectangle, so a name cannot be lifted out of the version you publish — the mistake that has burned real sources.', href: '/redact-pdf', tool: 'Redact PDF' },
+      { task: 'Checking what a file reveals about itself', why: 'Author names, revision history, tracked comments and the original filename survive a PDF export. On a document you received from someone, that metadata can identify them.', href: '/share-safe-pdf-check', tool: 'Share-Safe PDF Check' },
+      { task: 'Searching a document dump', why: 'Turn a pile of scans into searchable text so you can find the one page that matters, instead of paging through a few thousand images.', href: '/ocr-pdf', tool: 'OCR' },
+      { task: 'Pulling tables out of a filing', why: 'Get the numbers out of a disclosure or an annual report into a spreadsheet, on your own machine, so the document you are working from is not uploaded to be parsed.', href: '/pdf-to-excel', tool: 'PDF to Excel' },
+    ],
+    toolkit: ['Redact PDF', 'Share-Safe PDF Check', 'Remove metadata', 'OCR', 'PDF to Excel', 'PDF to Text', 'Merge PDF', 'Split PDF', 'Compare PDF', 'Extract images', 'Flatten PDF', 'Compress to size'],
+    primary: { label: 'Redact a document', href: '/redact-pdf' },
+    limits: [
+      'This is not a secure drop and must not be used as one. There is no anonymous submission channel here; getting the document to you safely is a separate problem with its own tools, and SecureDrop exists for it.',
+      'OCR and the Office conversions run on our servers, not in your browser. They are labelled on their own pages. For a sensitive document, do not use them — that is the honest answer, not a caveat.',
+      'Redaction removes what you mark. It cannot tell you that a source is identifiable from the phrasing of a paragraph you left in, or from the fact that only four people had the document.',
+      'We keep no logs tying a file to you because the file never arrives — but your own device, backups and sync clients are outside our reach and are now the weakest link. Treat them accordingly.',
+      'Nothing here is legal advice, and the statutes above are summarised, not reproduced. Talk to counsel who does media law.',
+    ],
+    close: 'Redact a page, then try to select the text underneath. There is nothing left to select.',
+  },
+  {
+    slug: 'insurance',
+    icon: Umbrella,
+    name: 'Insurance & claims',
+    headline: 'No new service provider to vet',
+    title: 'PDF Tools for Insurance Claims | DiemDesk',
+    description:
+      'Redact claim files, convert statements and build packs in your browser — so there is no third-party processor to diligence.',
+    intro:
+      'A claim file is the two most heavily regulated categories of personal data stapled together: medical records on one side, bank details and statements on the other. Handling it is routine. Sending a copy to a web tool to split, shrink or redact it is not routine at all, because of what that makes the web tool.',
+    duty: {
+      label: 'The duty is on YOUR choice of third party',
+      body:
+        'The Gramm-Leach-Bliley Act, at 15 U.S.C. § 6801(b), requires standards for administrative, technical and physical safeguards to insure the security and confidentiality of customer records, and § 6805(a) names the State insurance authorities among the regulators who set them — which is why the FTC Safeguards Rule, the one everybody quotes, does not cover insurers at all. What covers them is the state adoption of the NAIC model law. Ohio’s, the first, is Revised Code Chapter 3965, and § 3965.02(F) is the sentence that matters here: a licensee “shall exercise due diligence in selecting its third-party service provider”, and shall require that provider to implement appropriate safeguards for nonpublic information “accessible to, or held by” it. Upload a claim file to a free web converter and you have just taken on a third-party service provider — one you have not diligenced and have no contract with. If the file never leaves the browser, there is no provider in the picture to diligence.',
+    },
+    jobs: [
+      { task: 'Redacting before the file moves on', why: 'Take account numbers and unrelated medical detail out of the document rather than covering them, so a copy sent to an adjuster or a reinsurer does not carry more than it needs to.', href: '/redact-pdf', tool: 'Redact PDF' },
+      { task: 'Getting statements into a spreadsheet', why: 'Turn a claimant’s bank statement into rows you can total and check, with the balances reconciled, without that statement being uploaded to be read.', href: '/bank-statement-converter', tool: 'Bank statement to Excel' },
+      { task: 'Assembling the claim pack', why: 'Combine correspondence, reports, photographs and invoices into one paginated file locally, however large the claim grows.', href: '/merge-pdf', tool: 'Merge PDF' },
+      { task: 'Getting a pack under a portal limit', why: 'Claims portals cap uploads. Compress to a target size on your own machine rather than uploading the whole pack to a file service in order to shrink it.', href: '/compress-to-size', tool: 'Compress to size' },
+    ],
+    toolkit: ['Redact PDF', 'Bank statement to Excel', 'Merge PDF', 'Compress to size', 'Split PDF', 'PDF to Excel', 'Remove metadata', 'Share-Safe PDF Check', 'Bates numbering', 'Page numbers', 'Flatten PDF', 'OCR'],
+    primary: { label: 'Redact a claim file', href: '/redact-pdf' },
+    limits: [
+      'We take no view on coverage, liability or quantum. These are document tools that sit beside your claims system, not a claims system.',
+      'We are not a processor and have no DPA to offer you, because we do not receive the file. If a compliance questionnaire asks for our sub-processor list for the in-browser tools, the honest answer is that there is no transfer to list.',
+      'OCR and the Office conversions do run on our servers and say so on their own pages. For an unredacted claim file, that distinction matters.',
+      'Statement conversion is checked against the statement’s own balances, which catches most extraction errors. It is a strong check, not a guarantee — reconcile before you rely on a figure.',
+      'We keep no copy of anything, which is the point, and means there is nothing to recover from us if you lose your own.',
+    ],
+    close: 'Run a claim file through with the Network tab open. There is no upload to diligence.',
+  },
+  {
+    slug: 'construction',
+    icon: HardHat,
+    name: 'Construction & tenders',
+    headline: 'Drawing sets that fit the portal, printed to scale',
+    title: 'PDF Tools for Construction Teams | DiemDesk',
+    description:
+      'Get drawing sets under tender portal limits, print to scale and build bid packs — on your machine, with no upload.',
+    intro:
+      'The document problem on a construction job is volume and geometry, not confidentiality: hundred-megabyte drawing sets, a portal that refuses anything over twenty, and a printer that has to hold scale. So this page makes a different argument from the others, and it is worth saying which.',
+    duty: {
+      label: 'An honest note — this page is not a compliance argument',
+      body:
+        'Our other sector pages name a rule the reader is personally bound by, because for a solicitor or a claims handler the rule is what makes uploading a document the wrong answer. There is no equivalent personal-data duty sitting over a drawing set, and we are not going to invent one to make this page match the others. The nearest real thing is narrower than it is usually made to sound: the Procurement Integrity Act, at 41 U.S.C. § 2102, bars knowingly disclosing contractor bid or proposal information before award — but subsection (a) binds federal officials and people advising the Government, not a contractor circulating its own bid. The part that reaches everyone is subsection (b): “a person shall not knowingly obtain contractor bid or proposal information or source selection information before the award”. So the pre-award risk is real, and it runs the other way — your bid leaking is a competitive and commercial problem, and a competitor who comes by it has a legal one. Keeping the pack on your own machine is sensible. It is just not a statutory duty, and we would rather say so than dress it up.',
+    },
+    jobs: [
+      { task: 'Getting a set under the portal cap', why: 'Name a target size and have the file hit it, rather than exporting at a guessed quality four times. Drawing sets are where naive compression either does nothing or destroys the linework.', href: '/compress-to-size', tool: 'Compress to size' },
+      { task: 'Printing a set to the right paper', why: 'Convert between A1, A3 and letter without rescaling the drawing off its stated scale — the thing that makes a printed detail measure wrong on site.', href: '/change-pdf-page-size', tool: 'Change page size' },
+      { task: 'Splitting a double-wide scan', why: 'A large-format scan often arrives as one page holding two sheets. Split it down the middle so the set paginates and prints one drawing to a page.', href: '/split-pages-in-half', tool: 'Split pages in half' },
+      { task: 'Assembling the tender pack', why: 'Combine drawings, specification, schedules and the pricing document into one numbered file on your own machine, at whatever size the set runs to.', href: '/merge-pdf', tool: 'Merge PDF' },
+    ],
+    toolkit: ['Compress to size', 'Change page size', 'Split pages in half', 'Merge PDF', 'Pages per sheet', 'Page numbers', 'Split PDF', 'Reorder pages', 'Delete pages', 'Crop PDF', 'Watermark', 'Compare PDF'],
+    primary: { label: 'Get a set under the limit', href: '/compress-to-size' },
+    limits: [
+      'We do not read drawings. There is no takeoff, no measurement, no clash detection and no CAD — these are PDF tools, not a design or estimating package.',
+      'Compression works on what is in the file. A set that is already vector linework at sensible settings has little left to give, and we will tell you that instead of producing a worse file at the same size.',
+      'Changing page size keeps the drawing’s proportions, so a drawing stated at 1:50 on A1 is not at 1:50 once it is on A3. Check the scale bar, as you would with any reprint.',
+      'Compare PDF finds differences between two revisions of a document. It is not a drawing revision control system and does not know what a revision cloud means.',
+      'Very large sets are limited by your own device’s memory, because the work happens there. That is the trade for not uploading.',
+    ],
+    close: 'Drop a set in and name a size. It never goes further than the browser tab.',
   },
 ];
 

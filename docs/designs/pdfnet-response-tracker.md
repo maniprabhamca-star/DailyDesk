@@ -20,7 +20,7 @@ Status values: `todo` · `in progress` · `shipped` · `blocked` · `parked`
 | 3 | Passport differentiation + verify 21 specs | 0 | **in progress** | Tier 1 2026-08-29 · 2026-11-19/21: **25 countries read at source, 12 spec errors fixed** (3 wrong SIZE), 12 photograph on site. **Only Qatar + UAE left.** Also surfaced an engine bug (file-size cap) |
 | 4 | Bank statement guides 11 → 40 | 28 | **shipped** | 2026-08-29 · 39 pages |
 | 5 | Competitor alternatives 4 → 10 | 5 | **shipped** | 2026-08-29 (9 of 10; Canva pending a source) |
-| 6 | Sector pages 4 → 12 | 5 | **in progress** | 9 of 12 · government renamed to public-sector |
+| 6 | Sector pages 4 → 12 | 5 | **shipped** | **13 of 12** · 2026-11-23: +immigration, journalism, insurance, construction · government renamed to public-sector |
 | 7 | Indian statutory forms library | 33 | **shipped** | 32 forms + index · 2026-08-29 |
 | 8 | US forms library (privacy wedge) | ~30–60 | **todo** | |
 | 9 | "What comes next" dock | 0 | **shipped** | 2026-08-29 |
@@ -426,7 +426,7 @@ library and seven languages, PDF24's genuine no-limits generosity — all stated
 
 ---
 
-## 6 — Sector pages · in progress (4 → 6)
+## 6 — Sector pages · SHIPPED (4 → 13)
 
 New: **`/for/hr`** and **`/for/tax-practitioners`**. Both sit on the existing
 `SECTORS` data file, so `/sitemap.xml` picked them up without an edit.
@@ -624,3 +624,47 @@ writing.
 
 **Linked from the footer's Product column on day one** — not left an orphan, per
 the lesson two items earlier.
+
+### Tranche 2 — 2026-11-23: the last four, 9 → 13 (target was 12)
+
+Every duty read at source, as the rule for this item requires. What each page
+cites, and the scoping that had to be got right:
+
+| Sector | Duty, read at source | The scoping that mattered |
+|---|---|---|
+| **Immigration advisers** | [8 CFR § 208.6](https://www.ecfr.gov/current/title-8/chapter-I/subchapter-B/part-208/subpart-A/section-208.6) — “Disclosure to third parties”: asylum/refugee/CAT information “shall not be disclosed without the written consent of the applicant” | § 208.6 binds **DHS and EOIR, not the adviser**. The page says so outright and locates the adviser's own duty in bar/accreditation rules. The regulation is cited for what it reveals about the stakes, not as the reader's obligation |
+| **Journalism** | [42 U.S.C. § 2000aa](https://www.law.cornell.edu/uscode/text/42/2000aa) (Privacy Protection Act 1980) + [18 U.S.C. § 2705(b)](https://www.law.cornell.edu/uscode/text/18/2705) | The PPA protects work product **“possessed by”** the journalist — that single phrase is the whole argument, because a copy on a host is in the host's possession. § 2705(b) completes it: a court may order a provider “not to notify any other person of the existence of the warrant, subpoena, or court order” |
+| **Insurance & claims** | [15 U.S.C. § 6801(b)](https://www.law.cornell.edu/uscode/text/15/6801) + [§ 6805(a)](https://www.law.cornell.edu/uscode/text/15/6805), instantiated as [Ohio R.C. § 3965.02(F)](https://codes.ohio.gov/ohio-revised-code/section-3965.02) | ⚠ **The obvious citation was wrong.** 16 CFR Part 314 § 314.1(b) limits the FTC Safeguards Rule to institutions “not otherwise subject to the enforcement authority of another regulator” — and § 6805(a) names **the State insurance authorities**, so the Safeguards Rule does not cover insurers at all. The real duty is the state NAIC adoption; Ohio was first |
+| **Construction & tenders** | [41 U.S.C. § 2102](https://www.law.cornell.edu/uscode/text/41/2102) — cited **against** the usual framing | § 2102**(a)** binds federal officials and people advising the Government, **not a contractor circulating its own bid**. Only § 2102**(b)** — “a person shall not knowingly obtain…” — reaches everyone, so the pre-award risk runs the other way |
+
+### Construction deliberately breaks the pattern
+
+There is no personal-data duty over a drawing set. Rather than manufacture one
+so the page would match the other twelve, its `duty` block sits in the same
+position and says, in so many words, that it is **not** making a compliance
+argument — then sells on what is actually true for the trade: portal size caps,
+printing without losing stated scale, and splitting double-wide large-format
+scans. The file's own opening comment is the reason: *“a compliance-minded reader
+who catches one overclaim will not believe the rest of the page, and rightly”.*
+That cuts both ways, and one honest page is worth more than a twelfth tidy one.
+
+### Why we stopped at thirteen rather than carrying on
+Sector pages earn on the strength of the duty they name, not on count. These
+four had real ones; the next candidates do not, and the effort is worth more
+spent on item 8. Thirteen against a target of twelve is where this item closes.
+
+### Verified, not assumed
+A throwaway checker (`scratchpad/verify_sectors.mjs`) proved all 13 sectors
+against the three things `lib/sectors.ts`'s own type comments promise: `title`
+≤ 60 chars, `description` ≤ 155 (XC-003), every `toolkit` and `tool` name
+present in `components/app/catalog.tsx`, and every `href` both in the catalog
+**and** backed by a real `app/<route>/page.tsx`. Result: `sectors=13 problems=0`.
+Nothing needed updating by hand — `/sitemap.xml`, `generateStaticParams` and the
+footer's “Built for” column all derive from `SECTORS`, and the Markdown-twin
+count moved 252 → 256, which is the independent confirmation that exactly four
+pages were added.
+
+Gate: tsc clean · 31 files / 329 tests · build clean · all four pages read back
+from a `frontend-prod` preview. The one console 404 (`/api/tools/flags`) is the
+frontend-only preview having no backend — 200 on prod.
+

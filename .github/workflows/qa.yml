@@ -108,6 +108,15 @@ jobs:
         run: npm run test:unit
       - name: Service-worker regression
         run: npm run test:sw
+      # The sector pages promise three things in lib/sectors.ts's own type
+      # comments that nothing enforced: title <= 60 chars, description <= 155,
+      # and toolkit/job names that match catalog.tsx EXACTLY. A curated tool
+      # list is only useful if it actually opens the tool, and a typo in a
+      # name produces a card that silently goes nowhere — a build and a full
+      # unit run stay green through it. This checks every sector, every name
+      # and every href, including that the route has a real page.tsx.
+      - name: Sector data contract
+        run: npm run verify:sectors
       # This build exists to be tested, not shipped, and the E2E jobs serve it
       # over http on localhost. DD_ALLOW_PLAIN_HTTP drops `upgrade-insecure-
       # requests` from the CSP for it — WebKit applies that directive to

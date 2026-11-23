@@ -23,6 +23,14 @@ export type ChangeEntry = {
 // flags flip, dated then.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-11-23',
+    kind: 'new',
+    title: 'Four more trades, including one where we argue the opposite',
+    detail:
+      'Pages for immigration advisers, journalists, insurance and claims teams, and construction and tender teams — thirteen in all now. Each of the first three names the specific rule the reader works under, read at the source rather than from memory: 8 CFR § 208.6, the regulation governing who may see an asylum file; the Privacy Protection Act and the gag provision of the Stored Communications Act, which together explain why a document in your own possession sits differently from one on a company’s server; and the state adoption of the NAIC insurance model law, which puts the duty on your choice of third party rather than on the third party. The construction page is the odd one out on purpose. There is no personal-data duty sitting over a drawing set, so instead of inventing one to make the page match, it says in the same position where the others cite a statute that it is not making a compliance argument, and sells on what is actually true: portal size caps, printing to scale, and splitting double-wide scans.',
+    href: '/for/immigration',
+  },
+  {
     date: '2026-11-21',
     kind: 'fixed',
     title: 'Twelve security advisories closed, and the reason nobody saw them',
