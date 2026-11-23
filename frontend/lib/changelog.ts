@@ -24,6 +24,14 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-11-23',
+    kind: 'improved',
+    title: 'Something now checks the forms every week, so you don’t have to',
+    detail:
+      'Every US form page states three things nobody else bothers to state: the revision or edition the agency publishes, how many fillable fields the file really has, and how many pages — each one measured off the agency’s own PDF, on a date we print. That is the whole reason these pages beat a copy somebody uploaded in 2023. It is also a claim with a shelf life, because five agencies revise on their own schedule and none of them sends us a note.\n\nUntil now the only thing keeping it honest was remembering to check by hand. From this week a job reads all thirty forms straight from the IRS, USCIS, the Department of Labor, the VA and Social Security every Monday morning and compares what they say against what we say. If one has moved, we hear about it the same morning, by name, with the old revision and the new one side by side.\n\nNothing about this changes what you get — the blank form has always come live from the agency on every click, so you have never been handed a stale file. What it changes is how long a wrong number can sit on one of our pages: days rather than however long it took somebody to notice.',
+    href: '/us-forms',
+  },
+  {
+    date: '2026-11-23',
     kind: 'fixed',
     title: 'The form button now always opens the form you asked for',
     detail:

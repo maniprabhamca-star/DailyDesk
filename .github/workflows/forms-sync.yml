@@ -1,0 +1,163 @@
+name: Forms sync
+
+# Re-check every US form page against the agency that issues it.
+#
+# ── Why this exists ──────────────────────────────────────────────────────────
+# Our form pages state three things nobody else states: the revision or edition
+# the agency publishes, how many fillable fields the file actually has, and how
+# many pages — each measured off the agency's own PDF on a named date. That
+# claim is the entire reason these pages beat a hosted copy. It is also a claim
+# with a shelf life: five federal agencies revise on their own schedule and none
+# of them tells us.
+#
+# Until now the only thing keeping it true was somebody remembering to run
+# `npm run verify:us-forms` by hand. At thirty forms that is already a bad bet.
+# This is the job that makes the claim maintainable instead of aspirational.
+#
+# ── Why it is NOT part of QA ─────────────────────────────────────────────────
+# A drifted form is not a broken build. Nothing is down, nothing regressed, and
+# no commit caused it — the IRS simply published a new revision. Wiring that
+# into the QA gate would fail somebody's unrelated pull request for a reason
+# they cannot fix, which is how a gate stops being trusted. It runs on its own
+# schedule and tells one person by email.
+#
+# It also makes ~90 outbound requests to five government sites. That belongs on
+# a weekly timer, not on every push.
+#
+# ── Why weekly ───────────────────────────────────────────────────────────────
+# Daily would be politer to nobody and noisier to us: these forms change a
+# handful of times a year, and the window that matters is "did we notice within
+# days", not "within hours". Monday morning, before the week's work is planned.
+# Change the cron if that turns out to be wrong — but change it for a reason,
+# not to feel busier.
+
+on:
+  schedule:
+    - cron: '0 6 * * 1' # Mondays, 06:00 UTC
+  workflow_dispatch:
+    inputs:
+      test_alert:
+        description: 'Send a test drift email, to prove the alerter is wired up'
+        type: boolean
+        default: false
+  # Also on any change to the data or the verifier itself: an edit to
+  # us-forms.ts is exactly when a wrong revision is cheapest to catch.
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/lib/us-forms.ts'
+      - 'frontend/scripts/verify-us-forms.mjs'
+      - '.github/workflows/forms-sync.yml'
+
+defaults:
+  run:
+    working-directory: frontend
+
+# A second run would re-fetch the same ninety files from the same five
+# government sites for no reason.
+concurrency:
+  group: forms-sync
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Check every form against its agency
+    runs-on: ubuntu-latest
+    # Generous: it fetches thirty PDFs plus thirty agency pages, some of them
+    # large, from servers we do not control.
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --silent
+
+      # `continue-on-error`, deliberately, and this is the one place in this
+      # repo where that is not a trap: the step's job is to PRODUCE A REPORT,
+      # and a non-zero exit means "a form drifted", which is news rather than
+      # failure. The outcome is captured and the alert below is what acts on
+      # it, so nothing is being hidden — unlike an advisory QA job, whose
+      # failure genuinely does disappear.
+      - name: Read every form at source
+        id: verify
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          npm run verify:us-forms 2>&1 | tee ../forms-report.txt
+
+      # The verifier exits non-zero for drift AND for a form it could not read,
+      # which is right for a human running it by hand but too blunt here: the
+      # two need different emails and only one of them deserves a red run.
+      #
+      # So the exit code is ignored and the SUMMARY LINE is read instead. A
+      # drifted form means a page of ours states a revision that no longer
+      # exists — news, and worth failing the run for. A form that could not be
+      # fetched is usually a slow agency; it still earns an email, because a
+      # form nobody verified for a week is a claim nobody has checked, but it
+      # is not a failure and must not read like one.
+      - name: Decide whether anybody needs telling
+        id: triage
+        if: always()
+        run: |
+          summary="$(grep -E '^forms=' ../forms-report.txt | tail -1 || true)"
+          drifts="$(echo "$summary" | sed -n 's/.*drifts=\([0-9]*\).*/\1/p')"
+          unchecked="$(echo "$summary" | sed -n 's/.*unchecked=\([0-9]*\).*/\1/p')"
+          echo "summary: ${summary:-(none)}"
+          # A missing summary means the verifier itself fell over, which is
+          # also worth an email — treat it as something to report.
+          if [ -z "$summary" ]; then tell=yes; drifted=yes
+          elif [ "${drifts:-0}" != "0" ]; then tell=yes; drifted=yes
+          elif [ "${unchecked:-0}" != "0" ]; then tell=yes; drifted=no
+          else tell=no; drifted=no
+          fi
+          echo "tell=$tell" >> "$GITHUB_OUTPUT"
+          echo "drifted=$drifted" >> "$GITHUB_OUTPUT"
+
+      - name: Keep the report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: forms-report
+          path: forms-report.txt
+          retention-days: 90
+
+      # Tell somebody. A result nobody receives is a result nobody has — the
+      # same lesson the nightly QA alerter was built on, after a CRITICAL
+      # advisory sat unread for three days.
+      - name: Install the mailer
+        if: ${{ steps.triage.outputs.tell == 'yes' || inputs.test_alert }}
+        working-directory: .github/scripts
+        run: npm install --no-save --no-package-lock nodemailer@10.5.0
+
+      - name: Tell the owner a form moved
+        if: ${{ steps.triage.outputs.tell == 'yes' || inputs.test_alert }}
+        working-directory: .github/scripts
+        env:
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
+          ALERT_TO: ${{ secrets.ALERT_TO }}
+          DD_OUTCOME: ${{ steps.verify.outcome }}
+          # Which of the two pieces of news this is. The triage step already
+          # decided; the mailer must not re-derive it from the report, or the
+          # two will disagree and the email will claim a drift that the run's
+          # own conclusion says did not happen.
+          DD_DRIFTED: ${{ steps.triage.outputs.drifted }}
+          DD_TEST: ${{ inputs.test_alert && '1' || '' }}
+        run: |
+          DD_REPORT="$(cat ../../forms-report.txt 2>/dev/null || echo '(no report)')" \
+            node notify-form-drift.mjs
+
+      # The run's own conclusion still reflects reality, so the Actions list is
+      # not quietly green while a page states a revision that no longer exists.
+      # This is last on purpose: the email goes out even if this fails.
+      - name: Fail the run if a form drifted
+        if: ${{ steps.triage.outputs.drifted == 'yes' && !inputs.test_alert }}
+        run: |
+          echo "A form page no longer matches its agency — see the report artifact."
+          exit 1
