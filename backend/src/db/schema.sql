@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS users (
   name VARCHAR(100) NOT NULL,
   email VARCHAR(255) UNIQUE NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
-  plan VARCHAR(10) NOT NULL DEFAULT 'free' CHECK (plan IN ('free', 'pro')),
+  plan VARCHAR(16) NOT NULL DEFAULT 'free' CHECK (plan IN ('free', 'pro', 'business')),
   storage_used_bytes BIGINT NOT NULL DEFAULT 0,
   -- false for Google sign-ups, who never chose one: the account page offers to
   -- SET a password rather than asking for a current one they cannot know.
@@ -164,6 +164,32 @@ CREATE INDEX IF NOT EXISTS idx_cancellations_created ON subscription_cancellatio
 -- no acceptance to record. A NULL here means "not collected", never "refused".
 ALTER TABLE users ADD COLUMN IF NOT EXISTS tos_accepted_at TIMESTAMPTZ;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS tos_accepted_session VARCHAR(80);
+
+-- The third tier, on a table that already exists.
+--
+-- `plan` was VARCHAR(10) CHECK (plan IN ('free','pro')). The CREATE TABLE above
+-- now says 'business' too, but CREATE TABLE IF NOT EXISTS does NOTHING to a
+-- table that is already there — so on production the constraint would still have
+-- been the two-value one, and the Stripe webhook's
+--   UPDATE users SET plan = 'business'
+-- would have thrown. The customer is charged by Stripe, the write fails, and
+-- they stay on free: a paid account that silently is not one. This block is the
+-- reason that does not happen.
+--
+-- Written to be safe to re-run and safe on a fresh database: it only acts when
+-- the table exists, drops the old constraint by the name Postgres gives it, and
+-- re-adds it. VARCHAR(10) already fits 'business' (8), but it is widened anyway
+-- so the next tier name is not a second incident.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables
+             WHERE table_schema = 'public' AND table_name = 'users') THEN
+    ALTER TABLE users ALTER COLUMN plan TYPE VARCHAR(16);
+    ALTER TABLE users DROP CONSTRAINT IF EXISTS users_plan_check;
+    ALTER TABLE users ADD CONSTRAINT users_plan_check
+      CHECK (plan IN ('free', 'pro', 'business'));
+  END IF;
+END $$;
 
 -- Long-lived tokens for the MCP server, so an assistant can reach the Pro
 -- tools without the person pasting a session JWT out of DevTools.

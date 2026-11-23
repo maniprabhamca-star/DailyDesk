@@ -197,7 +197,14 @@ router.get('/stats', async (req, res) => {
       rows(`SELECT (SELECT count(*) FROM users)::int AS registered,
                    (SELECT count(*) FROM users WHERE created_at > now() - interval '24 hours')::int AS signups_24h,
                    (SELECT count(*) FROM users WHERE created_at > now() - interval '7 days')::int AS signups_7d,
-                   (SELECT count(*) FROM users WHERE plan='pro')::int AS pro`),
+                   -- "pro" on this dashboard means "is paying us", which is how
+                   -- the tile is read. plan='pro' stopped meaning that the day
+                   -- the Business tier existed: it would quietly leave out the
+                   -- customers worth the most, and the number would still look
+                   -- plausible. Counted as "not free", with the split beside it.
+                   (SELECT count(*) FROM users WHERE plan <> 'free')::int AS pro,
+                   (SELECT count(*) FROM users WHERE plan='pro')::int AS tier_pro,
+                   (SELECT count(*) FROM users WHERE plan='business')::int AS tier_business`),
       rows(`SELECT count(DISTINCT ${V})::int AS unique_visitors FROM user_events WHERE ${HUMAN} AND ${RANGE}`, rp),
       rows(`SELECT count(DISTINCT ${V}) FILTER (WHERE created_at > now() - interval '1 day')::int  AS dau,
                    count(DISTINCT ${V}) FILTER (WHERE created_at > now() - interval '7 days')::int  AS wau,
@@ -213,7 +220,7 @@ router.get('/stats', async (req, res) => {
     ]);
     // Pro metrics — isolated so a missing table/column can never break the dashboard.
     let pro_active_30d = 0, pro_waitlist = 0;
-    try { pro_active_30d = (await rows(`SELECT count(DISTINCT ue.user_id)::int AS c FROM user_events ue JOIN users u ON u.id = ue.user_id WHERE u.plan='pro' AND ue.created_at > now() - interval '30 days'`))[0].c; }
+    try { pro_active_30d = (await rows(`SELECT count(DISTINCT ue.user_id)::int AS c FROM user_events ue JOIN users u ON u.id = ue.user_id WHERE u.plan <> 'free' AND ue.created_at > now() - interval '30 days'`))[0].c; }
     catch (e) { console.error('pro_active stat:', e.message); }
     try { pro_waitlist = (await rows(`SELECT count(*)::int AS c FROM pro_waitlist`))[0].c; }
     catch { /* pro_waitlist table may not exist until the first signup */ }
