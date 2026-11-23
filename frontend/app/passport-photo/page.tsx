@@ -28,6 +28,7 @@ const faqs = [
   { q: 'Does it meet the file-size limit too?', a: 'Yes — where a portal has a KB cap (e.g. US visa ≤240 KB, India passport ≤250 KB) we compress the export to fit under it automatically.' },
   { q: 'Can I print copies?', a: 'Yes. The print sheet tiles as many copies as fit on a standard 4×6 in photo at true size, with cut guides — take it to any photo kiosk.' },
   { q: 'Will it guarantee my photo is accepted?', a: 'We match the published size, background and file rules, but every office is strict in its own way — always double-check your specific portal’s requirements before submitting.' },
+  { q: 'Are you connected to any passport or visa office?', a: 'No. DiemDesk is not affiliated with, endorsed by, or connected to any government department, embassy, consulate or visa service. Country names appear here only to describe which size, background and file-size preset the tool applies, and each specification is taken from that authority’s own published guidance so you can check it at the source. We cannot accept or reject a photograph and we do not submit anything on your behalf.' },
 ];
 
 export default function PassportPhotoPage() {

@@ -5,6 +5,7 @@ import { SiteHeader } from '@/components/app/site-header';
 import { SiteFooter } from '@/components/app/site-footer';
 import { Button } from '@/components/ui/button';
 import { INDIA_FORMS, FORM_GROUPS } from '@/lib/india-forms';
+import { ThirdPartyNotice } from '@/components/app/third-party-notice';
 
 export const metadata: Metadata = {
   title: 'Indian Tax, GST & EPF Forms Explained | DiemDesk',
@@ -92,9 +93,13 @@ export default function IndiaFormsPage() {
         <div className="mt-12 rounded-xl border border-amber-300/50 bg-amber-50/40 p-4 text-sm leading-relaxed text-muted-foreground dark:border-amber-500/25 dark:bg-amber-950/10">
           <b className="text-foreground">Explainers, not tax advice.</b> Deadlines, thresholds and eligibility change
           every year and are frequently extended. Treat the dates here as orientation and the issuing authority as the
-          authority. DiemDesk is not affiliated with or endorsed by any government department, we do not host copies of
-          government forms, and we do not file anything on your behalf.
+          authority. We do not host copies of government forms, and we do not file anything on your behalf.
         </div>
+        <ThirdPartyNotice
+          className="mt-3"
+          subject="any government department, tax authority or portal named here"
+          because="Each form and authority is named so you can go to the source and check it for yourself"
+        />
 
         <section className="mt-12">
           <h2 className="text-xl font-bold tracking-tight">Questions</h2>

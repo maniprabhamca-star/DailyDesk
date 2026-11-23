@@ -30,6 +30,7 @@
     "audit:gate": "node scripts/audit-gate.mjs",
     "sync:pdf-worker": "node scripts/sync-pdf-worker.mjs",
     "verify:sectors": "node scripts/verify-sectors.mjs",
+    "verify:us-forms": "node scripts/verify-us-forms.mjs",
     "qa:encrypted": "node scripts/encrypted-pdf-qa.mjs"
   },
   "dependencies": {

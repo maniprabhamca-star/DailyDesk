@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { KeywordLanding } from '@/components/app/keyword-landing';
+import { ThirdPartyNotice } from '@/components/app/third-party-notice';
 import { PASSPORT_SPECS, getSpec, isVerified, derive, sharesSpecWith, getEditorial } from '@/lib/passport-specs';
 
 export function generateStaticParams() {
@@ -201,6 +202,16 @@ export default async function Page(props: { params: Promise<{ country: string }>
               guides with a straight edge rather than scissors — a crooked border is a
               surprisingly common reason for a photo to be handed back.
             </p>
+          </section>
+
+          <section className="border-t pt-5">
+            <ThirdPartyNotice
+              subject="any government, embassy, consulate or other authority that issues passports, visas or identity documents"
+              because={`The ${s.label} specification is quoted here from the issuing authority's own published guidance so you can check it at the source, and the country is named only to describe which preset the tool applies`}
+            >
+              We cannot accept or reject a photograph and we do not submit anything for you — every office applies
+              its own judgement, so confirm the current requirements on the portal you are submitting to.
+            </ThirdPartyNotice>
           </section>
         </div>
       }

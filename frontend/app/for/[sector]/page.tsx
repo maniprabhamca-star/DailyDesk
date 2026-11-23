@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { ShieldCheck, ArrowRight, Check, TriangleAlert } from 'lucide-react';
 import { SiteHeader } from '@/components/app/site-header';
 import { SiteFooter } from '@/components/app/site-footer';
+import { ThirdPartyNotice } from '@/components/app/third-party-notice';
 import { SECTORS, sectorBySlug } from '@/lib/sectors';
 import { catalog } from '@/components/app/catalog';
 
@@ -145,7 +146,14 @@ export default async function SectorPage(props: { params: Promise<{ sector: stri
           </section>
 
           <section className="mt-12 border-t pt-6">
-            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Also written for</p>
+            <ThirdPartyNotice
+              subject="any regulator, professional body, or government department named on this page"
+              because={`The rules and bodies referred to here are cited so you can check them yourself, and ${s.name.toLowerCase()} is named because this page describes how our tools fit that work`}
+            >
+              Nothing here is legal, tax or professional advice, and we do not act for you — read the rule at its
+              source and take your own advice on how it applies.
+            </ThirdPartyNotice>
+            <p className="mt-8 text-xs font-bold uppercase tracking-wider text-muted-foreground">Also written for</p>
             <div className="mt-3 flex flex-wrap gap-2">
               {others.map((o) => (
                 <Link

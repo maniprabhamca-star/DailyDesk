@@ -22,7 +22,7 @@ Status values: `todo` · `in progress` · `shipped` · `blocked` · `parked`
 | 5 | Competitor alternatives 4 → 10 | 5 | **shipped** | 2026-08-29 (9 of 10; Canva pending a source) |
 | 6 | Sector pages 4 → 12 | 5 | **shipped** | **13 of 12** · 2026-11-23: +immigration, journalism, insurance, construction · government renamed to public-sector |
 | 7 | Indian statutory forms library | 33 | **shipped** | 32 forms + index · 2026-08-29 |
-| 8 | US forms library (privacy wedge) | ~30–60 | **in progress** | Scoped 2026-11-23: 30 forms, groups A–E — `docs/designs/us-forms-library-scope.md`. **D1 done**: the encryption blocker that broke 10 tools on the USCIS forms is fixed. Next: groups A+B, 12 IRS forms |
+| 8 | US forms library (privacy wedge) | ~30–60 | **in progress** | Scoped 2026-11-23 — `us-forms-library-scope.md`. **D1 done** (the encryption blocker that broke 10 tools). **Groups A+B shipped**: 12 IRS forms + index at `/us-forms`, every revision/field/page count verified at source. Next: groups C–E (18 forms) |
 | 9 | "What comes next" dock | 0 | **shipped** | 2026-08-29 |
 | 10 | AI document generator / invoice builder | 0 | **parked** | commodity — see gap analysis |
 | 11 | Multi-document AI chat | 0 | **blocked** — File Vault | |
@@ -716,3 +716,90 @@ Files that genuinely prompt for a password are unaffected and still need
 /unlock-pdf first — that path was never broken. **Still open:** SSA SS-5 and
 SSA-1696 probed as flat, but the confirming fetch was CORS-blocked, so whether
 they are genuinely flat or encrypted is unknown.
+
+---
+
+## Item 8, groups A+B — 12 IRS forms shipped (2026-11-23)
+
+`/us-forms` plus 12 pages at `/us-forms/<slug>`. Data in `lib/us-forms.ts`,
+contract in `tests/unit/us-forms.test.ts` (10 tests), live re-check via
+`npm run verify:us-forms`.
+
+### The one thing that makes these pages different
+
+pdf.net's W-9 and W-4 pages carry an "Official IRS form" badge and link to
+irs.gov **zero times**. So every page here prints three measured numbers in a
+strip near the top — the revision the IRS publishes today, the fillable field
+count, the page count — plus **the date we measured them** and a link to the
+IRS page to check. A revision without a date is an assertion; with one it is a
+claim the reader can weigh.
+
+`scripts/verify-us-forms.mjs` re-checks all three against the IRS product table
+and the real PDF, and also that each `officialUrl` still returns OK. It is
+deliberately **not** in CI: the IRS revises on its own schedule, and a drift is
+news to act on, not a reason to fail an unrelated commit.
+
+### Verified at source, 2026-11-23 — all 12, drifts=0
+
+| Form | Revision | Fields | Pages |
+|---|---|---|---|
+| W-9 | Mar 2024 | 23 | 6 |
+| W-4 | 2026 | 48 | 5 |
+| W-7 | Dec 2024 | 69 | 1 |
+| SS-4 | Dec 2025 | 89 | 2 |
+| 2848 | Jan 2021 | 92 | 2 |
+| 8821 | Jan 2021 | 45 | 1 |
+| 8822 | Feb 2021 | 25 | 2 |
+| 4506-T | Apr 2025 | 29 | 2 |
+| SS-8 | Dec 2023 | 299 | 5 |
+| 433-A | Jun 2026 | 515 | 8 |
+| 433-F | Jul 2024 | 214 | 4 |
+| 9465 | Dec 2026 | 32 | 1 |
+
+1,480 fillable fields in total. The scope doc left three field counts blank;
+they are measured now (8821 = 45, SS-8 = 299, 433-F = 214).
+
+### Three things the measurement turned up that nobody would have guessed
+
+**9465 has been renamed.** The December 2026 revision is titled **Payment Plan
+Request**. The IRS's own `/forms-pubs/about-form-9465` page still says
+*Installment Agreement Request*, so a search finds the old name and you cannot
+tell whether you are holding the current form. Read off page 1 of the PDF, not
+inferred. The page says both names and explains why they differ.
+
+**Neither 433 has an About page.** `about-form-433-a` and `about-form-433-f`
+are both 404, and the forms themselves print only `www.irs.gov` rather than a
+form-specific pointer (checked: every other form in the set prints
+`irs.gov/Form<N>`, and 10 of 12 of those resolve). Those two link to the IRS
+forms index filtered to the form, and `officialName` says in words that the IRS
+publishes no About page for it — rather than quietly linking somewhere vaguer.
+
+**9465 argues against itself.** A tip at the top of page 1 says that if you owe
+$50,000 or less in combined tax, penalties and interest, you can usually set
+the plan up through the Online Payment Agreement application for a *lower* user
+fee. That is on the page, because a forms library that does not tell you when
+not to use the form is just driving traffic.
+
+### Rules carried over, and the one added
+
+The eight the India library enforces (unique slug · title inside 60 · never
+host, authority allowlist, no PDF links · no deadline stated as fact · every
+field substantive · every gotcha unique · exact catalogue tool names · grouped
+under a rendered heading), plus:
+
+- `sensitive` must be unique per form too — it is the privacy argument, and two
+  forms sharing one means one is filler.
+- Every form must link **Fill PDF form**. Unlike the India set, every form here
+  *is* a fillable PDF; that is the premise of the page.
+- `revision` must parse as a year or month-year, with a plausible year;
+  `fields` and `pages` must be positive integers; `CHECKED_ON` must be a real
+  date, not in the future.
+- The no-hard-date check accepts **both** date orders — this set is written for
+  readers who write "April 15", and the India regex only caught "15 April".
+
+### What is deliberately not here
+
+Groups C–E (18 forms: returns and information returns, immigration, and
+employment/leave/veterans) are scoped but unwritten. The immigration six are
+now unblocked by the D1 encryption fix. State Department DS-11 and DS-82 remain
+out — behind a Cloudflare bot check we do not bypass.

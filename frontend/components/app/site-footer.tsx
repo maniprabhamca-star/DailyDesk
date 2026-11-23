@@ -36,6 +36,7 @@ const COLUMNS = [
     { label: 'Pricing', href: '/pricing' },
     { label: 'Compare', href: '/compare' },
     { label: 'India tax & GST forms', href: '/india-forms' },
+    { label: 'US tax & IRS forms', href: '/us-forms' },
     { label: 'Developers', href: '/developers' },
     { label: 'MCP server', href: '/mcp-server' },
     { label: 'Changelog', href: '/changelog' },

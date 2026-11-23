@@ -4,6 +4,7 @@ import { PASSPORT_SPECS } from '@/lib/passport-specs';
 import { DEV_TOOLS } from '@/lib/dev-tools';
 import { BANK_PAGES } from '@/lib/bank-statements';
 import { INDIA_FORMS } from '@/lib/india-forms';
+import { US_FORMS } from '@/lib/us-forms';
 import { WORKFLOWS } from '@/lib/statement-workflows';
 import { SECTORS } from '@/lib/sectors';
 
@@ -91,6 +92,7 @@ const ROUTES: Array<{ path: string; priority: number; changeFrequency: MetadataR
   { path: '/why-diemdesk', priority: 0.8, changeFrequency: 'weekly' },
   { path: '/changelog', priority: 0.6, changeFrequency: 'weekly' },
   { path: '/india-forms', priority: 0.8, changeFrequency: 'monthly' },
+  { path: '/us-forms', priority: 0.8, changeFrequency: 'monthly' },
   { path: '/mcp-server', priority: 0.7, changeFrequency: 'monthly' },
   { path: '/dpa', priority: 0.5, changeFrequency: 'yearly' },
   { path: '/subprocessors', priority: 0.5, changeFrequency: 'yearly' },
@@ -146,6 +148,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.7,
   }));
 
+  const usFormRoutes = US_FORMS.map((f) => ({
+    url: `${SITE_URL}/us-forms/${f.slug}`,
+    lastModified,
+    changeFrequency: 'monthly' as const,
+    priority: 0.7,
+  }));
+
   const bankRoutes = BANK_PAGES.map((b) => ({
     url: `${SITE_URL}/bank-statement-converter/${b.slug}`,
     lastModified,
@@ -174,5 +183,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     changeFrequency: 'monthly' as const,
     priority: 0.7,
   }));
-  return [...staticRoutes, ...devRoutes, ...bankRoutes, ...formRoutes, ...workflowRoutes, ...sectorRoutes, ...countryRoutes];
+  return [...staticRoutes, ...devRoutes, ...bankRoutes, ...formRoutes, ...usFormRoutes, ...workflowRoutes, ...sectorRoutes, ...countryRoutes];
 }

@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { KeywordLanding } from '@/components/app/keyword-landing';
 import { INDIA_FORMS, getForm } from '@/lib/india-forms';
 import { catalog } from '@/components/app/catalog';
+import { ThirdPartyNotice } from '@/components/app/third-party-notice';
 
 export function generateStaticParams() {
   return INDIA_FORMS.map((f) => ({ form: f.slug }));
@@ -111,9 +112,13 @@ export default async function Page(props: { params: Promise<{ form: string }> })
           <div className="mt-6 rounded-xl border border-amber-300/50 bg-amber-50/40 p-4 text-sm leading-relaxed text-muted-foreground dark:border-amber-500/25 dark:bg-amber-950/10">
             <b className="text-foreground">This is a plain-English explainer, not tax advice.</b> Deadlines,
             thresholds and eligibility change every year and are frequently extended, so treat the dates here as
-            orientation and the {f.authority} as the authority. DiemDesk is not affiliated with or endorsed by any
-            government department, and we do not file anything on your behalf.
+            orientation and the {f.authority} as the authority. We do not file anything on your behalf.
           </div>
+          <ThirdPartyNotice
+            className="mt-3"
+            subject={`the ${f.authority} or any other government department`}
+            because={`${f.name} and the ${f.authority} are named so you can go to the source and check it for yourself`}
+          />
         </>
       }
       faqs={[

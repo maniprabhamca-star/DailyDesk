@@ -24,6 +24,22 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-11-23',
+    kind: 'improved',
+    title: 'Saying plainly who we are not',
+    detail:
+      'Quite a few pages here name somebody else. The pages written for a trade cite the actual rule that trade works under; the bank pages name banks; the forms libraries name the IRS and the Indian tax authorities; the passport pages quote a government’s own photo specification. Every one of those names is there to describe what a tool does — this is the statement format we read, this is the size that office asks for — and none of them means we have any relationship with anyone. The bank pages and the forms libraries already said so. The trade pages and the passport pages did not, which is how this sort of thing drifts: nobody is against the sentence, it just does not get written on the next batch. They all carry it now, from one place rather than four, and it says three things instead of one: that we are not affiliated with, endorsed by or connected to whoever is named; why their name is on the page at all; and what we actually are, which is a set of general-purpose document tools that happen to suit the work, with the page there to say which of them apply. A test now lists every page that has to carry it.',
+    href: '/for/legal',
+  },
+  {
+    date: '2026-11-23',
+    kind: 'new',
+    title: 'Twelve US tax forms, with the revision we actually checked',
+    detail:
+      'W-9, W-4, W-7, SS-4, 2848, 8821, 8822, 4506-T, SS-8, 433-A, 433-F and 9465 — 1,480 fillable fields between them. Each page says what the form is, who files it, and the mistake that costs people the most, and then shows three numbers: the revision the IRS publishes today, how many fillable fields the file actually has, and how many pages, each measured off the file the IRS was serving on the day we checked, with that date printed next to it. A script re-checks all three against the IRS directly, so when a form is revised the page stops agreeing with itself instead of quietly going stale. Two of the twelve came back with something worth knowing: the IRS has renamed 9465 to Payment Plan Request in its December 2026 revision while its own “About Form 9465” page still says Installment Agreement Request, and neither 433 has an About page at all, so those two link to the IRS forms index and say so. We do not host any of these. A federal form revised without notice and served stale from our domain would be worse than no copy, because it would look current — you download it from the agency, and fill it here, where a Social Security number or a list of every account you own is typed into a page that makes no network call.',
+    href: '/us-forms',
+  },
+  {
+    date: '2026-11-23',
     kind: 'fixed',
     title: 'The forms that quietly refused to merge',
     detail:
