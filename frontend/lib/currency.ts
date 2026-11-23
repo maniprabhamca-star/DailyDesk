@@ -55,14 +55,29 @@ export function useCurrency(): Currency {
 export const currencySymbol = (c: Currency): string => (c === 'INR' ? '₹' : '$');
 
 // Group digits: Indian (1,23,456) for INR, Western (123,456) for USD.
+//
+// INR rounds to whole rupees, which is how prices are written in India and what
+// every ₹ figure in the tables below is already set to.
+//
+// USD does NOT round, because our USD prices have cents in them and they are
+// chosen cents: rounding published $5.98 to "$6", $4.99 to "$5" and the annual
+// Business rate of $15.83 to "$16" quietly advertises three prices we do not
+// charge — and the one a customer would quote back at us is always the one that
+// was rounded DOWN. Whole dollars still print as whole dollars: $60, not
+// "$60.00".
 export function fmtAmount(n: number, c: Currency): string {
-  const s = Math.round(n).toString();
   if (c === 'INR') {
+    const s = Math.round(n).toString();
     const last3 = s.slice(-3);
     const rest = s.slice(0, -3);
     return rest ? `${rest.replace(/\B(?=(\d{2})+(?!\d))/g, ',')},${last3}` : last3;
   }
-  return s.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  let whole = Math.trunc(n);
+  let cents = Math.round((n - whole) * 100);
+  // 4.999 rounds its remainder to a full 100 — carry it rather than print ".100".
+  if (cents >= 100) { whole += 1; cents -= 100; }
+  const head = whole.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return cents ? `${head}.${cents.toString().padStart(2, '0')}` : head;
 }
 
 export const price = (n: number, c: Currency): string => `${currencySymbol(c)}${fmtAmount(n, c)}`;

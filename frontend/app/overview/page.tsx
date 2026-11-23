@@ -146,7 +146,7 @@ export default function OverviewPage() {
                 { n: LIVE, l: `live today · ${TOTAL} on the roadmap` },
                 { n: ON_DEVICE, l: 'run on your device' },
                 { n: SERVER_AI, l: 'use our server or AI' },
-                { n: '$5', l: 'Pro/mo billed yearly · founding $4.99' },
+                { n: '$5', l: 'Pro/mo billed yearly · founding $4.99 (Pro only)' },
               ].map((s) => (
                 <div key={s.l}>
                   <div className="text-2xl font-extrabold tabular-nums text-white sm:text-3xl">{s.n}</div>
@@ -245,11 +245,11 @@ export default function OverviewPage() {
           </div>
         </section>
 
-        {/* FREE VS PRO (from PRICING source) */}
+        {/* FREE VS PRO VS BUSINESS (from PRICING source) */}
         <section className="mx-auto max-w-[1400px] px-5 py-14">
           <p className="text-[11.5px] font-bold uppercase tracking-[0.14em] text-primary">The model</p>
-          <h2 className="mt-2 text-2xl font-extrabold tracking-tight sm:text-[26px]">Free where it costs us nothing. Pro where it earns its keep.</h2>
-          <div className="mt-7 grid gap-4 md:grid-cols-2">
+          <h2 className="mt-2 text-2xl font-extrabold tracking-tight sm:text-[26px]">Free where it costs us nothing. Paid where it earns its keep.</h2>
+          <div className="mt-7 grid gap-4 md:grid-cols-3">
             <div className="rounded-2xl border bg-card p-6 shadow-soft">
               <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Free · forever</div>
               <div className="mt-1 text-3xl font-extrabold tracking-tight">$0</div>
@@ -264,10 +264,20 @@ export default function OverviewPage() {
               <span className="absolute -top-3 right-5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">Pro</span>
               <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Pro · power users &amp; business</div>
               <div className="mt-1 text-3xl font-extrabold tracking-tight">${PRICING.pro.monthly}<span className="text-sm font-semibold text-muted-foreground">/mo</span></div>
-              <div className="text-xs text-muted-foreground">or ${PRICING.pro.annualPerMonth}/mo billed yearly (${'60'}/yr). First 1,000 founding members lock $4.99/mo for life.</div>
+              <div className="text-xs text-muted-foreground">or ${PRICING.pro.annualPerMonth}/mo billed yearly (${'60'}/yr). First 1,000 founding members lock Pro at $4.99/mo for life — Business is not included.</div>
               <ul className="mt-4 space-y-2">
                 {PRICING.proFeatures.map((f) => (
                   <li key={f} className="flex gap-2.5 text-[13px]"><Check className="mt-0.5 size-4 shrink-0 text-primary" /><span>{f}</span></li>
+                ))}
+              </ul>
+            </div>
+            <div className="rounded-2xl border bg-card p-6 shadow-soft">
+              <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Business · the paperwork IS the job</div>
+              <div className="mt-1 text-3xl font-extrabold tracking-tight">$19<span className="text-sm font-semibold text-muted-foreground">/mo</span></div>
+              <div className="text-xs text-muted-foreground">or $15.83/mo billed yearly ($190/yr). Was &ldquo;Statements Pro&rdquo; at the same $19 — it now contains all of Pro, so nobody has to buy two.</div>
+              <ul className="mt-4 space-y-2">
+                {PRICING.businessFeatures.map((f) => (
+                  <li key={f} className="flex gap-2.5 text-[13px]"><Check className="mt-0.5 size-4 shrink-0 text-emerald-500" /><span>{f}</span></li>
                 ))}
               </ul>
             </div>

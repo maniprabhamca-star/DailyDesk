@@ -1,5 +1,7 @@
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { join, relative } from 'node:path';
 import { describe, it, expect } from 'vitest';
-import { PRO_PRICE, BUSINESS_PRICE, STATEMENT_PRICE, STATEMENT_PAGES, AI_ACTIONS } from '@/lib/currency';
+import { PRO_PRICE, BUSINESS_PRICE, STATEMENT_PRICE, STATEMENT_PAGES, AI_ACTIONS, fmtAmount } from '@/lib/currency';
 import { PRICING } from '@/lib/pricing';
 import { PLAN_ORDER } from '@/lib/plan';
 
@@ -114,6 +116,67 @@ describe('pricing tiers', () => {
       const line = (PRICING.audience as Record<string, string>)[p];
       expect(line, `no audience line for the "${p}" tier`).toBeTruthy();
       expect(line.trim().split(/\s+/).length, `${p}: the audience line is too short to say anything`).toBeGreaterThan(4);
+    }
+  });
+  // ── P3: the one pricing mistake that cannot be undone ──────────────────────
+  it('never offers the founding discount without saying it is Pro only', () => {
+    // The founding offer is "first 1,000 members at $4.99 for life". A lifetime
+    // discount on Business — the tier that carries the margin — cannot be taken
+    // back from anyone who bought under it, so the limit has to be ON THE PAGE
+    // before anyone can buy, not added after somebody has read it as covering
+    // everything. Stripe enforces the coupon against the Pro price; this test
+    // enforces the SENTENCE, which is the part a customer would argue from.
+    const root = process.cwd();
+    const offenders: string[] = [];
+    const walk = (dir: string) => {
+      for (const name of readdirSync(dir)) {
+        const full = join(dir, name);
+        if (statSync(full).isDirectory()) {
+          if (name === 'node_modules' || name === '.next') continue;
+          walk(full);
+          continue;
+        }
+        if (!/\.tsx?$/.test(name)) continue;
+        const src = readFileSync(full, 'utf8');
+        // Only the places that make the OFFER to a reader, not every mention.
+        if (!/[Ff]ounding (members|offer|rate)/.test(src)) continue;
+        if (/Business is not included|Pro at \{/.test(src)) continue;
+        offenders.push(relative(root, full).split('\\').join('/'));
+      }
+    };
+    for (const d of ['app', 'components']) walk(join(root, d));
+
+    expect(
+      offenders,
+      'These files offer the founding discount without scoping it to Pro. Say which tier it ' +
+        'applies to in the same sentence — a lifetime discount on Business cannot be withdrawn ' +
+        'from anyone who bought under it. See docs/designs/business-tier-pricing.html, P3.\n' +
+        offenders.join('\n'),
+    ).toEqual([]);
+  });
+  it('prints a price as the price, not rounded to the nearest dollar', () => {
+    // Every USD price we publish has deliberate cents in it. Rounding is how
+    // "$5.98" becomes "$6" on the page while Stripe charges $5.98 — and the
+    // figure a customer quotes back is always the rounded-DOWN one.
+    expect(fmtAmount(5.98, 'USD')).toBe('5.98');
+    expect(fmtAmount(4.99, 'USD')).toBe('4.99');
+    expect(fmtAmount(15.83, 'USD')).toBe('15.83');
+    // Whole dollars stay whole — "$60.00" on a price card reads as a form field.
+    expect(fmtAmount(60, 'USD')).toBe('60');
+    expect(fmtAmount(1234, 'USD')).toBe('1,234');
+    // INR is written in whole rupees, and the ₹ figures are all set that way.
+    expect(fmtAmount(1499, 'INR')).toBe('1,499');
+    expect(fmtAmount(14999, 'INR')).toBe('14,999');
+    expect(fmtAmount(416.58, 'INR')).toBe('417');
+    // Every published price must survive the formatter unchanged.
+    for (const c of CURRENCIES) {
+      for (const p of [PRO_PRICE[c], BUSINESS_PRICE[c]]) {
+        for (const v of [p.monthly, p.annual, p.annualPerMonth]) {
+          const shown = Number(fmtAmount(v, c).replace(/,/g, ''));
+          const slack = c === 'INR' ? 0.5 : 0.005;
+          expect(Math.abs(shown - v), `${c}: ${v} is displayed as ${shown}`).toBeLessThanOrEqual(slack);
+        }
+      }
     }
   });
 });

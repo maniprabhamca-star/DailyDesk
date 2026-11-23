@@ -24,6 +24,14 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-11-23',
+    kind: 'improved',
+    title: 'We were selling two things that did not add up to a plan',
+    detail:
+      'Until today the pricing page offered Pro at $5.98 a month and, further down the same page under its own heading, a separate Bank Statement Converter subscription at $19. Those two prices were set months apart and nobody had ever put them side by side. If you convert client statements for a living AND want batch processing and PDF editing, you had to buy both: $24.98, two renewal dates, two cancel buttons, and no plan on the page that described what you actually do.\n\nSo there is a third tier now, and it is not a new price. Statements Pro has become Business and absorbed all of Pro, at the same $19 — 300 bank-statement pages a month, exports to Tally, QuickBooks and OFX, saved per-client presets, and every Pro feature included. Nothing we had published got more expensive, everyone who was going to buy the statement converter now gets Pro thrown in, and the two-subscription problem is simply gone. In India it stays at ₹1,499, which was always the figure in the spec rather than a currency conversion.\n\nThe statement converter no longer has its own price list below the table, because that is exactly how a capability turns into a fourth subscription. Its allowances are rows in the comparison table now, next to everything else, where you can see what each tier gets. The one-time 20-page credit pack survives as a footnote — it is still the only thing we sell to somebody who will not take a subscription.\n\nOne piece of small print that is deliberately not small: the founding offer, where the first 1,000 members lock in $4.99 a month for life, applies to Pro and not to Business. That is now written wherever the offer appears. A lifetime discount is not something you can take back from someone who already bought under it, so it had to be on the page before anyone could, not added afterwards.',
+    href: '/pricing',
+  },
+  {
+    date: '2026-11-23',
     kind: 'new',
     title: 'One place for the forms, and a check date you can actually read',
     detail:

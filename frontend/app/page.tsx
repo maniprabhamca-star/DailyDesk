@@ -241,7 +241,7 @@ export default function Home() {
             <div className="mt-6">
               <Button asChild size="lg" variant="outline"><Link href="/pricing">See pricing &amp; what Pro adds →</Link></Button>
             </div>
-            <p className="mt-5 text-xs text-muted-foreground">Founding offer at launch — the first 1,000 members lock in $4.99/mo for life.</p>
+            <p className="mt-5 text-xs text-muted-foreground">Founding offer at launch — the first 1,000 members lock in Pro at $4.99/mo for life. Business is not included.</p>
           </div>
         )}
       </section>

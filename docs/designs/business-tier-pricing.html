@@ -462,7 +462,7 @@
       <table>
         <caption>Build order</caption>
         <thead>
-          <tr><th>#</th><th>Work</th><th>Files</th><th>Est.</th></tr>
+          <tr><th>#</th><th>Work</th><th>Files</th><th>Est.</th><th>Status</th></tr>
         </thead>
         <tbody>
           <tr>
@@ -470,48 +470,56 @@
             <td><b>The plan type, and the sweep that goes with it</b><br><span class="mut">Add <code>'business'</code> to <code>Plan</code>. Then find every <code>plan === 'pro'</code> in the codebase and decide, one by one, whether it meant "has paid" or "has Pro exactly". Introduce <code>isAtLeastPro()</code> and a guard test that fails the build on a bare equality check.</span></td>
             <td class="num">lib/plan.ts<br>tests/unit/plan-tiers</td>
             <td class="num">3 h</td>
+          <td class="num"><b style="color:var(--credit)">done</b><br><span class="mut">a7f064a</span></td>
           </tr>
           <tr>
             <td class="num">B2</td>
             <td><b>Price tables</b><br><span class="mut">A <code>BUSINESS_PRICE</code> record beside <code>PRO_PRICE</code>, and <code>businessFeatures</code> beside <code>proFeatures</code>. Single source of truth, as the file's own comment demands.</span></td>
             <td class="num">lib/currency.ts<br>lib/pricing.ts</td>
             <td class="num">1 h</td>
+          <td class="num"><b style="color:var(--credit)">done</b><br><span class="mut">a7f064a</span></td>
           </tr>
           <tr>
             <td class="num">B3</td>
             <td><b>Statement quota reads the plan</b><br><span class="mut">Page allowance becomes a function of tier: 5 free · 20 Pro · 300 Business, plus top-up credits. Per-account monthly cap on tier-3 (Sonnet) escalations — the thing that keeps the worst case inside 50% margin.</span></td>
             <td class="num">backend quota +<br>aiBudget.js</td>
             <td class="num">4 h</td>
+          <td class="num"><span class="mut">to do</span></td>
           </tr>
           <tr>
             <td class="num">B4</td>
             <td><b>/pricing becomes three columns</b><br><span class="mut">Third card, third column in the comparison table, and the statements block stops being a separate price list because it is now a row in the table. Mobile is the real work: three cards and a five-column table at 375px.</span></td>
             <td class="num">app/pricing/page.tsx</td>
             <td class="num">5 h</td>
+          <td class="num"><b style="color:var(--credit)">done</b></td>
           </tr>
           <tr>
             <td class="num">B5</td>
             <td><b>Stripe</b><br><span class="mut">Four new prices — monthly and annual × USD and INR — and the webhook mapping <code>price → 'business'</code>. Keep the API version pin.</span></td>
             <td class="num">backend/routes/billing<br>webhook handler</td>
             <td class="num">3 h</td>
+          <td class="num"><b style="color:var(--copper)">code done</b><br><span class="mut">4 Stripe prices + 2 env vars are the owner’s to create</span></td>
           </tr>
           <tr>
             <td class="num">B6</td>
             <td><b>Upgrade path from Pro</b><br><span class="mut">A Pro subscriber choosing Business is a Stripe plan change with proration, not a second subscription. Getting this wrong is how someone ends up paying $24.98 anyway — the exact problem this tier exists to remove.</span></td>
             <td class="num">billing + account</td>
             <td class="num">3 h</td>
+          <td class="num"><span class="mut">to do</span><br><span class="mut">interim: an email link, and the server refuses the combination</span></td>
           </tr>
           <tr>
             <td class="num">B7</td>
             <td><b>The claims on /compare</b><br><span class="mut">The Smallpdf daily-download-limit line and the DocuClipper per-page table, both with the date they were read. Under the shared third-party notice, as every page naming a competitor is.</span></td>
             <td class="num">app/compare</td>
             <td class="num">2 h</td>
+          <td class="num"><span class="mut">to do</span></td>
           </tr>
           <tr>
             <td class="num">B8</td>
             <td><b>Keep the site honest about itself</b><br><span class="mut">/overview, the master roadmap, the status board and a /changelog entry. Counts stay catalog-derived.</span></td>
             <td class="num">lib/changelog.ts<br>docs/designs</td>
             <td class="num">1 h</td>
+          <td class="num"><b style="color:var(--copper)">part done</b><br><span class="mut">changelog + /overview done; roadmap &amp; board to go</span></td>
           </tr>
         </tbody>
       </table>

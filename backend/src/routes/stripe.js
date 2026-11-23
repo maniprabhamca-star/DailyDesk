@@ -12,6 +12,33 @@ const { isPaidPlan } = require('../utils/entitlement');
 // STRIPE_PRICE_ID_YEARLY (annual), STRIPE_WEBHOOK_SECRET. FRONTEND_URL = return URLs.
 const PRICE_MONTHLY = process.env.STRIPE_PRICE_ID;
 const PRICE_YEARLY = process.env.STRIPE_PRICE_ID_YEARLY;
+// Business: STRIPE_PRICE_ID_BUSINESS (monthly) + STRIPE_PRICE_ID_BUSINESS_YEARLY.
+const PRICE_BUSINESS_MONTHLY = process.env.STRIPE_PRICE_ID_BUSINESS;
+const PRICE_BUSINESS_YEARLY = process.env.STRIPE_PRICE_ID_BUSINESS_YEARLY;
+
+/** Which Stripe price a (tier, interval) pair maps to.
+ *
+ *  A table rather than a nested ternary, because the failure it prevents is
+ *  silent and expensive: if a Business click fell through to the Pro price, the
+ *  customer would be charged $5.98, Stripe would report a successful checkout,
+ *  the webhook would mark them 'pro', and nobody would find out until they
+ *  asked why their statement allowance was 20 pages. An unmapped combination
+ *  returns undefined and the caller refuses the request instead. */
+const PRICES = {
+  pro: { month: PRICE_MONTHLY, year: PRICE_YEARLY },
+  business: { month: PRICE_BUSINESS_MONTHLY, year: PRICE_BUSINESS_YEARLY },
+};
+
+/** The plan a Stripe price belongs to — used by the webhook, so a Business
+ *  payment is never recorded as a Pro one. Built from the same table, so the
+ *  two directions cannot disagree. */
+function planForPrice(priceId) {
+  if (!priceId) return null;
+  for (const [plan, byInterval] of Object.entries(PRICES)) {
+    if (Object.values(byInterval).includes(priceId)) return plan;
+  }
+  return null;
+}
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
 const FRONTEND = process.env.FRONTEND_URL || 'https://diemdesk.com';
 
@@ -51,8 +78,17 @@ router.post('/create-checkout-session', requireAuth, async (req, res) => {
   const s = getStripe();
   // Which billing period? Default to monthly; annual when explicitly requested.
   const interval = req.body && req.body.interval === 'year' ? 'year' : 'month';
-  const priceId = interval === 'year' ? PRICE_YEARLY : PRICE_MONTHLY;
-  if (!s || !priceId) return res.status(503).json({ error: 'Billing isn’t set up yet — please try again shortly.' });
+  // Default to 'pro' when unspecified so an older client that does not send a
+  // plan keeps working exactly as before. Anything other than the two known
+  // tiers is treated as pro rather than trusted.
+  const plan = req.body && req.body.plan === 'business' ? 'business' : 'pro';
+  const priceId = PRICES[plan] && PRICES[plan][interval];
+  if (!s || !priceId) {
+    // Name the gap in the log. "Billing isn't set up" is the right thing to
+    // tell a customer and useless to whoever has to fix it at 9pm.
+    console.warn(`[stripe] no price configured for plan=${plan} interval=${interval} — set STRIPE_PRICE_ID${plan === 'business' ? '_BUSINESS' : ''}${interval === 'year' ? '_YEARLY' : ''}`);
+    return res.status(503).json({ error: 'Billing isn’t set up yet — please try again shortly.' });
+  }
   try {
     const { rows } = await db.query('SELECT email, plan, stripe_customer_id FROM users WHERE id = $1', [req.user.userId]);
     const user = rows[0];
@@ -62,9 +98,24 @@ router.post('/create-checkout-session', requireAuth, async (req, res) => {
     // second subscription beside the one they have — the exact problem the
     // Business tier exists to remove. Moving between paid tiers is a Stripe plan
     // change with proration, handled separately (B6).
+    // Refuse only when the customer already has what this session would sell
+    // them. A Pro subscriber buying BUSINESS is the upgrade path, not a mistake
+    // — blocking it here is how someone ends up with two subscriptions, which
+    // is the exact thing the Business tier exists to remove.
+    //
+    // ⚠ What this does NOT yet do is cancel their Pro subscription or prorate
+    // the change. Until that lands (B6), a Pro subscriber who buys Business
+    // would hold both. So this path is closed for now and says why.
     if (isPaidPlan(user.plan)) {
+      if (user.plan === 'pro' && plan === 'business') {
+        return res.status(400).json({
+          error: 'Upgrading from Pro to Business isn’t self-serve yet — email us and we’ll move you across and credit the difference.',
+        });
+      }
       return res.status(400).json({
-        error: user.plan === 'business' ? 'You’re already on Business, which includes everything in Pro.' : 'You’re already on Pro.',
+        error: user.plan === 'business'
+          ? 'You’re already on Business, which includes everything in Pro.'
+          : 'You’re already on Pro.',
       });
     }
 
@@ -75,7 +126,7 @@ router.post('/create-checkout-session', requireAuth, async (req, res) => {
       success_url: `${FRONTEND}/pricing?upgraded=1`,
       cancel_url: `${FRONTEND}/pricing?canceled=1`,
       allow_promotion_codes: true,
-      metadata: { userId: String(req.user.userId) },
+      metadata: { userId: String(req.user.userId), plan },
       // Hosted Checkout already discloses the recurring terms; what this adds is
       // a RECORD that the customer accepted them, stored by Stripe on the
       // session and mirrored onto the user row by the webhook. Worth having
@@ -97,7 +148,14 @@ router.post('/create-checkout-session', requireAuth, async (req, res) => {
     // Stripe rejects `discounts` and `allow_promotion_codes` together, so while
     // the coupon is live the manual code box is dropped — the better price is
     // already on the session.
-    const withCoupon = FOUNDING_COUPON
+    //
+    // ⚠ PRO ONLY. The founding offer is a LIFETIME price, and applying it to the
+    // tier that carries the margin is the one pricing mistake that cannot be
+    // undone — a founding Business subscriber would pay $15.83/mo for ever. The
+    // pricing page says "Business is not included"; this is the half that makes
+    // that true even if somebody edits the page. Decision P3 in
+    // docs/designs/business-tier-pricing.html.
+    const withCoupon = FOUNDING_COUPON && plan === 'pro'
       ? { ...base, discounts: [{ coupon: FOUNDING_COUPON }], allow_promotion_codes: undefined }
       : base;
 
@@ -401,8 +459,32 @@ async function webhookHandler(req, res) {
       const session = event.data.object;
       const userId = session.client_reference_id || (session.metadata && session.metadata.userId);
       if (userId) {
-        await db.query('UPDATE users SET plan = $1, stripe_customer_id = $2, updated_at = now() WHERE id = $3', ['pro', session.customer || null, userId]);
-        console.log(`Stripe: user ${userId} → pro`);
+        // Which plan did they actually buy? Hard-coding 'pro' here would record
+        // a $19 Business payment as a $5.98 Pro subscription — the customer is
+        // charged correctly by Stripe and under-served by us, which is the one
+        // billing bug that looks fine in the dashboard.
+        //
+        // The session metadata is set by /create-checkout-session above, so it
+        // is the cheap answer. It is still OUR value echoed back, so when it is
+        // missing or unrecognised we ask Stripe what was on the line item and
+        // map that through the same price table. Only if both fail do we fall
+        // back to 'pro' — the lower tier, because under-granting is a support
+        // email and over-granting is giving away the margin tier.
+        let plan = PRICES[session.metadata && session.metadata.plan] ? session.metadata.plan : null;
+        if (!plan) {
+          try {
+            const items = await s.checkout.sessions.listLineItems(session.id, { limit: 1 });
+            plan = planForPrice(items.data[0] && items.data[0].price && items.data[0].price.id);
+          } catch (err) {
+            console.error('Stripe webhook: could not read line items:', err.message);
+          }
+        }
+        if (!plan) {
+          plan = 'pro';
+          console.warn(`Stripe: could not determine the plan for session ${session.id} — recorded as pro. Check STRIPE_PRICE_ID_* env vars.`);
+        }
+        await db.query('UPDATE users SET plan = $1, stripe_customer_id = $2, updated_at = now() WHERE id = $3', [plan, session.customer || null, userId]);
+        console.log(`Stripe: user ${userId} → ${plan}`);
 
         // Mirror the terms acceptance onto the user, AFTER the upgrade and in
         // its own try/catch. The upgrade is the thing a paying customer is
