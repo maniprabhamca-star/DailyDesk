@@ -7,7 +7,7 @@
 // common way anyone writes that form's name, while the build and every test
 // stay green. So both sides get their separators removed, not just the query.
 
-/** One row of /api/forms-index: short, name, aka, group label, href. */
+/** One row of /forms-api/index: short, name, aka, group label, href. */
 export type FormHit = { s: string; n: string; a: string; g: string; h: string };
 
 export function matchesForm(f: FormHit, query: string): boolean {

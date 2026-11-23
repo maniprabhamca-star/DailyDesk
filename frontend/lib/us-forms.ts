@@ -62,7 +62,7 @@ export type UsForm = {
   revisionLabel: 'Rev.' | 'Form year' | 'Edition date' | 'Revised' | 'Form date';
   /** The marker exactly as the agency prints it: "Mar 2024", "2026", "04/01/24". */
   revision: string;
-  /** The agency's own PDF. Used ONLY by /api/forms/<slug>, which fetches it
+  /** The agency's own PDF. Used ONLY by /forms-api/file/<slug>, which fetches it
    *  live when someone clicks "get this form" — we never store a copy, which
    *  is why `officialUrl` (the human page) stays separate and a test forbids
    *  it from pointing at a PDF. */

@@ -8,7 +8,7 @@ import { setHandoff } from '@/lib/file-handoff';
 // One click from "here is what this form is" to "here is the form, open and
 // ready to type into".
 //
-// The fetch goes to our own /api/forms/<slug>, which pulls the blank form from
+// The fetch goes to our own /forms-api/file/<slug>, which pulls the blank form from
 // the agency live and stores nothing. The file then rides the existing in-memory
 // handoff (lib/file-handoff.ts) into the tool — the same path the PDF viewer
 // uses to pass a file to a tool. It never touches disk and a hard refresh
@@ -43,7 +43,7 @@ export function GetFormButton({
     setState('loading');
     setMessage('');
     try {
-      const r = await fetch(`/api/forms/${slug}`, { cache: 'no-store' });
+      const r = await fetch(`/forms-api/file/${slug}`, { cache: 'no-store' });
       if (!r.ok) {
         const j = await r.json().catch(() => ({ error: '' }));
         throw new Error(j.error || `The ${authority} could not be reached.`);

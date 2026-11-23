@@ -22,7 +22,13 @@ import { US_FORMS } from '@/lib/us-forms';
 // The caller supplies a SLUG, never a URL. The URL comes from our own data
 // table, so there is nothing to inject. The host allowlist below is defence in
 // depth for the case where someone adds a bad `pdfUrl` to lib/us-forms.ts, and
-// tests/unit/forms-api.test.ts checks every entry against the same list.
+// tests/unit/us-forms.test.ts checks every entry against the same list.
+//
+// ── Why this is NOT under /api/ ──────────────────────────────────────────────
+// In production nginx proxies the whole of /api/ to the Express backend on
+// :4000, so a Next route handler under that prefix is unreachable — it 404s on
+// the server and nowhere else, which is the worst way to find out. The repo
+// owns this path instead of an nginx rule that lives only on the box.
 
 export const dynamic = 'force-dynamic'; // never cached: "live" has to be true
 

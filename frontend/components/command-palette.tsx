@@ -76,13 +76,13 @@ export function CommandPalette() {
 
   // Form pages (30 US + 32 Indian) are searchable by number: "W-9", "I-485",
   // "1099", "Form 16". Fetched once per session on the first search, NOT
-  // imported — see app/api/forms-index/route.ts for why.
+  // imported — see app/forms-api/index/route.ts for why.
   const [forms, setForms] = useState<FormHit[]>([]);
   const formsAsked = useRef(false);
   useEffect(() => {
     if (!open || !query.trim() || formsAsked.current) return;
     formsAsked.current = true;
-    fetch('/api/forms-index')
+    fetch('/forms-api/index')
       .then((r) => (r.ok ? r.json() : []))
       .then((rows: FormHit[]) => setForms(Array.isArray(rows) ? rows : []))
       .catch(() => { /* the palette works fine without it */ });

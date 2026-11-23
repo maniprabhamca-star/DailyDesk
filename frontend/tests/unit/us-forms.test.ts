@@ -149,7 +149,7 @@ describe('US forms library', () => {
     }
   });
 
-  it('points /api/forms at the agency’s own PDF, on an allowlisted host', () => {
+  it('points /forms-api/file at the agency’s own PDF, on an allowlisted host', () => {
     // pdfUrl is the ONE place a URL leaves our control, and the route handler
     // fetches it server-side. There is no SSRF surface because the caller
     // supplies a slug, not a URL — but a typo here would still have the server

@@ -13,9 +13,14 @@ import { SITE_URL } from '@/lib/site';
 // "Not found (404)" in Search Console. Excluding the path keeps the spam
 // protection and stops the crawl. Turning the obfuscation OFF would also clear
 // the report, at the cost of publishing our support address in plain text.
+//
+// /forms-api/ is excluded too, for a different reason: it fetches a blank form
+// live from irs.gov or uscis.gov on every request. There is nothing there for a
+// search engine to index, and a crawler walking thirty of them would be us
+// hammering a government site on a bot's behalf.
 export default function robots(): MetadataRoute.Robots {
   return {
-    rules: { userAgent: '*', allow: '/', disallow: '/cdn-cgi/' },
+    rules: { userAgent: '*', allow: '/', disallow: ['/cdn-cgi/', '/forms-api/'] },
     sitemap: `${SITE_URL}/sitemap.xml`,
   };
 }

@@ -12,6 +12,10 @@ import { INDIA_FORMS } from '@/lib/india-forms';
 // search of a session, and caches it in memory.
 //
 // Derived from the same data the pages render, so it cannot drift.
+//
+// Not under /api/: in production nginx proxies that whole prefix to the Express
+// backend on :4000, so a Next route handler there 404s on the server and
+// nowhere else.
 
 export const dynamic = 'force-static';
 
