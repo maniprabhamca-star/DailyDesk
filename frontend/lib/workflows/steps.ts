@@ -11,6 +11,7 @@
 // than breaking the chain.
 
 import { mergePdfs, rewritePdf } from '@/lib/pdf-rewrite';
+import { openPdfDoc } from '../pdf-open';
 import { runQpdf } from '@/lib/qpdf';
 import { compressPdfToTarget } from '@/lib/compress-to-target';
 
@@ -51,8 +52,7 @@ const stem = (n: string) => n.replace(/\.pdf$/i, '');
 /** Page count via pdf-lib without mutating the file — needed by rotate / delete /
  *  page-numbers to build per-page arrays. */
 async function pageCount(file: File): Promise<number> {
-  const { PDFDocument } = await import('pdf-lib');
-  const doc = await PDFDocument.load(await file.arrayBuffer(), { ignoreEncryption: true, updateMetadata: false });
+  const doc = await openPdfDoc(new Uint8Array(await file.arrayBuffer()), { updateMetadata: false });
   return doc.getPageCount();
 }
 
@@ -130,9 +130,8 @@ export const STEPS: Record<StepId, StepDef> = {
   'remove-metadata': {
     id: 'remove-metadata', label: 'Remove metadata', blurb: 'Strip author, history & hidden data', color: '--green', glyph: '🧽',
     run: perFile(async (f) => {
-      const { PDFDocument } = await import('pdf-lib');
       const { stripDocMetadata } = await import('@/lib/pdf-sanitize');
-      const doc = await PDFDocument.load(await f.arrayBuffer(), { ignoreEncryption: true });
+      const doc = await openPdfDoc(new Uint8Array(await f.arrayBuffer()));
       await stripDocMetadata(doc);
       const bytes = await doc.save({ useObjectStreams: true });
       return asFile(bytes, `${stem(f.name)}-clean.pdf`);
@@ -183,8 +182,7 @@ export const STEPS: Record<StepId, StepDef> = {
       const { loadSignature, signatureBytes } = await import('./signature');
       const sig = loadSignature();
       if (!sig) { onMsg?.('No signature saved on this device — Sign step skipped'); return f; }
-      const { PDFDocument } = await import('pdf-lib');
-      const doc = await PDFDocument.load(await f.arrayBuffer(), { ignoreEncryption: true, updateMetadata: false });
+      const doc = await openPdfDoc(new Uint8Array(await f.arrayBuffer()), { updateMetadata: false });
       const bytes = signatureBytes(sig);
       const img = sig.isPng ? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
       const pages = doc.getPages();
@@ -248,9 +246,9 @@ export const STEPS: Record<StepId, StepDef> = {
     fields: [{ key: 'links', label: 'Clickable links', type: 'select', default: 'remove', options: [
       { value: 'remove', label: 'Remove' }, { value: 'keep', label: 'Keep' }] }],
     run: perFile(async (f, cfg, _signal, onMsg) => {
-      const { PDFDocument, PDFName, PDFDict } = await import('pdf-lib');
+      const { PDFName, PDFDict } = await import('pdf-lib');
       const { scanDocMetadata, stripDocMetadata } = await import('@/lib/pdf-sanitize');
-      const doc = await PDFDocument.load(await f.arrayBuffer(), { ignoreEncryption: true });
+      const doc = await openPdfDoc(new Uint8Array(await f.arrayBuffer()));
       const ctx = doc.context;
       const scan = await scanDocMetadata(doc);
       const metaRemoved = await stripDocMetadata(doc);

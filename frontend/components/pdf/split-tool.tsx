@@ -1,5 +1,6 @@
 'use client';
 import { useFileSession } from '@/lib/editor-session';
+import { openPdfDoc } from '@/lib/pdf-open';
 import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 
 import { useEffect, useRef, useState } from 'react';
@@ -74,8 +75,7 @@ export function SplitTool() {
     setDone(null);
     setBusy(true);
     try {
-      const { PDFDocument } = await import('pdf-lib');
-      const doc = await PDFDocument.load(await f.arrayBuffer(), { ignoreEncryption: true });
+      const doc = await openPdfDoc(new Uint8Array(await f.arrayBuffer()));
       const count = doc.getPageCount();
       setFile(f);
       setPageCount(count);

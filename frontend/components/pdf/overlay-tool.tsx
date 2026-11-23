@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { openPdfDoc } from '@/lib/pdf-open';
 import { Upload, FileText, X, Loader2, Layers, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { downloadBlob as download } from '@/lib/download';
@@ -94,8 +95,8 @@ export function OverlayTool() {
     const t0 = performance.now();
     try {
       const { PDFDocument } = await import('pdf-lib');
-      const baseDoc = await PDFDocument.load(new Uint8Array(await base.arrayBuffer()), { ignoreEncryption: true });
-      const stampDoc = await PDFDocument.load(new Uint8Array(await stamp.arrayBuffer()), { ignoreEncryption: true });
+      const baseDoc = await openPdfDoc(new Uint8Array(await base.arrayBuffer()));
+      const stampDoc = await openPdfDoc(new Uint8Array(await stamp.arrayBuffer()));
 
       const basePages = baseDoc.getPages();
       const stampCount = stampDoc.getPageCount();

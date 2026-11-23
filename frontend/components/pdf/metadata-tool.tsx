@@ -1,5 +1,6 @@
 'use client';
 import { UploadError, wrongTypeError } from '@/components/app/upload-error';
+import { openPdfDoc } from '@/lib/pdf-open';
 
 import { useEffect, useRef, useState } from 'react';
 import { Upload, FileText, X, Loader2, Fingerprint, CheckCircle2, ShieldCheck, Zap, Download, AlertTriangle } from 'lucide-react';
@@ -36,8 +37,7 @@ function prettyValue(key: string, value: string): string {
 // Headless strip core — the SAME clean the single-file run() does, so the
 // BatchRunner (Pro on-device batch) can loop it over many PDFs at once.
 async function stripMetadataOne(f: File): Promise<{ blob: Blob; name: string; before: number; after: number }> {
-  const { PDFDocument } = await import('pdf-lib');
-  const doc = await PDFDocument.load(await f.arrayBuffer(), { ignoreEncryption: true, updateMetadata: false });
+  const doc = await openPdfDoc(new Uint8Array(await f.arrayBuffer()), { updateMetadata: false });
   await stripDocMetadata(doc);
   const out = await doc.save({ useObjectStreams: true });
   const blob = new Blob([new Uint8Array(out)], { type: 'application/pdf' });
@@ -91,10 +91,9 @@ export function MetadataTool() {
     setScan(null);
     setBusy(true);
     try {
-      const { PDFDocument } = await import('pdf-lib');
       // updateMetadata:false — otherwise pdf-lib writes its own Producer/ModDate
       // at load time and the scan would report things that aren't in YOUR file.
-      const doc = await PDFDocument.load(await f.arrayBuffer(), { ignoreEncryption: true, updateMetadata: false });
+      const doc = await openPdfDoc(new Uint8Array(await f.arrayBuffer()), { updateMetadata: false });
       setScan(await scanDocMetadata(doc));
       setPageCount(doc.getPageCount());
       setFile(f);
@@ -119,8 +118,7 @@ export function MetadataTool() {
     setBusy(true);
     setError(null);
     try {
-      const { PDFDocument } = await import('pdf-lib');
-      const doc = await PDFDocument.load(await file.arrayBuffer(), { ignoreEncryption: true, updateMetadata: false });
+      const doc = await openPdfDoc(new Uint8Array(await file.arrayBuffer()), { updateMetadata: false });
       const removed = await stripDocMetadata(doc);
       const out = await doc.save({ useObjectStreams: true });
       const blob = new Blob([new Uint8Array(out)], { type: 'application/pdf' });
@@ -130,7 +128,7 @@ export function MetadataTool() {
       // on the page, so this proves to the user it's actually gone.
       let verifiedRemaining = 0;
       try {
-        const verify = await PDFDocument.load(out, { ignoreEncryption: true, updateMetadata: false });
+        const verify = await openPdfDoc(out, { updateMetadata: false });
         const m = await scanDocMetadata(verify);
         verifiedRemaining = m.fields.length + (m.xmpBytes ? 1 : 0) + (m.thumbs ? 1 : 0) + (m.pieceInfo ? 1 : 0);
       } catch { /* keep 0 if the re-scan fails */ }

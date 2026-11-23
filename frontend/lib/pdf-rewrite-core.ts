@@ -3,6 +3,12 @@
 // main-thread inline fallback in lib/pdf-rewrite.ts — single source of truth,
 // the two paths can't drift. This module imports pdf-lib statically: only load
 // it from the worker or via dynamic import.
+// ⚠ This module runs inside lib/pdf-rewrite.worker.ts, so it must NOT import
+// lib/pdf-open.ts: that reaches for qpdf, whose inline fallback builds a
+// <script> tag and needs a DOM a worker does not have. Its callers decrypt on
+// the main thread first (lib/pdf-rewrite.ts), so the buffers arriving here are
+// already clear and `ignoreEncryption` below is just belt-and-braces for a
+// file that declares encryption it does not really use.
 import { PDFDocument, StandardFonts, degrees, rgb } from 'pdf-lib';
 import type { StampCore } from './pdf-stamp';
 import { parseRanges } from './page-ranges';

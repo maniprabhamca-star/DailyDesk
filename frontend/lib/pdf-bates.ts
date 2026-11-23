@@ -6,14 +6,15 @@
 // imported dynamically to keep it out of the initial route bundle.
 
 import { batesLabel, batesXY, pagesInRange, type BatesOptions } from './bates-core';
+import { openPdfDoc } from './pdf-open';
 
 export type BatesFileResult = { blob: Blob; name: string; stamped: number };
 export type BatesRun = { files: BatesFileResult[]; totalStamped: number; firstLabel: string; lastLabel: string };
 
 async function stampOne(file: File, opts: BatesOptions, startNum: number): Promise<{ result: BatesFileResult; nextNum: number; lastLabel: string }> {
-  const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib');
+  const { StandardFonts, rgb } = await import('pdf-lib');
   const bytes = new Uint8Array(await file.arrayBuffer());
-  const doc = await PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false });
+  const doc = await openPdfDoc(bytes, { updateMetadata: false });
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const pages = doc.getPages();
   const targets = pagesInRange(pages.length, opts.fromPage, opts.toPage);

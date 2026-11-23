@@ -1,5 +1,6 @@
 'use client';
 import { UploadError, wrongTypeError } from '@/components/app/upload-error';
+import { openPdfDoc } from '@/lib/pdf-open';
 
 import { formatDuration } from '@/lib/format';
 import { useEffect, useRef, useState } from 'react';
@@ -247,8 +248,7 @@ export function ExtractImagesTool() {
     setResults((prev) => { revoke(prev); return []; });
     setBusy(true);
     try {
-      const { PDFDocument } = await import('pdf-lib'); // light: page count only
-      const doc = await PDFDocument.load(await f.arrayBuffer(), { ignoreEncryption: true });
+      const doc = await openPdfDoc(new Uint8Array(await f.arrayBuffer()));
       setFile(f);
       setPageCount(doc.getPageCount());
     } catch {

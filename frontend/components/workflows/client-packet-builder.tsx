@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { openPdfDoc } from '@/lib/pdf-open';
 import { useMemo, useRef, useState } from 'react';
 import { CheckCircle2, Circle, FilePlus2, ListChecks, ShieldCheck, Sparkles, ArrowRight, Upload, X, FileText, Loader2, Download, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -95,7 +96,7 @@ export function ClientPacketBuilder() {
       }
 
       for (const f of files) {
-        const src = await PDFDocument.load(await f.arrayBuffer(), { ignoreEncryption: true, updateMetadata: false });
+        const src = await openPdfDoc(new Uint8Array(await f.arrayBuffer()), { updateMetadata: false });
         const copied = await out.copyPages(src, src.getPageIndices());
         copied.forEach((p) => out.addPage(p));
       }

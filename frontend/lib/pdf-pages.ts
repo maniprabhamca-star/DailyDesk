@@ -7,6 +7,7 @@
 //
 // All of it runs on pdf-lib in the browser. Nothing is uploaded.
 
+import { openPdfDoc } from './pdf-open';
 export type PaperName = 'A3' | 'A4' | 'A5' | 'A6' | 'Letter' | 'Legal' | 'Tabloid';
 
 // Points at 72/inch, portrait.
@@ -46,7 +47,7 @@ export async function halvePages(
   opts: { axis: 'vertical' | 'horizontal'; rightToLeft?: boolean },
 ): Promise<Uint8Array> {
   const { PDFDocument } = (await import('pdf-lib')) as Lib;
-  const src = await PDFDocument.load(bytes, { ignoreEncryption: true });
+  const src = await openPdfDoc(bytes);
   const out = await PDFDocument.create();
   const count = src.getPageCount();
   const embedded = await out.embedPdf(src, Array.from({ length: count }, (_, i) => i));
@@ -94,7 +95,7 @@ export async function pagesPerSheet(
   },
 ): Promise<Uint8Array> {
   const { PDFDocument, rgb } = (await import('pdf-lib')) as Lib;
-  const src = await PDFDocument.load(bytes, { ignoreEncryption: true });
+  const src = await openPdfDoc(bytes);
   const out = await PDFDocument.create();
   const count = src.getPageCount();
   const embedded = await out.embedPdf(src, Array.from({ length: count }, (_, i) => i));
@@ -147,7 +148,7 @@ export async function resizePages(
   opts: { mode: 'preset' | 'unify'; paper: PaperName; orientation: Orientation },
 ): Promise<Uint8Array> {
   const { PDFDocument } = (await import('pdf-lib')) as Lib;
-  const src = await PDFDocument.load(bytes, { ignoreEncryption: true });
+  const src = await openPdfDoc(bytes);
   const out = await PDFDocument.create();
   const count = src.getPageCount();
   const embedded = await out.embedPdf(src, Array.from({ length: count }, (_, i) => i));
@@ -179,8 +180,7 @@ export async function resizePages(
 
 /** Every distinct page size in the file, for telling the reader what they have. */
 export async function pageSizeSummary(bytes: Uint8Array): Promise<{ label: string; count: number }[]> {
-  const { PDFDocument } = (await import('pdf-lib')) as Lib;
-  const doc = await PDFDocument.load(bytes, { ignoreEncryption: true });
+  const doc = await openPdfDoc(bytes);
   const tally = new Map<string, number>();
   for (const p of doc.getPages()) {
     const { width, height } = p.getSize();

@@ -1,5 +1,6 @@
 'use client';
 import { UploadError, wrongTypeError } from '@/components/app/upload-error';
+import { openPdfDoc } from '@/lib/pdf-open';
 
 import { useEffect, useRef, useState } from 'react';
 import { Upload, FileText, X, Download, Loader2, Zap, Info } from 'lucide-react';
@@ -80,8 +81,7 @@ export function PageNumbersTool() {
     setDone(null);
     setBusy(true);
     try {
-      const { PDFDocument } = await import('pdf-lib');
-      const doc = await PDFDocument.load(await f.arrayBuffer(), { ignoreEncryption: true });
+      const doc = await openPdfDoc(new Uint8Array(await f.arrayBuffer()));
       const count = doc.getPageCount();
       setFile(f);
       setPageCount(count);

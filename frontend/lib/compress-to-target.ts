@@ -4,6 +4,7 @@
 // PDFs. We search the quality/resolution knob for the HIGHEST fidelity that still
 // lands under the target — so the result is as good as the limit allows.
 import { decodeImage } from './image-compress-core';
+import { openPdfDoc } from './pdf-open';
 import { encodeJpeg } from './mozjpeg';
 import { rasterizePdf } from './pdf-rasterize';
 
@@ -126,8 +127,7 @@ export async function compressPdfToTarget(
   // 1) Lossless-ish: rewrite with object streams (preserves text). Cheap; try first.
   onProgress?.('Optimizing…');
   try {
-    const { PDFDocument } = await import('pdf-lib');
-    const doc = await PDFDocument.load(new Uint8Array(await file.arrayBuffer()), { ignoreEncryption: true });
+    const doc = await openPdfDoc(new Uint8Array(await file.arrayBuffer()));
     const saved = await doc.save({ useObjectStreams: true });
     if (saved.byteLength <= targetBytes && saved.byteLength < before) {
       return { blob: new Blob([new Uint8Array(saved)], { type: 'application/pdf' }), name, before, after: saved.byteLength, reached: true };

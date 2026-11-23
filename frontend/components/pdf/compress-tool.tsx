@@ -1,5 +1,6 @@
 'use client';
 import { useFileSession, clearSession, MAX_FILE_SESSION } from '@/lib/editor-session';
+import { openPdfDoc } from '@/lib/pdf-open';
 
 import { useEffect, useRef, useState } from 'react';
 import { useFileHandoff } from '@/lib/file-handoff';
@@ -163,8 +164,8 @@ function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
 
 async function classifyPdf(file: File): Promise<Classified | null> {
   try {
-    const { PDFDocument, PDFName, PDFRawStream, PDFArray } = await import('pdf-lib');
-    const doc = await PDFDocument.load(new Uint8Array(await file.arrayBuffer()), { ignoreEncryption: true });
+    const { PDFName, PDFRawStream, PDFArray } = await import('pdf-lib');
+    const doc = await openPdfDoc(new Uint8Array(await file.arrayBuffer()));
     const ctx = doc.context;
     let imageBytes = 0;
     for (const [, obj] of ctx.enumerateIndirectObjects()) {
@@ -487,7 +488,7 @@ export function CompressTool() {
     try {
       const { PDFDocument, PDFName, PDFNumber, PDFRawStream, PDFArray } = await import('pdf-lib');
       const original = new Uint8Array(await srcFile.arrayBuffer());
-      const doc = await PDFDocument.load(original, { ignoreEncryption: true });
+      const doc = await openPdfDoc(original);
       const ctx = doc.context;
       const { dpi, maxDim, quality, rasterDpi, rasterQ, rasterFrac } = LEVELS[useLevel];
 

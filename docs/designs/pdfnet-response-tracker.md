@@ -22,7 +22,7 @@ Status values: `todo` · `in progress` · `shipped` · `blocked` · `parked`
 | 5 | Competitor alternatives 4 → 10 | 5 | **shipped** | 2026-08-29 (9 of 10; Canva pending a source) |
 | 6 | Sector pages 4 → 12 | 5 | **shipped** | **13 of 12** · 2026-11-23: +immigration, journalism, insurance, construction · government renamed to public-sector |
 | 7 | Indian statutory forms library | 33 | **shipped** | 32 forms + index · 2026-08-29 |
-| 8 | US forms library (privacy wedge) | ~30–60 | **todo** | |
+| 8 | US forms library (privacy wedge) | ~30–60 | **in progress** | Scoped 2026-11-23: 30 forms, groups A–E — `docs/designs/us-forms-library-scope.md`. **D1 done**: the encryption blocker that broke 10 tools on the USCIS forms is fixed. Next: groups A+B, 12 IRS forms |
 | 9 | "What comes next" dock | 0 | **shipped** | 2026-08-29 |
 | 10 | AI document generator / invoice builder | 0 | **parked** | commodity — see gap analysis |
 | 11 | Multi-document AI chat | 0 | **blocked** — File Vault | |
@@ -654,7 +654,8 @@ four had real ones; the next candidates do not, and the effort is worth more
 spent on item 8. Thirteen against a target of twelve is where this item closes.
 
 ### Verified, not assumed
-A throwaway checker (`scratchpad/verify_sectors.mjs`) proved all 13 sectors
+A checker — now permanent as `frontend/scripts/verify-sectors.mjs`, run by
+`npm run verify:sectors` and gated in CI as “Sector data contract” — proved all 13 sectors
 against the three things `lib/sectors.ts`'s own type comments promise: `title`
 ≤ 60 chars, `description` ≤ 155 (XC-003), every `toolkit` and `tool` name
 present in `components/app/catalog.tsx`, and every `href` both in the catalog
@@ -668,3 +669,50 @@ Gate: tsc clean · 31 files / 329 tests · build clean · all four pages read ba
 from a `frontend-prod` preview. The one console 404 (`/api/tools/flags`) is the
 frontend-only preview having no backend — 200 on prod.
 
+
+---
+
+## Item 8, D1 — the blocker found while scoping it (2026-11-23)
+
+Scoping the US forms library turned up a live defect in ten shipped tools, so it
+went first. The write-up lives in `us-forms-library-scope.md`; the short version:
+
+Most high-volume USCIS forms — I-130, I-485, I-765, N-400 — are
+**permissions-only encrypted**. They open with no password, so nothing about them
+looks locked. But `ignoreEncryption: true`, which we were passing at 41 call
+sites, **does not decrypt** — pdf-lib has no decryption at all, and the flag only
+silences its refusal to open the file. Everything downstream then reads
+ciphertext: `save()`, `copyPages()`, `drawText()` and `embedPdf()` throw, and
+`getFields()` returns **0** without erroring. That is rotate, merge, split,
+delete/reorder, page numbers, Bates, watermark, pages-per-sheet, fill form and
+flatten, all broken on exactly the forms item 8 is about to ship pages for.
+
+The fix reuses what we already ship. `lib/pdf-open.ts` is now the single opener —
+a unit test enforces that no other file may call `PDFDocument.load` and that
+`ignoreEncryption` appears nowhere — and it runs our existing **qpdf-wasm**
+(`public/qpdf/`, the engine behind /unlock-pdf) with `--password= --decrypt`
+before reloading. Still entirely on-device.
+
+Two things it had to absorb centrally. `lib/pdf-rewrite-core.ts` runs inside a
+Web Worker and cannot import the opener, because qpdf's inline fallback needs a
+DOM — so rewrites decrypt on the main thread before the postMessage. And pdf-lib
+throws "Reading rich text fields is not supported" during `save()`'s appearance
+pass; I-485 has four such fields of 730. Neutralising the rich-text flag in the
+opener meant none of the 61 existing `doc.save()` calls had to change.
+
+Measured, not asserted — `npm run qa:encrypted` over seven real forms:
+
+| Form | fields before | fields after |
+|---|---|---|
+| I-130 | 0 | 450 |
+| I-485 | 0 | 730 |
+| I-765 | 0 | 161 |
+| N-400 | 0 | 440 |
+| I-9 (control) | 128 | 128 |
+| W-9 (control) | 23 | 23 |
+| 433-A (control) | 515 | 515 |
+
+Files that genuinely prompt for a password are unaffected and still need
+/unlock-pdf first — that path was never broken. **Still open:** SSA SS-5 and
+SSA-1696 probed as flat, but the confirming fetch was CORS-blocked, so whether
+they are genuinely flat or encrypted is unknown.

@@ -70,12 +70,31 @@ async function run(srcs: (File | Blob)[], op: RewriteOp, signal?: AbortSignal): 
   } else if (op.type === 'page-numbers' && op.opts.fontBytes) {
     fallbackOp = { ...op, opts: { ...op.opts, fontBytes: op.opts.fontBytes.slice(0) } };
   }
+  // Decrypt HERE, on the main thread, before anything is posted. The worker
+  // runs pdf-rewrite-core, which loads with pdf-lib — and pdf-lib cannot read
+  // an encrypted file's objects, so merge/split/rotate/watermark/page-numbers
+  // all threw on files like the current USCIS I-130. qpdf does the decryption,
+  // and it needs a DOM for its inline fallback, which a worker does not have.
+  // See lib/pdf-open.ts for the measurements.
+  const readDecrypted = async () => {
+    const { ensureDecrypted } = await import('./pdf-open');
+    return Promise.all(
+      srcs.map(async (s) => {
+        const clear = await ensureDecrypted(new Uint8Array(await s.arrayBuffer()));
+        // Hand the worker a standalone ArrayBuffer it can take ownership of.
+        return clear.buffer.byteLength === clear.byteLength
+          ? (clear.buffer as ArrayBuffer)
+          : (clear.slice().buffer as ArrayBuffer);
+      }),
+    );
+  };
+
   try {
-    return await runInWorker(await Promise.all(srcs.map((s) => s.arrayBuffer())), op, signal);
+    return await runInWorker(await readDecrypted(), op, signal);
   } catch (e) {
     if (isCancel(e)) throw e; // a cancel must NOT silently fall back to an uncancellable inline run
     const { executeRewrite } = await import('./pdf-rewrite-core');
-    return executeRewrite(await Promise.all(srcs.map((s) => s.arrayBuffer())), fallbackOp);
+    return executeRewrite(await readDecrypted(), fallbackOp);
   }
 }
 

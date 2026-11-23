@@ -1,5 +1,6 @@
 'use client';
 import { UploadError, wrongTypeError } from '@/components/app/upload-error';
+import { openPdfDoc } from '@/lib/pdf-open';
 
 import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { Upload, FileText, X, Loader2, ShieldCheck, AlertTriangle, Link as LinkIcon, Fingerprint, EyeOff, Download, CheckCircle2, ArrowRight } from 'lucide-react';
@@ -150,9 +151,8 @@ export function ShareSafeCheckTool() {
     setBusy(true);
     let handle: PdfHandle | null = null;
     try {
-      const { PDFDocument } = await import('pdf-lib');
       const pdfjs = await getPdfjs();
-      const doc = await PDFDocument.load(await f.arrayBuffer(), { ignoreEncryption: true, updateMetadata: false });
+      const doc = await openPdfDoc(new Uint8Array(await f.arrayBuffer()), { updateMetadata: false });
       const meta = await scanDocMetadata(doc);
       setMetadata(meta);
 
@@ -250,7 +250,7 @@ export function ShareSafeCheckTool() {
     try {
       const { PDFDocument, PDFName } = await import('pdf-lib');
       const srcBytes = await file.arrayBuffer();
-      const src = await PDFDocument.load(srcBytes, { ignoreEncryption: true, updateMetadata: false });
+      const src = await openPdfDoc(srcBytes, { updateMetadata: false });
       const shouldRasterize = redactText && boxes.length > 0;
       let out = src;
 
@@ -323,7 +323,7 @@ export function ShareSafeCheckTool() {
       // that these changes are invisible when you just open the PDF.
       let afterMeta = metaCount;
       try {
-        const verify = await PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false });
+        const verify = await openPdfDoc(bytes, { updateMetadata: false });
         const m = await scanDocMetadata(verify);
         afterMeta = m.fields.length + (m.xmpBytes ? 1 : 0) + (m.thumbs ? 1 : 0) + (m.pieceInfo ? 1 : 0);
       } catch { /* keep the intended count if re-scan fails */ }

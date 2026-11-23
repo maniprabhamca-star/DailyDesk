@@ -15,6 +15,7 @@
 // a text-copy of an edited word may still yield the original underneath. For true
 // removal of sensitive text, that's what Redact is for.
 import { PDFArray, PDFDocument, PDFName, PDFString, StandardFonts, rgb, type PDFFont, type PDFPage } from 'pdf-lib';
+import { openPdfDoc } from './pdf-open';
 import { FAMILIES, type Family, loadFontBytes } from './fonts';
 
 // One positioned word to (re)draw.
@@ -118,7 +119,7 @@ function addLinkAnnotation(doc: PDFDocument, page: PDFPage, x: number, baseline:
 /** Apply the positioned word edits to a PDF, returning new bytes. Pure — no DOM,
  * so it runs in a Node test the same way it runs in the browser. */
 export async function applyLineEdits(src: ArrayBuffer | Uint8Array, edits: LineEdit[], blocks: BlockEdit[] = []): Promise<Uint8Array> {
-  const doc = await PDFDocument.load(src, { ignoreEncryption: true });
+  const doc = await openPdfDoc(src);
   const pages = doc.getPages();
   const cache = new Map<string, PDFFont>();
   let fontkitReady = false;

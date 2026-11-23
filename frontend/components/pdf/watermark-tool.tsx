@@ -1,5 +1,6 @@
 'use client';
 import { useFileSession } from '@/lib/editor-session';
+import { openPdfDoc } from '@/lib/pdf-open';
 import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 
 import { useEffect, useRef, useState } from 'react';
@@ -84,9 +85,9 @@ function fmt(bytes: number) {
 // apply runs the SAME shared geometry (lib/pdf-stamp) inside the pdf-rewrite
 // worker, so what you preview is exactly what downloads.
 async function stamp(src: File | Blob, s: Settings, firstPageOnly = false): Promise<Uint8Array> {
-  const { PDFDocument, StandardFonts } = await import('pdf-lib');
+  const { StandardFonts } = await import('pdf-lib');
   const { stampPages } = await import('@/lib/pdf-stamp');
-  const doc = await PDFDocument.load(new Uint8Array(await src.arrayBuffer()), { ignoreEncryption: true });
+  const doc = await openPdfDoc(new Uint8Array(await src.arrayBuffer()));
   const count = doc.getPageCount();
   let pageNums: number[]; // 1-based
   if (firstPageOnly) pageNums = [1];

@@ -6,6 +6,7 @@
 // browser; the file is never uploaded. Not a replacement for /compress-pdf
 // (no scan-page rasterisation / levels); it exists to prove the point live.
 import type { PDFRawStream as RawStreamT } from 'pdf-lib';
+import { openPdfDoc } from './pdf-open';
 import { encodeJpeg } from './mozjpeg';
 import { stripDocMetadata } from './pdf-sanitize';
 
@@ -19,8 +20,8 @@ const QUALITY = 68; // mozjpeg quality 0-100
 export async function heroCompress(file: File): Promise<HeroCompressResult> {
   const before = file.size;
   const original = new Uint8Array(await file.arrayBuffer());
-  const { PDFDocument, PDFName, PDFNumber, PDFRawStream } = await import('pdf-lib');
-  const doc = await PDFDocument.load(original, { ignoreEncryption: true });
+  const { PDFName, PDFNumber, PDFRawStream } = await import('pdf-lib');
+  const doc = await openPdfDoc(original);
   const ctx = doc.context;
 
   const isJpegImage = (obj: unknown): boolean => {

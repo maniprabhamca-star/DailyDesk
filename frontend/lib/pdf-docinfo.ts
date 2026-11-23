@@ -15,6 +15,7 @@
  * editing history) intact.
  */
 import type { PDFDocument, PDFRef, PDFRawStream } from 'pdf-lib';
+import { openPdfDoc } from './pdf-open';
 
 
 export type DocInfo = {
@@ -151,8 +152,7 @@ async function xmpOf(doc: PDFDocument): Promise<{ xml: string; ref: PDFRef } | n
 }
 
 export async function readDocInfo(bytes: ArrayBuffer | Uint8Array): Promise<DocInfoRead> {
-  const { PDFDocument } = await import('pdf-lib');
-  const doc = await PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false });
+  const doc = await openPdfDoc(bytes, { updateMetadata: false });
 
   const info: DocInfo = {
     title: doc.getTitle() ?? '',
@@ -189,8 +189,8 @@ export async function readDocInfo(bytes: ArrayBuffer | Uint8Array): Promise<DocI
 }
 
 export async function writeDocInfo(bytes: ArrayBuffer | Uint8Array, v: DocInfo): Promise<Uint8Array> {
-  const { PDFDocument, PDFName, PDFRawStream, PDFNumber } = await import('pdf-lib');
-  const doc = await PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false });
+  const { PDFName, PDFRawStream, PDFNumber } = await import('pdf-lib');
+  const doc = await openPdfDoc(bytes, { updateMetadata: false });
 
   // pdf-lib has no "unset" — writing '' leaves an empty entry, which is both
   // honest (the field exists and is blank) and what the user asked for.

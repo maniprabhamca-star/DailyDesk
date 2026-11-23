@@ -7,6 +7,7 @@
 // most "please repair" cases actually need. We also cross-check with pdf.js so
 // we can honestly report how many pages came back.
 import { getPdfjs } from './pdf-render';
+import { openPdfDoc } from './pdf-open';
 
 export type RepairResult = {
   blob: Blob;
@@ -31,11 +32,10 @@ export async function repairPdf(file: File): Promise<RepairResult> {
     await task.destroy();
   } catch { /* pdf.js couldn't parse it — pdf-lib may still rebuild it */ }
 
-  const { PDFDocument } = await import('pdf-lib');
   let doc;
   try {
     // The tolerant path: don't throw on the very errors we're here to fix.
-    doc = await PDFDocument.load(src, { ignoreEncryption: true, throwOnInvalidObject: false, updateMetadata: false });
+    doc = await openPdfDoc(src, { updateMetadata: false });
   } catch (e) {
     throw new RepairError(pdfjsPages, e instanceof Error ? e.message : 'parse failed');
   }

@@ -17,6 +17,7 @@
 // kept separate so the battle-tested compress path stays untouched.
 
 import type { PDFRawStream as RawStream, PDFContext, PDFRef as Ref } from 'pdf-lib';
+import { openPdfDoc } from './pdf-open';
 
 export type RawImage =
   | { kind: 'jpeg'; bytes: Uint8Array; width: number; height: number }
@@ -78,8 +79,8 @@ export async function extractEmbeddedImages(
   bytes: Uint8Array,
   onStep?: () => void | Promise<void>,
 ): Promise<ExtractOutcome> {
-  const { PDFDocument, PDFName, PDFRawStream, PDFArray, PDFRef } = await import('pdf-lib');
-  const doc = await PDFDocument.load(bytes, { ignoreEncryption: true });
+  const { PDFName, PDFRawStream, PDFArray, PDFRef } = await import('pdf-lib');
+  const doc = await openPdfDoc(bytes);
   const ctx: PDFContext = doc.context;
   const all = ctx.enumerateIndirectObjects();
 

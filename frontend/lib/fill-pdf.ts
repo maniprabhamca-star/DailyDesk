@@ -16,6 +16,7 @@
 // pdf.js/canvas render can't be exercised in the Node sandbox; the pdf-lib read/
 // write paths here are all verified headlessly (see the session notes).
 
+import { openPdfDoc } from './pdf-open';
 export type FillKind = 'text' | 'check' | 'x' | 'date' | 'signature';
 
 export type FillEl = {
@@ -99,10 +100,10 @@ export function isFillable(t: NativeFieldType): boolean {
 // Read every AcroForm widget's geometry, type and constraints. Returns [] for a
 // flat PDF (no form) — the tool then falls back to the place-anywhere overlay.
 export async function extractNativeFields(file: File): Promise<NativeField[]> {
-  const { PDFDocument, PDFTextField, PDFCheckBox, PDFRadioGroup, PDFDropdown, PDFOptionList, PDFSignature } = await import('pdf-lib');
+  const { PDFTextField, PDFCheckBox, PDFRadioGroup, PDFDropdown, PDFOptionList, PDFSignature } = await import('pdf-lib');
   let doc;
   try {
-    doc = await PDFDocument.load(new Uint8Array(await file.arrayBuffer()), { ignoreEncryption: true });
+    doc = await openPdfDoc(new Uint8Array(await file.arrayBuffer()));
   } catch {
     return [];
   }
@@ -199,8 +200,7 @@ const FONT_TOKEN: Record<FontKey, string> = { Helvetica: 'Helv', Times: 'TiRo', 
 
 export async function detectFieldCount(file: File): Promise<number> {
   try {
-    const { PDFDocument } = await import('pdf-lib');
-    const doc = await PDFDocument.load(new Uint8Array(await file.arrayBuffer()), { ignoreEncryption: true });
+    const doc = await openPdfDoc(new Uint8Array(await file.arrayBuffer()));
     return doc.getForm().getFields().length;
   } catch {
     return 0;
@@ -218,8 +218,8 @@ export type NativeExport = {
 // draw any place-anywhere overlays, then flatten (lock) or keep the form editable.
 export async function exportFilledPdf(file: File, overlays: FillEl[], native?: NativeExport): Promise<Blob> {
   const pdfLib = await import('pdf-lib');
-  const { PDFDocument, StandardFonts, TextAlignment } = pdfLib;
-  const doc = await PDFDocument.load(new Uint8Array(await file.arrayBuffer()), { ignoreEncryption: true });
+  const { StandardFonts, TextAlignment } = pdfLib;
+  const doc = await openPdfDoc(new Uint8Array(await file.arrayBuffer()));
 
   // 1) Native fields ---------------------------------------------------------
   if (native && native.fields.length) {

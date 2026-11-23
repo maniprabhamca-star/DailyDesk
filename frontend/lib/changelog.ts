@@ -24,6 +24,14 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-11-23',
+    kind: 'fixed',
+    title: 'The forms that quietly refused to merge',
+    detail:
+      'Open I-130, I-485, I-765 or N-400 — four of the most-filed immigration forms — and nothing asks you for a password. They are encrypted anyway, with an empty one: a wrapper the publisher adds to mark the file read-only. Our page tools took that wrapper at face value and stopped dead. Rotate, merge, split, delete and reorder pages, page numbers, Bates numbering, watermark, pages-per-sheet and flatten all failed on those files, and the form filler was worse — it reported no fields at all on I-485, a form that has 730 of them, so it looked like a form you simply could not fill rather than a file we could not open. All ten work now, on all four. We already ship the piece that removes the wrapper — it is what Unlock PDF runs — so the fix was to run it first, in your browser, before the file reaches anything else: nothing is uploaded, and the copy on your disk is never touched. Files that genuinely prompt you for a password were never part of this and still go through Unlock PDF first.',
+    href: '/fill-pdf-form',
+  },
+  {
+    date: '2026-11-23',
     kind: 'new',
     title: 'Four more trades, including one where we argue the opposite',
     detail:

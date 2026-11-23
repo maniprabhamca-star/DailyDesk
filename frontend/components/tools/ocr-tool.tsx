@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { openPdfDoc } from '@/lib/pdf-open';
 import { Upload, ScanText, X, Loader2, Cloud, Copy, Check, FileDown, Languages } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -146,8 +147,8 @@ async function imageSize(file: File): Promise<{ w: number; h: number }> {
 
 // Overlay an invisible (opacity 0), selectable text layer onto the ORIGINAL PDF.
 async function buildSearchablePdf(fileBytes: Uint8Array, processed: ProcPage[]): Promise<Blob> {
-  const { PDFDocument, StandardFonts } = await import('pdf-lib');
-  const doc = await PDFDocument.load(fileBytes, { ignoreEncryption: true });
+  const { StandardFonts } = await import('pdf-lib');
+  const doc = await openPdfDoc(fileBytes);
   const helv = await doc.embedFont(StandardFonts.Helvetica);
   const count = doc.getPageCount();
   processed.forEach((pg) => {

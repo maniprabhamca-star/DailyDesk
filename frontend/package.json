@@ -29,7 +29,8 @@
     "llms": "node scripts/gen-llms.mjs",
     "audit:gate": "node scripts/audit-gate.mjs",
     "sync:pdf-worker": "node scripts/sync-pdf-worker.mjs",
-    "verify:sectors": "node scripts/verify-sectors.mjs"
+    "verify:sectors": "node scripts/verify-sectors.mjs",
+    "qa:encrypted": "node scripts/encrypted-pdf-qa.mjs"
   },
   "dependencies": {
     "@jsquash/jpeg": "^1.6.0",

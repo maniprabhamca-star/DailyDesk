@@ -1,5 +1,6 @@
 'use client';
 import { UploadError, wrongTypeError } from '@/components/app/upload-error';
+import { openPdfDoc } from '@/lib/pdf-open';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import Link from 'next/link';
@@ -514,7 +515,7 @@ export function RedactTool() {
     const t0 = performance.now();
     try {
       const { PDFDocument } = await import('pdf-lib');
-      const src = await PDFDocument.load(new Uint8Array(await file.arrayBuffer()), { ignoreEncryption: true });
+      const src = await openPdfDoc(new Uint8Array(await file.arrayBuffer()));
       const out = await PDFDocument.create();
       const redSet = new Set(redactedPages);
       const n = src.getPageCount();

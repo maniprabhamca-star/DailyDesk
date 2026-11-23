@@ -2,6 +2,7 @@
 // non-widget annotations (comments, highlights, links…). Canvas-free so the
 // dev-harness can run the REAL shipping code in Node (gate: flatten-qa.js).
 import { PDFDocument, PDFArray, PDFDict, PDFName } from 'pdf-lib';
+import { openPdfDoc } from './pdf-open';
 
 export type FlattenScan = {
   pages: number;
@@ -15,7 +16,7 @@ export type FlattenScan = {
 export async function scanFlattenables(bytes: Uint8Array): Promise<FlattenScan> {
   let doc: PDFDocument;
   try {
-    doc = await PDFDocument.load(bytes);
+    doc = await openPdfDoc(bytes);
   } catch (e) {
     if (e instanceof Error && /encrypted/i.test(e.message)) {
       return { pages: 0, fields: 0, annotations: 0, encrypted: true };

@@ -1,5 +1,6 @@
 'use client';
 import { useFileSession } from '@/lib/editor-session';
+import { openPdfDoc } from '@/lib/pdf-open';
 import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 
 import { useEffect, useRef, useState } from 'react';
@@ -34,8 +35,7 @@ const norm = (d: number) => ((d % 360) + 360) % 360;
 // single-file flow uses, applied to all pages so the BatchRunner (Pro on-device
 // batch) can turn a whole folder of PDFs at once.
 async function rotateAllPages(f: File, deg: number): Promise<{ blob: Blob; name: string; before: number; after: number }> {
-  const { PDFDocument } = await import('pdf-lib');
-  const doc = await PDFDocument.load(await f.arrayBuffer(), { ignoreEncryption: true, updateMetadata: false });
+  const doc = await openPdfDoc(new Uint8Array(await f.arrayBuffer()), { updateMetadata: false });
   const out = await rewritePdf(f, { type: 'rotate', deltas: Array(doc.getPageCount()).fill(deg) });
   const blob = new Blob([new Uint8Array(out)], { type: 'application/pdf' });
   return { blob, name: `${f.name.replace(/\.pdf$/i, '')}-rotated.pdf`, before: f.size, after: blob.size };

@@ -15,6 +15,7 @@
  * hence the two passes below.
  */
 
+import { openPdfDoc } from './pdf-open';
 export type OutlineNode = {
   /** Stable id for React keys and drag targets; not written to the file. */
   id: string;
@@ -98,9 +99,9 @@ export async function readOutline(doc: {
  * want — a file can arrive with somebody else's bookmarks in it.
  */
 export async function writeOutline(bytes: ArrayBuffer | Uint8Array, tree: OutlineNode[]): Promise<Uint8Array> {
-  const { PDFDocument, PDFName, PDFNumber, PDFHexString, PDFArray, PDFNull } = await import('pdf-lib');
+  const { PDFName, PDFNumber, PDFHexString, PDFArray, PDFNull } = await import('pdf-lib');
 
-  const doc = await PDFDocument.load(bytes as never, { ignoreEncryption: true, updateMetadata: false });
+  const doc = await openPdfDoc(bytes, { updateMetadata: false });
   const ctx = doc.context;
   const pages = doc.getPages();
   const catalog = doc.catalog;
