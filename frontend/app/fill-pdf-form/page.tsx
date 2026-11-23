@@ -38,6 +38,12 @@ export default function FillPdfFormPage() {
       description="Type into any PDF — real form fields or a flat scan — add checkmarks, dates and a signature, then flatten so it can’t be changed. Free, and entirely on your device. Your document never leaves your browser."
       steps={steps}
       faqs={faqs}
+      // Same as Annotate and Redact, and for the same reason: this is an
+      // editing surface with a document on one side and controls on the other,
+      // not a drop-a-file-get-a-file tool. Without it the page sat at 768px, so
+      // a Letter page rendered about half life size with the field names
+      // spilling out of a 260px rail beside it.
+      wide
       afterTool={
         // Half the people who open this tool are holding a form number, not a
         // file: "I need to fill in a W-9". The form libraries fetch the current

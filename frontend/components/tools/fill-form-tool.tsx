@@ -18,7 +18,19 @@ import {
   type FillEl, type FillKind, type NativeField, type NativeValue, type FieldCustom, type FontKey,
 } from '@/lib/fill-pdf';
 
-const MAX_W = 520, MAX_H = 680;
+// How big the page may be drawn.
+//
+// This used to be a flat `MAX_W = 520`, which meant a US Letter page rendered
+// at roughly half life size no matter how much room the screen had — the
+// reader squinted at 6pt type on a 27" monitor while two thirds of the window
+// sat empty. It is measured from the stage now and only these two ceilings
+// remain:
+//   FIT_W — we render the page bitmap at 1600px (see renderPage below), so
+//           drawing it wider than this would upscale and go soft.
+//   MAX_H — a Letter page at this height lands near 850px wide, which is about
+//           100% zoom. Past that the toolbar scrolls out of view and the thing
+//           stops feeling like an editor.
+const FIT_W = 1100, MAX_H = 1100, MIN_W = 300;
 let idc = 0;
 const uid = () => `e${++idc}`;
 const todayStr = () => new Date().toLocaleDateString();
@@ -47,6 +59,36 @@ export function FillFormTool() {
   const [pageIdx, setPageIdx] = useState(0);
   const [pageImg, setPageImg] = useState<{ url: string; w: number; h: number } | null>(null);
 
+  // How much room the document column actually has. Measured rather than
+  // assumed, because the same tool has to work beside a 320px rail on a monitor
+  // and stacked full-width on a phone.
+  const stageWrapRef = useRef<HTMLDivElement>(null);
+  const [stageW, setStageW] = useState(0);
+  useEffect(() => {
+    const el = stageWrapRef.current;
+    if (!el) return;
+    const measure = () => {
+      const node = stageWrapRef.current;
+      if (!node) return;
+      const cs = getComputedStyle(node);
+      // clientWidth includes padding; the stage sits inside it.
+      setStageW(node.clientWidth - parseFloat(cs.paddingLeft || '0') - parseFloat(cs.paddingRight || '0'));
+    };
+    measure();
+    // ResizeObserver is the right instrument — it catches the rail appearing at
+    // `lg` and the pane being dragged, neither of which fires a window resize.
+    // The window listener is NOT redundant: it is the fallback for browsers
+    // without RO, and it also covers the case where the observed box does not
+    // change but the layout around it does.
+    window.addEventListener('resize', measure);
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(measure);
+      ro.observe(el);
+    }
+    return () => { window.removeEventListener('resize', measure); ro?.disconnect(); };
+  }, [file]);
+
   // native AcroForm layer
   const [nativeFields, setNativeFields] = useState<NativeField[]>([]);
   const [nativeValues, setNativeValues] = useState<Record<string, NativeValue>>({});
@@ -71,7 +113,11 @@ export function FillFormTool() {
   const editRef = useRef<HTMLInputElement>(null);
   const drag = useRef<{ id: string; sx: number; sy: number; ox: number; oy: number } | null>(null);
 
-  const disp = pageImg ? (() => { const s = Math.min(MAX_W / pageImg.w, MAX_H / pageImg.h); return { w: pageImg.w * s, h: pageImg.h * s }; })() : null;
+  // Every placed item stores xFrac/yFrac/fontFrac — fractions of the page, not
+  // pixels — so the stage can be any size and the hotspots, stamps and drags
+  // all follow. That is the only reason this can be made responsive safely.
+  const fitW = Math.max(MIN_W, Math.min(stageW || 520, FIT_W));
+  const disp = pageImg ? (() => { const s = Math.min(fitW / pageImg.w, MAX_H / pageImg.h); return { w: pageImg.w * s, h: pageImg.h * s }; })() : null;
   const sel = els.find((e) => e.id === selId) || null;
   const selField = nativeFields.find((f) => f.key === selKey) || null;
   const hasNative = nativeFields.length > 0;
@@ -232,8 +278,11 @@ export function FillFormTool() {
   // pixel box for a native field on the displayed page
   const boxOf = (f: NativeField) => disp ? { left: f.rect.x * disp.w, top: f.rect.y * disp.h, width: f.rect.w * disp.w, height: f.rect.h * disp.h } : { left: 0, top: 0, width: 0, height: 0 };
 
+  // No width cap on this wrapper. The page already sets one (`wide` → 1400px);
+  // a second one nested inside it only made the editor narrower than the page
+  // containing it, for no reason anybody could point at.
   return (
-    <div className="mx-auto max-w-4xl">
+    <div className="mx-auto w-full">
       <input ref={inputRef} type="file" accept="application/pdf,.pdf" aria-label="Choose a PDF file" className="dd-file-input" onChange={(e) => loadFile(e.target.files?.[0])} />
 
       {!file ? (
@@ -295,9 +344,15 @@ export function FillFormTool() {
             </div>
           )}
 
-          <div className="grid gap-4 sm:grid-cols-[1fr_260px]">
+          {/* `minmax(0,1fr)` rather than `1fr`: a bare 1fr track is min-content
+              wide at minimum, so a wide page would shove the rail off screen
+              instead of scrolling inside its own column.
+              The split waits for `lg` now. At the old `sm` (640px) the rail took
+              260px and left the document 380 — narrower than the phone layout
+              it had just replaced. */}
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
             {/* page stage */}
-            <div className="overflow-auto">
+            <div ref={stageWrapRef} className="min-w-0 overflow-auto rounded-xl border bg-muted/20 p-3 sm:p-4">
               {disp && pageImg ? (
                 <div ref={stageRef} className="relative mx-auto shadow-md" style={{ width: disp.w, height: disp.h, cursor: tool === 'select' ? 'default' : 'crosshair' }} onPointerDown={placeAt}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -372,17 +427,28 @@ export function FillFormTool() {
               )}
             </div>
 
-            {/* side controls */}
-            <div className="flex flex-col gap-3">
+            {/* side controls — a panel in its own right, not a column of loose
+                boxes floating beside the document. The two were previously
+                separated by nothing but a 16px gap, so on a light theme the
+                rail read as part of the page it was sitting next to. */}
+            <div className="flex min-w-0 flex-col gap-3 rounded-xl border bg-card p-3 lg:sticky lg:top-4 lg:max-h-[calc(100dvh-2rem)] lg:self-start lg:overflow-y-auto">
               {/* native: field navigator + list */}
               {hasNative && (
                 <>
                   <div className="flex items-center justify-between gap-2 rounded-lg border bg-muted/40 px-2.5 py-2 text-xs">
-                    <div>
+                    {/* `min-w-0` is load-bearing. A flex item defaults to
+                        min-width:auto, so this div refused to shrink below the
+                        width of the field name inside it and `truncate` had
+                        nothing to truncate against — the whole rail stretched
+                        and `topmostSubform[0].Page1[0].Boxes3a-b_ReadOrder[0]
+                        .c1_2[0]` ran straight off the edge of the panel.
+                        The name is also a title, so the full value is still
+                        reachable by hovering. */}
+                    <div className="min-w-0">
                       <span className="text-muted-foreground">Field </span>
                       <b className="tabular-nums">{selField ? selField.order + 1 : '–'}</b>
                       <span className="text-muted-foreground"> / {nativeFields.length}</span>
-                      {selField && <span className="block truncate font-mono text-[10px] text-primary">{selField.name}</span>}
+                      {selField && <span className="block truncate font-mono text-[10px] text-primary" title={selField.name}>{selField.name}</span>}
                     </div>
                     <div className="flex gap-1">
                       <button onClick={() => gotoField((selField ? selField.order : 0) - 1)} className="grid size-6 place-items-center rounded border bg-card hover:border-primary hover:text-primary" title="Previous (Shift+Tab)"><ChevronLeft className="size-3.5" /></button>

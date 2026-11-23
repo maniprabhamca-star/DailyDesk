@@ -25,6 +25,14 @@ export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-11-23',
     kind: 'improved',
+    title: 'The form you are filling in is now the size of a form',
+    detail:
+      'Fill a PDF form drew the page at 520 pixels wide no matter what you opened it on. A US Letter page at that size is about half life size, so you were reading six-point type on a twenty-seven inch monitor with two thirds of the window sitting empty beside it — and the right-hand column of a W-9 was cut off entirely. It is drawn at about 100% now, and it measures the room it actually has rather than assuming, so it fills a wide screen and still fits a phone.\n\nThe panel of controls beside it got wider too, and became a panel: it used to be a column of loose boxes separated from the document by nothing but a gap, which on a light theme made it look like part of the page you were editing. It now stays put while you scroll a long form. Field names no longer run off the edge of it either — the internal name of a form field can be sixty characters of machine-generated path, and one of them was spilling straight out of the side of the app. It trims now, and hovering shows you the whole thing.',
+    href: '/fill-pdf-form',
+  },
+  {
+    date: '2026-11-23',
+    kind: 'improved',
     title: 'Something now checks the forms every week, so you don’t have to',
     detail:
       'Every US form page states three things nobody else bothers to state: the revision or edition the agency publishes, how many fillable fields the file really has, and how many pages — each one measured off the agency’s own PDF, on a date we print. That is the whole reason these pages beat a copy somebody uploaded in 2023. It is also a claim with a shelf life, because five agencies revise on their own schedule and none of them sends us a note.\n\nUntil now the only thing keeping it honest was remembering to check by hand. From this week a job reads all thirty forms straight from the IRS, USCIS, the Department of Labor, the VA and Social Security every Monday morning and compares what they say against what we say. If one has moved, we hear about it the same morning, by name, with the old revision and the new one side by side.\n\nNothing about this changes what you get — the blank form has always come live from the agency on every click, so you have never been handed a stale file. What it changes is how long a wrong number can sit on one of our pages: days rather than however long it took somebody to notice.',
