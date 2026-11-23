@@ -155,7 +155,7 @@ export function PdfViewerTool() {
   function handOff(item: DoMore) {
     // Free tools consume the file (no re-upload). Pro/coming-soon targets don't
     // consume it yet, so we clear the hand-off to avoid a stale carry-over.
-    setHandoff(file && !item.pro ? file : null);
+    setHandoff(file && !item.pro ? file : null, item.href);
     router.push(item.href);
   }
 

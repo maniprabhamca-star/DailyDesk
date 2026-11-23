@@ -24,10 +24,26 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-11-23',
+    kind: 'fixed',
+    title: 'The form button now always opens the form you asked for',
+    detail:
+      'Two ways the “get this form” button could let you down, both reported within the hour, both now fixed. If the page took a while to load — a slow connection, or the first time you had opened the editor — the form was quietly discarded on the way and you arrived at an empty box, having clicked a button that promised you a form. The file was only being held for twelve seconds, counted from before the page had even started moving. It is held for two minutes now, which is long enough for the slowest arrival we could produce.\n\nThe second one was worse, because it looked like it had worked: if you had filled something in earlier, the editor could bring back that older document instead of the form you just asked for. It restores your last file after a moment if nothing else has arrived, and opening a PDF — reading it, drawing it, finding its fields — takes longer than that moment. Handing a form over now holds the restore off, and a form is addressed to the page it was sent to, so it can never be picked up by a different tool you happen to open next.',
+    href: '/us-forms',
+  },
+  {
+    date: '2026-11-23',
     kind: 'feature',
     title: 'One click from a form number to the form, filled in your browser',
     detail:
       'The US forms library has gone from twelve forms to thirty — the returns and information returns people actually handle (1040, 1040-X, 1099-NEC, 1099-MISC, W-2, 941, 940), the immigration set (I-9, I-130, I-485, I-765, N-400, I-864), and the forms behind leave, veterans’ claims and a Social Security card (WH-380-E, WH-380-F, WH-381, 21-526EZ, SS-5). That is 4,206 more fillable fields, every one counted off the file the agency was serving on the day we looked, with the edition or revision they publish today printed beside it. Five agencies mark a version five different ways and we use each one’s own word for it — the IRS revises, USCIS publishes editions, and a superseded USCIS edition is not a formatting quibble, it is rejected.\n\nThe part that changes the work, though, is the button. Each page now fetches the blank form from the agency itself and drops it straight into our fill tool — you click once and you are typing. Before, it was three steps and a trip to a government website. We still host none of these: the file comes live from irs.gov or uscis.gov or dol.gov every time, nothing of it is stored on our side, and what you then type into it never leaves your browser — which matters more here than almost anywhere else, since these are the pages where you write down a Social Security number, every account you hold, or your entire immigration history. Several of the USCIS forms arrive encrypted, which used to break the fill tool silently; they open now.\n\nAnd they are findable: press ⌘K and type “w9”, “i485” or “1099” and the form comes up, hyphen or no hyphen. The Tools menu has a row for both form libraries, the fill tool itself points at them for anyone who arrived without the form, and the pages written for immigration, accounting, tax practice and HR each link the forms that trade works out of.',
+    href: '/us-forms',
+  },
+  {
+    date: '2026-11-23',
+    kind: 'improved',
+    title: 'The blank form, if that is all you came for',
+    detail:
+      'Every US form page now has a quiet second option next to the main button: download the blank form. Same live fetch from the agency, same current revision, it just lands in your downloads folder instead of opening in the editor. Not everybody who needs this year’s W-9 wants to fill it in here, and sending those people off to hunt for the file on irs.gov would be a worse page than one that simply hands it over.\n\nWhile we were at it, the form libraries are reachable from a few more places. The Tools menu has had a row for them; the menu on a phone did not, so on a phone the only route was the footer. Both menus carry it now, along with the bottom of the all-tools page — because someone who has scrolled a hundred and nineteen tools without finding what they want is usually holding a particular document rather than looking for a verb.',
     href: '/us-forms',
   },
   {

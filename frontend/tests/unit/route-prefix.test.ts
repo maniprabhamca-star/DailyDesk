@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { readdirSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { FORM_LIBRARIES } from '@/components/app/form-library-links';
 
 // In production nginx proxies the ENTIRE /api/ prefix to the Express backend on
 // :4000. A Next route handler at app/api/<anything>/route.ts therefore works
@@ -40,5 +41,36 @@ describe('route handler prefixes', () => {
     const handlers = routeHandlersUnder(APP);
     expect(handlers).toContain('app/forms-api/index/route.ts');
     expect(handlers).toContain('app/forms-api/file/[slug]/route.ts');
+  });
+});
+
+describe('form library entry points', () => {
+  it('links only pages that exist', () => {
+    // This list is rendered in the Tools mega-menu, the mobile menu and at the
+    // foot of /tools. The last batch of pages like these shipped linked from
+    // nowhere, which is why they come from one export now — and why a typo in
+    // it must fail here rather than become a 404 in the navigation.
+    for (const l of FORM_LIBRARIES) {
+      const segments = l.href.replace(/^\//, '').split('/');
+      const direct = join(APP, ...segments, 'page.tsx');
+      // /for/accountants is served by app/for/[sector]/page.tsx, so a dynamic
+      // sibling counts as the page too.
+      const parent = join(APP, ...segments.slice(0, -1));
+      const viaDynamic =
+        segments.length > 1 &&
+        existsSync(parent) &&
+        readdirSync(parent).some((d) => d.startsWith('[') && existsSync(join(parent, d, 'page.tsx')));
+
+      expect(
+        existsSync(direct) || viaDynamic,
+        `"${l.label}" points at ${l.href}, which has no page`,
+      ).toBe(true);
+    }
+  });
+
+  it('includes both form libraries', () => {
+    const hrefs = FORM_LIBRARIES.map((l) => l.href);
+    expect(hrefs).toContain('/us-forms');
+    expect(hrefs).toContain('/india-forms');
   });
 });

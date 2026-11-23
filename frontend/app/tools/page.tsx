@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { SiteHeader } from '@/components/app/site-header';
 import { SiteFooter } from '@/components/app/site-footer';
 import { AllToolsDirectory } from '@/components/home/all-tools-directory';
+import { FormLibraryStrip } from '@/components/app/form-library-links';
 import { PageJsonLd } from '@/components/seo/page-jsonld';
 
 export const metadata: Metadata = {
@@ -18,6 +19,14 @@ export default function ToolsPage() {
       <SiteHeader />
       <main className="flex-1">
         <AllToolsDirectory full asPage />
+        {/* Someone who has scrolled a directory of 119 tools and not found what
+            they want is usually holding a specific document, not looking for a
+            verb. These pages start from the document instead. */}
+        <section className="mx-auto max-w-[1400px] px-4 pb-16 sm:px-6 lg:px-10">
+          <div className="rounded-2xl border bg-card p-5 shadow-soft">
+            <FormLibraryStrip />
+          </div>
+        </section>
       </main>
       <SiteFooter />
     </div>

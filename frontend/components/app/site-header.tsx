@@ -9,6 +9,7 @@ import { BrandMark } from '@/components/app/brand-mark';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { catalog, isNewTool, NEW_CHIP_SM } from '@/components/app/catalog';
+import { FormLibraryStrip } from '@/components/app/form-library-links';
 import { HeaderSearch } from '@/components/app/header-search';
 import { HeaderUser } from '@/components/app/header-user';
 import { useAuth } from '@/lib/auth';
@@ -224,29 +225,8 @@ export function SiteHeader({ heroSearchRef }: { heroSearchRef?: React.RefObject<
             {/* Below the tools: the pages that say which tool to reach for.
                 Someone who came here holding a W-9 or an I-485 does not know
                 which of 119 tools is the one — these pages do, and without this
-                strip the only way to find them was a search engine. No counts:
-                the libraries live in their own modules, and importing them to
-                print a number would put every form's prose in the chunk that
-                loads on every page. */}
-            <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-border pt-3">
-              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Looking for a form?</span>
-              {[
-                { label: 'US federal forms', sub: 'IRS, USCIS, SSA, DOL, VA', href: '/us-forms' },
-                { label: 'Indian forms', sub: 'ITR, PAN, Aadhaar, EPFO', href: '/india-forms' },
-                { label: 'Passport photos', sub: '60+ countries, to spec', href: '/passport-photo' },
-                { label: 'By profession', sub: 'what your work needs', href: '/for/accountants' },
-              ].map((l) => (
-                <Link
-                  key={l.href}
-                  href={l.href}
-                  onClick={() => setMenuOpen(false)}
-                  className="group flex flex-col rounded-lg px-2 py-1 transition-colors hover:bg-accent"
-                >
-                  <span className="text-sm font-medium text-foreground/90 group-hover:text-foreground">{l.label}</span>
-                  <span className="text-[11px] text-muted-foreground">{l.sub}</span>
-                </Link>
-              ))}
-            </div>
+                strip the only way to find them was a search engine. */}
+            <FormLibraryStrip onPick={() => setMenuOpen(false)} className="mt-3 border-t border-border pt-3" />
           </div>
         </div>
       )}
@@ -269,6 +249,11 @@ export function SiteHeader({ heroSearchRef }: { heroSearchRef?: React.RefObject<
           <div className="mx-auto flex max-w-[1400px] flex-col gap-0.5 px-4 py-3">
             {[
               { label: 'All tools', href: '/#tools' },
+              // On a phone these had no route at all — the mega-menu is
+              // desktop-only and the footer is a long scroll away.
+              { label: 'US federal forms', href: '/us-forms' },
+              { label: 'Indian forms', href: '/india-forms' },
+              { label: 'Passport photos', href: '/passport-photo' },
               { label: 'Pricing', href: '/pricing' },
               { label: 'Feedback', href: '/feedback' },
               ...(user ? [] : [{ label: 'Log in', href: '/login' }]),

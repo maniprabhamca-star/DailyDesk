@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+import { handoffInFlight } from '@/lib/file-handoff';
+
 // Keep an editor's work alive so you never lose a loaded PDF + your edits.
 // Two layers, both 100% on-device (nothing is ever uploaded):
 //   1. an in-memory module store — instant, survives in-app navigation.
@@ -158,6 +160,11 @@ export function useFileSession(
     const t = setTimeout(() => {
       void loadSessionAsync(key).then((sess) => {
         if (!alive || !sess || fileRef.current) return;
+        // A file handed over from another page is still opening — parsing,
+        // rendering and reading its fields all take longer than this timer.
+        // Restoring now would replace the document the reader actually asked
+        // for with the one they had last time.
+        if (handoffInFlight()) return;
         if (shouldAutoRestore(sess.savedAt)) { void loadRef.current(sess.file); return; }
         // Too old to reload behind the reader's back — offer it instead.
         setRestorable({

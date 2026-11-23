@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Loader2, AlertCircle } from 'lucide-react';
+import { ArrowRight, Loader2, AlertCircle, Download } from 'lucide-react';
 import { setHandoff } from '@/lib/file-handoff';
 
 // One click from "here is what this form is" to "here is the form, open and
@@ -50,7 +50,9 @@ export function GetFormButton({
       }
       const blob = await r.blob();
       const file = new File([blob], `${slug}.pdf`, { type: 'application/pdf' });
-      setHandoff(file);
+      // Addressed to the tool we are about to open, so it cannot be picked
+      // up by anything else if the reader changes their mind on the way.
+      setHandoff(file, toolHref);
       router.push(toolHref);
     } catch (e) {
       setState('error');
@@ -76,6 +78,19 @@ export function GetFormButton({
           </>
         )}
       </button>
+
+      {/* The quieter half of the job. Plenty of people want the current blank
+          form on their disk and have no intention of filling it in here;
+          sending them off to hunt for it on the agency's site would be a worse
+          page than one that simply hands it over. Same live fetch, same bytes
+          — only the disposition differs. A link, not a second filled button. */}
+      <a
+        href={`/forms-api/file/${slug}?download=1`}
+        className="ml-0 mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground sm:ml-4 sm:mt-0"
+      >
+        <Download className="size-3.5" />
+        or download the blank Form {short}
+      </a>
 
       <p className="mt-2 text-xs text-muted-foreground">
         {state === 'error' ? (

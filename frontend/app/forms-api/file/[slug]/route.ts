@@ -37,8 +37,14 @@ const ALLOWED_HOSTS = new Set(['www.irs.gov', 'www.uscis.gov', 'www.ssa.gov', 'w
 // Generic, and deliberately says nothing about the person who clicked.
 const UA = 'Mozilla/5.0 (compatible; DiemDesk form fetch; +https://diemdesk.com)';
 
-export async function GET(_req: Request, ctx: { params: Promise<{ slug: string }> }) {
+export async function GET(req: Request, ctx: { params: Promise<{ slug: string }> }) {
   const { slug } = await ctx.params;
+  // ?download=1 saves the blank form to disk instead of handing it to a tool.
+  // Same bytes, same live fetch — the only difference is the disposition. It
+  // exists because not everybody who wants the current W-9 wants to fill it in
+  // here, and sending those people off to hunt for the file on irs.gov would be
+  // a worse page than one that just gives it to them.
+  const asDownload = new URL(req.url).searchParams.get('download') === '1';
   const form = US_FORMS.find((f) => f.slug === slug);
   if (!form) return NextResponse.json({ error: 'Unknown form.' }, { status: 404 });
 
@@ -84,7 +90,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ slug: string }
       status: 200,
       headers: {
         'content-type': 'application/pdf',
-        'content-disposition': `inline; filename="${form.slug}.pdf"`,
+        'content-disposition': `${asDownload ? 'attachment' : 'inline'}; filename="${form.slug}.pdf"`,
         'content-length': String(body.byteLength),
         // Not ours to cache. Every click goes to the agency, which is the only
         // way "the revision you get is the one they publish today" stays true.
