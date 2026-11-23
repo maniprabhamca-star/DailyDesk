@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Forms Coverage Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --paper:#f6f7f8; --card:#ffffff; --sunk:#eef1f3;
+    --ink:#12161d; --body:#2b333d; --slate:#5c6672; --faint:#8b949f;
+    --rule:#dfe4e8; --rule-strong:#c5cdd4;
+    --verified:#17784a; --verified-bg:#e7f3ec;
+    --warn:#a8560c; --warn-bg:#fdf1e3;
+    --stamp:#2c3b8f; --stamp-bg:#eceff9;
+    --shadow:0 1px 2px rgba(18,22,29,.05), 0 8px 24px -12px rgba(18,22,29,.14);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#0e1117; --card:#161a21; --sunk:#1b2029;
+      --ink:#eef1f4; --body:#c3cbd4; --slate:#8f99a5; --faint:#6b7480;
+      --rule:#262c36; --rule-strong:#39414d;
+      --verified:#4fbe88; --verified-bg:#12291f;
+      --warn:#e0a060; --warn-bg:#2a1f12;
+      --stamp:#8fa2ee; --stamp-bg:#171c2e;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#0e1117; --card:#161a21; --sunk:#1b2029;
+    --ink:#eef1f4; --body:#c3cbd4; --slate:#8f99a5; --faint:#6b7480;
+    --rule:#262c36; --rule-strong:#39414d;
+    --verified:#4fbe88; --verified-bg:#12291f;
+    --warn:#e0a060; --warn-bg:#2a1f12;
+    --stamp:#8fa2ee; --stamp-bg:#171c2e;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:var(--paper); color:var(--body);
+    font-family:Newsreader,ui-serif,Georgia,serif;
+    font-size:17px; line-height:1.65;
+    font-optical-sizing:auto;
+  }
+  .wrap{max-width:1120px; margin:0 auto; padding:0 16px 96px}
+  .measure{max-width:68ch}
+
+  /* ── type ─────────────────────────────────────────────────── */
+  h1,h2,h3,h4,.lbl,.num,th{font-family:Archivo,ui-sans-serif,system-ui,sans-serif}
+  h1{font-size:clamp(2rem,5.5vw,3.1rem); line-height:1.04; letter-spacing:-.022em; font-weight:700; color:var(--ink); margin:0 0 .5rem; text-wrap:balance}
+  h2{font-size:clamp(1.35rem,3vw,1.85rem); line-height:1.15; letter-spacing:-.016em; font-weight:650; color:var(--ink); margin:0 0 .35rem; text-wrap:balance}
+  h3{font-size:1.1rem; line-height:1.3; letter-spacing:-.01em; font-weight:650; color:var(--ink); margin:0 0 .3rem}
+  h4{font-size:.95rem; font-weight:650; color:var(--ink); margin:0 0 .25rem}
+  p{margin:0 0 1rem}
+  a{color:var(--stamp); text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:2px}
+  a:focus-visible,summary:focus-visible{outline:2px solid var(--stamp); outline-offset:3px; border-radius:3px}
+  strong{color:var(--ink); font-weight:500}
+  code,.mono,.num{font-family:"IBM Plex Mono",ui-monospace,monospace}
+  code{font-size:.86em; background:var(--sunk); padding:.12em .36em; border-radius:4px; color:var(--ink)}
+  .lbl{
+    font-family:"IBM Plex Mono",ui-monospace,monospace;
+    font-size:.68rem; font-weight:500; letter-spacing:.14em; text-transform:uppercase; color:var(--faint);
+  }
+  .tnum{font-variant-numeric:tabular-nums}
+
+  /* ── masthead ────────────────────────────────────────────── */
+  header.top{
+    border-bottom:1px solid var(--rule-strong);
+    padding:52px 0 26px; margin-bottom:38px;
+  }
+  .kicker{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:20px}
+  .stamp{
+    font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:.64rem; font-weight:600;
+    letter-spacing:.13em; text-transform:uppercase;
+    border:1.5px solid currentColor; border-radius:3px; padding:4px 8px; line-height:1;
+  }
+  .stamp.ok{color:var(--verified)} .stamp.plan{color:var(--stamp)} .stamp.hold{color:var(--warn)}
+  .dek{font-size:1.18rem; line-height:1.55; color:var(--slate); max-width:62ch; margin:0}
+  .dek em{font-style:italic; color:var(--body)}
+
+  /* ── verdict cards ───────────────────────────────────────── */
+  .verdicts{display:grid; gap:14px; margin:34px 0 52px}
+  @media(min-width:760px){.verdicts{grid-template-columns:1fr 1fr}}
+  .verdict{
+    background:var(--card); border:1px solid var(--rule); border-left:3px solid var(--verified);
+    border-radius:4px; padding:20px 22px; box-shadow:var(--shadow);
+  }
+  .verdict .q{font-size:.92rem; color:var(--slate); font-style:italic; margin:0 0 10px}
+  .verdict .a{font-family:Archivo,sans-serif; font-weight:650; font-size:1.12rem; line-height:1.3; letter-spacing:-.012em; color:var(--ink); margin:0 0 8px}
+  .verdict p:last-child{margin:0; font-size:.95rem; color:var(--slate)}
+
+  /* ── scoreboard ──────────────────────────────────────────── */
+  .board{
+    display:grid; gap:1px; background:var(--rule); border:1px solid var(--rule);
+    border-radius:4px; overflow:hidden; margin:0 0 14px;
+    grid-template-columns:repeat(2,1fr);
+  }
+  @media(min-width:680px){.board{grid-template-columns:repeat(4,1fr)}}
+  .cell{background:var(--card); padding:16px 18px}
+  .cell .n{font-family:Archivo,sans-serif; font-weight:700; font-size:1.95rem; line-height:1; letter-spacing:-.03em; color:var(--ink); font-variant-numeric:tabular-nums}
+  .cell .n small{font-size:.9rem; font-weight:500; color:var(--faint); letter-spacing:0}
+  .cell .k{font-family:"IBM Plex Mono",monospace; font-size:.66rem; letter-spacing:.12em; text-transform:uppercase; color:var(--faint); margin-top:7px}
+
+  /* ── sections ────────────────────────────────────────────── */
+  section{margin:0 0 60px; scroll-margin-top:20px}
+  .sechead{display:flex; gap:14px; align-items:baseline; border-top:1px solid var(--rule-strong); padding-top:16px; margin-bottom:18px}
+  .sechead .no{font-family:"IBM Plex Mono",monospace; font-size:.8rem; font-weight:600; color:var(--faint); padding-top:.3em; flex:none}
+  .sub{font-size:.98rem; color:var(--slate); margin:.2rem 0 0}
+
+  /* ── tables ──────────────────────────────────────────────── */
+  .scroll{overflow-x:auto; border:1px solid var(--rule); border-radius:4px; background:var(--card); box-shadow:var(--shadow)}
+  table{border-collapse:collapse; width:100%; font-size:.93rem; min-width:560px}
+  th{
+    text-align:left; font-size:.68rem; font-weight:600; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--faint); padding:11px 14px; border-bottom:1px solid var(--rule-strong); white-space:nowrap;
+    background:var(--sunk);
+  }
+  td{padding:12px 14px; border-bottom:1px solid var(--rule); vertical-align:top; color:var(--body)}
+  tr:last-child td{border-bottom:0}
+  td.n,th.n{text-align:right; font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; white-space:nowrap}
+  td.ph{font-family:Archivo,sans-serif; font-weight:650; color:var(--ink); white-space:nowrap}
+
+  /* ── matrix diagram ──────────────────────────────────────── */
+  .compare{display:grid; gap:16px}
+  @media(min-width:800px){.compare{grid-template-columns:1fr 1fr}}
+  .panel{background:var(--card); border:1px solid var(--rule); border-radius:4px; padding:18px; box-shadow:var(--shadow)}
+  .panel.bad{border-left:3px solid var(--warn)}
+  .panel.good{border-left:3px solid var(--verified)}
+  .panel h4{margin-bottom:2px}
+  .panel .why{font-size:.88rem; color:var(--slate); margin:0 0 14px}
+  .grid50{display:grid; grid-template-columns:repeat(10,1fr); gap:2px; margin-bottom:12px}
+  .grid50 i{aspect-ratio:1; border-radius:1px; background:var(--rule); display:block}
+  .grid50 i.lit{background:var(--verified)}
+  .grid50 i.dim{background:var(--rule-strong); opacity:.45}
+  .readout{font-family:"IBM Plex Mono",monospace; font-size:.78rem; color:var(--slate); font-variant-numeric:tabular-nums}
+  .readout b{color:var(--ink); font-weight:600}
+
+  /* ── callouts ────────────────────────────────────────────── */
+  .call{border-radius:4px; padding:16px 18px; margin:22px 0; border:1px solid var(--rule)}
+  .call .lbl{margin-bottom:6px; display:block}
+  .call p:last-child{margin:0}
+  .call.trap{background:var(--warn-bg); border-color:color-mix(in srgb,var(--warn) 30%, transparent)}
+  .call.trap .lbl{color:var(--warn)}
+  .call.claim{background:var(--verified-bg); border-color:color-mix(in srgb,var(--verified) 30%, transparent)}
+  .call.claim .lbl{color:var(--verified)}
+  .call.note{background:var(--stamp-bg); border-color:color-mix(in srgb,var(--stamp) 26%, transparent)}
+  .call.note .lbl{color:var(--stamp)}
+  .claim .big{font-family:Archivo,sans-serif; font-weight:650; font-size:1.15rem; line-height:1.4; letter-spacing:-.012em; color:var(--ink); margin:0}
+
+  /* ── phase blocks ────────────────────────────────────────── */
+  .phase{border-top:1px solid var(--rule); padding:22px 0}
+  .phase:first-of-type{border-top:0}
+  .phead{display:flex; flex-wrap:wrap; gap:10px 14px; align-items:baseline; margin-bottom:10px}
+  .phead .pno{
+    font-family:"IBM Plex Mono",monospace; font-size:.68rem; font-weight:600; letter-spacing:.1em;
+    color:var(--card); background:var(--ink); padding:4px 8px; border-radius:3px; line-height:1; flex:none;
+  }
+  .meta{display:flex; flex-wrap:wrap; gap:6px; margin-left:auto}
+  .chip{
+    font-family:"IBM Plex Mono",monospace; font-size:.68rem; font-weight:500; letter-spacing:.04em;
+    background:var(--sunk); color:var(--slate); border:1px solid var(--rule); border-radius:3px; padding:3px 7px; white-space:nowrap;
+  }
+  .chip.g{background:var(--verified-bg); color:var(--verified); border-color:transparent}
+  ul.tick{list-style:none; padding:0; margin:0 0 4px}
+  ul.tick li{position:relative; padding-left:1.35em; margin-bottom:.5rem; font-size:.96rem}
+  ul.tick li::before{content:"—"; position:absolute; left:0; color:var(--faint); font-family:"IBM Plex Mono",monospace}
+  ul.tick li:last-child{margin-bottom:0}
+
+  footer.end{border-top:1px solid var(--rule-strong); margin-top:12px; padding-top:20px; font-size:.86rem; color:var(--faint)}
+  footer.end p{margin:0 0 .4rem}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important; animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <div class="kicker">
+    <span class="stamp plan">Proposal</span>
+    <span class="stamp ok">Sync job live</span>
+    <span class="lbl">DiemDesk · 23 Nov 2026</span>
+  </div>
+  <h1>How far the forms library goes</h1>
+  <p class="dek">Two questions, asked the same afternoon: <em>“every US state has unique forms — do we have all of them? what about grouping all the states and the top countries?”</em> and <em>“should the forms site be new, or can we do it here in DiemDesk?”</em></p>
+</header>
+
+<div class="verdicts">
+  <div class="verdict">
+    <p class="q">New site, or here?</p>
+    <p class="a">Here — as a subdirectory. Not a new domain, not a subdomain.</p>
+    <p>Our product is not a directory of forms. It is the one-click handoff into the fill engine, and that handoff cannot cross a domain.</p>
+  </div>
+  <div class="verdict">
+    <p class="q">All fifty states?</p>
+    <p class="a">Not as a directory. As a matrix: one form, fifty states, one page.</p>
+    <p>A per-state directory is 1,500–4,500 forms and none of them verifiable. The matrix is a tenth the size and answers a sharper question.</p>
+  </div>
+</div>
+
+<!-- ═══════════ 1 ═══════════ -->
+<section id="today">
+  <div class="sechead">
+    <span class="no">01</span>
+    <div>
+      <h2>Where we stand today</h2>
+      <p class="sub">Measured off the code, not remembered. Every number below is read from <code>lib/us-forms.ts</code> and <code>lib/india-forms.ts</code>.</p>
+    </div>
+  </div>
+
+  <div class="board">
+    <div class="cell"><div class="n">30</div><div class="k">US federal forms</div></div>
+    <div class="cell"><div class="n">32</div><div class="k">Indian statutory forms</div></div>
+    <div class="cell"><div class="n">5,686</div><div class="k">Fillable fields counted</div></div>
+    <div class="cell"><div class="n">0 <small>states</small></div><div class="k">State-level coverage</div></div>
+  </div>
+  <p class="readout" style="margin-bottom:24px">5 federal agencies · 5 different version concepts · 177 form pages measured · weekly re-check reports <b>forms=30 drifts=0 unchecked=0</b></p>
+
+  <div class="measure">
+    <p>The US library closed this morning and a job now re-reads all thirty forms from the IRS, USCIS, the Department of Labor, the VA and Social Security every Monday. So the question of what comes next is live, and it arrives with one gap already named: <strong>Georgia’s ST-5 is not there, and neither is the multijurisdiction certificate</strong> that covers most of the states that would otherwise need their own.</p>
+  </div>
+
+  <div class="call claim">
+    <span class="lbl">The claim everything protects</span>
+    <p class="big">The revision is the one the agency publishes today, we counted the fields ourselves, and what you type never leaves your device.</p>
+  </div>
+  <div class="measure">
+    <p>That sentence — not the number of forms — is the product. pdfFiller, US&nbsp;Legal&nbsp;Forms and FormSwift all run libraries many times our size; they host copies that go stale and put a sign-up wall in front of the download. pdf.net badges its W-9 page “Official IRS form” and links irs.gov zero times. None of them can print our sentence, and that is the whole opening.</p>
+  </div>
+</section>
+
+<!-- ═══════════ 2 ═══════════ -->
+<section id="where">
+  <div class="sechead">
+    <span class="no">02</span>
+    <div>
+      <h2>Why it stays inside DiemDesk</h2>
+      <p class="sub">The case for a separate property is real. It loses on three counts, and the first is structural rather than commercial.</p>
+    </div>
+  </div>
+
+  <div class="measure">
+    <h3>1. The handoff cannot cross a domain</h3>
+    <p>A DiemDesk form page is not a directory entry with a download link. It fetches the blank form live from the agency and drops it straight into our fill tool, in the reader’s browser, with nothing uploaded. A separate site would have to either rebuild the editor — the expensive half of this company — or bounce the reader to <code>diemdesk.com</code>. A redirect to an unfamiliar domain, on the page where someone is about to type a Social Security number, is the worst place we could possibly spend trust.</p>
+
+    <h3>2. A new domain starts at zero against entrenched incumbents</h3>
+    <p>diemdesk.com has 176 indexed pages, an <code>llms.txt</code>, Markdown twins and a real sitemap. A new domain has none of it, and form queries are contested by the agencies themselves plus aggregators holding a decade of backlinks. Realistically that is twelve to eighteen months before it ranks for anything — against a subdirectory that inherits everything on day one.</p>
+
+    <h3>3. A second surface costs what we already decided it costs</h3>
+    <p>Second deploy, second CI, second nginx, second robots and sitemap and analytics, second set of legal pages, second QA matrix. This is the same arithmetic that killed the native app: the build estimate was never the problem, the permanent multiplier on every future change was.</p>
+
+    <h3>And a subdomain is the worst of the three</h3>
+    <p>Search engines treat it as semi-separate, so authority transfers less well than a subdirectory — while the operational cost is identical to a separate site. It buys the downside of both.</p>
+  </div>
+
+  <div class="call note">
+    <span class="lbl">Worth doing now either way</span>
+    <p>One <code>/forms</code> hub that owns the whole family — US federal, state matrices, India, passport photos. Today the libraries are siblings with no parent, so there is nothing to point a backlink at that means “DiemDesk does forms.”</p>
+  </div>
+</section>
+
+<!-- ═══════════ 3 ═══════════ -->
+<section id="matrix">
+  <div class="sechead">
+    <span class="no">03</span>
+    <div>
+      <h2>Directory, or matrix</h2>
+      <p class="sub">The reframe that makes state coverage possible at all. Same ambition, a tenth of the surface.</p>
+    </div>
+  </div>
+
+  <div class="measure">
+    <p>Nobody needs “all Georgia forms.” They need <em>one</em> form and don’t know which state publishes which version of it. So the valuable unit is not a per-state folder — it is a <strong>form type read across every state at once</strong>, on a single page.</p>
+  </div>
+
+  <div class="compare" style="margin:24px 0 16px">
+    <div class="panel bad">
+      <h4>Per-state directory</h4>
+      <p class="why">Fifty folders × roughly three agencies × 10–30 forms each.</p>
+      <div class="grid50" aria-hidden="true">
+        <i class="dim"></i><i class="dim"></i><i class="dim"></i><i class="dim"></i><i class="dim"></i><i class="dim"></i><i class="dim"></i><i class="dim"></i><i class="dim"></i><i class="dim"></i>
+        <i class="dim"></i><i class="dim"></i><i class="dim"></i><i class="dim"></i><i class="dim"></i><i class="dim"></i><i class="dim"></i><i class="dim"></i><i class="dim"></i><i class="dim"></i>
+        <i class="dim"></i><i class="dim"></i><i class="dim"></i><i class="dim"></i><i class="dim"></i><i class="dim"></i><i class="dim"></i><i class="dim"></i><i class="dim"></i><i class="dim"></i>
+        <i class="dim"></i><i class="dim"></i><i class="dim"></i><i class="dim"></i><i class="dim"></i><i class="dim"></i><i class="dim"></i><i class="dim"></i><i class="dim"></i><i class="dim"></i>
+        <i class="dim"></i><i class="dim"></i><i class="dim"></i><i class="dim"></i><i class="dim"></i><i class="dim"></i><i class="dim"></i><i class="dim"></i><i class="dim"></i><i class="dim"></i>
+      </div>
+      <p class="readout"><b>1,500–4,500 forms.</b> Every one needs a stable URL, a version-marker concept, a field count and a page count. Unverifiable at that volume — which means we would publish the claim without being able to keep it.</p>
+    </div>
+    <div class="panel good">
+      <h4>Form-type × state matrix</h4>
+      <p class="why">One form type, read across every state, on one page.</p>
+      <div class="grid50" aria-hidden="true">
+        <i class="lit"></i><i class="lit"></i><i class="lit"></i><i class="lit"></i><i class="lit"></i><i class="lit"></i><i class="lit"></i><i class="lit"></i><i class="lit"></i><i class="lit"></i>
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      </div>
+      <p class="readout"><b>~46 jurisdictions on one page</b>, from roughly 15 PDFs to begin with. A strong hub plus thin spokes, instead of two thousand orphans competing with the agencies’ own sites.</p>
+    </div>
+  </div>
+
+  <div class="measure">
+    <p>The exemption-certificate matrix is the clearest case, and it is also where the owner’s missing form sits. The Multistate Tax Commission’s <strong>Uniform Sales &amp; Use Tax Resale Certificate – Multijurisdiction</strong> (last revised 14 October 2022) is accepted by 36 states. Those states are one row. The handful that insist on their own certificate are the remaining cells — and <strong>ST-5 is one of them</strong>. One page then answers a question a real business asks every week: <em>which certificate does my customer in this state actually accept?</em></p>
+  </div>
+
+  <div class="call trap">
+    <span class="lbl">The trap, stated plainly</span>
+    <p><strong>Adding forms faster than we can verify them trades the moat for page count.</strong> Do that at scale and we become a smaller pdfFiller with the same weakness. Breadth has to be a function of verifiability, not of ambition — which is the honest reason the answer to “all fifty states” is no.</p>
+  </div>
+</section>
+
+<!-- ═══════════ 4 ═══════════ -->
+<section id="plan">
+  <div class="sechead">
+    <span class="no">04</span>
+    <div>
+      <h2>The implementation plan</h2>
+      <p class="sub">Four phases, in dependency order. Each is shippable on its own and the next one is optional. The numbering carries real sequence — Phase&nbsp;0 removes defects the later phases would otherwise multiply.</p>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phead">
+      <span class="pno">PHASE 0</span>
+      <h3>Close the gaps in what we already publish</h3>
+      <div class="meta"><span class="chip">0 new forms</span><span class="chip">~7 h</span><span class="chip g">do first</span></div>
+    </div>
+    <div class="measure">
+      <p>Fix-before-scale — the same call already made on the passport specs. None of this adds a page; all of it stops a later phase from multiplying a defect.</p>
+      <ul class="tick">
+        <li><strong><code>verify:india-forms</code>.</strong> The 32 Indian pages assert an authority and an official URL, and nothing checks that those still resolve. A link-reachability verifier on the same contract as <code>verify:us-forms</code>, wired into the same weekly job. <em>They deliberately carry no field or page counts — most Indian filing is online and there is often no fillable PDF to measure, which is correct and should not be “fixed”.</em></li>
+        <li><strong>The <code>/forms</code> hub.</strong> A parent for the family, and the page we build links to.</li>
+        <li><strong>Print the staleness, not just the date.</strong> Each page shows when we checked. Change it to <em>how long ago</em>, and let it go red past a threshold. A claim that rots silently is worse than no claim at all.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phead">
+      <span class="pno">PHASE 1</span>
+      <h3>The state wedge — one matrix, not fifty folders</h3>
+      <div class="meta"><span class="chip">~15 → 78 forms</span><span class="chip">4 matrices max</span></div>
+    </div>
+    <div class="measure">
+      <p>Build matrix one and stop. It closes the gap that prompted this plan and proves the shape before anything larger is committed to.</p>
+    </div>
+    <div class="scroll" style="margin:14px 0">
+      <table>
+        <thead><tr><th>#</th><th>Matrix</th><th class="n">Cells</th><th class="n">PDFs to verify</th><th>Why it earns its place</th></tr></thead>
+        <tbody>
+          <tr><td class="ph">1</td><td><strong>Resale / sales-tax exemption certificates</strong></td><td class="n">~46</td><td class="n">~15 → 46</td><td>MTC multijurisdiction is the header row (36 states); the rest are cells, ST-5 among them. Obvious reader: anyone selling B2B across state lines. The MTC maintains a link hub, so provenance is tractable rather than fifty separate hunts.</td></tr>
+          <tr><td class="ph">2</td><td>State employee withholding certificates</td><td class="n">~42</td><td class="n">~30</td><td>Every new hire needs one and most are revised annually — precisely where a verified “current revision” is worth money. <em>Verify at source first: nine states tax no wage income and several accept the federal W-4 instead, so the real count is well under fifty.</em></td></tr>
+          <tr><td class="ph">3</td><td>New-hire packet, per state</td><td class="n">~42</td><td class="n">0</td><td>Assembled from matrix 2 plus the federal I-9 and W-4 we already carry. No new verification at all — pure composition, and the natural bridge into Phase 3.</td></tr>
+          <tr><td class="ph">4</td><td>State tax power of attorney</td><td class="n">~42</td><td class="n">~40</td><td>The state analogue of Forms 2848 and 8821, which we already have. Lower priority — real but less frequent.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="readout">Matrices 1–3 together: <b>~78 forms to verify</b>, covering <b>~130 state-level cells</b> across 3 hub pages. Compare 1,500–4,500 for the directory shape.</p>
+  </div>
+
+  <div class="phase">
+    <div class="phead">
+      <span class="pno">PHASE 2</span>
+      <h3>More countries — chosen by publishing behaviour, not by GDP</h3>
+      <div class="meta"><span class="chip">~50 forms</span><span class="chip">3 countries</span></div>
+    </div>
+    <div class="measure">
+      <p>Two hard requirements, and a country that fails either one is simply out:</p>
+      <ul class="tick">
+        <li>Forms published centrally by <strong>one</strong> authority at <strong>stable</strong> URLs.</li>
+        <li>The published PDF is actually <strong>fillable</strong>. If it is a scan we would be hosting a picture, and the fill tool has nothing to fill.</li>
+      </ul>
+      <p style="margin-top:1rem">On that test the realistic next pair is <strong>the UK (HMRC)</strong> and <strong>Canada (CRA)</strong> — a single national authority, stable <code>gov.uk</code> and <code>canada.ca</code> URLs, English, and a clear version marker on each form. <strong>Australia (ATO)</strong> third.</p>
+      <p>Explicitly not: anything behind a login or a bot check. The State Department’s DS-11 and DS-82 are already excluded for exactly this reason and they stay excluded — we do not bypass a Cloudflare challenge, on any site, for any purpose.</p>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phead">
+      <span class="pno">PHASE 3</span>
+      <h3>The form finder — the part that is actually ours</h3>
+      <div class="meta"><span class="chip g">the payoff</span><span class="chip">Pro line</span></div>
+    </div>
+    <div class="measure">
+      <p>You say what you are trying to do — <em>“hire someone in Texas”</em>, <em>“sell to a reseller in Georgia”</em>, <em>“change my address with the IRS”</em> — and get the <strong>set</strong> of forms, in order, each one click from being filled on your own device.</p>
+      <p>No competitor can build this, because it needs the verified index <strong>and</strong> the fill engine <strong>and</strong> on-device chaining, and none of them holds all three. It is also the natural paid shape: the directory stays free and is the funnel, while the <strong>packet</strong> is Pro — multi-form, your details entered once and carried across every form in the set, chained through Saved Workflows, which is already built.</p>
+      <p>This is the phase that justifies the content work in 1 and 2. Worth keeping in view from the first data model so nothing forecloses it.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 5 ═══════════ -->
+<section id="achieve">
+  <div class="sechead">
+    <span class="no">05</span>
+    <div>
+      <h2>What we achieve, and how many forms</h2>
+      <p class="sub">Counts are what we would <em>verify</em>, not what we would list. A number we cannot re-check on a Monday is not an asset.</p>
+    </div>
+  </div>
+
+  <div class="scroll" style="margin-bottom:16px">
+    <table>
+      <thead><tr><th>After</th><th class="n">Verified forms</th><th class="n">Form pages</th><th>What becomes true</th></tr></thead>
+      <tbody>
+        <tr><td class="ph">Today</td><td class="n">62</td><td class="n">64</td><td>US federal and India covered. No state coverage at all; ST-5 missing.</td></tr>
+        <tr><td class="ph">Phase 0</td><td class="n">62</td><td class="n">65</td><td>Both libraries re-checked weekly, staleness visible on the page, one hub to link to.</td></tr>
+        <tr><td class="ph">Phase 1 · matrix 1</td><td class="n">~77</td><td class="n">~81</td><td>Every US sales-tax jurisdiction answered on one page. ST-5 closed. The matrix shape proven.</td></tr>
+        <tr><td class="ph">Phase 1 · all</td><td class="n">~140</td><td class="n">~150</td><td>Hiring and selling across state lines both covered end to end.</td></tr>
+        <tr><td class="ph">Phase 2</td><td class="n">~190</td><td class="n">~205</td><td>Four countries, each with a version marker read at source.</td></tr>
+        <tr><td class="ph">Phase 3</td><td class="n">~190</td><td class="n">~215</td><td>A question answered with a <em>set</em> of forms, and the first genuinely defensible paid tier in this category.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="measure">
+    <p>So the destination is roughly <strong>190 forms</strong> — against pdf.net’s 225-page library and pdfFiller’s several thousand. That is deliberate. We are not trying to win on count, and we could not win on count without abandoning the one thing we can say that they cannot. What 190 buys is a library where <em>every single entry</em> carries a revision read off the agency’s own file, a field count we measured, a date, and a weekly re-check — and where nothing we serve has ever been uploaded anywhere.</p>
+  </div>
+
+  <div class="call claim">
+    <span class="lbl">What “done” looks like</span>
+    <p class="big">The only forms library that tells you when it last checked — and the only one where filling the form never sends it anywhere.</p>
+  </div>
+</section>
+
+<!-- ═══════════ 6 ═══════════ -->
+<section id="sync">
+  <div class="sechead">
+    <span class="no">06</span>
+    <div>
+      <h2>Keeping it in sync</h2>
+      <p class="sub">The weekly job is built and proven. These are the four changes it needs before the number of forms has a comma in it.</p>
+    </div>
+  </div>
+
+  <div class="measure">
+    <p><code>.github/workflows/forms-sync.yml</code> runs Mondays at 06:00 UTC, and on any push that touches the form data or the verifier — an edit is when a wrong revision is cheapest to catch. Drift fails the run red; a form that merely could not be read is emailed and left green, because one week of that is noise and the same form twice is a claim nobody has checked. First real run: <strong>forms=30 drifts=0 unchecked=0</strong>, in forty seconds.</p>
+    <p><strong>Daily is the wrong ask.</strong> These forms change a handful of times a year, and the window that matters is “did we notice within days”, not “within hours”. Tiered by how often each issuer actually revises — derived from observed history rather than guessed:</p>
+  </div>
+
+  <div class="scroll" style="margin:16px 0">
+    <table>
+      <thead><tr><th>Tier</th><th>Example</th><th>Cadence</th></tr></thead>
+      <tbody>
+        <tr><td class="ph">A — annual, predictable</td><td>1040 series, state withholding certificates</td><td>Weekly Dec–Feb, monthly otherwise</td></tr>
+        <tr><td class="ph">B — irregular</td><td>USCIS editions, state exemption certificates</td><td>Weekly</td></tr>
+        <tr><td class="ph">C — stable for years</td><td>MTC multijurisdiction certificate</td><td>Monthly</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="measure">
+    <p>The job makes about ninety requests today. At two thousand forms it would be six thousand, across a hundred and fifty hosts, many slow and some hostile. Four changes make that feasible:</p>
+    <ul class="tick">
+      <li><strong>Conditional requests.</strong> Store each form’s <code>ETag</code> and <code>Last-Modified</code>; a <code>304</code> skips the download <em>and</em> the parse. Six thousand heavy requests become six thousand cheap ones with perhaps twenty downloads.</li>
+      <li><strong>Content hash as the primary drift signal.</strong> Hash the PDF bytes. Cheaper and more reliable than parsing a revision marker, and it catches changes the marker misses. Parse the marker only once the hash has moved.</li>
+      <li><strong>Per-issuer marker adapters, not one regex.</strong> Five federal agencies already use five different version concepts — IRS <code>Rev.</code>, IRS annual form year, USCIS edition date, DOL <code>Revised</code>, VA and SSA form date. Fifty states will be closer to fifty. Each issuer gets a small pluggable reader with its own test fixture, so a new state is a data row plus one adapter rather than a change to shared parsing.</li>
+      <li><strong>Shard by issuer</strong> across a job matrix, so one slow state cannot time out the run and we stay polite to every host.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ═══════════ 7 ═══════════ -->
+<section id="compliance">
+  <div class="sechead">
+    <span class="no">07</span>
+    <div>
+      <h2>Compliance — the invariants, not the intentions</h2>
+      <p class="sub">Written down because they are the kind of thing that survives the first batch and quietly lapses on the fourth.</p>
+    </div>
+  </div>
+  <div class="measure">
+    <ul class="tick">
+      <li><strong>We host nothing. Ever.</strong> Every file is fetched live from the issuing agency at click time. This single invariant is simultaneously the privacy story, the staleness answer and the copyright answer — the day we mirror a PDF, all three weaken at once.</li>
+      <li><strong>Copyright.</strong> US federal government works are not subject to copyright (17 U.S.C. §105). <strong>State and foreign forms get no such blanket exemption</strong> — a second, independent reason live fetch is the only defensible model as we move into states and other countries.</li>
+      <li><strong>Non-affiliation.</strong> Every page naming an agency carries the shared notice: not affiliated, why the name is on the page at all, and what we actually are. A test lists every file that must carry it. Non-negotiable for every new page.</li>
+      <li><strong>No legal or tax advice.</strong> Pages say what a form <em>is</em> and who publishes it. They never say whether you should file it, or what to put on it.</li>
+      <li><strong>Not a preparer.</strong> We supply a tool, not a service. Nothing may imply we review, check or submit anything on anyone’s behalf.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ═══════════ 8 ═══════════ -->
+<section id="next">
+  <div class="sechead">
+    <span class="no">08</span>
+    <div>
+      <h2>What I would do next</h2>
+      <p class="sub">And the four things only the owner can decide.</p>
+    </div>
+  </div>
+  <div class="measure">
+    <p><strong>Phase 0, then matrix 1, then stop and look at the numbers.</strong> That is roughly seven hours of defect-clearing followed by about fifteen forms, and it closes the exact gap that started this. Everything after it should be decided on what matrix 1 actually does.</p>
+  </div>
+  <div class="scroll" style="margin-top:18px">
+    <table>
+      <thead><tr><th>#</th><th>Decision</th><th>My recommendation</th></tr></thead>
+      <tbody>
+        <tr><td class="ph">D1</td><td>Which Phase 1 matrix first — exemption certificates or state withholding?</td><td>Exemption certificates. It is where the missing form sits, the MTC gives us a provenance hub, and the reader is unambiguous.</td></tr>
+        <tr><td class="ph">D2</td><td>Build the <code>/forms</code> hub now, or wait for a third library?</td><td>Now, with Phase 0. There is currently nothing to point a backlink at.</td></tr>
+        <tr><td class="ph">D3</td><td>Is the Phase 3 packet the paid line?</td><td>Yes — confirm early, because it decides the data model.</td></tr>
+        <tr><td class="ph">D4</td><td>Four tracked files hardcode the owner’s personal email in a <strong>public</strong> repo. Move them onto a secret, as the new alerter already does?</td><td>Yes. A personal address in a published file is a scraped address.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<footer class="end">
+  <p>Companion to <code>docs/designs/forms-library-expansion.md</code> · tracked in <code>docs/designs/pdfnet-response-tracker.md</code> under item 8.</p>
+  <p>Form counts beyond Phase 0 are estimates and are marked where they need reading at source. Nothing in Phases 1–3 is built; the weekly sync job in §6 is.</p>
+</footer>
+
+</div>
+</body>
+</html>
