@@ -214,7 +214,57 @@ view from the start so the data model doesn't foreclose it.
 
 ---
 
-## 5. Keeping it in sync — the engineering answer
+## 5. How a form reaches you, and how it stays current
+
+Two things on two different clocks. Conflating them makes the rest of this
+section unreadable, so: **the file is always the current one — there is no copy
+on our server that could be anything else.**
+
+### The file — always live, never stored
+
+We host nothing. The moment someone clicks, our server requests the form from
+the **issuing agency** — meaning literally the government body that publishes
+it: `irs.gov`, `uscis.gov`, `dol.gov`, `va.gov`, `ssa.gov` — and passes those
+exact bytes through.
+
+All thirty source URLs are **version-free canonical paths** (`fw9.pdf`,
+`i-485.pdf`, `ss-5.pdf`). The agency overwrites in place when it revises, so
+the address always holds the current edition. No year or edition is baked into
+any of them.
+
+Nothing caches it. Verified on production rather than assumed:
+
+| Layer | State |
+|---|---|
+| Our route | `export const dynamic = 'force-dynamic'` |
+| Our fetch upstream | `cache: 'no-store'` |
+| Response to the reader | `Cache-Control: no-store` |
+| Cloudflare | `cf-cache-status: DYNAMIC`, no `Age`, on repeat requests |
+| The bytes | SHA-256 identical to irs.gov's own file — `2d420cbb4123dcf1`, 140,815 bytes both |
+
+### The caption — a snapshot, and the only thing that can drift
+
+`Rev. March 2024 · 23 fillable fields · 6 pages · checked 23 Nov 2026` is
+something we *measured* and wrote down. It is the claim no competitor makes, and
+the only part of the page with a shelf life.
+
+**The Monday job does not keep the forms current — they are never anything else.
+It keeps our description of them honest.**
+
+| When | The PDF you receive | The caption on our page |
+|---|---|---|
+| Today | Rev. March 2024 — correct | "Rev. March 2024" — correct |
+| IRS publishes Rev. Dec 2026, a Tuesday | **Rev. Dec 2026 — correct, that same second** | still "Rev. March 2024" — **wrong** |
+| Following Monday | Rev. Dec 2026 — correct | corrected |
+
+Worst case: **a wrong caption on a correct document**, for at most six days —
+never an old form in anyone's hands. The job also runs on any push touching the
+form data, and a moved or retired URL is caught separately (the verifier checks
+the agency page is reachable; the button falls back to a direct agency link
+rather than dead-ending). Making those six days visible — *"checked 3 days
+ago"*, going red past a threshold — is the Phase 0 item.
+
+## 5b. Keeping it in sync at scale — the engineering answer
 
 ### What exists today (built, running)
 
@@ -311,3 +361,12 @@ here is precisely why, so it stays that way as the library grows.
   `.github/scripts/notify-failure.mjs` and three other tracked files in a **public**
   repo. The new alerter takes it from the `ALERT_TO` secret instead. Move the old one
   the same way?
+- **D5** — pdfFiller also runs a **business-document template** catalogue (agendas,
+  bills of sale, cover letters, CVs, invoices, budgets). Do we want that? My answer
+  is yes, but **not in the forms library**: those have no issuing authority, no
+  revision and no provenance, so not one line of the machinery in §5 applies to
+  them, and shelving them beside government forms would blur the only thing that
+  makes the forms credible. They belong to **DiemDesk Studio**
+  (`diemdesk-studio-concept.md`), where a template is a design asset and a Pro
+  feature rather than a commodity directory every competitor already has. Pipeline,
+  not now.

@@ -444,11 +444,58 @@
   <div class="sechead">
     <span class="no">06</span>
     <div>
-      <h2>Keeping it in sync</h2>
-      <p class="sub">The weekly job is built and proven. These are the four changes it needs before the number of forms has a comma in it.</p>
+      <h2>How a form reaches you — and how it stays current</h2>
+      <p class="sub">Two different things run on two different clocks, and conflating them is the easiest way to misread everything below.</p>
     </div>
   </div>
 
+  <div class="call claim">
+    <span class="lbl">The short version</span>
+    <p class="big">The file is always the current one. There is no copy on our server that could be anything else.</p>
+  </div>
+
+  <div class="measure">
+    <h3>The file — always live, never stored</h3>
+    <p>We host nothing. The moment you click, our server requests the form from the issuing agency — literally <code>irs.gov</code>, <code>uscis.gov</code>, <code>dol.gov</code>, <code>va.gov</code> or <code>ssa.gov</code> — and passes those exact bytes through. <strong>“The agency” means the government body that issues the form</strong>, not a vendor or a middleman.</p>
+    <p>All thirty source URLs are version-free canonical paths — <code>fw9.pdf</code>, <code>i-485.pdf</code>, <code>ss-5.pdf</code>. The agency overwrites the file in place when it revises, so that address always holds the current edition. No year, no edition number is baked into any of them.</p>
+    <p>And nothing caches it anywhere in the chain. Verified on production, not assumed:</p>
+  </div>
+
+  <div class="scroll" style="margin:16px 0">
+    <table>
+      <thead><tr><th>Layer</th><th>What it does</th><th>Checked</th></tr></thead>
+      <tbody>
+        <tr><td class="ph">Our route</td><td><code>export const dynamic = 'force-dynamic'</code></td><td class="mono" style="color:var(--verified)">in code</td></tr>
+        <tr><td class="ph">Our fetch upstream</td><td><code>cache: 'no-store'</code></td><td class="mono" style="color:var(--verified)">in code</td></tr>
+        <tr><td class="ph">Response to the reader</td><td><code>Cache-Control: no-store</code></td><td class="mono" style="color:var(--verified)">live header</td></tr>
+        <tr><td class="ph">Cloudflare</td><td><code>cf-cache-status: DYNAMIC</code>, no <code>Age</code> header, on repeat requests</td><td class="mono" style="color:var(--verified)">live header</td></tr>
+        <tr><td class="ph">The bytes themselves</td><td>SHA-256 of what we serve vs what irs.gov serves: <code>2d420cbb4123dcf1</code> both, 140,815 bytes both</td><td class="mono" style="color:var(--verified)">identical</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="measure">
+    <h3>The caption — a snapshot, and the only thing that can drift</h3>
+    <p>“Rev. March 2024 · 23 fillable fields · 6 pages · checked 23 Nov 2026” is something we <em>measured</em> and wrote down. That line is the claim no competitor makes, and it is the only part of the page with a shelf life.</p>
+    <p><strong>So the Monday job does not keep the forms current — they are never anything else. It keeps our description of them honest.</strong></p>
+  </div>
+
+  <div class="scroll" style="margin:16px 0">
+    <table>
+      <thead><tr><th>When</th><th>The PDF you receive</th><th>The caption on our page</th></tr></thead>
+      <tbody>
+        <tr><td class="ph">Today</td><td>Rev. March 2024 — correct</td><td>“Rev. March 2024” — correct</td></tr>
+        <tr><td class="ph">IRS publishes Rev. Dec 2026, a Tuesday</td><td><strong>Rev. Dec 2026 — correct, that same second</strong></td><td>still “Rev. March 2024” — <strong>wrong</strong></td></tr>
+        <tr><td class="ph">The following Monday</td><td>Rev. Dec 2026 — correct</td><td>corrected to “Rev. Dec 2026”</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="measure">
+    <p>The worst case is therefore <strong>a wrong caption on a correct document</strong>, for at most six days — never an old form in somebody’s hands. Two things narrow even that: the job also runs on any push touching the form data, and a moved or retired URL is caught separately, because the verifier checks the agency’s own page is still reachable and the button falls back to a direct agency link rather than dead-ending. Making those six days visible — <em>“checked 3 days ago”</em>, going red past a threshold — is the Phase 0 item.</p>
+  </div>
+
+  <h3 style="margin-top:34px">The weekly job itself</h3>
   <div class="measure">
     <p><code>.github/workflows/forms-sync.yml</code> runs Mondays at 06:00 UTC, and on any push that touches the form data or the verifier — an edit is when a wrong revision is cheapest to catch. Drift fails the run red; a form that merely could not be read is emailed and left green, because one week of that is noise and the same form twice is a claim nobody has checked. First real run: <strong>forms=30 drifts=0 unchecked=0</strong>, in forty seconds.</p>
     <p><strong>Daily is the wrong ask.</strong> These forms change a handful of times a year, and the window that matters is “did we notice within days”, not “within hours”. Tiered by how often each issuer actually revises — derived from observed history rather than guessed:</p>
@@ -516,6 +563,7 @@
         <tr><td class="ph">D2</td><td>Build the <code>/forms</code> hub now, or wait for a third library?</td><td>Now, with Phase 0. There is currently nothing to point a backlink at.</td></tr>
         <tr><td class="ph">D3</td><td>Is the Phase 3 packet the paid line?</td><td>Yes — confirm early, because it decides the data model.</td></tr>
         <tr><td class="ph">D4</td><td>Four tracked files hardcode the owner’s personal email in a <strong>public</strong> repo. Move them onto a secret, as the new alerter already does?</td><td>Yes. A personal address in a published file is a scraped address.</td></tr>
+        <tr><td class="ph">D5</td><td>pdfFiller also runs a <strong>business-document template</strong> catalogue — agendas, bills of sale, cover letters, CVs, invoices. Do we want that?</td><td>Yes, but <strong>not here</strong>. Those have no issuing authority, no revision and no provenance, so not one line of the machinery on this page applies to them. Putting them beside government forms would blur the only thing that makes the forms credible. They belong to <strong>DiemDesk Studio</strong> — pipeline them there.</td></tr>
       </tbody>
     </table>
   </div>
