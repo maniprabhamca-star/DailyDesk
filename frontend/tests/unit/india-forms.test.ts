@@ -41,6 +41,15 @@ describe('India forms library', () => {
     const AUTHORITIES = [
       'incometax.gov.in',
       'gst.gov.in',
+      // The EPFO moved. `epfo.gov.in` was launched as its homepage on the
+      // organisation's 73rd Foundation Day (1 Nov 2025, per PIB) and
+      // `epfindia.gov.in` now redirects there — our published https link to the
+      // old host was resetting the connection outright, which is how
+      // verify:india-forms found it. The old host is kept on this list because
+      // the UAN member and employer portals still live under it
+      // (unifiedportal-*.epfindia.gov.in), so it is still an authority host;
+      // what changed is which one we send a reader to first.
+      'epfo.gov.in',
       'epfindia.gov.in',
       'uidai.gov.in',
       'mca.gov.in',

@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { FileText, Hash, Layers, ShieldAlert } from 'lucide-react';
 import { KeywordLanding } from '@/components/app/keyword-landing';
 import { US_FORMS, CHECKED_ON_LABEL, getUsForm, revisionSentence, revisionHeading } from '@/lib/us-forms';
+import { CheckedAgo } from '@/components/forms/checked-ago';
 import { catalog } from '@/components/app/catalog';
 import { ThirdPartyNotice } from '@/components/app/third-party-notice';
 import { GetFormButton } from '@/components/app/get-form-button';
@@ -88,7 +89,8 @@ export default async function Page(props: { params: Promise<{ form: string }> })
             </div>
           </dl>
           <p className="mt-2 text-xs text-muted-foreground">
-            Measured on the file the {f.authority} was serving on {CHECKED_ON_LABEL}, not copied from anywhere.{' '}
+            Measured on the file the {f.authority} was serving, not copied from anywhere.{' '}
+            <CheckedAgo prefix="Checked" />.{' '}
             <a href={f.officialUrl} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">
               Check it on {host}
             </a>

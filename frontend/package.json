@@ -31,7 +31,9 @@
     "sync:pdf-worker": "node scripts/sync-pdf-worker.mjs",
     "verify:sectors": "node scripts/verify-sectors.mjs",
     "verify:us-forms": "node scripts/verify-us-forms.mjs",
-    "qa:encrypted": "node scripts/encrypted-pdf-qa.mjs"
+    "verify:india-forms": "node scripts/verify-india-forms.mjs",
+    "qa:encrypted": "node scripts/encrypted-pdf-qa.mjs",
+    "verify:forms": "npm run verify:us-forms && npm run verify:india-forms"
   },
   "dependencies": {
     "@jsquash/jpeg": "^1.6.0",

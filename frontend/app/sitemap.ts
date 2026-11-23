@@ -91,6 +91,9 @@ const ROUTES: Array<{ path: string; priority: number; changeFrequency: MetadataR
   { path: '/overview', priority: 0.7, changeFrequency: 'monthly' },
   { path: '/why-diemdesk', priority: 0.8, changeFrequency: 'weekly' },
   { path: '/changelog', priority: 0.6, changeFrequency: 'weekly' },
+  // The hub that parents both libraries — higher priority than either, because
+  // it is the page that should rank for the generic "government forms" intent.
+  { path: '/forms', priority: 0.85, changeFrequency: 'monthly' },
   { path: '/india-forms', priority: 0.8, changeFrequency: 'monthly' },
   { path: '/us-forms', priority: 0.8, changeFrequency: 'monthly' },
   { path: '/mcp-server', priority: 0.7, changeFrequency: 'monthly' },

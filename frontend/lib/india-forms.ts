@@ -323,7 +323,7 @@ export const INDIA_FORMS: IndiaForm[] = [
     aka: 'PF final settlement',
     authority: 'Employees\' Provident Fund Organisation (EPFO)',
     officialName: 'the EPFO member portal (UAN)',
-    officialUrl: 'https://www.epfindia.gov.in/',
+    officialUrl: 'https://www.epfo.gov.in/',
     what:
       'The claim to withdraw the full provident fund balance when the account is being closed — typically after leaving employment and not rejoining.',
     who:
@@ -339,7 +339,7 @@ export const INDIA_FORMS: IndiaForm[] = [
     aka: 'pension withdrawal benefit',
     authority: 'Employees\' Provident Fund Organisation (EPFO)',
     officialName: 'the EPFO member portal (UAN)',
-    officialUrl: 'https://www.epfindia.gov.in/',
+    officialUrl: 'https://www.epfo.gov.in/',
     what:
       'The claim relating to the pension portion of your PF — the withdrawal benefit or the scheme certificate, as opposed to the provident fund balance itself.',
     who:
@@ -355,7 +355,7 @@ export const INDIA_FORMS: IndiaForm[] = [
     aka: 'PF partial withdrawal / advance',
     authority: 'Employees\' Provident Fund Organisation (EPFO)',
     officialName: 'the EPFO member portal (UAN)',
-    officialUrl: 'https://www.epfindia.gov.in/',
+    officialUrl: 'https://www.epfo.gov.in/',
     what:
       'The claim for a partial withdrawal from your PF while still employed — for specified purposes such as housing, medical treatment, education or marriage.',
     who:
@@ -371,7 +371,7 @@ export const INDIA_FORMS: IndiaForm[] = [
     aka: 'PF transfer on changing jobs',
     authority: 'Employees\' Provident Fund Organisation (EPFO)',
     officialName: 'the EPFO member portal (UAN)',
-    officialUrl: 'https://www.epfindia.gov.in/',
+    officialUrl: 'https://www.epfo.gov.in/',
     what:
       'The request to transfer a provident fund balance from a previous employer\'s account to the current one, rather than withdrawing it.',
     who:

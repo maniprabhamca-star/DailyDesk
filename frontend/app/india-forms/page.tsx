@@ -112,6 +112,18 @@ export default function IndiaFormsPage() {
             ))}
           </dl>
         </section>
+
+        <p className="mt-10 text-sm text-muted-foreground">
+          Filing in the United States instead?{' '}
+          <Link href="/us-forms" className="font-medium text-primary underline underline-offset-2">
+            US federal forms
+          </Link>{' '}
+          are covered the same way — or start from{' '}
+          <Link href="/forms" className="font-medium text-primary underline underline-offset-2">
+            all our form libraries
+          </Link>
+          .
+        </p>
       </main>
       <SiteFooter />
     </div>

@@ -4,8 +4,9 @@ import { ShieldCheck, ArrowRight } from 'lucide-react';
 import { SiteHeader } from '@/components/app/site-header';
 import { SiteFooter } from '@/components/app/site-footer';
 import { Button } from '@/components/ui/button';
-import { US_FORMS, US_FORM_GROUPS, CHECKED_ON_LABEL } from '@/lib/us-forms';
+import { US_FORMS, US_FORM_GROUPS } from '@/lib/us-forms';
 import { ThirdPartyNotice } from '@/components/app/third-party-notice';
+import { CheckedAgo } from '@/components/forms/checked-ago';
 
 const totalFields = US_FORMS.reduce((n, f) => n + f.fields, 0);
 
@@ -77,7 +78,8 @@ export default function UsFormsPage() {
             </Button>
           </div>
           <p className="mt-3 text-xs text-muted-foreground">
-            Every revision, field count and page count below was measured at the source on {CHECKED_ON_LABEL}.
+            Every revision, field count and page count below was measured at the source.{' '}
+            <CheckedAgo />.
           </p>
         </div>
 
@@ -139,7 +141,11 @@ export default function UsFormsPage() {
           <Link href="/india-forms" className="font-medium text-primary underline underline-offset-2">
             Indian tax, GST and EPF forms
           </Link>{' '}
-          are covered the same way.
+          are covered the same way — or start from{' '}
+          <Link href="/forms" className="font-medium text-primary underline underline-offset-2">
+            all our form libraries
+          </Link>
+          .
         </p>
       </main>
       <SiteFooter />

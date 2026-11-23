@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { US_FORMS, US_FORM_GROUPS, CHECKED_ON, CHECKED_ON_LABEL, getUsForm, revisionSentence, revisionHeading } from '@/lib/us-forms';
+import {
+  US_FORMS,
+  US_FORM_GROUPS,
+  CHECKED_ON,
+  CHECKED_ON_LABEL,
+  daysSinceChecked,
+  checkFreshness,
+  checkedAgoPhrase,
+  getUsForm,
+  revisionSentence,
+  revisionHeading,
+} from '@/lib/us-forms';
 import type { UsForm } from '@/lib/us-forms';
 import { catalog } from '@/components/app/catalog';
 
@@ -200,5 +211,55 @@ describe('US forms library', () => {
     expect(Number.isNaN(back.getTime()), `label "${CHECKED_ON_LABEL}" does not parse`).toBe(false);
     const iso = `${back.getFullYear()}-${String(back.getMonth() + 1).padStart(2, '0')}-${String(back.getDate()).padStart(2, '0')}`;
     expect(iso, `label "${CHECKED_ON_LABEL}" is not the day CHECKED_ON names`).toBe(CHECKED_ON);
+  });
+
+  it('counts the days since the check without drifting around a day boundary', () => {
+    // The same UTC-midnight trap as the label above, in subtraction form: a
+    // bare `YYYY-MM-DD` differenced against a local clock lands an hour either
+    // side of a whole day, so the phrase flickers between "today" and
+    // "yesterday" depending on when you load the page. Both sides are
+    // collapsed to local midnight, which these cases pin down.
+    const [y, m, d] = CHECKED_ON.split('-').map(Number);
+    const at = (plusDays: number, h: number, min = 0) =>
+      daysSinceChecked(new Date(y, m - 1, d + plusDays, h, min));
+
+    expect(daysSinceChecked(new Date(y, m - 1, d, 12)), 'the check day itself is 0').toBe(0);
+    expect(at(0, 0, 1), 'one minute past midnight on the check day is still 0').toBe(0);
+    expect(at(0, 23, 59), 'one minute to midnight on the check day is still 0').toBe(0);
+    expect(at(1, 0, 1), 'the first minute of the next day is 1').toBe(1);
+    expect(at(1, 23, 59), 'the last minute of the next day is still 1').toBe(1);
+    expect(at(30, 9), 'thirty days later').toBe(30);
+
+    // A CHECKED_ON in the future is a data bug the test above already fails
+    // on, but "checked −2 days ago" must never reach a reader even so.
+    expect(at(-5, 12), 'a future check date clamps to 0, never negative').toBe(0);
+  });
+
+  it('calls the check stale on the schedule that actually does the checking', () => {
+    // forms-sync.yml runs Mondays and bumps CHECKED_ON on a clean run, so a
+    // week is normal, a fortnight means a run was missed, and a month means
+    // several were. These boundaries are the contract the forms pages render.
+    expect(checkFreshness(0)).toBe('fresh');
+    expect(checkFreshness(10), 'ten days is still one missed run away').toBe('fresh');
+    expect(checkFreshness(11), 'eleven days means a Monday went by').toBe('ageing');
+    expect(checkFreshness(24)).toBe('ageing');
+    expect(checkFreshness(25), 'three missed runs is not worth a reader trusting').toBe('stale');
+    expect(checkFreshness(400)).toBe('stale');
+  });
+
+  it('phrases the age the way a person would say it', () => {
+    expect(checkedAgoPhrase(0)).toBe('today');
+    expect(checkedAgoPhrase(1)).toBe('yesterday');
+    expect(checkedAgoPhrase(3)).toBe('3 days ago');
+    expect(checkedAgoPhrase(30)).toBe('30 days ago');
+    // Past a month it switches unit: "checked 38 days ago" makes a reader do
+    // arithmetic to learn something the word "weeks" tells them directly.
+    expect(checkedAgoPhrase(35)).toBe('5 weeks ago');
+    expect(checkedAgoPhrase(90)).toBe('3 months ago');
+    // Nothing in any branch may produce a negative or a bare number.
+    for (const n of [0, 1, 2, 7, 10, 11, 24, 25, 30, 31, 60, 62, 180, 365, 1000]) {
+      const p = checkedAgoPhrase(n);
+      expect(p, `day ${n} produced "${p}"`).toMatch(/^(today|yesterday|\d+ (days|weeks|months) ago)$/);
+    }
   });
 });

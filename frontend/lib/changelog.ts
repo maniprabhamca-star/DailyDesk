@@ -24,6 +24,14 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-11-23',
+    kind: 'new',
+    title: 'One place for the forms, and a check date you can actually read',
+    detail:
+      'There are two form libraries here — thirty US federal forms and thirty-two Indian statutory ones — and until today the only way to find out was to already know. There is now a single page at /forms that opens both, says what each one covers, and states the three rules they both follow: we host no copies of any form, we say when we last checked it at the source, and the filling happens on your own machine.\n\nThe check date changed shape too. Every US form page used to say "measured at the source on November 23, 2026", which is true and almost useless — you had to work out for yourself whether that was last week or last spring. It now says "checked 3 days ago", and if it ever starts saying "checked 6 weeks ago — due a re-check" in amber, that is deliberate. A date is only worth printing if we are willing to show it going off.\n\nThe weekly check now covers the Indian library as well. Those pages make no claim about a revision, because most of those forms are filed on a portal and there is no PDF revision to claim — so what gets verified is that every authority link still goes somewhere. Which is how we found that the EPFO has moved house: our four EPF pages were still pointing at epfindia.gov.in, and the Employees\' Provident Fund Organisation launched epfo.gov.in as its home over a year ago. Those four links now go to the right place.',
+    href: '/forms',
+  },
+  {
+    date: '2026-11-23',
     kind: 'improved',
     title: 'The form you are filling in is now the size of a form',
     detail:

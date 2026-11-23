@@ -1,18 +1,29 @@
 name: Forms sync
 
-# Re-check every US form page against the agency that issues it.
+# Re-check every form page against the authority that issues it — both
+# libraries, US federal and Indian statutory.
 #
 # ── Why this exists ──────────────────────────────────────────────────────────
-# Our form pages state three things nobody else states: the revision or edition
-# the agency publishes, how many fillable fields the file actually has, and how
-# many pages — each measured off the agency's own PDF on a named date. That
-# claim is the entire reason these pages beat a hosted copy. It is also a claim
-# with a shelf life: five federal agencies revise on their own schedule and none
-# of them tells us.
+# Our US form pages state three things nobody else states: the revision or
+# edition the agency publishes, how many fillable fields the file actually has,
+# and how many pages — each measured off the agency's own PDF on a named date.
+# That claim is the entire reason these pages beat a hosted copy. It is also a
+# claim with a shelf life: five federal agencies revise on their own schedule
+# and none of them tells us.
 #
-# Until now the only thing keeping it true was somebody remembering to run
-# `npm run verify:us-forms` by hand. At thirty forms that is already a bad bet.
-# This is the job that makes the claim maintainable instead of aspirational.
+# Until this job existed the only thing keeping it true was somebody
+# remembering to run the verifier by hand. At thirty forms that is already a
+# bad bet.
+#
+# ── The two libraries are checked DIFFERENTLY, on purpose ───────────────────
+# A US form is a PDF you download and fill in, so verify:us-forms reads the
+# version marker off the document, the field count and the page count off the
+# real file. An Indian statutory form is mostly a web filing — ITRs are
+# e-filed, EPF claims go through the UAN portal — so lib/india-forms.ts states
+# no version, no field count and no page count, because there is nothing there
+# to measure. verify:india-forms therefore checks the one claim those pages do
+# make: that this is still where the authority publishes it. Links, not markers.
+# Do not "fix" that asymmetry by inventing data for the Indian set.
 #
 # ── Why it is NOT part of QA ─────────────────────────────────────────────────
 # A drifted form is not a broken build. Nothing is down, nothing regressed, and
@@ -40,32 +51,41 @@ on:
         description: 'Send a test drift email, to prove the alerter is wired up'
         type: boolean
         default: false
-  # Also on any change to the data or the verifier itself: an edit to
+  # Also on any change to the data or the verifiers themselves: an edit to
   # us-forms.ts is exactly when a wrong revision is cheapest to catch.
   push:
     branches: [main]
     paths:
       - 'frontend/lib/us-forms.ts'
+      - 'frontend/lib/india-forms.ts'
       - 'frontend/scripts/verify-us-forms.mjs'
+      - 'frontend/scripts/verify-india-forms.mjs'
       - '.github/workflows/forms-sync.yml'
 
 defaults:
   run:
     working-directory: frontend
 
-# A second run would re-fetch the same ninety files from the same five
-# government sites for no reason.
+# Needed only by the "stamp the check date" step below, which commits a one-line
+# change to lib/us-forms.ts on a fully clean scheduled run. Nothing else here
+# writes to the repository.
+permissions:
+  contents: write
+
+# A second run would re-fetch the same ninety files from the same government
+# sites for no reason.
 concurrency:
   group: forms-sync
   cancel-in-progress: true
 
 jobs:
   verify:
-    name: Check every form against its agency
+    name: Check every form against its authority
     runs-on: ubuntu-latest
     # Generous: it fetches thirty PDFs plus thirty agency pages, some of them
-    # large, from servers we do not control.
-    timeout-minutes: 20
+    # large, from servers we do not control, and then six Indian portals that
+    # are routinely slow.
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -81,40 +101,68 @@ jobs:
       # failure. The outcome is captured and the alert below is what acts on
       # it, so nothing is being hidden — unlike an advisory QA job, whose
       # failure genuinely does disappear.
+      #
+      # Both verifiers run, and the second runs even if the first exits
+      # non-zero: a drifted US form must not stop us finding out that an Indian
+      # portal has moved. `|| true` on the first, and the real verdict comes
+      # from the summary lines, not the exit codes.
       - name: Read every form at source
         id: verify
         continue-on-error: true
         run: |
           set -o pipefail
-          npm run verify:us-forms 2>&1 | tee ../forms-report.txt
+          ok=0
+          {
+            echo "── US federal forms ─────────────────────────────────────────"
+          } | tee ../forms-report.txt
+          npm run --silent verify:us-forms 2>&1 | tee -a ../forms-report.txt || ok=1
+          {
+            echo ""
+            echo "── Indian statutory forms ───────────────────────────────────"
+          } | tee -a ../forms-report.txt
+          npm run --silent verify:india-forms 2>&1 | tee -a ../forms-report.txt || ok=1
+          exit $ok
 
-      # The verifier exits non-zero for drift AND for a form it could not read,
-      # which is right for a human running it by hand but too blunt here: the
-      # two need different emails and only one of them deserves a red run.
+      # The verifiers exit non-zero for drift AND for a form they could not
+      # read, which is right for a human running one by hand but too blunt
+      # here: the two need different emails and only one of them deserves a red
+      # run.
       #
-      # So the exit code is ignored and the SUMMARY LINE is read instead. A
-      # drifted form means a page of ours states a revision that no longer
-      # exists — news, and worth failing the run for. A form that could not be
-      # fetched is usually a slow agency; it still earns an email, because a
+      # So the exit codes are ignored and the SUMMARY LINES are read instead —
+      # both of them, summed, because two libraries now report separately and
+      # taking only the last line would have silently dropped every US drift.
+      #
+      # A drifted form means a page of ours states a version that no longer
+      # exists: news, and worth failing the run for. A form that could not be
+      # fetched is usually a slow authority; it still earns an email, because a
       # form nobody verified for a week is a claim nobody has checked, but it
-      # is not a failure and must not read like one.
+      # is not a failure and must not read like one. `blocked=` is counted by
+      # neither — see the note in verify-india-forms.mjs.
       - name: Decide whether anybody needs telling
         id: triage
         if: always()
         run: |
-          summary="$(grep -E '^forms=' ../forms-report.txt | tail -1 || true)"
-          drifts="$(echo "$summary" | sed -n 's/.*drifts=\([0-9]*\).*/\1/p')"
-          unchecked="$(echo "$summary" | sed -n 's/.*unchecked=\([0-9]*\).*/\1/p')"
-          echo "summary: ${summary:-(none)}"
-          # A missing summary means the verifier itself fell over, which is
-          # also worth an email — treat it as something to report.
-          if [ -z "$summary" ]; then tell=yes; drifted=yes
-          elif [ "${drifts:-0}" != "0" ]; then tell=yes; drifted=yes
-          elif [ "${unchecked:-0}" != "0" ]; then tell=yes; drifted=no
-          else tell=no; drifted=no
+          summaries="$(grep -E '^forms=' ../forms-report.txt || true)"
+          echo "summary lines:"
+          echo "${summaries:-(none)}"
+          count="$(echo "$summaries" | grep -c '^forms=' || true)"
+          sum_of() {
+            echo "$summaries" | sed -n "s/.*$1=\([0-9]*\).*/\1/p" | awk '{t+=$1} END {print t+0}'
+          }
+          drifts="$(sum_of drifts)"
+          unchecked="$(sum_of unchecked)"
+          echo "drifts=$drifts unchecked=$unchecked across $count libraries"
+          # Two libraries are checked, so two summary lines are expected. Fewer
+          # means a verifier fell over before printing one, which is also worth
+          # an email — treat it as something to report.
+          if [ "${count:-0}" -lt 2 ]; then tell=yes; drifted=yes; clean=no
+          elif [ "${drifts:-0}" != "0" ]; then tell=yes; drifted=yes; clean=no
+          elif [ "${unchecked:-0}" != "0" ]; then tell=yes; drifted=no; clean=no
+          else tell=no; drifted=no; clean=yes
           fi
           echo "tell=$tell" >> "$GITHUB_OUTPUT"
           echo "drifted=$drifted" >> "$GITHUB_OUTPUT"
+          echo "clean=$clean" >> "$GITHUB_OUTPUT"
 
       - name: Keep the report
         if: always()
@@ -123,6 +171,54 @@ jobs:
           name: forms-report
           path: forms-report.txt
           retention-days: 90
+
+      # ── Stamp the check date ────────────────────────────────────────────────
+      # The forms pages say "checked 3 days ago", computed from CHECKED_ON in
+      # lib/us-forms.ts. Without this step that phrase would be a lie within a
+      # fortnight: the job verified everything on Monday, but CHECKED_ON only
+      # ever moved when a human edited the file, so the site would claim five
+      # weeks of staleness after five clean automated runs.
+      #
+      # This is not a fix being auto-applied — it changes no claim and no
+      # behaviour. It records the date on which the claims already in the file
+      # were re-confirmed at source, which is exactly what CHECKED_ON means.
+      # The run only reaches here when every version marker, field count, page
+      # count and authority link came back matching.
+      #
+      # It pushes to main. Nothing deploys on a push to main (deploys are a
+      # manual ssh + pm2 sequence), so this cannot reach production on its own.
+      # Guards: clean run only, scheduled or manual only, never on a test
+      # alert, and it does nothing if the date is already today.
+      - name: Stamp today as the date everything was re-confirmed
+        if: ${{ steps.triage.outputs.clean == 'yes' && github.event_name != 'push' && !inputs.test_alert }}
+        run: |
+          today="$(date -u +%F)"
+          current="$(sed -n "s/^export const CHECKED_ON = '\(.*\)';$/\1/p" lib/us-forms.ts)"
+          echo "CHECKED_ON is '$current', today is '$today'"
+          if [ -z "$current" ]; then
+            echo "::warning::Could not read CHECKED_ON out of lib/us-forms.ts — leaving it alone."
+            exit 0
+          fi
+          if [ "$current" = "$today" ]; then
+            echo "Already stamped today. Nothing to do."
+            exit 0
+          fi
+          sed -i "s/^export const CHECKED_ON = '.*';$/export const CHECKED_ON = '$today';/" lib/us-forms.ts
+          git -C .. config user.name 'diemdesk-forms-sync[bot]'
+          git -C .. config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -C .. add frontend/lib/us-forms.ts
+          # Separate -m flags, not one string with indented continuation lines:
+          # a here-doc or an indented multi-line -m puts the YAML's own
+          # whitespace into the commit body.
+          git -C .. commit \
+            -m "chore(forms): re-confirmed every form at source on $today" \
+            -m "The weekly forms-sync run read every US federal form at its agency and every Indian authority link, and found no drift: each version marker, field count and page count still matches what lib/us-forms.ts states. CHECKED_ON moved to today so the site's \"checked N days ago\" stays true." \
+            -m "Automated by .github/workflows/forms-sync.yml. Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          # main may have moved while ninety government files were being
+          # fetched. Rebase rather than force anything — this commit touches
+          # one line and conflicts with nothing it did not write.
+          git -C .. pull --rebase --autostash origin main
+          git -C .. push origin HEAD:main
 
       # Tell somebody. A result nobody receives is a result nobody has — the
       # same lesson the nightly QA alerter was built on, after a CRITICAL
@@ -154,10 +250,10 @@ jobs:
             node notify-form-drift.mjs
 
       # The run's own conclusion still reflects reality, so the Actions list is
-      # not quietly green while a page states a revision that no longer exists.
+      # not quietly green while a page states a version that no longer exists.
       # This is last on purpose: the email goes out even if this fails.
       - name: Fail the run if a form drifted
         if: ${{ steps.triage.outputs.drifted == 'yes' && !inputs.test_alert }}
         run: |
-          echo "A form page no longer matches its agency — see the report artifact."
+          echo "A form page no longer matches its authority — see the report artifact."
           exit 1

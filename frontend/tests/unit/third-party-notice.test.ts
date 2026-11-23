@@ -25,6 +25,7 @@ const MUST_CARRY_NOTICE = [
   'app/bank-statement-converter/page.tsx',
   'app/bank-statement-converter/[bank]/page.tsx',
   // forms libraries — name the IRS, USCIS and the Indian tax authorities
+  'app/forms/page.tsx',
   'app/us-forms/page.tsx',
   'app/us-forms/[form]/page.tsx',
   'app/india-forms/page.tsx',

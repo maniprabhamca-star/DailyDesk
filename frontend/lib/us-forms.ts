@@ -39,6 +39,57 @@ export const CHECKED_ON_LABEL = (() => {
   return new Date(y, m - 1, d).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 })();
 
+/** Whole days between CHECKED_ON and `now`.
+ *
+ *  Both sides are collapsed to local midnight before subtracting, for the same
+ *  reason CHECKED_ON_LABEL is built from the parts: a bare `YYYY-MM-DD` parses
+ *  as UTC midnight, and differencing that against a local clock puts the answer
+ *  an hour either side of a day boundary. A freshness claim that flickers
+ *  between "today" and "1 day ago" depending on the hour is worse than a date.
+ *
+ *  Negative values are clamped to 0 — a CHECKED_ON in the future is a data bug
+ *  that tests/unit/us-forms.test.ts already fails on, and "checked −2 days ago"
+ *  must never reach a reader. */
+export function daysSinceChecked(now: Date = new Date()): number {
+  const [y, m, d] = CHECKED_ON.split('-').map(Number);
+  const then = new Date(y, m - 1, d).getTime();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  return Math.max(0, Math.round((today - then) / 86_400_000));
+}
+
+/** How much to trust the check, as the reader should read it.
+ *
+ *  The thresholds track the job that actually does the checking:
+ *  .github/workflows/forms-sync.yml runs every Monday and, on a fully clean
+ *  run, bumps CHECKED_ON itself. So in normal operation this is never more
+ *  than about a week.
+ *
+ *    fresh   ≤ 10 days — the weekly run happened
+ *    ageing  11–24      — at least one run was missed, or a drift is unresolved
+ *    stale   ≥ 25       — three runs missed; the claim should not be trusted
+ *
+ *  'ageing' and 'stale' are shown to the reader on purpose. The whole argument
+ *  of these pages is that we state a date instead of wearing a badge, and a
+ *  date is only worth stating if we are willing to say when it has gone off. */
+export type CheckFreshness = 'fresh' | 'ageing' | 'stale';
+export function checkFreshness(days: number): CheckFreshness {
+  if (days <= 10) return 'fresh';
+  if (days <= 24) return 'ageing';
+  return 'stale';
+}
+
+/** "today" · "yesterday" · "3 days ago" · "5 weeks ago". Weeks past a month,
+ *  because "checked 38 days ago" makes a reader do arithmetic to learn nothing. */
+export function checkedAgoPhrase(days: number): string {
+  if (days <= 0) return 'today';
+  if (days === 1) return 'yesterday';
+  if (days < 31) return `${days} days ago`;
+  const weeks = Math.round(days / 7);
+  if (weeks < 9) return `${weeks} weeks ago`;
+  const months = Math.round(days / 30);
+  return `${months} months ago`;
+}
+
 export type UsForm = {
   slug: string;
   /** Full name as people write it: "Form W-9". */
