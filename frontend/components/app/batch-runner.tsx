@@ -4,7 +4,7 @@ import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { X, Loader2, Download, Check, Sparkles, Package, Image as ImageIcon, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { usePlan, FREE_MAX_BATCH } from '@/lib/plan';
+import { usePlan, FREE_MAX_BATCH, isPaid} from '@/lib/plan';
 import { downloadBlob } from '@/lib/download';
 import { trackProUse } from '@/lib/track-pro';
 
@@ -35,7 +35,7 @@ export function BatchRunner({ files, process, controls, actionLabel = 'Process a
 }) {
   const plan = usePlan();
   const RowIcon = fileIcon ?? ImageIcon;
-  const isPro = plan === 'pro'; // owner cookie / localhost / Pro email resolve to 'pro'
+  const isPro = isPaid(plan); // any paid tier; owner bypass resolves to 'business'
   const gated = !isPro && files.length > FREE_MAX_BATCH;
   const [results, setResults] = useState<Res[]>(() => files.map((f) => ({ name: f.name, status: 'queued' as const })));
   const [running, setRunning] = useState(false);

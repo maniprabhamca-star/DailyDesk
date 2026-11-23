@@ -22,6 +22,7 @@ const { isCanaryReq } = require('../utils/canary');
 const { trackEvent } = require('../utils/trackEvent');
 const budget = require('../utils/aiBudget');
 const db = require('../db');
+const { isPaidPlan } = require('../utils/entitlement');
 
 const router = express.Router();
 
@@ -64,7 +65,7 @@ async function preflight(req, res, { weight = 1, proMessage } = {}) {
   if (!hasKey()) { res.status(503).json({ error: 'coming-soon', message: 'AI tools are coming soon.' }); return null; }
   const who = await whoIs(req);
   if (!AI_ENABLED && !who.isOwner) { res.status(503).json({ error: 'coming-soon', message: 'AI tools are coming soon.' }); return null; }
-  const isPro = who.plan === 'pro' || who.isOwner;
+  const isPro = isPaidPlan(who.plan) || who.isOwner;
   if (!isPro) { res.status(402).json({ error: 'pro-required', message: proMessage || 'This is a Pro feature.' }); return null; }
   const capKey = who.userId || clientKey(req);
   const cap = await budget.check(capKey, weight);

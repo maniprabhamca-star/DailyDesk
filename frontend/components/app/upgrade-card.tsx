@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Crown, X } from 'lucide-react';
-import { usePlan } from '@/lib/plan';
+import { usePlan, isPaid} from '@/lib/plan';
 import { PRICING } from '@/lib/pricing';
 import { PRO_UPSELL_ENABLED } from '@/lib/flags';
 
@@ -18,13 +18,13 @@ export function UpgradeCard() {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    if (!PRO_UPSELL_ENABLED || plan !== 'free') return;
+    if (!PRO_UPSELL_ENABLED || isPaid(plan)) return;
     if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem(DISMISS_KEY)) return;
     const t = setTimeout(() => setShow(true), 6000);
     return () => clearTimeout(t);
   }, [plan]);
 
-  if (!PRO_UPSELL_ENABLED || plan !== 'free' || !show) return null;
+  if (!PRO_UPSELL_ENABLED || isPaid(plan) || !show) return null;
 
   const dismiss = () => {
     setShow(false);

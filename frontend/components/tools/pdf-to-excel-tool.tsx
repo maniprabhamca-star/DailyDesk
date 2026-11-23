@@ -12,7 +12,7 @@ import { extractTables, type Table } from '@/lib/pdf-tables';
 import { buildXlsx, toCsv, coerce, type Sheet } from '@/lib/xlsx';
 import { useFileHandoff } from '@/lib/file-handoff';
 import { aiPost, AI_FALLBACK_MSG } from '@/lib/ai-doc';
-import { usePlan } from '@/lib/plan';
+import { usePlan, isPaid} from '@/lib/plan';
 import { useRouter } from 'next/navigation';
 
 type Fmt = 'xlsx' | 'csv';
@@ -98,7 +98,7 @@ export function PdfToExcelTool() {
     const tbl = tables[active];
     if (!tbl || aiBusy) return;
     // Free users get the pricing page, not a dead error (same as Redact's presets).
-    if (plan !== 'pro') { router.push('/pricing'); return; }
+    if (!isPaid(plan)) { router.push('/pricing'); return; }
     setAiBusy(true); setAiMsg(null);
     const r = await aiPost<{ rows: string[][] }>('/api/ai/table-cleanup', { rows: tbl.rows });
     if (r.ok && r.data?.rows?.length) {

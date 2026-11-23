@@ -12,6 +12,7 @@ const { makeStore, redisDown } = require('../utils/rateLimitStore');
 const { isCanaryReq } = require('../utils/canary');
 const { trackEvent } = require('../utils/trackEvent');
 const db = require('../db');
+const { isPaidPlan } = require('../utils/entitlement');
 
 const router = express.Router();
 
@@ -59,7 +60,7 @@ async function requirePro(req, res, next) {
   try {
     const { rows } = await db.query('SELECT plan, email FROM users WHERE id = $1', [req.user.userId]);
     const email = rows[0] ? String(rows[0].email || '').toLowerCase() : '';
-    if (rows[0] && (rows[0].plan === 'pro' || OWNER_EMAILS.includes(email))) { req._email = email; return next(); }
+    if (rows[0] && (isPaidPlan(rows[0].plan) || OWNER_EMAILS.includes(email))) { req._email = email; return next(); }
     return res.status(402).json({ error: 'pro-required', message: 'Link in Bio is a Pro feature.' });
   } catch (e) { console.error('bio pro check:', e.message); return res.status(500).json({ error: 'server' }); }
 }

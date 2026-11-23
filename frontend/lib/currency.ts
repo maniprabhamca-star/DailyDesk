@@ -92,3 +92,47 @@ export const STATEMENT_PRICE: Record<Currency, StatementPrice> = {
   USD: { freePages: 5, packPages: 20, pack: 4.99, proMonthly: 19, proPages: 300 },
   INR: { freePages: 5, packPages: 20, pack: 399, proMonthly: 1499, proPages: 300 },
 };
+
+// ── Business ────────────────────────────────────────────────────────────────
+// The tier is not a new price. We were already publishing TWO paid products set
+// by two decisions months apart — Pro at $5.98 and Statements Pro at $19 — and
+// a bookkeeper who converts statements for a dozen clients AND wants batch and
+// Edit PDF had to buy BOTH: $24.98, two renewal dates, two cancel buttons. There
+// was no plan that sold her what she does for a living.
+//
+// So Statements Pro BECOMES Business and absorbs all of Pro, at the same $19.
+// No published price goes up, every buyer gets more, and the two-subscription
+// problem disappears without a price to defend. STATEMENT_PRICE.proMonthly is
+// kept in step below and asserted by tests/unit/pricing-tiers.test.ts.
+//
+// ₹1,499 is NOT a conversion of $19 (that would be ~₹1,690). It is the figure in
+// the statement-converter spec and it is already on the live pricing page —
+// pricing is a product decision, as the note at the top of this section says.
+//
+// Single user at launch, deliberately. Seats need an organisation model,
+// invites, member management and Stripe quantity billing; that is weeks of work
+// for a tier with no customers yet. A Firm tier arrives when somebody asks for
+// a second seat. Full reasoning: docs/designs/business-tier-pricing.html
+export const BUSINESS_PRICE: Record<Currency, PlanPrice> = {
+  USD: { monthly: 19, annual: 190, annualPerMonth: 15.83 },
+  INR: { monthly: 1499, annual: 14999, annualPerMonth: 1250 },
+};
+
+/** Statement pages included per month, by tier. Free and Business are the two
+ *  numbers already published; Pro's 20 is the "existing Pro subscribers get N a
+ *  month included" line on /pricing. Read this rather than hard-coding a page
+ *  count anywhere — the quota endpoint and the pricing page must agree. */
+export const STATEMENT_PAGES: Record<'free' | 'pro' | 'business', number> = {
+  free: 5,
+  pro: 20,
+  business: 300,
+};
+
+/** Monthly AI actions by tier. Pro's 50 is `AI_USER_MONTHLY_MAX` in the backend;
+ *  Business gets 200, which at ~$0.02 an action is ~$4 against $19 of revenue —
+ *  inside the rule that blended variable cost stays under 40–50% of price. */
+export const AI_ACTIONS: Record<'free' | 'pro' | 'business', number> = {
+  free: 0,
+  pro: 50,
+  business: 200,
+};

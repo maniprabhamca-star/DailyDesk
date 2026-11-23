@@ -10,7 +10,7 @@ import { SiteFooter } from '@/components/app/site-footer';
 import { Button } from '@/components/ui/button';
 import { ProCheckout } from '@/components/app/pro-checkout';
 import { useAuth } from '@/lib/auth';
-import { usePlan } from '@/lib/plan';
+import { usePlan, isPaid} from '@/lib/plan';
 import { SubscriptionManager } from '@/components/app/subscription-manager';
 import { AccountData, SyncedTools } from '@/components/app/account-data';
 import { McpConnect } from '@/components/app/mcp-connect';
@@ -70,7 +70,7 @@ export default function AccountPage() {
     );
   }
 
-  const isPro = plan === 'pro';
+  const isPro = isPaid(plan); // any paid tier, not Pro-the-name
   const initial = user.name?.trim()?.[0]?.toUpperCase() || 'U';
 
   async function openPortal() {

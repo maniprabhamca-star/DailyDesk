@@ -7,7 +7,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { Search, CornerDownLeft, Sun, Moon, LayoutGrid, Tag, Wand2, ShieldCheck, Sparkles, Wrench, FileText, Loader2 } from 'lucide-react';
 import { catalog, PRO_TOOLS, isNewTool, NEW_CHIP, type CatTool } from '@/components/app/catalog';
 import { getRecent, pushRecent } from '@/lib/recent';
-import { useIsOwner, usePlan } from '@/lib/plan';
+import { useIsOwner, usePlan, isPaid} from '@/lib/plan';
 import { useEditorContext, type EditorCommand } from '@/lib/command-registry';
 import { aiPost } from '@/lib/ai-doc';
 import { matchesForm, type FormHit } from '@/lib/form-search';
@@ -175,7 +175,7 @@ export function CommandPalette() {
     if (!r) return;
     if (r.type === 'ai') {
       // Free users → pricing (static commands stay free; the semantic layer is Pro).
-      if (plan !== 'pro') { setOpen(false); router.push('/pricing'); return; }
+      if (!isPaid(plan)) { setOpen(false); router.push('/pricing'); return; }
       if (ai.phase === 'busy') return;
       if (ai.phase === 'resolved') {
         // Second explicit activation = consent to run the resolved command.

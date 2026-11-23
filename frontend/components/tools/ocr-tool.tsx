@@ -10,7 +10,7 @@ import { downloadBlob as download } from '@/lib/download';
 import { PdfDone } from '@/components/app/pdf-done';
 import { UploadError, wrongTypeError } from '@/components/app/upload-error';
 import { openPdf, yieldToLoop, type PdfHandle } from '@/lib/pdf-render';
-import { usePlan } from '@/lib/plan';
+import { usePlan, isPaid} from '@/lib/plan';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
 import { ProCheckout } from '@/components/app/pro-checkout';
 import { decodeToBitmap } from '@/lib/image-for-pdf';
@@ -223,7 +223,7 @@ export function OcrTool() {
     if (!img && !pdf) { setError(wrongTypeError(f.name)); return; }
     if (f.size > MAX_INPUT_BYTES) { setError(`This file is ${fmt(f.size)} — the limit is ${fmt(MAX_INPUT_BYTES)}.`); return; }
     setTooBig(null);
-    if (plan !== 'pro' && f.size > OCR_FREE_MAX) { setError(null); setFile(null); setTooBig({ name: f.name, size: f.size }); return; }
+    if (!isPaid(plan) && f.size > OCR_FREE_MAX) { setError(null); setFile(null); setTooBig({ name: f.name, size: f.size }); return; }
     setError(null); setDone(null); setText(null); setIsImage(img && !pdf); setFile(f);
   }
 
@@ -319,7 +319,7 @@ export function OcrTool() {
   // panel below costs them one glance instead.
   //
   // Owner and Pro both resolve to 'pro' here, so neither ever sees it.
-  if (plan !== 'pro') {
+  if (!isPaid(plan)) {
     return (
       <Card>
         <CardContent className="flex flex-col items-center p-8 text-center">

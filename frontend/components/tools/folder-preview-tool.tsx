@@ -6,7 +6,7 @@ import {
   ShieldCheck, TriangleAlert, Undo2, Search, Check,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { usePlan } from '@/lib/plan';
+import { usePlan, isPaid} from '@/lib/plan';
 import {
   unsupportedReason, isTextual, TEXT_READ_CAP, KIND_META, KIND_GROUP,
   type FileKind,
@@ -77,7 +77,7 @@ function splitRow(line: string, sep: string): string[] {
 
 export function FolderPreviewTool() {
   const plan = usePlan();
-  const isPro = plan === 'pro';
+  const isPro = isPaid(plan);
   const cap = isPro ? 2000 : FREE_MAX_FILES;
 
   const [folder, setFolder] = useState<Folder | null>(null);

@@ -9,6 +9,7 @@ const { clientKey } = require('../utils/rateLimitKey');
 const { makeStore, redisDown } = require('../utils/rateLimitStore');
 const { isCanaryReq } = require('../utils/canary');
 const db = require('../db');
+const { isPaidPlan } = require('../utils/entitlement');
 
 const router = express.Router();
 
@@ -27,7 +28,7 @@ async function isPro(userId) {
   try {
     const { rows } = await db.query('SELECT plan, email FROM users WHERE id = $1', [userId]);
     const email = rows[0] ? String(rows[0].email || '').toLowerCase() : '';
-    return !!rows[0] && (rows[0].plan === 'pro' || OWNER_EMAILS.includes(email));
+    return !!rows[0] && (isPaidPlan(rows[0].plan) || OWNER_EMAILS.includes(email));
   } catch { return false; }
 }
 

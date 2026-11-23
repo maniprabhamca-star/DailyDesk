@@ -9,7 +9,7 @@ import { downloadBlob as download } from '@/lib/download';
 import { openPdf, renderPage, dprTarget, type PdfHandle, type RenderedPage } from '@/lib/pdf-render';
 import { KeepGoing } from '@/components/app/keep-going';
 import { aiPost, AI_FALLBACK_MSG } from '@/lib/ai-doc';
-import { usePlan } from '@/lib/plan';
+import { usePlan, isPaid} from '@/lib/plan';
 import { useRouter } from 'next/navigation';
 
 type AiDiff ={ kind: 'added' | 'removed' | 'changed'; topic: string; detail: string; pageA: number | null; pageB: number | null; severity: 'minor' | 'notable' | 'critical' };
@@ -158,7 +158,7 @@ export function ComparePdfTool() {
   const aiCompare = async () => {
     if (!left || !right || aiBusy) return;
     // Free users get the pricing page, not a dead error (same as Redact's presets).
-    if (plan !== 'pro') { router.push('/pricing'); return; }
+    if (!isPaid(plan)) { router.push('/pricing'); return; }
     setAiBusy(true); setAiErr(null); setAiRes(null);
     const toPages = (s: PdfSummary) => s.textByPage.map((text, i) => ({ page: i + 1, text }));
     const r = await aiPost<AiCompare>('/api/ai/compare', { a: toPages(left), b: toPages(right) });

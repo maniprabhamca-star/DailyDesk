@@ -29,4 +29,27 @@ export const PRICING = {
     'Priority speed & support',
     'Encrypted File Vault — coming soon',
   ],
+  // Business = everything in Pro, plus the volume and exports an accountant
+  // actually needs. Written as "everything in Pro, plus" on purpose: the whole
+  // point of the tier is that it REPLACES buying both, so the list must not read
+  // like a different product. See docs/designs/business-tier-pricing.html.
+  businessFeatures: [
+    'Everything in Pro — one subscription, not two',
+    '300 bank-statement pages a month',
+    'Every row reconciled against the running balance',
+    'Export to Tally, QuickBooks (QBO), OFX, Excel & CSV',
+    'AI document suite — 200 actions a month',
+    'Saved per-client presets',
+    'Top-up pages when a month runs long',
+    'Invoiced billing on request',
+    'Priority support',
+  ],
+  // Who each tier is for, in the buyer's own terms. A tier list that describes
+  // features without naming the person is how someone decides we are not for
+  // them.
+  audience: {
+    free: 'Anyone with a file and a problem.',
+    pro: 'An individual who hits a limit — a freelancer, a student, someone doing their own paperwork.',
+    business: 'Someone whose clients’ paperwork is the job — an accountant, a bookkeeper, a two-person practice.',
+  },
 } as const;

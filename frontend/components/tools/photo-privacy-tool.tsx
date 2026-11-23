@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { downloadBlob as download } from '@/lib/download';
 import { BigFileHint } from '@/components/app/big-file-hint';
 import { KeepGoing } from '@/components/app/keep-going';
-import { usePlan } from '@/lib/plan';
+import { usePlan, isPaid} from '@/lib/plan';
 import { readMeta, detectFaces, exportCleanImage, type BlurRect, type MetaReport } from '@/lib/photo-privacy';
 import { decodeToBitmap } from '@/lib/image-for-pdf';
 
@@ -14,7 +14,7 @@ const MAX_W = 560, MAX_H = 620;
 
 export function PhotoPrivacyTool() {
   const plan = usePlan();
-  const isPro = plan === 'pro';
+  const isPro = isPaid(plan);
   const [file, setFile] = useState<File | null>(null);
   const [bmp, setBmp] = useState<ImageBitmap | null>(null);
   const [srcUrl, setSrcUrl] = useState('');

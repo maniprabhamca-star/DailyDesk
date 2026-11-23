@@ -9,7 +9,45 @@ import { useAuth } from './auth';
 // We deliberately gate SCALE (large files, batch) — never compression QUALITY,
 // which stays free for everyone as the acquisition hook.
 
-export type Plan = 'free' | 'pro';
+// ── THREE tiers, and the reason this file has a helper instead of a comparison ──
+// `business` is Pro plus statement volume and a higher AI allowance (see
+// docs/designs/business-tier-pricing.html). It is a SUPERSET of Pro, which makes
+// `plan === 'pro'` a booby trap: the moment a third tier exists, every one of
+// those comparisons returns false for somebody paying MORE than a Pro
+// subscriber, silently denying them batch, unlimited size, Edit PDF — every
+// feature they just paid for — with a clean build and passing tests.
+//
+// So nothing outside this file compares the plan directly. Ask a question
+// instead: `isPaid(plan)` for "has paid for something" (almost always what the
+// caller means) and `isExactly(plan, 'pro')` on the rare occasion a caller
+// genuinely means that one tier, such as the badge in the header.
+// tests/unit/plan-tiers.test.ts fails the build on a bare comparison.
+export type Plan = 'free' | 'pro' | 'business';
+
+/** Tiers in ascending order of entitlement. Add a new paid tier here and to
+ *  PAID, and every gate in the app picks it up without being edited. */
+export const PLAN_ORDER: readonly Plan[] = ['free', 'pro', 'business'] as const;
+
+const PAID: ReadonlySet<Plan> = new Set<Plan>(['pro', 'business']);
+
+/** "Has this person paid us anything?" — the question nearly every gate in the
+ *  app is actually asking. Use this, not a comparison against a tier name. */
+export function isPaid(plan: Plan): boolean {
+  return PAID.has(plan);
+}
+
+/** "Is this person on at least tier X?" For a feature that needs Business and
+ *  above. Ordering comes from PLAN_ORDER, so it stays correct as tiers are added. */
+export function isAtLeast(plan: Plan, min: Plan): boolean {
+  return PLAN_ORDER.indexOf(plan) >= PLAN_ORDER.indexOf(min);
+}
+
+/** "Is this person on exactly tier X?" The rare, deliberate case — a badge that
+ *  names the tier, or an upgrade path that must not offer Pro to a Pro user.
+ *  Named so that reaching for it is a visible choice rather than a typo. */
+export function isExactly(plan: Plan, tier: Plan): boolean {
+  return plan === tier;
+}
 
 // Free plan caps single-file size for the client-side tools; Pro is unlimited.
 // 100 MB free is a deliberate acquisition lever (beats every competitor's free
@@ -46,10 +84,14 @@ function useOwnerBypass(): boolean {
 export function usePlan(): Plan {
   const { user } = useAuth();
   const ownerBypass = useOwnerBypass();
-  if (ownerBypass) return 'pro';
+  // The owner resolves to the HIGHEST tier, not to Pro: the bypass exists so the
+  // owner can see every gated feature, and resolving to 'pro' would hide the
+  // Business-only ones from the only person able to test them before launch.
+  if (ownerBypass) return 'business';
   if (!user) return 'free';
+  if (user.plan === 'business') return 'business';
   if (user.plan === 'pro') return 'pro';
-  if (user.email && PRO_EMAILS.includes(user.email.trim().toLowerCase())) return 'pro';
+  if (user.email && PRO_EMAILS.includes(user.email.trim().toLowerCase())) return 'business';
   return 'free';
 }
 
@@ -66,7 +108,7 @@ export function useIsOwner(): boolean {
 
 // True when a file of this size is allowed to be processed on the given plan.
 export function canProcessSize(bytes: number, plan: Plan): boolean {
-  return plan === 'pro' || bytes <= FREE_MAX_BYTES;
+  return isPaid(plan) || bytes <= FREE_MAX_BYTES;
 }
 
 // Batch = running a tool over MANY files at once (many files -> many outputs),
@@ -77,12 +119,12 @@ export const FREE_MAX_BATCH = 1;
 
 // True when this many files may be processed in one batch job on the given plan.
 export function canBatch(count: number, plan: Plan): boolean {
-  return plan === 'pro' || count <= FREE_MAX_BATCH;
+  return isPaid(plan) || count <= FREE_MAX_BATCH;
 }
 
 // How many of `count` files this plan may process in one batch (the rest need Pro).
 export function allowedBatchCount(count: number, plan: Plan): number {
-  return plan === 'pro' ? count : Math.min(count, FREE_MAX_BATCH);
+  return isPaid(plan) ? count : Math.min(count, FREE_MAX_BATCH);
 }
 
 // ---- Physical browser capacity (device RAM) — NOT a paywall --------------

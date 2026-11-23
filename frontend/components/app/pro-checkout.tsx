@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Loader2, Check, Clock, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth';
-import { usePlan } from '@/lib/plan';
+import { usePlan, isExactly} from '@/lib/plan';
 import { api } from '@/lib/api';
 import { BILLING_ENABLED, WAITLIST_MODE } from '@/lib/flags';
 
@@ -59,7 +59,15 @@ export function ProCheckout({ className = '', size, interval = 'month' }: { clas
   let btn;
   if (loading) {
     btn = <Button size={size} className={className} disabled><Loader2 className="size-4 animate-spin" /></Button>;
-  } else if (plan === 'pro') {
+  } else if (isExactly(plan, 'business')) {
+    // Top of the ladder — nothing to sell.
+    btn = <Button size={size} className={className} disabled><Check className="size-4" /> You’re on Business</Button>;
+  } else if (isExactly(plan, 'pro')) {
+    // Deliberately `isExactly`, not `isPaid`: this button sells PRO, and a Pro
+    // subscriber genuinely has nothing left to buy here. The Business upgrade is
+    // a Stripe plan change with proration, not a second subscription — selling
+    // it from this button would recreate the exact two-subscription problem the
+    // Business tier exists to remove. See docs/designs/business-tier-pricing.html §B6.
     btn = <Button size={size} className={className} disabled><Check className="size-4" /> You’re on Pro</Button>;
   } else if (!user) {
     btn = <Button asChild size={size} className={className}><Link href="/register">Go Pro</Link></Button>;

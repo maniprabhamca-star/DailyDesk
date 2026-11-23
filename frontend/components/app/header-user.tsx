@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { LogOut, Crown, User as UserIcon, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
-import { usePlan } from '@/lib/plan';
+import { usePlan, isPaid} from '@/lib/plan';
 import { Button } from '@/components/ui/button';
 
 export function HeaderUser() {
@@ -40,7 +40,7 @@ export function HeaderUser() {
   }
 
   const initial = user.name?.trim()?.[0]?.toUpperCase() || 'U';
-  const isPro = plan === 'pro';
+  const isPro = isPaid(plan);
 
   const Avatar = ({ size = 'size-9', text = 'text-sm' }: { size?: string; text?: string }) => (
     <span className={`relative flex ${size} items-center justify-center rounded-full bg-primary ${text} font-medium text-primary-foreground`}>

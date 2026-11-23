@@ -20,7 +20,7 @@ import { setEditorContext, clearEditorContext } from '@/lib/command-registry';
 import { saveSession, loadSessionAsync, clearSession, shouldAutoRestore } from '@/lib/editor-session';
 import { Mail, Phone, CreditCard, Hash, Info, History, ChevronDown, ScanFace } from 'lucide-react';
 import { UpgradeNotice } from '@/components/app/upgrade-notice';
-import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes } from '@/lib/plan';
+import { usePlan, canProcessSize, FREE_MAX_BYTES, fmtBytes, isPaid} from '@/lib/plan';
 import { aiPost, pagesFromChunks, AI_FALLBACK_MSG } from '@/lib/ai-doc';
 import { extractChunks } from '@/lib/pdf-chat';
 
@@ -107,7 +107,7 @@ export function RedactTool() {
   const [aiFindings, setAiFindings] = useState<AiFinding[] | null>(null); // review list before boxes are placed
   const [aiDone, setAiDone] = useState<{ hits: number; unplaced: number } | null>(null); // step-2 banner w/ inline Redact
 
-  const isPro = plan === 'pro'; // owner cookie / Pro email resolve to 'pro' via usePlan()
+  const isPro = isPaid(plan); // any paid tier; the owner bypass resolves to 'business'
 
   const inputRef = useRef<HTMLInputElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);

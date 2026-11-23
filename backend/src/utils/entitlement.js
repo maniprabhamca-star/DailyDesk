@@ -21,6 +21,29 @@ const mcpTokens = require('../controllers/mcpTokenController');
 const OWNER_EMAILS = (process.env.OWNER_EMAILS || process.env.AI_OWNER_EMAILS || 'maniprabhamca@gmail.com,mrmanigandan@gmail.com')
   .split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
 
+/**
+ * Has this caller paid us anything?
+ *
+ * ⚠ NOT `plan === 'pro'`. `business` is a SUPERSET of Pro (Pro plus statement
+ * volume and a higher AI allowance — see docs/designs/business-tier-pricing.html),
+ * so a bare comparison against 'pro' returns false for somebody paying MORE than
+ * a Pro subscriber and refuses them every Pro endpoint with a 402. That failure
+ * is invisible to the build and to every existing test, because no test asserts
+ * anything about a plan that did not exist when it was written.
+ *
+ * Every entitlement check in this codebase goes through here. If a future tier
+ * is added, add it to PAID_PLANS and nothing else needs editing.
+ */
+const PAID_PLANS = new Set(['pro', 'business']);
+function isPaidPlan(plan) {
+  return PAID_PLANS.has(String(plan || '').toLowerCase());
+}
+
+/** The caller is entitled to paid features: a paid plan, or the owner. */
+function isEntitled(who) {
+  return !!who && (isPaidPlan(who.plan) || who.isOwner === true);
+}
+
 /** Identify the caller from the Bearer token. Never throws. */
 async function whoIs(req) {
   const h = req.headers.authorization;
@@ -76,7 +99,7 @@ function requirePro({ message = 'This is a Pro feature.' } = {}) {
       // a reason to hand it out.
       return res.status(503).json({ error: 'unavailable', message: 'Could not check your account just now — please try again.' });
     }
-    if (who.plan === 'pro' || who.isOwner) {
+    if (isEntitled(who)) {
       req.isPro = true;
       req._userId = who.userId;
       return next();
@@ -99,7 +122,7 @@ function dailyQuota({ limit, keyPrefix = 'conv:day', message } = {}) {
     if (isCanaryReq(req)) return next(); // health probe, never metered
     let who = null;
     try { who = await whoIs(req); } catch { who = null; }
-    if (who && (who.plan === 'pro' || who.isOwner)) {
+    if (isEntitled(who)) {
       req.isPro = true;
       req._userId = who.userId;
       return next();
@@ -131,4 +154,4 @@ function countUse(req) {
   redis.pipeline().incr(req._convKey).expire(req._convKey, 93600).exec().catch(() => {});
 }
 
-module.exports = { whoIs, requirePro, dailyQuota, countUse, OWNER_EMAILS };
+module.exports = { whoIs, requirePro, dailyQuota, countUse, OWNER_EMAILS, isPaidPlan, isEntitled };

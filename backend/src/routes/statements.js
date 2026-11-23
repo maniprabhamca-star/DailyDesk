@@ -15,6 +15,7 @@ const { makeStore, redisDown } = require('../utils/rateLimitStore');
 const { isCanaryReq } = require('../utils/canary');
 const redis = require('../utils/redis');
 const db = require('../db');
+const { isPaidPlan } = require('../utils/entitlement');
 
 const router = express.Router();
 
@@ -51,7 +52,7 @@ router.use(rateLimit({
 // Current usage — used by the tool to show "N of 5 free pages used this month".
 router.get('/quota', async (req, res) => {
   const who = await whoIs(req);
-  if (who.plan === 'pro' || who.isOwner) return res.json({ pro: true, unlimited: true, limit: null, used: 0, remaining: null });
+  if (isPaidPlan(who.plan) || who.isOwner) return res.json({ pro: true, unlimited: true, limit: null, used: 0, remaining: null });
   if (redisDown()) return res.json({ pro: false, unlimited: false, limit: FREE_PAGES, used: 0, remaining: FREE_PAGES });
   let used = 0;
   try { used = Number(await redis.get(keyFor(who, req))) || 0; } catch { /* fail-open */ }
@@ -63,7 +64,7 @@ router.get('/quota', async (req, res) => {
 router.post('/consume', express.json({ limit: '4kb' }), async (req, res) => {
   const pages = Math.max(0, Math.min(5000, Math.floor(Number(req.body && req.body.pages) || 0)));
   const who = await whoIs(req);
-  if (who.plan === 'pro' || who.isOwner) return res.json({ allowed: true, pro: true, remaining: null });
+  if (isPaidPlan(who.plan) || who.isOwner) return res.json({ allowed: true, pro: true, remaining: null });
   if (redisDown()) return res.json({ allowed: true, unlimited: false, limit: FREE_PAGES, remaining: FREE_PAGES }); // never block on infra trouble
 
   const key = keyFor(who, req);

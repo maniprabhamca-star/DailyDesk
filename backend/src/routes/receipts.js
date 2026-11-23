@@ -31,6 +31,7 @@ const db = require('../db');
 const budget = require('../utils/aiBudget');
 const { parseModelJson } = require('../utils/modelJson');
 const { parseReceipt } = require('../utils/receiptParse');
+const { isPaidPlan } = require('../utils/entitlement');
 
 const router = express.Router();
 
@@ -56,7 +57,7 @@ async function requirePro(req, res, next) {
     const { rows } = await db.query('SELECT plan, email FROM users WHERE id = $1', [decoded.userId]);
     const email = rows[0] ? String(rows[0].email || '').toLowerCase() : '';
     req._isOwner = OWNER_EMAILS.includes(email);
-    if (rows[0] && (rows[0].plan === 'pro' || req._isOwner)) return next();
+    if (rows[0] && (isPaidPlan(rows[0].plan) || req._isOwner)) return next();
     return res.status(402).json({ error: 'pro-required', message: 'The Receipt Scanner is a Pro feature.' });
   } catch { return res.status(401).json({ error: 'auth', message: 'Please sign in.' }); }
 }

@@ -3,6 +3,7 @@ const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
 const { notifyOwner } = require('../utils/notify');
 const { REFUND_WINDOW_DAYS, refundStatus, describe } = require('../utils/subscriptions');
+const { isPaidPlan } = require('../utils/entitlement');
 
 // Stripe subscription billing for DiemDesk Pro. Everything here is ENV-GATED:
 // if STRIPE_SECRET_KEY isn't set, the endpoints report "not configured" and the
@@ -56,7 +57,16 @@ router.post('/create-checkout-session', requireAuth, async (req, res) => {
     const { rows } = await db.query('SELECT email, plan, stripe_customer_id FROM users WHERE id = $1', [req.user.userId]);
     const user = rows[0];
     if (!user) return res.status(404).json({ error: 'User not found' });
-    if (user.plan === 'pro') return res.status(400).json({ error: 'You’re already on Pro.' });
+    // Any paid tier, not just Pro: this endpoint SELLS Pro, and a Business
+    // subscriber already has everything in it. Selling it to them would create a
+    // second subscription beside the one they have — the exact problem the
+    // Business tier exists to remove. Moving between paid tiers is a Stripe plan
+    // change with proration, handled separately (B6).
+    if (isPaidPlan(user.plan)) {
+      return res.status(400).json({
+        error: user.plan === 'business' ? 'You’re already on Business, which includes everything in Pro.' : 'You’re already on Pro.',
+      });
+    }
 
     const base = {
       mode: 'subscription',
