@@ -22,7 +22,7 @@ Status values: `todo` · `in progress` · `shipped` · `blocked` · `parked`
 | 5 | Competitor alternatives 4 → 10 | 5 | **shipped** | 2026-08-29 (9 of 10; Canva pending a source) |
 | 6 | Sector pages 4 → 12 | 5 | **shipped** | **13 of 12** · 2026-11-23: +immigration, journalism, insurance, construction · government renamed to public-sector |
 | 7 | Indian statutory forms library | 33 | **shipped** | 32 forms + index · 2026-08-29 |
-| 8 | US forms library (privacy wedge) | ~30–60 | **done** | Scoped 2026-11-23 — `us-forms-library-scope.md`. **D1 done** (the encryption blocker that broke 10 tools). **All 30 forms shipped** across five groups and five agencies, every revision/edition/field/page count read off the file at source (`npm run verify:us-forms`: forms=30 drifts=0 unchecked=0). One-click fetch straight into Fill PDF form; searchable in ⌘K. DS-11/DS-82 stay out (Cloudflare bot check) |
+| 8 | US forms library (privacy wedge) | ~30–60 | **done** | Scoped 2026-11-23 — `us-forms-library-scope.md`. **D1 done** (the encryption blocker that broke 10 tools). **All 30 forms shipped** across five groups and five agencies, every revision/edition/field/page count read off the file at source (`npm run verify:us-forms`: forms=30 drifts=0 unchecked=0). One-click fetch straight into Fill PDF form; searchable in ⌘K. **Weekly sync job running** — reads all 30 at source every Monday and emails on drift (proven end to end). DS-11/DS-82 stay out (Cloudflare bot check). Next: `forms-library-expansion.md` |
 | 9 | "What comes next" dock | 0 | **shipped** | 2026-08-29 |
 | 10 | AI document generator / invoice builder | 0 | **parked** | commodity — see gap analysis |
 | 11 | Multi-document AI chat | 0 | **blocked** — File Vault | |
@@ -893,3 +893,67 @@ for the most common way anyone writes that form's name, with a clean build and
 matcher now lives in `lib/form-search.ts` with `tests/unit/form-search.test.ts`
 asserting every form in **both** libraries is findable by its number with and
 without punctuation.
+
+---
+
+## Item 8, the sync job — and the question it opened (2026-11-23)
+
+The library was the deliverable; keeping it true was the part nobody had
+written. `.github/workflows/forms-sync.yml` now reads all 30 forms from the
+IRS, USCIS, DOL, VA and SSA every Monday (06:00 UTC) and on any edit to
+`lib/us-forms.ts` or the verifier, and compares revision, field count and page
+count against what our pages claim.
+
+Deliberately **not** part of QA. A drifted form is not a broken build — nothing
+regressed, no commit caused it, the IRS simply published a new revision — and
+wiring it into the gate would fail somebody's unrelated PR for a reason they
+cannot fix, which is how a gate stops being trusted. It also makes ~90 outbound
+requests to five government sites, which belongs on a timer and not on a push.
+
+Two outcomes, two different emails, because they are two different pieces of
+news. **Drift** means a page of ours states a revision that no longer exists:
+worth a day, and worth failing the run red. **Unreadable** means a form could
+not be fetched or printed its marker somewhere the script cannot parse: emailed,
+not failed — one week of that is noise, the same form twice is a claim nobody has
+checked. The verifier exits non-zero for both, so the exit code is ignored and
+the summary line is read instead.
+
+Proven end to end, not assumed: first real run `forms=30 drifts=0 unchecked=0`
+in 40 s, and a `workflow_dispatch` with `test_alert=true` logged
+`✓ Told ***: TEST — ignore. Checking the form-drift alert works`.
+
+`ALERT_TO` is a required secret here with no fallback. The sibling
+`notify-failure.mjs` hardcodes the owner's personal address, and this repository
+is public — a personal address in a published file is a scraped address. Three
+other tracked files do the same; see D4 below.
+
+### The question this opened: how far does the forms library go?
+
+Asked on the same day — *"every US state has unique forms, do we have all? what
+about grouping all the states and the top countries? and should the forms site be
+new or here in diemdesk?"* Answered in
+**[forms-library-expansion.md](forms-library-expansion.md)**. The three findings
+worth carrying here:
+
+- **It stays here, as a subdirectory.** Not a new domain — that is 12–18 months at
+  zero authority against aggregators with a decade of backlinks — and not a
+  subdomain, which buys the downside of both. The product is the one-click handoff
+  into the fill engine, and a redirect to an unfamiliar domain on the page where
+  someone types a Social Security number is the worst place we could spend trust.
+- **"All 50 states" is the wrong shape.** 1,500–4,500 forms, none of them
+  verifiable at that volume. The version that works is a **form-type × state
+  matrix** — one form, fifty states, one page — beginning with resale/exemption
+  certificates, where the **ST-5 the owner went looking for is one cell and the MTC
+  multijurisdiction certificate is the header row**.
+- **The trap, stated plainly:** adding forms faster than we can verify them trades
+  the moat for page count and makes us a smaller pdfFiller. Breadth is a function
+  of verifiability, not of ambition.
+
+### New open decisions
+
+| | Question |
+|---|---|
+| **D1** | Phase 1 matrix order — exemption certificates first (recommended), or state withholding certificates? |
+| **D2** | A `/forms` hub to parent the libraries: build it now, or wait for a third library? |
+| **D3** | Phase 3 "packet" (multi-form, details entered once, chained through Saved Workflows) as the Pro line — confirm, since it decides the data model |
+| **D4** | Move `notify-failure.mjs` and the three other tracked files off the hardcoded personal address onto `ALERT_TO`? |
