@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Two Products, One Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --ink:#16202B; --ink-2:#46535F; --ink-3:#6B7884;
+    --paper:#FBF8F3; --paper-2:#F4EEE4; --paper-3:#EDE5D8;
+    --rule:#DED6C8; --rule-soft:#EAE3D6;
+    --copper:#A8601F; --copper-soft:#F3E5D5;
+    --credit:#2E6B52; --credit-soft:#E2EDE7;
+    --debit:#9B3A2F; --debit-soft:#F6E4E0;
+    --shadow:0 1px 2px rgba(22,32,43,.05), 0 8px 24px -16px rgba(22,32,43,.18);
+    --serif:"Instrument Serif",Georgia,"Times New Roman",serif;
+    --sans:"Instrument Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    --mono:"DM Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ink:#ECE6DC; --ink-2:#A3ADB6; --ink-3:#7E8A94;
+      --paper:#13181D; --paper-2:#1A2126; --paper-3:#222A31;
+      --rule:#2C353D; --rule-soft:#232B32;
+      --copper:#D5904B; --copper-soft:#30241A;
+      --credit:#6DAE8C; --credit-soft:#1B2A23;
+      --debit:#D8837A; --debit-soft:#2C1E1C;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -18px rgba(0,0,0,.7);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ink:#ECE6DC; --ink-2:#A3ADB6; --ink-3:#7E8A94;
+    --paper:#13181D; --paper-2:#1A2126; --paper-3:#222A31;
+    --rule:#2C353D; --rule-soft:#232B32;
+    --copper:#D5904B; --copper-soft:#30241A;
+    --credit:#6DAE8C; --credit-soft:#1B2A23;
+    --debit:#D8837A; --debit-soft:#2C1E1C;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -18px rgba(0,0,0,.7);
+  }
+
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:var(--sans); font-size:16.5px; line-height:1.62;
+    font-feature-settings:"ss01" 1;
+  }
+  .wrap{max-width:1060px; margin:0 auto; padding:0 16px}
+  .prose{max-width:70ch}
+
+  /* ---- masthead ------------------------------------------------------- */
+  header.mast{
+    border-bottom:1px solid var(--rule);
+    background:
+      linear-gradient(var(--rule-soft) 1px, transparent 1px) 0 0/100% 34px,
+      var(--paper-2);
+  }
+  .mast-in{padding:56px 0 40px}
+  .kicker{
+    font-family:var(--mono); font-size:11.5px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--copper); margin:0 0 18px;
+  }
+  h1{
+    font-family:var(--serif); font-weight:400; font-size:clamp(42px,7.2vw,74px);
+    line-height:1.03; letter-spacing:-.015em; margin:0 0 18px; text-wrap:balance;
+  }
+  h1 em{font-style:italic; color:var(--copper)}
+  .standfirst{font-size:clamp(17px,2.1vw,20px); color:var(--ink-2); max-width:58ch; margin:0}
+  .byline{
+    margin-top:26px; padding-top:16px; border-top:1px solid var(--rule);
+    font-family:var(--mono); font-size:12px; color:var(--ink-3);
+    display:flex; flex-wrap:wrap; gap:6px 22px;
+  }
+
+  /* ---- the two verdicts ----------------------------------------------- */
+  .verdicts{display:grid; gap:16px; margin:36px 0 8px}
+  @media(min-width:820px){.verdicts{grid-template-columns:1fr 1fr}}
+  .verdict{
+    background:var(--paper); border:1px solid var(--rule); border-radius:4px;
+    padding:22px 22px 20px; box-shadow:var(--shadow); position:relative;
+  }
+  .verdict::before{
+    content:""; position:absolute; inset:0 auto 0 0; width:3px; background:var(--copper);
+    border-radius:4px 0 0 4px;
+  }
+  .verdict h3{
+    font-family:var(--mono); font-size:11px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--ink-3); margin:0 0 10px; font-weight:500;
+  }
+  .verdict p{margin:0; font-family:var(--serif); font-size:23px; line-height:1.28}
+  .verdict p + p{margin-top:10px; font-family:var(--sans); font-size:15px; color:var(--ink-2); line-height:1.55}
+
+  /* ---- sections -------------------------------------------------------- */
+  section{padding:46px 0; border-top:1px solid var(--rule)}
+  section:first-of-type{border-top:0}
+  .snum{
+    font-family:var(--mono); font-size:11.5px; letter-spacing:.1em; color:var(--copper);
+    display:block; margin-bottom:8px;
+  }
+  h2{
+    font-family:var(--serif); font-weight:400; font-size:clamp(28px,4vw,40px);
+    line-height:1.12; letter-spacing:-.01em; margin:0 0 6px; text-wrap:balance;
+  }
+  .subhead{color:var(--ink-2); font-size:16px; margin:0 0 26px; max-width:62ch}
+  h3.blk{font-family:var(--sans); font-size:16px; font-weight:700; margin:30px 0 8px; letter-spacing:-.005em}
+  p{margin:0 0 15px}
+  .prose p:last-child{margin-bottom:0}
+  a{color:var(--copper); text-decoration-thickness:1px; text-underline-offset:2px}
+  strong{font-weight:600}
+  code{font-family:var(--mono); font-size:.88em; background:var(--paper-3); padding:1px 5px; border-radius:3px}
+
+  /* ---- tables ---------------------------------------------------------- */
+  .tscroll{overflow-x:auto; margin:22px 0; border:1px solid var(--rule); border-radius:4px; background:var(--paper)}
+  table{width:100%; border-collapse:collapse; font-size:14.5px; min-width:540px}
+  caption{
+    caption-side:top; text-align:left; padding:13px 16px; border-bottom:1px solid var(--rule);
+    font-family:var(--mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3);
+    background:var(--paper-2);
+  }
+  th,td{padding:11px 16px; text-align:left; border-bottom:1px solid var(--rule-soft); vertical-align:top}
+  thead th{
+    font-size:11.5px; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-3);
+    font-weight:600; background:var(--paper-2); border-bottom:1px solid var(--rule); white-space:nowrap;
+  }
+  tbody tr:last-child td{border-bottom:0}
+  tbody tr:nth-child(even){background:var(--rule-soft)}
+  .num{font-family:var(--mono); font-variant-numeric:tabular-nums; white-space:nowrap}
+  .tot td{border-top:2px solid var(--rule); font-weight:700; background:var(--paper-3)}
+  .cr{color:var(--credit); font-weight:600}
+  .dr{color:var(--debit); font-weight:600}
+  .mut{color:var(--ink-3)}
+
+  /* ---- tier cards ------------------------------------------------------ */
+  .tiers{display:grid; gap:14px; margin:26px 0}
+  @media(min-width:860px){.tiers{grid-template-columns:repeat(3,minmax(0,1fr))}}
+  .tier{
+    border:1px solid var(--rule); border-radius:4px; background:var(--paper);
+    padding:20px; display:flex; flex-direction:column; min-width:0;
+  }
+  .tier.lead{border-color:var(--copper); box-shadow:var(--shadow); background:var(--paper)}
+  .tier .tname{font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-3); margin:0 0 10px}
+  .tier.lead .tname{color:var(--copper)}
+  .tier .tprice{font-family:var(--serif); font-size:40px; line-height:1; margin:0}
+  .tier .tprice span{font-family:var(--sans); font-size:14px; color:var(--ink-3)}
+  .tier .tsub{font-family:var(--mono); font-size:11.5px; color:var(--ink-3); margin:8px 0 0}
+  .tier .twho{margin:14px 0 0; padding-top:14px; border-top:1px solid var(--rule-soft); font-size:14.5px; color:var(--ink-2)}
+  .tier ul{margin:12px 0 0; padding:0; list-style:none; font-size:14px}
+  .tier li{padding:5px 0 5px 18px; position:relative; color:var(--ink-2)}
+  .tier li::before{content:"·"; position:absolute; left:4px; color:var(--copper); font-weight:700}
+  .tier li b{color:var(--ink); font-weight:600}
+
+  /* ---- callouts -------------------------------------------------------- */
+  .note{
+    border:1px solid var(--rule); border-left:3px solid var(--copper); border-radius:0 4px 4px 0;
+    background:var(--copper-soft); padding:16px 18px; margin:24px 0; font-size:15px;
+  }
+  .note.warn{border-left-color:var(--debit); background:var(--debit-soft)}
+  .note.ok{border-left-color:var(--credit); background:var(--credit-soft)}
+  .note p{margin:0 0 9px}
+  .note p:last-child{margin:0}
+  .note .nlab{
+    font-family:var(--mono); font-size:10.5px; letter-spacing:.12em; text-transform:uppercase;
+    display:block; margin-bottom:7px; color:var(--ink-2);
+  }
+
+  /* ---- the sum-of-parts figure ----------------------------------------- */
+  .sum{
+    display:grid; gap:12px; margin:24px 0; align-items:stretch;
+    grid-template-columns:1fr;
+  }
+  @media(min-width:760px){.sum{grid-template-columns:1fr 1fr auto 1fr}}
+  .sumcell{
+    border:1px solid var(--rule); border-radius:4px; background:var(--paper-2);
+    padding:16px; text-align:center; min-width:0;
+  }
+  .sumcell .sl{font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); display:block}
+  .sumcell .sv{font-family:var(--serif); font-size:30px; line-height:1.1; display:block; margin-top:6px}
+  .sumcell .sn{font-size:12.5px; color:var(--ink-3); display:block; margin-top:4px}
+  .sumop{display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:26px; color:var(--copper)}
+  .sumcell.win{border-color:var(--credit); background:var(--credit-soft)}
+  .sumcell.win .sv{color:var(--credit)}
+
+  /* ---- decisions ------------------------------------------------------- */
+  .dec{border:1px solid var(--rule); border-radius:4px; background:var(--paper); margin:12px 0; padding:16px 18px}
+  .dec .dh{display:flex; gap:10px; align-items:baseline; flex-wrap:wrap; margin-bottom:6px}
+  .dec .did{font-family:var(--mono); font-size:11.5px; color:var(--copper); font-weight:500}
+  .dec .dq{font-weight:600; font-size:15.5px}
+  .dec p{margin:0; font-size:14.5px; color:var(--ink-2)}
+  .dec .rec{margin-top:8px; font-size:14.5px; color:var(--ink)}
+  .dec .rec b{color:var(--copper)}
+
+  /* ---- no-list --------------------------------------------------------- */
+  .nolist{list-style:none; padding:0; margin:20px 0 0}
+  .nolist li{padding:13px 0; border-top:1px solid var(--rule-soft); font-size:15px; color:var(--ink-2)}
+  .nolist li:first-child{border-top:1px solid var(--rule)}
+  .nolist li b{color:var(--ink); display:block; font-size:15.5px; margin-bottom:3px}
+
+  footer{border-top:1px solid var(--rule); background:var(--paper-2); padding:30px 0 44px; margin-top:20px}
+  footer p{font-family:var(--mono); font-size:12px; color:var(--ink-3); margin:0 0 6px; max-width:76ch}
+
+  :focus-visible{outline:2px solid var(--copper); outline-offset:2px}
+  @media (prefers-reduced-motion: reduce){*{animation:none!important; transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="mast">
+  <div class="wrap mast-in">
+    <p class="kicker">DiemDesk · pricing plan · 23 November 2026</p>
+    <h1>Two products,<br>one <em>plan</em></h1>
+    <p class="standfirst">We have a $5.98 consumer subscription and a $19 single-tool subscription, and an accountant who needs both has to buy both. The business tier is not a new price to invent. It is the merge of the two we already published.</p>
+    <div class="byline">
+      <span>docs/designs/business-tier-pricing.html</span>
+      <span>competitor prices read at source 23 Nov 2026</span>
+      <span>nothing is live — <code>WAITLIST_MODE = true</code></span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="verdicts">
+    <div class="verdict">
+      <h3>Verdict one — the price</h3>
+      <p>Business is <strong>$19 / month</strong>, and that is already our published number.</p>
+      <p>Statements Pro is $19 today for 300 statement pages and nothing else. Rename it Business, fold all of Pro into it, and no published price goes up while every buyer gets more. The two-subscription problem disappears without a price to defend.</p>
+    </div>
+    <div class="verdict">
+      <h3>Verdict two — the shape</h3>
+      <p>Three tiers. <strong>No seats at launch.</strong></p>
+      <p>Seats need an organisation model, invites, member management and Stripe quantity billing — weeks of work for a tier with no customers yet. Ship Business as single-user, add a Firm tier when there is someone asking for the second seat.</p>
+    </div>
+  </div>
+
+  <section>
+    <span class="snum">01</span>
+    <h2>The finding</h2>
+    <p class="subhead">This started as "what will help us earn money". The answer turned out to be sitting in two files that were written months apart.</p>
+
+    <div class="prose">
+      <p>Our published prices are in <code>frontend/lib/currency.ts</code>. There are two of them, and they were set by two different decisions:</p>
+    </div>
+
+    <div class="tscroll">
+      <table>
+        <caption>What a visitor can buy today</caption>
+        <thead>
+          <tr><th>Product</th><th>USD</th><th>INR</th><th>What it covers</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><b>Pro</b></td><td class="num">$5.98/mo · $60/yr</td><td class="num">₹499/mo · ₹4,999/yr</td><td>Batch, unlimited size, Edit PDF text, unlimited Office + OCR, AI suite, workflows, vault</td></tr>
+          <tr><td><b>Statements Pro</b></td><td class="num">$19/mo</td><td class="num">₹1,499/mo</td><td>300 bank-statement pages a month. Nothing else.</td></tr>
+          <tr><td>Statement credit pack</td><td class="num">$4.99 one-off</td><td class="num">₹399 one-off</td><td>20 pages, never expires</td></tr>
+          <tr><td>Statements, free</td><td class="num">$0</td><td class="num">₹0</td><td>5 pages a month, no signup</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="prose">
+      <p>Now read it as a bookkeeper would. She converts statements for twelve clients, so she needs the 300 pages. She also wants to batch-compress a folder of receipts and fix a typo in a PDF, so she needs Pro. There is no plan that sells her both.</p>
+    </div>
+
+    <div class="sum">
+      <div class="sumcell">
+        <span class="sl">She buys</span><span class="sv">$5.98</span><span class="sn">Pro</span>
+      </div>
+      <div class="sumcell">
+        <span class="sl">and also</span><span class="sv">$19.00</span><span class="sn">Statements Pro</span>
+      </div>
+      <div class="sumop">=</div>
+      <div class="sumcell win">
+        <span class="sl">Two subscriptions</span><span class="sv">$24.98</span><span class="sn">two renewal dates, two cancel buttons</span>
+      </div>
+    </div>
+
+    <div class="note">
+      <span class="nlab">Why this matters more than the number</span>
+      <p>A professional buyer does not mind paying $25. She minds being sold a product that does not know what she does for a living. Two line items on a card statement for one tool is a product that has not decided who it is for.</p>
+    </div>
+  </section>
+
+  <section>
+    <span class="snum">02</span>
+    <h2>What the others charge</h2>
+    <p class="subhead">Read at source on 23 November 2026, because the last time a competitor claim went into a plan from memory, three parts of it were wrong and it broke the plan's premise.</p>
+
+    <div class="tscroll">
+      <table>
+        <caption>Consumer PDF tools — the market our $5.98 sits in</caption>
+        <thead>
+          <tr><th>Who</th><th>Entry paid price</th><th>Notes, as their page states it</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><b>iLovePDF</b></td><td class="num">$5/mo · $60/yr</td><td>Identical to our Pro annual, to the dollar.</td></tr>
+          <tr><td><b>Smallpdf</b></td><td class="num">$15/mo <span class="mut">(yearly)</span></td><td>"30+ document management tools". Free tier has a <i>daily download limit</i> on merge, split, rotate, compress, annotate. Team $12/mo per seat, 2+.</td></tr>
+          <tr><td><b>US Legal Forms</b></td><td class="num">$8/mo · $15/mo</td><td>Their own FAQ asks "what if I only want one form and I don't want a subscription?"</td></tr>
+          <tr><td><b>DiemDesk Pro</b></td><td class="num">$5.98/mo · $60/yr</td><td>Cheapest paid tier on this table.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note ok">
+      <span class="nlab">The sentence this table hands us</span>
+      <p><strong>Smallpdf charges $15 a month for less than we give away.</strong> Their free tier puts a daily download limit on merge, split, rotate and compress. Ours has no cap on any in-browser tool, at any price, including $0. That is a precise, sourced claim and it belongs on <code>/compare</code>.</p>
+    </div>
+
+    <div class="tscroll">
+      <table>
+        <caption>Statement conversion — the market the business tier actually sits in</caption>
+        <thead>
+          <tr><th>Who</th><th>Price</th><th>Pages included</th><th>Cost per page</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><b>DocuClipper</b> entry</td><td class="num">$29/mo monthly<br><span class="mut">$20.30/mo annual</span></td><td class="num">60 / month</td><td class="num dr">$0.483<br><span class="mut">$0.338</span></td></tr>
+          <tr><td><b>DocuClipper</b> mid</td><td class="num">$111.30/mo annual</td><td class="num">640 / month</td><td class="num">$0.174</td></tr>
+          <tr><td><b>DocuClipper</b> high</td><td class="num">$279.30/mo annual</td><td class="num">1,800 / month</td><td class="num">$0.155</td></tr>
+          <tr><td>DocuClipper overage</td><td class="num">—</td><td class="num">—</td><td class="num">$0.100</td></tr>
+          <tr class="tot"><td><b>DiemDesk Business</b></td><td class="num">$19/mo</td><td class="num">300 / month</td><td class="num cr">$0.063</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="prose">
+      <p>DocuClipper's headline plan is <strong>$29 a month for 60 pages</strong>. Ours is $19 for 300. Per page that is <strong>7.6× cheaper than their entry plan</strong> and still cheaper than their $111 plan. Their page says "every seat included", which is worth noting — it is the one place they are more generous than we plan to be, and the reason the Firm tier eventually needs to exist.</p>
+      <p>They also meter by page and charge $0.10 for overage. We are deliberately not copying that, for the reason in §08.</p>
+    </div>
+  </section>
+
+  <section>
+    <span class="snum">03</span>
+    <h2>The three tiers</h2>
+    <p class="subhead">Free does not change. Pro's price does not change. Statements Pro becomes Business and absorbs Pro.</p>
+
+    <div class="tiers">
+      <div class="tier">
+        <p class="tname">Free</p>
+        <p class="tprice">$0</p>
+        <p class="tsub">forever · no signup</p>
+        <p class="twho">Anyone with a file and a problem.</p>
+        <ul>
+          <li><b>Every in-browser tool</b>, unlimited</li>
+          <li>Files up to <b>100 MB</b></li>
+          <li>Full-strength compression</li>
+          <li>3 Office conversions a day</li>
+          <li><b>5 statement pages</b> a month</li>
+          <li>No ads, no watermarks</li>
+        </ul>
+      </div>
+
+      <div class="tier">
+        <p class="tname">Pro</p>
+        <p class="tprice">$5.98<span> /mo</span></p>
+        <p class="tsub">$60/yr · ₹499/mo · ₹4,999/yr</p>
+        <p class="twho">An individual who hits a limit — a freelancer, a student, someone doing their own paperwork.</p>
+        <ul>
+          <li>Everything in Free, <b>without the caps</b></li>
+          <li>Batch — many files at once</li>
+          <li>Unlimited file size</li>
+          <li>Edit PDF text · pattern redaction</li>
+          <li>Unlimited Office conversions + OCR</li>
+          <li>AI suite, <b>50 actions</b>/mo</li>
+          <li>Saved workflows · File Vault</li>
+          <li><b>20 statement pages</b> a month</li>
+        </ul>
+      </div>
+
+      <div class="tier lead">
+        <p class="tname">Business — new</p>
+        <p class="tprice">$19<span> /mo</span></p>
+        <p class="tsub">$190/yr · ₹1,499/mo · ₹14,999/yr</p>
+        <p class="twho">Someone whose <b>clients'</b> paperwork is the job — a CA, a bookkeeper, an accounts clerk, a two-person practice.</p>
+        <ul>
+          <li><b>Everything in Pro</b></li>
+          <li><b>300 statement pages</b> a month</li>
+          <li><b>Tally</b> · QBO · OFX · Excel · CSV export</li>
+          <li>Balance-verified rows, every page</li>
+          <li>AI suite, <b>200 actions</b>/mo</li>
+          <li>Saved per-client presets</li>
+          <li>Top-up <b>100 pages / $8</b> ($0.08/pg)</li>
+          <li>Invoiced billing on request</li>
+          <li>Priority support</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="note">
+      <span class="nlab">What is deliberately NOT in Business yet</span>
+      <p><b>Seats.</b> See verdict two. <b>The forms packet</b> (fill → sign → bundle → audit trail) — that is Phase 3 of the forms plan and it is not built; it joins Business when it exists, and it is the single best reason for the price to rise later. <b>The redaction certificate</b> is currently a Pro pillar and moving it is open decision P4.</p>
+    </div>
+  </section>
+
+  <section>
+    <span class="snum">04</span>
+    <h2>What it earns</h2>
+    <p class="subhead">Costs per user per month, on the rates in the unit-economics model. A Business user is worth three and a third Pro users.</p>
+
+    <div class="tscroll">
+      <table>
+        <caption>Margin per paying user, per month</caption>
+        <thead>
+          <tr><th>Line</th><th>Pro</th><th>Business</th><th>Where the number comes from</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Revenue</td><td class="num">$5.98</td><td class="num">$19.00</td><td>monthly plan</td></tr>
+          <tr><td>Stripe</td><td class="num dr">−0.47</td><td class="num dr">−0.85</td><td>2.9% + $0.30 per charge</td></tr>
+          <tr><td>AI, general</td><td class="num dr">−0.80</td><td class="num dr">−1.20</td><td>Haiku, ~$0.02/action, typical use well under the cap</td></tr>
+          <tr><td>AI, statement escalation</td><td class="num dr">−0.10</td><td class="num dr">−1.50</td><td>only pages where the balance check fails; ~20% Haiku, ~2% Sonnet</td></tr>
+          <tr><td>Vault storage</td><td class="num dr">−0.10</td><td class="num dr">−0.20</td><td>R2 at $0.015/GB-mo, zero egress</td></tr>
+          <tr><td>Infra</td><td class="num dr">−0.05</td><td class="num dr">−0.05</td><td>fixed VPS, amortised</td></tr>
+          <tr class="tot"><td>Net, typical</td><td class="num cr">$4.46</td><td class="num cr">$15.20</td><td>75% · <b>80%</b></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="prose">
+      <p>The worst case matters more than the typical one, because the worst case is what a cost control has to survive. A Business user who maxes 200 AI actions, escalates every statement page and fills the vault lands near <strong>$9.55 of cost against $19 of revenue — 50% margin</strong>. That is inside the rule we set ourselves (blended variable cost under 40–50% of price), but only because of the escalation cap in §06. Without that cap it falls through the floor.</p>
+
+      <h3 class="blk">What it does to the number of customers we need</h3>
+      <p>This is the whole argument for the tier. It is not that $19 is more than $5.98. It is that the arithmetic of reaching a real income changes shape.</p>
+    </div>
+
+    <div class="tscroll">
+      <table>
+        <caption>Paying customers needed for $10,000 a month</caption>
+        <thead>
+          <tr><th>Mix</th><th>Average revenue / user</th><th>For $10k revenue</th><th>For $10k profit</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Pro only <span class="mut">(today's plan)</span></td><td class="num">$5.98</td><td class="num dr">1,672</td><td class="num dr">2,243</td></tr>
+          <tr><td>75% Pro · 25% Business</td><td class="num">$9.24</td><td class="num">1,083</td><td class="num">1,386</td></tr>
+          <tr><td>50% Pro · 50% Business</td><td class="num">$12.49</td><td class="num">801</td><td class="num">1,013</td></tr>
+          <tr class="tot"><td>Business only <span class="mut">(not a goal — shown as the bound)</span></td><td class="num">$19.00</td><td class="num cr">527</td><td class="num cr">658</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note ok">
+      <span class="nlab">The one sentence to take away</span>
+      <p>If one paying customer in four picks Business, the number of strangers who have to find us, trust us and pay us for a $10,000 month falls from <strong>1,672 to 1,083</strong>. Nothing else on the roadmap moves that number by 35% for four days of work.</p>
+    </div>
+  </section>
+
+  <section>
+    <span class="snum">05</span>
+    <h2>India pricing</h2>
+    <p class="subhead">₹1,499, which is also already published. The statement converter is India-first and its buyer is a CA.</p>
+    <div class="prose">
+      <p>₹1,499 is not a conversion of $19 — at today's rate that would be around ₹1,690, and the site's own comment in <code>lib/currency.ts</code> already says why pricing is a product decision rather than an FX calculation. ₹1,499 is the figure in the statement-converter spec, it is on the live pricing page, and it stays.</p>
+      <p>The annual is ₹14,999 (₹1,250/mo effective), mirroring Pro's structure of roughly two months free. One consequence worth stating plainly: an Indian Business subscriber nets us about <strong>₹1,100 a month</strong> after costs, against ₹310 for an Indian Pro subscriber — the same 3.5× ratio as the dollar tiers, so the tier works in both currencies without a separate argument.</p>
+    </div>
+  </section>
+
+  <section>
+    <span class="snum">06</span>
+    <h2>The build</h2>
+    <p class="subhead">Eight items. Roughly four days. Two of them are traps rather than work.</p>
+
+    <div class="tscroll">
+      <table>
+        <caption>Build order</caption>
+        <thead>
+          <tr><th>#</th><th>Work</th><th>Files</th><th>Est.</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="num">B1</td>
+            <td><b>The plan type, and the sweep that goes with it</b><br><span class="mut">Add <code>'business'</code> to <code>Plan</code>. Then find every <code>plan === 'pro'</code> in the codebase and decide, one by one, whether it meant "has paid" or "has Pro exactly". Introduce <code>isAtLeastPro()</code> and a guard test that fails the build on a bare equality check.</span></td>
+            <td class="num">lib/plan.ts<br>tests/unit/plan-tiers</td>
+            <td class="num">3 h</td>
+          </tr>
+          <tr>
+            <td class="num">B2</td>
+            <td><b>Price tables</b><br><span class="mut">A <code>BUSINESS_PRICE</code> record beside <code>PRO_PRICE</code>, and <code>businessFeatures</code> beside <code>proFeatures</code>. Single source of truth, as the file's own comment demands.</span></td>
+            <td class="num">lib/currency.ts<br>lib/pricing.ts</td>
+            <td class="num">1 h</td>
+          </tr>
+          <tr>
+            <td class="num">B3</td>
+            <td><b>Statement quota reads the plan</b><br><span class="mut">Page allowance becomes a function of tier: 5 free · 20 Pro · 300 Business, plus top-up credits. Per-account monthly cap on tier-3 (Sonnet) escalations — the thing that keeps the worst case inside 50% margin.</span></td>
+            <td class="num">backend quota +<br>aiBudget.js</td>
+            <td class="num">4 h</td>
+          </tr>
+          <tr>
+            <td class="num">B4</td>
+            <td><b>/pricing becomes three columns</b><br><span class="mut">Third card, third column in the comparison table, and the statements block stops being a separate price list because it is now a row in the table. Mobile is the real work: three cards and a five-column table at 375px.</span></td>
+            <td class="num">app/pricing/page.tsx</td>
+            <td class="num">5 h</td>
+          </tr>
+          <tr>
+            <td class="num">B5</td>
+            <td><b>Stripe</b><br><span class="mut">Four new prices — monthly and annual × USD and INR — and the webhook mapping <code>price → 'business'</code>. Keep the API version pin.</span></td>
+            <td class="num">backend/routes/billing<br>webhook handler</td>
+            <td class="num">3 h</td>
+          </tr>
+          <tr>
+            <td class="num">B6</td>
+            <td><b>Upgrade path from Pro</b><br><span class="mut">A Pro subscriber choosing Business is a Stripe plan change with proration, not a second subscription. Getting this wrong is how someone ends up paying $24.98 anyway — the exact problem this tier exists to remove.</span></td>
+            <td class="num">billing + account</td>
+            <td class="num">3 h</td>
+          </tr>
+          <tr>
+            <td class="num">B7</td>
+            <td><b>The claims on /compare</b><br><span class="mut">The Smallpdf daily-download-limit line and the DocuClipper per-page table, both with the date they were read. Under the shared third-party notice, as every page naming a competitor is.</span></td>
+            <td class="num">app/compare</td>
+            <td class="num">2 h</td>
+          </tr>
+          <tr>
+            <td class="num">B8</td>
+            <td><b>Keep the site honest about itself</b><br><span class="mut">/overview, the master roadmap, the status board and a /changelog entry. Counts stay catalog-derived.</span></td>
+            <td class="num">lib/changelog.ts<br>docs/designs</td>
+            <td class="num">1 h</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note warn">
+      <span class="nlab">Trap one — the silent downgrade</span>
+      <p>Every <code>plan === 'pro'</code> check in the codebase becomes <strong>false for a Business subscriber</strong> the moment a third tier exists. Someone paying $19 would be denied batch, size limits and Edit PDF — every Pro feature — and the build would be green, the tests would pass, and we would hear about it from the customer. B1 is first for that reason, and the guard test is not optional.</p>
+    </div>
+
+    <div class="note warn">
+      <span class="nlab">Trap two — the escalation ladder has no ceiling</span>
+      <p>The statement engine's design escalates a page to Haiku, then to Sonnet, whenever the balance check fails. That is the right design — the balance check is a free accuracy oracle — but it has no per-account ceiling. A corrupt 300-page scan where every balance fails bills us Sonnet 300 times. The per-account monthly tier-3 cap in B3 is what makes the margin table above true rather than aspirational.</p>
+    </div>
+  </section>
+
+  <section>
+    <span class="snum">07</span>
+    <h2>Open decisions</h2>
+    <p class="subhead">Five. P1 and P2 shape the launch; the rest can wait for a customer.</p>
+
+    <div class="dec">
+      <div class="dh"><span class="did">P1</span><span class="dq">Is Business $19, or $24 with seats?</span></div>
+      <p>$19 reuses a published price and ships without an organisation model. $24 is under the $24.98 sum of parts, adds five members, and needs invites, member management and Stripe quantity billing first.</p>
+      <p class="rec"><b>Recommend $19, single user.</b> A price can rise when seats arrive. A tier that waits three weeks for a feature nobody has asked for yet earns nothing in the meantime.</p>
+    </div>
+
+    <div class="dec">
+      <div class="dh"><span class="did">P2</span><span class="dq">Does the credit pack survive?</span></div>
+      <p>$4.99 for 20 pages is $0.25 a page — four times the Business per-page rate. It exists for the person who converts statements once a year at tax time and will never subscribe.</p>
+      <p class="rec"><b>Recommend keeping it.</b> It is the only thing we sell to someone who refuses a subscription, and it anchors $19 as the sensible choice. But it must stop being a peer of Business on the pricing page — it is a footnote under the table, not a third card.</p>
+    </div>
+
+    <div class="dec">
+      <div class="dh"><span class="did">P3</span><span class="dq">Does the founding offer apply to Business?</span></div>
+      <p>The live page offers the first 1,000 members $4.99/mo for life. Extending that to Business means a lifetime $15.83 subscriber.</p>
+      <p class="rec"><b>Recommend no — founding is a Pro offer only</b>, and the page must say so before anyone can buy. A lifetime discount on the tier that carries the margin is the one pricing mistake that cannot be undone.</p>
+    </div>
+
+    <div class="dec">
+      <div class="dh"><span class="did">P4</span><span class="dq">Does the redaction certificate move from Pro to Business?</span></div>
+      <p>It is a professional-liability feature — a signed record that a redaction actually removed the bytes. The person who needs it is defending a disclosure, which is a Business buyer. It is currently a listed Pro pillar.</p>
+      <p class="rec"><b>Owner's call.</b> It is unbuilt, so moving it costs nothing today and costs a broken promise later. If it moves, it moves before anyone can pay.</p>
+    </div>
+
+    <div class="dec">
+      <div class="dh"><span class="did">P5</span><span class="dq">When does a Firm tier appear?</span></div>
+      <p>DocuClipper includes every seat. A five-person practice comparing us will notice. The answer is a Firm tier — more pages, members, one invoice — around $49.</p>
+      <p class="rec"><b>Recommend: when the first person asks for a second seat.</b> Not before. Three tiers is already one more than we can currently sell.</p>
+    </div>
+  </section>
+
+  <section>
+    <span class="snum">08</span>
+    <h2>What we are deliberately not doing</h2>
+    <p class="subhead">Recorded so these do not get re-litigated in six months.</p>
+
+    <ul class="nolist">
+      <li>
+        <b>Metering by page, the way DocuClipper does</b>
+        Their whole pricing page is a page counter. It is honest and it scales with their server cost — but our statement parsing runs on the customer's own device, so a page costs us nothing unless the balance check fails. Charging per page would be charging for a cost we do not have, and it would make the customer count their work before doing it.
+      </li>
+      <li>
+        <b>Putting a daily limit on free in-browser tools</b>
+        Smallpdf charges $15 a month partly for the removal of a limit they invented. We have said in public that every in-browser tool is unlimited at every price. That line is worth more than the conversions a cap would force.
+      </li>
+      <li>
+        <b>A per-seat price at launch</b>
+        Seats are the correct eventual answer and the wrong first move. See P1 and P5.
+      </li>
+      <li>
+        <b>Raising Pro to make room for Business</b>
+        Pro at $5.98 undercuts every comparable consumer tool and matches iLovePDF exactly. It is doing its job as the bottom of the funnel. The business tier is built above it, not by moving it.
+      </li>
+      <li>
+        <b>A fourth paid product</b>
+        We already made this mistake once by letting the statement converter become its own subscription instead of a tier. The rule going forward: a new capability joins a tier, or it is a credit pack. It does not become a fourth thing to subscribe to.
+      </li>
+    </ul>
+  </section>
+
+  <section>
+    <span class="snum">09</span>
+    <h2>What happens first</h2>
+    <div class="prose">
+      <p>None of this earns anything while <code>WAITLIST_MODE</code> is <code>true</code>. That flag, and the Stripe prices behind it, are the only things between this document and revenue — and both are owner actions, not engineering.</p>
+      <p>So the honest sequence is: <strong>build B1 through B8 now</strong>, because the third tier must exist before the switch is flipped rather than after — a pricing page that changes shape a week after the first customer pays is a refund conversation. Then flip the flag once, with three tiers on the page and the plan checks swept.</p>
+      <p>The forms work runs in parallel and does not touch any of this. It is the funnel; this is the till.</p>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    <p>Prices for iLovePDF, Smallpdf, US Legal Forms and DocuClipper were read from their own pricing pages on 23 November 2026 and are quoted as those pages state them. They change without notice; re-read before putting any of them on a public page.</p>
+    <p>DiemDesk figures are from frontend/lib/currency.ts, frontend/lib/pricing.ts and the unit-economics model. Cost rates: Stripe 2.9% + $0.30, Claude Haiku $1/M in and $5/M out, Cloudflare R2 $0.015/GB-month with no egress charge.</p>
+    <p>docs/designs/business-tier-pricing.html · 23 November 2026</p>
+  </div>
+</footer>
+
+</body>
+</html>
