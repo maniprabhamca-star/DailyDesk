@@ -3,6 +3,20 @@ import { ShieldCheck, Apple, Play, MapPin, Lock, EyeOff, ArrowUpRight } from 'lu
 import { BrandMark } from '@/components/app/brand-mark';
 import { SECTORS } from '@/lib/sectors';
 
+// ⚠ Every link in the lists below is `prefetch={false}`, deliberately. Keep it.
+//
+// This footer renders about sixty links. Next's App Router prefetches a <Link>
+// the moment it scrolls into view, so reaching the bottom of ANY page fired
+// roughly sixty RSC requests in one burst. nginx allows 20 r/s with a burst of
+// 40, so the tail of that burst came back 429 — and because the limit is per
+// IP, not per request kind, the reader's NEXT real navigation was rejected too.
+// The owner hit a bare "429 Too Many Requests" on /us-forms doing nothing more
+// unusual than browsing. 105 of them in one day, almost all `?_rsc=`.
+//
+// Nobody is about to click sixty footer links, so prefetching them buys
+// nothing and cost us the page the reader actually asked for. The same applies
+// to the Tools mega-menu (the whole catalogue) and the mobile menu.
+
 // Preview toggle: a server started with NEXT_PUBLIC_FOOTER_WM=mono renders the
 // footer watermark in grayscale so we can compare colorful vs monochrome.
 const FOOTER_WM_MONO = process.env.NEXT_PUBLIC_FOOTER_WM === 'mono';
@@ -117,7 +131,7 @@ export function SiteFooter() {
                 <ul className="mt-4 space-y-2.5 text-sm">
                   {col.links.map((l) => (
                     <li key={l.label}>
-                      <Link href={l.href} className="group inline-flex items-center gap-1 font-medium text-slate-400 transition-colors hover:text-white">
+                      <Link href={l.href} prefetch={false} className="group inline-flex items-center gap-1 font-medium text-slate-400 transition-colors hover:text-white">
                         {l.label}
                         <ArrowUpRight className="size-3.5 -translate-x-0.5 opacity-0 transition-all duration-150 group-hover:translate-x-0 group-hover:opacity-100" />
                       </Link>
@@ -148,7 +162,7 @@ export function SiteFooter() {
               <ul className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2.5 text-[13px] sm:grid-cols-3 lg:mt-4 lg:block lg:space-y-2.5 lg:gap-0 lg:text-sm">
                 {col.links.map((l) => (
                   <li key={l.label}>
-                    <Link href={l.href} className="group inline-flex items-center gap-1 font-medium text-slate-400 transition-colors hover:text-white">
+                    <Link href={l.href} prefetch={false} className="group inline-flex items-center gap-1 font-medium text-slate-400 transition-colors hover:text-white">
                       {l.label}
                       <ArrowUpRight className="size-3.5 -translate-x-0.5 opacity-0 transition-all duration-150 group-hover:translate-x-0 group-hover:opacity-100" />
                     </Link>

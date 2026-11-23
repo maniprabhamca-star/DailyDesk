@@ -27,6 +27,7 @@ export function FormLibraryStrip({ onPick, className = '' }: { onPick?: () => vo
         <Link
           key={l.href}
           href={l.href}
+          prefetch={false}
           onClick={onPick}
           className="group flex flex-col rounded-lg px-2 py-1 transition-colors hover:bg-accent"
         >

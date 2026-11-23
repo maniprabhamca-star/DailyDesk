@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { existsSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { FORM_LIBRARIES } from '@/components/app/form-library-links';
 
@@ -72,5 +72,38 @@ describe('form library entry points', () => {
     const hrefs = FORM_LIBRARIES.map((l) => l.href);
     expect(hrefs).toContain('/us-forms');
     expect(hrefs).toContain('/india-forms');
+  });
+});
+
+describe('bulk navigation lists do not prefetch', () => {
+  // Reaching the bottom of any page used to fire ~60 RSC prefetches in one
+  // burst — one per footer link — which blew past nginx's rate limit and got
+  // the reader's NEXT real navigation rejected with a bare 429. The owner hit
+  // it on /us-forms while simply browsing; 105 in one day, almost all `?_rsc=`.
+  //
+  // These three files render long lists nobody is about to click through, so
+  // their links must stay `prefetch={false}`. A <Link> added to one of them
+  // without it brings the whole problem back, silently and only under load.
+  const BULK_LISTS = [
+    'components/app/site-footer.tsx',
+    'components/app/site-header.tsx',
+    'components/app/form-library-links.tsx',
+  ];
+
+  it('keeps prefetch off every link whose href comes from a list', () => {
+    for (const rel of BULK_LISTS) {
+      const src = readFileSync(join(process.cwd(), rel), 'utf8');
+      // A literal href="/pricing" is one link on the page; an href={x.href} is
+      // one per item in whatever is being mapped. Only the second multiplies.
+      const dynamic = [...src.matchAll(/<Link[^>]*?href=\{[^}]+\}[^>]*>/gs)];
+      expect(dynamic.length, `${rel}: expected list-rendered links to exist`).toBeGreaterThan(0);
+      for (const m of dynamic) {
+        expect(
+          m[0].includes('prefetch={false}'),
+          `${rel}: a list-rendered <Link> is missing prefetch={false} — see the note in site-footer.tsx:
+  ${m[0].replace(/\s+/g, ' ').slice(0, 120)}`,
+        ).toBe(true);
+      }
+    }
   });
 });

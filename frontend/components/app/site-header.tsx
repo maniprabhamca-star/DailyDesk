@@ -72,7 +72,7 @@ function MenuGrid({ onPick }: { onPick: () => void }) {
               // show but are NOT clickable for the public — only the owner reaches
               // them by URL, where the gate serves the real tool.
               return t.href && (!t.soon || owner)
-                ? <Link key={t.name} href={t.href} onClick={onPick}>{row}</Link>
+                ? <Link key={t.name} href={t.href} prefetch={false} onClick={onPick}>{row}</Link>
                 : <div key={t.name} className="cursor-default opacity-70">{row}</div>;
             })}
           </div>
@@ -258,7 +258,7 @@ export function SiteHeader({ heroSearchRef }: { heroSearchRef?: React.RefObject<
               { label: 'Feedback', href: '/feedback' },
               ...(user ? [] : [{ label: 'Log in', href: '/login' }]),
             ].map((l) => (
-              <Link key={l.label} href={l.href} onClick={() => setMobileOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-medium text-foreground/90 hover:bg-accent">{l.label}</Link>
+              <Link key={l.label} href={l.href} prefetch={false} onClick={() => setMobileOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-medium text-foreground/90 hover:bg-accent">{l.label}</Link>
             ))}
             {user ? (
               <>
