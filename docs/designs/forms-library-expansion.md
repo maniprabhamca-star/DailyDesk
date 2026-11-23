@@ -83,11 +83,32 @@ nothing to point a link at that means "DiemDesk does forms."
 
 ## 3. What we are actually competing with
 
-| | Them | Us |
+**Read at source 23 Nov 2026**, in the browser, because the first draft of this
+section asserted it from memory and got it wrong in three ways. Corrections are
+marked.
+
+| | What they actually do | Us |
 |---|---|---|
-| pdfFiller / US Legal Forms / FormSwift | Huge libraries, **hosted copies** that go stale, sign-up wall before download, your filled form sits on their server | Live fetch from the agency every time, nothing hosted, nothing uploaded |
-| The agency's own site | Always current, authoritative | We can't beat that, and shouldn't try — we link to it on every page |
-| pdf.net | 225-page forms library, badges "Official IRS form" while linking irs.gov zero times | We print the revision we measured, the date we measured it, and the agency link |
+| **pdfFiller** | Library far larger than ours, and **already covers state forms** ("tax forms for each state… just choose the state and year"). Hosts year-archived copies. ⚠ **Does** link irs.gov, **does** carry a non-affiliation notice, and **warns you on an old year** with an interstitial: *"This is the 2014 version… Get the latest 2024 version / Edit the 2014 version."* | Live fetch from the agency every time, nothing hosted, nothing uploaded |
+| **US Legal Forms** | Also year-labelled hosted copies, **also covers state forms** (a Georgia DOR T-239 from 2015 sits in its tax library). Links the issuing agency once; no non-affiliation notice on that page. Subscription **$8/mo and $15/mo**, with a pricing FAQ headed *"What if I only want one form and I don't want a subscription?"* | Blank form free, no account |
+| **FormSwift** | ⚠ **Closed September 2026.** formswift.com serves a goodbye page pointing at Dropbox. Do not cite it as a competitor. | — |
+| **pdf.net** | 225-page forms library; badges "Official IRS form" while linking irs.gov **zero** times. Still the sharpest contrast of the four. | We print the revision we measured, the date, and the agency link |
+| The agency's own site | Always current, authoritative | We can't beat that and shouldn't try — we link to it on every page |
+
+### ⚠ The correction that changes a premise
+
+The idea behind this plan was partly *"nobody groups state forms."* **That is not
+true — two live competitors already do.** What is true, and checked:
+
+> **Not one of them prints the agency's own revision marker, a field count, or a
+> date checked.** They label by *year*, which tells you which edition you picked
+> but nothing about whether it is still the current one. And none of them can
+> fill a form without it leaving the device.
+
+So the matrix is still the right shape — but **it wins on the claim, not on being
+first**, and the plan should be read that way. Being more careful than pdfFiller
+is a narrower advantage than being alone in the field, and it has to be earned
+every Monday rather than announced once.
 
 So the claim is not *"we have the most forms."* It is:
 
