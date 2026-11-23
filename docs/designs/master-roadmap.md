@@ -98,6 +98,7 @@ claim, and we currently undersell it as a feature bullet.
 | # | Item | Status | Why rivals can't follow |
 |---|---|---|---|
 | 1 | **Sector pages** `/for/legal`, `/for/accountants`, `/for/healthcare`, `/for/schools` | ✅ **SHIPPED 2026-08-08** | "The file never leaves your device" is the sentence that clears a compliance review. A product that uploads cannot write it. |
+| 1b | **Form libraries** `/us-forms` (30 US federal forms, 5 agencies) + `/india-forms` | ✅ **SHIPPED 2026-11-23** | Every page states the revision/edition, field count and page count **measured off the agency's own file**, with the date checked and a link to the authority — re-verified by `npm run verify:us-forms`. One click fetches the blank form live from the agency into our fill tool; we host no copy. pdf.net badges "Official IRS form" and links to irs.gov zero times. The privacy argument is strongest exactly here: these are the pages where an SSN or a whole immigration history gets typed in. |
 | 2 | Drop the practical file-size cap | ⏳ not started | Everyone caps free tiers because bandwidth costs *them*. Ours costs nothing. |
 | 3 | Reframe the pitch against retention promises (on `/compare`) | ⏳ not started | "They delete your file after an hour. We never receive it." |
 | 4 | Offline PWA done properly | ⚠️ **partial — see note** | iLovePDF *charges* for offline (Premium = "work offline with Desktop"). Ours could be free. |

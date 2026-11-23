@@ -33,10 +33,19 @@ for (const b of blocks) {
     if (!catNames.has(m[1])) { console.log(`TOOLKIT not in catalog  ${slug}: "${m[1]}"`); bad++; }
   }
 
-  // every job + primary href must be a route the catalog knows AND a real page dir
+  // every job + primary href must be a route the catalog knows AND a real page dir.
+  //
+  // The `forms` href is the one exception and it is deliberately narrow: it
+  // points at a FORM LIBRARY, which is a page, not a tool, so it can never be
+  // in the catalogue. It is held to the other half of the rule (a real page)
+  // plus an allowlist, so the exception cannot quietly become "any href".
+  const FORM_LIBRARIES = new Set(['/us-forms', '/india-forms']);
+  const formsHref = (b.match(/forms: \{[^}]*href: '([^']+)'/) || [])[1];
   const hrefs = [...b.matchAll(/href: '([^']+)'/g)].map((m) => m[1]);
   for (const h of new Set(hrefs)) {
-    if (!catHrefs.has(h)) { console.log(`HREF not in catalog     ${slug}: ${h}`); bad++; }
+    const isLibrary = h === formsHref;
+    if (isLibrary && !FORM_LIBRARIES.has(h)) { console.log(`FORMS href unknown      ${slug}: ${h}`); bad++; }
+    if (!isLibrary && !catHrefs.has(h)) { console.log(`HREF not in catalog     ${slug}: ${h}`); bad++; }
     if (!existsSync(`app${h}/page.tsx`)) { console.log(`HREF has no page.tsx    ${slug}: app${h}/page.tsx`); bad++; }
   }
 

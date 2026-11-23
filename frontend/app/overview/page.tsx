@@ -56,6 +56,7 @@ const DIFFS: { name: string; desc: string; moat: string; flag?: boolean }[] = [
   { name: 'Redaction certificate', desc: "Signed, exportable proof a document was truly scrubbed — 0 recoverable characters. A legal/compliance wedge.", moat: 'Determinism', flag: true },
   { name: 'Saved workflows', desc: "A one-click document assembly line — merge · clean · sign · share-safe · compress — run on a whole batch.", moat: 'Convenience', flag: true },
   { name: 'Encrypted File Vault', desc: "Zero-knowledge storage (Argon2 + AES-256). Even we can't read it — rivals' storage is server-readable.", moat: 'Privacy', flag: true },
+  { name: 'Form libraries with provenance', desc: "Thirty US federal forms and the Indian set — each page states the revision or edition the agency publishes today, the field count and the page count, all measured off the agency's own file, and fetches that file live on one click. Rivals host a copy and call it official.", moat: 'Determinism' },
   { name: 'Self-destruct shares', desc: "Expiring, password-locked share links DiemDesk itself can't decrypt.", moat: 'Privacy' },
   { name: 'Certificate of completion', desc: "DocuSign-style signed audit trail + verification hash for e-signatures.", moat: 'Determinism' },
   { name: 'Bates numbering', desc: "Legal page-stamping — a standard paid feature that pulls in the legal vertical.", moat: 'Convenience' },

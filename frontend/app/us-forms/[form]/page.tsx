@@ -3,9 +3,10 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { FileText, Hash, Layers, ShieldAlert } from 'lucide-react';
 import { KeywordLanding } from '@/components/app/keyword-landing';
-import { US_FORMS, CHECKED_ON_LABEL, getUsForm } from '@/lib/us-forms';
+import { US_FORMS, CHECKED_ON_LABEL, getUsForm, revisionSentence, revisionHeading } from '@/lib/us-forms';
 import { catalog } from '@/components/app/catalog';
 import { ThirdPartyNotice } from '@/components/app/third-party-notice';
+import { GetFormButton } from '@/components/app/get-form-button';
 
 export function generateStaticParams() {
   return US_FORMS.map((f) => ({ form: f.slug }));
@@ -22,7 +23,7 @@ export async function generateMetadata(props: { params: Promise<{ form: string }
   if (!f) return {};
   return {
     title: `Fill Form ${f.short} Free — Nothing Uploaded | DiemDesk`,
-    description: `Form ${f.short} (Rev. ${f.revision}): what it is, who files it, and what people get wrong. Fill its ${f.fields} fields in your browser — the file never leaves your device.`,
+    description: `Form ${f.short} (${f.revisionLabel} ${f.revision}): what it is, who files it, and what people get wrong. Fill its ${f.fields} fields in your browser — the file never leaves your device.`,
     alternates: { canonical: `/us-forms/${f.slug}` },
     openGraph: {
       images: ['/og.png'],
@@ -44,11 +45,20 @@ export default async function Page(props: { params: Promise<{ form: string }> })
   return (
     <KeywordLanding
       h1={`Form ${f.short}${f.aka ? ` — ${f.aka}` : ''}`}
-      lede={`${f.what} The revision the ${f.authority} publishes today is ${f.revision}, and it has ${f.fields} fillable fields across ${f.pages} ${f.pages === 1 ? 'page' : 'pages'}. You can fill every one of them here, in your browser, without the file going anywhere.`}
+      lede={`${f.what} ${revisionSentence(f)}. It has ${f.fields} fillable fields across ${f.pages} ${f.pages === 1 ? 'page' : 'pages'}. You can fill every one of them here, in your browser, without the file going anywhere.`}
       ctaHref={FILL_HREF}
       ctaLabel={`Fill Form ${f.short} in your browser`}
+      cta={
+        <GetFormButton
+          slug={f.slug}
+          short={f.short}
+          officialUrl={f.officialUrl}
+          authority={f.authority}
+          toolHref={FILL_HREF}
+        />
+      }
       bullets={[
-        `Rev. ${f.revision} — checked against the ${f.authority} on ${CHECKED_ON_LABEL}`,
+        `${f.revisionLabel} ${f.revision} — checked against the ${f.authority} on ${CHECKED_ON_LABEL}`,
         `${f.fields} fillable fields, counted on the actual file`,
         'Typed in your browser: no upload, no account, no copy kept',
         'The current form always comes from the authority — we never host one',
@@ -60,7 +70,7 @@ export default async function Page(props: { params: Promise<{ form: string }> })
           <dl className="grid grid-cols-3 gap-3 rounded-xl border bg-card p-4 text-center">
             <div>
               <dt className="flex items-center justify-center gap-1.5 text-xs font-medium text-muted-foreground">
-                <FileText className="size-3.5" /> Revision
+                <FileText className="size-3.5" /> {revisionHeading(f)}
               </dt>
               <dd className="mt-1 text-base font-semibold tabular-nums text-foreground">{f.revision}</dd>
             </div>
@@ -185,7 +195,7 @@ export default async function Page(props: { params: Promise<{ form: string }> })
         { q: `Who has to file Form ${f.short}?`, a: f.who },
         {
           q: `Which revision of Form ${f.short} is current?`,
-          a: `${f.revision}, as published by the ${f.authority} and checked by us on ${CHECKED_ON_LABEL}. We state the date because a revision without one is just an assertion — and federal forms are revised without notice. Download it from ${f.officialName} rather than from us.`,
+          a: `${f.revisionLabel} ${f.revision}, as published by the ${f.authority} and checked by us on ${CHECKED_ON_LABEL}. We state the date because a revision without one is just an assertion — and federal forms are revised without notice. Download it from ${f.officialName} rather than from us.`,
         },
         {
           q: `Can I fill Form ${f.short} without uploading it anywhere?`,

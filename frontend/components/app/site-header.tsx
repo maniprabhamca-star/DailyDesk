@@ -220,6 +220,33 @@ export function SiteHeader({ heroSearchRef }: { heroSearchRef?: React.RefObject<
             </div>
 
             <MenuGrid onPick={() => setMenuOpen(false)} />
+
+            {/* Below the tools: the pages that say which tool to reach for.
+                Someone who came here holding a W-9 or an I-485 does not know
+                which of 119 tools is the one — these pages do, and without this
+                strip the only way to find them was a search engine. No counts:
+                the libraries live in their own modules, and importing them to
+                print a number would put every form's prose in the chunk that
+                loads on every page. */}
+            <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-border pt-3">
+              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Looking for a form?</span>
+              {[
+                { label: 'US federal forms', sub: 'IRS, USCIS, SSA, DOL, VA', href: '/us-forms' },
+                { label: 'Indian forms', sub: 'ITR, PAN, Aadhaar, EPFO', href: '/india-forms' },
+                { label: 'Passport photos', sub: '60+ countries, to spec', href: '/passport-photo' },
+                { label: 'By profession', sub: 'what your work needs', href: '/for/accountants' },
+              ].map((l) => (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  onClick={() => setMenuOpen(false)}
+                  className="group flex flex-col rounded-lg px-2 py-1 transition-colors hover:bg-accent"
+                >
+                  <span className="text-sm font-medium text-foreground/90 group-hover:text-foreground">{l.label}</span>
+                  <span className="text-[11px] text-muted-foreground">{l.sub}</span>
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
       )}

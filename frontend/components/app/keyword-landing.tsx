@@ -11,6 +11,7 @@ export function KeywordLanding({
   lede,
   ctaHref,
   ctaLabel,
+  cta,
   bullets,
   body,
   faqs,
@@ -19,6 +20,10 @@ export function KeywordLanding({
   lede: string;
   ctaHref: string;
   ctaLabel: string;
+  /** Replaces the default link-button entirely, for pages whose call to action
+   *  has to do something before it navigates (the forms library fetches the
+   *  blank form first). Keeps the one-filled-button-per-screen rule intact. */
+  cta?: React.ReactNode;
   bullets?: string[];
   body?: React.ReactNode;
   faqs?: Faq[];
@@ -36,9 +41,13 @@ export function KeywordLanding({
       <main className="mx-auto w-full max-w-3xl flex-1 px-5 py-12 sm:py-16">
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{h1}</h1>
         <p className="mt-4 max-w-2xl text-lg text-muted-foreground">{lede}</p>
-        <Link href={ctaHref} className="mt-6 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-90">
-          {ctaLabel} <ArrowRight className="size-4" />
-        </Link>
+        {cta ? (
+          <div className="mt-6">{cta}</div>
+        ) : (
+          <Link href={ctaHref} className="mt-6 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-90">
+            {ctaLabel} <ArrowRight className="size-4" />
+          </Link>
+        )}
 
         {bullets && bullets.length > 0 && (
           <ul className="mt-8 grid gap-2.5 sm:grid-cols-2">

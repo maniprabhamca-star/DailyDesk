@@ -42,6 +42,11 @@ export type Sector = {
   limits: string[];
   /** Closing line for the CTA band. */
   close: string;
+  /** The form library this sector actually works out of, where there is one.
+   *  An immigration paralegal's day is I-130s and I-485s; a bookkeeper's is
+   *  W-9s and 1099s. Those pages fetch the current edition from the agency and
+   *  hand it to the fill tool, which is a shorter path than any tool link. */
+  forms?: { href: string; label: string; note: string };
 };
 
 export const SECTORS: Sector[] = [
@@ -104,6 +109,7 @@ export const SECTORS: Sector[] = [
       'We hold no audit trail of what you converted, which is the point, and also means we cannot reconstruct it for you later.',
     ],
     close: 'Convert one statement and watch the Network tab stay silent. Then decide.',
+    forms: { href: '/us-forms', label: 'The IRS forms your clients send you', note: 'W-9, W-4, 1099-NEC, 941, 4506-T and the rest — current revision, field count and page count, measured off the file.' },
   },
   {
     slug: 'healthcare',
@@ -195,6 +201,7 @@ export const SECTORS: Sector[] = [
       'Tools that genuinely need a server — Office conversions, and OCR — are labelled on their own pages. Treat those as you would any processor.',
     ],
     close: 'Redact one CV and watch the Network tab stay empty. Then decide whether it belongs in your process.',
+    forms: { href: '/us-forms', label: 'The onboarding forms, current editions', note: 'I-9, W-4, SS-5, WH-380-E and FMLA paperwork — the edition in force, not whichever copy is in the shared drive.' },
   },
   {
     slug: 'tax-practitioners',
@@ -226,6 +233,7 @@ export const SECTORS: Sector[] = [
       'We keep no record of what you converted, which means we also cannot reconstruct it for an audit trail.',
     ],
     close: 'Convert one statement with the Network tab open. The absence of a request is the whole argument.',
+    forms: { href: '/us-forms', label: 'The IRS forms, with their revisions stated', note: '2848, 8821, 433-A, 1040-X, 7004 and more — each one opens the current revision straight from irs.gov.' },
   },
   {
     slug: 'finance',
@@ -351,6 +359,7 @@ export const SECTORS: Sector[] = [
       'We keep no copy of the bundle, which is the point, and also means we cannot send you one if you lose yours.',
     ],
     close: 'Size one photo and watch the Network tab. The passport never goes anywhere.',
+    forms: { href: '/us-forms', label: 'The USCIS forms, by edition date', note: 'I-130, I-485, I-765, N-400 and I-9 — with the edition USCIS accepts today, because a superseded one is rejected outright.' },
   },
   {
     slug: 'journalism',

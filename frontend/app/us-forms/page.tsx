@@ -99,7 +99,7 @@ export default function UsFormsPage() {
                     <div className="flex items-baseline justify-between gap-2">
                       <p className="text-sm font-semibold group-hover:text-primary">Form {f.short}</p>
                       <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-medium tabular-nums text-muted-foreground">
-                        Rev. {f.revision} · {f.fields} fields
+                        {f.revisionLabel} {f.revision} · {f.fields} fields
                       </span>
                     </div>
                     {f.aka && <p className="mt-0.5 text-xs text-muted-foreground">{f.aka}</p>}

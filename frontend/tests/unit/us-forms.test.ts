@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { US_FORMS, US_FORM_GROUPS, CHECKED_ON, CHECKED_ON_LABEL, getUsForm } from '@/lib/us-forms';
+import { US_FORMS, US_FORM_GROUPS, CHECKED_ON, CHECKED_ON_LABEL, getUsForm, revisionSentence, revisionHeading } from '@/lib/us-forms';
+import type { UsForm } from '@/lib/us-forms';
 import { catalog } from '@/components/app/catalog';
 
 // Same risk as the India library, one notch higher: these pages state a form's
@@ -118,17 +119,66 @@ describe('US forms library', () => {
     // `npm run verify:us-forms` checks them against the IRS itself.
     const YEAR_NOW = new Date().getFullYear();
     for (const f of US_FORMS) {
+      // Five agencies, five ways of marking a version. The shape has to match
+      // the label, because "Rev. 04/01/24" would be the IRS's word on USCIS's
+      // value and neither agency would recognise it.
+      const SHAPES: Record<UsForm['revisionLabel'], RegExp> = {
+        'Rev.': /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{4}$/, // Mar 2024
+        'Form year': /^\d{4}$/,                                              // 2026
+        'Edition date': /^\d{2}\/\d{2}\/\d{2}$/,                            // 04/01/24
+        Revised: /^[A-Z][a-z]+ \d{4}$/,                                      // June 2020
+        'Form date': /^((\d{2}-\d{4})|((Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{4}))$/, // 12-2024 or Jan 2026
+      };
+      expect(
+        SHAPES[f.revisionLabel],
+        `${f.name}: revisionLabel "${f.revisionLabel}" has no known shape`,
+      ).toBeDefined();
       expect(
         f.revision,
-        `${f.name}: revision must be a year ("2026") or month-year ("Mar 2024") as the IRS states it`,
-      ).toMatch(/^((Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) )?\d{4}$/);
-      const year = Number(f.revision.slice(-4));
+        `${f.name}: revision "${f.revision}" does not look like a ${f.revisionLabel} value`,
+      ).toMatch(SHAPES[f.revisionLabel]);
+
+      const y = f.revision.match(/\d{4}/);
+      const year = y ? Number(y[0]) : 2000 + Number(f.revision.slice(-2));
       expect(year, `${f.name}: revision year ${year} is implausible`).toBeGreaterThanOrEqual(2015);
       expect(year, `${f.name}: revision year ${year} is in the future`).toBeLessThanOrEqual(YEAR_NOW + 1);
 
       expect(Number.isInteger(f.fields), `${f.name}: fields must be a measured integer`).toBe(true);
       expect(f.fields, `${f.name}: a fillable form with no fields is not fillable`).toBeGreaterThan(0);
       expect(Number.isInteger(f.pages) && f.pages > 0, `${f.name}: pages must be a measured integer`).toBe(true);
+    }
+  });
+
+  it('points /api/forms at the agency’s own PDF, on an allowlisted host', () => {
+    // pdfUrl is the ONE place a URL leaves our control, and the route handler
+    // fetches it server-side. There is no SSRF surface because the caller
+    // supplies a slug, not a URL — but a typo here would still have the server
+    // fetching somewhere unintended, so the list is checked.
+    const ALLOWED = ['www.irs.gov', 'www.uscis.gov', 'www.ssa.gov', 'www.dol.gov', 'www.vba.va.gov', 'www.va.gov'];
+    for (const f of US_FORMS) {
+      const u = new URL(f.pdfUrl);
+      expect(u.protocol, `${f.name}: pdfUrl must be https`).toBe('https:');
+      expect(ALLOWED.includes(u.hostname), `${f.name}: ${u.hostname} is not an allowlisted agency host`).toBe(true);
+      expect(u.pathname.toLowerCase().endsWith('.pdf'), `${f.name}: pdfUrl must point at a PDF`).toBe(true);
+      // The human page and the file are different things, and conflating them
+      // is how a reader ends up downloading a form with no context.
+      expect(f.pdfUrl, `${f.name}: pdfUrl and officialUrl must not be the same`).not.toBe(f.officialUrl);
+    }
+  });
+
+  it('phrases the version marker in the agency’s own words', () => {
+    for (const f of US_FORMS) {
+      const sentence = revisionSentence(f);
+      expect(sentence, `${f.name}: revision sentence must quote the value`).toContain(f.revision);
+      // "The rev. the IRS publishes today" is not English. The clause has to
+      // read as a sentence, which means it never just interpolates the label.
+      expect(sentence.toLowerCase(), `${f.name}: sentence reads as a raw label`).not.toContain('the rev. ');
+      expect(revisionHeading(f), `${f.name}: strip heading must not end in a dot`).not.toMatch(/\.$/);
+    }
+    // USCIS editions are the case that matters most: a superseded edition is
+    // rejected outright, and the page has to say so.
+    for (const f of US_FORMS.filter((x) => x.revisionLabel === 'Edition date')) {
+      expect(revisionSentence(f).toLowerCase(), `${f.name}: must warn that an old edition is rejected`).toContain('rejected');
     }
   });
 

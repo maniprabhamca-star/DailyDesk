@@ -10,6 +10,7 @@ import { getRecent, pushRecent } from '@/lib/recent';
 import { useIsOwner, usePlan } from '@/lib/plan';
 import { useEditorContext, type EditorCommand } from '@/lib/command-registry';
 import { aiPost } from '@/lib/ai-doc';
+import { matchesForm, type FormHit } from '@/lib/form-search';
 import { cn } from '@/lib/utils';
 
 type Tool = CatTool & { color: string; group: string };
@@ -21,6 +22,7 @@ type Row =
   | { type: 'cmd'; cmd: EditorCommand }
   | { type: 'goto'; page: number }
   | { type: 'workflow'; label: string; sub: string }
+  | { type: 'form'; form: FormHit }
   | { type: 'ai' };
 
 // Natural-language ⌘K (Pro): the typed phrase goes to the AI with the CURRENT
@@ -71,6 +73,20 @@ export function CommandPalette() {
 
   // Every tool, flattened, carrying its group colour. Live = has an href.
   const tools = useMemo<Tool[]>(() => catalog.flatMap((g) => g.tools.map((t) => ({ ...t, color: g.color, group: g.label }))), []);
+
+  // Form pages (30 US + 32 Indian) are searchable by number: "W-9", "I-485",
+  // "1099", "Form 16". Fetched once per session on the first search, NOT
+  // imported — see app/api/forms-index/route.ts for why.
+  const [forms, setForms] = useState<FormHit[]>([]);
+  const formsAsked = useRef(false);
+  useEffect(() => {
+    if (!open || !query.trim() || formsAsked.current) return;
+    formsAsked.current = true;
+    fetch('/api/forms-index')
+      .then((r) => (r.ok ? r.json() : []))
+      .then((rows: FormHit[]) => setForms(Array.isArray(rows) ? rows : []))
+      .catch(() => { /* the palette works fine without it */ });
+  }, [open, query]);
 
   const recent = useMemo<Tool[]>(() => {
     if (!open) return [];
@@ -126,6 +142,10 @@ export function CommandPalette() {
       const mt = tools.filter(matchTool).slice(0, MAX_RESULTS);
       const ma = actions.filter(matchAction);
       if (mt.length) { rows.push({ type: 'header', label: 'Tools' }); mt.forEach((t) => rows.push({ type: 'tool', tool: t, disabled: toolDisabled(t)})); }
+
+      const mf = forms.filter((f) => matchesForm(f, q)).slice(0, 6);
+      if (mf.length) { rows.push({ type: 'header', label: 'Forms', note: '\u00b7 what it is, who files it' }); mf.forEach((f) => rows.push({ type: 'form', form: f })); }
+
       if (ma.length) { rows.push({ type: 'header', label: 'Actions' }); ma.forEach((a) => rows.push({ type: 'action', action: a })); }
       // Phrase-length queries get the natural-language row (Pro) — the fallback
       // when exact matching can't read intent ("black out my address on page 2").
@@ -137,11 +157,11 @@ export function CommandPalette() {
 
     const selectable = rows.map((_, i) => i).filter((i) => {
       const r = rows[i];
-      return (r.type === 'tool' && !r.disabled) || r.type === 'action' || r.type === 'cmd' || r.type === 'goto'
+      return (r.type === 'tool' && !r.disabled) || r.type === 'action' || r.type === 'cmd' || r.type === 'goto' || r.type === 'form'
         || (r.type === 'ai' && ai.phase !== 'busy' && ai.phase !== 'none');
     });
     return { rows, selectable };
-  }, [query, recent, actions, tools, toolDisabled, editorCtx, ai.phase]);
+  }, [query, recent, actions, tools, toolDisabled, editorCtx, ai.phase, forms]);
 
   // What the AI resolved to, in human words (for the confirm row).
   const resolvedLabel = useMemo(() => {
@@ -174,6 +194,7 @@ export function CommandPalette() {
       });
       return;
     }
+    if (r.type === 'form') { setOpen(false); router.push(r.form.h); return; }
     if (r.type === 'cmd') { setOpen(false); r.cmd.run(); return; }
     if (r.type === 'goto') { setOpen(false); editorCtx?.goToPage?.(r.page); return; }
     if (r.type === 'tool') {
@@ -271,6 +292,19 @@ export function CommandPalette() {
                 );
               }
               const isActive = i === activeRowIndex;
+              if (r.type === 'form') {
+                return (
+                  <button key={`f${i}`} data-active={isActive} onMouseEnter={() => setActive(selectable.indexOf(i))} onClick={() => activate(i)}
+                    className={cn('flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors', isActive && 'bg-accent')}>
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sky-500/12 text-sky-600 dark:text-sky-300"><FileText className="size-4" /></span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium">{r.form.n}</span>
+                      <span className="block truncate text-xs text-muted-foreground">{r.form.a || r.form.g}</span>
+                    </span>
+                    {isActive && <CornerDownLeft className="size-4 shrink-0 text-muted-foreground" />}
+                  </button>
+                );
+              }
               if (r.type === 'goto') {
                 return (
                   <button key={`goto${i}`} data-active={isActive} onMouseEnter={() => setActive(selectable.indexOf(i))} onClick={() => activate(i)}

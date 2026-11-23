@@ -55,8 +55,18 @@ export type UsForm = {
   officialName: string;
   /** The authority's own page — never a copy hosted by us, never a direct PDF. */
   officialUrl: string;
-  /** The revision as the authority states it, e.g. "Mar 2024", "2026". */
+  /** What the issuing agency CALLS its version marker. Not cosmetic: the IRS
+   *  says "Rev.", USCIS says "Edition date" and rejects a form filed on an
+   *  out-of-date edition, the DOL says "Revised". Printing the agency's own
+   *  term is the difference between a useful page and a vaguely official one. */
+  revisionLabel: 'Rev.' | 'Form year' | 'Edition date' | 'Revised' | 'Form date';
+  /** The marker exactly as the agency prints it: "Mar 2024", "2026", "04/01/24". */
   revision: string;
+  /** The agency's own PDF. Used ONLY by /api/forms/<slug>, which fetches it
+   *  live when someone clicks "get this form" — we never store a copy, which
+   *  is why `officialUrl` (the human page) stays separate and a test forbids
+   *  it from pointing at a PDF. */
+  pdfUrl: string;
   /** Fillable form fields, counted on the real PDF. */
   fields: number;
   /** Page count of the published PDF, instructions included. */
@@ -83,7 +93,9 @@ export const US_FORMS: UsForm[] = [
     authority: 'Internal Revenue Service',
     officialName: 'the IRS page for Form W-9',
     officialUrl: 'https://www.irs.gov/forms-pubs/about-form-w-9',
+    revisionLabel: 'Rev.',
     revision: 'Mar 2024',
+    pdfUrl: 'https://www.irs.gov/pub/irs-pdf/fw9.pdf',
     fields: 23,
     pages: 6,
     sensitive:
@@ -107,7 +119,9 @@ export const US_FORMS: UsForm[] = [
     authority: 'Internal Revenue Service',
     officialName: 'the IRS page for Form W-4',
     officialUrl: 'https://www.irs.gov/forms-pubs/about-form-w-4',
+    revisionLabel: 'Form year',
     revision: '2026',
+    pdfUrl: 'https://www.irs.gov/pub/irs-pdf/fw4.pdf',
     fields: 48,
     pages: 5,
     sensitive:
@@ -131,7 +145,9 @@ export const US_FORMS: UsForm[] = [
     authority: 'Internal Revenue Service',
     officialName: 'the IRS page for Form W-7',
     officialUrl: 'https://www.irs.gov/forms-pubs/about-form-w-7',
+    revisionLabel: 'Rev.',
     revision: 'Dec 2024',
+    pdfUrl: 'https://www.irs.gov/pub/irs-pdf/fw7.pdf',
     fields: 69,
     pages: 1,
     sensitive:
@@ -155,7 +171,9 @@ export const US_FORMS: UsForm[] = [
     authority: 'Internal Revenue Service',
     officialName: 'the IRS page for Form SS-4',
     officialUrl: 'https://www.irs.gov/forms-pubs/about-form-ss-4',
+    revisionLabel: 'Rev.',
     revision: 'Dec 2025',
+    pdfUrl: 'https://www.irs.gov/pub/irs-pdf/fss4.pdf',
     fields: 89,
     pages: 2,
     sensitive:
@@ -179,7 +197,9 @@ export const US_FORMS: UsForm[] = [
     authority: 'Internal Revenue Service',
     officialName: 'the IRS page for Form 2848',
     officialUrl: 'https://www.irs.gov/forms-pubs/about-form-2848',
+    revisionLabel: 'Rev.',
     revision: 'Jan 2021',
+    pdfUrl: 'https://www.irs.gov/pub/irs-pdf/f2848.pdf',
     fields: 92,
     pages: 2,
     sensitive:
@@ -203,7 +223,9 @@ export const US_FORMS: UsForm[] = [
     authority: 'Internal Revenue Service',
     officialName: 'the IRS page for Form 8821',
     officialUrl: 'https://www.irs.gov/forms-pubs/about-form-8821',
+    revisionLabel: 'Rev.',
     revision: 'Jan 2021',
+    pdfUrl: 'https://www.irs.gov/pub/irs-pdf/f8821.pdf',
     fields: 45,
     pages: 1,
     sensitive:
@@ -227,7 +249,9 @@ export const US_FORMS: UsForm[] = [
     authority: 'Internal Revenue Service',
     officialName: 'the IRS page for Form 8822',
     officialUrl: 'https://www.irs.gov/forms-pubs/about-form-8822',
+    revisionLabel: 'Rev.',
     revision: 'Feb 2021',
+    pdfUrl: 'https://www.irs.gov/pub/irs-pdf/f8822.pdf',
     fields: 25,
     pages: 2,
     sensitive:
@@ -251,7 +275,9 @@ export const US_FORMS: UsForm[] = [
     authority: 'Internal Revenue Service',
     officialName: 'the IRS page for Form 4506-T',
     officialUrl: 'https://www.irs.gov/forms-pubs/about-form-4506-t',
+    revisionLabel: 'Rev.',
     revision: 'Apr 2025',
+    pdfUrl: 'https://www.irs.gov/pub/irs-pdf/f4506t.pdf',
     fields: 29,
     pages: 2,
     sensitive:
@@ -275,7 +301,9 @@ export const US_FORMS: UsForm[] = [
     authority: 'Internal Revenue Service',
     officialName: 'the IRS page for Form SS-8',
     officialUrl: 'https://www.irs.gov/forms-pubs/about-form-ss-8',
+    revisionLabel: 'Rev.',
     revision: 'Dec 2023',
+    pdfUrl: 'https://www.irs.gov/pub/irs-pdf/fss8.pdf',
     fields: 299,
     pages: 5,
     sensitive:
@@ -301,7 +329,9 @@ export const US_FORMS: UsForm[] = [
     authority: 'Internal Revenue Service',
     officialName: 'the IRS forms search — the IRS publishes no "About Form 433-A" page',
     officialUrl: 'https://www.irs.gov/forms-instructions-and-publications?find=433-A&items_per_page=25',
+    revisionLabel: 'Rev.',
     revision: 'Jun 2026',
+    pdfUrl: 'https://www.irs.gov/pub/irs-pdf/f433a.pdf',
     fields: 515,
     pages: 8,
     sensitive:
@@ -325,7 +355,9 @@ export const US_FORMS: UsForm[] = [
     authority: 'Internal Revenue Service',
     officialName: 'the IRS forms search — the IRS publishes no "About Form 433-F" page',
     officialUrl: 'https://www.irs.gov/forms-instructions-and-publications?find=433-F&items_per_page=25',
+    revisionLabel: 'Rev.',
     revision: 'Jul 2024',
+    pdfUrl: 'https://www.irs.gov/pub/irs-pdf/f433f.pdf',
     fields: 214,
     pages: 4,
     sensitive:
@@ -349,7 +381,9 @@ export const US_FORMS: UsForm[] = [
     authority: 'Internal Revenue Service',
     officialName: 'the IRS page for Form 9465',
     officialUrl: 'https://www.irs.gov/forms-pubs/about-form-9465',
+    revisionLabel: 'Rev.',
     revision: 'Dec 2026',
+    pdfUrl: 'https://www.irs.gov/pub/irs-pdf/f9465.pdf',
     fields: 32,
     pages: 1,
     sensitive:
@@ -364,7 +398,503 @@ export const US_FORMS: UsForm[] = [
       'Two things. The IRS renamed it: the current revision is titled Payment Plan Request, while the IRS’s own "About Form 9465" page still says Installment Agreement Request, so a search turns up the old name and you cannot tell whether you have the current form. And the form opens by telling you not to use it — a tip at the top of page one says that if you owe $50,000 or less in combined tax, penalties and interest, you can usually set the plan up through the Online Payment Agreement application instead, for a lower user fee.',
     tools: ['Fill PDF form', 'Sign PDF', 'Merge PDF', 'Compress to size'],
   },
+
+  // ── C. Returns and information returns ─────────────────────────────────────
+  {
+    slug: 'form-1040',
+    name: 'Form 1040',
+    short: '1040',
+    group: 'Returns and information returns',
+    aka: 'the individual income tax return',
+    authority: 'Internal Revenue Service',
+    officialName: 'the IRS page for Form 1040',
+    officialUrl: 'https://www.irs.gov/forms-pubs/about-form-1040',
+    revisionLabel: 'Form year',
+    revision: '2025',
+    pdfUrl: 'https://www.irs.gov/pub/irs-pdf/f1040.pdf',
+    fields: 199,
+    pages: 2,
+    sensitive:
+      'your Social Security number, your spouse’s and every dependant’s, alongside your income, your bank details for the refund and whatever the schedules add',
+    what:
+      'The annual individual income tax return: what you earned, what is deductible, what you already paid, and whether the difference is a refund or a bill.',
+    who:
+      'Most people with US income above the filing threshold, plus anyone who wants a refund of tax already withheld even when they are not required to file.',
+    when:
+      'For the previous calendar year, generally in the spring, with an extension available on request. Dates move and are occasionally extended, so confirm the current one with the IRS.',
+    gotcha:
+      'The two-page form is almost never the whole return. Anything beyond the simplest situation pulls in schedules — 1 for additional income and adjustments, 2 for additional taxes, 3 for credits, plus C, D, E or SE depending on what you do — and each is a separate PDF. The filing is the assembly job: people submit the 1040 and leave out the schedule that carries the number it refers to.',
+    tools: ['Fill PDF form', 'Merge PDF', 'Redact PDF', 'PDF to Excel'],
+  },
+  {
+    slug: 'form-1040-x',
+    name: 'Form 1040-X',
+    short: '1040-X',
+    group: 'Returns and information returns',
+    aka: 'amended individual return',
+    authority: 'Internal Revenue Service',
+    officialName: 'the IRS page for Form 1040-X',
+    officialUrl: 'https://www.irs.gov/forms-pubs/about-form-1040x',
+    revisionLabel: 'Rev.',
+    revision: 'Dec 2025',
+    pdfUrl: 'https://www.irs.gov/pub/irs-pdf/f1040x.pdf',
+    fields: 166,
+    pages: 2,
+    sensitive:
+      'the same identifiers as the original return, next to an explicit written explanation of what you got wrong the first time',
+    what:
+      'The amendment to a return you have already filed: three columns showing the original figure, the change, and the corrected figure, with a written explanation of why.',
+    who:
+      'Anyone who filed and then found something wrong — a missing 1099, the wrong filing status, a credit they were entitled to and did not claim.',
+    when:
+      'After the original return has been processed, not while it is in flight. There is a limit on how far back you can go to claim a refund, so check the current rule before assuming an old year is still open.',
+    gotcha:
+      'Column A is what you originally reported, not what you now think it should have been — people fill all three columns with corrected figures and the arithmetic of column B stops meaning anything. You also need the original return in front of you to complete it at all, which is the practical reason this one is so often started twice.',
+    tools: ['Fill PDF form', 'Merge PDF', 'Compare PDF', 'Redact PDF'],
+  },
+  {
+    slug: 'form-1099-nec',
+    name: 'Form 1099-NEC',
+    short: '1099-NEC',
+    group: 'Returns and information returns',
+    aka: 'non-employee compensation',
+    authority: 'Internal Revenue Service',
+    officialName: 'the IRS page for Form 1099-NEC',
+    officialUrl: 'https://www.irs.gov/forms-pubs/about-form-1099-nec',
+    revisionLabel: 'Rev.',
+    revision: 'Dec 2026',
+    pdfUrl: 'https://www.irs.gov/pub/irs-pdf/f1099nec.pdf',
+    fields: 140,
+    pages: 6,
+    sensitive:
+      'the contractor’s taxpayer identification number and the total you paid them, which is why the W-9 you collected earlier exists',
+    what:
+      'The information return a business files to report what it paid an independent contractor, with a copy to the contractor so they can report the same figure.',
+    who:
+      'Businesses that paid a non-employee for services above the reporting threshold during the year. The contractor receives a copy; they do not file it.',
+    when:
+      'Early in the year following the payments, and the copy to the contractor is generally due before the copy to the IRS. Confirm the current dates — this one has moved.',
+    gotcha:
+      'Do not file the copy you downloaded. Copy A is printed in red for optical scanning, and the PDF on the IRS website is marked informational only — filing a printout of it can draw a penalty. Download it to see the layout, prepare your figures and give the contractor their copy; file the official one electronically or on the scannable stock. The second trap is timing: the IRS publishes these a year ahead, so check the year in the corner matches the year you are reporting.',
+    tools: ['Fill PDF form', 'Merge PDF', 'Split PDF', 'PDF to Excel'],
+  },
+  {
+    slug: 'form-1099-misc',
+    name: 'Form 1099-MISC',
+    short: '1099-MISC',
+    group: 'Returns and information returns',
+    aka: 'miscellaneous information',
+    authority: 'Internal Revenue Service',
+    officialName: 'the IRS page for Form 1099-MISC',
+    officialUrl: 'https://www.irs.gov/forms-pubs/about-form-1099-misc',
+    revisionLabel: 'Rev.',
+    revision: 'Dec 2026',
+    pdfUrl: 'https://www.irs.gov/pub/irs-pdf/f1099msc.pdf',
+    fields: 179,
+    pages: 6,
+    sensitive:
+      'the recipient’s taxpayer identification number beside rent, royalty, prize or settlement amounts that say a good deal about the relationship',
+    what:
+      'The catch-all information return for payments that are not wages and not contractor fees: rent, royalties, prizes, medical payments, certain legal settlements.',
+    who:
+      'Businesses and landlords making those payments above the reporting thresholds. Recipients get a copy to reconcile against their own records.',
+    when:
+      'Early in the year after the payments. The deadline differs depending on which boxes you have filled in, so check rather than assuming it matches the NEC.',
+    gotcha:
+      'Contractor payments moved off this form onto the 1099-NEC, and people still reach for the MISC out of habit — it is the single commonest misfiling in this pair. Box 7 on the MISC no longer means non-employee compensation. The same red-ink warning applies: the downloaded Copy A is informational and is not scannable.',
+    tools: ['Fill PDF form', 'Merge PDF', 'Split PDF', 'PDF to Excel'],
+  },
+  {
+    slug: 'form-w-2',
+    name: 'Form W-2',
+    short: 'W-2',
+    group: 'Returns and information returns',
+    aka: 'wage and tax statement',
+    authority: 'Internal Revenue Service',
+    officialName: 'the IRS page for Form W-2',
+    officialUrl: 'https://www.irs.gov/forms-pubs/about-form-w-2',
+    revisionLabel: 'Form year',
+    revision: '2026',
+    pdfUrl: 'https://www.irs.gov/pub/irs-pdf/fw2.pdf',
+    fields: 568,
+    pages: 11,
+    sensitive:
+      'an employee’s Social Security number next to their full annual pay and every deduction taken from it — a complete picture of one person’s year',
+    what:
+      'The statement an employer issues to each employee and files with the Social Security Administration: wages paid and tax withheld for the year.',
+    who:
+      'Employers, for every employee. Employees receive it and use it to file; they never file the W-2 itself.',
+    when:
+      'Employers generally issue it to employees early in the new year and file their copies around the same time. Confirm the current dates with the IRS or the SSA.',
+    gotcha:
+      'The downloaded file carries a warning in its own text: Copy A appears in red like the official form but does not meet the SSA’s requirements for scanning, and filing a printout of it can draw a penalty. Use it to check the layout, not to file — the SSA’s Business Services Online will produce a fileable copy for free. The PDF is also eleven pages because it is the whole multi-copy package, not one form, which is why it has 568 fields.',
+    tools: ['Fill PDF form', 'Split PDF', 'Redact PDF', 'Merge PDF'],
+  },
+  {
+    slug: 'form-941',
+    name: 'Form 941',
+    short: '941',
+    group: 'Returns and information returns',
+    aka: 'quarterly federal tax return',
+    authority: 'Internal Revenue Service',
+    officialName: 'the IRS page for Form 941',
+    officialUrl: 'https://www.irs.gov/forms-pubs/about-form-941',
+    revisionLabel: 'Rev.',
+    revision: 'Mar 2026',
+    pdfUrl: 'https://www.irs.gov/pub/irs-pdf/f941.pdf',
+    fields: 116,
+    pages: 3,
+    sensitive:
+      'your employer identification number with the quarter’s full payroll and the tax deposited against it — the figures a payroll audit starts from',
+    what:
+      'The quarterly return reporting wages paid, tips reported, and the income tax and Social Security and Medicare tax withheld and owed for the quarter.',
+    who:
+      'Employers who withhold payroll tax, which is most of them. Some very small employers file annually on Form 944 instead, by IRS notification.',
+    when:
+      'Once a quarter, generally in the month after the quarter closes, with a short extra window if every deposit was made on time. Check the current calendar.',
+    gotcha:
+      'Filing the 941 is not paying the tax. Deposits run on their own schedule — monthly or semi-weekly depending on your lookback period — and the penalty for depositing late is separate from, and often larger than, anything to do with the return. The other trap is the revision: this form is revised mid-year more often than most, and the quarter you are reporting has to match the revision you are filing on.',
+    tools: ['Fill PDF form', 'Merge PDF', 'PDF to Excel', 'Compare PDF'],
+  },
+  {
+    slug: 'form-940',
+    name: 'Form 940',
+    short: '940',
+    group: 'Returns and information returns',
+    aka: 'annual FUTA return',
+    authority: 'Internal Revenue Service',
+    officialName: 'the IRS page for Form 940',
+    officialUrl: 'https://www.irs.gov/forms-pubs/about-form-940',
+    revisionLabel: 'Form year',
+    revision: '2025',
+    pdfUrl: 'https://www.irs.gov/pub/irs-pdf/f940.pdf',
+    fields: 97,
+    pages: 3,
+    sensitive:
+      'your employer identification number with the year’s total payroll and the state unemployment accounts you pay into',
+    what:
+      'The annual federal unemployment tax return. FUTA is paid by the employer alone — nothing comes out of anyone’s wages — and it funds unemployment benefits alongside the state schemes.',
+    who:
+      'Employers who paid wages above the FUTA threshold or had employees for enough weeks in the year. The thresholds are low enough that most employers with staff are in scope.',
+    when:
+      'Once a year, generally early in the following year, with a short extra window if the tax was deposited on time. Confirm the current date.',
+    gotcha:
+      'The credit for state unemployment tax is what makes the effective rate small, and it only applies to amounts you actually paid, on time, to the state. Pay the state late and the federal bill rises, which is a surprise nobody budgets for. Some states are also credit-reduction states in a given year, which raises the rate for employers there — that list changes annually and is published with the form.',
+    tools: ['Fill PDF form', 'Merge PDF', 'PDF to Excel', 'Compress to size'],
+  },
+
+  // ── D. Immigration ─────────────────────────────────────────────────────────
+  {
+    slug: 'form-i-9',
+    name: 'Form I-9',
+    short: 'I-9',
+    group: 'Immigration',
+    aka: 'employment eligibility verification',
+    authority: 'U.S. Citizenship and Immigration Services',
+    officialName: 'the USCIS page for Form I-9',
+    officialUrl: 'https://www.uscis.gov/i-9',
+    revisionLabel: 'Edition date',
+    revision: '01/20/25',
+    pdfUrl: 'https://www.uscis.gov/sites/default/files/document/forms/i-9.pdf',
+    fields: 128,
+    pages: 4,
+    sensitive:
+      'an employee’s date of birth, Social Security number and immigration status, plus the identity documents an employer examined to verify them',
+    what:
+      'The form every US employer completes with every new hire to verify identity and authorisation to work. The employee fills section 1, the employer examines documents and completes section 2.',
+    who:
+      'Every employer and every employee hired in the United States, citizens included. It is not filed with any agency — the employer keeps it and produces it if inspected.',
+    when:
+      'Section 1 by the employee no later than their first day, section 2 by the employer within the first few days of work. Check the current rule, which depends on the length of the engagement.',
+    gotcha:
+      'It is never filed, and that is what people get wrong in both directions: new employers post it to USCIS, where nothing happens to it, and established ones store it inside the personnel file. It belongs in a separate I-9 file, because an inspection entitles the inspector to the I-9s and not to the rest of the personnel record. Retention runs from the later of three years after hire or one year after the employment ends, so a binder you never purge grows liability rather than protection.',
+    tools: ['Fill PDF form', 'Sign PDF', 'Scan to PDF', 'Merge PDF'],
+  },
+  {
+    slug: 'form-i-130',
+    name: 'Form I-130',
+    short: 'I-130',
+    group: 'Immigration',
+    aka: 'petition for alien relative',
+    authority: 'U.S. Citizenship and Immigration Services',
+    officialName: 'the USCIS page for Form I-130',
+    officialUrl: 'https://www.uscis.gov/i-130',
+    revisionLabel: 'Edition date',
+    revision: '04/01/24',
+    pdfUrl: 'https://www.uscis.gov/sites/default/files/document/forms/i-130.pdf',
+    fields: 450,
+    pages: 12,
+    sensitive:
+      'two people’s full identity and address histories and the evidence of their relationship — for a marriage petition, the private details of a marriage',
+    what:
+      'The petition that establishes a qualifying family relationship between a US citizen or permanent resident and a relative, which is the first step before that relative can apply for a visa or a green card.',
+    who:
+      'The US citizen or permanent resident, as petitioner, on behalf of a spouse, parent, child or sibling. The relative is the beneficiary and does not file it.',
+    when:
+      'Whenever the relationship exists and you want to start the process. Approval is only step one, and how long the rest takes depends on the category and the beneficiary’s country, so check the current visa bulletin rather than planning around a date.',
+    gotcha:
+      'Approval of the I-130 does not give anyone status, a visa or the right to enter — it establishes the relationship and puts the beneficiary in a queue, which for some categories and countries is years long. Families treat the approval notice as the finish line. Separately, the twelve pages ask for every address and employer for several years, and a gap in those histories is a very common reason for a request for evidence.',
+    tools: ['Fill PDF form', 'Merge PDF', 'Compress to size', 'Scan to PDF'],
+  },
+  {
+    slug: 'form-i-485',
+    name: 'Form I-485',
+    short: 'I-485',
+    group: 'Immigration',
+    aka: 'adjustment of status, the green card application',
+    authority: 'U.S. Citizenship and Immigration Services',
+    officialName: 'the USCIS page for Form I-485',
+    officialUrl: 'https://www.uscis.gov/i-485',
+    revisionLabel: 'Edition date',
+    revision: '09/18/26',
+    pdfUrl: 'https://www.uscis.gov/sites/default/files/document/forms/i-485.pdf',
+    fields: 730,
+    pages: 24,
+    sensitive:
+      'twenty-four pages covering your entire immigration history, every address and job, your medical examination and a long list of questions about arrests, affiliations and conduct',
+    what:
+      'The application to become a lawful permanent resident without leaving the United States. At 730 fields it is the longest form in this library by a distance.',
+    who:
+      'People already in the US with an approved or concurrently filed petition and a visa number available to them.',
+    when:
+      'Once a visa number is available in your category, which is what the monthly visa bulletin tells you. Filing before that generally gets the application rejected, so confirm the current bulletin.',
+    gotcha:
+      'Leaving the country while it is pending can be treated as abandoning it, unless advance parole was granted first — people take a family emergency trip and lose years of waiting. The form is also long enough that it is assembled over weeks across several sittings, which is precisely when the edition date slips: USCIS rejects an application filed on a superseded edition, so check the date in the footer against the USCIS page before you post it, not when you started.',
+    tools: ['Fill PDF form', 'Merge PDF', 'Compress to size', 'Split PDF'],
+  },
+  {
+    slug: 'form-i-765',
+    name: 'Form I-765',
+    short: 'I-765',
+    group: 'Immigration',
+    aka: 'employment authorization document application',
+    authority: 'U.S. Citizenship and Immigration Services',
+    officialName: 'the USCIS page for Form I-765',
+    officialUrl: 'https://www.uscis.gov/i-765',
+    revisionLabel: 'Edition date',
+    revision: '08/21/25',
+    pdfUrl: 'https://www.uscis.gov/sites/default/files/document/forms/i-765.pdf',
+    fields: 161,
+    pages: 7,
+    sensitive:
+      'your immigration status, your most recent entry details and your Social Security number, supporting an application that decides whether you may work',
+    what:
+      'The application for an Employment Authorization Document — the card that lets someone who is not a citizen or permanent resident work legally in the United States.',
+    who:
+      'People in a category that permits work with authorisation: adjustment-of-status applicants, certain students and dependants, asylum seekers after the waiting period, and others.',
+    when:
+      'As early as your category allows, and renewals well before the current card expires. Processing times move a great deal, so check the current USCIS estimate for your category.',
+    gotcha:
+      'The eligibility category code on the form decides nearly everything — the filing fee, whether a renewal is automatically extended while it is pending, and what evidence must come with it. Entering the wrong code is the commonest reason these come back. The gap between an expired card and a new one also stops employment on the day the card expires, not on the day the decision arrives, which is why the filing window matters more here than almost anywhere else.',
+    tools: ['Fill PDF form', 'Passport & ID photo', 'Merge PDF', 'Compress to size'],
+  },
+  {
+    slug: 'form-n-400',
+    name: 'Form N-400',
+    short: 'N-400',
+    group: 'Immigration',
+    aka: 'application for naturalization',
+    authority: 'U.S. Citizenship and Immigration Services',
+    officialName: 'the USCIS page for Form N-400',
+    officialUrl: 'https://www.uscis.gov/n-400',
+    revisionLabel: 'Edition date',
+    revision: '01/20/25',
+    pdfUrl: 'https://www.uscis.gov/sites/default/files/document/forms/n-400.pdf',
+    fields: 440,
+    pages: 14,
+    sensitive:
+      'every trip you have taken outside the country, your marital and tax history, and a long series of questions about conduct and affiliation going back years',
+    what:
+      'The application to become a US citizen by naturalisation, covering residence, physical presence, good moral character and the civics and English requirements.',
+    who:
+      'Lawful permanent residents who meet the residence requirement — commonly five years, or three for the spouse of a citizen — and the other eligibility conditions.',
+    when:
+      'Once you meet the residence requirement, with a short early-filing window before the anniversary. Confirm the current rule rather than counting from memory.',
+    gotcha:
+      'The trips list is where this one goes wrong. The form asks for every departure from the United States over the qualifying period, and long absences can break continuous residence even when the total days present still look sufficient. People reconstruct the list from memory, the passport stamps say something different at interview, and it becomes a question about candour rather than about travel.',
+    tools: ['Fill PDF form', 'Passport & ID photo', 'Merge PDF', 'Compress to size'],
+  },
+  {
+    slug: 'form-i-864',
+    name: 'Form I-864',
+    short: 'I-864',
+    group: 'Immigration',
+    aka: 'affidavit of support',
+    authority: 'U.S. Citizenship and Immigration Services',
+    officialName: 'the USCIS page for Form I-864',
+    officialUrl: 'https://www.uscis.gov/i-864',
+    revisionLabel: 'Edition date',
+    revision: '08/24/26',
+    pdfUrl: 'https://www.uscis.gov/sites/default/files/document/forms/i-864.pdf',
+    fields: 219,
+    pages: 12,
+    sensitive:
+      'the sponsor’s income, household size and tax returns or transcripts — a full financial disclosure by somebody who is not the applicant',
+    what:
+      'The legally enforceable promise by a sponsor to support an intending immigrant financially, so that the immigrant is not found likely to become a public charge.',
+    who:
+      'The petitioning relative, and a joint sponsor as well where the petitioner’s income does not reach the required level for their household size.',
+    when:
+      'With the immigrant visa or adjustment application it supports. The income threshold is republished annually, so check the current table rather than last year’s.',
+    gotcha:
+      'It is a contract, not a formality. The obligation is enforceable by the immigrant and by any agency that provides them a means-tested benefit, and it does not end at divorce — it runs until the immigrant works enough qualifying quarters, naturalises, leaves permanently, or dies. Sponsors sign it understanding it as a character reference. The supporting evidence also trips people: the most recent tax return or an IRS transcript is required, which is where Form 4506-T usually comes in.',
+    tools: ['Fill PDF form', 'Merge PDF', 'Redact PDF', 'Compress to size'],
+  },
+
+  // ── E. Employment, leave and veterans ──────────────────────────────────────
+  {
+    slug: 'form-wh-380-e',
+    name: 'Form WH-380-E',
+    short: 'WH-380-E',
+    group: 'Employment, leave and veterans',
+    aka: 'FMLA certification, your own health condition',
+    authority: 'U.S. Department of Labor',
+    officialName: 'the Department of Labor’s FMLA forms page',
+    officialUrl: 'https://www.dol.gov/agencies/whd/fmla/forms',
+    revisionLabel: 'Revised',
+    revision: 'June 2020',
+    pdfUrl: 'https://www.dol.gov/sites/dolgov/files/WHD/legacy/files/WH-380-E.pdf',
+    fields: 60,
+    pages: 4,
+    sensitive:
+      'a doctor’s written description of your medical condition, its treatment and what it stops you doing — handed to your employer',
+    what:
+      'The medical certification supporting leave under the Family and Medical Leave Act for an employee’s own serious health condition. The health care provider completes the clinical part.',
+    who:
+      'Employees requesting FMLA leave for themselves, where the employer has asked for certification — which it is entitled to do.',
+    when:
+      'Generally within a short window after the employer requests it, with more notice expected when the leave is foreseeable. The employer’s own notice states the period, so check it.',
+    gotcha:
+      'This is the most medically revealing document most people ever hand an employer, and the rules on who may see it are specific: it is a confidential medical record, kept separately from the personnel file, and your direct manager is generally not among the people entitled to read it. Employees hand it to their line manager because that is who asked. Send it to HR or whoever the employer’s notice names, and redact anything the form does not actually ask for.',
+    tools: ['Fill PDF form', 'Redact PDF', 'Scan to PDF', 'Compress to size'],
+  },
+  {
+    slug: 'form-wh-380-f',
+    name: 'Form WH-380-F',
+    short: 'WH-380-F',
+    group: 'Employment, leave and veterans',
+    aka: 'FMLA certification, a family member’s condition',
+    authority: 'U.S. Department of Labor',
+    officialName: 'the Department of Labor’s FMLA forms page',
+    officialUrl: 'https://www.dol.gov/agencies/whd/fmla/forms',
+    revisionLabel: 'Revised',
+    revision: 'June 2020',
+    pdfUrl: 'https://www.dol.gov/sites/dolgov/files/WHD/legacy/files/WH-380-F.pdf',
+    fields: 66,
+    pages: 4,
+    sensitive:
+      'somebody else’s medical condition and the care they need — a relative’s private health information travelling through your employer',
+    what:
+      'The certification supporting FMLA leave taken to care for a spouse, child or parent with a serious health condition, completed by that person’s health care provider.',
+    who:
+      'Employees taking leave to care for a qualifying family member, where the employer has requested certification.',
+    when:
+      'Generally within a short window after the request, with advance notice expected where the need is foreseeable. The employer’s notice states the period — check it rather than assuming.',
+    gotcha:
+      'Which relatives count is narrower than families expect: spouse, parent and child, with the child generally under eighteen unless incapable of self-care. A parent-in-law, a grandparent or a sibling does not qualify, and people discover this after the leave has been taken. The form also describes a third party’s health, so the person whose condition it is should see what is written on it before it reaches an employer.',
+    tools: ['Fill PDF form', 'Redact PDF', 'Scan to PDF', 'Merge PDF'],
+  },
+  {
+    slug: 'form-wh-381',
+    name: 'Form WH-381',
+    short: 'WH-381',
+    group: 'Employment, leave and veterans',
+    aka: 'FMLA notice of eligibility and rights',
+    authority: 'U.S. Department of Labor',
+    officialName: 'the Department of Labor’s FMLA forms page',
+    officialUrl: 'https://www.dol.gov/agencies/whd/fmla/forms',
+    revisionLabel: 'Revised',
+    revision: 'June 2020',
+    pdfUrl: 'https://www.dol.gov/sites/dolgov/files/WHD/legacy/files/WH-381.pdf',
+    fields: 72,
+    pages: 4,
+    sensitive:
+      'the employee’s leave entitlement and the conditions attached to it, which is the written record if the handling of that leave is ever disputed',
+    what:
+      'The notice an employer gives an employee who has requested FMLA leave: whether they are eligible, what their rights and responsibilities are, and what the employer requires of them.',
+    who:
+      'Employers, to the employee. It runs the other way from the certifications — the employee does not complete it.',
+    when:
+      'Generally within a few business days of the employer learning that leave may be FMLA-qualifying. Check the current rule, which also covers what happens when circumstances change.',
+    gotcha:
+      'It says in capitals on page one not to send it to the Department of Labor, because it is given to the employee. Employers post it anyway. The substantive risk is different: failing to give this notice, or giving it late, can itself interfere with the employee’s rights regardless of how the leave was eventually handled — the notice is not paperwork around the decision, it is part of the decision.',
+    tools: ['Fill PDF form', 'Sign PDF', 'Merge PDF', 'Compress to size'],
+  },
+  {
+    slug: 'form-21-526ez',
+    name: 'VA Form 21-526EZ',
+    short: '21-526EZ',
+    group: 'Employment, leave and veterans',
+    aka: 'VA disability compensation claim',
+    authority: 'U.S. Department of Veterans Affairs',
+    officialName: 'the VA page for Form 21-526EZ',
+    officialUrl: 'https://www.va.gov/find-forms/about-form-21-526ez/',
+    revisionLabel: 'Form date',
+    revision: 'Jan 2026',
+    pdfUrl: 'https://www.vba.va.gov/pubs/forms/VBA-21-526EZ-ARE.pdf',
+    fields: 345,
+    pages: 15,
+    sensitive:
+      'your service history alongside the medical conditions you are claiming and the treatment you have had for them, including mental health care',
+    what:
+      'The application for VA disability compensation: the conditions claimed, how they connect to service, and the treatment records that support them.',
+    who:
+      'Veterans claiming compensation for a condition incurred in or aggravated by service, and those filing for an increase in an existing rating.',
+    when:
+      'Any time after service. Filing an intent to file first generally preserves an earlier effective date while you gather evidence, which is worth checking before you submit.',
+    gotcha:
+      'The effective date is usually worth more than anything else on the form, and it is set by when the VA received a claim or an intent to file — not by when the condition began. Veterans spend months assembling records and lose months of backdated compensation they could have preserved with an intent to file on day one. The Fully Developed Claim route is also faster only if the evidence really is complete; submitting as fully developed without it is slower than filing normally.',
+    tools: ['Fill PDF form', 'Merge PDF', 'Compress to size', 'Redact PDF'],
+  },
+  {
+    slug: 'form-ss-5',
+    name: 'Form SS-5',
+    short: 'SS-5',
+    group: 'Employment, leave and veterans',
+    aka: 'application for a Social Security card',
+    authority: 'Social Security Administration',
+    officialName: 'the SSA page for Form SS-5',
+    officialUrl: 'https://www.ssa.gov/forms/ss-5.html',
+    revisionLabel: 'Form date',
+    revision: '12-2024',
+    pdfUrl: 'https://www.ssa.gov/forms/ss-5.pdf',
+    fields: 70,
+    pages: 5,
+    sensitive:
+      'your place of birth, your parents’ names and their Social Security numbers — the answers to half the security questions ever asked',
+    what:
+      'The application for a Social Security number and card: a first card, a replacement, or a change of name or other detail on the record.',
+    who:
+      'People applying for a first number, replacing a lost card, or correcting the record after a marriage, divorce or legal name change.',
+    when:
+      'Whenever one of those applies. The SSA generally limits how many replacement cards it will issue, so check before requesting one you do not need.',
+    gotcha:
+      'The card is free and always has been, which is worth knowing because a search for it returns paid services that charge to pass the same form along. The documents are what matter: the SSA wants originals or copies certified by the issuing agency, not photocopies or notarised copies, and it returns them. Many changes also need two documents — one proving identity in the new name and one in the old — which is the detail that sends people home from the office.',
+    tools: ['Fill PDF form', 'Scan to PDF', 'Merge PDF', 'Redact PDF'],
+  },
 ];
+
+/** The version marker as a readable clause, because the five agencies do not
+ *  mean the same thing by it. "The rev. the IRS publishes today" is not
+ *  English; "the edition date USCIS publishes today" is, and it is also the
+ *  fact that decides whether a USCIS form is accepted at all. */
+export function revisionSentence(f: UsForm): string {
+  switch (f.revisionLabel) {
+    case 'Form year':
+      return `This is the ${f.revision} form`;
+    case 'Edition date':
+      return `The edition ${f.authority} publishes today is dated ${f.revision}, and an application filed on a superseded edition is rejected`;
+    case 'Revised':
+      return `It was last revised in ${f.revision}`;
+    case 'Form date':
+      return `The version ${f.authority} publishes today is dated ${f.revision}`;
+    default:
+      return `The revision ${f.authority} publishes today is ${f.revision}`;
+  }
+}
+
+/** Heading for the provenance strip — the agency's own noun, no trailing dot. */
+export const revisionHeading = (f: UsForm): string => (f.revisionLabel === 'Rev.' ? 'Revision' : f.revisionLabel);
 
 export const US_FORM_GROUPS = US_FORMS.map((f) => f.group).filter((g, i, a) => a.indexOf(g) === i);
 export const getUsForm = (slug: string) => US_FORMS.find((f) => f.slug === slug);

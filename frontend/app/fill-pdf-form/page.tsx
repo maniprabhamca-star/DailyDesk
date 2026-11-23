@@ -1,4 +1,6 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
 import { PdfToolPage } from '@/components/pdf/tool-page';
 import { FillFormTool } from '@/components/tools/fill-form-tool';
 
@@ -36,6 +38,27 @@ export default function FillPdfFormPage() {
       description="Type into any PDF — real form fields or a flat scan — add checkmarks, dates and a signature, then flatten so it can’t be changed. Free, and entirely on your device. Your document never leaves your browser."
       steps={steps}
       faqs={faqs}
+      afterTool={
+        // Half the people who open this tool are holding a form number, not a
+        // file: "I need to fill in a W-9". The form libraries fetch the current
+        // edition from the agency and hand it straight to this tool, so this
+        // strip is the shortest path for them — and it sits under the dropzone
+        // rather than in the FAQ, where it would be read after the wrong move.
+        <div className="mt-6 rounded-xl border bg-card p-4 shadow-soft sm:flex sm:items-center sm:justify-between sm:gap-4">
+          <p className="text-sm text-muted-foreground">
+            <b className="text-foreground">Don’t have the form yet?</b> Our form libraries open the
+            current edition straight from the agency, already loaded here.
+          </p>
+          <div className="mt-3 flex shrink-0 gap-4 sm:mt-0">
+            <Link href="/us-forms" className="group inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+              US federal forms <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+            </Link>
+            <Link href="/india-forms" className="group inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+              Indian forms <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+            </Link>
+          </div>
+        </div>
+      }
     >
       <FillFormTool />
     </PdfToolPage>

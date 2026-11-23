@@ -22,7 +22,7 @@ Status values: `todo` · `in progress` · `shipped` · `blocked` · `parked`
 | 5 | Competitor alternatives 4 → 10 | 5 | **shipped** | 2026-08-29 (9 of 10; Canva pending a source) |
 | 6 | Sector pages 4 → 12 | 5 | **shipped** | **13 of 12** · 2026-11-23: +immigration, journalism, insurance, construction · government renamed to public-sector |
 | 7 | Indian statutory forms library | 33 | **shipped** | 32 forms + index · 2026-08-29 |
-| 8 | US forms library (privacy wedge) | ~30–60 | **in progress** | Scoped 2026-11-23 — `us-forms-library-scope.md`. **D1 done** (the encryption blocker that broke 10 tools). **Groups A+B shipped**: 12 IRS forms + index at `/us-forms`, every revision/field/page count verified at source. Next: groups C–E (18 forms) |
+| 8 | US forms library (privacy wedge) | ~30–60 | **done** | Scoped 2026-11-23 — `us-forms-library-scope.md`. **D1 done** (the encryption blocker that broke 10 tools). **All 30 forms shipped** across five groups and five agencies, every revision/edition/field/page count read off the file at source (`npm run verify:us-forms`: forms=30 drifts=0 unchecked=0). One-click fetch straight into Fill PDF form; searchable in ⌘K. DS-11/DS-82 stay out (Cloudflare bot check) |
 | 9 | "What comes next" dock | 0 | **shipped** | 2026-08-29 |
 | 10 | AI document generator / invoice builder | 0 | **parked** | commodity — see gap analysis |
 | 11 | Multi-document AI chat | 0 | **blocked** — File Vault | |
@@ -803,3 +803,93 @@ Groups C–E (18 forms: returns and information returns, immigration, and
 employment/leave/veterans) are scoped but unwritten. The immigration six are
 now unblocked by the D1 encryption fix. State Department DS-11 and DS-82 remain
 out — behind a Cloudflare bot check we do not bypass.
+
+---
+
+## Item 8, groups C–E — the library closed, and the step we were missing (2026-11-23)
+
+18 more forms, taking `/us-forms` to **30** across five groups: 1040, 1040-X,
+1099-NEC, 1099-MISC, W-2, 941, 940 · I-9, I-130, I-485, I-765, N-400, I-864 ·
+WH-380-E, WH-380-F, WH-381, 21-526EZ, SS-5. 4,206 more fillable fields,
+**5,686** in total, each counted off the file the agency was serving.
+
+### Five agencies do not agree what a "version" is
+
+Groups A+B were all IRS, so one `revision` field was enough. C–E brought in
+USCIS, the DOL, the VA and the SSA, and each marks a version its own way. The
+data carries the label as well as the value, and `revisionSentence()` phrases
+each one in that agency's own words:
+
+| Agency | Label | Example | Why it matters |
+| --- | --- | --- | --- |
+| IRS | `Rev.` | Mar 2024 | An old revision is usually still accepted |
+| IRS (annual) | `Form year` | 2026 | The year *is* the version |
+| USCIS | `Edition date` | 04/01/24 | **A superseded edition is rejected outright** |
+| DOL | `Revised` | June 2020 | |
+| VA / SSA | `Form date` | 12-2024 | |
+
+Collapsing those into one word would have meant printing the IRS's vocabulary
+over USCIS's value, and the one case where getting it wrong costs the reader a
+rejected application is exactly the one that is not an IRS form.
+
+### The verifier now reads the form, not an index page
+
+`scripts/verify-us-forms.mjs` was rewritten. It used to scrape the IRS product
+table; there is no equivalent table for the other four agencies. The one thing
+all five do is **print the marker on the document**, so that is what it reads
+now — decrypting with qpdf-wasm where the file needs it (every USCIS form and
+SS-5 are permissions-only encrypted). Five markers came back unparsed on the
+first run and each was investigated rather than waved through:
+
+- **4506-T, 433-A, 433-F** print the month numerically — `(Rev. 6-2026)`, not
+  `(Rev. June 2026)`.
+- **W-2** puts the year beside the *title* on page 2, not beside the form number.
+- **I-9** does not print its edition date in extractable text at all. The USCIS
+  page states it, so the script falls back to the agency page for that one and
+  reports which source it used.
+
+Last run: `forms=30 drifts=0 unchecked=0`.
+
+### The honest gap, now closed
+
+The flow was: read our page → click through to the agency → find the download →
+come back → open the fill tool → pick the file. Five steps to pdf.net's one.
+Everything above was true and better, and still lost on the thing people
+actually feel.
+
+`app/api/forms/[slug]/route.ts` takes a **slug, never a URL** — the URL comes
+from our own table, with an agency host allowlist as defence in depth, so there
+is no SSRF surface at all. It fetches with `cache: 'no-store'`, checks the
+`%PDF-` magic bytes, and streams the file through. `GetFormButton` wraps it in
+a `File`, hands it to `lib/file-handoff.ts` and pushes the fill tool. One click.
+If the agency is down, the button falls back to the direct link rather than
+dead-ending. Verified end to end on I-485 — an encrypted USCIS form — which
+opens in the fill tool with all 730 fields live.
+
+### Where any of this can be found from the UI
+
+The pages were unreachable except by search engine. Fixed in four places:
+
+- **⌘K** has a Forms section. Typing `w9`, `i485` or `1099` finds the page,
+  hyphen or no hyphen. The index is served from `/api/forms-index` rather than
+  imported — the palette is mounted by the root layout, so importing 62 forms'
+  prose would put it in the chunk every page loads.
+- **Tools mega-menu** has a "Looking for a form?" strip: US forms, Indian
+  forms, passport photos, by profession.
+- **Fill PDF form** carries a strip under the dropzone for people who have the
+  form number but not the file.
+- **Sector pages** — immigration, accountants, tax practitioners and HR each
+  link the forms that trade works out of, via a new optional `forms` field on
+  `Sector`. `verify:sectors` was taught the distinction (a library href must be
+  a real page and on a two-item allowlist, but cannot be a catalogue tool) so
+  the exception could not quietly widen into "any href".
+
+### The bug this shipped past, and the test that now catches it
+
+The first ⌘K matcher split the haystack on punctuation, so `w9` produced the
+words `w` and `9` and matched nothing — the palette said **"No matches for w9"**
+for the most common way anyone writes that form's name, with a clean build and
+350 green tests behind it. Caught by actually typing it into the browser. The
+matcher now lives in `lib/form-search.ts` with `tests/unit/form-search.test.ts`
+asserting every form in **both** libraries is findable by its number with and
+without punctuation.

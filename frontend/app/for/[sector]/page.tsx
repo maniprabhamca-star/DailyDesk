@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ShieldCheck, ArrowRight, Check, TriangleAlert } from 'lucide-react';
+import { ShieldCheck, ArrowRight, Check, TriangleAlert, FileText } from 'lucide-react';
 import { SiteHeader } from '@/components/app/site-header';
 import { SiteFooter } from '@/components/app/site-footer';
 import { ThirdPartyNotice } from '@/components/app/third-party-notice';
@@ -144,6 +144,27 @@ export default async function SectorPage(props: { params: Promise<{ sector: stri
               or <Link href="/#tools" className="font-medium text-primary underline underline-offset-2">browse all {liveToolCount} tools</Link>
             </p>
           </section>
+
+          {/* Where this work runs on named federal forms, the shortest path is
+              the form itself, not a tool. Below the CTA so it does not compete
+              with it, but above the small print so it is still read. */}
+          {s.forms && (
+            <Link
+              href={s.forms.href}
+              className="group mt-4 flex items-start gap-3 rounded-2xl border bg-card p-5 transition-colors hover:border-primary/50"
+            >
+              <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-sky-500/12 text-sky-600 dark:text-sky-300">
+                <FileText className="size-4" />
+              </span>
+              <span className="min-w-0">
+                <span className="flex items-center gap-1.5 text-sm font-semibold">
+                  {s.forms.label}
+                  <ArrowRight className="size-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                </span>
+                <span className="mt-1 block text-sm leading-relaxed text-muted-foreground">{s.forms.note}</span>
+              </span>
+            </Link>
+          )}
 
           <section className="mt-12 border-t pt-6">
             <ThirdPartyNotice

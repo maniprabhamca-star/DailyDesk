@@ -20,6 +20,7 @@ export function PdfToolPage({
   children,
   wide = false,
   sibling,
+  afterTool,
 }: {
   title: string;
   description: string;
@@ -27,6 +28,10 @@ export function PdfToolPage({
   faqs: Faq[];
   children: React.ReactNode;
   wide?: boolean;
+  /** Rendered immediately under the dropzone, before the explainer blocks. For
+   *  the one case where a tool has a library of its own behind it — somebody on
+   *  Fill PDF form often does not have the form yet. */
+  afterTool?: React.ReactNode;
   /** For a tool that genuinely overlaps another one. Says which job the other
    *  tool does better, ABOVE the dropzone — where somebody who landed on the
    *  wrong one is still deciding, rather than buried in the FAQ they will read
@@ -87,6 +92,7 @@ export function PdfToolPage({
         <div className="mt-8"><ToolGate>{children}</ToolGate></div>
 
         <div className={wide ? 'mx-auto w-full max-w-4xl' : ''}>
+        {afterTool}
         {/* Three blocks every tool inherits. Each reads the current route itself,
             so adding a tool needs no page edit: the counter measures real bytes,
             the facts render only where lib/tool-facts has data, and "last
