@@ -399,24 +399,53 @@
 
     <div class="tscroll">
       <table>
-        <caption>Margin per paying user, per month</caption>
+        <caption>Margin per paying user, per month &mdash; re-measured 23 Nov 2026</caption>
         <thead>
           <tr><th>Line</th><th>Pro</th><th>Business</th><th>Where the number comes from</th></tr>
         </thead>
         <tbody>
           <tr><td>Revenue</td><td class="num">$5.98</td><td class="num">$19.00</td><td>monthly plan</td></tr>
-          <tr><td>Stripe</td><td class="num dr">−0.47</td><td class="num dr">−0.85</td><td>2.9% + $0.30 per charge</td></tr>
-          <tr><td>AI, general</td><td class="num dr">−0.80</td><td class="num dr">−1.20</td><td>Haiku, ~$0.02/action, typical use well under the cap</td></tr>
-          <tr><td>AI, statement escalation</td><td class="num dr">−0.10</td><td class="num dr">−1.50</td><td>only pages where the balance check fails; ~20% Haiku, ~2% Sonnet</td></tr>
-          <tr><td>Vault storage</td><td class="num dr">−0.10</td><td class="num dr">−0.20</td><td>R2 at $0.015/GB-mo, zero egress</td></tr>
-          <tr><td>Infra</td><td class="num dr">−0.05</td><td class="num dr">−0.05</td><td>fixed VPS, amortised</td></tr>
-          <tr class="tot"><td>Net, typical</td><td class="num cr">$4.46</td><td class="num cr">$15.20</td><td>75% · <b>80%</b></td></tr>
+          <tr><td>Stripe</td><td class="num dr">&minus;0.47</td><td class="num dr">&minus;0.85</td><td>2.9% + $0.30 per charge</td></tr>
+          <tr><td>AI, general</td><td class="num dr">&minus;0.40</td><td class="num dr">&minus;1.60</td><td>40% of the tier cap at $0.02/action (20 of 50 &middot; 80 of 200)</td></tr>
+          <tr><td>AI, statement escalation</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td><b>not built.</b> Statement parsing is 100% on-device; the server receives an integer page count and makes no model call. The $0.10/$1.50 previously carried here was a provision for a ladder that does not exist</td></tr>
+          <tr><td>Statement pages</td><td class="num">0.00</td><td class="num">0.00</td><td>20 and 300 pages, parsed in the browser &mdash; zero marginal cost either way</td></tr>
+          <tr><td>Vault storage</td><td class="num dr">&minus;0.05</td><td class="num dr">&minus;0.08</td><td>R2 at $0.015/GB-mo, zero egress; 3&ndash;5&nbsp;GB typical</td></tr>
+          <tr><td>Infra</td><td class="num dr">&minus;0.05</td><td class="num dr">&minus;0.05</td><td>fixed VPS, amortised at ~1,000 accounts</td></tr>
+          <tr class="tot"><td>Net, typical</td><td class="num cr">$5.01</td><td class="num cr">$16.42</td><td><b>84%</b> &middot; <b>86%</b></td></tr>
+        </tbody>
+      </table>
+      </div>
+
+      <div class="tscroll">
+      <table>
+        <caption>Every price point we sell, at its worst case</caption>
+        <thead>
+          <tr><th>Plan</th><th>Revenue/mo</th><th>Stripe</th><th>AI at the cap</th><th>Vault at the cap</th><th>Infra</th><th>Net</th><th>Margin</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Pro monthly</td><td class="num">$5.98</td><td class="num dr">&minus;0.47</td><td class="num dr">&minus;1.00</td><td class="num dr">&minus;0.15</td><td class="num dr">&minus;0.05</td><td class="num cr">$4.31</td><td class="num cr">72%</td></tr>
+          <tr><td>Pro annual <span class="mut">$60/yr</span></td><td class="num">$5.00</td><td class="num dr">&minus;0.17</td><td class="num dr">&minus;1.00</td><td class="num dr">&minus;0.15</td><td class="num dr">&minus;0.05</td><td class="num cr">$3.63</td><td class="num cr">73%</td></tr>
+          <tr><td>Pro <b>founding</b> <span class="mut">lifetime $4.99</span></td><td class="num">$4.99</td><td class="num dr">&minus;0.44</td><td class="num dr">&minus;1.00</td><td class="num dr">&minus;0.15</td><td class="num dr">&minus;0.05</td><td class="num cr">$3.35</td><td class="num"><b style="color:var(--copper)">67%</b></td></tr>
+          <tr><td>Business monthly</td><td class="num">$19.00</td><td class="num dr">&minus;0.85</td><td class="num dr">&minus;4.00</td><td class="num dr">&minus;0.15</td><td class="num dr">&minus;0.05</td><td class="num cr">$13.95</td><td class="num cr">73%</td></tr>
+          <tr><td>Business annual <span class="mut">$190/yr</span></td><td class="num">$15.83</td><td class="num dr">&minus;0.48</td><td class="num dr">&minus;4.00</td><td class="num dr">&minus;0.15</td><td class="num dr">&minus;0.05</td><td class="num cr">$11.15</td><td class="num cr">70%</td></tr>
+          <tr><td>Pro India <span class="mut">&#8377;499</span></td><td class="num">&#8377;499</td><td class="num dr">&minus;18</td><td class="num dr">&minus;89</td><td class="num dr">&minus;13</td><td class="num dr">&minus;5</td><td class="num cr">&#8377;374</td><td class="num cr">75%</td></tr>
+          <tr><td>Pro India annual <span class="mut">&#8377;4,999</span></td><td class="num">&#8377;417</td><td class="num dr">&minus;13</td><td class="num dr">&minus;89</td><td class="num dr">&minus;13</td><td class="num dr">&minus;5</td><td class="num cr">&#8377;297</td><td class="num cr">71%</td></tr>
+          <tr><td>Business India <span class="mut">&#8377;1,499</span></td><td class="num">&#8377;1,499</td><td class="num dr">&minus;48</td><td class="num dr">&minus;356</td><td class="num dr">&minus;13</td><td class="num dr">&minus;5</td><td class="num cr">&#8377;1,077</td><td class="num cr">72%</td></tr>
+          <tr><td>Business India annual <span class="mut">&#8377;14,999</span></td><td class="num">&#8377;1,250</td><td class="num dr">&minus;38</td><td class="num dr">&minus;356</td><td class="num dr">&minus;13</td><td class="num dr">&minus;5</td><td class="num cr">&#8377;838</td><td class="num cr">67%</td></tr>
+          <tr><td><b>Free</b></td><td class="num">&#8377;0 / $0</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">$0.00</td><td class="num mut">n/a</td></tr>
         </tbody>
       </table>
     </div>
 
     <div class="prose">
-      <p>The worst case matters more than the typical one, because the worst case is what a cost control has to survive. A Business user who maxes 200 AI actions, escalates every statement page and fills the vault lands near <strong>$9.55 of cost against $19 of revenue — 50% margin</strong>. That is inside the rule we set ourselves (blended variable cost under 40–50% of price), but only because of the escalation cap in §06. Without that cap it falls through the floor.</p>
+      <p>The worst case matters more than the typical one, because the worst case is what a cost control has to survive. Every price point we sell clears <b>67%</b> margin with every allowance fully spent, and the thinnest of them is the founding rate &mdash; the one price we can never raise. Three corrections got it there, and all three are measurements rather than optimism:</p>
+      <ul>
+        <li><b>Statement pages cost us nothing.</b> The parsing is a constraint solver in <code>lib/banks/balance.ts</code> running in the customer's browser; the server receives one integer. Grep the backend for a model call in the statements path and there is none. The AI escalation ladder that <em>would</em> cost money is designed in &sect;06 and <b>not built</b> &mdash; and <code>tests/unit/tier-allowances.test.ts</code> now fails the build if a Sonnet or Opus call appears anywhere without <code>utils/aiBudget</code> in scope, so it cannot be built without a ceiling. The &minus;$1.50 that used to sit on the Business line was a provision for a cost we do not yet incur.</li>
+        <li><b>The vault cap is 10&nbsp;GB, not 100.</b> <code>routes/vault.js</code> enforces <code>VAULT_QUOTA_GB || 10</code> at upload and prod sets no override, so the storage worst case is 15 cents a month, not $1.50. The older figure came from the fair-use number in the plan rather than the constant in the code.</li>
+        <li><b>$0.02 an AI action is itself conservative.</b> Haiku 4.5 at list ($1/M in, $5/M out) with <code>AI_MAX_TOKENS=700</code> arrives at roughly $0.0065 for a typical action. We keep budgeting at three times that, so the "AI at the cap" column above is a ceiling on a ceiling.</li>
+      </ul>
+      <p>What this does <em>not</em> cover, and should be read as the open item: server CPU. Office conversion, OCR and webpage rendering are unlimited on Pro and genuinely consume the machine. They never appear as a line because the VPS is a fixed cost &mdash; they appear instead as the date we have to buy a bigger one. That is a capacity question, tracked in the scaling plan, not a margin question.</p>
+      <p class="mut">Modelled, not observed: there are no paying accounts yet (<code>WAITLIST_MODE = true</code>), so every figure here is arithmetic on measured rates rather than a reading off a real month. The one input not read from code or a published rate card is the Indian Stripe fee, taken at 3% + &#8377;3 and the first thing to correct once a real charge settles. Rupee conversions of dollar costs use &#8377;89/$.</p>
 
       <h3 class="blk">What it does to the number of customers we need</h3>
       <p>This is the whole argument for the tier. It is not that $19 is more than $5.98. It is that the arithmetic of reaching a real income changes shape.</p>
@@ -484,7 +513,7 @@
             <td><b>Statement quota reads the plan</b><br><span class="mut">Page allowance becomes a function of tier: 5 free · 20 Pro · 300 Business, plus top-up credits. Per-account monthly cap on tier-3 (Sonnet) escalations — the thing that keeps the worst case inside 50% margin.</span></td>
             <td class="num">backend quota +<br>aiBudget.js</td>
             <td class="num">4 h</td>
-          <td class="num"><span class="mut">to do</span></td>
+          <td class="num"><b style="color:var(--credit)">done</b><br><span class="mut">c9dc48b &middot; config/tiers.js + 4 guards + 18 assertions in CI. The Sonnet cap is a guard, not a cap &mdash; the ladder it would cap is not built</span></td>
           </tr>
           <tr>
             <td class="num">B4</td>
