@@ -512,7 +512,7 @@
             <td><b>The claims on /compare</b><br><span class="mut">The Smallpdf daily-download-limit line and the DocuClipper per-page table, both with the date they were read. Under the shared third-party notice, as every page naming a competitor is.</span></td>
             <td class="num">app/compare</td>
             <td class="num">2 h</td>
-          <td class="num"><span class="mut">to do</span></td>
+          <td class="num"><b style="color:var(--credit)">done</b><br><span class="mut">8d75f6b &middot; Adobe was wrong by $5</span></td>
           </tr>
           <tr>
             <td class="num">B8</td>
@@ -533,6 +533,7 @@
     <div class="note warn">
       <span class="nlab">Trap two — the escalation ladder has no ceiling</span>
       <p>The statement engine's design escalates a page to Haiku, then to Sonnet, whenever the balance check fails. That is the right design — the balance check is a free accuracy oracle — but it has no per-account ceiling. A corrupt 300-page scan where every balance fails bills us Sonnet 300 times. The per-account monthly tier-3 cap in B3 is what makes the margin table above true rather than aspirational.</p>
+      <p><b>Found on 23 Nov 2026, after B4 shipped:</b> the page allowance is not merely untiered, it is <em>absent</em> for anyone paying. <code>routes/statements.js</code> short-circuits on <code>isPaidPlan(who.plan)</code> and returns <code>{ unlimited: true, limit: null }</code>, so Pro and Business both get unmetered pages. /pricing now publishes 5 &middot; 20 &middot; 300 and /compare publishes $0.063 a page against DocuClipper&rsquo;s $0.483 &mdash; both numbers derive from the 300 that nothing enforces. Pro is the sharper exposure of the two: $5.98 buys the same unlimited that $19 does. This is B3&rsquo;s whole justification and it is now a live inconsistency between what the site says and what the server does.</p>
     </div>
   </section>
 
