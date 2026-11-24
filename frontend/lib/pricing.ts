@@ -1,6 +1,8 @@
 // Single source of truth for plan price + feature lists, so the home pricing
 // teaser and the full /pricing page can never drift out of sync. Edit here once.
 
+import { FORM_COUNT } from './forms-count';
+
 export const PRICING = {
   pro: {
     monthly: '5.98',
@@ -15,6 +17,11 @@ export const PRICING = {
     'Full-strength compression — Strong & Maximum',
     'Sign PDFs now — annotate & basic redaction coming soon',
     '3 free Office conversions a day (PDF ↔ Word/Excel/PPT)',
+    // Deliberately in the FREE list. The forms libraries are the funnel, and a
+    // competitor charging a subscription for the same orientation is the point.
+    // The count is interpolated, never typed — forms-count.ts is pinned to the
+    // real catalogues by tests/unit/forms-count.test.ts.
+    `Guides to ${FORM_COUNT} government forms, re-checked at the source`,
     'Video compress & Video → GIF',
     'No ads, no watermarks, no signup',
   ],

@@ -15,6 +15,9 @@ import { PRICING } from '@/lib/pricing';
 import { useCurrency, currencySymbol, fmtAmount, price, PRO_PRICE, BUSINESS_PRICE, STATEMENT_PRICE, STATEMENT_PAGES, AI_ACTIONS } from '@/lib/currency';
 import { useIsOwner } from '@/lib/plan';
 import { liveToolCount } from '@/components/app/catalog';
+// Numbers only — importing US_FORMS/INDIA_FORMS here would pull ~1,300 lines of
+// form data into the client bundle of a pricing page. See lib/forms-count.ts.
+import { FORM_COUNT, US_FORM_COUNT, INDIA_FORM_COUNT, FORM_AUTHORITY_COUNT } from '@/lib/forms-count';
 import { Landmark } from 'lucide-react';
 
 type Cell = boolean | string;
@@ -58,7 +61,7 @@ const baseGroups: { title: string; rows: Row[] }[] = [
       { label: 'File size — in-browser tools (compress, merge, edit, images)', comp: 'Big, but ~2 runs/day', free: '100 MB, unlimited runs', pro: 'Unlimited' },
       { label: 'Office conversions (server-side)', comp: 'Paid / capped', free: '3 free a day', pro: 'Unlimited' },
       { label: 'Compression', comp: 'Basic free / strong paid', free: 'Strong & Maximum', pro: 'Strong & Maximum' },
-      { label: 'Fill forms & e-sign', comp: 'Limited per day', free: true, pro: true },
+      { label: 'Fill forms & e-sign', comp: 'Limited per day', free: true, pro: true, link: { href: '/forms', text: 'The forms library' } },
       { label: 'Annotate — highlight, draw, box & comment', comp: 'Paid / limited', free: 'Coming soon', pro: 'Coming soon' },
       { label: 'Redact — permanently remove sensitive text', comp: 'Covers only / paid', free: 'Coming soon', pro: 'Coming soon' },
       { label: 'Search & pattern redact (emails, SSNs, cards)', comp: 'Paid only', free: false, pro: 'Coming soon' },
@@ -67,6 +70,30 @@ const baseGroups: { title: string; rows: Row[] }[] = [
       { label: 'Office conversions — PDF ↔ Word, Excel, PowerPoint', comp: 'Paid / limited', free: 'Single files', pro: 'Single + batch' },
       { label: 'OCR — scanned PDFs to searchable text', comp: 'Paid only', free: 'Coming soon', pro: 'Coming soon' },
       { label: 'Saved workflows — one-click automations', comp: 'Paid only', free: false, pro: true },
+    ],
+  },
+  {
+    // The forms libraries were missing from this table entirely, which meant the
+    // page argued for us on tools every competitor also has and said nothing
+    // about the one thing none of them do. They are free, and they stay free —
+    // this group exists to make a free advantage visible, not to gate it.
+    //
+    // Every row here is identical across Free, Pro and Business on purpose. The
+    // Business column inherits automatically (see `businessCell`), so repeating
+    // the value would be noise.
+    title: 'Government forms',
+    rows: [
+      {
+        label: 'Plain-English guides to official forms',
+        comp: 'Not offered',
+        free: `${FORM_COUNT} forms, ${FORM_AUTHORITY_COUNT} authorities`,
+        pro: `${FORM_COUNT} forms, ${FORM_AUTHORITY_COUNT} authorities`,
+        link: { href: '/forms', text: 'Browse them' },
+      },
+      { label: `US federal forms — IRS, USCIS & more`, comp: 'Not offered', free: `${US_FORM_COUNT} forms`, pro: `${US_FORM_COUNT} forms` },
+      { label: 'Indian statutory forms — income tax, GST, EPFO', comp: 'Not offered', free: `${INDIA_FORM_COUNT} forms`, pro: `${INDIA_FORM_COUNT} forms` },
+      { label: 'Every form re-checked at the source, with the date shown', comp: false, free: true, pro: true },
+      { label: 'No account needed to read any of it', comp: false, free: true, pro: true },
     ],
   },
   {
@@ -103,6 +130,7 @@ const faqs = [
   { q: 'Is the free plan really free?', a: 'Yes — unlimited use of all our core tools, no ads, no watermarks, no credit card. Our everyday tools run in your browser, so they cost us nothing to give away.' },
   { q: 'Can I edit a PDF for free?', a: 'Yes. Annotating, highlighting, drawing, filling forms, and signing are free and unlimited. Only full in-place text editing — rewriting the existing text inside a PDF — is a Pro feature, the same as Adobe, Foxit, and Smallpdf.' },
   { q: 'What do I actually get with Pro?', a: 'Scale and power features: batch processing (many files at once), unlimited file size (Free already handles up to 100 MB in your browser), unlimited Office conversions and OCR, full in-place text editing, saved workflows, and priority speed. On-device batch, an encrypted File Vault, a defensible redaction certificate, and more AI come a little later. To be clear: the in-browser tools stay free and unlimited — Free also includes 3 Office conversions a day, and Pro removes that cap.' },
+  { q: 'Do I have to pay for the forms library?', a: `No, and there is no plan on this page that unlocks more of it. All ${FORM_COUNT} forms across ${FORM_AUTHORITY_COUNT} issuing authorities are readable without an account, and the tools for filling and signing them are free too. We do not host copies of anyone’s forms — each page says what the form is for, which revision we last verified and on what date, and links you to the agency that publishes it. Sites that charge a monthly subscription for form templates are selling you the document; we are telling you which one you need and handing you the tools.` },
   { q: 'What is Business, and do I need it?', a: 'Business is Pro plus the volume and exports an accountant actually needs: 300 bank-statement pages a month instead of 20, exports to Tally, QuickBooks (QBO) and OFX, saved per-client presets, more AI actions, and invoiced billing on request. If converting other people’s statements is part of your job, it is cheaper than buying Pro and the statement converter separately. If it isn’t, Pro is the one you want.' },
   { q: 'Does the founding offer apply to Business?', a: 'No — the first 1,000 founding members lock in Pro at its founding price for life, and that offer covers Pro only. Business is priced the same for everyone.' },
   { q: 'I’m on Pro. How do I move to Business?', a: 'Email us and we will move you across and credit what you have already paid for the current period — you are never charged twice for the same month. One-click upgrades are coming; until then we would rather do it by hand than sell you a second subscription.' },
