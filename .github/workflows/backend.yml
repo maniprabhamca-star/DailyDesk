@@ -61,6 +61,13 @@ jobs:
         run: npm run test:mcp-token
         working-directory: backend
 
+      # The page meter refuses conversions for money, and production runs with
+      # enforcement OFF — so the 402 branch never executes there and cannot be
+      # checked by poking the live endpoint. This is the only place it runs.
+      - name: Statement page quota
+        run: npm run test:quota
+        working-directory: backend
+
       # The receipt breakdown is client JSON on its way into a JSONB column.
       # What the sanitiser refuses is the whole of the protection.
       - name: Receipt breakdown sanitising

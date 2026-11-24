@@ -82,6 +82,8 @@ jobs:
         run: npm run test:receipt
       - name: MCP connect tokens
         run: npm run test:mcp-token
+      - name: Statement page quota
+        run: npm run test:quota
       - name: Budget receipt detail
         run: npm run test:budget-detail
       # The frontend has scripts/audit-gate.mjs; the backend had nothing, so a
