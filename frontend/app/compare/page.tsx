@@ -31,12 +31,28 @@ const COLS = ['DiemDesk', 'Smallpdf', 'iLovePDF', 'Adobe Acrobat'] as const;
 
 const ROWS: { label: string; cells: [Cell, Cell, Cell, Cell]; note?: string }[] = [
   {
+    // All four figures re-read from the companies' own pricing pages on the
+    // date in CHECKED_ON_LABEL. Two of ours were wrong before that: Smallpdf
+    // was written as "~$10–15/mo" when their page shows $15.00, and Adobe as
+    // "$19.99–29.99" when the plans page shows $14.99–24.99. A comparison table
+    // that overstates a rival's price is the one kind of error that discredits
+    // every other row on it.
     label: 'Price (paid plan)',
-    cells: ['Free now · Pro ~$5.98/mo planned', '~$10–15/mo', '$5–9/mo', '$19.99–29.99/mo'],
+    cells: ['Free now · Pro ~$5.98/mo planned', '$15/mo billed yearly', '$5/mo billed yearly ($60/yr)', '$14.99–24.99/mo'],
   },
   {
     label: 'Free plan',
-    cells: ['Every in-browser tool, no daily cap', '2 tasks / day', 'Limited tasks + ads', '7-day trial only'],
+    cells: [
+      'Every in-browser tool, no daily cap',
+      'Daily download limit on 21 tools',
+      '“Limited document processing” + ads',
+      'Paid plans only',
+    ],
+    note:
+      `Smallpdf’s own pricing page puts “Daily download limit” against 21 named tools on the free plan — including ` +
+      `Merge, Split, Rotate, Delete Pages, Basic Compression, Annotator, Sign, Protect and every Office conversion. ` +
+      `Lifting that cap is most of what their $15 buys. DiemDesk puts no cap on any in-browser tool at any price, ` +
+      `including $0. Read on ${CHECKED_ON_LABEL}.`,
   },
   {
     label: 'Files stay on your device (no upload)',
@@ -105,11 +121,12 @@ const SOURCES = [
   { name: 'Smallpdf pricing', href: 'https://smallpdf.com/pricing' },
   { name: 'iLovePDF pricing', href: 'https://www.ilovepdf.com/pricing' },
   { name: 'Sejda pricing', href: 'https://www.sejda.com/upgrade' },
-  { name: 'Adobe Acrobat pricing', href: 'https://www.adobe.com/acrobat/pricing.html' },
+  { name: 'Adobe Acrobat plans', href: 'https://www.adobe.com/acrobat/plans.html' },
   // Read for the government-forms row: the first two to check what they list,
   // the third for the price quoted in that row's note.
   { name: 'Smallpdf tools list', href: 'https://smallpdf.com/pdf-tools' },
   { name: 'US Legal Forms pricing', href: 'https://www.uslegalforms.com/pricing/' },
+  { name: 'DocuClipper pricing', href: 'https://www.docuclipper.com/pricing/' },
 ];
 
 const faqs = [
@@ -191,8 +208,8 @@ export default function ComparePage() {
         </div>
 
         <p className="mt-3 text-center text-xs text-muted-foreground">
-          Competitor prices and limits are from each company&rsquo;s published plans as of <strong>July 2026</strong> and
-          may change — verify at the source:{' '}
+          Competitor prices and limits are read from each company&rsquo;s own published plans, most recently on{' '}
+          <strong>{CHECKED_ON_LABEL}</strong>. They change them without telling us — verify at the source:{' '}
           {SOURCES.map((s, i) => (
             <span key={s.href}>
               <a href={s.href} target="_blank" rel="nofollow noopener" className="text-primary hover:underline">{s.name}</a>
@@ -222,6 +239,76 @@ export default function ComparePage() {
             ))}
           </div>
         </div>
+
+        {/* Bank statement conversion — a different market, so a separate table.
+            DocuClipper is not a PDF tool suite and putting it in the main grid
+            would compare two things that do not compete, which flatters nobody
+            and informs no one. The axis that matters here is cost per page,
+            because that is the axis THEY chose: their own headline is "pay only
+            for the pages you convert". */}
+        <section className="mx-auto mt-16 max-w-3xl">
+          <h2 className="text-center text-xl font-semibold">Bank statement conversion, by the page</h2>
+          <p className="mx-auto mt-2 max-w-xl text-center text-sm text-muted-foreground">
+            Converting client statements is its own job with its own tools. The dedicated products meter by page, so
+            that is the honest way to compare them — read from{' '}
+            <a href="https://www.docuclipper.com/pricing/" target="_blank" rel="nofollow noopener" className="text-primary hover:underline">
+              DocuClipper&rsquo;s pricing page
+            </a>{' '}
+            on {CHECKED_ON_LABEL}.
+          </p>
+          <div className="mt-5 overflow-x-auto rounded-xl border">
+            <table className="w-full min-w-[520px] border-collapse text-sm">
+              <thead>
+                <tr className="border-b bg-muted/40 text-left">
+                  <th className="px-4 py-2.5 font-semibold">Plan</th>
+                  <th className="px-4 py-2.5 text-right font-semibold">Price</th>
+                  <th className="px-4 py-2.5 text-right font-semibold">Pages / month</th>
+                  <th className="px-4 py-2.5 text-right font-semibold">Cost per page</th>
+                </tr>
+              </thead>
+              <tbody className="[&>tr]:border-b [&>tr:last-child]:border-0">
+                <tr>
+                  <td className="px-4 py-2.5">DocuClipper Starter</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums">$29.00/mo</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums">60</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums">$0.483</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-2.5">DocuClipper Starter <span className="text-muted-foreground">(annual)</span></td>
+                  <td className="px-4 py-2.5 text-right tabular-nums">$20.30/mo</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums">60</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums">$0.338</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-2.5">DocuClipper Business <span className="text-muted-foreground">(annual)</span></td>
+                  <td className="px-4 py-2.5 text-right tabular-nums">$111.30/mo</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums">640</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums">$0.174</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-2.5">DocuClipper Enterprise <span className="text-muted-foreground">(annual)</span></td>
+                  <td className="px-4 py-2.5 text-right tabular-nums">$279.30/mo</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums">1,800</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums">$0.155</td>
+                </tr>
+                <tr className="bg-emerald-500/[0.07] font-semibold">
+                  <td className="px-4 py-2.5">DiemDesk Business</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums">$19.00/mo</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums">300</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums text-emerald-700 dark:text-emerald-400">$0.063</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+            Against their entry plan that is <strong className="text-foreground">7.6&times; cheaper per page</strong>,
+            and we are still cheaper per page than their $279/mo tier. Two things worth saying in their favour, because
+            a comparison that only flatters us is not worth reading:{' '}
+            <strong className="text-foreground">every seat is included on their plans</strong> — that is their own
+            headline and it is a real advantage over our single-user Business tier — and they sell overage pages at
+            $0.10. Our parsing runs on your device, so there is no per-page cost to pass on and nothing to meter.
+          </p>
+        </section>
 
         {/* Honest caveats — never advertise what isn't live yet as if it were. */}
         <div className="mx-auto mt-10 max-w-2xl rounded-xl border border-amber-300/50 bg-amber-50/40 p-4 text-sm text-muted-foreground dark:border-amber-500/25 dark:bg-amber-950/10">

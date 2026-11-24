@@ -14,12 +14,16 @@ import { Info } from 'lucide-react';
 // hand-written versions of the same sentence drift, and the one that drifts is
 // the one that matters.
 //
-// Boxed, but deliberately NOT the same box as the explainer that usually sits
-// above it: that one is filled, this one is outlined and dashed. Two identical
-// grey slabs stacked read as one long block nobody finishes; a filled box
-// followed by an outlined one reads as "here is the explanation" then "and here
-// is who we are not". Dashed rather than solid, and muted rather than amber,
-// because this is a clarification and a warning box would misrepresent it.
+// Amber, matching the "Fair disclosure" box on /compare and the alternative
+// pages exactly (border-amber-300/50 · bg-amber-50/40, with the dark-mode pair).
+// Those two are the site's other standing disclosure, and a reader meeting one
+// on /compare and the other on /for/immigration should recognise them as the
+// same kind of thing. Two different-looking boxes saying "here is something we
+// are being straight with you about" is a design that has not decided.
+//
+// Still dashed, and still small and muted in its type, so it reads as a
+// clarification rather than a warning — the colour carries the family, the
+// weight carries the tone.
 export function ThirdPartyNotice({
   /** Who or what the page names — "the Internal Revenue Service", "HDFC Bank", "any government department". */
   subject,
@@ -36,10 +40,10 @@ export function ThirdPartyNotice({
 }) {
   return (
     <aside
-      className={`flex gap-2.5 rounded-xl border border-dashed border-border px-4 py-3 ${className}`}
+      className={`flex gap-2.5 rounded-xl border border-dashed border-amber-300/50 bg-amber-50/40 px-4 py-3 dark:border-amber-500/25 dark:bg-amber-950/10 ${className}`}
       aria-label="Affiliation notice"
     >
-      <Info className="mt-0.5 size-4 shrink-0 text-muted-foreground/70" aria-hidden="true" />
+      <Info className="mt-0.5 size-4 shrink-0 text-amber-600/80 dark:text-amber-500/70" aria-hidden="true" />
       <p className="text-xs leading-relaxed text-muted-foreground">
         <b className="font-semibold text-foreground">DiemDesk is not affiliated with, endorsed by, or connected to{' '}
         {subject}.</b>{' '}
