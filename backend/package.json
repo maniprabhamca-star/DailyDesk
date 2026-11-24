@@ -13,7 +13,8 @@
     "test:mcp-token": "node scripts/test-mcp-token.js",
     "test:budget-detail": "node scripts/test-budget-detail.js",
     "test:http-stack": "node scripts/test-http-stack.js",
-    "test:quota": "node scripts/test-statement-quota.js"
+    "test:quota": "node scripts/test-statement-quota.js",
+    "test:plan-change": "node scripts/test-plan-change.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

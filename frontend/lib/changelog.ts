@@ -24,6 +24,14 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-11-23',
+    kind: 'feature',
+    title: 'Moving up a plan no longer means emailing us',
+    detail:
+      'Moving from Pro to Business used to be an email to us. It is a button now, on the Business card, and what it does is the whole point: it changes the subscription you already have instead of starting a second one. You are never paying for both. Stripe works out how much of the month you have already paid for and bills you only the difference, there and then.\n\nThe part worth knowing is what happens when it goes wrong. The charge has to succeed before the plan moves — if your card will not take it, nothing changes at all. You stay on Pro, you keep your money, and you get a message saying so. There is no state where you are holding Business and owing us for it.\n\nTwo things are still deliberately by hand. Moving back down to Pro, because that change should land at the end of the period you have already paid for rather than halfway through it, and doing that properly is a different piece of work from doing it quickly. And if your account somehow has two subscriptions on it, the button refuses and tells you to email us — untangling that is exactly the thing it must not guess at.\n\nOne piece of housekeeping with real consequences: the founding rate stays with Pro. A founding member who moves up pays the full Business price, because a lifetime discount on the tier that carries the margin is not something anyone could take back afterwards. That was always the published rule; it is now also what the code does on the way through.',
+    href: '/pricing',
+  },
+  {
+    date: '2026-11-23',
     kind: 'improved',
     title: 'The page allowances on the pricing page are now real numbers',
     detail:

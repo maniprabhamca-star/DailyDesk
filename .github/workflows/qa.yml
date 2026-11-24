@@ -84,6 +84,12 @@ jobs:
         run: npm run test:mcp-token
       - name: Statement page quota
         run: npm run test:quota
+
+      # Editing a live subscription for money. The four Business prices do not
+      # exist in Stripe yet, so the first real run of this code would otherwise
+      # be a paying customer's upgrade.
+      - name: Plan change (Pro to Business)
+        run: npm run test:plan-change
       - name: Budget receipt detail
         run: npm run test:budget-detail
       # The frontend has scripts/audit-gate.mjs; the backend had nothing, so a

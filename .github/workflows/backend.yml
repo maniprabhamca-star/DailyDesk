@@ -68,6 +68,13 @@ jobs:
         run: npm run test:quota
         working-directory: backend
 
+      # Editing a live subscription for money. The four Business prices do not
+      # exist in Stripe yet, so the first real run of this code would otherwise
+      # be a paying customer's upgrade.
+      - name: Plan change (Pro to Business)
+        run: npm run test:plan-change
+        working-directory: backend
+
       # The receipt breakdown is client JSON on its way into a JSONB column.
       # What the sanitiser refuses is the whole of the protection.
       - name: Receipt breakdown sanitising

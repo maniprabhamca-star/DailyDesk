@@ -103,13 +103,17 @@ router.post('/create-checkout-session', requireAuth, async (req, res) => {
     // — blocking it here is how someone ends up with two subscriptions, which
     // is the exact thing the Business tier exists to remove.
     //
-    // ⚠ What this does NOT yet do is cancel their Pro subscription or prorate
-    // the change. Until that lands (B6), a Pro subscriber who buys Business
-    // would hold both. So this path is closed for now and says why.
+    // This endpoint still refuses it, and that is not a gap: buying Business
+    // HERE would open a second subscription beside the Pro one. The upgrade is
+    // a price change on the subscription they already hold, which is what
+    // POST /change-plan does. This is the backstop for a client that has not
+    // been updated, so it points at the right door rather than selling the
+    // wrong thing.
     if (isPaidPlan(user.plan)) {
       if (user.plan === 'pro' && plan === 'business') {
         return res.status(400).json({
-          error: 'Upgrading from Pro to Business isn’t self-serve yet — email us and we’ll move you across and credit the difference.',
+          error: 'Use the upgrade button on your account page — moving to Business changes the subscription you already have, so you are never charged twice.',
+          upgradeEndpoint: '/api/stripe/change-plan',
         });
       }
       return res.status(400).json({
@@ -230,6 +234,142 @@ router.post('/portal', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('Stripe portal error:', err.message);
     res.status(500).json({ error: 'Could not open the billing portal — please try again.' });
+  }
+});
+
+// ── B6: moving between paid tiers ───────────────────────────────────────────
+//
+// A Pro subscriber who wants Business must NOT buy a second subscription. That
+// is the precise failure the Business tier exists to remove: two renewal dates,
+// two cancel buttons, $24.98 a month for one person's work. So this is a Stripe
+// plan change on the subscription they already have, prorated, not a checkout.
+//
+// Three decisions worth stating, because each one is a way to take money wrongly:
+//
+//  1. UPGRADES ONLY. pro → business, and month → year inside a tier. A downgrade
+//     needs the change to land at the end of the period they have already paid
+//     for, which is a subscription schedule rather than an update, and it raises
+//     a refund question we have a published policy for (/refund-policy, 14 days)
+//     and no code for. Rather than half-build that, a downgrade is refused here
+//     with somewhere to go. Half a billing feature is worse than none.
+//
+//  2. `error_if_incomplete` + `always_invoice`. The customer is getting more, so
+//     they pay the prorated difference now rather than at the next renewal. The
+//     pairing is the safety: if the card cannot be charged, Stripe returns an
+//     error and the subscription is NOT changed. Either they are on Business and
+//     have paid for it, or nothing happened. There is no state where somebody
+//     holds the tier and owes us for it.
+//
+//  3. THE FOUNDING COUPON IS REMOVED. This is the trap. A founding member holds
+//     $0.99-off-forever, attached to their subscription. Change the price under
+//     it and the discount simply carries, and they hold Business at $18.01 for
+//     life — the one pricing mistake that cannot be taken back, called out as
+//     decision P3 in docs/designs/business-tier-pricing.html, and already
+//     guarded on the checkout path and on the pricing page. This is the third
+//     place it has to be true, because this is the path that did not exist when
+//     the other two were written.
+
+/** pro → business, or month → year. Anything else is not an upgrade. */
+function isUpgrade(fromPlan, fromInterval, toPlan, toInterval) {
+  const rank = { free: 0, pro: 1, business: 2 };
+  const from = rank[fromPlan] === undefined ? 0 : rank[fromPlan];
+  const to = rank[toPlan] === undefined ? 0 : rank[toPlan];
+  if (to > from) return true;                                                       // pro → business
+  if (to === from && fromInterval === 'month' && toInterval === 'year') return true; // longer commitment
+  return false;
+}
+
+router.post('/change-plan', requireAuth, async (req, res) => {
+  const s = getStripe();
+  const interval = req.body && req.body.interval === 'year' ? 'year' : 'month';
+  const plan = req.body && req.body.plan === 'business' ? 'business' : 'pro';
+  const priceId = PRICES[plan] && PRICES[plan][interval];
+  if (!s || !priceId) {
+    console.warn(`[stripe] change-plan: no price for plan=${plan} interval=${interval}`);
+    return res.status(503).json({ error: 'Billing isn’t set up yet — please try again shortly.' });
+  }
+
+  try {
+    const { rows } = await db.query('SELECT email, plan, stripe_customer_id FROM users WHERE id = $1', [req.user.userId]);
+    const user = rows[0];
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (!isPaidPlan(user.plan)) {
+      return res.status(400).json({ error: 'You’re not on a paid plan yet — start one from the pricing page.' });
+    }
+    if (!user.stripe_customer_id) {
+      // Paid plan, no Stripe customer: granted by hand, or billed elsewhere.
+      // Changing a subscription we cannot see is not something to improvise.
+      return res.status(409).json({ error: 'We can’t find a subscription to change — email us and we’ll sort it out by hand.' });
+    }
+
+    const list = await s.subscriptions.list({ customer: user.stripe_customer_id, status: 'active', limit: 10 });
+    const sub = list.data[0];
+    if (!sub) return res.status(409).json({ error: 'We can’t find an active subscription to change — email us and we’ll sort it out by hand.' });
+    if (list.data.length > 1) {
+      // Exactly the mess this endpoint exists to prevent. Do not guess which one.
+      console.error(`[stripe] ${list.data.length} active subscriptions for customer ${user.stripe_customer_id}`);
+      void notifyOwner('Two live subscriptions', `Customer ${user.stripe_customer_id} has ${list.data.length} active subscriptions and asked to change plan. Resolve by hand.`);
+      return res.status(409).json({ error: 'There’s more than one subscription on your account — email us and we’ll merge them, no double charge.' });
+    }
+
+    const item = sub.items && sub.items.data && sub.items.data[0];
+    if (!item) return res.status(409).json({ error: 'We can’t read your subscription — email us and we’ll sort it out by hand.' });
+    if (item.price && item.price.id === priceId) {
+      return res.status(400).json({ error: `You’re already on ${plan === 'business' ? 'Business' : 'Pro'}, billed ${interval === 'year' ? 'annually' : 'monthly'}.` });
+    }
+
+    const fromInterval = item.price && item.price.recurring ? item.price.recurring.interval : 'month';
+    const fromPlan = planForPrice(item.price && item.price.id) || user.plan;
+    if (!isUpgrade(fromPlan, fromInterval, plan, interval)) {
+      return res.status(400).json({
+        error: 'Moving down a tier isn’t self-serve yet — email us and we’ll make the change at the end of the period you’ve already paid for.',
+        reason: 'downgrade',
+      });
+    }
+
+    const updated = await s.subscriptions.update(sub.id, {
+      items: [{ id: item.id, price: priceId }],
+      proration_behavior: 'always_invoice',
+      payment_behavior: 'error_if_incomplete',
+      // See decision 3 above. A lifetime Pro discount must not become a
+      // lifetime Business discount.
+      discounts: [],
+      metadata: Object.assign({}, sub.metadata || {}, { plan, userId: String(req.user.userId) }),
+    });
+
+    // The subscription.updated webhook writes this too, and either may land
+    // first. Writing it here means the customer's next page load is already
+    // right instead of right-in-a-moment; the webhook then agrees with it.
+    await db.query('UPDATE users SET plan = $1, updated_at = now() WHERE id = $2', [plan, req.user.userId]);
+    console.log(`Stripe: user ${req.user.userId} ${fromPlan}/${fromInterval} → ${plan}/${interval} (sub ${sub.id})`);
+
+    // If a discount survived the update, the customer is now holding a price we
+    // did not intend to sell for ever. Nothing here can safely undo it, so say
+    // so loudly rather than let it sit in a dashboard nobody reads.
+    const stillDiscounted = Array.isArray(updated.discounts) ? updated.discounts.length > 0 : !!updated.discount;
+    if (stillDiscounted) {
+      console.error(`[stripe] discount SURVIVED the move to ${plan} on ${sub.id}`);
+      void notifyOwner('Founding discount survived an upgrade', `Subscription ${sub.id} moved to ${plan} and still carries a discount. A founding rate on Business is a lifetime price we did not mean to sell — check it now.`);
+    }
+
+    // Named subscriptionStatus, not status: a JSON body whose `status` means
+    // 'active' sits next to an HTTP status that means 200, and the first
+    // client to flatten the two gets a confident, wrong answer.
+    res.json({ ok: true, plan, interval, subscriptionId: sub.id, subscriptionStatus: updated.status });
+  } catch (err) {
+    const msg = (err && err.message) || '';
+    // error_if_incomplete surfaces a declined card as an error, which is the
+    // point — but it is the customer's problem to fix, not an outage.
+    if (/card|payment|declin|insufficient|authentication/i.test(msg)) {
+      console.warn('[stripe] change-plan payment failed:', msg);
+      return res.status(402).json({
+        error: 'Your card couldn’t be charged for the difference, so nothing has changed — update your card and try again.',
+        detail: 'payment',
+      });
+    }
+    console.error('Stripe change-plan error:', msg);
+    void notifyOwner('Plan change failed', `A plan change failed.\nUser: ${req.user && req.user.userId}\nError: ${msg}`);
+    res.status(500).json({ error: 'Could not change your plan — please try again, or email us.' });
   }
 });
 
@@ -502,6 +642,38 @@ async function webhookHandler(req, res) {
             console.warn('[stripe] could not record ToS acceptance (run backend/src/db/schema.sql):', e.message);
           }
         }
+      }
+    } else if (event.type === 'customer.subscription.updated') {
+      // A subscription's price can change without a checkout: our own
+      // /change-plan does it, and so does the Stripe Customer Portal if plan
+      // switching is ever enabled there. Before this handler existed, neither
+      // reached the database — only checkout.session.completed did — so a
+      // customer could be paying Business at Stripe and reading Pro's limits
+      // here, indefinitely, with both systems convinced they were right.
+      //
+      // This fires for a lot of reasons that are not a price change (a card
+      // update, cancel_at_period_end toggling, dunning), so it only acts when
+      // the price maps to a tier we sell AND the subscription is in a state
+      // worth honouring. Anything else is left alone rather than guessed at —
+      // notably `canceled`, which has its own handler below and must not be
+      // turned back into a paid plan by an update event arriving late.
+      const sub = event.data.object;
+      const item = sub.items && sub.items.data && sub.items.data[0];
+      const plan = planForPrice(item && item.price && item.price.id);
+      const live = ['active', 'trialing', 'past_due'].includes(sub.status);
+      if (plan && live && sub.customer) {
+        const { rowCount } = await db.query(
+          'UPDATE users SET plan = $1, updated_at = now() WHERE stripe_customer_id = $2 AND plan <> $1',
+          [plan, sub.customer],
+        );
+        if (rowCount) console.log(`Stripe: customer ${sub.customer} → ${plan} (subscription updated)`);
+      } else if (!plan && live && sub.customer) {
+        // Paying for something we cannot name. Either a price exists in Stripe
+        // that is not in STRIPE_PRICE_ID_*, or an env var is missing on this
+        // deploy. Both end with a customer served the wrong tier, and neither
+        // is visible anywhere else.
+        console.warn(`Stripe: subscription ${sub.id} has an unmapped price — check STRIPE_PRICE_ID_* env vars`);
+        void notifyOwner('Unmapped Stripe price', `Subscription ${sub.id} (customer ${sub.customer}) is active on a price this deploy does not recognise, so the customer's plan was NOT changed. Check STRIPE_PRICE_ID_* on the server.`);
       }
     } else if (event.type === 'customer.subscription.deleted') {
       const sub = event.data.object;

@@ -35,7 +35,10 @@ export const PRICING = {
     // "Edit PDF text" promises something a non-payer already has, and the buyer
     // finds that out after paying. The comparison table on the same page has
     // always said it precisely; the card now matches it.
-    'Full in-place text editing — change the existing text',
+    // Word-for-word the same string as the comparison row in app/pricing/page.tsx.
+    // Two places on one page making the same promise in two phrasings invites the
+    // reader to look for the difference between them.
+    'Full in-place text editing — change existing text',
     'Search & pattern redaction',
     'Unlimited Office conversions + OCR — no daily cap, any size',
     'AI document suite — chat, cited summaries, translate, question generator, AI find-personal-info, table clean-up (launching with Pro)',

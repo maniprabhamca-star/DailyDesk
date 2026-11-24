@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Loader2, Check, Clock, Bell, Mail } from 'lucide-react';
+import { Loader2, Check, Clock, Bell, ArrowUpRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth';
 import { usePlan, isAtLeast, isExactly } from '@/lib/plan';
@@ -65,6 +65,29 @@ export function ProCheckout({
     setBusy(false);
   }
 
+  // Pro → Business. Changes the existing subscription rather than selling a
+  // second one, and charges the prorated difference immediately; the server
+  // will not move the tier unless that charge succeeds, so a failure here
+  // genuinely means nothing happened and saying so is accurate, not soothing.
+  async function moveUp() {
+    setBusy(true); setMsg(null);
+    try {
+      const res = await api.post('/api/stripe/change-plan', { interval, plan: 'business' });
+      if (res?.ok) {
+        // Read the tier back from the server rather than assuming it, for the
+        // same reason the ?upgraded=1 path does.
+        await refreshUser();
+        setMsg('upgraded');
+        setBusy(false);
+        return;
+      }
+      setMsg('Could not change your plan. Please try again.');
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : 'Could not change your plan.');
+    }
+    setBusy(false);
+  }
+
   // Free-first launch: collect a launch waitlist instead of charging. The full
   // form lives on the pricing Pro card; everywhere else links to it.
   if (WAITLIST_MODE) {
@@ -95,17 +118,19 @@ export function ProCheckout({
   } else if (!user) {
     btn = <Button asChild size={size} variant={variant} className={className}><Link href="/register">Get {name}</Link></Button>;
   } else if (isExactly(plan, 'pro') && sells === 'business') {
-    // A Pro subscriber moving up is a Stripe plan change with proration, not a
-    // second subscription — selling it from this button would recreate the exact
-    // two-subscription problem the Business tier exists to remove. The server
-    // refuses this combination for the same reason, so the button must not
-    // pretend otherwise. Until B6 ships, it is a conversation.
-    // See docs/designs/business-tier-pricing.html §B6.
+    // A Pro subscriber moving up is a Stripe plan change with proration on the
+    // subscription they already hold — NOT a checkout. Sending them through
+    // Checkout would open a second subscription beside the first, which is the
+    // exact two-subscription problem the Business tier exists to remove, and
+    // the server refuses that combination for the same reason.
+    //
+    // No confirm dialog, and that is deliberate: the amount depends on how far
+    // through their billing period they are, so any figure this button could
+    // state would be made up. The button says what happens; the invoice says
+    // what it cost. See docs/designs/business-tier-pricing.html §B6.
     btn = (
-      <Button asChild size={size} variant={variant} className={className}>
-        <a href="mailto:support@diemdesk.com?subject=Move%20me%20to%20Business">
-          <Mail className="size-4" /> Email us to move up
-        </a>
+      <Button size={size} variant={variant} className={className} onClick={moveUp} disabled={busy}>
+        {busy ? <><Loader2 className="size-4 animate-spin" /> Moving you across…</> : <><ArrowUpRight className="size-4" /> Move up to Business</>}
       </Button>
     );
   } else {
