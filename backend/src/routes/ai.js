@@ -23,6 +23,7 @@ const { trackEvent } = require('../utils/trackEvent');
 const budget = require('../utils/aiBudget');
 const db = require('../db');
 const { isPaidPlan } = require('../utils/entitlement');
+const { tierOf } = require('../config/tiers');
 
 const router = express.Router();
 
@@ -68,9 +69,11 @@ async function preflight(req, res, { weight = 1, proMessage } = {}) {
   const isPro = isPaidPlan(who.plan) || who.isOwner;
   if (!isPro) { res.status(402).json({ error: 'pro-required', message: proMessage || 'This is a Pro feature.' }); return null; }
   const capKey = who.userId || clientKey(req);
-  const cap = await budget.check(capKey, weight);
+  // The allowance follows the plan: Pro bought 50 actions a month, Business
+  // bought 200, and until now both got 50 because one number served everybody.
+  const cap = await budget.check(capKey, weight, who.isOwner ? 'owner' : tierOf(who.plan));
   if (!cap.ok) { res.status(429).json({ error: cap.reason, message: cap.message, ...(cap.extra || {}) }); return null; }
-  return { who, capKey, remaining: cap.remaining };
+  return { who, capKey, remaining: cap.remaining, limit: cap.limit };
 }
 
 // One Claude call. Returns { ok, text, usage } or { ok:false }.

@@ -32,6 +32,7 @@ const budget = require('../utils/aiBudget');
 const { parseModelJson } = require('../utils/modelJson');
 const { parseReceipt } = require('../utils/receiptParse');
 const { isPaidPlan } = require('../utils/entitlement');
+const { tierOf } = require('../config/tiers');
 
 const router = express.Router();
 
@@ -57,6 +58,7 @@ async function requirePro(req, res, next) {
     const { rows } = await db.query('SELECT plan, email FROM users WHERE id = $1', [decoded.userId]);
     const email = rows[0] ? String(rows[0].email || '').toLowerCase() : '';
     req._isOwner = OWNER_EMAILS.includes(email);
+    req._plan = rows[0] ? rows[0].plan : null;
     if (rows[0] && (isPaidPlan(rows[0].plan) || req._isOwner)) return next();
     return res.status(402).json({ error: 'pro-required', message: 'The Receipt Scanner is a Pro feature.' });
   } catch { return res.status(401).json({ error: 'auth', message: 'Please sign in.' }); }
@@ -121,7 +123,7 @@ function sniffMedia(buf) {
 }
 
 /** Ask the model. Returns parsed fields, or null to fall through to OCR. */
-async function readWithVision(buf, capKey, isOwner) {
+async function readWithVision(buf, capKey, isOwner, tier) {
   // routes/ai.js lets the owner through while AI_ENABLED is still false, so the
   // feature can be tested on production before it is turned on for everyone.
   // Matching that here matters: on prod today the key is set and AI_ENABLED is
@@ -132,7 +134,7 @@ async function readWithVision(buf, capKey, isOwner) {
   if (!media) return null;                       // HEIC etc — let OCR try instead
   if (buf.length > 5 * 1024 * 1024) return null; // over the API's image ceiling
 
-  const cap = await budget.check(capKey, 1).catch(() => ({ ok: false }));
+  const cap = await budget.check(capKey, 1, isOwner ? 'owner' : tier).catch(() => ({ ok: false }));
   if (!cap.ok) return null;                      // over budget: OCR still answers
 
   try {
@@ -306,7 +308,7 @@ router.post('/scan', requirePro, (req, res) => {
       const rotated = await autoRotate(img);
       const upright = rotated ? fs.readFileSync(img) : req.file.buffer;
 
-      const seen = await readWithVision(upright, capKey, req._isOwner);
+      const seen = await readWithVision(upright, capKey, req._isOwner, tierOf(req._plan));
       if (seen && (seen.total != null || seen.merchant || seen.lines.length)) {
         // Payment details only when they were asked for. The model is told to
         // return at most four digits and that is enforced above, but the

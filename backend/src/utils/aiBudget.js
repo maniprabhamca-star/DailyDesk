@@ -45,6 +45,12 @@ const CFG_MONTHLY = 'ai:cfg:global_monthly_usd';
 const CFG_USER = 'ai:cfg:user_monthly_max';
 const KILL = 'ai:kill'; // "1" => assistant hard-paused for everyone
 
+// Per-tier monthly action allowances. Pinned against the pricing page by
+// frontend/tests/unit/tier-allowances.test.ts — see config/tiers.js for why
+// the number has to exist twice. 'owner' is unlimited and never reaches the
+// per-user cap at all.
+const { AI_ACTIONS: TIER_ACTIONS } = require('../config/tiers');
+
 function day() { return new Date().toISOString().slice(0, 10); }   // YYYY-MM-DD
 function month() { return new Date().toISOString().slice(0, 7); }  // YYYY-MM
 function costUsd(inTok, outTok) { return (inTok / 1e6) * PRICE_IN + (outTok / 1e6) * PRICE_OUT; }
@@ -56,13 +62,31 @@ function toNum(v, def) {
 }
 
 // Effective ceilings = Redis override if set, else the env default. One MGET.
-async function effLimits() {
+//
+// `tier` resolves the PER-USER cap only, and the precedence is deliberate:
+//
+//   Redis ai:cfg:user_monthly_max  →  the tier's published allowance  →  env
+//
+// The Redis key is an emergency brake somebody pulled from the admin console,
+// so it wins over everything — if AI spend is running away at 2am, one key
+// caps every account regardless of what they pay. The tier allowance is the
+// normal path: Pro bought 50 actions and Business bought 200, both printed on
+// /pricing. The env default is the floor for an unknown tier, which is what
+// every caller without a plan (an anonymous capKey, a future tier this deploy
+// predates) falls back to.
+//
+// Before this, there was one number for everybody. A Business subscriber paying
+// $19 for "200 actions a month" got the same 50 as a $5.98 Pro subscriber, and
+// nothing in the build or the tests had an opinion about it.
+async function effLimits(tier) {
   let vals = [null, null, null];
   try { vals = await redis.mget(CFG_DAILY, CFG_MONTHLY, CFG_USER); } catch { /* use env */ }
+  const tierMax = tier && TIER_ACTIONS[tier] !== undefined ? TIER_ACTIONS[tier] : null;
   return {
     daily: toNum(vals[0], GLOBAL_DAILY_USD),
     monthly: toNum(vals[1], GLOBAL_MONTHLY_USD),
-    userMax: toNum(vals[2], USER_MONTHLY_MAX),
+    userMax: toNum(vals[2], tierMax === null ? USER_MONTHLY_MAX : tierMax),
+    tier: tier || null,
     overrides: { daily: toNum(vals[0], null), monthly: toNum(vals[1], null), userMax: toNum(vals[2], null) },
   };
 }
@@ -74,7 +98,12 @@ async function isKilled() {
 // Call BEFORE a request. Returns { ok, reason, message, remaining, extra }.
 // `weight` = how many actions this request counts as against the user's monthly
 // cap (translate = 3: its output is ~the whole document, not a 700-token answer).
-async function check(userId, weight = 1) {
+// `tier`   = 'free' | 'pro' | 'business' | 'owner', which picks the allowance.
+//            Omitted → the env default, so an older caller keeps its behaviour.
+//            'owner' skips the per-user cap but NOT the two global budgets: the
+//            owner testing on prod should still not be able to spend the whole
+//            month's money, and those budgets are what make the cost promise true.
+async function check(userId, weight = 1, tier) {
   if (redisDown()) return { ok: true, remaining: null }; // degrade to allow (bounded by max_tokens)
   const d = day();
   const m = month();
@@ -83,7 +112,7 @@ async function check(userId, weight = 1) {
     if (await isKilled()) {
       return { ok: false, reason: 'ai-paused', message: 'The AI assistant is temporarily paused. Please check back soon.' };
     }
-    const lim = await effLimits();
+    const lim = await effLimits(tier);
     // Global budgets first — they protect the whole business, not one user.
     if (lim.monthly > 0) {
       const spentMonthMicro = Number(await redis.get(`ai:spend:m:${m}`)) || 0;
@@ -95,13 +124,20 @@ async function check(userId, weight = 1) {
     if (spentDayMicro / 1e6 >= lim.daily) {
       return { ok: false, reason: 'ai-budget', message: "The assistant has hit today's limit — it'll be back tomorrow." };
     }
-    // Per-user monthly fair-use cap.
+    // Per-user monthly fair-use cap. The owner has no allowance to exhaust —
+    // the global budgets above already bound what that costs.
     const uKey = `ai:u:${userId}:${m}`;
     const used = Number(await redis.get(uKey)) || 0;
+    if (tier === 'owner') return { ok: true, remaining: null, tier, limit: null };
     if (used + weight > lim.userMax) {
-      return { ok: false, reason: 'ai-limit', message: `You've reached this month's limit of ${lim.userMax} AI actions. It resets next month.`, extra: { limit: lim.userMax } };
+      return {
+        ok: false,
+        reason: 'ai-limit',
+        message: `You've reached this month's limit of ${lim.userMax} AI actions. It resets next month.`,
+        extra: { limit: lim.userMax, tier: lim.tier, upgradeTo: lim.tier === 'pro' ? 'business' : null },
+      };
     }
-    return { ok: true, remaining: lim.userMax - used };
+    return { ok: true, remaining: lim.userMax - used, tier: lim.tier, limit: lim.userMax };
   } catch {
     return { ok: true, remaining: null }; // fail-open on a Redis error
   }
@@ -135,7 +171,11 @@ async function status() {
     daySpend, monthSpend,
     dailyBudget: GLOBAL_DAILY_USD,
     monthlyBudget: GLOBAL_MONTHLY_USD || null,
+    // Kept for the existing /dashboard/system tile, which expects one number.
+    // It is the fallback cap now, not everybody's cap — `tierActions` is the
+    // honest answer and a single figure can no longer be it.
     userMonthlyMax: USER_MONTHLY_MAX,
+    tierActions: TIER_ACTIONS,
   };
 }
 
@@ -187,6 +227,10 @@ async function adminStatus() {
     dailyBudget: lim.daily,
     monthlyBudget: lim.monthly || null,
     userMonthlyMax: lim.userMax,
+    // What each plan is actually allowed, and whether an admin override is
+    // currently flattening all of them to one number.
+    tierActions: TIER_ACTIONS,
+    tierOverridden: lim.overrides.userMax !== null,
     envDefaults: { dailyBudget: GLOBAL_DAILY_USD, monthlyBudget: GLOBAL_MONTHLY_USD || null, userMonthlyMax: USER_MONTHLY_MAX },
     overrides: lim.overrides,
     topUsers: users,

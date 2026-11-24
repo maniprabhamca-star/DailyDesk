@@ -2,11 +2,29 @@
 //
 // PRIVACY: the statement itself is NEVER sent here. The browser converts the file
 // entirely on-device; it sends only a PAGE COUNT (a number) so we can enforce the
-// free allowance and know when to show the upgrade prompt. We store a per-user (or
+// allowance and know when to show the upgrade prompt. We store a per-user (or
 // per-IP for anonymous) monthly page tally in Redis — nothing about the document.
 //
-// Enforcement is behind STATEMENT_QUOTA_ENABLED (default off) so the meter can ship
-// and record usage without blocking anyone until the Statements tier goes live.
+// ⚠ This endpoint used to meter the free tier and nobody else:
+//
+//     if (isPaidPlan(who.plan) || who.isOwner) return res.json({ unlimited: true, limit: null })
+//
+// One branch for "has paid", and it handed out unlimited. That was defensible
+// when there was one paid plan and the statement converter was its own product.
+// It stopped being defensible the day /pricing started printing 5 · 20 · 300 and
+// /compare started printing $0.063 a page — which is $19 ÷ 300, a number that
+// means nothing if 300 is not a real ceiling. Worse, Pro and Business were
+// treated identically, so $5.98 bought exactly what $19 bought and the tier we
+// had just built had no volume advantage in code at all.
+//
+// Allowances now come from config/tiers.js, which is pinned against the pricing
+// page by frontend/tests/unit/tier-allowances.test.ts. The owner is the only
+// caller who still gets `unlimited`.
+//
+// Enforcement (the 402) stays behind STATEMENT_QUOTA_ENABLED so the meter can
+// record real usage before it starts refusing anyone. Metering is unconditional:
+// we want the numbers from day one, and a counter that only runs when
+// enforcement is on gives you an empty month the day you turn enforcement on.
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const jwt = require('jsonwebtoken');
@@ -15,17 +33,16 @@ const { makeStore, redisDown } = require('../utils/rateLimitStore');
 const { isCanaryReq } = require('../utils/canary');
 const redis = require('../utils/redis');
 const db = require('../db');
-const { isPaidPlan } = require('../utils/entitlement');
+const { statementAllowance } = require('../config/tiers');
 
 const router = express.Router();
 
-const FREE_PAGES = Number(process.env.STATEMENT_FREE_PAGES || 5);
 const ENABLED = process.env.STATEMENT_QUOTA_ENABLED === 'true'; // block over-limit only when true
 const TTL = 35 * 86400; // ~a month + slack, then the key self-cleans
 const OWNER_EMAILS = (process.env.AI_OWNER_EMAILS || 'maniprabhamca@gmail.com,mrmanigandan@gmail.com')
   .split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
 
-const month = () => new Date().toISOString().slice(0, 10).slice(0, 7); // YYYY-MM
+const month = () => new Date().toISOString().slice(0, 7); // YYYY-MM
 
 async function whoIs(req) {
   const h = req.headers.authorization;
@@ -40,6 +57,25 @@ async function whoIs(req) {
 
 const keyFor = (who, req) => `stmt:pages:${who.userId || clientKey(req)}:${month()}`;
 
+/** The shape both endpoints answer in, so the client has one thing to read. */
+function shape(allow, used, extra = {}) {
+  const unlimited = allow.limit === null;
+  return {
+    // `pro` means "pays us something", kept for the existing client which uses
+    // it only to decide whether to show the upgrade prompt.
+    pro: allow.tier !== 'free',
+    tier: allow.tier,
+    unlimited,
+    limit: unlimited ? null : allow.limit,
+    included: allow.included,
+    credits: allow.credits,
+    used: unlimited ? 0 : used,
+    remaining: unlimited ? null : Math.max(0, allow.limit - used),
+    enforced: ENABLED,
+    ...extra,
+  };
+}
+
 router.use(rateLimit({
   windowMs: 60 * 1000,
   limit: 60,
@@ -49,14 +85,17 @@ router.use(rateLimit({
   message: { error: 'rate', message: 'Too many requests — try again in a moment.' },
 }));
 
-// Current usage — used by the tool to show "N of 5 free pages used this month".
+// Current usage — used by the tool to show "N of your 300 pages used this month".
 router.get('/quota', async (req, res) => {
   const who = await whoIs(req);
-  if (isPaidPlan(who.plan) || who.isOwner) return res.json({ pro: true, unlimited: true, limit: null, used: 0, remaining: null });
-  if (redisDown()) return res.json({ pro: false, unlimited: false, limit: FREE_PAGES, used: 0, remaining: FREE_PAGES });
+  const allow = statementAllowance(who);
+  if (allow.limit === null) return res.json(shape(allow, 0));
+  // Redis down: report the full allowance rather than a figure we cannot read.
+  // Never report 0 remaining on an infra fault — that reads as "you are out".
+  if (redisDown()) return res.json(shape(allow, 0, { metered: false }));
   let used = 0;
   try { used = Number(await redis.get(keyFor(who, req))) || 0; } catch { /* fail-open */ }
-  return res.json({ pro: false, unlimited: false, limit: FREE_PAGES, used, remaining: Math.max(0, FREE_PAGES - used), enforced: ENABLED });
+  return res.json(shape(allow, used));
 });
 
 // Consume `pages` before an export. Returns whether it's allowed; the tool only
@@ -64,24 +103,37 @@ router.get('/quota', async (req, res) => {
 router.post('/consume', express.json({ limit: '4kb' }), async (req, res) => {
   const pages = Math.max(0, Math.min(5000, Math.floor(Number(req.body && req.body.pages) || 0)));
   const who = await whoIs(req);
-  if (isPaidPlan(who.plan) || who.isOwner) return res.json({ allowed: true, pro: true, remaining: null });
-  if (redisDown()) return res.json({ allowed: true, unlimited: false, limit: FREE_PAGES, remaining: FREE_PAGES }); // never block on infra trouble
+  const allow = statementAllowance(who);
+
+  if (allow.limit === null) return res.json({ allowed: true, ...shape(allow, 0) });
+  // Never block on infra trouble — a metering hiccup must not stop a conversion
+  // somebody has already paid for, and the statement is already parsed by now.
+  if (redisDown()) return res.json({ allowed: true, ...shape(allow, 0, { metered: false }) });
 
   const key = keyFor(who, req);
   let used = 0;
   try { used = Number(await redis.get(key)) || 0; } catch { /* fail-open */ }
 
   // Block only when enforcement is on AND the allowance is already spent.
-  if (ENABLED && used >= FREE_PAGES) {
+  // Deliberately `used >= limit` rather than `used + pages > limit`: a 40-page
+  // statement on a 20-page allowance converts, goes 20 over, and the NEXT one is
+  // refused. Refusing the job that would overshoot means a Pro subscriber with a
+  // single 40-page statement can never convert anything at all, which is a worse
+  // answer than letting one job run long and metering it honestly.
+  if (ENABLED && used >= allow.limit) {
     return res.status(402).json({
-      allowed: false, reason: 'quota', limit: FREE_PAGES, used, remaining: 0,
-      message: `You've used your ${FREE_PAGES} free statement pages this month. Upgrade to keep converting.`,
+      allowed: false,
+      reason: 'quota',
+      ...shape(allow, used),
+      message: allow.tier === 'business'
+        ? `You've used all ${allow.limit} statement pages on your plan this month. They reset on the 1st.`
+        : `You've used your ${allow.limit} statement page${allow.limit === 1 ? '' : 's'} this month. Upgrade to keep converting.`,
+      upgradeTo: allow.tier === 'free' ? 'pro' : allow.tier === 'pro' ? 'business' : null,
     });
   }
 
   try { await redis.pipeline().incrby(key, pages).expire(key, TTL).exec(); } catch { /* best effort */ }
-  const nowUsed = used + pages;
-  return res.json({ allowed: true, unlimited: false, limit: FREE_PAGES, used: nowUsed, remaining: Math.max(0, FREE_PAGES - nowUsed) });
+  return res.json({ allowed: true, ...shape(allow, used + pages) });
 });
 
 module.exports = router;

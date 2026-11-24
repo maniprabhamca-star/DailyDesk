@@ -124,8 +124,11 @@ export function StatementConverterTool() {
       // Meter the pages first (only a number is sent). If the free allowance is
       // spent and enforcement is on, show the upgrade prompt instead of exporting.
       const c = await consumePages(res?.numPages ?? 0);
+      // The refusal carries the tier and the real ceiling, so the banner can
+      // name the right plan. Take it even when it says no — especially then.
+      const { allowed: _ok, message: _msg, upgradeTo: _to, ...fresh } = c;
+      setQuota(fresh);
       if (!c.allowed) { setOverQuota(true); return; }
-      setQuota((q) => (q ? { ...q, used: c.used, remaining: c.remaining } : q));
       const { blob, name } = await makeExport();
       downloadBlob(blob, name);
     } finally { setExporting(false); }
@@ -334,12 +337,27 @@ export function StatementConverterTool() {
           </table>
         </div>
 
-        {/* over-quota → upgrade prompt instead of export */}
+        {/* over-quota → upgrade prompt instead of export.
+            Which plan to point at depends on which one they are already on:
+            telling a Business subscriber to "upgrade to Business" was the
+            failure mode here before the tiers were real. */}
         {overQuota && (
           <div className="flex flex-wrap items-center gap-3 border-t border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm">
-            <span className="font-semibold text-amber-800 dark:text-amber-300">You’ve used your {stmtPrice.freePages} free statement pages this month.</span>
-            <span className="text-muted-foreground">Upgrade to Statements Pro — {price(stmtPrice.proMonthly, billing)}/mo — to keep converting.</span>
-            <a href="/pricing" className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-amber-500 px-3.5 py-2 text-sm font-bold text-white hover:bg-amber-600">See Statements Pro</a>
+            <span className="font-semibold text-amber-800 dark:text-amber-300">
+              {quota?.limit != null
+                ? `You’ve used all ${quota.limit} statement pages on your plan this month.`
+                : `You’ve used your ${stmtPrice.freePages} free statement pages this month.`}
+            </span>
+            {quota?.tier === 'business' ? (
+              <span className="text-muted-foreground">They reset on the 1st. Need more this month? Email support and we’ll sort it out.</span>
+            ) : (
+              <>
+                <span className="text-muted-foreground">
+                  Business — {price(stmtPrice.proMonthly, billing)}/mo — includes {stmtPrice.proPages} pages a month.
+                </span>
+                <a href="/pricing" className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-amber-500 px-3.5 py-2 text-sm font-bold text-white hover:bg-amber-600">See Business</a>
+              </>
+            )}
           </div>
         )}
 
@@ -351,12 +369,16 @@ export function StatementConverterTool() {
             <button onClick={() => setFmt('tally')} className={`border-l px-3 py-1.5 text-xs font-bold ${fmt === 'tally' ? 'bg-emerald-700 text-white' : 'text-emerald-700 dark:text-emerald-400'}`}>★ Tally XML</button>
           </div>
           <span className="text-[11px] text-muted-foreground">
-            {quota?.pro || quota?.unlimited ? (
-              <>Statements Pro · <b className="text-foreground">unlimited pages</b></>
+            {quota?.unlimited ? (
+              <>Owner · <b className="text-foreground">unlimited pages</b></>
+            ) : quota?.tier === 'business' ? (
+              <>Business · <b className="text-foreground">{quota.used} of {quota.limit}</b> pages used this month</>
+            ) : quota?.tier === 'pro' ? (
+              <><b className="text-foreground">{quota.used} of {quota.limit}</b> Pro pages used this month · Business <b className="text-foreground">{price(stmtPrice.proMonthly, billing)}/mo</b> for {stmtPrice.proPages}</>
             ) : quota ? (
-              <><b className="text-foreground">{quota.used} of {quota.limit}</b> free pages used this month · Pro <b className="text-foreground">{price(stmtPrice.proMonthly, billing)}/mo</b> for {stmtPrice.proPages}</>
+              <><b className="text-foreground">{quota.used} of {quota.limit}</b> free pages used this month · Business <b className="text-foreground">{price(stmtPrice.proMonthly, billing)}/mo</b> for {stmtPrice.proPages}</>
             ) : (
-              <>Free · <b className="text-foreground">{stmtPrice.freePages} pages/mo</b> · Statements Pro <b className="text-foreground">{price(stmtPrice.proMonthly, billing)}/mo</b></>
+              <>Free · <b className="text-foreground">{stmtPrice.freePages} pages/mo</b> · Business <b className="text-foreground">{price(stmtPrice.proMonthly, billing)}/mo</b> for {stmtPrice.proPages}</>
             )}
           </span>
           <div className="ml-auto flex items-center gap-2">
