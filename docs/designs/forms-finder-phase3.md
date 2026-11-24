@@ -303,7 +303,13 @@ a test.
 
 ---
 
-## 10c. ✅ Ship 2 is built (24 Nov 2026) — the Pro packet
+## 10c. ✅ Ship 2 is built AND LIVE (24 Nov 2026) — the Pro packet
+
+**Deployed to production 24 Nov 2026**, prod HEAD `e23b9e8`. Verified from outside:
+the 13 packet routes build and serve, the page is `noindex, follow` and absent from
+the sitemap, the "Get all N in one go" CTA is on the task pages, the anonymous
+visitor gets the waitlist wall, and all six blank forms still come back as real
+PDFs through `/forms-api/file/<slug>` on prod.
 
 `/forms/<task>/packet`. Fetches every form in a set, in the set's order, with
 the details that repeat already in the boxes. Owner-only until Pro opens.
