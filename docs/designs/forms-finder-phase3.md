@@ -269,6 +269,40 @@ from behaviour rather than from a guess.
 
 ---
 
+## 10b. ✅ Ship 1 is live (24 Nov 2026, `5a1e2a9`)
+
+13 task pages at `/forms/<task>`, free and ungated. Sitemap 288 → 301 URLs,
+301 markdown twins, 42 files / 422 tests. Verified from outside: all 13 routes
+200 with the right `h1`, an unknown task 404s, 13 `Form checklists` rows in the
+⌘K index, no horizontal overflow at 375px.
+
+**Two deviations from this spec, both deliberate:**
+
+1. **`sources` was dropped, not populated.** Writing agency URLs by hand would
+   have meant publishing URLs that are *not* in the verified dataset, on pages
+   whose entire argument is that every claim was read at source. Provenance is
+   derived from the forms' own `authority` and `officialUrl` through
+   `authoritiesFor()` instead, so there is nothing here for a human to get
+   wrong.
+2. **No "fill the whole set" button yet.** The packet is ship 2 and is
+   Pro-gated. A live button for an unbuilt feature is worse than no button, so
+   it arrives with the thing it opens.
+
+**⚠ The guard that did not bite the first time.** The banned-vocabulary regex
+was `\byou must\b`, so *"employers **who must** take on their first employee"*
+walked straight through a test written to stop exactly that claim. Broadened to
+the bare word in any person. **A vocabulary guard that only matches the second
+person is not a guard** — the paraphrase is the likely failure, not the literal
+phrase.
+
+**⚠ Two copy defects that only reading the rendered page caught**, invisible in
+the code and to all 422 tests: a two-authority list joined with a comma instead
+of "and", and *"connected to Social Security Administration"* with the article
+missing and "or" said twice. Both now go through one `listJoin()` helper, with
+a test.
+
+---
+
 ## 11. Open
 
 - **F1** — India tasks in ship 1 or ship 3? *Recommend ship 3*: the US set is
