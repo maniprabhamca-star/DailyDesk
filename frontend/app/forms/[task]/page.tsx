@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowRight, ArrowUpRight, CircleAlert, PenLine, Send, ShieldCheck } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, CircleAlert, Globe, PenLine, Send, ShieldCheck } from 'lucide-react';
 import { SiteHeader } from '@/components/app/site-header';
 import { SiteFooter } from '@/components/app/site-footer';
 import { Button } from '@/components/ui/button';
@@ -31,10 +31,22 @@ import {
 // honest half of it.
 //
 // The "whole set at once" button is the Pro packet — ship 2 of Phase 3. It is
-// shown on every task with more than one form, and the page behind it decides
-// who may run it; a single-form task has nothing to batch, so it has no button.
-// The per-form buttons below it stay free, deliberately: the paid thing is
-// SCALE, not quality.
+// shown on every US task with more than one form, and the page behind it
+// decides who may run it; a single-form task has nothing to batch, so it has no
+// button. The per-form buttons below it stay free, deliberately: the paid thing
+// is SCALE, not quality.
+//
+// ⚠ India tasks (ship 3) render the same page with two differences, both
+// forced by what the forms ARE rather than by taste:
+//
+//   • no packet, and no packet route — those sets are portal filings, so there
+//     is nothing to pre-fill. A button that cannot work is worse than none.
+//   • no "get the form" button and no measured revision strip. Instead each row
+//     prints `howFiled`, which answers the question an India reader actually
+//     has: whether this is a thing they fill in, a thing issued to them, or a
+//     thing the department builds about them.
+//
+// Both are pinned in tests/unit/india-form-tasks.test.ts.
 
 export function generateStaticParams() {
   return FORM_TASKS.map((t) => ({ task: t.slug }));
@@ -45,9 +57,16 @@ export async function generateMetadata(props: { params: Promise<{ task: string }
   const t = getFormTask(task);
   if (!t) return {};
   const shorts = t.forms.map((tf) => formFor(tf)?.short).filter(Boolean).join(', ');
+  // "federal" is a US word and "the version the agency publishes today" is a
+  // US claim — neither is true of a GST return. The India description promises
+  // what an India page actually delivers.
+  const description =
+    t.region === 'india'
+      ? `${t.forms.length} forms turn up in this: ${shorts}. What each one is for, who fills it in, where it goes, and — the part nobody prints — which of them you never fill in at all.`
+      : `${t.forms.length} federal forms turn up in this: ${shorts}. What each one is for, who fills it in, where it goes, and the version the agency publishes today. Fill them in your browser — nothing is uploaded.`;
   return {
     title: `${t.seoTitle ?? t.title} — the forms involved | DiemDesk`,
-    description: `${t.forms.length} federal forms turn up in this: ${shorts}. What each one is for, who fills it in, where it goes, and the version the agency publishes today. Fill them in your browser — nothing is uploaded.`,
+    description,
     alternates: { canonical: `/forms/${t.slug}` },
     openGraph: {
       images: ['/og.png'],
@@ -83,7 +102,10 @@ export default async function Page(props: { params: Promise<{ task: string }> })
   if (!t) notFound();
 
   const authorities = authoritiesFor(t);
-  const others = FORM_TASKS.filter((o) => o.slug !== t.slug).slice(0, 6);
+  // Same region only. Both halves have more than six, so nothing is padded —
+  // and offering a US immigration task to somebody reading about GSTR-3B would
+  // be noise dressed as a related link. /forms carries both.
+  const others = FORM_TASKS.filter((o) => o.slug !== t.slug && o.region === t.region).slice(0, 6);
 
   // "connected to Social Security Administration" is missing a word, and
   // joining the list with "or" and THEN appending "or any other government
@@ -120,7 +142,7 @@ export default async function Page(props: { params: Promise<{ task: string }> })
               position: i + 1,
               name: f.name,
               description: tf.role,
-              url: `https://diemdesk.com/us-forms/${f.slug}`,
+              url: `https://diemdesk.com${f.href}`,
             };
           })
           .filter(Boolean),
@@ -151,16 +173,28 @@ export default async function Page(props: { params: Promise<{ task: string }> })
           </div>
 
           {/* Two clocks, never merged. The weekly job moves the first; only a
-              person moves the second. See lib/form-tasks.ts. */}
+              person moves the second. See lib/form-tasks.ts.
+
+              ⚠ There is only ONE clock on an India page, and leaving the other
+              one there was a real defect caught by reading the rendered page:
+              <CheckedAgo> reads CHECKED_ON out of lib/us-forms, so an India
+              task was printing a US robot's date as though these forms had
+              been re-measured. They cannot be — Indian filings publish no
+              revision marker, which is why verify:india-forms checks links
+              rather than versions. A borrowed date is a false provenance claim,
+              and false provenance is the one thing this whole library exists
+              not to make. So India shows the human clock alone. */}
           <dl className="mt-5 flex shrink-0 gap-2 sm:mt-0 sm:w-40 sm:flex-col">
-            <div className="flex-1 rounded-lg border bg-card p-2.5">
-              <dt className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-                Form versions
-              </dt>
-              <dd className="mt-0.5 text-xs font-medium">
-                <CheckedAgo prefix="Checked" />
-              </dd>
-            </div>
+            {t.region === 'us' && (
+              <div className="flex-1 rounded-lg border bg-card p-2.5">
+                <dt className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                  Form versions
+                </dt>
+                <dd className="mt-0.5 text-xs font-medium">
+                  <CheckedAgo prefix="Checked" />
+                </dd>
+              </div>
+            )}
             <div className="flex-1 rounded-lg border bg-card p-2.5">
               <dt className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                 This set reviewed
@@ -186,7 +220,7 @@ export default async function Page(props: { params: Promise<{ task: string }> })
             decided, and somebody who is still reading has lost nothing. The
             per-form buttons further down stay free — this is the shortcut, not
             the only door. */}
-        {t.forms.length > 1 && (
+        {t.region === 'us' && t.forms.length > 1 && (
           <section className="mt-7 flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-muted/40 p-4">
             <div className="min-w-0">
               <p className="text-sm font-semibold">
@@ -214,6 +248,21 @@ export default async function Page(props: { params: Promise<{ task: string }> })
             <span className="text-xs text-muted-foreground">{t.order}</span>
           </div>
 
+          {/* Said once, at the top of the set, rather than apologised for on
+              every row. Without it an India page reads like a US page with the
+              buttons missing; with it, the absence is the information. */}
+          {t.region === 'india' && (
+            <p className="mt-3 flex items-start gap-2 rounded-lg border bg-muted/40 p-3 text-xs leading-relaxed text-muted-foreground">
+              <Globe className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+              <span>
+                Most of these are filed online rather than on paper, so there is no blank PDF to
+                fetch. Each row says who fills it in and how it is filed — including the ones that
+                are issued to you, or built about you, where there is nothing for you to fill in at
+                all.
+              </span>
+            </p>
+          )}
+
           <ol className="relative mt-6 space-y-3">
             {/* The spine. Numbering here is information, not decoration: the
                 order is the order things actually occur in. */}
@@ -228,6 +277,13 @@ export default async function Page(props: { params: Promise<{ task: string }> })
               const f = formFor(tf);
               if (!f) return null;
               const host = new URL(f.officialUrl).hostname.replace(/^www\./, '');
+              // ⚠ Caught by reading the page. Every form in an India set tends
+              // to share one authority, so naming it per row printed the same
+              // sentence seven times down a single page — which reads as
+              // boilerplate and teaches the reader to stop reading it. Named
+              // on the first row it applies to, then just the link.
+              const prev = i > 0 ? formFor(t.forms[i - 1]) : undefined;
+              const repeatAuthority = prev?.authority === f.authority;
               return (
                 <li key={tf.slug} className="relative pl-11">
                   <span
@@ -240,7 +296,7 @@ export default async function Page(props: { params: Promise<{ task: string }> })
                   <article className="rounded-xl border bg-card p-4 shadow-soft">
                     <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
                       <Link
-                        href={`/us-forms/${f.slug}`}
+                        href={f.href}
                         className="text-base font-semibold tracking-tight underline-offset-4 hover:underline"
                       >
                         {f.name}
@@ -263,33 +319,57 @@ export default async function Page(props: { params: Promise<{ task: string }> })
                     <dl className="mt-3 grid gap-px overflow-hidden rounded-lg border bg-border sm:grid-cols-3">
                       <Custody label="Filled in by" value={tf.filedBy} icon={PenLine} />
                       <Custody label="Goes to" value={tf.goesTo} icon={Send} />
-                      <Custody
-                        label={f.revisionLabel}
-                        value={`${f.revision} · ${f.fields} fields`}
-                        icon={ShieldCheck}
-                      />
+                      {/* The third cell is the one that differs by library,
+                          and it differs because the facts do. A US form has a
+                          revision we measured off the file; an India filing has
+                          no comparable marker, and inventing one to keep the
+                          layout tidy is exactly the thing this library exists
+                          not to do. */}
+                      {f.version ? (
+                        <Custody label={f.version.label} value={f.version.value} icon={ShieldCheck} />
+                      ) : (
+                        <Custody label="How it is filed" value={tf.howFiled ?? ''} icon={Globe} />
+                      )}
                     </dl>
 
-                    <div className="mt-3.5">
-                      <GetFormButton
-                        slug={f.slug}
-                        short={f.short}
-                        officialUrl={f.officialUrl}
-                        authority={f.authority}
-                      />
-                    </div>
-                    <p className="mt-2 text-[11px] text-muted-foreground">
-                      Fetched from the {f.authority} when you click, never stored by us.{' '}
-                      <a
-                        href={f.officialUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="underline underline-offset-2"
-                      >
-                        Check it on {host}
-                      </a>
-                      .
-                    </p>
+                    {f.fillable ? (
+                      <>
+                        <div className="mt-3.5">
+                          <GetFormButton
+                            slug={f.slug}
+                            short={f.short}
+                            officialUrl={f.officialUrl}
+                            authority={f.authority}
+                          />
+                        </div>
+                        <p className="mt-2 text-[11px] text-muted-foreground">
+                          Fetched from the {f.authority} when you click, never stored by us.{' '}
+                          <a
+                            href={f.officialUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="underline underline-offset-2"
+                          >
+                            Check it on {host}
+                          </a>
+                          .
+                        </p>
+                      </>
+                    ) : (
+                      <p className="mt-3 text-[11px] text-muted-foreground">
+                        <a
+                          href={f.officialUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 font-medium text-foreground underline underline-offset-2"
+                        >
+                          Open {host} <ArrowUpRight className="size-3" aria-hidden />
+                        </a>
+                        {!repeatAuthority && (
+                          <> — the {f.authority} is the authority for this, and theirs is the current version.</>
+                        )}
+                      </p>
+                    )}
                   </article>
                 </li>
               );
@@ -309,18 +389,44 @@ export default async function Page(props: { params: Promise<{ task: string }> })
         <section className="mt-10 rounded-xl border bg-muted/30 p-4">
           <h2 className="text-sm font-semibold">Where this comes from</h2>
           <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-            Every form above is linked to the page its own issuing authority publishes, and the version
-            marker beside it was read off the document itself rather than copied from anywhere —{' '}
+            {t.region === 'us' ? (
+              <>
+                Every form above is linked to the page its own issuing authority publishes, and the
+                version marker beside it was read off the document itself rather than copied from
+                anywhere —{' '}
+              </>
+            ) : (
+              <>
+                Every entry above is linked to the authority that runs it, and the description of what
+                each one is comes from that authority&rsquo;s own material rather than from anywhere
+                else —{' '}
+              </>
+            )}
             {authorities.length === 1 ? 'the authority here is ' : 'the authorities here are '}
-            {listJoin(named)}. The two dates at the top of this page measure two different
-            things: a scheduled job re-reads every version weekly, and the second date is the last time
-            a person checked that this is still the set this task involves.
+            {listJoin(named)}.{' '}
+            {t.region === 'us' ? (
+              <>
+                The two dates at the top of this page measure two different things: a scheduled job
+                re-reads every version weekly, and the second date is the last time a person checked
+                that this is still the set this task involves.
+              </>
+            ) : (
+              <>
+                There is one date at the top of this page and it is the honest one: the last time a
+                person read this set against the authorities&rsquo; own guidance. We do not claim a
+                version check on these, because Indian filings are made on portals and publish no
+                revision marker there would be anything to check against. A weekly job does confirm
+                that every authority link here still resolves.
+              </>
+            )}
           </p>
           <p className="mt-2.5 text-sm leading-relaxed text-muted-foreground">
             <b className="text-foreground">Explainers, not legal or tax advice.</b> This page says which
-            federal forms turn up and who fills each one in. It does not say what anyone has to do,
-            because that depends on circumstances a page cannot see. We host no copies of any form and we
-            file nothing on anybody&rsquo;s behalf.
+            forms turn up and who fills each one in. It does not say what anyone has to do,
+            because that depends on circumstances a page cannot see.{' '}
+            {t.region === 'india' &&
+              'Filing dates, thresholds and eligibility in India are notified each year and extended more often than not, so every one of them belongs on the authority’s portal rather than here. '}
+            We host no copies of any form and we file nothing on anybody&rsquo;s behalf.
           </p>
         </section>
 
@@ -358,7 +464,7 @@ export default async function Page(props: { params: Promise<{ task: string }> })
               </Link>
             </Button>
             <Button asChild variant="ghost">
-              <Link href="/us-forms">
+              <Link href={t.region === 'india' ? '/india-forms' : '/us-forms'}>
                 Browse by form number <ArrowUpRight className="size-4" />
               </Link>
             </Button>

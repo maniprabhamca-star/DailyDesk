@@ -19,6 +19,13 @@ const total = usCount + inCount;
 const usFields = US_FORMS.reduce((n, f) => n + f.fields, 0);
 const authorities = [...new Set([...US_FORMS.map((f) => f.authority), ...INDIA_FORMS.map((f) => f.authority)])].length;
 
+// Derived the same way, for the same reason: a hand-typed "9 India tasks"
+// becomes wrong the first time one is added and nobody notices.
+const TASK_GROUPS = [
+  { label: 'United States', tasks: FORM_TASKS.filter((t) => t.region === 'us') },
+  { label: 'India', tasks: FORM_TASKS.filter((t) => t.region === 'india') },
+].filter((g) => g.tasks.length > 0);
+
 export const metadata: Metadata = {
   title: 'Government Forms, Explained & Filled Privately | DiemDesk',
   description:
@@ -216,33 +223,44 @@ export default function FormsHubPage() {
           <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
             <h2 className="text-xl font-bold tracking-tight">Start from what you are trying to do</h2>
             <span className="text-xs tabular-nums text-muted-foreground">
-              {TASK_COUNT} tasks · every US form appears in one
+              {TASK_COUNT} tasks · every form in both libraries appears in one
             </span>
           </div>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
             Each one lists the forms that job involves, in the order it happens, and says who fills
-            each one in and where it goes — which is not always the agency. Nothing is uploaded: the
-            form comes from its authority when you open it.
+            each one in and where it goes — which is not always the agency, and in India is often
+            nobody, because the document is issued to you. Nothing is uploaded.
           </p>
-          <ul className="mt-5 grid gap-2 sm:grid-cols-2">
-            {FORM_TASKS.map((t) => (
-              <li key={t.slug}>
-                <Link
-                  href={`/forms/${t.slug}`}
-                  className="flex h-full flex-col gap-1.5 rounded-xl border bg-card p-4 shadow-soft transition-colors hover:border-primary/50"
-                >
-                  <span className="text-sm font-semibold leading-snug">{t.title}</span>
-                  <span className="text-[11px] font-medium tabular-nums text-muted-foreground">
-                    {t.forms
-                      .map((tf) => formFor(tf)?.short)
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </span>
-                  <span className="text-xs leading-relaxed text-muted-foreground">{t.audience}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
+          {/* Split by country rather than interleaved. The two halves answer
+              different questions and a reader is in exactly one of them; a
+              single alphabetical grid would make everybody scan past half the
+              page. Headings carry the count so neither is derived by hand. */}
+          {TASK_GROUPS.map((g) => (
+            <div key={g.label} className="mt-6">
+              <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                {g.label} · {g.tasks.length}
+              </h3>
+              <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+                {g.tasks.map((t) => (
+                  <li key={t.slug}>
+                    <Link
+                      href={`/forms/${t.slug}`}
+                      className="flex h-full flex-col gap-1.5 rounded-xl border bg-card p-4 shadow-soft transition-colors hover:border-primary/50"
+                    >
+                      <span className="text-sm font-semibold leading-snug">{t.title}</span>
+                      <span className="text-[11px] font-medium tabular-nums text-muted-foreground">
+                        {t.forms
+                          .map((tf) => formFor(tf)?.short)
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </span>
+                      <span className="text-xs leading-relaxed text-muted-foreground">{t.audience}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </section>
 
         <section className="mt-14">

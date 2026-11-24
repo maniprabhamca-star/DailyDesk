@@ -43,6 +43,19 @@
 // something true. One combined date would not be.
 
 import { US_FORMS, type UsForm } from './us-forms';
+import { INDIA_FORMS, type IndiaForm } from './india-forms';
+import { INDIA_TASKS } from './india-form-tasks';
+
+/** Which catalogue a task's forms come out of, and therefore which rules the
+ *  page follows. Not cosmetic:
+ *
+ *   • a US form is a fillable PDF we fetch, measure and can pre-fill;
+ *   • an India form is usually a portal filing with no PDF at all.
+ *
+ *  Branching on this in two places on the page is honest. Printing a measured
+ *  revision strip beside a GST return, or a "fetch the form" button that
+ *  fetches nothing, would not be. */
+export type FormLibrary = 'us' | 'india';
 
 /** How relevant a form is to a task.
  *
@@ -53,9 +66,15 @@ import { US_FORMS, type UsForm } from './us-forms';
 export type Applies = 'always' | 'usually' | 'sometimes';
 
 export type TaskForm = {
-  /** Must exist in US_FORMS. A test fails the build if it does not, so deleting
-   *  a form breaks the build instead of rendering a dead row. */
+  /** Must exist in the catalogue `library` names. A test fails the build if it
+   *  does not, so deleting a form breaks the build instead of rendering a dead
+   *  row. The two catalogues share no slug today and a test pins that, because
+   *  a collision would resolve silently to whichever we looked in first. */
   slug: string;
+  /** Which catalogue `slug` lives in. Written out per row rather than inherited
+   *  from the task, so a task that one day mixes the two cannot do it by
+   *  accident. */
+  library: FormLibrary;
   /** Why this form is in this set. */
   role: string;
   /** Who puts the pen to it. */
@@ -67,12 +86,28 @@ export type TaskForm = {
   /** Mandatory whenever `applies` is not 'always'. Enforced by a test: an
    *  unconditional "sometimes" tells the reader nothing they can act on. */
   condition?: string;
+  /** ⚠ India rows only, and mandatory there — a test fails the build on an
+   *  India row without one.
+   *
+   *  It is what replaces the US rows' measured version strip, and it is the
+   *  most useful sentence on an India page, because most Indian filing is
+   *  online and the real question is not "where is the PDF" but "do I fill
+   *  this in at all". Form 16 is issued TO you. Form 26AS is built ABOUT you.
+   *  GSTR-3B is filed BY you. A page that blurred those three would be wrong
+   *  about the main thing it describes. */
+  howFiled?: string;
 };
 
 export type FormTask = {
   slug: string;
   /** Phrased the way the reader would say it, not the way an agency would. */
   title: string;
+  /** Which library this task is drawn from. Decides two things on the page and
+   *  one thing off it: the per-row action (fetch a PDF vs open a portal), the
+   *  third column (measured revision vs how it is filed), and whether the Pro
+   *  packet route exists at all — it cannot, for a set with no fillable PDFs
+   *  in it. */
+  region: FormLibrary;
   /** Only where `title` is too long to sit inside the ~60-character title
    *  budget alongside the brand. Omitted everywhere it fits, so there is one
    *  string to keep right rather than two. */
@@ -107,10 +142,13 @@ export type FormTask = {
  *  all thirteen were reviewed on the day one of them was. */
 const REVIEWED = '2026-11-24';
 
-export const FORM_TASKS: FormTask[] = [
+/** The US sets. Kept as its own array so the two halves stay separately
+ *  readable; FORM_TASKS below is the one everything else consumes. */
+export const US_TASKS: FormTask[] = [
   // ── Employing people ──────────────────────────────────────────────────────
   {
     slug: 'hire-your-first-employee',
+    region: 'us',
     title: 'Hire your first employee',
     aka: [
       'new hire paperwork',
@@ -127,6 +165,7 @@ export const FORM_TASKS: FormTask[] = [
     forms: [
       {
         slug: 'form-i-9',
+        library: 'us',
         role:
           'Establishes that the person you hired may legally work in the United States. The employee completes one part and the employer the other.',
         filedBy: 'Employee, then the employer',
@@ -135,6 +174,7 @@ export const FORM_TASKS: FormTask[] = [
       },
       {
         slug: 'form-w-4',
+        library: 'us',
         role:
           'Tells payroll how much federal income tax to take out of each paycheck. It is not filed with the IRS.',
         filedBy: 'Employee',
@@ -143,6 +183,7 @@ export const FORM_TASKS: FormTask[] = [
       },
       {
         slug: 'form-ss-4',
+        library: 'us',
         role:
           'Gets the employer identification number that the payroll returns further down this list are filed under.',
         filedBy: 'The employer',
@@ -153,6 +194,7 @@ export const FORM_TASKS: FormTask[] = [
       },
       {
         slug: 'form-941',
+        library: 'us',
         role:
           'Reports the wages paid and the tax withheld, once a quarter, for as long as there is an employee.',
         filedBy: 'The employer or their payroll provider',
@@ -163,6 +205,7 @@ export const FORM_TASKS: FormTask[] = [
       },
       {
         slug: 'form-940',
+        library: 'us',
         role:
           'The annual federal unemployment return. Separate from, and no substitute for, a state unemployment filing.',
         filedBy: 'The employer or their payroll provider',
@@ -173,6 +216,7 @@ export const FORM_TASKS: FormTask[] = [
       },
       {
         slug: 'form-w-2',
+        library: 'us',
         role:
           'The wage statement the employee uses to file their own return. The employee never files the W-2 itself.',
         filedBy: 'The employer',
@@ -188,6 +232,7 @@ export const FORM_TASKS: FormTask[] = [
   },
   {
     slug: 'pay-a-contractor',
+    region: 'us',
     title: 'Pay a contractor',
     aka: [
       'forms for paying a freelancer',
@@ -204,6 +249,7 @@ export const FORM_TASKS: FormTask[] = [
     forms: [
       {
         slug: 'form-w-9',
+        library: 'us',
         role:
           'The contractor’s statement of their legal name, tax classification and taxpayer identification number, which is what the year-end reporting is made out to.',
         filedBy: 'The contractor',
@@ -212,6 +258,7 @@ export const FORM_TASKS: FormTask[] = [
       },
       {
         slug: 'form-1099-nec',
+        library: 'us',
         role: 'Reports what you paid a non-employee for services during the year.',
         filedBy: 'You, the payer',
         goesTo: 'The IRS, and a copy to the contractor',
@@ -221,6 +268,7 @@ export const FORM_TASKS: FormTask[] = [
       },
       {
         slug: 'form-1099-misc',
+        library: 'us',
         role:
           'The other reporting form, for payments that are not services — rent and prizes among them.',
         filedBy: 'You, the payer',
@@ -231,6 +279,7 @@ export const FORM_TASKS: FormTask[] = [
       },
       {
         slug: 'form-ss-8',
+        library: 'us',
         role:
           'Asks the IRS to determine whether a worker is an employee or a contractor.',
         filedBy: 'Either the firm or the worker',
@@ -248,6 +297,7 @@ export const FORM_TASKS: FormTask[] = [
   },
   {
     slug: 'get-paid-as-a-contractor',
+    region: 'us',
     title: 'Get paid as a contractor',
     aka: [
       'freelancer tax forms',
@@ -264,6 +314,7 @@ export const FORM_TASKS: FormTask[] = [
     forms: [
       {
         slug: 'form-w-9',
+        library: 'us',
         role:
           'Your statement of legal name, tax classification and taxpayer identification number, given to a business that pays you so it can report what it paid.',
         filedBy: 'You',
@@ -272,6 +323,7 @@ export const FORM_TASKS: FormTask[] = [
       },
       {
         slug: 'form-ss-4',
+        library: 'us',
         role:
           'Gets an employer identification number, which can go on the W-9 in place of a Social Security number.',
         filedBy: 'You',
@@ -282,6 +334,7 @@ export const FORM_TASKS: FormTask[] = [
       },
       {
         slug: 'form-1099-nec',
+        library: 'us',
         role: 'What a client sends you reporting what they paid you for services.',
         filedBy: 'The client',
         goesTo: 'You receive a copy; the client files theirs',
@@ -291,6 +344,7 @@ export const FORM_TASKS: FormTask[] = [
       },
       {
         slug: 'form-1040',
+        library: 'us',
         role: 'The return the whole year ends up on.',
         filedBy: 'You',
         goesTo: 'IRS',
@@ -307,6 +361,7 @@ export const FORM_TASKS: FormTask[] = [
   },
   {
     slug: 'employee-or-contractor',
+    region: 'us',
     title: 'Settle whether someone is an employee or a contractor',
     seoTitle: 'Employee or contractor: the IRS form',
     aka: [
@@ -324,6 +379,7 @@ export const FORM_TASKS: FormTask[] = [
     forms: [
       {
         slug: 'form-ss-8',
+        library: 'us',
         role:
           'Asks the IRS to determine the worker’s status for federal employment tax purposes.',
         filedBy: 'The worker or the firm — either side can ask',
@@ -332,6 +388,7 @@ export const FORM_TASKS: FormTask[] = [
       },
       {
         slug: 'form-w-4',
+        library: 'us',
         role: 'The withholding certificate that belongs to an employment relationship.',
         filedBy: 'The worker',
         goesTo: 'The firm’s payroll',
@@ -340,6 +397,7 @@ export const FORM_TASKS: FormTask[] = [
       },
       {
         slug: 'form-w-9',
+        library: 'us',
         role: 'The taxpayer-number certificate that belongs to a contractor relationship.',
         filedBy: 'The worker',
         goesTo: 'The firm',
@@ -357,6 +415,7 @@ export const FORM_TASKS: FormTask[] = [
   // ── Numbers and authority ─────────────────────────────────────────────────
   {
     slug: 'get-a-us-taxpayer-number',
+    region: 'us',
     title: 'Get a US taxpayer number',
     aka: [
       'itin application',
@@ -373,6 +432,7 @@ export const FORM_TASKS: FormTask[] = [
     forms: [
       {
         slug: 'form-ss-5',
+        library: 'us',
         role:
           'A Social Security number: the number for a person who is eligible for one, and the card itself.',
         filedBy: 'The individual',
@@ -383,6 +443,7 @@ export const FORM_TASKS: FormTask[] = [
       },
       {
         slug: 'form-w-7',
+        library: 'us',
         role:
           'An individual taxpayer identification number: the number for a person with a US filing obligation who cannot get a Social Security number.',
         filedBy: 'The individual',
@@ -393,6 +454,7 @@ export const FORM_TASKS: FormTask[] = [
       },
       {
         slug: 'form-ss-4',
+        library: 'us',
         role:
           'An employer identification number: the number for a business, an estate or a trust.',
         filedBy: 'The entity, or whoever administers it',
@@ -410,6 +472,7 @@ export const FORM_TASKS: FormTask[] = [
   },
   {
     slug: 'let-someone-handle-the-irs-for-you',
+    region: 'us',
     title: 'Let someone handle the IRS for you',
     aka: [
       'irs power of attorney form',
@@ -426,6 +489,7 @@ export const FORM_TASKS: FormTask[] = [
     forms: [
       {
         slug: 'form-8821',
+        library: 'us',
         role:
           'Authorises a third party to inspect or receive your confidential tax information. It does not authorise them to act.',
         filedBy: 'The taxpayer',
@@ -436,6 +500,7 @@ export const FORM_TASKS: FormTask[] = [
       },
       {
         slug: 'form-2848',
+        library: 'us',
         role:
           'Authorises a representative to speak to the IRS and act for you on the matters and periods it names.',
         filedBy: 'The taxpayer, and signed by the representative',
@@ -455,6 +520,7 @@ export const FORM_TASKS: FormTask[] = [
   // ── Returns, corrections, collections ─────────────────────────────────────
   {
     slug: 'set-up-an-irs-payment-plan',
+    region: 'us',
     title: 'Set up an IRS payment plan',
     aka: [
       'cannot pay my taxes',
@@ -471,6 +537,7 @@ export const FORM_TASKS: FormTask[] = [
     forms: [
       {
         slug: 'form-9465',
+        library: 'us',
         role: 'Asks the IRS for an instalment arrangement for a balance due.',
         filedBy: 'The taxpayer',
         goesTo: 'IRS, with the return or after a bill arrives',
@@ -478,6 +545,7 @@ export const FORM_TASKS: FormTask[] = [
       },
       {
         slug: 'form-433-f',
+        library: 'us',
         role: 'The shorter collection information statement.',
         filedBy: 'The taxpayer',
         goesTo: 'IRS',
@@ -487,6 +555,7 @@ export const FORM_TASKS: FormTask[] = [
       },
       {
         slug: 'form-433-a',
+        library: 'us',
         role: 'The long collection information statement.',
         filedBy: 'The taxpayer',
         goesTo: 'IRS',
@@ -496,6 +565,7 @@ export const FORM_TASKS: FormTask[] = [
       },
       {
         slug: 'form-4506-t',
+        library: 'us',
         role: 'Gets a transcript of what was actually filed and assessed.',
         filedBy: 'The taxpayer',
         goesTo: 'IRS',
@@ -512,6 +582,7 @@ export const FORM_TASKS: FormTask[] = [
   },
   {
     slug: 'fix-a-return-you-already-filed',
+    region: 'us',
     title: 'Fix a return you already filed',
     aka: [
       'amend my tax return',
@@ -528,6 +599,7 @@ export const FORM_TASKS: FormTask[] = [
     forms: [
       {
         slug: 'form-4506-t',
+        library: 'us',
         role: 'Gets a transcript of the return as filed and as assessed.',
         filedBy: 'The taxpayer',
         goesTo: 'IRS',
@@ -537,6 +609,7 @@ export const FORM_TASKS: FormTask[] = [
       },
       {
         slug: 'form-1040-x',
+        library: 'us',
         role: 'The amended individual return.',
         filedBy: 'The taxpayer',
         goesTo: 'IRS',
@@ -551,6 +624,7 @@ export const FORM_TASKS: FormTask[] = [
   },
   {
     slug: 'change-your-address-with-the-irs',
+    region: 'us',
     title: 'Change your address with the IRS',
     aka: [
       'irs change of address form',
@@ -565,6 +639,7 @@ export const FORM_TASKS: FormTask[] = [
     forms: [
       {
         slug: 'form-8822',
+        library: 'us',
         role: 'Notifies the IRS of a new home mailing address.',
         filedBy: 'The taxpayer — separated couples can each file their own',
         goesTo: 'IRS',
@@ -572,6 +647,7 @@ export const FORM_TASKS: FormTask[] = [
       },
       {
         slug: 'form-1040',
+        library: 'us',
         role:
           'A return filed with the new address on it does some of the same work without a separate form.',
         filedBy: 'The taxpayer',
@@ -591,6 +667,7 @@ export const FORM_TASKS: FormTask[] = [
   // ── Immigration and citizenship ───────────────────────────────────────────
   {
     slug: 'sponsor-a-relative-to-immigrate',
+    region: 'us',
     title: 'Sponsor a relative to immigrate',
     aka: [
       'family green card forms',
@@ -607,6 +684,7 @@ export const FORM_TASKS: FormTask[] = [
     forms: [
       {
         slug: 'form-i-130',
+        library: 'us',
         role: 'Establishes the qualifying family relationship.',
         filedBy: 'The US citizen or permanent resident, as petitioner',
         goesTo: 'USCIS — the relative is the beneficiary and does not file it',
@@ -614,6 +692,7 @@ export const FORM_TASKS: FormTask[] = [
       },
       {
         slug: 'form-i-864',
+        library: 'us',
         role: 'The commitment to support the immigrant financially.',
         filedBy: 'The petitioning relative, and a joint sponsor as well where needed',
         goesTo: 'USCIS, with the application it supports',
@@ -621,6 +700,7 @@ export const FORM_TASKS: FormTask[] = [
       },
       {
         slug: 'form-i-485',
+        library: 'us',
         role: 'The application to become a permanent resident from inside the United States.',
         filedBy: 'The beneficiary',
         goesTo: 'USCIS',
@@ -630,6 +710,7 @@ export const FORM_TASKS: FormTask[] = [
       },
       {
         slug: 'form-i-765',
+        library: 'us',
         role: 'Asks for permission to work while the application is pending.',
         filedBy: 'The beneficiary',
         goesTo: 'USCIS',
@@ -646,6 +727,7 @@ export const FORM_TASKS: FormTask[] = [
   },
   {
     slug: 'apply-for-us-citizenship',
+    region: 'us',
     title: 'Apply for US citizenship',
     aka: [
       'naturalization application form',
@@ -660,6 +742,7 @@ export const FORM_TASKS: FormTask[] = [
     forms: [
       {
         slug: 'form-n-400',
+        library: 'us',
         role: 'The application for naturalisation.',
         filedBy: 'The applicant',
         goesTo: 'USCIS',
@@ -667,6 +750,7 @@ export const FORM_TASKS: FormTask[] = [
       },
       {
         slug: 'form-ss-5',
+        library: 'us',
         role: 'Corrects the Social Security record after a legal name change.',
         filedBy: 'The individual',
         goesTo: 'Social Security Administration',
@@ -685,6 +769,7 @@ export const FORM_TASKS: FormTask[] = [
   // ── Leave and benefits ────────────────────────────────────────────────────
   {
     slug: 'take-family-or-medical-leave',
+    region: 'us',
     title: 'Take family or medical leave',
     aka: [
       'fmla forms',
@@ -701,6 +786,7 @@ export const FORM_TASKS: FormTask[] = [
     forms: [
       {
         slug: 'form-wh-381',
+        library: 'us',
         role:
           'The employer’s notice to the employee about eligibility and rights. It runs the opposite way from the other two.',
         filedBy: 'The employer',
@@ -709,6 +795,7 @@ export const FORM_TASKS: FormTask[] = [
       },
       {
         slug: 'form-wh-380-e',
+        library: 'us',
         role: 'Certification of the employee’s own serious health condition.',
         filedBy: 'The employee and their health-care provider',
         goesTo: 'The employer',
@@ -717,6 +804,7 @@ export const FORM_TASKS: FormTask[] = [
       },
       {
         slug: 'form-wh-380-f',
+        library: 'us',
         role: 'Certification of a family member’s serious health condition.',
         filedBy: 'The family member’s health-care provider, with the employee',
         goesTo: 'The employer',
@@ -732,6 +820,7 @@ export const FORM_TASKS: FormTask[] = [
   },
   {
     slug: 'claim-va-disability-compensation',
+    region: 'us',
     title: 'Claim VA disability compensation',
     aka: [
       'va disability claim form',
@@ -746,6 +835,7 @@ export const FORM_TASKS: FormTask[] = [
     forms: [
       {
         slug: 'form-21-526ez',
+        library: 'us',
         role:
           'The application for disability compensation, for a condition incurred in or aggravated by service, and for an increase in an existing rating.',
         filedBy: 'The veteran',
@@ -763,21 +853,97 @@ export const FORM_TASKS: FormTask[] = [
 
 // ── derived accessors ───────────────────────────────────────────────────────
 
+/** Every task, US first.
+ *
+ *  One array rather than two, deliberately: the route, the sitemap entry, the
+ *  ⌘K index and — most of all — every invariant in tests/unit/form-tasks.test.ts
+ *  then cover the India sets the day they are added, instead of being
+ *  reimplemented beside them and drifting. The India-only rules live in their
+ *  own suite on top of these. */
+export const FORM_TASKS: FormTask[] = [...US_TASKS, ...INDIA_TASKS];
+
 export const TASK_COUNT = FORM_TASKS.length;
 
 export const getFormTask = (slug: string) => FORM_TASKS.find((t) => t.slug === slug);
 
-/** The UsForm behind a TaskForm. Non-null in practice — a test fails the build
- *  on any `slug` that does not resolve — but typed honestly so callers handle
- *  it rather than asserting. */
-export const formFor = (tf: TaskForm): UsForm | undefined =>
-  US_FORMS.find((f) => f.slug === tf.slug);
+/** One shape for a row, whichever catalogue it came from.
+ *
+ *  The two catalogues deliberately do not carry the same facts: a US form has a
+ *  measured revision, a fillable field count and a PDF we can fetch; an India
+ *  form has none of those, because most Indian filing happens on a portal.
+ *  Rather than let the page reach into `UsForm | IndiaForm` and work it out
+ *  per JSX block, everything shared is normalised here and the two differences
+ *  are made explicit — `version` present or absent, `fillable` true or false —
+ *  so the page branches on a fact rather than on a type guard. */
+export type ResolvedForm = {
+  slug: string;
+  name: string;
+  short: string;
+  authority: string;
+  /** The issuer's own page. Never a copy hosted by us — see us-forms.ts. */
+  officialUrl: string;
+  library: FormLibrary;
+  /** Its page on this site. */
+  href: string;
+  /** US only. The strip that is the whole wedge: a revision, read off the file,
+   *  with the date it was measured. There is no honest India equivalent, so
+   *  there is no India value — the row prints `howFiled` in its place. */
+  version?: { label: string; value: string };
+  /** Whether `/forms-api/file/<slug>` can hand this to the filler. True for
+   *  every US form (that is the premise of that library) and false for every
+   *  India form (most are portal filings, and we host nothing). */
+  fillable: boolean;
+};
+
+/** The form behind a TaskForm, normalised.
+ *
+ *  Non-null in practice — a test fails the build on any `slug` that does not
+ *  resolve in the library its row names — but typed honestly so callers handle
+ *  it rather than asserting. Resolution is scoped to `tf.library` rather than
+ *  searching both: the two catalogues share no slug today, and a test pins
+ *  that, but a future collision should be a build failure rather than a row
+ *  that quietly renders the wrong country's form. */
+export const formFor = (tf: TaskForm): ResolvedForm | undefined =>
+  tf.library === 'us' ? resolveUs(tf.slug) : resolveIndia(tf.slug);
+
+function resolveUs(slug: string): ResolvedForm | undefined {
+  const f: UsForm | undefined = US_FORMS.find((x) => x.slug === slug);
+  if (!f) return undefined;
+  return {
+    slug: f.slug,
+    name: f.name,
+    short: f.short,
+    authority: f.authority,
+    officialUrl: f.officialUrl,
+    library: 'us',
+    href: `/us-forms/${f.slug}`,
+    version: { label: f.revisionLabel, value: `${f.revision} · ${f.fields} fields` },
+    fillable: true,
+  };
+}
+
+function resolveIndia(slug: string): ResolvedForm | undefined {
+  const f: IndiaForm | undefined = INDIA_FORMS.find((x) => x.slug === slug);
+  if (!f) return undefined;
+  return {
+    slug: f.slug,
+    name: f.name,
+    short: f.short,
+    authority: f.authority,
+    officialUrl: f.officialUrl,
+    library: 'india',
+    href: `/india-forms/${f.slug}`,
+    fillable: false,
+  };
+}
 
 /** Which tasks a given form appears in. Used on the form pages to link back up
  *  into the finder, so the two directions stay connected without a second
  *  hand-maintained list. */
-export const tasksForForm = (formSlug: string) =>
-  FORM_TASKS.filter((t) => t.forms.some((f) => f.slug === formSlug));
+export const tasksForForm = (formSlug: string, library?: FormLibrary) =>
+  FORM_TASKS.filter((t) =>
+    t.forms.some((f) => f.slug === formSlug && (library === undefined || f.library === library)),
+  );
 
 /** The distinct issuing authorities a task touches, in the order the forms
  *  appear.

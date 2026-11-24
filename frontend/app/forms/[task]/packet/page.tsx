@@ -27,14 +27,21 @@ import { FORM_TASKS, authoritiesFor, formFor, getFormTask, listJoin } from '@/li
 // Not in the sitemap and noindex: it is a signed-in tool, not a page for a
 // search engine. The task page it hangs off is the indexed one.
 
+// ⚠ US tasks only. An India set is portal filings — GSTR-3B is not a PDF with
+// boxes in it — so there is nothing for a packet to pre-fill and nothing for
+// the verifier to check. Generating the route anyway would put a Pro upgrade
+// wall in front of a feature that could not work if it were bought.
+// Pinned in tests/unit/india-form-tasks.test.ts.
+const PACKET_TASKS = FORM_TASKS.filter((t) => t.region === 'us');
+
 export function generateStaticParams() {
-  return FORM_TASKS.map((t) => ({ task: t.slug }));
+  return PACKET_TASKS.map((t) => ({ task: t.slug }));
 }
 
 export async function generateMetadata(props: { params: Promise<{ task: string }> }): Promise<Metadata> {
   const { task } = await props.params;
   const t = getFormTask(task);
-  if (!t) return {};
+  if (!t || t.region !== 'us') return {};
   return {
     title: `${t.seoTitle ?? t.title} — the whole set, pre-filled | DiemDesk`,
     description: `Fetch all ${t.forms.length} forms at once, with the details that repeat across them already entered. Nothing is uploaded and nothing is kept.`,
@@ -46,7 +53,9 @@ export async function generateMetadata(props: { params: Promise<{ task: string }
 export default async function Page(props: { params: Promise<{ task: string }> }) {
   const { task } = await props.params;
   const t = getFormTask(task);
-  if (!t) notFound();
+  // Not just an unknown slug: a real India task has no packet either, and
+  // dynamicParams means this route would otherwise render on demand for one.
+  if (!t || t.region !== 'us') notFound();
 
   const forms = t.forms
     .map((tf) => {

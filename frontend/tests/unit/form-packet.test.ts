@@ -488,9 +488,13 @@ describe('where the packet lives', () => {
   const root = join(__dirname, '..', '..');
   const page = () => readFileSync(join(root, 'app', 'forms', '[task]', 'packet', 'page.tsx'), 'utf8');
 
-  it('there is a packet page for every task', () => {
+  // Every US task, and deliberately no India one — an India set is portal
+  // filings, so there is nothing to pre-fill. See india-form-tasks.test.ts,
+  // which pins the other half of that from the data side.
+  it('there is a packet page for every US task', () => {
     expect(() => page()).not.toThrow();
-    expect(page()).toContain('FORM_TASKS.map');
+    expect(page()).toContain("FORM_TASKS.filter((t) => t.region === 'us')");
+    expect(page()).toContain('PACKET_TASKS.map');
   });
 
   // A signed-in tool is not a page for a search engine, and an indexed page

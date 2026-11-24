@@ -42,7 +42,7 @@ export default async function Page(props: { params: Promise<{ form: string }> })
   if (!f) notFound();
 
   const related = US_FORMS.filter((o) => o.group === f.group && o.slug !== f.slug).slice(0, 8);
-  const inTasks = tasksForForm(f.slug);
+  const inTasks = tasksForForm(f.slug, 'us');
   const host = new URL(f.officialUrl).hostname.replace(/^www\./, '');
 
   return (

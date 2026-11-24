@@ -515,12 +515,157 @@ forms draw on".
 
 ---
 
+---
+
+## 10d. ✅ Ship 3 is built (24 Nov 2026) — the India tasks
+
+Nine task pages at `/forms/<task>`, free and ungated, composing the **32 India
+forms** already in `lib/india-forms.ts`. Zero new forms, same as ship 1. Phase 3
+is complete.
+
+### ⚠⚠ The thing that made this more than a translation
+
+§9 budgeted ship 3 at ~6 h as "the same pages for India". It is not the same
+page, and building it as one would have produced something actively wrong.
+
+**The US column is "who fills it in and where it goes", because the surprise
+there is that a W-9 goes to the payer. The India surprise is bigger: half of
+this paperwork is not something the reader fills in at all.**
+
+- Form 16, Form 16A — **issued TO you**. There is no blank copy to find.
+- Form 26AS, the AIS — **built ABOUT you**, from what third parties reported.
+- Form 12BB, Form 15G/15H — given to a **private party** (payroll, your bank),
+  never to the department.
+- ITR-1, GSTR-3B, DIR-3 KYC — filed **by you**, online.
+
+So every India row carries a mandatory **`howFiled`**, and that field is what
+replaces the US rows' measured revision strip. A test fails the build on an
+India row without one, and on a US row that has one.
+
+### ⚠ The second difference: there is no PDF
+
+Most Indian filing is on a portal — `lib/india-forms.ts` has said so in its
+header since it was written. Consequences, all of them load-bearing:
+
+- **No fetch button.** `GetFormButton` and `/forms-api/file/<slug>` serve the US
+  library; there is nothing to serve here. India rows link to the portal.
+- **No revision / field count.** There is no marker to measure. Printing one
+  would be the exact thing the library exists not to do.
+- **No packet, and no packet route.** The Pro packet pre-fills fillable PDFs.
+  `generateStaticParams` filters to `region === 'us'`, the route 404s on an
+  India slug at runtime (dynamicParams would otherwise render it on demand),
+  and the CTA is suppressed. **Three checks, from three directions**, because
+  the failure mode is a paid upgrade wall in front of something that could not
+  work if it were bought.
+- Said **once**, at the top of the set, rather than apologised for per row:
+  without that line an India page reads as a US page with the buttons missing;
+  with it, the absence is the information.
+
+### The data model change
+
+`TaskForm` gained **`library: 'us' | 'india'`** and `FormTask` gained
+**`region`** — both required, both written out per entry rather than defaulted.
+This is the §6 model as originally specified; ship 1 dropped `library` because
+there was only one library.
+
+`formFor()` now returns a normalised **`ResolvedForm`** instead of a `UsForm`:
+everything shared (name, short, authority, officialUrl, href) plus the two
+differences made explicit — `version` present or absent, `fillable` true or
+false. The page branches on a fact, not on a type guard, in exactly two places.
+
+⚠ **Resolution is scoped to the row's own `library`, not a search of both.** The
+catalogues share no slug today and a test pins that, so a future collision is a
+red build rather than a row that silently renders the wrong country's form.
+`tasksForForm()` takes an optional library for the same reason.
+
+### The nine tasks
+
+| Task | Forms |
+|---|---|
+| file-your-income-tax-return | 12BB · 16 · 26AS · AIS · 10E · ITR-1 · ITR-2 |
+| file-a-return-as-a-freelancer | 16A · 26AS · AIS · ITR-4 · ITR-3 |
+| move-or-withdraw-your-pf | 13 · 19 · 10C · 31 |
+| register-for-gst-and-file-returns | REG-01 · GSTR-1 · GSTR-3B · GSTR-9 |
+| register-a-private-limited-company | SPICe+ · DIR-3 KYC · AOC-4 · MGT-7 |
+| get-a-pan-card | 49A · 49AA · Aadhaar enrolment · Aadhaar update |
+| open-and-keep-a-bank-account | FATCA/CRS · nomination · KYC update |
+| stop-tds-on-your-interest | 15G · 15H · 26AS |
+| send-money-out-of-india | 15CA · FATCA/CRS · KYC update |
+
+All 32 India forms appear in at least one task, and a test names any orphan.
+
+### ⚠⚠ The third guard: no hard dates
+
+`india-forms.test.ts` has always refused a calendar date in a form's `when`,
+because Indian filing dates move every year and are extended more often than
+not. A task page composed from those forms that then stated one in its **own**
+copy would undo that.
+
+So `india-form-tasks.test.ts` runs the same check over every India task string,
+**in both date orders** — the lesson from ship 1's `\byou must\b`, which only
+caught the second person. Verified failing on `11 January` before being trusted.
+
+### Tests
+
+**502 passing, 44 files** (ship 2 left it at 480 / 43). The 22 new ones are only
+the India-specific rules; every invariant in `form-tasks.test.ts` already covers
+these tasks, which is the entire reason both halves live in one `FORM_TASKS`
+array rather than two parallel ones that drift.
+
+Changed in the existing suites: references resolve **in the library the row
+names**; the orphan gate runs per library; `ALL_COPY` picks up `howFiled`; and
+the new no-collision test.
+
+**All three new guards verified biting**, not assumed: a dropped `howFiled`, a
+hard date, and the packet CTA widened to every task → 3 failures, each naming
+the right thing.
+
+### ⚠ Two defects only the rendered page showed — third ship running
+
+Neither was visible in code, and all 502 tests were green with both present.
+
+1. **An India page printed a US robot's date.** The hero carries two clocks, and
+   `<CheckedAgo>` reads `CHECKED_ON` out of `lib/us-forms`. On an India task
+   that rendered as *“Form versions — checked on November 23”*, which is a
+   verification that never happened for those forms and cannot: Indian filings
+   publish no revision marker. A borrowed date is a **false provenance claim**,
+   which is the single thing this library exists not to make. India now shows
+   the human clock alone, and the provenance paragraph says why.
+2. **The same sentence seven times.** Every form in an India set tends to share
+   one authority, so the per-row source line printed *“the Income Tax
+   Department (CBDT) runs this one”* down the whole page. Named on the first
+   row it applies to, then just the link. “Runs this one” also became “is the
+   authority for this” — CBDT does not run the certificate your employer
+   issues.
+
+### Deviations from §9, recorded
+
+1. **India rows render a different third column and a different action.** §9
+   implied one template. Forced by the data: there is no revision to print and
+   no PDF to fetch. The alternative — a fabricated version strip, or a button
+   that fetches nothing — was not available.
+2. **No packet for India**, where §8 left the question open. Not a scope cut: a
+   GST return is not a PDF with boxes in it.
+3. **Related tasks are same-region only.** Offering a US immigration task under
+   a GSTR-3B page is noise dressed as a related link. `/forms` carries both,
+   grouped by country with derived counts.
+4. **Nine tasks, not thirteen.** The India library is 32 forms against 30, but
+   they cluster differently — four MCA filings are one job, not four.
+
+### Changelog
+
+**Published live**, unlike ship 2's: this half is free and ungated, so the entry
+points at a door the reader can open.
+
+---
+
 ## 11. Open
 
 
-- **F1** — India tasks in ship 1 or ship 3? *Recommend ship 3*: the US set is
-  where the search volume and the fillable PDFs are, and India copy does not
-  transfer.
+- ~~**F1** — India tasks in ship 1 or ship 3?~~ **Closed: ship 3**, built
+  24 Nov 2026. The recommendation held for the reason given, and one that was
+  not anticipated: India copy does not transfer *because the column is
+  different*, not merely because the words are — see §10d.
 - **F2** — does the packet count as a Pro *flagship* on `/pricing`, beside
   batch / redaction certificate / workflows / vault? *Recommend yes*, once
   ship 2 exists — it is more defensible than three of the four.

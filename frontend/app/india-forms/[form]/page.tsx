@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { KeywordLanding } from '@/components/app/keyword-landing';
 import { INDIA_FORMS, getForm } from '@/lib/india-forms';
+import { tasksForForm } from '@/lib/form-tasks';
 import { catalog } from '@/components/app/catalog';
 import { ThirdPartyNotice } from '@/components/app/third-party-notice';
 
@@ -36,6 +37,10 @@ export default async function Page(props: { params: Promise<{ form: string }> })
   if (!f) notFound();
 
   const related = INDIA_FORMS.filter((o) => o.group === f.group && o.slug !== f.slug).slice(0, 6);
+  // Scoped to the India library: the two catalogues share no slug today, but
+  // an unscoped lookup would answer a future collision with the wrong
+  // country's task rather than with a build failure.
+  const inTasks = tasksForForm(f.slug, 'india');
 
   return (
     <KeywordLanding
@@ -95,6 +100,37 @@ export default async function Page(props: { params: Promise<{ form: string }> })
               ) : null;
             })}
           </div>
+
+          {inTasks.length > 0 && (
+            <>
+              <h2 className="mt-8 text-xl font-bold tracking-tight">
+                What {f.short} usually turns up alongside
+              </h2>
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                Few of these arrive alone. These pages set out the whole set for the job, in the order
+                it happens, and say who fills each one in — including the ones issued to you, where
+                there is nothing to fill in at all.
+              </p>
+              <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+                {inTasks.map((t) => (
+                  <li key={t.slug}>
+                    <Link
+                      href={`/forms/${t.slug}`}
+                      className="flex h-full flex-col gap-1 rounded-xl border bg-card p-3.5 transition-colors hover:border-primary/50"
+                    >
+                      <span className="text-sm font-semibold leading-snug">{t.title}</span>
+                      <span className="text-[11px] font-medium tabular-nums text-muted-foreground">
+                        {t.forms
+                          .map((tf) => INDIA_FORMS.find((o) => o.slug === tf.slug)?.short)
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
 
           {related.length > 0 && (
             <>

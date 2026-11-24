@@ -14,6 +14,7 @@ import {
   listJoin,
 } from '@/lib/form-tasks';
 import { US_FORMS } from '@/lib/us-forms';
+import { INDIA_FORMS } from '@/lib/india-forms';
 
 // The contract for the form finder (Phase 3 ship 1).
 //
@@ -39,6 +40,7 @@ const ALL_COPY = (() => {
     for (const tf of t.forms) {
       parts.push(tf.role, tf.filedBy, tf.goesTo);
       if (tf.condition) parts.push(tf.condition);
+      if (tf.howFiled) parts.push(tf.howFiled);
     }
   }
   return parts;
@@ -73,13 +75,27 @@ describe('form tasks — shape', () => {
 describe('form tasks — references resolve', () => {
   // The cheap guard that makes deleting a form a build failure rather than a
   // dead row on a page nobody is looking at.
-  it('every referenced form exists in US_FORMS', () => {
-    const known = new Set(US_FORMS.map((f) => f.slug));
+  it('every referenced form exists in the library its row names', () => {
+    const known = {
+      us: new Set(US_FORMS.map((f) => f.slug)),
+      india: new Set(INDIA_FORMS.map((f) => f.slug)),
+    };
     for (const t of FORM_TASKS) {
       for (const tf of t.forms) {
-        expect(known.has(tf.slug), `${t.slug} → ${tf.slug}`).toBe(true);
+        expect(known[tf.library].has(tf.slug), `${t.slug} → ${tf.library}:${tf.slug}`).toBe(true);
       }
     }
+  });
+
+  // ⚠ The two catalogues are looked up separately, by the row's own `library`.
+  // That is only safe while they share no slug: the day they do, an unscoped
+  // lookup anywhere else in the codebase starts silently answering with the
+  // wrong country's form. This fails the build on the collision rather than on
+  // its consequence, which would surface as a wrong form on a live page.
+  it('the two catalogues share no slug', () => {
+    const us = new Set(US_FORMS.map((f) => f.slug));
+    const clash = INDIA_FORMS.filter((f) => us.has(f.slug)).map((f) => f.slug);
+    expect(clash, `slug in both libraries: ${clash.join(', ')}`).toEqual([]);
   });
 
   it('formFor returns the real form for every reference', () => {
@@ -93,13 +109,23 @@ describe('form tasks — references resolve', () => {
   // named — which is the moment to decide whether it belongs in an existing
   // task or needs a new one.
   it('every US form appears in at least one task', () => {
-    const placed = new Set(FORM_TASKS.flatMap((t) => t.forms.map((f) => f.slug)));
+    const placed = new Set(
+      FORM_TASKS.flatMap((t) => t.forms.filter((f) => f.library === 'us').map((f) => f.slug)),
+    );
     const orphans = US_FORMS.filter((f) => !placed.has(f.slug)).map((f) => f.short);
     expect(orphans, `forms in no task: ${orphans.join(', ')}`).toEqual([]);
   });
 
+  it('every India form appears in at least one task', () => {
+    const placed = new Set(
+      FORM_TASKS.flatMap((t) => t.forms.filter((f) => f.library === 'india').map((f) => f.slug)),
+    );
+    const orphans = INDIA_FORMS.filter((f) => !placed.has(f.slug)).map((f) => f.short);
+    expect(orphans, `forms in no task: ${orphans.join(', ')}`).toEqual([]);
+  });
+
   it('tasksForForm is the inverse of the task → form mapping', () => {
-    for (const f of US_FORMS) {
+    for (const f of [...US_FORMS, ...INDIA_FORMS]) {
       const back = tasksForForm(f.slug).map((t) => t.slug).sort();
       const forward = FORM_TASKS.filter((t) => t.forms.some((tf) => tf.slug === f.slug))
         .map((t) => t.slug)
