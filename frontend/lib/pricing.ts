@@ -29,7 +29,14 @@ export const PRICING = {
     'Everything in Free — with more scale',
     'Unlimited file size (free already handles up to 100 MB)',
     'Batch processing — many files at once',
-    'Edit PDF text + Search & pattern redaction',
+    // "Edit PDF text" was too loose to sell. The free Fill tool already places
+    // text, dates and a signature anywhere on a page and flattens the result,
+    // which most people would call editing a PDF — so a Pro bullet reading
+    // "Edit PDF text" promises something a non-payer already has, and the buyer
+    // finds that out after paying. The comparison table on the same page has
+    // always said it precisely; the card now matches it.
+    'Full in-place text editing — change the existing text',
+    'Search & pattern redaction',
     'Unlimited Office conversions + OCR — no daily cap, any size',
     'AI document suite — chat, cited summaries, translate, question generator, AI find-personal-info, table clean-up (launching with Pro)',
     'Saved one-click workflows',
