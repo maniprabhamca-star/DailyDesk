@@ -7,6 +7,8 @@ import { BrandMark } from '@/components/app/brand-mark';
 import { Button } from '@/components/ui/button';
 import { catalog, PRO_TOOLS, liveToolCount } from '@/components/app/catalog';
 import { PRICING } from '@/lib/pricing';
+import { TASK_COUNT } from '@/lib/form-tasks';
+import { FORM_COUNT, FORM_AUTHORITY_COUNT } from '@/lib/forms-count';
 import { PageJsonLd } from '@/components/seo/page-jsonld';
 
 export const metadata: Metadata = {
@@ -69,6 +71,7 @@ const DIFFS: { name: string; desc: string; moat: string; flag?: boolean }[] = [
 // status: 'live' = usable today · 'soon' = on the roadmap. tier: free / pro / ai.
 const BEYOND: { name: string; desc: string; status: 'live' | 'soon'; tier: 'free' | 'pro' | 'ai' }[] = [
   { name: 'Bank statement → Excel & Tally', desc: 'Statement PDF → a transaction table where every row is checked against the running balance — then export to Excel, CSV or Tally. Processed on your device: the one document you should never upload.', status: 'soon', tier: 'pro' },
+  { name: 'Government forms, by the job you are doing', desc: `${TASK_COUNT} task pages — hiring someone, getting paid as a contractor, an IRS payment plan — each listing the forms involved in order, who fills every one in and where it goes. Across ${FORM_COUNT} forms from ${FORM_AUTHORITY_COUNT} authorities, every version read off the agency’s own file and re-checked weekly. We host no copies.`, status: 'live', tier: 'free' },
   { name: 'Compress to exact size', desc: 'Hit a precise KB/MB limit for exam, visa & court portals — not just “smaller”.', status: 'live', tier: 'free' },
   { name: 'PDF → Excel', desc: 'Bank statements & tables → an editable spreadsheet, converted on your device.', status: 'live', tier: 'free' },
   { name: 'Chat with PDF', desc: 'Ask your document and get answers with the exact page they came from.', status: 'soon', tier: 'ai' },

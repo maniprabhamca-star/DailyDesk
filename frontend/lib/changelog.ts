@@ -23,6 +23,14 @@ export type ChangeEntry = {
 // flags flip, dated then.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-11-24',
+    kind: 'feature',
+    title: 'Start from the job, not the form number',
+    detail:
+      'Every form page here answers a question that starts with a form number. Most people do not have one. They know they are hiring someone, or that a client has asked for their tax number, or that they cannot pay a tax bill, and the form number is the thing they are trying to find out.\n\nSo there are now thirteen pages that start from the job instead. Each one lists the forms that job involves, in the order it actually happens, and prints the thing almost nobody publishes: who fills each form in, and where it goes. That second column is less obvious than it sounds. A W-9 goes to the client who asked for it, never to the IRS. A W-4 stays with your payroll. The I-9 goes nowhere at all — the employer keeps it. And the FMLA eligibility notice runs the other way entirely, from the employer to the employee, which is why employees sometimes sit down to fill in a form that was never theirs.\n\nNo new forms were added. These are the thirty US federal forms already in the library, arranged by the job they belong to, and every one of them now appears in at least one set. Each form is still fetched from its own agency when you open it, and still filled on your own device.\n\nWhat these pages deliberately will not do is tell you what to file. That depends on things a web page cannot see, and we are a document tool rather than anybody’s accountant or lawyer. So each one carries, right at the top rather than buried at the bottom, a plain statement of what it leaves out — state and local forms, deadlines, eligibility, anything particular to your trade. The hiring page says outright that your state’s own withholding certificate is not in our library yet. It seemed better to say so than to let you find out later.',
+    href: '/forms',
+  },
+  {
     date: '2026-11-23',
     kind: 'feature',
     title: 'Moving up a plan no longer means emailing us',

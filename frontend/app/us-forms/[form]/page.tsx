@@ -8,6 +8,7 @@ import { CheckedAgo } from '@/components/forms/checked-ago';
 import { catalog } from '@/components/app/catalog';
 import { ThirdPartyNotice } from '@/components/app/third-party-notice';
 import { GetFormButton } from '@/components/app/get-form-button';
+import { tasksForForm } from '@/lib/form-tasks';
 
 export function generateStaticParams() {
   return US_FORMS.map((f) => ({ form: f.slug }));
@@ -41,6 +42,7 @@ export default async function Page(props: { params: Promise<{ form: string }> })
   if (!f) notFound();
 
   const related = US_FORMS.filter((o) => o.group === f.group && o.slug !== f.slug).slice(0, 8);
+  const inTasks = tasksForForm(f.slug);
   const host = new URL(f.officialUrl).hostname.replace(/^www\./, '');
 
   return (
@@ -165,6 +167,40 @@ export default async function Page(props: { params: Promise<{ form: string }> })
               ) : null;
             })}
           </div>
+
+          {/* Up into the finder. A form number is one answer to a question; the
+              task pages are the question, and most people have the question
+              before they have the number. Derived from lib/form-tasks.ts, so
+              there is no second list to keep in step. */}
+          {inTasks.length > 0 && (
+            <>
+              <h2 className="mt-8 text-xl font-bold tracking-tight">
+                What Form {f.short} usually turns up alongside
+              </h2>
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                Few forms arrive alone. These pages set out the whole set for the job, in the order it
+                happens, and say who fills each one in and where it goes.
+              </p>
+              <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+                {inTasks.map((t) => (
+                  <li key={t.slug}>
+                    <Link
+                      href={`/forms/${t.slug}`}
+                      className="flex h-full flex-col gap-1 rounded-xl border bg-card p-3.5 transition-colors hover:border-primary/50"
+                    >
+                      <span className="text-sm font-semibold leading-snug">{t.title}</span>
+                      <span className="text-[11px] font-medium tabular-nums text-muted-foreground">
+                        {t.forms
+                          .map((tf) => US_FORMS.find((o) => o.slug === tf.slug)?.short)
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
 
           {related.length > 0 && (
             <>

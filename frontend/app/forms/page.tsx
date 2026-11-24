@@ -5,6 +5,7 @@ import { SiteHeader } from '@/components/app/site-header';
 import { SiteFooter } from '@/components/app/site-footer';
 import { Button } from '@/components/ui/button';
 import { US_FORMS, US_FORM_GROUPS } from '@/lib/us-forms';
+import { FORM_TASKS, formFor, TASK_COUNT } from '@/lib/form-tasks';
 import { INDIA_FORMS, FORM_GROUPS as INDIA_FORM_GROUPS } from '@/lib/india-forms';
 import { ThirdPartyNotice } from '@/components/app/third-party-notice';
 import { CheckedAgo } from '@/components/forms/checked-ago';
@@ -71,6 +72,10 @@ const faqs = [
     a: 'Each US form page states a version marker and the date we verified it at the agency. A scheduled job re-reads all of them every week — the marker off the document, the field count and page count off the real PDF — and emails us when any of it drifts. The Indian pages make no version claim, because there is nothing there to verify; what gets checked weekly instead is that every authority link still resolves.',
   },
   {
+    q: 'I do not know which form I need. Where do I start?',
+    a: 'Start from the task rather than the form number. The task pages above take a job — hiring your first employee, getting paid as a contractor, setting up an IRS payment plan — and list the forms that job involves, in the order it happens, with the thing most pages leave out: who fills each form in and where it goes, which is often not the agency. A W-9 goes to the client who asked for it. A W-4 stays with payroll. The FMLA eligibility notice runs the other way, from the employer to the employee. What those pages will not do is tell you what you have to file, because that depends on circumstances a web page cannot see, and each one says plainly what it leaves out.',
+  },
+  {
     q: 'Can DiemDesk file a form for me?',
     a: 'No. Nothing here submits anything to any agency, and nothing here is tax or legal advice. These are document tools and plain-English explainers. You fill and sign the form on your own machine, then file it yourself with the agency, which is the only party that can accept it.',
   },
@@ -88,11 +93,18 @@ const jsonLd = {
       name: 'Government forms, explained and filled privately',
       description: `${total} US federal and Indian statutory forms, each linking to the issuing authority.`,
       url: 'https://diemdesk.com/forms',
-      hasPart: libraries.map((l) => ({
-        '@type': 'CollectionPage',
-        name: l.title,
-        url: `https://diemdesk.com${l.href}`,
-      })),
+      hasPart: [
+        ...libraries.map((l) => ({
+          '@type': 'CollectionPage',
+          name: l.title,
+          url: `https://diemdesk.com${l.href}`,
+        })),
+        ...FORM_TASKS.map((t) => ({
+          '@type': 'CollectionPage',
+          name: t.title,
+          url: `https://diemdesk.com/forms/${t.slug}`,
+        })),
+      ],
     },
     {
       '@type': 'FAQPage',
@@ -191,6 +203,47 @@ export default function FormsHubPage() {
             </section>
           ))}
         </div>
+
+        {/* ── Start from the task, not the form number ─────────────────────
+            Most people arrive without a form number: they know they are hiring
+            someone, or that a client has asked for a tax number. These compose
+            the US library into the sets each job involves — no new forms, and
+            each one states who fills every form in and where it goes. Above the
+            libraries' own rules section because intent beats taxonomy as a way
+            in; still below the libraries themselves, which are the thing that
+            ranks. */}
+        <section className="mt-14">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            <h2 className="text-xl font-bold tracking-tight">Start from what you are trying to do</h2>
+            <span className="text-xs tabular-nums text-muted-foreground">
+              {TASK_COUNT} tasks · every US form appears in one
+            </span>
+          </div>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+            Each one lists the forms that job involves, in the order it happens, and says who fills
+            each one in and where it goes — which is not always the agency. Nothing is uploaded: the
+            form comes from its authority when you open it.
+          </p>
+          <ul className="mt-5 grid gap-2 sm:grid-cols-2">
+            {FORM_TASKS.map((t) => (
+              <li key={t.slug}>
+                <Link
+                  href={`/forms/${t.slug}`}
+                  className="flex h-full flex-col gap-1.5 rounded-xl border bg-card p-4 shadow-soft transition-colors hover:border-primary/50"
+                >
+                  <span className="text-sm font-semibold leading-snug">{t.title}</span>
+                  <span className="text-[11px] font-medium tabular-nums text-muted-foreground">
+                    {t.forms
+                      .map((tf) => formFor(tf)?.short)
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </span>
+                  <span className="text-xs leading-relaxed text-muted-foreground">{t.audience}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
 
         <section className="mt-14">
           <h2 className="text-xl font-bold tracking-tight">The three rules both libraries follow</h2>

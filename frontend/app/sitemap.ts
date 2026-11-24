@@ -5,6 +5,7 @@ import { DEV_TOOLS } from '@/lib/dev-tools';
 import { BANK_PAGES } from '@/lib/bank-statements';
 import { INDIA_FORMS } from '@/lib/india-forms';
 import { US_FORMS } from '@/lib/us-forms';
+import { FORM_TASKS } from '@/lib/form-tasks';
 import { WORKFLOWS } from '@/lib/statement-workflows';
 import { SECTORS } from '@/lib/sectors';
 
@@ -158,6 +159,17 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.7,
   }));
 
+  // Task pages: "hire your first employee", "set up an IRS payment plan".
+  // Above the individual form pages at 0.8, because they answer the query
+  // somebody actually types when they do not yet know a form number, and each
+  // one links down into several of those pages.
+  const formTaskRoutes = FORM_TASKS.map((t) => ({
+    url: `${SITE_URL}/forms/${t.slug}`,
+    lastModified,
+    changeFrequency: 'monthly' as const,
+    priority: 0.8,
+  }));
+
   const bankRoutes = BANK_PAGES.map((b) => ({
     url: `${SITE_URL}/bank-statement-converter/${b.slug}`,
     lastModified,
@@ -186,5 +198,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     changeFrequency: 'monthly' as const,
     priority: 0.7,
   }));
-  return [...staticRoutes, ...devRoutes, ...bankRoutes, ...formRoutes, ...usFormRoutes, ...workflowRoutes, ...sectorRoutes, ...countryRoutes];
+  return [...staticRoutes, ...devRoutes, ...bankRoutes, ...formRoutes, ...usFormRoutes, ...formTaskRoutes, ...workflowRoutes, ...sectorRoutes, ...countryRoutes];
 }
