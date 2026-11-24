@@ -357,7 +357,17 @@ export default function PricingPage() {
             </tfoot>
           </table>
         </div>
-        <p className="mt-3 text-center text-xs text-muted-foreground">Competitor details reflect typical free tiers of major PDF tools and may change.</p>
+        {/* The "Competitors" column here is a composite — the typical shape of a
+            major PDF tool's free tier, not any one product. Somebody reading it
+            wants to know WHICH products and on what date we read their pages,
+            and until now this was the only page with a comparison table and no
+            way through to the sourced one. */}
+        <p className="mt-3 text-center text-xs text-muted-foreground">
+          Competitor details reflect typical free tiers of major PDF tools and may change.{' '}
+          <Link href="/compare" className="font-medium text-primary hover:underline">
+            See the named, sourced comparison →
+          </Link>
+        </p>
 
         {/* Storage clarity — tools never stored vs opt-in vault */}
         <div className="mt-10 rounded-2xl border bg-card p-6 shadow-soft">

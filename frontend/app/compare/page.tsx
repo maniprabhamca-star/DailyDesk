@@ -6,6 +6,8 @@ import { SiteHeader } from '@/components/app/site-header';
 import { SiteFooter } from '@/components/app/site-footer';
 import { Button } from '@/components/ui/button';
 import { liveToolCount } from '@/components/app/catalog';
+import { FORM_COUNT, US_FORM_COUNT, INDIA_FORM_COUNT, FORM_AUTHORITY_COUNT } from '@/lib/forms-count';
+import { CHECKED_ON_LABEL } from '@/lib/us-forms';
 
 export const metadata: Metadata = {
   title: 'DiemDesk vs Smallpdf, iLovePDF & Adobe — PDF Tools Compared',
@@ -49,6 +51,20 @@ const ROWS: { label: string; cells: [Cell, Cell, Cell, Cell]; note?: string }[] 
     cells: [`${liveToolCount}+ tools`, 'PDF-focused', 'PDF-focused', 'PDF-focused'],
   },
   {
+    // The counts come from lib/forms-count.ts, which tests/unit/forms-count.test.ts
+    // pins to the real catalogues — a number on a comparison page is a claim.
+    label: 'Guides to government forms — which one you need, and which revision',
+    cells: [`${FORM_COUNT} forms, ${FORM_AUTHORITY_COUNT} authorities`, false, false, false],
+    note:
+      `All four can fill in a PDF form. Knowing WHICH form to fill is the different thing: DiemDesk publishes ` +
+      `plain-English guides to ${US_FORM_COUNT} US federal and ${INDIA_FORM_COUNT} Indian statutory forms, each ` +
+      `naming the revision we verified and the date we checked it, and linking to the agency that publishes it. ` +
+      `We host no copies and charge nothing for any of it. Checked on ${CHECKED_ON_LABEL}: Smallpdf’s own tools ` +
+      `page and iLovePDF’s home page list nothing of the kind. The sites that do sell this are template ` +
+      `subscriptions — US Legal Forms publishes $8/mo and $15/mo plans — and they are selling you the document, ` +
+      `not telling you which one you need.`,
+  },
+  {
     label: 'Redaction that truly removes text',
     cells: ['Yes + AI finds the personal info', 'Limited / paid', 'Paid', 'Paid'],
     note: 'DiemDesk rebuilds redacted pages so the text is gone, not just covered — and an AI pass can find names, IDs and account numbers for you to approve.',
@@ -90,6 +106,10 @@ const SOURCES = [
   { name: 'iLovePDF pricing', href: 'https://www.ilovepdf.com/pricing' },
   { name: 'Sejda pricing', href: 'https://www.sejda.com/upgrade' },
   { name: 'Adobe Acrobat pricing', href: 'https://www.adobe.com/acrobat/pricing.html' },
+  // Read for the government-forms row: the first two to check what they list,
+  // the third for the price quoted in that row's note.
+  { name: 'Smallpdf tools list', href: 'https://smallpdf.com/pdf-tools' },
+  { name: 'US Legal Forms pricing', href: 'https://www.uslegalforms.com/pricing/' },
 ];
 
 const faqs = [
@@ -234,8 +254,10 @@ export default function ComparePage() {
           <p className="mb-1 font-semibold text-foreground">Trademark &amp; affiliation notice</p>
           <p>
             DiemDesk is an independent product and is <strong>not affiliated with, endorsed by, or sponsored by</strong>{' '}
-            any of the companies compared here. All product and company names, including Adobe Acrobat, iLovePDF and
-            Smallpdf, are trademarks of their respective owners, used only for identification and honest comparison.
+            any of the companies named on this page. All product and company names, including Adobe Acrobat, iLovePDF,
+            Smallpdf and US Legal Forms, are trademarks of their respective owners, used only for identification and
+            honest comparison. Every figure here was read from the company&rsquo;s own page on the date stated beside
+            it; they change their prices without telling us, so check the source links above before relying on one.
           </p>
         </div>
       </main>
