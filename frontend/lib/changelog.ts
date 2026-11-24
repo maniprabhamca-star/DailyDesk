@@ -21,6 +21,13 @@ export type ChangeEntry = {
 // PDF to EPUB · HTML to Excel · Video to MP3 + audio converter. Draft copy for
 // all three is in docs/designs/master-roadmap.md §5b — add them the day the
 // flags flip, dated then.
+//
+// ⏳ ALSO HELD: the Pro form packet ("Get all N in one go" on a task page),
+// built 2026-11-24 and owner-only until Pro opens. Everything a free reader can
+// actually do today — fetch and fill each of these forms one at a time — already
+// shipped in the 2026-11-24 entry below, so publishing a second entry now would
+// announce a locked door. Draft copy is in docs/designs/forms-finder-phase3.md
+// §10c; add it the day WAITLIST_MODE flips, dated then.
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-11-24',

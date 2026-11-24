@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { adviceBreaches } from './_advice-vocabulary';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import {
@@ -132,30 +133,12 @@ describe('form tasks — ⚠ the advice boundary', () => {
   // A task page states which forms are involved and who fills them in. It never
   // tells a reader what they have to do, because that depends on facts a page
   // cannot see — and because we are a tool, not a preparer.
-  const BANNED: [RegExp, string][] = [
-    [/\brequired\b/i, '"required" — say which forms are involved, not that one is required'],
-    // Deliberately the bare word, not "you must". The first version of this
-    // test only caught the second-person form, so "employers who must take on
-    // their first employee" sailed straight through a guard written to stop
-    // exactly that claim. No task copy needs "must" in any person, so the
-    // broad version costs nothing and catches the paraphrase.
-    [/\bmust\b/i, '"must" — in any person. State what a form is, not what anyone has to do'],
-    [/\byou need to file\b/i, '"you need to file" — an instruction, not a fact about a form'],
-    [/\byou (?:will )?need to (?:submit|complete|send|get|apply)\b/i, '"you need to …" — same'],
-    [/\bmandatory\b/i, '"mandatory" — a conclusion about the reader'],
-    [/\bobligated\b|\bobliged\b/i, '"obligated"/"obliged" — same'],
-    [/\bbe sure to\b|\bdon.t forget\b/i, 'an instruction dressed as a reminder'],
-    [/\bhave to file\b|\bhas to file\b/i, '"has to file" — a conclusion about the reader'],
-    [/\bmake sure (?:you|to)\b/i, '"make sure you" — advice'],
-    [/\bwe recommend\b/i, '"we recommend" — advice'],
-    [/\byou should\b/i, '"you should" — advice'],
-  ];
+  //
+  // The list itself moved to _advice-vocabulary.ts when the Pro packet began
+  // putting its own copy in front of readers: two suites, one rule, one list.
 
   it('no task copy uses the vocabulary of a requirement or an instruction', () => {
-    const hits: string[] = [];
-    for (const s of ALL_COPY) {
-      for (const [re, why] of BANNED) if (re.test(s)) hits.push(`${why}\n    in: ${s.slice(0, 90)}…`);
-    }
+    const hits = adviceBreaches(ALL_COPY);
     expect(hits, `\n  ${hits.join('\n  ')}\n`).toEqual([]);
   });
 

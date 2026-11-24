@@ -16,6 +16,15 @@ name: Forms sync
 # bad bet.
 #
 # ── The two libraries are checked DIFFERENTLY, on purpose ───────────────────
+# A third check joined them when the Pro packet began writing values INTO these
+# forms: verify:packet-maps. The other two check a CLAIM — that a page states
+# the revision the agency publishes. That one checks an ACTION — that `f1_11`
+# on the W-9 is still the box the form prints "Social security number" beside.
+# IRS field names carry no meaning and these PDFs have no tooltips, so a
+# re-issued form that inserts one box renumbers every box below it, and a map
+# nobody re-checked would quietly write a taxpayer number onto the wrong line.
+# Nothing would look wrong. See the header of that script.
+#
 # A US form is a PDF you download and fill in, so verify:us-forms reads the
 # version marker off the document, the field count and the page count off the
 # real file. An Indian statutory form is mostly a web filing — ITRs are
@@ -58,8 +67,10 @@ on:
     paths:
       - 'frontend/lib/us-forms.ts'
       - 'frontend/lib/india-forms.ts'
+      - 'frontend/lib/form-packet.ts'
       - 'frontend/scripts/verify-us-forms.mjs'
       - 'frontend/scripts/verify-india-forms.mjs'
+      - 'frontend/scripts/verify-packet-maps.mjs'
       - '.github/workflows/forms-sync.yml'
 
 defaults:
@@ -121,6 +132,11 @@ jobs:
             echo "── Indian statutory forms ───────────────────────────────────"
           } | tee -a ../forms-report.txt
           npm run --silent verify:india-forms 2>&1 | tee -a ../forms-report.txt || ok=1
+          {
+            echo ""
+            echo "── Boxes the Pro packet writes into ─────────────────────────"
+          } | tee -a ../forms-report.txt
+          npm run --silent verify:packet-maps 2>&1 | tee -a ../forms-report.txt || ok=1
           exit $ok
 
       # The verifiers exit non-zero for drift AND for a form they could not
@@ -152,10 +168,10 @@ jobs:
           drifts="$(sum_of drifts)"
           unchecked="$(sum_of unchecked)"
           echo "drifts=$drifts unchecked=$unchecked across $count libraries"
-          # Two libraries are checked, so two summary lines are expected. Fewer
-          # means a verifier fell over before printing one, which is also worth
-          # an email — treat it as something to report.
-          if [ "${count:-0}" -lt 2 ]; then tell=yes; drifted=yes; clean=no
+          # Three things are checked now, so three summary lines are expected.
+          # Fewer means a verifier fell over before printing one, which is also
+          # worth an email — treat it as something to report.
+          if [ "${count:-0}" -lt 3 ]; then tell=yes; drifted=yes; clean=no
           elif [ "${drifts:-0}" != "0" ]; then tell=yes; drifted=yes; clean=no
           elif [ "${unchecked:-0}" != "0" ]; then tell=yes; drifted=no; clean=no
           else tell=no; drifted=no; clean=yes

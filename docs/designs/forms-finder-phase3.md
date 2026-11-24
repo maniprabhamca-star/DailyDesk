@@ -303,7 +303,197 @@ a test.
 
 ---
 
+## 10c. ✅ Ship 2 is built (24 Nov 2026) — the Pro packet
+
+`/forms/<task>/packet`. Fetches every form in a set, in the set's order, with
+the details that repeat already in the boxes. Owner-only until Pro opens.
+
+### The design decision that changed from §8
+
+**Maps are keyed by (task, form), not by form.** §8 assumed one map per form.
+That is wrong, and the W-4 shows why: inside *hire your first employee*, the
+name and the social security number on a W-4 belong to **the person being
+hired**. Pre-filling the reader's own number there is not a cosmetic bug, it is
+a materially wrong federal filing. Only the employer block at the bottom of
+that page is the reader's.
+
+`filedBy` already records who puts the pen to each form, but it is prose
+(*"Employee, then the employer"*), so it cannot carry a guarantee. Rather than
+add a flag to 40 entries and rely on getting all 40 right, the lookup key does
+the work: **a (task, form) pair nobody authored gets no pre-fill at all.** The
+safe direction is the default, and the exact list of seven exceptions is pinned
+in a test, so adding one is a deliberate act.
+
+### What is mapped
+
+| Task | Form | Boxes |
+|---|---|---|
+| get-paid-as-a-contractor | W-9 | 9 |
+| get-paid-as-a-contractor | SS-4 | 6 |
+| hire-your-first-employee | W-4 | 2 — *employer block only* |
+| hire-your-first-employee | SS-4 | 6 |
+| get-a-us-taxpayer-number | SS-4 | 6 |
+| set-up-an-irs-payment-plan | 9465 | 5 |
+| change-your-address-with-the-irs | 8822 | 2 |
+
+36 boxes. Every other task still fetches its set in order, unfilled — which is
+the §8 commitment, kept.
+
+### ⚠ How the maps were authored, and why it had to be this way
+
+IRS field names are opaque (`f1_01`, `f1_11`) and these PDFs carry **no `/TU`
+tooltips**, so nothing in the file says what a box is for. A first attempt
+derived labels from the position of nearby text runs; it was too ambiguous to
+author from — a header above a box and a label beside it are indistinguishable.
+
+So every entry was authored by **rendering the form with each box stamped with
+its own id, and looking at it** (`scripts/probe-form-fields.mjs`). Then each box's
+`maxLength` was read off the real file as a second, independent signal.
+
+That second signal caught a real one. On the 8822 the field numbering suggested
+`f1_2` was the reader's SSN; the rendering showed `f1_1`/`f1_2` are the
+**decedent's** name and number, for the estate-tax case, and the reader's are
+`f1_3`/`f1_4`. Two independent readings, agreeing, before an SSN is written.
+
+### ⚠ Three places the packet refuses rather than guesses
+
+1. **A box that moved.** Every entry pins the `maxLength` the real PDF must
+   report. At fill time the map is compared against *the file the agency served
+   a moment ago*, and any box that is missing or a different size is skipped
+   and named on the page. A re-issued form that inserts one box renumbers every
+   box below it; without this the packet would quietly write a taxpayer number
+   onto the wrong line and nothing would look wrong.
+2. **Two taxpayer numbers.** A W-9 takes an SSN **or** an EIN. If the reader
+   gives both, neither is written — choosing between them is a tax judgement.
+   The rest of the form still fills.
+3. **An ambiguous box.** Form 8822 has two address boxes: 6a is where you used
+   to live, 7 is where you live now. The packet writes **no address at all** on
+   that form and says why. Pinned by a test, because it is exactly the kind of
+   thing a later edit would "fix".
+
+A box left blank because the reader typed nothing is not reported. A box left
+blank because it *moved* is reported prominently — that distinction is the
+difference between a packet that looks broken and one that explains itself.
+
+### The live guard: `npm run verify:packet-maps`
+
+Joined to the weekly `forms-sync` job as a third verifier. The other two check
+a **claim** (a page states the revision the agency publishes). This one checks
+an **action**: that `f1_11` on the W-9 is still the box the form prints
+"Social security number" beside. It fetches each live PDF and proves three
+things — every mapped box exists; it still reports the expected size; and a
+write **round-trips** (set, save, re-open, read back) with **no field outside
+the map changed**.
+
+Verified failing before being trusted: two sabotaged entries (a changed length
+and a renamed box) produced `drifts=2`.
+
+**Two clocks again.** The robot can see that a form changed. It cannot see that
+a box now *means* something else — that is a fact about ink beside a rectangle.
+So each map also carries `verifiedOn`, which only a person moves, after looking
+at a rendering. Printed on the page per form.
+
+### Reuse, not reimplementation
+
+- Blank forms come through the **existing** `/forms-api/file/<slug>` proxy — no
+  new server route, no CORS, nothing added under `/api/` (nginx proxies that
+  prefix to Express:4000 in production).
+- Filling goes through the **existing** `exportFilledPdf()` in `lib/fill-pdf.ts`,
+  so appearance generation, encryption handling and saving are the paths the
+  form filler already uses rather than a second one that drifts.
+- The forms stay **editable** after filling (`flatten: false`) — the reader has
+  to finish them.
+
+### Nothing is kept
+
+The shared details live in one component's state. No storage, no request
+carries them; the only call the packet makes is a GET for a blank public form.
+Three tests enforce it: no storage API in the library, none in the runner, and
+no POST / beacon / serialisation of the details anywhere.
+
+### Tests
+
+**480 passing, 43 files** (ship 1 left it at 422 / 42). 58 new, covering: map
+shape and uniqueness; comb slices covering all nine digits exactly once, in
+order, each exactly as wide as its box; the seven-pair allowlist; the W-4
+personal-field ban; the 8822 address ban; every refusal path; the advice
+vocabulary over the packet's own copy; noindex and sitemap absence; the
+three no-storage guards; and the two presentation rules below.
+
+The advice vocabulary list moved to `tests/unit/_advice-vocabulary.ts`, shared
+by both suites — two copies of a safety rule is one copy that falls behind.
+
+### ⚠ Five defects only the rendered page showed
+
+None of these were visible in the code or to any test, and the first two were
+wrong rather than merely ugly. This is the second ship running where reading
+the actual page found what the suite could not.
+
+1. **"Line Employers Only"** — the W-4's employer block is a section, not a
+   numbered line, and the renderer prefixed everything with "Line". Now
+   `lineLabel()`: a number gets the word, a name does not.
+2. **A refusal printed five times.** The W-9's taxpayer number is five boxes,
+   so "this form takes one number and you gave two" appeared once per box.
+   `groupSkipped()` prints one line per (line, label, reason) — two lines.
+3. **A filled number shown as fragments.** The same five boxes would have shown
+   a reader "123", "45", "6789" as three rows. `groupWrites()` rejoins them
+   into one row: *123456789, across 3 printed boxes*.
+4. **"I-9 — Form I-9"** — `short` and `name` are near-duplicates. The heading is
+   now the name, with the task's own `role` beneath it.
+5. **The EIN box carried the SSN's placeholder**, and the "what this packet
+   does not cover" notice opened mid-thought on "State and local forms."
+   without its lead-in.
+
+Also corrected: *"the 7 things this set asks for more than once"* was not true
+of every field — the EIN appears once. It now reads "the 7 details these 4
+forms draw on".
+
+### Deviations from §8, recorded
+
+1. **Keyed by (task, form)**, not by form — see above.
+2. **No USCIS forms are pre-filled.** §8 anticipated this; the encryption is
+   not the blocker (the proxy and `openPdfDoc` handle it), the absence of a
+   verified field map is. They fetch in order, unfilled.
+3. **The W-4 is in the set but only two boxes are mapped**, both the employer's.
+4. **No changelog entry yet.** The feature is owner-only, and `lib/changelog.ts`
+   holds back entries that point at a door the reader cannot open. Copy below.
+
+### 📋 Draft changelog entry — publish the day `WAITLIST_MODE` flips
+
+> **Title:** The whole set of forms, filled once
+>
+> Hiring your first employee takes four federal forms. Getting paid as a
+> contractor takes three. Nobody has ever enjoyed typing the same name, address
+> and tax number into each of them in turn, and the copying is where the
+> mistakes come from.
+>
+> Pro now fetches the whole set at once. You type the details that repeat once,
+> and they land in every box we have read and confirmed on those forms. Each
+> form still comes from the agency that publishes it, at the moment you ask for
+> it, and the filling still happens on your own device — there is no account to
+> save your tax number to, because we do not keep it.
+>
+> The part we are more pleased with is what it refuses to do. These forms carry
+> no labels inside the file: a box is called `f1_11` and nothing else, so every
+> box we fill was confirmed by rendering the form and looking at it. Agencies
+> re-issue forms without telling anyone, and a form with one box inserted at the
+> top renumbers everything below it. So the packet checks each box against the
+> copy the agency served a second ago, and where anything has moved it leaves
+> that box alone and says so on the page rather than writing your tax number
+> onto the wrong line.
+>
+> It also stops where a form asks something only you can answer. Form W-9 takes
+> either a social security number or an employer number, never both — give it
+> both and it fills neither, because picking one is a tax question and we are a
+> document tool. Form 8822 has two address boxes, one for where you used to live
+> and one for where you live now, so it fills neither and tells you which is
+> which. On the W-4 for a new hire, only the employer block at the bottom is
+> yours; the rest belongs to the person you are hiring, and we leave it for them.
+
+---
+
 ## 11. Open
+
 
 - **F1** — India tasks in ship 1 or ship 3? *Recommend ship 3*: the US set is
   where the search volume and the fillable PDFs are, and India copy does not

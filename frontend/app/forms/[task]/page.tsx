@@ -30,9 +30,11 @@ import {
 // than as a footer disclaimer, because what a page like this leaves out is the
 // honest half of it.
 //
-// There is no "fill the whole set" button yet. The packet is ship 2 of Phase 3
-// and is Pro-gated; a live button for an unbuilt feature is worse than no
-// button, so it arrives with the thing it opens.
+// The "whole set at once" button is the Pro packet — ship 2 of Phase 3. It is
+// shown on every task with more than one form, and the page behind it decides
+// who may run it; a single-form task has nothing to batch, so it has no button.
+// The per-form buttons below it stay free, deliberately: the paid thing is
+// SCALE, not quality.
 
 export function generateStaticParams() {
   return FORM_TASKS.map((t) => ({ task: t.slug }));
@@ -177,6 +179,31 @@ export default async function Page(props: { params: Promise<{ task: string }> })
             <b className="text-foreground">What this page does not cover.</b> {t.notCovered}
           </p>
         </section>
+
+        {/* ── the whole set at once ────────────────────────────────────
+            Deliberately BELOW what the page does not cover, and above the set
+            itself: somebody who is going to fetch all of them has already
+            decided, and somebody who is still reading has lost nothing. The
+            per-form buttons further down stay free — this is the shortcut, not
+            the only door. */}
+        {t.forms.length > 1 && (
+          <section className="mt-7 flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-muted/40 p-4">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold">
+                Get all {t.forms.length} in one go
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Type the details that repeat once, and they land in every box we have read on these forms.
+                Pro.
+              </p>
+            </div>
+            <Button asChild size="sm" variant="outline" className="shrink-0">
+              <Link href={`/forms/${t.slug}/packet`}>
+                Open the whole set <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+          </section>
+        )}
 
         {/* ── the set ──────────────────────────────────────────────────── */}
         <section className="mt-10">
