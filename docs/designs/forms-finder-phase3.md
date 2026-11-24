@@ -457,6 +457,23 @@ forms draw on".
 3. **The W-4 is in the set but only two boxes are mapped**, both the employer's.
 4. **No changelog entry yet.** The feature is owner-only, and `lib/changelog.ts`
    holds back entries that point at a door the reader cannot open. Copy below.
+5. **⚠ Step 4 of §8 is NOT built, on purpose — the owner's call to overturn.**
+   §8 said the set "finishes through the existing workflow runner — merge,
+   sign, flatten, compress — and comes back as one file". Having built the
+   task pages, none of those four is right for a packet:
+   - **Merge** is actively wrong. The whole insight of these pages is the
+     column nobody else prints: *where each form goes*. A W-9 goes to the
+     payer, an SS-4 to the IRS, an I-9 to nobody. Merging them produces one
+     PDF that cannot be filed anywhere.
+   - **Flatten** locks a form the reader has not finished. The packet
+     deliberately leaves every form editable (`flatten: false`).
+   - **Sign** is not wired as a step yet, and nothing here is ready to sign.
+   - **Compress** saves nothing worth having on five small agency PDFs.
+
+   So the set finishes as **separate files**: per-form download, download all
+   as a zip, or hand one straight into the filler. `runWorkflow(files, steps)`
+   is a clean API and wiring it later is an hour's work if this reasoning is
+   wrong — the argument above is why it was not done, not that it could not be.
 
 ### 📋 Draft changelog entry — publish the day `WAITLIST_MODE` flips
 
