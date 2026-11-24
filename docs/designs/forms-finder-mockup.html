@@ -1,0 +1,622 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Form Finder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --paper:       #f4f6f8;
+    --card:        #ffffff;
+    --card-2:      #eef1f5;
+    --ink:         #15191f;
+    --ink-2:       #4a5563;
+    --ink-3:       #717e8d;
+    --rule:        #d9dfe6;
+    --rule-2:      #c3ccd6;
+    --accent:      #1d4f6c;
+    --accent-ink:  #ffffff;
+    --accent-soft: #e4edf3;
+    --always:      #1f6f4f;
+    --always-soft: #e2f0e9;
+    --usually:     #8a5a16;
+    --usually-soft:#f6ecdc;
+    --someti:      #55606d;
+    --someti-soft: #e9edf1;
+    --stamp:       #9c3524;
+    --shadow:      0 1px 2px rgba(21,25,31,.05), 0 8px 24px -12px rgba(21,25,31,.14);
+    --serif: 'Source Serif 4', 'Iowan Old Style', Georgia, serif;
+    --sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:       #0e1217;
+      --card:        #171c23;
+      --card-2:      #1f252e;
+      --ink:         #e7ecf2;
+      --ink-2:       #a6b2c0;
+      --ink-3:       #7d8a99;
+      --rule:        #2a323c;
+      --rule-2:      #3a4451;
+      --accent:      #7fb6d6;
+      --accent-ink:  #0e1217;
+      --accent-soft: #1b2b36;
+      --always:      #6fcfa3;
+      --always-soft: #152a22;
+      --usually:     #d9a657;
+      --usually-soft:#2c2316;
+      --someti:      #9aa6b4;
+      --someti-soft: #1e242c;
+      --stamp:       #e08b78;
+      --shadow:      0 1px 2px rgba(0,0,0,.4), 0 10px 28px -14px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:#0e1217; --card:#171c23; --card-2:#1f252e; --ink:#e7ecf2; --ink-2:#a6b2c0;
+    --ink-3:#7d8a99; --rule:#2a323c; --rule-2:#3a4451; --accent:#7fb6d6; --accent-ink:#0e1217;
+    --accent-soft:#1b2b36; --always:#6fcfa3; --always-soft:#152a22; --usually:#d9a657;
+    --usually-soft:#2c2316; --someti:#9aa6b4; --someti-soft:#1e242c; --stamp:#e08b78;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 28px -14px rgba(0,0,0,.6);
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: var(--sans); font-size: 16px; line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1060px; margin: 0 auto; padding: 0 16px; }
+  h1, h2, h3, h4 { font-family: var(--serif); font-weight: 600; text-wrap: balance; margin: 0; letter-spacing: -.01em; }
+  p { margin: 0; }
+  a { color: inherit; }
+  .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+  /* ── document chrome ───────────────────────────────────────────── */
+  .doc-head { border-bottom: 1px solid var(--rule); background: var(--card); }
+  .doc-head .wrap { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: baseline; padding-top: 22px; padding-bottom: 22px; }
+  .eyebrow { font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-3); }
+  .doc-title { font-size: clamp(1.4rem, 3.4vw, 2rem); }
+  .doc-meta { margin-left: auto; font-size: 13px; color: var(--ink-3); font-family: var(--mono); }
+
+  section.block { padding: 56px 0; border-bottom: 1px solid var(--rule); }
+  .lede { max-width: 62ch; color: var(--ink-2); margin-top: 14px; font-size: 17px; }
+  .section-label { display: flex; align-items: center; gap: 12px; margin-bottom: 26px; }
+  .section-label .n {
+    font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--accent-ink);
+    background: var(--accent); border-radius: 3px; padding: 3px 7px; letter-spacing: .04em;
+  }
+  .section-label h2 { font-size: clamp(1.25rem, 2.6vw, 1.6rem); }
+
+  /* ── frame: a mocked browser surface ──────────────────────────── */
+  .frame { background: var(--card); border: 1px solid var(--rule-2); border-radius: 10px; box-shadow: var(--shadow); overflow: hidden; }
+  .frame-bar {
+    display: flex; align-items: center; gap: 8px; padding: 9px 14px;
+    background: var(--card-2); border-bottom: 1px solid var(--rule);
+    font-family: var(--mono); font-size: 12px; color: var(--ink-3);
+  }
+  .frame-bar .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--rule-2); flex: none; }
+  .frame-body { padding: clamp(18px, 3.4vw, 34px); }
+
+  /* ── hub: the task picker ─────────────────────────────────────── */
+  .hub-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(248px, 1fr)); }
+  .task-chip {
+    display: flex; flex-direction: column; gap: 7px; text-decoration: none;
+    border: 1px solid var(--rule); border-radius: 8px; padding: 14px 15px; background: var(--paper);
+    transition: border-color .14s ease, transform .14s ease;
+  }
+  .task-chip:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .task-chip strong { font-family: var(--serif); font-weight: 600; font-size: 16.5px; line-height: 1.3; }
+  .task-chip .set { font-family: var(--mono); font-size: 12px; color: var(--ink-3); letter-spacing: .01em; }
+  .task-chip .aud { font-size: 13px; color: var(--ink-2); }
+
+  /* ── the task page ────────────────────────────────────────────── */
+  .task-hero { display: grid; gap: 18px; grid-template-columns: minmax(0, 1fr) auto; align-items: start; }
+  .task-hero h3 { font-size: clamp(1.5rem, 3.6vw, 2.1rem); line-height: 1.18; }
+  .task-hero .what { color: var(--ink-2); margin-top: 12px; max-width: 58ch; }
+  .clocks { display: flex; flex-direction: column; gap: 8px; }
+  .clock {
+    border: 1px solid var(--rule); border-radius: 7px; padding: 8px 11px; background: var(--paper);
+    font-family: var(--mono); font-size: 11.5px; line-height: 1.45; white-space: nowrap;
+  }
+  .clock span { display: block; color: var(--ink-3); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; }
+  .clock b { font-weight: 500; color: var(--ink); }
+  .clock.ok b { color: var(--always); }
+
+  .notcov {
+    margin: 24px 0 0; padding: 15px 17px; border-radius: 8px;
+    background: var(--usually-soft); border: 1px solid color-mix(in srgb, var(--usually) 34%, transparent);
+    font-size: 14.5px; color: var(--ink);
+  }
+  .notcov b { font-family: var(--sans); font-weight: 600; }
+  .notcov .lead { display: block; margin-bottom: 4px; }
+
+  /* the ordered set */
+  .set-head { display: flex; align-items: baseline; gap: 10px; margin: 34px 0 4px; }
+  .set-head h4 { font-size: 1.12rem; }
+  .set-head .why { font-size: 13.5px; color: var(--ink-3); }
+
+  ol.steps { list-style: none; margin: 18px 0 0; padding: 0; position: relative; }
+  ol.steps::before {
+    content: ""; position: absolute; left: 15px; top: 10px; bottom: 32px;
+    width: 1px; background: var(--rule-2);
+  }
+  ol.steps > li { position: relative; padding: 0 0 14px 46px; }
+  ol.steps > li > .num {
+    position: absolute; left: 0; top: 2px; width: 31px; height: 31px; border-radius: 50%;
+    display: grid; place-items: center; background: var(--card); border: 1px solid var(--rule-2);
+    font-family: var(--mono); font-size: 12.5px; font-weight: 600; color: var(--ink-2);
+  }
+  .fcard { border: 1px solid var(--rule); border-radius: 9px; background: var(--paper); padding: 14px 16px; }
+  .fcard-top { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: baseline; }
+  .fcard-top .no { font-family: var(--mono); font-weight: 600; font-size: 15px; letter-spacing: .01em; }
+  .fcard-top .nm { font-family: var(--serif); font-size: 15.5px; color: var(--ink-2); }
+  .pill {
+    font-family: var(--mono); font-size: 10.5px; font-weight: 600; letter-spacing: .07em;
+    text-transform: uppercase; padding: 2.5px 7px; border-radius: 4px; white-space: nowrap;
+  }
+  .pill.always  { background: var(--always-soft);  color: var(--always); }
+  .pill.usually { background: var(--usually-soft); color: var(--usually); }
+  .pill.someti  { background: var(--someti-soft);  color: var(--someti); }
+  .role { margin-top: 9px; font-size: 14.5px; color: var(--ink-2); }
+  .cond { margin-top: 7px; font-size: 13.5px; color: var(--usually); }
+
+  .custody { display: grid; gap: 1px; margin-top: 12px; background: var(--rule); border: 1px solid var(--rule); border-radius: 7px; overflow: hidden; grid-template-columns: 1fr 1fr auto; }
+  .custody div { background: var(--card); padding: 9px 11px; }
+  .custody dt { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 2px; }
+  .custody dd { margin: 0; font-size: 13.5px; line-height: 1.4; }
+  .custody .rev { font-family: var(--mono); font-size: 12.5px; white-space: nowrap; }
+  .custody .rev small { display: block; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-family: var(--mono); }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px; margin-top: 12px;
+    font-family: var(--sans); font-size: 14px; font-weight: 500; text-decoration: none;
+    padding: 8px 14px; border-radius: 7px; border: 1px solid var(--rule-2); background: var(--card); color: var(--ink);
+  }
+  .btn.solid { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .btn svg { width: 15px; height: 15px; }
+
+  .setgotcha { margin-top: 10px; border-left: 3px solid var(--stamp); padding: 2px 0 2px 15px; }
+  .setgotcha .lab { font-family: var(--mono); font-size: 10.5px; letter-spacing: .11em; text-transform: uppercase; color: var(--stamp); }
+  .setgotcha p { font-size: 14.5px; color: var(--ink-2); margin-top: 3px; max-width: 64ch; }
+
+  /* ── the packet (Pro) ─────────────────────────────────────────── */
+  .packet { display: grid; gap: 20px; grid-template-columns: 300px minmax(0, 1fr); }
+  .field { margin-bottom: 11px; }
+  .field label { display: block; font-size: 12px; font-weight: 600; color: var(--ink-2); margin-bottom: 4px; }
+  .field .inp {
+    border: 1px solid var(--rule-2); border-radius: 6px; background: var(--card);
+    padding: 8px 10px; font-family: var(--mono); font-size: 13px; color: var(--ink);
+  }
+  .field .inp.ph { color: var(--ink-3); }
+  .field .hint { font-size: 11.5px; color: var(--ink-3); margin-top: 3px; }
+  .runrow { display: flex; align-items: center; gap: 11px; padding: 10px 0; border-bottom: 1px solid var(--rule); font-size: 14px; }
+  .runrow:last-child { border-bottom: 0; }
+  .runrow .no { font-family: var(--mono); font-weight: 600; min-width: 62px; }
+  .runrow .state { margin-left: auto; font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; padding: 2.5px 7px; border-radius: 4px; }
+  .runrow .state.pre { background: var(--always-soft); color: var(--always); }
+  .runrow .state.ovl { background: var(--someti-soft); color: var(--someti); }
+  .vault { margin-top: 16px; padding: 13px 15px; border: 1px dashed var(--rule-2); border-radius: 8px; font-size: 13.5px; color: var(--ink-2); }
+  .gate { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); background: var(--accent-soft); padding: 3px 8px; border-radius: 4px; }
+
+  /* ── rules / annotations ──────────────────────────────────────── */
+  .rules { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(265px, 1fr)); }
+  .rule-card { border: 1px solid var(--rule); border-radius: 9px; padding: 17px 18px; background: var(--card); }
+  .rule-card .k { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--stamp); }
+  .rule-card h4 { font-size: 1.02rem; margin: 6px 0 7px; }
+  .rule-card p { font-size: 14px; color: var(--ink-2); }
+  .rule-card code { font-family: var(--mono); font-size: 12.5px; background: var(--card-2); padding: 1px 5px; border-radius: 4px; }
+
+  table.plan { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+  table.plan th, table.plan td { text-align: left; padding: 11px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  table.plan th { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+  table.plan td:first-child { font-family: var(--serif); font-weight: 600; white-space: nowrap; }
+  .scroll-x { overflow-x: auto; }
+
+  footer.doc-foot { padding: 40px 0 56px; color: var(--ink-3); font-size: 13.5px; }
+
+  @media (max-width: 760px) {
+    .task-hero { grid-template-columns: minmax(0, 1fr); }
+    .clocks { flex-direction: row; flex-wrap: wrap; }
+    .custody { grid-template-columns: 1fr; }
+    .packet { grid-template-columns: minmax(0, 1fr); }
+    ol.steps > li { padding-left: 38px; }
+    ol.steps::before { left: 13px; }
+    ol.steps > li > .num { width: 27px; height: 27px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+</head>
+<body>
+
+<header class="doc-head">
+  <div class="wrap">
+    <div>
+      <div class="eyebrow">DiemDesk · forms · phase 3 mockup</div>
+      <h1 class="doc-title">Form Finder</h1>
+    </div>
+    <div class="doc-meta">24 Nov 2026 · spec: forms-finder-phase3.md</div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section class="block">
+    <p class="lede">
+      People arrive with a task, not a form number. Thirteen task pages compose the <b>30 US forms we
+      already verify</b> into ordered sets — no new forms, no new verification load — and each row says
+      the thing no competitor prints: <b>who fills it in, and where it goes.</b>
+      The set is free. Filling the whole set at once is Pro.
+    </p>
+  </section>
+
+  <!-- ─────────────────────────────  1. the hub  ───────────────────────────── -->
+  <section class="block">
+    <div class="section-label"><span class="n">01</span><h2>The hub gains a way in by intent</h2></div>
+    <div class="frame">
+      <div class="frame-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span>&nbsp; diemdesk.com/forms</div>
+      <div class="frame-body">
+        <h3 style="font-size:1.3rem">Start from what you are trying to do</h3>
+        <p style="color:var(--ink-2); font-size:14.5px; margin-top:7px; max-width:60ch">
+          Each one lists every form involved, in the order it happens. Nothing is uploaded — forms are
+          fetched from the agency when you open them.
+        </p>
+        <div class="hub-grid" style="margin-top:20px">
+          <a class="task-chip" href="#task">
+            <strong>Hire your first employee</strong>
+            <span class="set mono">I-9 · W-4 · SS-4 · 941 · 940 · W-2</span>
+            <span class="aud">Employers</span>
+          </a>
+          <a class="task-chip" href="#task">
+            <strong>Get paid as a contractor</strong>
+            <span class="set mono">W-9 · SS-4 · 1099-NEC · 1040</span>
+            <span class="aud">Freelancers, consultants</span>
+          </a>
+          <a class="task-chip" href="#task">
+            <strong>Set up an IRS payment plan</strong>
+            <span class="set mono">9465 · 433-F · 433-A · 4506-T</span>
+            <span class="aud">Anyone with a balance due</span>
+          </a>
+          <a class="task-chip" href="#task">
+            <strong>Let someone handle the IRS for you</strong>
+            <span class="set mono">2848 · 8821</span>
+            <span class="aud">Taxpayers &amp; their agents</span>
+          </a>
+          <a class="task-chip" href="#task">
+            <strong>Sponsor a relative to immigrate</strong>
+            <span class="set mono">I-130 · I-864 · I-485 · I-765</span>
+            <span class="aud">US citizens, residents</span>
+          </a>
+          <a class="task-chip" href="#task">
+            <strong>Take family or medical leave</strong>
+            <span class="set mono">WH-380-E · WH-380-F · WH-381</span>
+            <span class="aud">Employees &amp; HR</span>
+          </a>
+        </div>
+        <p style="font-family:var(--mono); font-size:12px; color:var(--ink-3); margin-top:18px">
+          + 7 more · 13 tasks · every one of the 30 US forms appears in at least one
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────  2. a task page  ───────────────────────── -->
+  <section class="block" id="task">
+    <div class="section-label"><span class="n">02</span><h2>A task page</h2></div>
+    <div class="frame">
+      <div class="frame-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span>&nbsp; diemdesk.com/forms/hire-your-first-employee</div>
+      <div class="frame-body">
+
+        <div class="task-hero">
+          <div>
+            <div class="eyebrow">For employers</div>
+            <h3>Hire your first employee</h3>
+            <p class="what">
+              Six federal forms are involved in a first hire, and they belong to three different
+              agencies on three different clocks: two before the first paycheck, two on a recurring
+              schedule, one at year end. Only one of them is ever sent to the IRS by you on the day
+              you hire.
+            </p>
+          </div>
+          <div class="clocks">
+            <div class="clock ok"><span>Form versions</span><b>checked yesterday</b></div>
+            <div class="clock"><span>This set reviewed</span><b>24 Nov 2026</b></div>
+          </div>
+        </div>
+
+        <div class="notcov">
+          <b class="lead">What this page does not cover.</b>
+          State and local forms — including <b>your state's own withholding certificate</b>, new-hire
+          reporting and unemployment-insurance registration, none of which are in our library yet.
+          Nor deadlines, eligibility, or anything specific to your industry. This page says which
+          federal forms are involved and who files them. It is not advice, and we are not a preparer.
+        </div>
+
+        <div class="set-head">
+          <h4>The set, in the order it happens</h4>
+          <span class="why">Two before payroll runs · then the recurring returns · then year end.</span>
+        </div>
+
+        <ol class="steps">
+          <li>
+            <span class="num">1</span>
+            <div class="fcard">
+              <div class="fcard-top">
+                <span class="no">Form I-9</span>
+                <span class="nm">Employment Eligibility Verification</span>
+                <span class="pill always">Always</span>
+              </div>
+              <p class="role">Establishes that the person you hired may legally work in the United States. Both of you complete a part of it.</p>
+              <dl class="custody">
+                <div><dt>Filled in by</dt><dd>Employee, then you</dd></div>
+                <div><dt>Goes to</dt><dd>Nobody — you keep it on file</dd></div>
+                <div class="rev"><dt>Edition date</dt><dd class="rev">05/31/27<small>USCIS</small></dd></div>
+              </dl>
+              <a class="btn solid" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16"/></svg>
+                Get this form &amp; fill it
+              </a>
+            </div>
+          </li>
+
+          <li>
+            <span class="num">2</span>
+            <div class="fcard">
+              <div class="fcard-top">
+                <span class="no">Form W-4</span>
+                <span class="nm">Employee's Withholding Certificate</span>
+                <span class="pill always">Always</span>
+              </div>
+              <p class="role">Tells your payroll how much federal income tax to withhold from each paycheck.</p>
+              <dl class="custody">
+                <div><dt>Filled in by</dt><dd>Employee</dd></div>
+                <div><dt>Goes to</dt><dd>Your payroll — not the IRS</dd></div>
+                <div class="rev"><dt>Form year</dt><dd class="rev">2026<small>IRS</small></dd></div>
+              </dl>
+              <a class="btn solid" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16"/></svg>
+                Get this form &amp; fill it
+              </a>
+            </div>
+          </li>
+
+          <li>
+            <span class="num">3</span>
+            <div class="fcard">
+              <div class="fcard-top">
+                <span class="no">Form SS-4</span>
+                <span class="nm">Application for Employer Identification Number</span>
+                <span class="pill usually">Usually</span>
+              </div>
+              <p class="role">Gets the employer identification number that every payroll filing below is made under.</p>
+              <p class="cond">Only if you do not already have an EIN. If you have one, skip to step 4.</p>
+              <dl class="custody">
+                <div><dt>Filled in by</dt><dd>You</dd></div>
+                <div><dt>Goes to</dt><dd>IRS</dd></div>
+                <div class="rev"><dt>Rev.</dt><dd class="rev">Dec 2025<small>IRS</small></dd></div>
+              </dl>
+              <a class="btn" href="#">Get this form &amp; fill it</a>
+            </div>
+          </li>
+
+          <li>
+            <span class="num">4</span>
+            <div class="fcard">
+              <div class="fcard-top">
+                <span class="no">Form 941</span>
+                <span class="nm">Employer's Quarterly Federal Tax Return</span>
+                <span class="pill always">Always</span>
+              </div>
+              <p class="role">Reports the wages you paid and the tax you withheld, every quarter, for as long as you have an employee.</p>
+              <dl class="custody">
+                <div><dt>Filled in by</dt><dd>You or your payroll provider</dd></div>
+                <div><dt>Goes to</dt><dd>IRS, quarterly</dd></div>
+                <div class="rev"><dt>Rev.</dt><dd class="rev">Mar 2026<small>IRS</small></dd></div>
+              </dl>
+              <a class="btn" href="#">Get this form &amp; fill it</a>
+            </div>
+          </li>
+
+          <li>
+            <span class="num">5</span>
+            <div class="fcard">
+              <div class="fcard-top">
+                <span class="no">Form 940</span>
+                <span class="nm">Employer's Annual Federal Unemployment (FUTA) Tax Return</span>
+                <span class="pill always">Always</span>
+              </div>
+              <p class="role">The annual federal unemployment return. Separate from, and not a substitute for, your state's unemployment filing.</p>
+              <dl class="custody">
+                <div><dt>Filled in by</dt><dd>You or your payroll provider</dd></div>
+                <div><dt>Goes to</dt><dd>IRS, once a year</dd></div>
+                <div class="rev"><dt>Form year</dt><dd class="rev">2026<small>IRS</small></dd></div>
+              </dl>
+              <a class="btn" href="#">Get this form &amp; fill it</a>
+            </div>
+          </li>
+
+          <li>
+            <span class="num">6</span>
+            <div class="fcard">
+              <div class="fcard-top">
+                <span class="no">Form W-2</span>
+                <span class="nm">Wage and Tax Statement</span>
+                <span class="pill always">Always</span>
+              </div>
+              <p class="role">What you give the employee, and file with the Social Security Administration, after the year ends.</p>
+              <dl class="custody">
+                <div><dt>Filled in by</dt><dd>You</dd></div>
+                <div><dt>Goes to</dt><dd>Employee <em>and</em> the SSA</dd></div>
+                <div class="rev"><dt>Form year</dt><dd class="rev">2026<small>IRS</small></dd></div>
+              </dl>
+              <a class="btn" href="#">Get this form &amp; fill it</a>
+            </div>
+          </li>
+        </ol>
+
+        <div class="setgotcha">
+          <div class="lab">The mistake this set produces</div>
+          <p>
+            USCIS <b>rejects a superseded I-9 edition outright</b> — it is the one agency in this set
+            where filing last year's version is not merely untidy. The IRS generally still accepts an
+            older revision; USCIS returns the form. That is why every page here prints the agency's own
+            word for its version marker — <span class="mono">Edition date</span>, <span class="mono">Rev.</span>,
+            <span class="mono">Form year</span> — instead of flattening all three into "version".
+          </p>
+        </div>
+
+        <div style="margin-top:26px; display:flex; flex-wrap:wrap; gap:10px; align-items:center">
+          <a class="btn solid" href="#packet">Fill this whole set at once</a>
+          <span class="gate">Pro</span>
+          <span style="font-size:13px;color:var(--ink-3)">Your details typed once instead of six times.</span>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────  3. the packet  ────────────────────────── -->
+  <section class="block" id="packet">
+    <div class="section-label"><span class="n">03</span><h2>The packet — the Pro half</h2></div>
+    <div class="frame">
+      <div class="frame-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span>&nbsp; diemdesk.com/forms/hire-your-first-employee/packet</div>
+      <div class="frame-body">
+        <div class="packet">
+          <div>
+            <h4 style="font-size:1.05rem">Details that repeat</h4>
+            <p style="font-size:13px;color:var(--ink-3);margin:6px 0 16px">Typed once, written into every form in the set that we can read the fields of.</p>
+            <div class="field"><label>Employer legal name</label><div class="inp ph">As registered</div></div>
+            <div class="field"><label>Employer EIN</label><div class="inp ph">00-0000000</div>
+              <div class="hint">Leave blank if step 3 is getting you one.</div></div>
+            <div class="field"><label>Business address</label><div class="inp ph">Street, city, state, ZIP</div></div>
+            <div class="field"><label>Employee legal name</label><div class="inp ph">Exactly as on their ID</div></div>
+            <div class="field"><label>Employee SSN</label><div class="inp ph">000-00-0000</div>
+              <div class="hint">Stays in this tab. Never sent, never saved.</div></div>
+            <div class="vault">
+              <b style="font-family:var(--sans);font-weight:600">Nothing here is stored.</b>
+              Typed once means once per packet, not once forever. A saved record of a name, an address
+              and an SSN is the exact thing this product exists not to create.
+            </div>
+          </div>
+
+          <div>
+            <h4 style="font-size:1.05rem">The run</h4>
+            <p style="font-size:13px;color:var(--ink-3);margin:6px 0 10px">
+              Each form fetched from its agency in order, filled on your device, finished as one job.
+            </p>
+            <div>
+              <div class="runrow"><span class="no">I-9</span><span>Employment Eligibility Verification</span><span class="state ovl">Overlay</span></div>
+              <div class="runrow"><span class="no">W-4</span><span>Withholding Certificate</span><span class="state pre">Pre-filled</span></div>
+              <div class="runrow"><span class="no">SS-4</span><span>EIN application</span><span class="state pre">Pre-filled</span></div>
+              <div class="runrow"><span class="no">941</span><span>Quarterly return</span><span class="state pre">Pre-filled</span></div>
+              <div class="runrow"><span class="no">940</span><span>Annual FUTA return</span><span class="state pre">Pre-filled</span></div>
+              <div class="runrow"><span class="no">W-2</span><span>Wage and Tax Statement</span><span class="state pre">Pre-filled</span></div>
+            </div>
+            <div class="setgotcha" style="margin-top:18px">
+              <div class="lab">Why one row says Overlay</div>
+              <p>
+                Most USCIS PDFs are encrypted, so <span class="mono">pdf-lib</span> reads <b>0</b>
+                fields and nothing can be written into them by name. That form still arrives in order,
+                in the place-anywhere filler — it just is not pre-filled, and the row says so. The
+                alternative is a packet that quietly skips a form or claims a fill it did not do.
+              </p>
+            </div>
+            <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap">
+              <a class="btn solid" href="#">Run the packet</a>
+              <a class="btn" href="#">Merge · sign · flatten after</a>
+            </div>
+            <p style="font-size:12.5px;color:var(--ink-3);margin-top:10px">
+              The finishing steps are the existing Saved Workflows runner — no new engine.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────  4. the rules  ─────────────────────────── -->
+  <section class="block">
+    <div class="section-label"><span class="n">04</span><h2>Three rules the build enforces</h2></div>
+    <p class="lede" style="margin-bottom:24px">
+      A page that answers "what do I need to hire someone" is one step from practising law and tax.
+      These are not notes — each is a test that fails the build.
+    </p>
+    <div class="rules">
+      <div class="rule-card">
+        <div class="k">Rule 1</div>
+        <h4>There is no "required"</h4>
+        <p>
+          A form's relevance is <code>always</code>, <code>usually</code> or <code>sometimes</code>,
+          and anything other than <code>always</code> must carry a <code>condition</code>. The words
+          "required", "you must" and "you need to file" fail the test suite. The page states who files
+          what; it never tells anyone what they have to do.
+        </p>
+      </div>
+      <div class="rule-card">
+        <div class="k">Rule 2</div>
+        <h4>What is missing is above the fold</h4>
+        <p>
+          <code>notCovered</code> is a mandatory field, rendered under the hero rather than in a
+          footer. Naming the state withholding certificate on a hiring page is also the clearest
+          demand signal we will ever get for which Phase 1 matrix to build first.
+        </p>
+      </div>
+      <div class="rule-card">
+        <div class="k">Rule 3</div>
+        <h4>Two clocks, never merged</h4>
+        <p>
+          The weekly job checks revisions, not sets. If an agency retires a form, the composed page is
+          wrong and every number on it still verifies <code>drifts=0</code>. So the forms carry
+          <code>CHECKED_ON</code> and the set carries its own <code>reviewedOn</code>, and both are
+          printed.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────  5. the plan  ──────────────────────────── -->
+  <section class="block">
+    <div class="section-label"><span class="n">05</span><h2>Build order</h2></div>
+    <div class="scroll-x">
+      <table class="plan">
+        <thead><tr><th>Ship</th><th>What</th><th>Gate</th><th>Est.</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>1 · Finder</td>
+            <td>13 US task pages, hub section, ⌘K + search index, sitemap, 7 guard tests. Zero new forms.</td>
+            <td>Free, live</td>
+            <td class="mono">~10 h</td>
+          </tr>
+          <tr>
+            <td>2 · Packet</td>
+            <td>Shared-detail model, IRS field maps, per-form pre-fill honesty, chained through the existing runner.</td>
+            <td>Pro · owner-only until launch</td>
+            <td class="mono">~12 h</td>
+          </tr>
+          <tr>
+            <td>3 · India</td>
+            <td>Salary return, EPF claim, GST returns, PAN/Aadhaar — about the PDF work around a web filing.</td>
+            <td>Free, live</td>
+            <td class="mono">~6 h</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer class="doc-foot">
+    Mockup for <b style="font-family:var(--sans)">docs/designs/forms-finder-phase3.md</b>.
+    Form names, agencies and version markers shown here are illustrative of the layout; the live pages
+    read every marker at source and print the date they were read.
+    DiemDesk is not affiliated with the IRS, USCIS, the Department of Labor, the SSA or the VA, and
+    does not provide legal or tax advice.
+  </footer>
+
+</div>
+</body>
+</html>
