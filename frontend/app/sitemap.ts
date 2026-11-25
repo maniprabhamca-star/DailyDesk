@@ -95,6 +95,10 @@ const ROUTES: Array<{ path: string; priority: number; changeFrequency: MetadataR
   // The hub that parents both libraries — higher priority than either, because
   // it is the page that should rank for the generic "government forms" intent.
   { path: '/forms', priority: 0.85, changeFrequency: 'monthly' },
+  // Matrix 1 — one form type across every US sales-tax jurisdiction. One URL
+  // on purpose: splitting 51 rows across pages would destroy the only reason
+  // to visit it. Transactional intent, so it sits with the form hub.
+  { path: '/resale-certificates', priority: 0.85, changeFrequency: 'monthly' },
   { path: '/india-forms', priority: 0.8, changeFrequency: 'monthly' },
   { path: '/us-forms', priority: 0.8, changeFrequency: 'monthly' },
   { path: '/mcp-server', priority: 0.7, changeFrequency: 'monthly' },

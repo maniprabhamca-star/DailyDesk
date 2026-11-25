@@ -30,6 +30,14 @@ export type ChangeEntry = {
 // §10c; add it the day WAITLIST_MODE flips, dated then.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-11-25',
+    kind: 'new',
+    title: 'Resale certificates, state by state',
+    detail:
+      'Sell to a business in another state and they hand you a resale certificate instead of the sales tax. The awkward part is that there are fifty-one answers to which certificate, and the one document that covers most of the country does not cover it evenly.\n\nThe Multistate Tax Commission publishes a uniform resale certificate. Thirty-eight jurisdictions are printed on it. Twenty-six of those thirty-eight attach a condition, and the conditions are the reason the page exists.\n\nNine take it as a resale certificate and say in terms that it is not valid as an exemption certificate — so a seller who files it against some other exemption is holding paper that does not cover the sale. Four will not let it cover a service bought for resale. Florida wants the form plus a resale authorisation number from its Department of Revenue. Hawaii runs the whole thing backwards: there the seller uses it to claim a lower general excise rate rather than the buyer claiming an exemption. Thirteen jurisdictions are not on it at all, five of which have no general sales tax, so there is nothing to certify.\n\nAll of that was read off the certificate itself — its thirty-two numbered notes, the boxes printed on page one, its nine pages and sixty fillable fields all counted on the published PDF rather than taken from somebody’s summary. Two things turned up on the way. The Commission’s own page says thirty-six states accept it while its form prints thirty-eight boxes, so we publish what the form prints and say where the two differ. And its list of state links sends you to the California Franchise Tax Board, which does not administer sales tax, and leaves Nevada out entirely even though Nevada is on the certificate. Ours point at the right departments.\n\nWhat the page will not do is tell you whether a particular sale is exempt or whether you have nexus somewhere. That turns on your own facts, it is a question for a tax adviser or the department, and we are a document tool. Every row links to the department so you can check us.',
+    href: '/resale-certificates',
+  },
+  {
     date: '2026-11-24',
     kind: 'feature',
     title: 'The statement converter now writes OFX, and a .qbo that is honest about your bank',

@@ -26,6 +26,14 @@ The paid flagship. Bank statement PDF → verified transaction table → **Excel
 - **Critical path:** collecting real statement samples per bank (not code) + validating Tally XML against a real Tally Prime import.
 - [ ] ⏳ **Sequencing decision:** this is the revenue engine; native apps only distribute a product that doesn't monetise yet. **Recommend this ahead of native apps** — owner's call.
 
+## ⭐ Forms Phase 1 · matrix 1 — resale certificates (2026-11-25)
+
+`/resale-certificates` — one form type across all **51** US sales-tax jurisdictions, on one URL. The MTC uniform resale certificate is the header row; **38** jurisdictions are printed on it and **26 of those attach a condition**, which is the finding the page exists for (9 take it for resale ONLY and say it is not valid as an exemption certificate; 4 exclude services; Florida needs a second artefact; Hawaii inverts it). Every verdict traced to the certificate's own 32 notes, read at source.
+- ⚠ **Scope split, flagged not taken silently.** The plan assumed the MTC “link hub” made provenance tractable; it is 50 department *homepages*, so each state's own certificate is a separate hunt — 4 of the first 12 guessed URLs survived verification. **Ship 2** adds the own-certificate column; 8 are banked (CA, TX, NY, PA, AZ, GA, ID, IL).
+- ⚠ **Two mtc.gov errors pinned by tests** so they cannot be re-synced: its California link goes to the Franchise Tax Board (income tax, not sales tax) and its state list omits Nevada, which is on the certificate. A third — their prose says 36 states, their form prints 38 boxes — is published rather than resolved.
+- ⚠ **`<CheckedAgo>` now takes its date as a prop**, closing the borrowed-verification-date defect class that made India pages print the IRS library's check date.
+- Full write-up: [forms-library-expansion.md](forms-library-expansion.md) §Phase 1 · matrix 1.
+
 ## 0. Just shipped (2026-07-15)
 - ✅ **Chat with PDF** (`/chat-pdf`) — 🌓 first AI/Pro tool, ships dark. On-device text extract → cited answers. Key live on VPS, owner can use now.
 - ✅ **PDF → Excel** (`/pdf-to-excel`) — free, on-device table extraction → editable grid → .xlsx/.csv.

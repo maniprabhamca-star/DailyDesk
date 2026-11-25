@@ -393,3 +393,102 @@ here is precisely why, so it stays that way as the library grows.
   (`diemdesk-studio-concept.md`), where a template is a design asset and a Pro
   feature rather than a commodity directory every competitor already has. Pipeline,
   not now.
+
+---
+
+## Phase 1 · matrix 1 — shipped 2026-11-25 (ship 1 of 2)
+
+`/resale-certificates`. Data `frontend/lib/resale-certificates.ts`, contract
+`frontend/tests/unit/resale-certificates.test.ts` (29 tests).
+
+### The scope split, and why it is a split and not a cut
+
+The plan assumed provenance would be tractable because "the MTC itself
+maintains a link hub". **It does not.** The hub is 50 links to state revenue
+department *homepages* — not to certificate pages. So each state's own form is
+a separate hunt, and the hunts are expensive: of the first twelve URLs built
+from prior knowledge, **four survived verification**. The rest 404'd, 403'd or
+served HTML.
+
+So matrix 1 ships in two:
+
+| | Scope | State |
+|---|---|---|
+| **Ship 1** | The MTC acceptance matrix: all 51 jurisdictions, each verdict and caveat traced to the certificate's own notes. | ✅ live |
+| **Ship 2** | Each jurisdiction's own certificate as a second column. | 8 of ~45 verified |
+
+Ship 1 is complete rather than partial — every claim on it comes from one
+document that was read end to end. A half-filled "own certificate" column
+would have been the worse page.
+
+**Verified at source and banked for ship 2** (form number confirmed printed on
+the document itself, not merely a URL that resolved): CA `CDTFA-230`,
+TX `01-339`, NY `ST-120`, PA `REV-1220`, AZ `5000A`, GA `ST-5`, ID `ST-101`,
+IL `CRT-61`.
+
+### ⚠⚠ The finding that is the page
+
+"Accepted" is not one thing. Of the 38 jurisdictions printed on the
+certificate, **26 attach a condition**:
+
+- **9 take it for resale only** and say in terms that it is not valid as an
+  exemption certificate — CA, CT, KY, MD, NV, PA, RI, TN, WI. A seller filing
+  it against another exemption holds paper that does not cover the sale.
+- **4 exclude a taxable service bought for resale** — CO, HI, IL, NM share
+  note 5.
+- **Florida needs a second artefact** — a resale authorisation number from the
+  Department of Revenue, on top of the form.
+- **Hawaii inverts it** — the *seller* claims a lower general excise rate
+  rather than the buyer claiming an exemption.
+- **13 are absent**, of which 5 have no general sales tax.
+
+A page that printed a tick against 38 states would have been the wrong page.
+
+### ⚠ Two errors on mtc.gov that must not be re-synced
+
+Both are pinned by tests, because the obvious future "fix" is to rebuild the
+list from their page:
+
+1. Its California link points at the **Franchise Tax Board**, which administers
+   income tax, not sales tax. Ours points at **CDTFA**.
+2. Its state-links list **omits Nevada**, which is printed on the certificate
+   (note 20). Ours includes it.
+
+A third discrepancy is published rather than silently resolved: their prose
+says **36 states**, their certificate prints **38 boxes** (37 states plus the
+Alaska Remote Sellers Sales Tax Commission, a municipal body). We print what
+the form prints and say the two disagree. A test asserts the two numbers stay
+different — if they ever match, somebody re-synced from the prose.
+
+### ⚠ A cell is not a form — restated, because it caused a 3× overstatement
+
+Matrix 1 is ~51 cells and only **~15 new verified forms**, because one MTC
+certificate answers 38 of them. See the corrected projection table above.
+
+### Engineering notes
+
+- **`<CheckedAgo>` now takes its date as a prop.** It imported `CHECKED_ON`
+  from `lib/us-forms` directly, which is how the India task pages ended up
+  printing the date the *IRS* library was last checked. A borrowed
+  verification date is a false provenance claim on a page whose entire
+  argument is provenance. It still defaults to the federal library; a caller
+  with its own clock passes its own.
+- **Counts derived, never typed** — including the SEO description, which is a
+  template over `ACCEPTING.length` and is budget-tested (it built at 184
+  characters first time and is now 150).
+- **One URL, no pagination.** 51 rows is exactly the size that tempts a
+  `?page=2`; splitting it would destroy the only reason to visit.
+- **Advice boundary**: the shared `_advice-vocabulary` guard applies. Six rows
+  were rewritten from "the buyer must enter a Kansas number" to "Kansas looks
+  for a Kansas number" — one states a duty, the other describes a document.
+- **Sabotage-tested**: stripping a caveat off a conditional row, re-syncing
+  California to the FTB, and reintroducing "must" each fail the suite.
+
+### What ship 2 needs
+
+The 9 taxing jurisdictions absent from the certificate (DC, IN, LA, MA, MS, NY,
+VA, WV, WY) publish their own and are the highest-value cells — a seller with a
+customer there gets no answer from the MTC form at all. `NEEDS_OWN_FORM`
+exports exactly that list and a test pins it at 9, so a scope change is a red
+build rather than a quiet drift. `scripts/`-style harnesses used here live in
+the session scratchpad; the durable artefact is the verified-form list above.
