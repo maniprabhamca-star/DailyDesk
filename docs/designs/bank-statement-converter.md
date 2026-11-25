@@ -1,6 +1,6 @@
 # Bank Statement Converter — the Pro conversion engine
 
-**Status:** 📋 Specified, not started · **Owner spec v1.0 (2026-07-16)** · Source: `MyBiz/SystemTools/DiemDesk-Statement-Converter-Spec.md`
+**Status:** ✅ Built and verified (see §6, 2026-11-24) — the only thing left before revenue is the Stripe flip · **Owner spec v1.0 (2026-07-16)** · Source: `MyBiz/SystemTools/DiemDesk-Statement-Converter-Spec.md`
 **Strategic role:** the flagship *paid* tool. The 57 free tools are the funnel; **this is what people pay for.**
 
 > **One-sentence wedge:** the only statement converter that (a) processes **locally** for privacy, (b) **validates every row against the running balance**, and (c) exports directly to **Tally** for the Indian market.
@@ -122,3 +122,120 @@ Red → keep the engine, attack an adjacent commercial keyword (invoice→Excel,
 ---
 
 _Full original spec: `MyBiz/SystemTools/DiemDesk-Statement-Converter-Spec.md`. Tracked in [master-roadmap.md](master-roadmap.md) §Flagship. Economics: `dailydesk-unit-economics` memory._
+
+---
+
+## 6. OFX / QuickBooks Web Connect export — shipped 2026-11-24
+
+The last item on the Week 5–6 line above ("QBO/OFX"), closed. It was not picked
+off the list because it was next; it was picked because it had become a
+**published promise the product did not keep**.
+
+### 6a. What the gap actually was
+
+`/pricing` sells **"Export to Tally, QuickBooks (QBO) & OFX"** as a Business
+feature, and the live changelog entry announcing the Business tier repeats it.
+The converter wrote Excel, CSV and Tally XML. Meanwhile
+`lib/statement-workflows.ts` told readers QBO/OFX was "on the way".
+
+So the site contradicted itself, and **the half that takes money was the wrong
+half**. That is the whole reason this jumped the queue: a Business tier cannot
+open while one of its three named exports does not exist.
+
+### 6b. ⚠⚠ INTU.BID — the constraint that shaped the file
+
+A `.qbo` is OFX 1.0.2 SGML plus Intuit's `<INTU.BID>`, a numeric id for the
+financial institution. QuickBooks matches it against Intuit's own directory
+**before it reads a single transaction**. An id we are not entitled to use
+produces either a rejected file or, worse, a clean import filed under somebody
+else's bank.
+
+Converter vendors routinely paper over this by defaulting to a real bank's id
+(3000 is the one that circulates). **We do not, and the refusal is structural
+rather than a policy note**: `buildOfx` throws an `OfxError` when the flavour is
+`qbo` and `intuBid` is missing or not 1–6 digits. There is no default and no
+fallback.
+
+Research note: every source describing INTU.BID values is a commercially
+interested converter vendor; **none is Intuit**. That is itself the argument for
+refusing — we cannot verify an id we did not receive from the institution.
+
+The honest route, which the UI implements: the user reads the id out of a `.qbo`
+their own bank gives them and pastes it in. Most Indian banks are not in
+Intuit's directory at all and never will be, so for them the answer is OFX,
+Excel or Tally — and the tool says that rather than inventing an id to make a
+button work.
+
+### 6c. Design decisions worth keeping
+
+| Decision | Why |
+|---|---|
+| One writer, two flavours (`'ofx'` / `'qbo'`) | The only difference is one line. Two files would drift. |
+| Reuses `toTallyDate` from the Tally writer | Two exports describe the same rows; **the day a row lands on is not something two files of ours may disagree about**. |
+| `FITID` = FNV-1a over (date, signed minor amount, narration, sequence) | Importers dedupe on FITID. An id that moved between exports would **silently double every transaction** in somebody's books, and nothing in our own product would look wrong. Derived only from facts about the row. |
+| Money out is **negative** `TRNAMT`, derived from debit/credit, never copied | An inverted sign imports cleanly and is wrong in exactly the way nobody notices until reconciliation. |
+| Non-Latin-1 folded to ASCII (₹ → `Rs.`) | The header declares `USASCII`/`1252`. Emitting a rupee sign after declaring that makes the file lie about itself. Currency is carried by `<CURDEF>`. |
+| `bankId` = the IFSC we parsed | OFX wants a routing-style id and has no Indian concept for one; the IFSC is the closest true thing we hold. |
+| Rows that cannot be written are **reported, not dropped** | See 6e. |
+
+### 6d. ⚠ The sabotage test, and the guard that did not bite
+
+Three deliberate breakages were injected into `lib/banks/ofx.ts` to check the
+tests were load-bearing:
+
+| Sabotage | Caught? |
+|---|---|
+| Default `intuBid` to `'3000'` | ✅ two tests failed |
+| Invert the sign convention | ✅ failed |
+| Add `Date.now()` to the FITID basis | ❌ **all green** |
+
+The FITID test compared two exports built with different `now` options — and
+two builds inside one test run land in the same millisecond, so `Date.now()`
+was identical in both. **Comparing two outputs can only prove determinism
+across whatever actually varied between them, and in-process almost nothing
+does.** The test was replaced with one that reads `fitId`'s source and refuses
+the ingredients (`Date.now`, `Math.random`, `performance.now`, `new Date`,
+`crypto.randomUUID`), plus a check that the caller does not quietly pass one in.
+That version fails when it should.
+
+A second guard had the opposite fault: the "no hard-coded institution id" scan
+used `/intuBid\s*(?:\?\?|\|\|)\s*['"]/`, which flagged the **validation line
+itself** (`String(o.intuBid ?? '').trim()`). A guard that fires on correct code
+teaches the next person to weaken it. Tightened to require a digit.
+
+### 6e. ⚠ Found by running a real statement, not by a test
+
+Six rows in, five transactions out — silently. Only rows that move money can
+become OFX transactions, so the opening-balance line is dropped. Correct
+behaviour, invisible failure mode: it surfaces at a reconciliation months later,
+to someone with no reason to suspect the converter.
+
+The export now returns `skipped[]` and the UI prints it, naming each row **by
+its printed date and narration** rather than by `row`, which is a parser-internal
+0-based index ("Row 0" is not something a person can find on their statement).
+
+This is the **fourth consecutive ship** where reading the rendered page caught
+something no test did. The other one here: the converter page's step 3 still
+read *"export to Excel or CSV (Tally XML coming next)"* — stale twice over,
+since Tally had already shipped. Page copy lives in
+`app/bank-statement-converter/page.tsx`, not in `lib/statement-workflows.ts`,
+and only the second was rewritten.
+
+### 6f. Verification
+
+- `tests/unit/ofx.test.ts` — 21 tests. Suite now **523 / 45 files** (was 502 / 44).
+- Production build clean, 379 static pages.
+- Driven end to end in a real browser against the production build: a synthetic
+  HDFC-layout statement parsed (95% confidence, 6 rows, balance verified), the
+  `.qbo` refusal rendered on an empty id, a `.qbo` with a user-supplied id
+  produced the correct header, `<INTU.BID>4321`, 5 transactions and the right
+  signs, and the skipped-row note rendered.
+- ⚠ **Not verified, and cannot be here**: that QuickBooks or Xero *accepts* the
+  file. Only a real import proves that — the same honest limit already recorded
+  on the Tally writer. Do not let the green suite talk anyone out of that check.
+
+### 6g. What this does not do
+
+No direct QuickBooks Online / Xero API connection (that is an OAuth integration
+and a different product decision), no CAMT.053 or MT940, no multi-currency
+statement in one file.

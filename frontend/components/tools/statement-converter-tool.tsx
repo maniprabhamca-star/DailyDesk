@@ -10,13 +10,14 @@ import { passwordErrorKind } from '@/lib/pdf-render';
 import { parseStatement, type StatementResult } from '@/lib/banks/statement';
 import { formatMoney, currencySymbol, type Txn, type Currency } from '@/lib/banks/balance';
 import { buildTallyXml } from '@/lib/banks/tally';
+import { buildOfx, OfxError } from '@/lib/banks/ofx';
 import { useCurrency, price, STATEMENT_PRICE } from '@/lib/currency';
 import { getQuota, consumePages, type Quota } from '@/lib/statement-quota';
 import { ShareButton } from '@/components/app/share-button';
 import { KeepGoing } from '@/components/app/keep-going';
 import { useFileHandoff } from '@/lib/file-handoff';
 
-type Fmt = 'xlsx' | 'csv' | 'tally';
+type Fmt = 'xlsx' | 'csv' | 'tally' | 'ofx' | 'qbo';
 
 export function StatementConverterTool() {
   const [file, setFile] = useState<File | null>(null);
@@ -27,6 +28,20 @@ export function StatementConverterTool() {
   const [error, setError] = useState<string | null>(null);
   const [fmt, setFmt] = useState<Fmt>('xlsx');
   const [exporting, setExporting] = useState(false);
+  // ⚠ QuickBooks Web Connect only. Intuit issues this id to the institutions
+  // in its directory, and QuickBooks checks it before reading a transaction.
+  // There is NO default: putting another bank's id here would file the
+  // statement under a bank it did not come from. Empty means no .qbo.
+  const [exportError, setExportError] = useState<string | null>(null);
+  // ⚠ OFX/QBO write only rows that moved money, so an opening-balance line or
+  // an unreadable date silently shrinks the file. A statement that goes in as
+  // 6 rows and lands in QuickBooks as 5 is found at reconciliation, months
+  // later, by someone who has no reason to suspect the converter. Say it here.
+  const [exportNote, setExportNote] = useState<string | null>(null);
+  const [intuBid, setIntuBid] = useState('');
+  // The parser masks the account at read time and we never hold the full
+  // number, but an importer files against it — so the user can type theirs.
+  const [acctId, setAcctId] = useState('');
   // Tally ledger mapping — these names must already exist in the user's Tally company.
   const [company, setCompany] = useState('');
   const [bankLedger, setBankLedger] = useState('');
@@ -88,7 +103,7 @@ export function StatementConverterTool() {
 
   // Build the export file for the current format — shared by Download and Share so
   // they always produce the identical file, entirely on the device.
-  const makeExport = useCallback(async (): Promise<{ blob: Blob; name: string }> => {
+  const makeExport = useCallback(async (): Promise<{ blob: Blob; name: string; note?: string }> => {
     const base = (file?.name || 'statement.pdf').replace(/\.[^.]+$/, '');
     if (fmt === 'tally') {
       const { xml } = buildTallyXml(txns, {
@@ -97,6 +112,34 @@ export function StatementConverterTool() {
         contraLedger: contraLedger.trim() || 'Suspense',
       });
       return { blob: new Blob([xml], { type: 'application/xml' }), name: `${base}-tally.xml` };
+    }
+    if (fmt === 'ofx' || fmt === 'qbo') {
+      const { text, count, skipped } = buildOfx(txns, fmt, {
+        acctId: acctId.trim() || res?.meta.account || 'UNKNOWN',
+        bankId: res?.meta.ifsc || res?.bank?.id?.toUpperCase() || 'UNKNOWN',
+        acctType: (res?.currency ?? 'INR') === 'INR' ? 'SAVINGS' : 'CHECKING',
+        currency: res?.currency ?? 'INR',
+        org: res?.bank?.name || 'Bank',
+        fid: res?.bank?.id?.toUpperCase() || 'BANK',
+        intuBid: intuBid.trim() || undefined,
+      });
+      return {
+        blob: new Blob([text], { type: 'application/x-ofx' }),
+        name: `${base}.${fmt}`,
+        // Named by what is printed on the row, not by its index: `row` is a
+        // parser-internal 0-based position, and "Row 0" is not something a
+        // person can find on their statement.
+        note: skipped.length
+          ? `${count} of ${txns.length} rows were written. ` +
+            skipped.slice(0, 4).map((k) => {
+              const t = txns.find((x) => x.row === k.row);
+              const label = t ? `${t.date} ${t.narration}`.trim().slice(0, 48) : `row ${k.row + 1}`;
+              return `“${label}” — ${k.why}.`;
+            }).join(' ') +
+            (skipped.length > 4 ? ` And ${skipped.length - 4} more.` : '') +
+            ' An opening-balance line is normally one of these — it carries no amount, so there is nothing to import.'
+          : undefined,
+      };
     }
     if (fmt === 'csv') {
       return { blob: new Blob(['﻿' + toCsv(rows())], { type: 'text/csv;charset=utf-8' }), name: `${base}.csv` };
@@ -115,7 +158,7 @@ export function StatementConverterTool() {
     ];
     const blob = await buildXlsx([{ name: 'Transactions', rows: rows() }, { name: 'Summary', rows: summary }]);
     return { blob, name: `${base}.xlsx` };
-  }, [txns, file, fmt, rows, res, company, bankLedger, contraLedger]);
+  }, [txns, file, fmt, rows, res, company, bankLedger, contraLedger, intuBid, acctId]);
 
   const doExport = useCallback(async () => {
     if (!txns.length || exporting) return;
@@ -129,8 +172,14 @@ export function StatementConverterTool() {
       const { allowed: _ok, message: _msg, upgradeTo: _to, ...fresh } = c;
       setQuota(fresh);
       if (!c.allowed) { setOverQuota(true); return; }
-      const { blob, name } = await makeExport();
+      const { blob, name, note } = await makeExport();
       downloadBlob(blob, name);
+      setExportNote(note ?? null);
+    } catch (e) {
+      // buildOfx throws rather than inventing a bank id. Without this the
+      // promise rejects, `finally` clears the spinner, and the button looks
+      // like it simply did nothing.
+      setExportError(e instanceof OfxError ? e.message : 'That export could not be built.');
     } finally { setExporting(false); }
   }, [txns, exporting, makeExport, res]);
 
@@ -145,7 +194,9 @@ export function StatementConverterTool() {
   useEffect(() => {
     let alive = true;
     if (status === 'ready' && txns.length) {
-      void makeExport().then((f) => { if (alive) shareCache.current = f; });
+      // Same throw reaches here; a missing .qbo id is a thing to tell the user
+      // at export time, not an unhandled rejection on every keystroke.
+      void makeExport().then((f) => { if (alive) shareCache.current = f; }).catch(() => { shareCache.current = null; });
     } else {
       shareCache.current = null;
     }
@@ -364,9 +415,11 @@ export function StatementConverterTool() {
         {/* export */}
         <div className="flex flex-wrap items-center gap-3 border-t bg-muted/20 px-4 py-3">
           <div className="inline-flex overflow-hidden rounded-lg border">
-            <button onClick={() => setFmt('xlsx')} className={`px-3 py-1.5 text-xs font-bold ${fmt === 'xlsx' ? 'bg-emerald-700 text-white' : 'text-muted-foreground'}`}>Excel .xlsx</button>
-            <button onClick={() => setFmt('csv')} className={`px-3 py-1.5 text-xs font-bold ${fmt === 'csv' ? 'bg-emerald-700 text-white' : 'text-muted-foreground'}`}>.csv</button>
-            <button onClick={() => setFmt('tally')} className={`border-l px-3 py-1.5 text-xs font-bold ${fmt === 'tally' ? 'bg-emerald-700 text-white' : 'text-emerald-700 dark:text-emerald-400'}`}>★ Tally XML</button>
+            <button onClick={() => { setFmt('xlsx'); setExportError(null); setExportNote(null); }} className={`px-3 py-1.5 text-xs font-bold ${fmt === 'xlsx' ? 'bg-emerald-700 text-white' : 'text-muted-foreground'}`}>Excel .xlsx</button>
+            <button onClick={() => { setFmt('csv'); setExportError(null); setExportNote(null); }} className={`px-3 py-1.5 text-xs font-bold ${fmt === 'csv' ? 'bg-emerald-700 text-white' : 'text-muted-foreground'}`}>.csv</button>
+            <button onClick={() => { setFmt('ofx'); setExportError(null); setExportNote(null); }} className={`border-l px-3 py-1.5 text-xs font-bold ${fmt === 'ofx' ? 'bg-emerald-700 text-white' : 'text-muted-foreground'}`}>.ofx</button>
+            <button onClick={() => { setFmt('qbo'); setExportError(null); setExportNote(null); }} className={`border-l px-3 py-1.5 text-xs font-bold ${fmt === 'qbo' ? 'bg-emerald-700 text-white' : 'text-muted-foreground'}`}>.qbo</button>
+            <button onClick={() => { setFmt('tally'); setExportError(null); setExportNote(null); }} className={`border-l px-3 py-1.5 text-xs font-bold ${fmt === 'tally' ? 'bg-emerald-700 text-white' : 'text-emerald-700 dark:text-emerald-400'}`}>★ Tally XML</button>
           </div>
           <span className="text-[11px] text-muted-foreground">
             {quota?.unlimited ? (
@@ -389,6 +442,63 @@ export function StatementConverterTool() {
             </button>
           </div>
         </div>
+
+        {exportNote && !exportError && (
+          <p className="flex items-start gap-2 border-t border-dashed bg-amber-500/5 px-4 py-2.5 text-[12px] leading-relaxed text-amber-700 dark:text-amber-400">
+            <AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+            <span>{exportNote}</span>
+          </p>
+        )}
+
+        {exportError && (
+          <p className="flex items-start gap-2 border-t border-dashed bg-destructive/5 px-4 py-2.5 text-[12px] leading-relaxed text-destructive">
+            <AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+            <span>{exportError}</span>
+          </p>
+        )}
+
+        {/* OFX / QuickBooks Web Connect.
+            ⚠ The .qbo id is the whole reason this panel exists. Intuit issues
+            it to the institutions in its directory and QuickBooks checks it
+            before reading a transaction. Other converters default it to a real
+            bank's id so the button always works; that files a statement under a
+            bank it did not come from, so there is no default here and the
+            export refuses without one. */}
+        {(fmt === 'ofx' || fmt === 'qbo') && (
+          <div className="grid gap-3 border-t border-dashed bg-emerald-500/[0.06] px-4 py-3 sm:grid-cols-3">
+            <Field
+              label="Account number (optional)"
+              value={acctId}
+              onChange={setAcctId}
+              placeholder={res?.meta.account || 'Leave blank to use the masked number'}
+            />
+            {fmt === 'qbo' && (
+              <Field
+                label="Your bank’s Intuit id"
+                value={intuBid}
+                onChange={(v) => { setIntuBid(v); setExportError(null); setExportNote(null); }}
+                placeholder="e.g. 1234"
+              />
+            )}
+            <p className="text-[11.5px] leading-relaxed text-muted-foreground sm:col-span-3">
+              {fmt === 'qbo' ? (
+                <>
+                  A <b className="text-foreground">.qbo</b> file carries the Intuit id of the bank it came
+                  from, and QuickBooks checks it before reading anything. We will not put another bank’s
+                  id in your file, so you will find yours inside a .qbo your own bank gives you. Most
+                  Indian banks are not in Intuit’s directory and never will be — if yours is one of them,
+                  use <b className="text-foreground">.ofx</b>, Excel or Tally instead.
+                </>
+              ) : (
+                <>
+                  A plain <b className="text-foreground">.ofx</b> file, which Xero, QuickBooks Online and
+                  most accounting software import directly. Your account number stays masked unless you
+                  type it above, and it is written on your device like everything else here.
+                </>
+              )}
+            </p>
+          </div>
+        )}
 
         {/* Tally ledger mapping — these names must already exist in the user's Tally company */}
         {fmt === 'tally' && (
