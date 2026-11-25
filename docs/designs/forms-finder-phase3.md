@@ -517,7 +517,13 @@ forms draw on".
 
 ---
 
-## 10d. ✅ Ship 3 is built (24 Nov 2026) — the India tasks
+## 10d. ✅ Ship 3 is built AND LIVE (24 Nov 2026) — the India tasks
+
+**Deployed to production 24 Nov 2026**, prod HEAD `c054b97`. Verified from
+outside: all nine routes 200, sitemap 301 → 310 with the nine present and no
+packet URL, an India packet slug 404s while the US one still serves, the
+borrowed US clock is gone from an India page while the human one and
+“How it is filed” are both there, and the US pages are unregressed.
 
 Nine task pages at `/forms/<task>`, free and ungated, composing the **32 India
 forms** already in `lib/india-forms.ts`. Zero new forms, same as ship 1. Phase 3
