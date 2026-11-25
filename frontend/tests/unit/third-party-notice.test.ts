@@ -30,6 +30,9 @@ const MUST_CARRY_NOTICE = [
   'app/us-forms/[form]/page.tsx',
   'app/india-forms/page.tsx',
   'app/india-forms/[form]/page.tsx',
+  // the resale-certificate matrix — names the Multistate Tax Commission, the
+  // Streamlined Sales Tax Governing Board and all 51 revenue departments
+  'app/resale-certificates/page.tsx',
   // competitor comparisons
   'app/compare/page.tsx',
   'components/marketing/alternative-page.tsx',
@@ -59,5 +62,39 @@ describe('third-party non-affiliation notice', () => {
     expect(src, 'must disclaim affiliation').toMatch(/not affiliated with, endorsed by, or connected to/);
     expect(src, 'must explain what DiemDesk actually is').toMatch(/general-purpose document tools/);
     expect(src, 'must take the reason the name appears from the page').toMatch(/\{because\}/);
+  });
+});
+
+describe('third-party notice — the reason clause is a clause', () => {
+  // The component supplies the sentence around `because`:
+  //   "DiemDesk is not affiliated with <subject>. {because}. DiemDesk is ..."
+  // So a lowercase fragment renders after a full stop, and a value with its
+  // own full stop renders a double one. Both look like someone was careless
+  // on exactly the sentence where care is the point.
+  const BECAUSE = /because=(?:"([^"]+)"|\{`([^`]+)`\})/g;
+
+  it('is capitalised and carries no terminal full stop, everywhere', () => {
+    let checked = 0;
+    for (const rel of MUST_CARRY_NOTICE) {
+      const src = readFileSync(rel, 'utf8');
+      for (const m of src.matchAll(BECAUSE)) {
+        const raw = (m[1] ?? m[2]).trim();
+        // A template literal may open with ${...}; its casing is not ours to judge.
+        const value = raw.replace(/\s+/g, ' ');
+        checked += 1;
+        if (!value.startsWith('${')) {
+          expect(
+            /^[A-Z]/.test(value),
+            `${rel}: because="${value.slice(0, 60)}…" must read as a sentence, not a fragment — the component puts a full stop in front of it`,
+          ).toBe(true);
+        }
+        expect(
+          value.endsWith('.'),
+          `${rel}: because="…${value.slice(-50)}" ends with a full stop, and the component adds one`,
+        ).toBe(false);
+      }
+    }
+    // A loop that found nothing would pass this whole test silently.
+    expect(checked, 'no because= values were found — the pattern has drifted').toBeGreaterThan(5);
   });
 });

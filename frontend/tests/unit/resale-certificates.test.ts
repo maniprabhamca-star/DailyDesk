@@ -5,6 +5,8 @@ import {
   STATUS_BLURB, byStatus, jurisdiction, MTC, MTC_BOXES, MTC_NOTES, MTC_PAGES, MTC_FIELDS,
   MTC_REVISION, MTC_CLAIMED_STATES, CHECKED_ON, CHECKED_ON_LABEL, JURISDICTION_COUNT,
   SEO_TITLE, SEO_DESCRIPTION,
+  SST, SST_MEMBERS, isSstMember, OWN_CERTS, ownCert, OWN_FORMS, OWN_FORM_COUNT,
+  OWN_FORM_FIELDS, STILL_UNANSWERED,
   type MtcStatus,
 } from '@/lib/resale-certificates';
 
@@ -261,5 +263,229 @@ describe('resale certificates — the SEO budgets', () => {
 
   it('the description states the number the page actually shows', () => {
     expect(SEO_DESCRIPTION).toContain(String(ACCEPTING.length));
+  });
+});
+
+// ───────────────────────────────────────────────────────────────────────────
+// Ship 2 — the Streamlined header row, and each jurisdiction's own document.
+// ───────────────────────────────────────────────────────────────────────────
+//
+// Two of these guards exist because of a specific near-miss, and they are the
+// ones to leave alone:
+//
+//  A. GEORGIA IS THE ONLY ZERO. The harness that measured these reported 0
+//     fillable fields for all twelve PDFs, because pdf.js detaches the
+//     ArrayBuffer it is handed and the catch wrote 0. Georgia's ST-5 really is
+//     flat. Pinning "exactly one zero" means the next time a measurement
+//     pass silently fails, the build fails with it instead of publishing a
+//     page that calls every form flat.
+//  B. AN UNVERIFIED ROW CARRIES NO LINK. The District of Columbia's source
+//     403s. The tempting repair is a plausible URL, which is the one failure
+//     mode that costs more than the gap: the `unverified` variant has no url
+//     field at all, so there is nowhere to put one.
+
+describe('resale certificates — the Streamlined header row', () => {
+  it('has 24 members: 23 full and Tennessee as the lone associate', () => {
+    const codes = Object.keys(SST_MEMBERS);
+    expect(codes.length).toBe(24);
+    expect(codes.filter((c) => SST_MEMBERS[c] === 'full').length).toBe(23);
+    expect(codes.filter((c) => SST_MEMBERS[c] === 'associate')).toEqual(['TN']);
+  });
+
+  it('every member is a jurisdiction we actually carry', () => {
+    for (const c of Object.keys(SST_MEMBERS)) {
+      expect(jurisdiction(JURISDICTIONS.find((j) => j.code === c)?.slug ?? ''), `${c} not in the grid`).toBeTruthy();
+    }
+  });
+
+  it('no member is a state without a sales tax', () => {
+    // A certificate of exemption from a tax that does not exist would be a
+    // sign the membership list was copied from somewhere careless.
+    for (const j of NO_SALES_TAX) {
+      expect(isSstMember(j.code), `${j.code} has no sales tax yet appears as an SST member`).toBe(false);
+    }
+  });
+
+  it('covers Indiana, West Virginia and Wyoming — the reason it is on the page', () => {
+    // The structural finding of ship 2. If a future edit drops these, the
+    // second header row stops earning its space and the page should say so.
+    for (const c of ['IN', 'WV', 'WY']) {
+      expect(isSstMember(c), `${c} is MTC-absent and needs the Streamlined route`).toBe(true);
+    }
+  });
+
+  it('states its own measured shape', () => {
+    expect(SST.pages).toBe(2);
+    expect(SST.fields).toBeGreaterThan(50);
+    expect(SST.revision).toMatch(/\d{4}/);
+    expect(SST.officialUrl).not.toMatch(/\.pdf($|\?)/i);
+  });
+});
+
+describe('resale certificates — each jurisdiction’s own document', () => {
+  it('is keyed only by jurisdictions we carry', () => {
+    const codes = new Set(JURISDICTIONS.map((j) => j.code));
+    for (const c of Object.keys(OWN_CERTS)) expect(codes.has(c), `${c} is not a jurisdiction`).toBe(true);
+  });
+
+  it('never attaches a certificate to a state with no sales tax', () => {
+    for (const j of NO_SALES_TAX) expect(ownCert(j.code), `${j.code} has no sales tax`).toBeUndefined();
+  });
+
+  it('keeps the human page and the PDF separate, as us-forms does', () => {
+    // Same rule as lib/us-forms.ts: officialUrl is the page a person reads,
+    // and must not be a direct PDF, so a reader always lands somewhere the
+    // department can correct.
+    for (const [code, c] of Object.entries(OWN_CERTS)) {
+      if (c.kind === 'unverified') continue;
+      expect(c.officialUrl, `${code} officialUrl`).toMatch(/^https:\/\//);
+      expect(c.officialUrl, `${code} officialUrl is a direct PDF`).not.toMatch(/\.pdf($|\?)/i);
+    }
+  });
+
+  it('points every PDF at the department’s own host', () => {
+    // These four serve the blank from a download endpoint rather than a .pdf
+    // path. Listed explicitly so the check stays a check: a new entry with
+    // some other extension has to be justified here first.
+    const ENDPOINTS = ['GA', 'IN', 'MA'];
+    for (const [code, c] of OWN_FORMS) {
+      expect(c.pdfUrl, `${code} pdfUrl`).toMatch(/^https:\/\//);
+      if (!ENDPOINTS.includes(code)) {
+        expect(c.pdfUrl, `${code} pdfUrl is not a .pdf and is not a listed endpoint`).toMatch(/\.pdf$/i);
+      }
+    }
+  });
+
+  it('measured every blank, and Georgia is the only zero', () => {
+    // ⚠ Guard A above. Do not relax this to `toBeGreaterThanOrEqual(0)`.
+    // Eleven state blanks. The twelfth document verified for this ship is
+    // SSTGB F0003, which is the header row above the grid rather than any one
+    // jurisdiction's form, so it is measured on SST and not counted here.
+    expect(OWN_FORM_COUNT).toBe(11);
+    const zeros = OWN_FORMS.filter(([, c]) => c.fields === 0).map(([code]) => code);
+    expect(zeros, 'a measurement pass has silently failed if this is not exactly [GA]').toEqual(['GA']);
+    for (const [code, c] of OWN_FORMS) {
+      expect(c.pages, `${code} pages`).toBeGreaterThan(0);
+      expect(c.pages, `${code} pages looks like a whole instruction booklet`).toBeLessThan(10);
+    }
+    // 286 across the eleven blanks when measured, plus SST's 97 separately.
+    // A floor rather than the exact number: a department can republish a
+    // form with one more box, and the zeros check above is what actually
+    // catches a failed measurement pass.
+    expect(OWN_FORM_FIELDS).toBeGreaterThan(250);
+  });
+
+  it('prints a revision wherever the document prints one, and invents none', () => {
+    // CDTFA-230 and Indiana's ST-105 carry no revision marker. Recording the
+    // absence stops a later pass filling it with a guess.
+    const NO_MARKER = ['CA', 'IN'];
+    for (const [code, c] of OWN_FORMS) {
+      if (NO_MARKER.includes(code)) {
+        expect(c.revision, `${code} prints no revision marker on the document`).toBeUndefined();
+      } else {
+        expect(c.revision, `${code} revision`).toBeTruthy();
+        expect(c.revision!.length, `${code} revision`).toBeGreaterThan(3);
+      }
+    }
+  });
+
+  it('explains every jurisdiction that has no blank to download', () => {
+    const issued = Object.entries(OWN_CERTS).filter(([, c]) => c.kind === 'issued');
+    const none = Object.entries(OWN_CERTS).filter(([, c]) => c.kind === 'none');
+    expect(issued.map(([c]) => c).sort()).toEqual(['FL', 'LA']);
+    expect(none.map(([c]) => c)).toEqual(['MS']);
+    for (const [code, c] of [...issued, ...none]) {
+      const prose = c.kind === 'issued' ? c.how : c.kind === 'none' ? c.why : '';
+      expect(prose.length, `${code} needs a real explanation, not a label`).toBeGreaterThan(60);
+    }
+  });
+
+  it('gives an unverified row no link to click', () => {
+    // ⚠ Guard B above.
+    const unverified = Object.entries(OWN_CERTS).filter(([, c]) => c.kind === 'unverified');
+    expect(unverified.map(([c]) => c)).toEqual(['DC']);
+    for (const [code, c] of unverified) {
+      expect(Object.keys(c), `${code} must not carry a url`).not.toContain('officialUrl');
+      expect(Object.keys(c), `${code} must not carry a url`).not.toContain('pdfUrl');
+      expect((c as { why: string }).why.length).toBeGreaterThan(60);
+    }
+  });
+});
+
+describe('resale certificates — the nine the MTC form misses', () => {
+  it('answers eight of nine, and names the one it cannot', () => {
+    // The point of ship 2. Each MTC-absent taxing jurisdiction now resolves
+    // through Streamlined membership, its own document, or a documented
+    // reason there is no document.
+    expect(NEEDS_OWN_FORM.length).toBe(9);
+    const unanswered = NEEDS_OWN_FORM.filter((j) => !isSstMember(j.code) && !ownCert(j.code));
+    expect(unanswered, 'every MTC-absent jurisdiction needs a route or a stated reason').toEqual([]);
+    expect(STILL_UNANSWERED.map((j) => j.code)).toEqual(['DC']);
+  });
+
+  it('routes each of the nine through something a reader can act on', () => {
+    for (const j of NEEDS_OWN_FORM) {
+      const own = ownCert(j.code);
+      const routed = isSstMember(j.code) || (own !== undefined && own.kind !== 'unverified');
+      if (j.code === 'DC') expect(routed).toBe(false);
+      else expect(routed, `${j.code} has no usable route`).toBe(true);
+    }
+  });
+});
+
+describe('resale certificates — an absent row promises no document', () => {
+  // ⚠ Ship 1 wrote "Use <State>'s own." against all nine MTC-absent taxing
+  // jurisdictions before any of those documents had been read. Four were
+  // false. The verdict prose may now state only that the jurisdiction is
+  // absent; the route comes from OWN_CERTS and SST_MEMBERS, where every
+  // entry was read at source. This test is what stops the promise returning.
+  it('states only the absence, and names no form in the verdict', () => {
+    for (const j of byStatus('absent')) {
+      expect(j.limit, `${j.code} has no verdict text`).toBeTruthy();
+      expect(j.limit!, `${j.code} verdict points at an unverified document`).not.toMatch(
+        /\bown\b|\bST-\d|\bForm \d|certificate of its/i,
+      );
+    }
+  });
+
+  it('routes the absent taxing jurisdictions from verified data only', () => {
+    for (const j of byStatus('absent')) {
+      if (!j.salesTax) {
+        expect(ownCert(j.code), `${j.code} has no sales tax`).toBeUndefined();
+        continue;
+      }
+      const own = ownCert(j.code);
+      expect(
+        isSstMember(j.code) || own !== undefined,
+        `${j.code} taxes sales, is off the certificate, and has no verified route`,
+      ).toBe(true);
+    }
+  });
+});
+
+describe('resale certificates — ship 2 prose stays on the document side', () => {
+  const prose = [
+    ...Object.entries(OWN_CERTS).flatMap(([code, c]) => {
+      const bits = [c.kind === 'issued' ? c.how : c.kind === 'none' ? c.why : c.kind === 'unverified' ? c.why : c.name];
+      return bits.map((t) => [`OWN_CERTS.${code}`, t] as const);
+    }),
+    ['SST.name', SST.name] as const,
+  ];
+
+  it('states no duty in any person', () => {
+    for (const [where, text] of prose) {
+      const breaches = adviceBreaches([text]);
+      expect(breaches, `${where}: ${breaches.join(', ')}`).toEqual([]);
+    }
+  });
+
+  it('and the guard would still bite', () => {
+    // A guard nobody has seen fire is not a guard. Mississippi's note is the
+    // realistic shape of the mistake: it is one verb away from a requirement.
+    // ⚠ adviceBreaches takes an ARRAY. The first version of this suite passed
+    // a bare string, which `for (const s of strings)` then iterated as
+    // CHARACTERS — no pattern can match a single character, so the clean-prose
+    // check above passed while testing nothing. This line is what caught it.
+    expect(adviceBreaches(['The buyer must show a permit the department issued.']).length).toBeGreaterThan(0);
   });
 });

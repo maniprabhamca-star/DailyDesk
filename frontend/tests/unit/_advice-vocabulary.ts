@@ -34,8 +34,27 @@ export const ADVICE_VOCABULARY: [RegExp, string][] = [
   [/\byou should\b/i, '"you should" — advice'],
 ];
 
-/** Every breach in `strings`, formatted for an assertion message. */
+/** Every breach in `strings`, formatted for an assertion message.
+ *
+ *  ⚠ Takes an ARRAY, and refuses a bare string on purpose.
+ *
+ *  `for (const s of strings)` over a string iterates its CHARACTERS, and no
+ *  pattern here can match one character, so a caller who passed a single
+ *  string got an empty array back and a test that asserted nothing while
+ *  reporting green. That happened on 2026-11-25 in the resale-certificate
+ *  suite, and only a deliberate "the guard still bites" test caught it.
+ *
+ *  The type signature alone does not stop it: tsconfig.json excludes `tests`
+ *  and `**​/*.test.ts`, so nothing type-checks these files. A safety guard
+ *  that can silently pass is worse than no guard, so the check is at runtime
+ *  where it actually runs. */
 export function adviceBreaches(strings: readonly string[]): string[] {
+  if (typeof strings === 'string') {
+    throw new TypeError(
+      'adviceBreaches takes an array of strings. A bare string iterates as characters and ' +
+        'always returns no breaches, which makes the assertion vacuous. Wrap it: adviceBreaches([text]).',
+    );
+  }
   const hits: string[] = [];
   for (const s of strings) {
     for (const [re, why] of ADVICE_VOCABULARY) {

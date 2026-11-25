@@ -492,3 +492,127 @@ customer there gets no answer from the MTC form at all. `NEEDS_OWN_FORM`
 exports exactly that list and a test pins it at 9, so a scope change is a red
 build rather than a quiet drift. `scripts/`-style harnesses used here live in
 the session scratchpad; the durable artefact is the verified-form list above.
+
+---
+
+## Phase 1 · matrix 1 — shipped 2026-11-25 (ship 2 of 2)
+
+Ship 1 published the MTC grid and left 13 rows saying only "not on it". Ship 2
+answers them. **12 documents read at source**, the form number confirmed against
+what is printed on the document itself, pages and fillable fields measured.
+
+### ⭐⭐ The finding: there are two header rows, not one
+
+The expansion plan assumed one multistate form per matrix. There are two. The
+**Streamlined Sales Tax Governing Board** publishes **SSTGB Form F0003**,
+accepted by all **24** member states (23 full + Tennessee as associate), read
+at source from streamlinedsalestax.org.
+
+It earns its place on the page for one reason: **Indiana, West Virginia and
+Wyoming** are Streamlined members and are *not* on the MTC certificate. Three
+of the nine jurisdictions the first grid could not answer are answered by the
+second form. A matrix design that assumes a single header row would have
+missed this entirely.
+
+### ⚠ Half the remainder are not documents you fill in
+
+Exactly the lesson the India library taught with `howFiled`. A column of
+"download the form" links would have been wrong about the main thing it
+described, so `OwnCert` is a discriminated union and `kind` carries the answer:
+
+| kind | who | what it means |
+|---|---|---|
+| `form` | 11 states | a blank PDF anyone can download. Measured. |
+| `issued` | LA, FL | the department issues it per business; no blank exists. LA expires annually via LaTAP. |
+| `none` | MS | **no certificate exists.** The DOR does not accept or use blanket certificates; a buyer shows a permit or letter it issued. |
+| `unverified` | DC | source 403s. No claim, and the variant has **no url field**, so there is nowhere to put a guess. |
+
+### The 12 verified documents
+
+| Code | Form | Pages | Fields | Revision, as printed |
+|---|---|---|---|---|
+| SST | SSTGB F0003 | 2 | 97 | Revised 12/21/2021 |
+| AZ | 5000A Arizona Resale Certificate | 1 | 26 | ADOR 10316 (8/25) |
+| CA | CDTFA-230 General Resale Certificate | 1 | 13 | *(none printed)* |
+| GA | ST-5 Certificate of Exemption | 1 | **0** | Rev. 07/11/22 |
+| ID | ST-101 | 4 | 69 | EFO00149 02-27-2025 |
+| IL | CRT-61 Certificate of Resale | 1 | 27 | R-04/25 |
+| IN | ST-105 | 2 | 23 | *(none printed)* |
+| MA | ST-4 Sales Tax Resale Certificate | 1 | 17 | Rev. 8/16 |
+| NY | ST-120 Resale Certificate | 2 | 25 | 1/26 |
+| PA | REV-1220 | 2 | 48 | 07-23 |
+| TX | 01-339 | 2 | 27 | Rev. 4-13/8 |
+| VA | ST-10 | 1 | 11 | Rev. 05/26 |
+
+286 fields across the 11 state blanks. **Georgia's 0 is a measurement**, not a
+gap — the ST-5 is a flat print-and-sign form.
+
+### ⚠⚠ Ship 1 published four claims ship 2 disproved
+
+Ship 1 wrote *"Use &lt;State&gt;'s own."* against all nine MTC-absent taxing
+jurisdictions **before any of those documents had been read**. Four were wrong:
+Mississippi publishes none, the District's could not be opened, and West
+Virginia and Wyoming have no own form at all — their route is Streamlined. The
+`absent` group blurb carried the same claim ("the rest publish their own") and
+a hand-typed "Five".
+
+Both are now corrected, and a test (`an absent row promises no document`)
+forbids the verdict prose from naming any document. The route is rendered from
+`OWN_CERTS` and `SST_MEMBERS`, where every entry was read at source.
+
+**The generalisable rule: a placeholder that reads like a finding is worse than
+a blank.** "Not on the certificate" was true and useful. "Use Indiana's own"
+looked like the result of research nobody had done.
+
+### ⚠⚠⚠ Three guards that were not guards
+
+Caught this ship, all three by the same habit — *sabotage the guard before
+trusting it*:
+
+1. **`adviceBreaches(text)` takes an ARRAY.** Passed a bare string, the
+   function iterates its **characters**; no pattern can match one character, so
+   it returns `[]` and the clean-prose test asserted nothing while reporting
+   green. `tsconfig.json` excludes `tests` and `**/*.test.ts`, so nothing
+   type-checks these files. Fixed with a **runtime** `TypeError` in
+   `_advice-vocabulary.ts`, which protects every current and future caller.
+2. **`\b` through a Bash→Python heredoc became a literal backspace (0x08).**
+   The absent-row regex read `/\bown\b|…/` in review and contained control
+   characters in the file, so it could never match. Third occurrence of this
+   trap this session. **Do not put backslashes through a Python heredoc here** —
+   use the Edit tool or a script file.
+3. **A readiness probe answered by the thing being replaced.** `next start`
+   failed with `EADDRINUSE` while the *old* server kept serving the *old* build
+   on :3100 and answering the `curl` health check with 200. Two verification
+   passes read stale output as fresh. Now the probe greps the new server's own
+   log for `Ready in`, not the port.
+
+### Found by reading the rendered page (six consecutive ships now)
+
+- `STATUS_BLURB.absent` still carried the disproved claim and a typed count.
+- `<ThirdPartyNotice because=…>` took a lowercase fragment, so the page read
+  *"…named here. to describe a published form and…"*. **The component's test
+  checked presence, not shape** — now it checks both, and `/resale-certificates`
+  was not even on its list. Both fixed; both halves sabotage-tested.
+- "District of Columbia refuses automated requests" — the place does not; its
+  tax office does. Now renders the authority name.
+- A chip read `ST-4 Rev. 8/16 17 fields`; the two numbers ran together.
+  Separator added.
+- **`/resale-certificates` was an orphan** — linked from `sitemap.ts` and the
+  changelog and nothing else. `/forms` now carries a section for it,
+  deliberately *not* a third library card: the FAQ below it explains why there
+  are exactly two libraries, and a matrix is not a third one.
+
+### On the form count
+
+`FORM_COUNT` stays **62**. It counts the two libraries that have a page per
+form; the matrix has no per-form pages and quoting 75 would be the same
+cells-are-not-forms error corrected in §174. The matrix states its own numbers
+(`OWN_FORM_COUNT`, `OWN_FORM_FIELDS`), derived.
+
+Honest total today: **62 forms with their own pages, plus 13 documents verified
+on the resale matrix** (MTC + SST + 11 state certificates).
+
+### What a ship 3 would chase
+
+`STILL_UNANSWERED` exports exactly the open list and is pinned by a test. It is
+`['DC']`. That is the whole backlog for matrix 1.

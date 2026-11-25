@@ -7,6 +7,11 @@ import { Button } from '@/components/ui/button';
 import { US_FORMS, US_FORM_GROUPS } from '@/lib/us-forms';
 import { FORM_TASKS, formFor, TASK_COUNT } from '@/lib/form-tasks';
 import { INDIA_FORMS, FORM_GROUPS as INDIA_FORM_GROUPS } from '@/lib/india-forms';
+import {
+  ACCEPTING as RESALE_ACCEPTING_ROWS,
+  JURISDICTION_COUNT as RESALE_JURISDICTIONS,
+  byStatus as resaleByStatus,
+} from '@/lib/resale-certificates';
 import { ThirdPartyNotice } from '@/components/app/third-party-notice';
 import { CheckedAgo } from '@/components/forms/checked-ago';
 
@@ -39,6 +44,10 @@ export const metadata: Metadata = {
     type: 'website',
   },
 };
+
+const RESALE_ACCEPTING = RESALE_ACCEPTING_ROWS.length;
+const RESALE_QUALIFIED = resaleByStatus('conditional').length + resaleByStatus('resale-only').length;
+const RESALE_ABSENT = resaleByStatus('absent').length;
 
 const libraries = [
   {
@@ -210,6 +219,32 @@ export default function FormsHubPage() {
             </section>
           ))}
         </div>
+
+        {/* ── The matrix, which is a different shape from a library ───────
+            One form type read across every jurisdiction, on one URL. It sits
+            between the libraries and the tasks because it is neither: not a
+            catalogue of forms with a page each, and not a job to start from.
+            Framed as its own thing so the "why two libraries" answer below
+            stays true. */}
+        <section className="mt-14 overflow-hidden rounded-2xl border bg-card">
+          <div className="grid gap-x-8 gap-y-5 p-5 sm:p-6 md:grid-cols-[1fr_auto] md:items-center">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                One form, every jurisdiction
+              </p>
+              <h2 className="mt-1.5 text-xl font-bold tracking-tight">Resale certificates, state by state</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+                A seller shipping into another state needs to know whether the certificate their
+                customer sent is good there. {RESALE_ACCEPTING} of the {RESALE_JURISDICTIONS} US
+                jurisdictions take the multistate form, but {RESALE_QUALIFIED} of those attach a
+                condition, and {RESALE_ABSENT} are not on it at all. The conditions are the page.
+              </p>
+            </div>
+            <Button asChild variant="outline" className="justify-self-start md:justify-self-end">
+              <Link href="/resale-certificates">See the grid</Link>
+            </Button>
+          </div>
+        </section>
 
         {/* ── Start from the task, not the form number ─────────────────────
             Most people arrive without a form number: they know they are hiring

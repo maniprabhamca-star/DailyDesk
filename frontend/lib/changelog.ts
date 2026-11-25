@@ -31,6 +31,14 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-11-25',
+    kind: 'feature',
+    title: 'There is a second resale certificate, and a few states have none',
+    detail:
+      'The grid we put up this morning answered one question well: which jurisdictions take the Multistate Tax Commission’s uniform resale certificate, and what each one attaches to it. It left thirteen rows saying only “not on it”, which is accurate and not much use if your customer is in one of them.\n\nSo we went and read what those places publish instead, and the answer was not the shape we expected.\n\nFirst, there is a second multistate form. The Streamlined Sales Tax Governing Board — a different compact of states — publishes its own certificate of exemption, accepted by all twenty-four of its member states. It matters here because three of the jurisdictions the MTC form misses are Streamlined members: Indiana, West Virginia and Wyoming. Where the first grid had nothing to say, the second form answers.\n\nEleven states publish a certificate of their own, and those are now on the rows: Arizona’s 5000A, California’s CDTFA-230, Georgia’s ST-5, Idaho’s ST-101, Illinois’ CRT-61, Indiana’s ST-105, Massachusetts’ ST-4, New York’s ST-120, Pennsylvania’s REV-1220, Texas’ 01-339 and Virginia’s ST-10. Each one was opened, the form number checked against what is printed on the document, and the pages and fillable fields counted — two hundred and eighty-six fields between them. Georgia’s shows zero, and that is a measurement rather than a gap: the ST-5 is a flat form you print and sign.\n\nThe rest are not documents you download at all, which is the part worth knowing. Louisiana issues its certificate to a business through its own portal and it expires after a year, so there is no blank to find. Florida’s works the same way. And Mississippi has no resale certificate — not a broken link, no form: its Department of Revenue says it does not accept or use blanket certificates, and what a buyer holds there is a permit or a letter the department issued them.\n\nOne row is still blank, on purpose. The District of Columbia’s tax office refuses automated requests on every page below its root, so we could not read its certificate at source. We would rather leave the row empty than put a plausible-looking link in it. When the source opens, the row fills in.\n\nThis also corrected something we published this morning. Those thirteen rows each said to use that state’s own certificate — written before any of them had been read. Four of the nine were wrong.',
+    href: '/resale-certificates',
+  },
+  {
+    date: '2026-11-25',
     kind: 'new',
     title: 'Resale certificates, state by state',
     detail:
