@@ -171,12 +171,35 @@ Candidate matrices, best first:
 4. **State tax power-of-attorney / authorisation forms** — the state analogue of
    Form 2848 / 8821, which we already carry.
 
-Call it ~3 matrices × ~45 cells ≈ **135 forms**. Verifiable with the machinery we
-already have. SEO shape is a good one: a strong hub plus thin spokes, rather than
-two thousand orphan pages.
+⚠ **A cell is not a form, and conflating the two is how this gets oversold.**
+An earlier draft of this line read "~3 matrices × ~45 cells ≈ 135 forms", which
+is wrong by roughly a factor of three. The MTC multijurisdiction certificate is
+accepted by **36 states**, so in matrix 1 one verified form fills 36 of the ~45
+cells and only the dozen-odd states publishing their own need a new entry.
+Matrix 3 adds **no** new verification at all — it is matrix 2 plus the federal
+I-9 and W-4 we already carry. And matrix 2's real count is well under 50, since
+nine states have no income tax and several accept the federal W-4.
 
-**Start with matrix 1 only.** ~45 forms, closes the gap the owner found, and proves
-the matrix shape before committing to the rest.
+The honest projection, which is the one in
+[forms-library-expansion.html](forms-library-expansion.html) and must stay in
+step with it:
+
+| After | Verified forms | Form pages |
+|---|---|---|
+| Today | 62 | 64 |
+| Phase 1 · matrix 1 | ~77 | ~81 |
+| Phase 1 · all | ~140 | ~150 |
+| Phase 2 (UK/CA/AU) | ~190 | ~205 |
+
+**Pages grow faster than forms, and that is the point** — a matrix is a page per
+state whether or not the state publishes its own PDF, so the reader gets a
+50-cell answer out of ~15 new verifications. Verifiable with the machinery we
+already have. SEO shape is a good one: a strong hub plus thin spokes, rather
+than two thousand orphan pages.
+
+**Start with matrix 1 only.** ~45 cells but only **~15 new verified forms**
+(62 → ~77), closes the gap the owner found, and proves the matrix shape before
+committing to the rest.
 
 ### Phase 2 — more countries, chosen by publishing behaviour not by GDP
 
