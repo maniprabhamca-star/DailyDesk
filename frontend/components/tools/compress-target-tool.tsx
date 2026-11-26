@@ -8,6 +8,7 @@ import { formatDuration } from '@/lib/format';
 import { BigFileHint } from '@/components/app/big-file-hint';
 import { KeepGoing } from '@/components/app/keep-going';
 import { compressImageToTarget, compressPdfToTarget, isPdfFile, isImageFile, type TargetResult } from '@/lib/compress-to-target';
+import { LIMIT_GROUPS, limitsInGroup } from '@/lib/size-limits';
 
 const KB = 1024, MB = 1024 * 1024;
 
@@ -34,45 +35,22 @@ const SIZE_PRESETS: { label: string; bytes: number }[] = [
   { label: '2 MB', bytes: 2 * MB },
 ];
 
-// Real, sourced upload limits from the portals people actually fight with,
-// worldwide. One tap fills the exact cap. (Photo DIMENSION cropping — 35×45 mm,
-// 2×2 in — lives in the Passport/ID Photo tool; here we hit the byte limit.)
-type Preset = { label: string; note: string; bytes: number };
-const PRESET_GROUPS: { label: string; items: Preset[] }[] = [
-  {
-    label: '🇮🇳 India exams & forms',
-    items: [
-      { label: 'UPSC photo', note: '40 KB', bytes: 40 * KB },
-      { label: 'UPSC doc', note: '300 KB', bytes: 300 * KB },
-      { label: 'SSC', note: '100 KB', bytes: 100 * KB },
-      { label: 'NEET', note: '200 KB', bytes: 200 * KB },
-      { label: 'IBPS', note: '50 KB', bytes: 50 * KB },
-      { label: 'SBI', note: '50 KB', bytes: 50 * KB },
-      { label: 'RRB', note: '50 KB', bytes: 50 * KB },
-      { label: 'Signature', note: '20 KB', bytes: 20 * KB },
-    ],
-  },
-  {
-    label: '🛂 Passport & visa',
-    items: [
-      { label: 'US visa', note: '240 KB', bytes: 240 * KB },
-      { label: 'India passport', note: '250 KB', bytes: 250 * KB },
-      { label: 'India e-Visa', note: '1 MB', bytes: 1 * MB },
-      { label: 'China visa', note: '1 MB', bytes: 1 * MB },
-      { label: 'UAE visa', note: '1 MB', bytes: 1 * MB },
-      { label: 'Canada PR', note: '4 MB', bytes: 4 * MB },
-      { label: 'Passport photo', note: '200 KB', bytes: 200 * KB },
-    ],
-  },
-  {
-    label: '✉️ Everyday sharing',
-    items: [
-      { label: 'Email', note: '25 MB', bytes: 25 * MB },
-      { label: 'Discord', note: '25 MB', bytes: 25 * MB },
-      { label: 'Web upload', note: '2 MB', bytes: 2 * MB },
-    ],
-  },
-];
+// The portal caps moved to lib/size-limits.ts, where each one carries its
+// source — or says why it has none. They were inline here with a comment
+// calling them "real, sourced upload limits" and not one URL beside them, and
+// the tool asserts these numbers to somebody about to submit an exam form.
+// The page publishes only the sourced ones; the tool offers all of them,
+// because filling a number box the user can still see and change is not the
+// same act as publishing a claim about what a department requires.
+//
+// (Photo DIMENSION cropping — 35×45 mm, 2×2 in — lives in the Passport/ID Photo
+// tool; here we hit the byte limit.)
+const PRESET_GROUPS = LIMIT_GROUPS.map((g) => ({ label: g, items: limitsInGroup(g) }));
+const GROUP_ICON: Record<string, string> = {
+  'India exams & forms': '\u{1F1EE}\u{1F1F3}',
+  'Passport & visa': '\u{1F6C2}',
+  'Everyday sharing': '\u2709\uFE0F',
+};
 
 type Kind = 'pdf' | 'image';
 
@@ -247,7 +225,7 @@ export function CompressTargetTool() {
                 <div className="space-y-2.5">
                   {PRESET_GROUPS.map((g) => (
                     <div key={g.label}>
-                      <p className="mb-1.5 text-[11px] font-medium text-muted-foreground">{g.label}</p>
+                      <p className="mb-1.5 text-[11px] font-medium text-muted-foreground">{GROUP_ICON[g.label]} {g.label}</p>
                       <div className="flex flex-wrap gap-2">
                         {g.items.map((p) => (
                           <button

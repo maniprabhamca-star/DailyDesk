@@ -18,7 +18,7 @@ export default function Page() {
       ctaLabel="Compress to a target size"
       bullets={[
         'Presets for 50 KB, 100 KB, 200 KB, 500 KB, 1 MB, 2 MB — or a custom KB value',
-        'Portal presets: UPSC 40 KB, SSC 100 KB, IBPS/SBI 50 KB, US visa 240 KB and more',
+        'One-tap presets for the exam, passport and visa caps people are usually given, plus any custom KB value',
         'Runs entirely in your browser — the PDF never leaves your device',
         'No signup, no watermark, no daily limit',
       ]}

@@ -30,6 +30,14 @@ export type ChangeEntry = {
 // §10c; add it the day WAITLIST_MODE flips, dated then.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: '2026-11-26',
+    kind: 'improved',
+    title: 'We were quoting eighteen upload limits and could not show you where any of them came from',
+    detail:
+      'Compress to size fills the target box for you: tap a preset and it puts in the cap that portal asks for, rather than you hunting for the figure first. Eighteen of those presets, covering Indian exam portals, passport and visa applications, and ordinary email.\n\nNone of them had a source. Not one URL, anywhere, for any of the eighteen. The numbers were right when somebody typed them in and after that nothing in the way we work could have told us if a portal had changed one. For a figure somebody is relying on an hour before a deadline, that is not good enough.\n\nSo we started reading them at the source, and the page now carries a table of the ones we have actually opened: the cap, what it applies to, which authority publishes it, the sentence their page says, and the date we read it. Two to begin with. Gmail’s twenty-five megabytes, which is a personal-account figure and not every provider’s — Workspace administrators set their own, which is why the row no longer just says “Email”. And four megabytes for a document uploaded through Canada’s immigration portal, which turns out to apply to two of their accounts and not the others, so the row says which two.\n\nThe other sixteen stay in the tool as a starting number you can see and change, and they are deliberately not written up as anybody’s rule. Each one records why. Most are pending rather than blocked: the Indian commissions publish their caps inside per-exam notice PDFs rather than on a page that stays put, so each is its own hunt. Two we will not get at: the US visa photo requirements sit behind a bot check and Discord’s help centre refuses automated requests, and we do not work around either of those.\n\nThe same pass turned up three places where the old figures had leaked into the writing itself — in the steps on this page, and in an answer on the passport photo page that quoted two caps as fact. Those now describe what the tool does without putting a number in your head that we cannot stand behind. A test fails the build if an unverified cap ever appears in page copy again, which is how those three were found in the first place.',
+    href: '/compress-to-size',
+  },
+  {
     date: '2026-11-25',
     kind: 'improved',
     title: 'Your name is stored in two places in a PDF, and clearing one is not enough',

@@ -36,6 +36,9 @@ const MUST_CARRY_NOTICE = [
   // the metadata explainer quotes Adobe's own documentation for how one of its
   // services settles a disagreement between a PDF's two copies of its metadata
   'app/remove-pdf-metadata/page.tsx',
+  // the upload-limit table names Google and IRCC, and quotes a sentence from
+  // each of their own help pages
+  'app/compress-to-size/page.tsx',
   // competitor comparisons
   'app/compare/page.tsx',
   'components/marketing/alternative-page.tsx',
