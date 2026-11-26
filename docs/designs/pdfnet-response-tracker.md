@@ -559,6 +559,15 @@ what says it matters, and it is the only way a reader arrives.
 Both lists are now derived: `lib/alternatives.ts` feeds `/compare`, and the
 footer's "Built for" column maps over `SECTORS`. Adding a page adds its link.
 
+> **Same class of bug, found again on 2026-11-25 and at ten times the scale.**
+> A crawl of the built site (strip header/footer/nav, count inbound links from
+> page *content*) found **79** pages with none — all 39 bank statement pages
+> among them, the best-ranking family we have. Orphans are now 4, three of
+> which are footer-only policy pages. Full method, numbers and the two traps
+> involved: `docs/designs/seo-gsc-analysis-2026-11-25.md` §7. The derived-list
+> habit above fixes the lists; it does not fix a hub that lists nothing, so the
+> audit is worth re-running after any family grows.
+
 **`tests/unit/internal-links.test.ts`** fails the build if an `app/*-alternative`
 route is missing from `ALTERNATIVES`, if either list is hard-coded again, if a
 sector job or CTA points at a route that does not exist, or if a toolkit names a
