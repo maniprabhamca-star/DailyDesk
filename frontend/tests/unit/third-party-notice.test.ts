@@ -39,6 +39,8 @@ const MUST_CARRY_NOTICE = [
   // the upload-limit table names Google and IRCC, and quotes a sentence from
   // each of their own help pages
   'app/compress-to-size/page.tsx',
+  // the DS-160 page quotes the State Department's own photo standard
+  'app/us-visa-photo/page.tsx',
   // competitor comparisons
   'app/compare/page.tsx',
   'components/marketing/alternative-page.tsx',

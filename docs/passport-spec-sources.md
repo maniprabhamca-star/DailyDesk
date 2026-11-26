@@ -33,14 +33,35 @@ for the rest. Nothing here guarantees acceptance — every office is strict its 
 > bot check, so the figure stays unverified and
 > `frontend/lib/size-limits.ts` records it as such.
 >
-> **Two things to settle, both touching user-facing copy** — see
-> `docs/designs/pdf-tools-top10-plan-2026-11-25.md` §4:
-> 1. `/us-visa-photo` states "JPEG under 240 KB" as a rule in its description,
->    lede, a feature bullet and an FAQ answer. Soften to the figure the form
->    asks for, or leave it and accept that we cannot show where it came from.
-> 2. Our `headMax` is **0.69**; the FAM says **two thirds** (0.667). Ours is
->    marginally more permissive than the manual. Small, but it is a number we
->    publish and it disagrees with the source we now cite.
+> **✅ Both closed 2026-11-26, and item 2's recommendation was wrong.**
+>
+> **Item 1 — `/us-visa-photo` copy.** Done. The page now opens the FAM clause,
+> quotes it, links it, dates it, and separates the two kinds of figure: the
+> photograph (sourced) from the upload form's pixel range and byte cap
+> (**not** sourced, and the page says so and tells the reader to read the cap
+> off the form). 227 → 935 rendered words, and it carries a
+> `<ThirdPartyNotice>` for the Department of State.
+>
+> **Item 2 — `headMax` 0.69 → 0.667. DO NOT DO THIS.** I recommended it off the
+> FAM's phrase *"at least half, but no more than two thirds, of the picture"*
+> without reading the rest of the same clause. **9 FAM 303.6-2(A)(1)(3) gives
+> the head in millimetres: "between 1 to 1 3/8 inches (25 mm to 35 mm)"** from
+> the top of the hair to the bottom of the chin. On a 2-inch (51 mm) photo that
+> is **0.490–0.686**. Our 0.50–0.69 is that figure rounded — it is not a
+> mistake, it is where the number came from.
+>
+> The FAM states the head two ways in one clause and they do not agree: the
+> millimetres give 0.686, the words give 0.667. **We follow the millimetres**,
+> because they are the measurable one and because changing to 0.667 would put
+> the page at 34.0 mm, which contradicts the 35 mm the source prints. A comment
+> in `lib/passport-specs.ts` now says this, so the next person does not
+> "correct" it. (The clause's third figure, *"about one inch (33 mm) from the
+> chin to the top of the hair"*, is 0.647 — a typical value inside the range,
+> consistent with both.)
+>
+> `us-visa` therefore stays in `VERIFIED_SPECS`, and now honestly: the geometry,
+> background and head height are sourced to the FAM. Only `maxKB: 240` is not,
+> and it is labelled unverified in `frontend/lib/size-limits.ts`.
 | **UK passport** | 35×45 mm (≥600×750 px) | 29–34 mm (≈70–80%) | **Light grey / cream — not white** | 50 KB–10 MB | [GOV.UK photo rules](https://www.passport.service.gov.uk/help/photo-rules) |
 | **Schengen visa** | 35×45 mm | 32–36 mm (70–80%) | Light grey / off-white | — | [AXA Schengen photo](https://www.axa-schengen.com/en/visa/requirements/documents/photo-requirements), [schengenvisainfo](https://schengenvisainfo.com/photo/) |
 | **Canada passport/PR** | 50×70 mm | 31–36 mm | White / light | — | [Canada.ca passport photos](https://www.canada.ca/en/immigration-refugees-citizenship/services/canadian-passports/photos.html) |

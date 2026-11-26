@@ -43,6 +43,18 @@ function schengen(id: string, label: string): PassportSpec {
 
 export const PASSPORT_SPECS: PassportSpec[] = [
   // ---- Popular ----
+  // ⚠⚠ US: headMax 0.69 is NOT a typo for two thirds, and is not to be "fixed".
+  // 9 FAM 303.6-2(A)(1) states the head two ways in the same clause: "between
+  // 1 to 1 3/8 inches (25 mm to 35 mm)" from the top of the hair to the bottom
+  // of the chin, and separately "at least half, but no more than two thirds, of
+  // the picture". On a 2-inch (51 mm) photo the millimetres give 0.49–0.686, so
+  // 0.50–0.69 is the measurable figure rounded; 0.667 is the looser verbal one.
+  // The source disagrees with itself and we follow the numbers it prints.
+  // Read 2026-11-26 at https://fam.state.gov/fam/09fam/09fam030306.html
+  // (CT:VISA-2036, 07-29-2024). The FAM is readable; travel.state.gov is not —
+  // it serves a bot check, which is why `maxKB: 240` below is still unsourced
+  // and why app/us-visa-photo/page.tsx no longer states it as a requirement.
+  // See lib/size-limits.ts for the same figure's entry on the compress side.
   { id: 'us-visa', label: 'US visa (DS-160)', group: 'Popular', wPx: 600, hPx: 600, wMM: 51, hMM: 51, headMin: 0.50, headMax: 0.69, bg: WHITE, bgName: 'White', maxKB: 240, note: '2×2 in, 600–1200 px, ≤240 KB' },
   { id: 'us-passport', label: 'US passport', group: 'Popular', wPx: 600, hPx: 600, wMM: 51, hMM: 51, headMin: 0.50, headMax: 0.69, bg: WHITE, bgName: 'White', note: '2×2 in, white background' },
   { id: 'schengen-visa', label: 'Schengen visa', group: 'Popular', wPx: mm(35), hPx: mm(45), wMM: 35, hMM: 45, headMin: 0.70, headMax: 0.80, bg: LIGHTGREY, bgName: 'Light grey', note: '35×45 mm' },

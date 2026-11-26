@@ -292,21 +292,45 @@ FAM governs the photograph, not the CEAC upload form. It is published only on
 interstitial — "Just a moment…", HTTP 403. Stopped there. The figure stays
 unverified, and `lib/size-limits.ts` records it as such.
 
-**Two things left to settle, both touching user-facing copy, so not done
-unasked:**
+**Both closed 2026-11-26** — and the second one was closed by **not** doing what
+I recommended.
 
-1. **`/us-visa-photo` states "JPEG under 240 KB" as a rule** — in the meta
-   description, the lede, a feature bullet and an FAQ answer. Recommended:
-   soften to "whatever cap the form shows you, which has been 240 KB", keep the
-   automatic sizing, and cite FAM for everything FAM covers. Do **not** change
-   the number itself — every source that quotes it agrees, and moving a figure on
-   no evidence is worse than publishing it on thin evidence.
-2. **Our `headMax` is 0.69; the FAM says two thirds (0.667).** Ours is
-   marginally more permissive than the manual we now cite. Small, but it is a
-   published number that disagrees with its own source. Recommended: 0.667.
+**1. `/us-visa-photo` copy — done.** The page now opens the FAM clause, quotes
+it, links it, dates it (read 26 Nov 2026; revised 29 Jul 2024), and separates
+the two kinds of figure: the photograph, which is sourced, from the upload
+form's pixel range and byte cap, which are not. It says so plainly — *"we are
+not going to tell you the State Department requires a particular number of
+kilobytes"* — states what our export actually does, and sends the reader to read
+the cap off the form, with `/compress-to-size` linked for a tighter one. Two FAM
+rules people get wrong are now on the page as well: no eyeglasses for
+applications filed on or after 1 November 2016, and the head-covering rule.
+**227 → 935 rendered words**, plus a `<ThirdPartyNotice>` for the Department of
+State.
 
-`us-visa` can stay in `VERIFIED_SPECS` once §1 lands — the geometry is sourced
-now; it was the citation and the cap that were not.
+**2. ⚠ `headMax` 0.69 → 0.667 — DO NOT. My recommendation was wrong.** I read the
+FAM's *"at least half, but no more than two thirds, of the picture"* and stopped
+there. The **same clause** gives the head in millimetres: **"between 1 to 1 3/8
+inches (25 mm to 35 mm)"**. On a 2-inch (51 mm) photo that is **0.490–0.686**, so
+our 0.50–0.69 is that rounded — it is where the number came from, not a slip.
+The source states it both ways and the two disagree; we follow the millimetres,
+because they are measurable and because 0.667 would put the page at 34.0 mm
+against the 35 mm the FAM prints. `lib/passport-specs.ts` now carries a comment
+saying so, so nobody "fixes" it later.
+
+`us-visa` stays in `VERIFIED_SPECS`, now honestly — geometry, background and head
+height sourced to the FAM; only `maxKB: 240` is not, and `lib/size-limits.ts`
+labels it unverified.
+
+**Guards added**, `tests/unit/sourced-claims.test.ts`:
+- ⛔ **no shipped page links to an aggregator, coaching site or competitor as a
+  source** (comparison pages exempt, since naming competitors is policy).
+- the DS-160 page cites `9 FAM 303.6-2(A)(1)` and **does not restate 240 KB as
+  anybody's requirement**.
+- ⚠ everything reads the code with **comments stripped**, and a test proves the
+  stripper strips. The first draft asserted the FAM url was in the file and
+  **passed with the citation swapped for passlens**, because the url was still in
+  the comment explaining why we cite the FAM. A guard that reads its own
+  documentation proves nothing.
 
 ---
 
