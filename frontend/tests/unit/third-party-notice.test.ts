@@ -33,6 +33,9 @@ const MUST_CARRY_NOTICE = [
   // the resale-certificate matrix — names the Multistate Tax Commission, the
   // Streamlined Sales Tax Governing Board and all 51 revenue departments
   'app/resale-certificates/page.tsx',
+  // the metadata explainer quotes Adobe's own documentation for how one of its
+  // services settles a disagreement between a PDF's two copies of its metadata
+  'app/remove-pdf-metadata/page.tsx',
   // competitor comparisons
   'app/compare/page.tsx',
   'components/marketing/alternative-page.tsx',

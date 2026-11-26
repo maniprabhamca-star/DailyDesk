@@ -197,7 +197,105 @@ titles for nothing.
 
 ---
 
-## 5. What this plan does not promise
+## 5. The fourteen head terms: what it would actually take
+
+Asked directly, after the above: *what is the plan to improve ranking for
+`compress pdf`, `merge pdf`, `pdf to word` and the other eleven?*
+
+There is a plan. It is not a content plan, and it does not finish this year.
+
+### Where we are starting from
+
+Zero impressions on all fourteen, over 92 days. Not a bad position — no
+position. And these are not ordinary commercial queries: a free PDF tool is one
+of the most link-contested things on the web, held by four domains at DR 62–84
+while we sit at **0.9**.
+
+Domain Rating is a function of the link graph — how many other sites link to
+you, and how strong they are. It is not a function of word count, schema, title
+tags, internal links or page speed. Every item in §3 is worth doing and **none
+of it moves these fourteen terms.** That is the honest shape of the problem, and
+any plan that implies otherwise is selling motion.
+
+### The ladder, in the order it has to happen
+
+**1 — Collect the first 20–40 referring domains from places that already want to
+list us.** Mostly half-done already, which is the point of starting here:
+
+- **MCP directories.** The server is live on npm and listed in almost none of
+  them. Glama, mcp.so, PulseMCP, Smithery, the `awesome-mcp-servers` list on
+  GitHub. Recorded as an open gap in `dailydesk-mcp-server`; each is a real
+  referring domain and the work is a form.
+- **`npm publish 0.1.3`**, outstanding since August (`dailydesk-npm-publishing`).
+- **Software directories**: AlternativeTo, SaaSHub, Slant, Product Hunt, Show HN.
+  The ten `*-alternative` pages are exactly the content AlternativeTo exists to
+  index.
+- **Privacy communities**: privacyguides.org, r/privacy. Our zero-upload claim is
+  the rare thing those audiences can verify themselves — open DevTools, watch
+  nothing leave. That is a submission with a reason attached.
+- **The press releases already sitting in `docs/press/`**, written and unsent
+  (`dailydesk-pr-archive`).
+
+**2 — Give people something to link to that is not "we built a tool".** The one
+linkable asset we can build that nobody else can: **a measured record of what
+competing converters actually upload.** Open the network panel, run the same file
+through each, record the requests and the bytes. The result is a fact rather than
+a marketing claim, and it is the single strongest link hook available to a
+privacy-first toolkit.
+
+⚠ Rules that apply to it and are not optional: every number measured and dated,
+every tool named precisely, scope stated (the online tool, on that date, not the
+desktop product), `<ThirdPartyNotice>` on the page, and the claims written so a
+competitor reading it has nothing to object to. See
+`dailydesk-competitor-comparison-policy`. A sloppy version of this page is worse
+than no page.
+
+**3 — Rank the cluster before the hub.** Our own data is unambiguous: we win
+where a query names something specific. `/compress-pdf` gets its shot *after*
+the exact-size family in §3 P2 ranks and links into it — six pages that rank for
+`compress pdf to 50kb`, `... to 200kb` and so on, each passing a relevant
+internal link up to the hub. That sequence is the only on-page route to a head
+term, and it runs cluster-first. It does not work in reverse.
+
+**4 — Branded search, which is slow and real.** `dimesk` at position 2,
+`diem pro` 5.7, `diem editor` 10 — six impressions between them. How many people
+search for you by name is an input to how the domain is treated. It grows from
+step 1 and step 2, not from anything on a tool page.
+
+**5 — What not to do, stated so nobody is tempted.** No paid links, no
+guest-post networks, no expired-domain redirects, no directory bundles. At DR
+0.9 the domain *is* the asset; a manual action is not a setback, it is the end of
+it.
+
+### The timeline and the ceiling, honestly
+
+30–60 genuine referring domains over 6–12 months takes DR 0.9 to roughly 20–30.
+**At DR 25, `merge pdf` is still not winnable** — iLovePDF and Smallpdf have had
+a decade and thousands of referring domains on exactly that term. What changes is
+that the modifier and long-tail space opens up at volume, which is where §3 was
+pointing all along.
+
+### And the part worth saying out loud
+
+**The single click this site earned in 92 days was
+`bob bank statement pdf to excel converter`, at position 103.** Somebody went to
+page eleven of the results and clicked. Meanwhile 59 PDF-tool queries drew 122
+impressions and zero clicks.
+
+`compress pdf` is the most commoditised query in the category and it monetises at
+approximately nothing — the people searching it want one free file converted and
+will take whichever of six identical free tools Google puts first. Statement
+conversion is the paid product (`dailydesk-statement-converter`), the intent is
+specific enough that a reader dug to page eleven to find us, and the competition
+on those terms is weak enough that we already rank 2.4–8.7 across the family.
+
+So: the fourteen head terms have a plan, and it is the ladder above. But if the
+goal is revenue rather than a ranking screenshot, **they are the wrong fourteen
+queries to be planning around**, and the ladder's step 1 and step 2 are worth
+doing on their own merits regardless of what they eventually do for
+`compress pdf`.
+
+## 6. What this plan does not promise
 
 It does not get `/compress-pdf`, `/merge-pdf` or `/pdf-to-word` into the top 10.
 Those terms are held by four domains at DR 62–84 and we are at 0.9, and we
