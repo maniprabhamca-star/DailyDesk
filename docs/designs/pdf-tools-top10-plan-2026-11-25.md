@@ -219,22 +219,64 @@ any plan that implies otherwise is selling motion.
 
 ### The ladder, in the order it has to happen
 
-**1 — Collect the first 20–40 referring domains from places that already want to
-list us.** Mostly half-done already, which is the point of starting here:
+**1 — Collect referring domains.** ⚠ **Corrected the same day it was
+written.** The first draft of this step said the directory work was mostly
+undone and the press releases were sitting unsent. Both were written from the
+roadmap rather than from the live state, and the live state says something more
+useful — and less comfortable.
 
-- **MCP directories.** The server is live on npm and listed in almost none of
-  them. Glama, mcp.so, PulseMCP, Smithery, the `awesome-mcp-servers` list on
-  GitHub. Recorded as an open gap in `dailydesk-mcp-server`; each is a real
-  referring domain and the work is a form.
-- **`npm publish 0.1.3`**, outstanding since August (`dailydesk-npm-publishing`).
-- **Software directories**: AlternativeTo, SaaSHub, Slant, Product Hunt, Show HN.
-  The ten `*-alternative` pages are exactly the content AlternativeTo exists to
-  index.
-- **Privacy communities**: privacyguides.org, r/privacy. Our zero-upload claim is
-  the rare thing those audiences can verify themselves — open DevTools, watch
-  nothing leave. That is a submission with a reason attached.
-- **The press releases already sitting in `docs/press/`**, written and unsent
-  (`dailydesk-pr-archive`).
+| | state, checked 2026-11-25 | |
+|---|---|---|
+| npm | `diemdesk-mcp@0.1.2` live since 2026-08-30 | ✅ |
+| Official MCP Registry | `com.diemdesk/mcp`, status active | ✅ |
+| Glama | listed **and claimed**, rated **B** on the `DailyDesk` path (**D** on the duplicate `diemdesk-mcp` path) | ✅ |
+| `awesome-mcp-servers` | **PR #13214 CLOSED 2026-10-09** — see below | ❌ |
+| Smithery | skipped on purpose: it lists hosted URLs, ours is stdio-on-your-disk | — |
+| Press distribution | **published July 2026 via EIN Presswire and syndicated** | ✅ |
+
+**The press release went out, and it is the most important fact in this
+section.** It published around 2026-07-14 and syndicated to at least six
+domains — einpresswire.com itself, financialcontent.com (Wedbush),
+investor.wedbush.com, pr.enewspf.com, smb.panolian.com — and was picked up
+independently by borncity.com, a German tech blog. Records are in
+`diemdesk-EIN-newswire/`, which is where the archive actually lives, not
+`docs/press/`.
+
+**Four months later the domain is at DR 0.9.** Newswire syndication is almost
+entirely nofollow and duplicated across a syndication network, so it buys
+visibility on the day and close to nothing in the link graph. We have already
+run that play once, at cost, and the result is measured. **Planning a second
+press release as a link-building step would be repeating an experiment whose
+answer we have.** Worth doing again for launch news; not worth doing for DR.
+
+**What is actually open, and it is one thing:**
+
+- **`awesome-mcp-servers` PR #13214 was closed for a reason that no longer
+  holds.** The list now gates entries behind a Glama quality score. When the PR
+  was reviewed there was none, the author did not respond for 30 days, and it
+  was closed as inactive on 2026-10-09 with an explicit invitation to reopen.
+  The score now exists — **B** — so the blocking condition is satisfied and the
+  entry can be resubmitted. This is the single highest-value unblocked item in
+  the whole section: that list is one of the most-referenced MCP directories
+  there is.
+- **The duplicate Glama listing.** The same server is listed twice, once rated
+  B and once rated D. The D entry is the dedicated `diemdesk-mcp` repo, which
+  has not been committed to since 2026-08-30 — Glama's rating is a maintenance
+  signal, so a repo that has not moved in three months rates badly while the
+  main repo, committed to daily, rates B. Worth consolidating, and worth
+  knowing that the fix is activity rather than content.
+- **npm 0.1.3**, which is listed as outstanding and is close to pointless. The
+  only change between 0.1.2 and the working copy is the Dockerfile and
+  `glama.json`, and `files` does not ship either of them — so publishing it
+  would be a version bump with no functional difference. Its one real effect is
+  refreshing the "last published" date, which feeds the maintenance signal
+  above. Do it as part of a release that carries something, not on its own.
+- **Software directories**: AlternativeTo, SaaSHub, Slant, Product Hunt,
+  Show HN. These are genuinely untouched. Each needs an account, so each is
+  owner action — what can be prepared in advance is the submission copy.
+- **Privacy communities**: privacyguides.org, r/privacy. Our zero-upload claim
+  is the rare thing those audiences can verify themselves, which is what makes
+  a submission there something other than spam.
 
 **2 — Give people something to link to that is not "we built a tool".** The one
 linkable asset we can build that nobody else can: **a measured record of what
