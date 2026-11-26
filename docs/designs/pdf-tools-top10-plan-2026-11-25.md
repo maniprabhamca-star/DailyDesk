@@ -150,6 +150,65 @@ harness, logged to `dailydesk-test-results` like every other claim. A set of
 pages whose only difference is a number in the heading is the thin-content
 pattern Google demotes, and we would deserve it.
 
+#### ⚠ P2-as-written was killed by the competitor check, and replaced
+
+Ran the mandatory iLovePDF / Smallpdf / TinyWow check before building the five
+pages. **Adobe already owns `/compress-pdf-50kb` through `-500kb`** at DR ~96.
+Five thin pages of ours against five of theirs is not a top-10 path; it is the
+doorway pattern with a stronger incumbent sitting on it.
+
+What the audit found instead, on the page that already exists:
+
+- `/compress-to-size` was **481 rendered words** — the thinnest page in the
+  family it is supposed to be the hub of.
+- The ~20 portal caps it fills with one tap render **client-side after a file is
+  dropped**, so NEET, the US visa cap, Canada PR and India e-Visa appeared
+  nowhere in the HTML a crawler sees. The page's single most useful asset was
+  invisible to search.
+- ⚠ And the accuracy problem, which matters more than the SEO one: **not one of
+  the 18 caps had a source URL anywhere in the repo**, under an inline comment
+  calling them "real, sourced upload limits".
+
+**Shipped 2026-11-26** (`a853a64`):
+
+- `frontend/lib/size-limits.ts` — one source of truth, read by the tool and the
+  page. A discriminated union: `source` (authority, URL, ISO date read, the
+  sentence as published) **XOR** `unverified`, which states why. Never both,
+  never neither.
+- The page publishes `PUBLISHED_LIMITS` only, as a crawlable 4-column table with
+  the quote and the date read, source links `rel="nofollow"`. **2 of 18** to
+  start: Gmail 25 MB (personal accounts — the row was called "Email", which
+  implied every provider shares it) and 4 MB for IRCC's secure account and
+  Permanent Residence Portal, which is two of their accounts and not the others.
+- The tool still offers all 18. **A preset is not a published claim**: it fills a
+  number box the reader can see and change. Same rule as the resale matrix,
+  where an unreadable row stayed blank.
+- **481 → 1,233 rendered words**, plus `<ThirdPartyNotice>` for Google and IRCC.
+- Three places where the old figures had leaked into published prose were found
+  and fixed — step 2 of "How it works", the IBPS/SBI FAQ answer, and an answer
+  on `/passport-photo` quoting two caps as fact.
+
+Guards (each sabotaged and seen to fail first): source XOR unverified · no
+aggregator or blog source, no future date · **the page maps `PUBLISHED_LIMITS`,
+never `SIZE_LIMITS`** (the load-bearing one — swapping the identifier publishes
+16 guesses silently) · `isSourced` discriminates, both samples · **no page states
+an unverified label beside its figure**, which is what found all three prose
+leaks, plus a fourth in the first draft of the changelog entry announcing this
+change. 617 unit tests, was 603.
+
+**Tranche 2 — the remaining 16.** Pending, not blocked, for most: the Indian
+commissions publish caps inside per-exam notice PDFs rather than a stable page,
+and `ssc.gov.in` and `upsconline.gov.in` both answer the browser pane. Two stay
+closed: `travel.state.gov` serves its photo requirements behind a bot check and
+`support.discord.com` refuses automated reads. We do not work around either.
+
+⚠ **A related finding this opened, not yet acted on.** `/us-visa-photo` is built
+on "JPEG under 240 KB", and `lib/passport-specs.ts` carries `maxKB: 240` with
+`us-visa` inside `VERIFIED_SPECS`. The source recorded for it in
+`docs/passport-spec-sources.md` is **passlens.com, a competitor blog** — which
+that same file's own comment calls "unacceptable as the source of one". The
+official page is the one behind the bot check. Decision needed; see §4.
+
 ### P3 — The pricing-comparison answer, in three languages
 
 Cheapest item with the clearest evidence behind it.
@@ -194,6 +253,60 @@ The `Search appearance` sheet in the same export is the next place to look, and
 **GSC → Indexing → Pages → Export** is still outstanding from the companion doc.
 Worth settling before anyone concludes it is a title problem and rewrites 57
 titles for nothing.
+
+### ⚠ The DS-160 240 KB figure, which we cite a competitor blog for
+
+Surfaced by the P2 sourcing pass (§3), not resolved by it, because the fix is not
+cheap and the right answer is not obvious.
+
+`/us-visa-photo` is built around **"JPEG under 240 KB"** — it is in the title
+description, the lede, a feature bullet and an FAQ answer — and
+`lib/passport-specs.ts` carries `maxKB: 240` for `us-visa`, which also sits
+inside `VERIFIED_SPECS`. The source recorded in `docs/passport-spec-sources.md`
+is **`passlens.com/blog/us-visa-photo-guide`**, a competitor blog, plus a bare
+"US State Dept" with no URL. That same file's own header comment says aggregator
+sites are "fine for FINDING a rule and unacceptable as the source of one", and
+line 448 already lists `us-visa` among four specs with an outstanding guard.
+
+The figure is very likely right — it is consistent across every source that
+quotes it. The problem is that we cannot show where it came from, on a page whose
+entire promise is that the photo will be accepted.
+
+**Checked the same day, and the answer splits in two.**
+
+`fam.state.gov` — the Foreign Affairs Manual — **is readable, with no bot check**,
+and **9 FAM 303.6-2(A)(1)** (CT:VISA-2036, 07-29-2024) carries the State
+Department's own photo standards: "2 inches square (roughly 50 mm square)",
+"white or off-white background", the head at "at least half, but no more than two
+thirds, of the picture" and "about one inch (33 mm) from the chin to the top of
+the hair", plus the eyeglasses rule (none for applications filed on or after
+1 November 2016) and the head-covering rule.
+
+So **everything except the byte cap now has an official source**, and the
+passlens citation is gone — `docs/passport-spec-sources.md` corrected, with the
+split written out in a note on the row.
+
+The **240 KB is not in the FAM at all**, and on reflection it could not be: the
+FAM governs the photograph, not the CEAC upload form. It is published only on
+`travel.state.gov`, which answered the browser pane with a Cloudflare
+interstitial — "Just a moment…", HTTP 403. Stopped there. The figure stays
+unverified, and `lib/size-limits.ts` records it as such.
+
+**Two things left to settle, both touching user-facing copy, so not done
+unasked:**
+
+1. **`/us-visa-photo` states "JPEG under 240 KB" as a rule** — in the meta
+   description, the lede, a feature bullet and an FAQ answer. Recommended:
+   soften to "whatever cap the form shows you, which has been 240 KB", keep the
+   automatic sizing, and cite FAM for everything FAM covers. Do **not** change
+   the number itself — every source that quotes it agrees, and moving a figure on
+   no evidence is worse than publishing it on thin evidence.
+2. **Our `headMax` is 0.69; the FAM says two thirds (0.667).** Ours is
+   marginally more permissive than the manual we now cite. Small, but it is a
+   published number that disagrees with its own source. Recommended: 0.667.
+
+`us-visa` can stay in `VERIFIED_SPECS` once §1 lands — the geometry is sourced
+now; it was the citation and the cap that were not.
 
 ---
 

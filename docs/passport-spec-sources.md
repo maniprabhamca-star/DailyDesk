@@ -10,8 +10,37 @@ for the rest. Nothing here guarantees acceptance — every office is strict its 
 
 | Spec | Size | Head | Background | Digital cap | Source |
 |---|---|---|---|---|---|
-| **US visa (DS-160)** | 2×2 in (600–1200 px) | 50–69% | White | ≤240 KB | [Passlens US visa](https://passlens.com/blog/us-visa-photo-guide), US State Dept |
+| **US visa (DS-160)** | 2×2 in (600–1200 px) | 50–69% | White | ≤240 KB ⚠ unsourced | [9 FAM 303.6-2(A)(1)](https://fam.state.gov/fam/09fam/09fam030306.html) (CT:VISA-2036, 07-29-2024; read 2026-11-26) — covers the size, background and head height. **Not the 240 KB cap**, see below |
 | **US passport** | 2×2 in | 50–69% | White | — | US State Dept |
+
+> **⚠ The DS-160 240 KB figure has no source, and the row above used to cite a
+> competitor's blog for it.** Corrected 2026-11-26 during the
+> `/compress-to-size` sourcing pass, which found the same figure asserted in
+> four places across the site.
+>
+> What is now sourced: **9 FAM 303.6-2(A)(1)**, the Foreign Affairs Manual's own
+> photo standards, readable at `fam.state.gov` with no bot check. It gives
+> "2 inches square (roughly 50 mm square)", "white or off-white background",
+> the head at "at least half, but no more than two thirds, of the picture" and
+> "about one inch (33 mm) from the chin to the top of the hair", plus the
+> eyeglasses rule (no glasses for applications filed on or after 1 November
+> 2016) and the head-covering rule.
+>
+> What is still unsourced: **the 240 KB byte cap**. It is not in the FAM at all
+> — the FAM governs the photograph, not the CEAC upload form. The cap is
+> published only on `travel.state.gov`, which serves a Cloudflare interstitial
+> ("Just a moment…", HTTP 403) to automated requests. We do not work around a
+> bot check, so the figure stays unverified and
+> `frontend/lib/size-limits.ts` records it as such.
+>
+> **Two things to settle, both touching user-facing copy** — see
+> `docs/designs/pdf-tools-top10-plan-2026-11-25.md` §4:
+> 1. `/us-visa-photo` states "JPEG under 240 KB" as a rule in its description,
+>    lede, a feature bullet and an FAQ answer. Soften to the figure the form
+>    asks for, or leave it and accept that we cannot show where it came from.
+> 2. Our `headMax` is **0.69**; the FAM says **two thirds** (0.667). Ours is
+>    marginally more permissive than the manual. Small, but it is a number we
+>    publish and it disagrees with the source we now cite.
 | **UK passport** | 35×45 mm (≥600×750 px) | 29–34 mm (≈70–80%) | **Light grey / cream — not white** | 50 KB–10 MB | [GOV.UK photo rules](https://www.passport.service.gov.uk/help/photo-rules) |
 | **Schengen visa** | 35×45 mm | 32–36 mm (70–80%) | Light grey / off-white | — | [AXA Schengen photo](https://www.axa-schengen.com/en/visa/requirements/documents/photo-requirements), [schengenvisainfo](https://schengenvisainfo.com/photo/) |
 | **Canada passport/PR** | 50×70 mm | 31–36 mm | White / light | — | [Canada.ca passport photos](https://www.canada.ca/en/immigration-refugees-citizenship/services/canadian-passports/photos.html) |
