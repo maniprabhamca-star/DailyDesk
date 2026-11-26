@@ -6,7 +6,9 @@ const path = require('path');
 const { createCanvas } = require('@napi-rs/canvas');
 const { PDFDocument, PDFName, PDFRawStream, PDFArray } = require('pdf-lib');
 
-const FILE = 'C:/Users/Test/Downloads/Step6-TalentGum.pdf';
+// SIM_FILE lets a driver point this at a different fixture without editing the
+// file. Default unchanged, so every existing invocation behaves as before.
+const FILE = process.env.SIM_FILE || 'C:/Users/Test/Downloads/Step6-TalentGum.pdf';
 const LEVEL = { rasterDpi: Number(process.argv[2] || 100), rasterQ: Number(process.argv[3] || 52), rasterFrac: Number(process.argv[4] || 0.5) };
 const MAX_RASTER = 4000, RASTER_FLOOR_PX = 1100;
 
@@ -153,6 +155,7 @@ async function inflateDeflate(bytes) {
   const secs = ((Date.now() - t0) / 1000).toFixed(1);
   console.log(`rasterized ${rasterized}, copied ${copied}, total ${secs}s`);
   console.log(`RESULT: ${(original.length / 1048576).toFixed(2)} MB -> ${(outBytes.length / 1048576).toFixed(2)} MB (${Math.round(100 * (1 - outBytes.length / original.length))}% saved)`);
+  console.log(`BYTES: ${original.length} -> ${outBytes.length}`);
   fs.writeFileSync('compressed-out.pdf', outBytes);
 
   // validity check: reopen + render page 20 of the OUTPUT
