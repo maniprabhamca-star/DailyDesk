@@ -226,13 +226,13 @@
     </tr>
     <tr>
       <td><strong>awesome-mcp-servers</strong></td>
-      <td><span class="mark wait">PR open</span></td>
-      <td>#13214 · +1 −0 · awaiting a maintainer</td>
+      <td><span class="mark wait">resubmitted</span></td>
+      <td>#13214 <strong>closed</strong> 2026-10-09 · reopened as #20784, +1 −0, 2026-11-26</td>
     </tr>
     <tr>
       <td><strong>Glama</strong></td>
-      <td><span class="mark wait">submitted</span></td>
-      <td>Under review before it becomes visible</td>
+      <td><span class="mark done">listed</span></td>
+      <td>Claimed and scored · <strong>B</strong> on the DailyDesk path, <strong>D</strong> on diemdesk-mcp</td>
     </tr>
     <tr>
       <td><strong>Smithery</strong></td>
@@ -445,18 +445,46 @@
   publish. Nothing in the quickstart mentions that cap.
 </div>
 
-<h3>awesome-mcp-servers <span class="mark wait">PR open</span></h3>
+<h3>awesome-mcp-servers <span class="mark wait">closed, then resubmitted</span></h3>
 <p>
   93k stars, actively maintained. One line added to <strong>File Systems</strong>, the section that already
   holds the PDF and OCR servers, placed alphabetically. Their CONTRIBUTING asks agent-authored PRs to append
   a robot marker for fast-tracking — used, and disclosed in the body rather than applied quietly.
 </p>
+<p>
+  <strong>It did not get merged.</strong> The list has since started gating entries behind a Glama quality
+  score. A bot asked for one the day the PR opened, the maintainer nudged on 2026-09-07, and with no reply
+  for thirty days it was closed as inactive on <strong>2026-10-09</strong> — with an explicit invitation to
+  reopen once the score existed.
+</p>
+<p>
+  The score exists now, so it went back up on <strong>2026-11-26</strong> as
+  <a href="https://github.com/punkpeye/awesome-mcp-servers/pull/20784">#20784</a>: +1 −0, mergeable, the
+  branch rebuilt from current <span class="mono">upstream/main</span> rather than rebasing a three-month-old
+  edit, and the description shortened because the neighbouring entries are now one sentence each.
+</p>
+<p class="note">
+  <strong>Reopening is not available</strong> once the head branch has been force-pushed —
+  <span class="mono">gh pr reopen</span> answers <em>“Could not open the pull request”</em>. Open a new PR from
+  the same branch.
+</p>
 
-<h3>Glama <span class="mark wait">submitted</span></h3>
+<h3>Glama <span class="mark done">listed, claimed and scored</span></h3>
 <p>
   Submitted on the <strong>Server</strong> tab, which is correct — Connector is for deployed remote
-  endpoints. Their notice says public submissions are reviewed before becoming visible, so expect a delay
-  rather than an instant listing.
+  endpoints. It is live, claimed, and rendering a score badge.
+</p>
+<p>
+  <strong>Two listings exist for one server, and they disagree:</strong>
+  <span class="mono">maniprabhamca-star/DailyDesk</span> rates <strong>B</strong> and
+  <span class="mono">maniprabhamca-star/diemdesk-mcp</span> rates <strong>D</strong>. The badge’s own
+  description says what is being measured — <em>“maintenance rated D”</em>. It is not a judgement on the
+  code. The dedicated repo has had two commits in its life, both on 2026-08-30, while the main repo is
+  committed to daily. Raising it means genuinely maintaining that repo.
+</p>
+<p>
+  The awesome-list entry carries the <span class="mono">diemdesk-mcp</span> badge, because that is the repo
+  the entry links to. Pointing it at the better-rated path would be a mismatch a reviewer would catch.
 </p>
 
 <h3>Smithery <span class="mark skip">skipped, deliberately</span></h3>
@@ -491,11 +519,17 @@
     </p>
   </li>
   <li>
-    <span class="who">You — nothing to do, just wait</span>
-    <h3>Two reviews in other people’s hands</h3>
+    <span class="who">Someone — watch the PR</span>
+    <h3>⚠ “No action required” is what killed the first attempt</h3>
     <p>
-      The awesome-mcp-servers PR and the Glama submission are both queued for human review. No action
-      required; they land when they land.
+      This section used to say both reviews were in other people’s hands and would land when they landed.
+      One of them did not. A bot posted a new requirement on the awesome-mcp-servers PR within hours, the
+      maintainer followed up a week later, and the PR was closed after thirty days of silence from our side.
+    </p>
+    <p>
+      A submission to a curated list is not fire-and-forget. Check
+      <span class="mono">gh pr view 20784 --repo punkpeye/awesome-mcp-servers --json comments,state</span>
+      every week or so until it merges.
     </p>
   </li>
   <li>

@@ -251,6 +251,13 @@ answer we have.** Worth doing again for launch news; not worth doing for DR.
 
 **What is actually open, and it is one thing:**
 
+- **✅ DONE 2026-11-26 — resubmitted as
+  [PR #20784](https://github.com/punkpeye/awesome-mcp-servers/pull/20784)**,
+  additions 1 / deletions 0 / mergeable, branch rebuilt from current
+  `upstream/main`. `gh pr reopen` is refused once a head branch has been
+  force-pushed, so it went up as a new PR, which is what the maintainer
+  invited. ⚠ It now needs **watching** — silence is exactly what closed the
+  first one. Original note follows.
 - **`awesome-mcp-servers` PR #13214 was closed for a reason that no longer
   holds.** The list now gates entries behind a Glama quality score. When the PR
   was reviewed there was none, the author did not respond for 30 days, and it
