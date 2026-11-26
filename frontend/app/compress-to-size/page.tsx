@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { PdfToolPage } from '@/components/pdf/tool-page';
+import { SpecificCase } from '@/components/app/specific-case';
 import { CompressTargetTool } from '@/components/tools/compress-target-tool';
 
 export const metadata: Metadata = {
@@ -37,6 +39,15 @@ export default function CompressToSizePage() {
       description="Hit an exact file-size limit — under 100 KB, 200 KB, 1 MB, whatever the portal demands — for exam and visa forms, government uploads, or email. Works for PDFs and images, right in your browser. Your file never leaves your device."
       steps={steps}
       faqs={faqs}
+      afterTool={
+        <SpecificCase>
+          100 KB is the number portals ask for most often, and it has a page of its own —{' '}
+          <Link href="/compress-pdf-to-100kb" className="font-medium text-primary underline-offset-4 hover:underline">
+            compress a PDF to 100 KB
+          </Link>{' '}
+          — if that is the limit you were given.
+        </SpecificCase>
+      }
     >
       <CompressTargetTool />
     </PdfToolPage>

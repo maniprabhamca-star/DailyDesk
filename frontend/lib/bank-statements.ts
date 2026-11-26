@@ -464,3 +464,41 @@ export const BANK_PAGES: BankPage[] = [
 ];
 
 export const getBankPage = (slug: string): BankPage | undefined => BANK_PAGES.find((b) => b.slug === slug);
+
+/** The banks a given bank page links on to.
+ *
+ *  ── ⚠ WHY THIS EXISTS ──────────────────────────────────────────────────────
+ *  An internal-link audit on 2026-11-25 found every one of these pages with
+ *  **zero** inbound links from anywhere on the site — not one, including the
+ *  header. Two causes compounded:
+ *
+ *    1. `/bank-statement-converter` listed none of its own bank pages.
+ *    2. The hub is `soon: true` in the catalogue, and the Tools menu renders a
+ *       `soon` entry as plain text (`t.href && !t.soon`), so it emits no
+ *       anchor at all.
+ *
+ *  Which is remarkable, because these are the best-ranking pages on the site:
+ *  sbi-card at position 2.4, bandhan 6.5, rbl 7.0, amex-india 8.0, axis 8.7,
+ *  phonepe 8.7. They rank with no internal support whatsoever.
+ *
+ *  ── ⚠ WHY A ROTATION, NOT "THE FIRST TWELVE" ───────────────────────────────
+ *  Linking every page to the same twelve banks would hand all the internal
+ *  signal to those twelve and leave the other twenty-six exactly as orphaned
+ *  as before — a footer wearing a different hat. Starting the slice at the
+ *  current bank's own index and wrapping means each page links on to a
+ *  different set, and every bank ends up on the receiving end roughly `count`
+ *  times. tests/unit/bank-statements.test.ts asserts that floor rather than
+ *  trusting the arithmetic.
+ *
+ *  Deterministic on purpose: a random or date-seeded pick would give the
+ *  static build a different link graph on every deploy, which is the one thing
+ *  an internal link structure must not do. */
+export function siblingBanks(slug: string, count = 12): BankPage[] {
+  const i = BANK_PAGES.findIndex((b) => b.slug === slug);
+  if (i < 0) return BANK_PAGES.slice(0, count);
+  const out: BankPage[] = [];
+  for (let k = 1; out.length < count && k < BANK_PAGES.length; k += 1) {
+    out.push(BANK_PAGES[(i + k) % BANK_PAGES.length]);
+  }
+  return out;
+}

@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { PdfToolPage } from '@/components/pdf/tool-page';
+import { SpecificCase } from '@/components/app/specific-case';
 import { QrCodeTool } from '@/components/tools/qr-code-tool';
 
 export const metadata: Metadata = {
@@ -67,6 +69,20 @@ export default function QrCodeGeneratorPage() {
       description="Links, Wi-Fi logins, contact cards, email, calls, SMS — with custom colors, your logo, and bulk ZIP export. Free, no signup, generated entirely in your browser. Static codes that never expire."
       steps={steps}
       faqs={faqs}
+      afterTool={
+        <SpecificCase>
+          Two of the seven types have a page of their own, with the fields each one needs spelled
+          out:{' '}
+          <Link href="/wifi-qr-code" className="font-medium text-primary underline-offset-4 hover:underline">
+            Wi-Fi QR code
+          </Link>{' '}
+          for letting guests join a network by scanning, and{' '}
+          <Link href="/vcard-qr-code" className="font-medium text-primary underline-offset-4 hover:underline">
+            vCard QR code
+          </Link>{' '}
+          for a contact card that saves into the phone&rsquo;s address book.
+        </SpecificCase>
+      }
     >
       <QrCodeTool />
     </PdfToolPage>

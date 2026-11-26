@@ -114,7 +114,8 @@ expecting it to move position 47 to page 1.
 
 ## 6. What to do, in order
 
-**1 — Retitle the 32 India forms pages (cheap, correct, do it now).** Per-form
+**1 — Retitle the 32 India forms pages (cheap, correct, do it now).** ✅ DONE
+(commit `83e2324`, `INDIA_SEO` in `lib/india-forms.ts`). Per-form
 titles and descriptions carrying the qualifier and the intent word people
 actually type. Not a template.
 
@@ -123,8 +124,8 @@ evidence behind it on this domain: the bank pages rank, the head-term pages do
 not. The forms matrix roadmap is already this strategy; the data now supports
 it rather than merely arguing for it.
 
-**3 — Add `BreadcrumbList` to the three library families.** Site-wide, mechanical,
-improves how the result renders.
+**3 — Add `BreadcrumbList` to the three library families.** ⏳ STILL OPEN.
+Site-wide, mechanical, improves how the result renders.
 
 **4 — Take the two striking-distance queries.** `ais registration india`
 (pos 16.7) — our AIS page does not cover *registration* at all. `epf form 10c`
@@ -140,7 +141,81 @@ rather than shipping work that implies otherwise.
 AI Scrapers and Crawlers = Off** as still open. Unrelated to Google rankings,
 but it is the one SEO-adjacent switch no code can throw.
 
-## 7. What this export cannot tell us
+## 7. The internal-link audit (run 2026-11-25, after §6)
+
+§2 said this is not a technical problem, and that holds for crawling, speed and
+markup. It did not hold for internal links, and that was not visible in the
+performance export at all — it only shows up by crawling the built site.
+
+**Method.** Fetch all 311 sitemap URLs from the production build, take
+`<main>`, strip `<header|footer|nav>`, and count how many pages link to each URL
+from their *content*. Script: `linkaudit.py` (scratchpad; takes the base URL as
+argv[1]). Counting the header and footer would have made every page look well
+linked — that is why chrome is stripped, and the orphan list prints the
+with-chrome total beside each row so a footer-only page is distinguishable from
+one nothing reaches at all.
+
+**What it found: 79 pages with zero editorial inbound links.** Including all 39
+bank statement pages — the best-ranking family on the domain (sbi-card pos 2.4,
+bandhan 6.5, rbl 7.0, amex-india 8.0, axis 8.7, phonepe-statement 8.7). Two
+independent causes, both invisible from the page itself:
+
+1. The hub listed none of its own bank pages.
+2. The hub is `soon: true` in the catalogue, and the Tools menu only emits an
+   anchor for `t.href && !t.soon` — so the menu rendered it as plain text.
+
+**Result after the repair.**
+
+| | before | after |
+|---|---|---|
+| pages with 0 editorial inbound links | 79 | 4 |
+| of those, reachable only from the footer | 3 | 3 |
+| bank family, average inbound | 0.0 | 12.0 (min 12, max 12) |
+| passport family, average inbound | 4.3 | 5.3 (min 1) |
+
+**Two traps worth recording.**
+
+- ⚠⚠ `PdfToolPage` wraps only `children` in `ToolGate`, **not** `afterTool`. The
+  bank hub index was written as a child first. The tool is `coming_soon`, so the
+  public page rendered "Coming soon" and emitted **zero** anchors — and the
+  re-run audit still showed all 39 banks at zero, which is the only reason it
+  was caught. Anything whose job is to be crawled goes in `afterTool`.
+  `tests/unit/orphan-links.test.ts` pins this, with a negative sample proving
+  the check bites.
+- ⚠ The hub **cannot** be the carrier for `/bank-statement-to-{tally,quickbooks,csv}`
+  even once it does render them: it is `robots: { index: false }` while the tool
+  is gated and is kept out of the sitemap, so its links pass nothing. Those
+  three stayed at zero until they were linked from the 39 *indexed* bank pages.
+
+**Distribution, not just presence.** Each bank page links to a rotating slice of
+twelve taken from its own position in the index, so every bank receives 12 and
+no page is left out. "Link to the first twelve" passes every other assertion and
+leaves 26 banks exactly as orphaned as before — including `sbi-card`, the
+best-ranking page on the site. `tests/unit/bank-links.test.ts` tests the
+received counts, not the emitted ones, and also asserts `siblingBanks` is
+deterministic: a `Math.random` or date-seeded pick would hand Google a different
+internal structure on every deploy.
+
+**What is still orphaned, and why that is fine for three of them.** `/about`,
+`/accessibility` and `/vulnerability-disclosure` are footer-only (310 chrome
+links each) and belong there.
+
+**⏳ Open decision — `/fill-pdf-form-online`.** The last real orphan. It is a
+33-line keyword landing page, self-canonical, whose subject is identical to
+`/fill-pdf-form`. It was deliberately *not* linked: there is no sentence a
+reader on the parent page would gain anything from, and writing one would be
+filler. The options are a 301 to `/fill-pdf-form`, or pointing its canonical at
+the parent and leaving the page up. Needs a decision rather than a link.
+
+**Next on this axis: 94 pages with 1–2 inbound links**, including all ten
+competitor `*-alternative` pages at 1 each, and the 12 tool pages with 0
+outbound body links (`/verify-redaction`, `/delete-pages-from-pdf`,
+`/powerpoint-to-pdf`, `/extract-images-from-pdf`, `/remove-pdf-metadata`,
+`/protect-pdf`, `/pages-per-sheet`, `/change-pdf-page-size`, `/pdf-to-rtf`,
+`/pdf-to-html`, `/pdf-to-odt`, `/odf-to-pdf`) — a page that links nowhere passes
+its authority nowhere.
+
+## 8. What this export cannot tell us
 
 It carries performance only. **It does not say how many of the 311 sitemap URLs
 are actually indexed** — 158 have had at least one impression, so up to 153 may

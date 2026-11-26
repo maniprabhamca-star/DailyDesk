@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { KeywordLanding } from '@/components/app/keyword-landing';
-import { BANK_PAGES, getBankPage } from '@/lib/bank-statements';
+import { BANK_PAGES, getBankPage, siblingBanks } from '@/lib/bank-statements';
 
 export function generateStaticParams() {
   return BANK_PAGES.map((b) => ({ bank: b.slug }));
@@ -65,6 +66,56 @@ export default async function Page(props: { params: Promise<{ bank: string }> })
             is not affiliated with, endorsed by, or connected to {b.name}</b>; the bank’s name is used only to describe
             the statement format we read. Always check the output before filing.
           </div>
+
+          {/* ⚠ The only internal links these pages have.
+              A link audit on 2026-11-25 found all 38 bank pages with zero
+              inbound links from anywhere on the site — the hub listed none of
+              them, and the hub is `soon` in the catalogue so the Tools menu
+              emits no anchor for it either. They rank anyway (sbi-card 2.4,
+              bandhan 6.5, rbl 7.0), which is the argument for giving them a
+              link graph rather than leaving it to the sitemap.
+
+              The slice rotates from this bank's own index, so each page passes
+              its links to a different set and every bank receives roughly the
+              same number. The same twelve links on all 38 pages would be a
+              footer in disguise, and would concentrate the signal on twelve. */}
+          <h2 className="mt-10 text-xl font-bold tracking-tight">Statements from other banks</h2>
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+            The converter reads the layout rather than a per-bank template, so a statement from a
+            bank not listed here usually works too. These are the ones with their own write-up —
+            where to download the PDF, the password format, and the column quirk we handle.
+          </p>
+          <ul className="mt-4 flex flex-wrap gap-2">
+            {siblingBanks(b.slug).map((o) => (
+              <li key={o.slug}>
+                <Link
+                  href={`/bank-statement-converter/${o.slug}`}
+                  className="inline-flex rounded-lg border px-2.5 py-1 text-[13px] font-medium transition-colors hover:border-primary/60 hover:text-primary"
+                >
+                  {o.short} statement
+                </Link>
+              </li>
+            ))}
+          </ul>
+          {/* ⚠ These three had zero inbound links from any INDEXED page. The
+              hub lists them, but the hub is robots:index=false while the tool
+              is gated and is kept out of the sitemap, so its links carry
+              nothing. These 39 bank pages are indexed, and the export format
+              is what the reader is here for. */}
+          <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+            Where the rows end up is written up separately:{' '}
+            <Link href="/bank-statement-to-tally" className="font-medium text-primary underline-offset-4 hover:underline">statement to Tally XML</Link>,{' '}
+            <Link href="/bank-statement-to-quickbooks" className="font-medium text-primary underline-offset-4 hover:underline">to QuickBooks</Link>, or{' '}
+            <Link href="/bank-statement-to-csv" className="font-medium text-primary underline-offset-4 hover:underline">to CSV</Link>.
+          </p>
+          <p className="mt-4 text-sm text-muted-foreground">
+            <Link
+              href="/bank-statement-converter"
+              className="font-semibold text-primary underline-offset-4 hover:underline"
+            >
+              All {BANK_PAGES.length} banks, and the converter itself
+            </Link>
+          </p>
         </>
       }
       faqs={[

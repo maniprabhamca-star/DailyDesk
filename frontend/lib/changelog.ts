@@ -31,6 +31,14 @@ export type ChangeEntry = {
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: '2026-11-25',
+    kind: 'improved',
+    title: 'Seventy-nine pages nothing linked to',
+    detail:
+      'If you landed on the page for your own bank’s statement, there was no way to get from it to any of the others. If you landed on the passport photo page, there was no list of the countries we have specifications for — you had to know to open the picker. Both were true for every one of those pages, for as long as they have existed.\n\nWe crawled the whole site, stripped out the header and the footer, and counted how many pages link to each page from their actual content. Seventy-nine pages had none. Among them were all thirty-nine bank write-ups, which are the pages people find us through most often.\n\nSo: the converter now lists every bank it has a write-up for, and each of those pages carries a dozen links on to others — a different dozen on each page, so none of them is left out. The passport photo page lists all fifty-one country specifications, grouped the way the picker groups them. The pages describing what comes out of the converter — Tally XML, QuickBooks, CSV — are linked from the bank pages themselves, where the question actually comes up. And a handful of pages written for one specific case are now reachable from the tool they belong to: compressing to 100 KB, stripping EXIF and GPS off a photo, blurring a face, the DS-160 visa photo, and the Wi-Fi and contact-card QR codes.\n\nFour pages still have no link from anywhere in the content. Three of them are About, Accessibility and our vulnerability disclosure, which live in the footer and belong there.',
+    href: '/bank-statement-converter',
+  },
+  {
+    date: '2026-11-25',
     kind: 'feature',
     title: 'There is a second resale certificate, and a few states have none',
     detail:

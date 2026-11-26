@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { PdfToolPage } from '@/components/pdf/tool-page';
+import { SpecificCase } from '@/components/app/specific-case';
 import { CompressImageTool } from '@/components/tools/compress-image-tool';
 
 export const metadata: Metadata = {
@@ -38,6 +40,19 @@ export default function CompressImagePage() {
       description="Make JPG, PNG, and WebP images smaller without wrecking them — pro-grade compression with a before/after compare. Free, instant, and private. Your photo never leaves your browser."
       steps={steps}
       faqs={faqs}
+      afterTool={
+        <SpecificCase>
+          Two things people often mean when they say they want to shrink a photo before posting it:
+          stripping the hidden location and device data, which is{' '}
+          <Link href="/remove-exif" className="font-medium text-primary underline-offset-4 hover:underline">
+            remove EXIF &amp; GPS
+          </Link>{' '}
+          and shows you what was in there first, and hiding a face or a plate in the shot, which is{' '}
+          <Link href="/blur-image" className="font-medium text-primary underline-offset-4 hover:underline">
+            blur an image
+          </Link>.
+        </SpecificCase>
+      }
     >
       <CompressImageTool />
     </PdfToolPage>
