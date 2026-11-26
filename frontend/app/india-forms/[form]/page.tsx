@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { KeywordLanding } from '@/components/app/keyword-landing';
-import { INDIA_FORMS, getForm } from '@/lib/india-forms';
+import { INDIA_FORMS, getForm, INDIA_SEO } from '@/lib/india-forms';
 import { tasksForForm } from '@/lib/form-tasks';
 import { catalog } from '@/components/app/catalog';
 import { ThirdPartyNotice } from '@/components/app/third-party-notice';
@@ -18,9 +18,19 @@ export async function generateMetadata(props: { params: Promise<{ form: string }
   const params = await props.params;
   const f = getForm(params.form);
   if (!f) return {};
+  // ⚠ Per-form, not templated. One shared title string left this library at
+  // average position 47.7 on 1,186 impressions — 54% of the site's total — for
+  // a single click, and titled its biggest page "Form 19" while the queries
+  // were "epf form 19" and "pf form 19". See INDIA_SEO in lib/india-forms.ts.
+  //
+  // The fallback uses `name`, never `short`: `short` is the index-page label
+  // and drops the EPF/PF qualifier that is the whole search term.
+  const seo = INDIA_SEO[f.slug];
   return {
-    title: `${f.short} — What It Is & Who Files It | DiemDesk`,
-    description: `${f.short}: what it is, who files it, and the mistake people make. Plus the free on-device tools for the PDFs around it — nothing uploaded.`,
+    title: seo?.title ?? `${f.name} — What It Is & Who Files It`,
+    description:
+      seo?.description ??
+      `${f.name}: what it is, who files it, and the mistake people make. Plus the free on-device tools for the PDFs around it — nothing uploaded.`,
     alternates: { canonical: `/india-forms/${f.slug}` },
     openGraph: {
       images: ['/og.png'],

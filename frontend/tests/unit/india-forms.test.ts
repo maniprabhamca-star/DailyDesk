@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { INDIA_FORMS, FORM_GROUPS, getForm } from '@/lib/india-forms';
+import { adviceBreaches } from './_advice-vocabulary';
+import { INDIA_FORMS, FORM_GROUPS, getForm, INDIA_SEO } from '@/lib/india-forms';
 import { catalog } from '@/components/app/catalog';
 
 // This family carries a risk none of the others do: it makes statements about
@@ -114,5 +115,96 @@ describe('India forms library', () => {
       expect(FORM_GROUPS.includes(f.group), `${f.name}: group "${f.group}" is not in FORM_GROUPS`).toBe(true);
     }
     expect(FORM_GROUPS.length).toBeGreaterThan(1);
+  });
+});
+
+// ───────────────────────────────────────────────────────────────────────────
+// Search titles — the contract that replaced the template.
+// ───────────────────────────────────────────────────────────────────────────
+//
+// Written after the 2026-11-25 Search Console export showed this library
+// drawing 1,186 impressions (54% of the whole site) at average position 47.7
+// for one click. The cause was one shared title string, and the clearest
+// symptom was `/india-forms/epf-form-19` — 241 impressions, the biggest page
+// on the site — titled "Form 19" while every query that reached it said
+// "epf form 19", "pf form 19" or "form 19 in epfo".
+//
+// The guards below are the ones that would have caught that.
+
+describe('India forms — per-form search titles', () => {
+  it('every form has one, so nothing silently falls back to a template', () => {
+    for (const f of INDIA_FORMS) {
+      expect(INDIA_SEO[f.slug], `${f.slug} has no SEO entry`).toBeTruthy();
+    }
+    // And no entry for a form that does not exist.
+    const slugs = new Set(INDIA_FORMS.map((f) => f.slug));
+    for (const k of Object.keys(INDIA_SEO)) {
+      expect(slugs.has(k), `INDIA_SEO has '${k}', which is not a form`).toBe(true);
+    }
+  });
+
+  it('⚠ no two forms share a title or a description', () => {
+    // THE regression guard. A template passes every other check in this file
+    // and fails this one, because 32 pages would carry 32 identical strings.
+    const titles = Object.values(INDIA_SEO).map((s) => s.title);
+    const descs = Object.values(INDIA_SEO).map((s) => s.description);
+    expect(new Set(titles).size, 'duplicate titles').toBe(titles.length);
+    expect(new Set(descs).size, 'duplicate descriptions').toBe(descs.length);
+  });
+
+  it('⚠ an EPF form names EPF or PF in its title', () => {
+    // The specific defect. /india-forms/epf-form-19 was titled "Form 19" while
+    // its traffic came from "epf form 19" and "pf form 19". `short` is the
+    // index label and drops the qualifier; it must never reach a title alone.
+    for (const f of INDIA_FORMS.filter((x) => x.slug.startsWith('epf-'))) {
+      const t = INDIA_SEO[f.slug].title;
+      expect(/\b(EPF|PF)\b/.test(t), `${f.slug} title omits EPF/PF: "${t}"`).toBe(true);
+    }
+  });
+
+  it('a title carries the form the page is about', () => {
+    // `short` is sometimes a pair rather than a name — "FATCA / CRS" — so the
+    // check is that every substantive part of the label appears, not that the
+    // label appears verbatim. Matching verbatim would force the title to read
+    // "FATCA / CRS", which is not a phrase anybody searches.
+    for (const f of INDIA_FORMS) {
+      const t = INDIA_SEO[f.slug].title.toLowerCase();
+      const parts = f.short
+        .toLowerCase()
+        .split('/')
+        .map((p) => p.trim())
+        .filter(Boolean);
+      for (const part of parts) {
+        const core = part.replace(/^(form|gstr|itr)\s*/, '');
+        expect(
+          t.includes(part) || (core.length > 1 && t.includes(core)),
+          `${f.slug}: title "${INDIA_SEO[f.slug].title}" does not name "${part}"`,
+        ).toBe(true);
+      }
+    }
+  });
+
+  it('fits the SERP budgets', () => {
+    for (const [slug, s] of Object.entries(INDIA_SEO)) {
+      expect(s.title.length, `${slug} title is ${s.title.length}: "${s.title}"`).toBeLessThanOrEqual(60);
+      expect(s.title.length, `${slug} title is too short`).toBeGreaterThan(20);
+      expect(s.description.length, `${slug} description is ${s.description.length}`).toBeLessThanOrEqual(155);
+      expect(s.description.length, `${slug} description is too short`).toBeGreaterThan(110);
+    }
+  });
+
+  it('carries no brand suffix, which the budget cannot afford yet', () => {
+    // Deliberate: see the note on INDIA_SEO. Revisit when the brand is
+    // actually searched for — today the only brand query in the export is
+    // "dimesk", misspelled, with 2 impressions.
+    for (const [slug, s] of Object.entries(INDIA_SEO)) {
+      expect(s.title.includes('DiemDesk'), `${slug} spends 11 characters on the brand`).toBe(false);
+    }
+  });
+
+  it('states no duty — the advice boundary applies to titles too', () => {
+    const copy = Object.values(INDIA_SEO).flatMap((s) => [s.title, s.description]);
+    const breaches = adviceBreaches(copy);
+    expect(breaches, breaches.join('\n')).toEqual([]);
   });
 });

@@ -566,3 +566,168 @@ export const INDIA_FORMS: IndiaForm[] = [
 
 export const FORM_GROUPS = INDIA_FORMS.map((f) => f.group).filter((g, i, a) => a.indexOf(g) === i);
 export const getForm = (slug: string) => INDIA_FORMS.find((f) => f.slug === slug);
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Per-form search titles and descriptions.
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// ⚠ WHY THIS EXISTS, AND WHY IT IS NOT A TEMPLATE
+//
+// Until 2026-11-25 every page here was titled from one string:
+//     `${f.short} — What It Is & Who Files It | DiemDesk`
+// The Search Console export for the preceding 92 days showed what that cost.
+//
+//   • `/india-forms/epf-form-19` drew 241 impressions at average position
+//     46.6 — the single biggest page on the site — for the queries
+//     "form 19" (27), "epf form 19" (23), "pf form 19" (22) and
+//     "form 19 in epfo" (22). Its title said only "Form 19". The data already
+//     held `name: 'EPF Form 19'`; the template simply picked the wrong field.
+//     Same for 10C, 31 and 13.
+//   • Thirty-two pages shared one phrasing, so none of them read as the best
+//     answer to anything.
+//   • The words people actually type — download, format, online, full form —
+//     appeared in no title at all. "ais full form" (17), "gstr-9a format" (8,
+//     and already ranking position 2.9), "epf form 10c online" (7).
+//
+// So these are written one at a time against real queries. A template is what
+// produced the problem; replacing it with a cleverer template would too.
+//
+// ⚠ NO " | DiemDesk" SUFFIX, deliberately. It costs 11 characters of a ~60
+// character budget, and at average position 46.8 nobody is searching for the
+// brand — the one brand query in the whole export is "dimesk", misspelled,
+// with 2 impressions. The characters are worth more spent on the question the
+// reader typed. Revisit when the brand is actually searched for.
+//
+// Budgets are enforced by tests/unit/india-forms.test.ts, not by hoping.
+export type IndiaSeo = { title: string; description: string };
+
+export const INDIA_SEO: Record<string, IndiaSeo> = {
+  'form-16': {
+    title: 'Form 16: Your Salary TDS Certificate, Explained',
+    description: 'Form 16 is the TDS certificate an employer issues after the year ends. What it contains, who hands it over, and the part people misread.',
+  },
+  'form-16a': {
+    title: 'What Is Form 16A? TDS on Income That Is Not Salary',
+    description: 'Form 16A covers TDS on interest, rent and commission rather than salary. Who issues it, where it comes from, and what to check against Form 26AS.',
+  },
+  'form-26as': {
+    title: 'Form 26AS: The Annual Tax Statement, Explained',
+    description: 'Form 26AS is the statement the department assembles about you from what everyone else reported. What appears on it, and why it may not match your records.',
+  },
+  'ais': {
+    title: 'AIS Full Form: Registration and How to Download It',
+    description: 'The Annual Information Statement: what AIS stands for, how to register and download it on the income tax portal, and how it differs from Form 26AS.',
+  },
+  'itr-1': {
+    title: 'ITR-1 (Sahaj): Who Can File It, and Who Cannot',
+    description: 'ITR-1 is the simplest Indian return and not everyone may use it. What Sahaj means, which income it covers, and the conditions that rule a filer out.',
+  },
+  'itr-2': {
+    title: 'ITR-2: Who Files It, and How It Differs from ITR-1',
+    description: 'ITR-2 is for filers with capital gains, more than one house, or foreign income. What it covers, and the point at which ITR-1 stops being an option.',
+  },
+  'itr-3': {
+    title: 'ITR-3: The Return for Business and Profession Income',
+    description: 'ITR-3 is for income from a business or profession, including a partner in a firm. What it covers and how it differs from the presumptive ITR-4.',
+  },
+  'itr-4': {
+    title: 'ITR-4 (Sugam): Filing Under the Presumptive Scheme',
+    description: 'ITR-4 is the presumptive-taxation return. What Sugam means, which businesses and professionals it is meant for, and where its limits sit.',
+  },
+  'form-15g': {
+    title: 'Form 15G: The Declaration That Stops TDS on Interest',
+    description: 'Form 15G is a declaration that income falls below the taxable limit, so a bank does not deduct TDS on interest. Who may give one, and when it is refused.',
+  },
+  'form-15h': {
+    title: 'What Is Form 15H? The Senior Citizen TDS Declaration',
+    description: 'Form 15H is the declaration a senior citizen gives a bank so TDS is not deducted on interest. How it differs from Form 15G, and who qualifies.',
+  },
+  'form-10e': {
+    title: 'Form 10E: Claiming Relief on Salary Arrears',
+    description: 'Form 10E supports a section 89 relief claim when salary arrears land in one year. What it is for, and why a claim is disallowed without it.',
+  },
+  'form-12bb': {
+    title: 'Form 12BB: The Investment Declaration You Give Payroll',
+    description: 'Form 12BB is the statement of claimed deductions an employee hands their own payroll team. What goes on it, and why it never reaches the department.',
+  },
+  'form-49a': {
+    title: 'Form 49A: The PAN Card Application for Indian Citizens',
+    description: 'Form 49A is the PAN application for Indian citizens. What it asks for, who processes it, and how it differs from Form 49AA for foreign applicants.',
+  },
+  'form-49aa': {
+    title: 'Form 49AA: PAN Card Application for Foreign Citizens',
+    description: 'Form 49AA is the PAN application used by foreign citizens and entities. What it asks for, and the point at which Form 49A applies instead.',
+  },
+  'gstr-1': {
+    title: 'GSTR-1: The Outward Supplies Return, Explained',
+    description: 'GSTR-1 reports outward supplies — the sales side of a GST registration. What it carries, who files it, and how it feeds the recipient’s credit.',
+  },
+  'gstr-3b': {
+    title: 'GSTR-3B: The Summary Return and Tax Payment',
+    description: 'GSTR-3B is the summary return where GST is actually paid. What it carries, how it sits against GSTR-1, and the mismatch that causes trouble.',
+  },
+  'gstr-9': {
+    title: 'GSTR-9 and GSTR-9A: The Annual GST Return Format',
+    description: 'The annual GST return: what GSTR-9 contains, who files it, how GSTR-9A differed for composition dealers, and where the official format lives.',
+  },
+  'gst-reg-01': {
+    title: 'GST REG-01: The GST Registration Application',
+    description: 'GST REG-01 is the application that starts a GST registration. What it asks for, what follows it, and which documents the portal expects.',
+  },
+  'epf-form-19': {
+    title: 'EPF Form 19: PF Final Settlement Withdrawal',
+    description: 'EPF Form 19 is the final settlement claim that withdraws a PF balance after leaving a job. Who files it, how it is filed online, and what holds it up.',
+  },
+  'epf-form-10c': {
+    title: 'EPF Form 10C: The Pension Withdrawal Benefit Claim',
+    description: 'EPF Form 10C claims the pension withdrawal benefit from the EPS. How it differs from Form 19, who may file it, and why the two are usually filed together.',
+  },
+  'epf-form-31': {
+    title: 'EPF Form 31: PF Partial Withdrawal and Advance',
+    description: 'EPF Form 31 claims an advance against a PF balance without leaving the job. What it may be claimed for, and how it differs from a final settlement.',
+  },
+  'epf-form-13': {
+    title: 'EPF Form 13: Transferring PF When You Change Jobs',
+    description: 'EPF Form 13 moves a PF balance from an old employer to a new one. How the transfer runs through the UAN portal, and what makes a transfer fail.',
+  },
+  'aadhaar-enrolment': {
+    title: 'Aadhaar Enrolment Form: Applying for a New Aadhaar',
+    description: 'The Aadhaar enrolment form starts a new Aadhaar application. What it asks for, which documents establish identity and address, and what happens next.',
+  },
+  'aadhaar-correction': {
+    title: 'Aadhaar Update Form: Change a Name, Address or DOB',
+    description: 'The Aadhaar update form corrects a name, address or date of birth. What may be changed, how often, and which documents each change asks for.',
+  },
+  'spice-plus': {
+    title: 'SPICe+ Full Form: Company Incorporation (INC-32)',
+    description: 'SPICe+ is the MCA form that incorporates a company in one filing. What the acronym stands for, what Part A and Part B each do, and what comes bundled.',
+  },
+  'dir-3-kyc': {
+    title: 'What Is DIR-3 KYC? The Annual Director KYC Filing',
+    description: 'DIR-3 KYC is the yearly KYC every director with a DIN files. Who it applies to, what the web form asks, and what happens when the deadline passes.',
+  },
+  'aoc-4': {
+    title: 'AOC-4: Annual Filing of Financial Statements',
+    description: 'AOC-4 files a company’s financial statements with the MCA. What it carries, which companies file which variant, and how it sits beside MGT-7.',
+  },
+  'mgt-7': {
+    title: 'MGT-7 and MGT-7A: The Annual Return, Explained',
+    description: 'MGT-7 is a company’s annual return to the MCA. What it reports, which small companies file MGT-7A instead, and how it differs from AOC-4.',
+  },
+  'bank-kyc-update': {
+    title: 'Bank KYC Update Form: Periodic Re-KYC Explained',
+    description: 'Banks re-run KYC on a cycle and ask for a form when they do. What re-KYC checks, which documents are accepted, and what freezes an account.',
+  },
+  'fatca-crs-declaration': {
+    title: 'FATCA Full Form: The CRS Declaration Banks Ask For',
+    description: 'What FATCA stands for, why an Indian bank or fund asks for a tax-residency self-certification, and what the CRS declaration actually asks you to state.',
+  },
+  'bank-nomination-form': {
+    title: 'Bank Nomination Form: Adding a Nominee to an Account',
+    description: 'The nomination form names who receives a bank balance. What a nominee is and is not, how DA-1 works, and why a nominee is not the same as an heir.',
+  },
+  'form-15ca': {
+    title: 'Form 15CA: The Declaration for a Foreign Remittance',
+    description: 'Form 15CA is the declaration filed before money is sent abroad. When it is needed, which part applies, and when a Form 15CB certificate goes with it.',
+  },
+};
